@@ -1,0 +1,255 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: "Rapid7 Server Template"
+Parameters:
+  SSHSecurityGroup:
+    Description:
+      The security group ID for the ssh security group
+    Type: String
+    ConstraintDescription: Must be a security group
+  InstanceType:
+    Type: String
+    Description: The EC2 instance type for the instances.
+    AllowedValues:
+      - t3.micro
+      - t3.small
+      - t3.medium
+      - t3.large
+      - t3.xlarge
+      - m5.large
+      - m5.xlarge
+      - m5.2xlarge
+      - c5.large
+      - c5.xlarge
+      - c5.2xlarge
+      - c5.4xlarge
+      - c5.8xlarge
+    ConstraintDescription: Choose an instance type.
+    Default: m5.large
+  ImageId:
+    Description:
+      The AMI to use when launching servers.
+    Type: String
+  VPCId:
+    Description:
+      The VPC id to launch in
+    Type: String
+  SubnetId:
+    Description:
+      Subnet to launch in
+    Type: String
+  TagGitBranch:
+    Type: String
+    Default: 'master'
+    Description:
+      The name of the git branch
+  TagEnvironment:
+    Description:
+      The EC2 instance tag value for environment tag, used to sort nodes in homer
+    Type: String
+    ConstraintDescription: Must match EC2 Tag Name requirements.
+  TagEnvironmentType:
+    Type: String
+    Default: prod
+    Description:
+      The type of environment
+  TagCloudName:
+    Type: String
+    Description:
+      The name of the AWS VPC
+  TagProduct:
+    Type: String
+    Description:
+      The name of the product
+  TagTeam:
+    Type: String
+    Description:
+      The name of the team
+  TagOwner:
+    Type: String
+    Description:
+      The name of the service owner
+  TagService:
+    Type: String
+    Default: jitsi-baron-haproxy
+    Description:
+      The name of the associated service
+  KeyName:
+    Type: String
+    Description: SSH key name
+    Default: "video"
+  DiskDevice:
+    Type: String
+    Description: "Device name for main disk"
+    Default: "/dev/sda1"
+  DiskSize:
+    Type: String
+    Description: "Disk size for rapid7 server"
+    Default: "100"
+  SecurityInstanceProfile:
+    Default: Rapid7Scanner
+    Type: String
+    Description: Instance Profile
+
+Resources:
+  # Instance Security Group
+  Rapid7SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow Rapid7 engine traffic
+      VpcId:
+        Ref: VPCId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          SourceSecurityGroupId: !Ref SSHSecurityGroup
+        - IpProtocol: tcp
+          FromPort: 40814
+          ToPort: 40814
+          CidrIp: 158.101.41.41/32
+      Tags:
+        - Key: environment
+          Value: !Ref TagEnvironment
+        - Key: shard-role
+          Value: "rapid7"
+
+  # launch config
+  Rapid7Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      IamInstanceProfile: !Ref SecurityInstanceProfile
+      ImageId: !Ref ImageId
+      BlockDeviceMappings:
+        - DeviceName: !Ref DiskDevice
+          Ebs:
+            VolumeSize: !Ref DiskSize
+      SecurityGroupIds:
+      - !Ref Rapid7SecurityGroup
+      - !Ref SSHSecurityGroup
+      InstanceType: !Ref InstanceType
+      KeyName: !Ref KeyName
+      SubnetId: !Ref SubnetId
+      Tags:
+        - Key: Name
+          Value: !Sub "${TagEnvironment}-${TagCloudName}-rapid7"
+        - Key: environment
+          Value: !Ref TagEnvironment
+        - Key: shard-role
+          Value: "rapid7"
+        - Key: Environment
+          Value: !Ref TagEnvironmentType
+        - Key: Service
+          Value: !Ref TagService
+        - Key: Owner
+          Value: !Ref TagOwner
+        - Key: Team
+          Value: !Ref TagTeam
+        - Key: Product
+          Value: !Ref TagProduct
+        - Key: git_branch
+          Value: !Ref TagGitBranch
+        - Key: cloud_name
+          Value: !Ref TagCloudName
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash -v
+          set -e
+          set -x
+          EXIT_CODE=0
+          status_code=0
+          tmp_msg_file='/tmp/cfn_signal_message'
+          export CLOUD_NAME="${TagCloudName}"
+          export ENVIRONMENT="${TagEnvironment}"
+          export SHARD_ROLE="rapid7"
+          function get_metadata(){
+            export AWS_DEFAULT_REGION="${AWS::Region}"
+            instance_id=$(curl http://169.254.169.254/latest/meta-data/instance-id)
+          }
+          function install_apps(){
+            PYTHON_MAJOR=$(python -c 'import platform; print(platform.python_version())' | cut -d '.' -f1)
+            PYTHON_IS_3=false
+            if [[ "$PYTHON_MAJOR" -eq 3 ]]; then
+              PYTHON_IS_3=true
+            fi
+            if $PYTHON_IS_3; then
+              CFN_FILE="aws-cfn-bootstrap-py3-latest.tar.gz"
+            else
+              CFN_FILE="aws-cfn-bootstrap-latest.tar.gz"
+            fi
+            status_code=0 && \
+            wget -P /root https://s3.amazonaws.com/cloudformation-examples/$CFN_FILE && \
+            mkdir -p /root/aws-cfn-bootstrap-latest && \
+            tar xvfz /root/$CFN_FILE --strip-components=1 -C /root/aws-cfn-bootstrap-latest && \
+            easy_install /root/aws-cfn-bootstrap-latest/ && \
+            echo "[Boto]" > /etc/boto.cfg && echo "use_endpoint_heuristics = True" >> /etc/boto.cfg
+            if [ $status_code -eq 1 ]; then echo 'Install apps stage failed' > $tmp_msg_file; return $status_code;fi
+          }
+          function provisioning() {
+            status_code=0
+            (
+              #load the basics like $ENVIRONMENT, $SHARD_ROLE and $SHARD (if set)
+              . /usr/local/bin/aws_cache.sh
+
+              hostname "$ENVIRONMENT-$CLOUD_NAME-rapid7.infra.jitsi.net"
+
+              #s3 bucket where we get our credentials for access to git and key for encrypted ansible variables
+              S3_BUCKET="jitsi-bootstrap-assets"
+
+              #booting up in AWS so set our region to local
+              [ -z "$CURRENT_EC2_REGION" ] && CURRENT_EC2_REGION=$(curl -s http://169.254.169.254/latest/dynamic/instance-identity/document | jq .region -r)
+              export AWS_DEFAULT_REGION=$CURRENT_EC2_REGION
+
+              #if there's still no git branch set, assume master
+              [ -z "$GIT_BRANCH" ] && GIT_BRANCH="master"
+
+              #ensure files are present for access to encrypted vault and private repository
+              [ -e "/root/.vault-password" ] || /usr/local/bin/aws s3 cp s3://$S3_BUCKET/vault-password /root/.vault-password
+              [ -e "/root/.ssh/id_rsa" ] || /usr/local/bin/aws s3 cp s3://$S3_BUCKET/id_rsa_jitsi_deployment /root/.ssh/id_rsa
+              chmod 400 /root/.ssh/id_rsa
+
+              #unless specified, run all tags
+              DEPLOY_TAGS="all"
+
+              #do all the heavy lifting
+              ansible-pull -v -U git@github.com:8x8Cloud/jitsi-video-infrastructure.git \
+              -d /tmp/bootstrap --purge \
+              -i \"127.0.0.1,\" \
+              --vault-password-file=/root/.vault-password \
+              --accept-host-key \
+              -C "$GIT_BRANCH" \
+              --tags "$DEPLOY_TAGS" \
+              --extra-vars "cloud_name=$CLOUD_NAME hcv_environment=$ENVIRONMENT" \
+              ansible/configure-rapid7-local.yml
+            ) >> /var/log/bootstrap.log 2>&1 || status_code=1
+            [ $status_code -eq 0 ] || /usr/local/bin/dump-boot.sh > /var/log/dump_boot.log 2>&1 || DUMP_CODE=1
+            if [ $status_code -eq 1 ]; then echo 'Provisioning stage failed' > $tmp_msg_file; return $status_code;fi
+          }
+          function retry(){
+            n=0
+            until [ $n -ge 5 ]; do
+              $1
+              if [ $? -eq 0 ]; then
+                > $tmp_msg_file; break
+              fi
+              n=$[$n+1];
+              sleep 1;
+            done
+            if [ $n -eq 5 ]; then
+              return $n
+            else
+              return 0
+            fi
+          }
+          ( retry get_metadata && retry install_apps && retry provisioning ) ||  EXIT_CODE=1
+          if [ ! -f /tmp/cfn_signal_message ]; then err_message='Server configuration';else err_message=$(cat $tmp_msg_file);fi
+          [ $EXIT_CODE -eq 0 ] || /usr/local/bin/dump-boot.sh
+          # Send signal about finishing configuring server
+          if [ $EXIT_CODE -eq 1 ]; then shutdown -h now;fi
+
+Outputs:
+  EC2Instance:
+    Description: EC2 Instance ID for Rapid7
+    Value: !Ref Rapid7Instance
+  PublicIP:
+    Description: Public IP for Rapid7 Instance
+    Value: !GetAtt Rapid7Instance.PublicIp

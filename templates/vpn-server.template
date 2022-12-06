@@ -1,0 +1,682 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: "VPN Server Template"
+Parameters:
+  InstanceType:
+    Type: String
+    Description: The EC2 instance type for the instances.
+    AllowedValues:
+      - t3.micro
+      - t3.small
+      - t3.medium
+      - t3.large
+      - m5.large
+      - m5.xlarge
+      - m5.2xlarge
+      - c5.large
+      - c5.xlarge
+      - c5.2xlarge
+      - c5.4xlarge
+      - c5.8xlarge
+    ConstraintDescription: Choose an instance type.
+    Default: m5.large
+  Image:
+    Description:
+      The AMI to use when launching servers.
+    Type: String
+  PublicSubnetIds:
+    Description:
+      Subnets to launch the VPN Server in
+    Type: CommaDelimitedList
+  SecurityGroup:
+    Type: String
+    Description:
+      The ID for the VPN network security group
+    ConstraintDescription: Must be a security group
+  RightHandCidr:
+    Type: String
+    Description:
+      The network on the oracle side of the VPN
+    ConstraintDescription: Must be a valid network CIDR
+  VPNEni:
+    Type: String
+    Description:
+      The ID for the floating ENI for the AWS side of the VPN
+    ConstraintDescription: Must be a security group
+  VPNEIP:
+    Type: String
+    Description:
+      The Address for floating IP for the AWS side of the VPN
+    ConstraintDescription: Must be an IP address
+  VPNIpAddress1:
+    Type: String
+    Description:
+      The Address for the first Oracle VPN Endpoint
+    ConstraintDescription: Must be an IP address
+  VPNIpAddress2:
+    Type: String
+    Description:
+      The Address for the second Oracle VPN Endpoint
+    ConstraintDescription: Must be an IP address
+  CloudName:
+    Type: String
+    Description:
+      The name of the AWS VPC
+  OracleRegion:
+    Type: String
+    Description:
+      The name of the region in oracle
+  TagEnvironment:
+    Description:
+      The EC2 instance tag value for environment tag, used to sort nodes in homer
+    Type: String
+    Default: "all"
+    ConstraintDescription: Must match EC2 Tag Name requirements.
+  BootstrapS3Bucket:
+    Type: String
+    Description: S3 Bucket to collect bootstrap assets
+    Default: "jitsi-bootstrap-assets"
+  KeyName:
+    Type: String
+    Description: SSH key name
+    Default: "video"
+  DiskDevice:
+    Type: String
+    Description: "Device name for main disk"
+    Default: "/dev/sda1"
+  DiskSize:
+    Type: String
+    Description: "Disk size for VPN server"
+    Default: "12"
+  alarmSubscription:
+    Default: "meetings-ops@8x8.com"
+    Type: "String"
+    Description: "subscriptions for default alarm SNS topic"
+  alarmSNSTopicName:
+    Default: "vpn"
+    Type: "String"
+    Description: "SNS topic name to create for health events"
+
+Resources:
+  # health SNS topic
+  HealthAlarmSNS:
+    Type: AWS::SNS::Topic
+    Properties:
+      Subscription:
+        - Endpoint: !Ref alarmSubscription
+          Protocol: email
+      TopicName: !Sub ${alarmSNSTopicName}-${CloudName}-${TagEnvironment}
+# launch config
+  LaunchConfig:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Properties:
+      AssociatePublicIpAddress: true
+      IamInstanceProfile: VPNServerRole
+      ImageId: !Ref Image
+      BlockDeviceMappings:
+        - DeviceName: !Ref DiskDevice
+          Ebs:
+            VolumeSize: !Ref DiskSize
+      SecurityGroups:
+      - Ref: SecurityGroup
+      InstanceType: !Ref InstanceType
+      KeyName: !Ref KeyName
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash -xe
+          # First: attach ENI from ${VPNEni}
+          ENI_DEVICE="ens6"
+          ENI="${VPNEni}"
+          EXIT_CODE=0
+          EC2_INSTANCE_ID=$(curl http://169.254.169.254/latest/meta-data/instance-id)
+          export AWS_DEFAULT_REGION=$(curl --silent http://169.254.169.254/latest/dynamic/instance-identity/document | jq -r .region)
+
+          function attach_eni() {
+            DEVICE_INDEX="1"
+            ATTACH_COUNT=$(aws ec2 describe-network-interfaces --filters "Name=attachment.instance-id,Values=$EC2_INSTANCE_ID" "Name=network-interface-id,Values=$ENI" | jq ".NetworkInterfaces|length")
+            if [[ $ATTACH_COUNT -eq 0 ]]; then
+              aws ec2 attach-network-interface --device-index $DEVICE_INDEX --instance-id $EC2_INSTANCE_ID --network-interface-id $ENI
+            else
+              echo "VNIC $ENI already attached to instance $EC2_INSTANCE_ID"
+            fi
+            return $?
+          }
+
+          function swap_nics() {
+            status_code=0
+            ENI_MAC=$(aws ec2 describe-network-interfaces --filters "Name=attachment.instance-id,Values=$EC2_INSTANCE_ID" | jq -r ".NetworkInterfaces[]|select(.SourceDestCheck == false)|.MacAddress") || status_code=1
+            cat > /etc/netplan/60-vpn-floater.yaml <<EOF
+          network:
+            version: 2
+            ethernets:
+                $ENI_DEVICE:
+                    dhcp4: true
+                    dhcp6: true
+                    match:
+                        macaddress: $ENI_MAC
+                    set-name: $ENI_DEVICE
+          EOF
+            # remove ens5 setup
+            rm /etc/netplan/50-cloud-init.yaml || true
+
+            netplan --debug apply || status_code=1
+
+            # disable ens5, move to ens6
+            ip link set ens5 down || status_code=1
+
+            # wait a bit to get connection working again
+            sleep 10
+            return $status_code
+          }
+
+          function install_libreswan() {
+            # Next: install libreswan
+            apt-get update && apt-get -y install libreswan
+            return $?
+          }
+
+          # Set kernel params
+          function set_kernel_params() {
+            status_code=0
+            (sysctl -w net.ipv4.ip_forward=1 && \
+            sysctl -w net.ipv4.conf.all.accept_redirects=0 && \
+            sysctl -w net.ipv4.conf.all.send_redirects=0 && \
+            sysctl -w net.ipv4.conf.default.send_redirects=0 && \
+            sysctl -w net.ipv4.conf.$ENI_DEVICE.send_redirects=0 && \
+            sysctl -w net.ipv4.conf.default.accept_redirects=0 && \
+            sysctl -w net.ipv4.conf.$ENI_DEVICE.accept_redirects=0) || status_code=1
+            return $status_code
+          }
+
+          function setup_libreswan() {
+            return_code=0
+            LOCAL_IP=$(ip route get 1 | awk '{print $7;exit}')
+            # configure libreswan
+            # copy PSKs from bootstrap assets
+            aws s3 cp s3://${BootstrapS3Bucket}/vpn/${CloudName}-${OracleRegion}-${TagEnvironment}/psk1 /tmp/psk1 || return_code=1
+            aws s3 cp s3://${BootstrapS3Bucket}/vpn/${CloudName}-${OracleRegion}-${TagEnvironment}/psk2 /tmp/psk2 || return_code=1
+
+            cat > /etc/ipsec.d/oci-ipsec.conf <<EOF
+          conn oracle-tunnel-1
+              left=$LOCAL_IP
+              leftid=${VPNEIP} # See preceding note about 1-1 NAT device
+              right=${VPNIpAddress1}
+              authby=secret
+              leftsubnet=0.0.0.0/0
+              rightsubnet=0.0.0.0/0
+              auto=start
+              mark=5/0xffffffff # Needs to be unique across all tunnels
+              vti-interface=vti1
+              vti-routing=no
+              ikev2=no # To use IKEv2, change to ikev2=insist
+              ike=aes_cbc256-sha2_384;modp1536
+              phase2alg=aes_gcm256
+              encapsulation=yes
+              ikelifetime=28800s
+              salifetime=3600s
+          conn oracle-tunnel-2
+              left=$LOCAL_IP
+              leftid=${VPNEIP} # See preceding note about 1-1 NAT device
+              right=${VPNIpAddress2}
+              authby=secret
+              leftsubnet=0.0.0.0/0
+              rightsubnet=0.0.0.0/0
+              auto=start
+              mark=6/0xffffffff # Needs to be unique across all tunnels
+              vti-interface=vti2
+              vti-routing=no
+              ikev2=no # To use IKEv2, change to ikev2=insist
+              ike=aes_cbc256-sha2_384;modp1536
+              phase2alg=aes_gcm256
+              encapsulation=yes
+              ikelifetime=28800s
+              salifetime=3600s
+          EOF
+
+
+            PSK1=$(cat /tmp/psk1)
+            PSK2=$(cat /tmp/psk2)
+
+            echo "${VPNEIP} ${VPNIpAddress1}: PSK \"$PSK1\"" > /etc/ipsec.d/oci-ipsec.secrets
+            echo "${VPNEIP} ${VPNIpAddress2}: PSK \"$PSK2\"" >> /etc/ipsec.d/oci-ipsec.secrets
+
+            # start libreswan
+            service ipsec start || return_code=1
+
+            # wait a bit to let tunnel get established
+            sleep 10
+            ip route | grep -q ${RightHandCidr}
+            if [ $? -eq 0 ]; then
+              echo "Route exists, skipping"
+            else
+              ip route add ${RightHandCidr} nexthop dev vti1 nexthop dev vti2 || return_code=1
+            fi
+            return $return_code
+          }
+
+          function build_metrics_cron_script() {
+            # add metrics script
+            cat > /usr/local/bin/ipsec-stats.sh <<EOF
+          #!/bin/bash
+          TIMEOUT_BIN="/usr/bin/timeout"
+          AWS_BIN="/usr/local/bin/aws"
+          IPSEC_BIN="/usr/sbin/ipsec"
+          export AWS_DEFAULT_REGION="${AWS::Region}"
+          METRIC_SEND_TIMEOUT="10"
+          METRIC_TMP_FILE="/tmp/ipsec-metrics.json"
+          CLOUDWATCH_STATS_NAMESPACE="Video"
+          METRIC_DATA=''
+
+          function sendStats() {
+            cat > \$METRIC_TMP_FILE<<TILLEND
+            {
+                "Namespace": "\$CLOUDWATCH_STATS_NAMESPACE",
+                "MetricData": [ \$METRIC_DATA ]
+            }
+          TILLEND
+            \$TIMEOUT_BIN \$METRIC_SEND_TIMEOUT \$AWS_BIN cloudwatch put-metric-data --cli-input-json file://\$METRIC_TMP_FILE || echo "Failed put-metric with exit code: \$?"
+          }
+          CURRENT_TIME=\$(date +%s)
+          TIMESTAMP=\$(date +%FT%T)
+          \$IPSEC_BIN whack --trafficstatus > /tmp/ipsec-traffic-status
+          \$IPSEC_BIN whack --status > /tmp/ipsec-status
+          ACTIVE_TUNNELS=\$(cat /tmp/ipsec-status | awk '/Total IPsec connections/{print \$8}')
+          TUNNEL_1_UPSINCE=\$(cat /tmp/ipsec-traffic-status | grep "oracle-tunnel-1" | head -1 | cut -d ',' -f3 | cut -d'=' -f2)
+          if [ "\$TUNNEL_1_UPSINCE" == "0" ]; then
+            TUNNEL_1_UP=0
+            TUNNEL_1_UPTIME=0
+          else
+            TUNNEL_1_UP=1
+            TUNNEL_1_UPTIME=\$((CURRENT_TIME - TUNNEL_1_UPSINCE))
+          fi
+          TUNNEL_1_IN_BYTES=\$(cat /tmp/ipsec-traffic-status | grep "oracle-tunnel-1" | head -1 | cut -d ',' -f4 | cut -d'=' -f2)
+          TUNNEL_1_OUT_BYTES=\$(cat /tmp/ipsec-traffic-status | grep "oracle-tunnel-1" | head -1 | cut -d ',' -f5 | cut -d'=' -f2)
+          TUNNEL_1_IP=\$(cat /tmp/ipsec-traffic-status | grep "oracle-tunnel-1" | head -1 | cut -d ',' -f6 | cut -d'=' -f2| tr -d "'")
+
+          TUNNEL_2_UPSINCE=\$(cat /tmp/ipsec-traffic-status | grep "oracle-tunnel-2" | head -1 | cut -d ',' -f3 | cut -d'=' -f2)
+          if [ "\$TUNNEL_2_UPSINCE" == "0" ]; then
+            TUNNEL_2_UP=0
+            TUNNEL_2_UPTIME=0
+          else
+            TUNNEL_2_UP=1
+            TUNNEL_2_UPTIME=\$((CURRENT_TIME - TUNNEL_1_UPSINCE))
+          fi
+          TUNNEL_2_UPTIME=\$((CURRENT_TIME - TUNNEL_2_UPSINCE))
+          TUNNEL_2_IN_BYTES=\$(cat /tmp/ipsec-traffic-status | grep "oracle-tunnel-2" | head -1 | cut -d ',' -f4 | cut -d'=' -f2)
+          TUNNEL_2_OUT_BYTES=\$(cat /tmp/ipsec-traffic-status | grep "oracle-tunnel-2" | head -1 | cut -d ',' -f5 | cut -d'=' -f2)
+          TUNNEL_2_IP=\$(cat /tmp/ipsec-traffic-status | grep "oracle-tunnel-2" | head -1 | cut -d ',' -f6 | cut -d'=' -f2| tr -d "'")
+
+          METRIC_DATA=\$(cat <<TILLEND
+
+          {
+              "MetricName": "vpn_tunnels_active",
+              "Dimensions": [
+                {
+                    "Name": "Environment",
+                    "Value": "${TagEnvironment}"
+                }
+              ],
+              "Timestamp": "\$TIMESTAMP",
+              "Value": \$ACTIVE_TUNNELS,
+              "Unit": "Count"
+          },
+          {
+              "MetricName": "vpn_tunnel_up",
+              "Dimensions": [
+                {
+                    "Name": "Environment",
+                    "Value": "${TagEnvironment}"
+                }
+            ],
+              "Timestamp": "\$TIMESTAMP",
+              "Value": \$TUNNEL_1_UP,
+              "Unit": "Count"
+          },
+          {
+              "MetricName": "vpn_tunnel_uptime",
+              "Dimensions": [
+                {
+                    "Name": "Environment",
+                    "Value": "${TagEnvironment}"
+                }
+              ],
+              "Timestamp": "\$TIMESTAMP",
+              "Value": \$TUNNEL_1_UPTIME,
+              "Unit": "Seconds"
+          },
+          {
+              "MetricName": "vpn_tunnel_bytes_in",
+              "Dimensions": [
+                {
+                    "Name": "Environment",
+                    "Value": "${TagEnvironment}"
+                }
+            ],
+              "Timestamp": "\$TIMESTAMP",
+              "Value": \$TUNNEL_1_IN_BYTES,
+              "Unit": "Count"
+          },
+          {
+              "MetricName": "vpn_tunnel_bytes_out",
+              "Dimensions": [
+                {
+                    "Name": "Environment",
+                    "Value": "${TagEnvironment}"
+                }
+            ],
+              "Timestamp": "\$TIMESTAMP",
+              "Value": \$TUNNEL_1_OUT_BYTES,
+              "Unit": "Count"
+          },
+          {
+              "MetricName": "vpn_tunnel_up",
+              "Dimensions": [
+                {
+                    "Name": "Environment",
+                    "Value": "${TagEnvironment}"
+                }
+            ],
+              "Timestamp": "\$TIMESTAMP",
+              "Value": \$TUNNEL_2_UP,
+              "Unit": "Count"
+          },
+          {
+              "MetricName": "vpn_tunnel_uptime",
+              "Dimensions": [
+                {
+                    "Name": "Environment",
+                    "Value": "${TagEnvironment}"
+                }
+              ],
+              "Timestamp": "\$TIMESTAMP",
+              "Value": \$TUNNEL_2_UPTIME,
+              "Unit": "Seconds"
+          },
+          {
+              "MetricName": "vpn_tunnel_bytes_in",
+              "Dimensions": [
+                {
+                    "Name": "Environment",
+                    "Value": "${TagEnvironment}"
+                }
+            ],
+              "Timestamp": "\$TIMESTAMP",
+              "Value": \$TUNNEL_2_IN_BYTES,
+              "Unit": "Count"
+          },
+          {
+              "MetricName": "vpn_tunnel_bytes_out",
+              "Dimensions": [
+                {
+                    "Name": "Environment",
+                    "Value": "${TagEnvironment}"
+                }
+            ],
+              "Timestamp": "\$TIMESTAMP",
+              "Value": \$TUNNEL_2_OUT_BYTES,
+              "Unit": "Count"
+          },
+          {
+              "MetricName": "vpn_tunnel_up",
+              "Dimensions": [
+                {
+                    "Name": "Environment",
+                    "Value": "${TagEnvironment}"
+                },
+                {
+                  "Name": "tunnel",
+                  "Value": "\$TUNNEL_1_IP"
+                }
+            ],
+              "Timestamp": "\$TIMESTAMP",
+              "Value": \$TUNNEL_1_UP,
+              "Unit": "Count"
+          },
+          {
+              "MetricName": "vpn_tunnel_uptime",
+              "Dimensions": [
+                {
+                    "Name": "Environment",
+                    "Value": "${TagEnvironment}"
+                },
+                {
+                  "Name": "tunnel",
+                  "Value": "\$TUNNEL_1_IP"
+                }
+              ],
+              "Timestamp": "\$TIMESTAMP",
+              "Value": \$TUNNEL_1_UPTIME,
+              "Unit": "Seconds"
+          },
+          {
+              "MetricName": "vpn_tunnel_bytes_in",
+              "Dimensions": [
+                {
+                    "Name": "Environment",
+                    "Value": "${TagEnvironment}"
+                },
+                {
+                  "Name": "tunnel",
+                  "Value": "\$TUNNEL_1_IP"
+                }
+            ],
+              "Timestamp": "\$TIMESTAMP",
+              "Value": \$TUNNEL_1_IN_BYTES,
+              "Unit": "Count"
+          },
+          {
+              "MetricName": "vpn_tunnel_bytes_out",
+              "Dimensions": [
+                {
+                    "Name": "Environment",
+                    "Value": "${TagEnvironment}"
+                },
+                {
+                  "Name": "tunnel",
+                  "Value": "\$TUNNEL_1_IP"
+                }
+            ],
+              "Timestamp": "\$TIMESTAMP",
+              "Value": \$TUNNEL_1_OUT_BYTES,
+              "Unit": "Count"
+          },
+          {
+              "MetricName": "vpn_tunnel_up",
+              "Dimensions": [
+                {
+                    "Name": "Environment",
+                    "Value": "${TagEnvironment}"
+                },
+                {
+                  "Name": "tunnel",
+                  "Value": "\$TUNNEL_2_IP"
+                }
+            ],
+              "Timestamp": "\$TIMESTAMP",
+              "Value": \$TUNNEL_2_UP,
+              "Unit": "Count"
+          },
+          {
+              "MetricName": "vpn_tunnel_uptime",
+              "Dimensions": [
+                {
+                    "Name": "Environment",
+                    "Value": "${TagEnvironment}"
+                },
+                {
+                  "Name": "tunnel",
+                  "Value": "\$TUNNEL_2_IP"
+                }
+              ],
+              "Timestamp": "\$TIMESTAMP",
+              "Value": \$TUNNEL_2_UPTIME,
+              "Unit": "Seconds"
+          },
+          {
+              "MetricName": "vpn_tunnel_bytes_in",
+              "Dimensions": [
+                {
+                    "Name": "Environment",
+                    "Value": "${TagEnvironment}"
+                },
+                {
+                  "Name": "tunnel",
+                  "Value": "\$TUNNEL_2_IP"
+                }
+            ],
+              "Timestamp": "\$TIMESTAMP",
+              "Value": \$TUNNEL_2_IN_BYTES,
+              "Unit": "Count"
+          },
+          {
+              "MetricName": "vpn_tunnel_bytes_out",
+              "Dimensions": [
+                {
+                    "Name": "Environment",
+                    "Value": "${TagEnvironment}"
+                },
+                {
+                  "Name": "tunnel",
+                  "Value": "\$TUNNEL_2_IP"
+                }
+          ],
+              "Timestamp": "\$TIMESTAMP",
+              "Value": \$TUNNEL_2_OUT_BYTES,
+              "Unit": "Count"
+          }
+          TILLEND
+          )
+
+          sendStats
+
+          #rm \$METRIC_TMP_FILE
+
+          EOF
+
+            chmod +x /usr/local/bin/ipsec-stats.sh
+
+            # add metrics script to crontab if not already there
+            crontab -u root -l | grep -q ipsec-stats.sh || (crontab -u root -l && echo "* * * * * /usr/local/bin/ipsec-stats.sh > /tmp/ipsec-stats.log 2>&1") | crontab -u root -
+
+          }
+          function retry(){
+            n=0
+            until [ $n -ge 5 ]; do
+              $1
+              if [ $? -eq 0 ]; then
+                break
+              fi
+              n=$[$n+1];
+              sleep 1;
+            done
+            if [ $n -eq 5 ]; then
+              return $n
+            else
+              return 0
+            fi
+          }
+
+          ( retry attach_eni && retry swap_nics && retry install_libreswan && retry set_kernel_params && retry setup_libreswan && retry build_metrics_cron_script ) ||  EXIT_CODE=1
+
+# autoscaling group
+  VPNServerGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      VPCZoneIdentifier: [ !Select [0, !Ref PublicSubnetIds] ]
+      LaunchConfigurationName: !Ref LaunchConfig
+      DesiredCapacity: 1
+      MinSize: 1
+      MaxSize: 1
+      Tags:
+        - Key: Name
+          PropagateAtLaunch: true
+          Value: !Sub "vpn-server-${TagEnvironment}"
+        - Key: environment
+          PropagateAtLaunch: true
+          Value: !Ref TagEnvironment
+        - Key: shard-role
+          PropagateAtLaunch: true
+          Value: "vpn"
+
+  VPNDownAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions:
+        - !Ref HealthAlarmSNS
+      AlarmDescription: !Sub "SEVERE: ${TagEnvironment} ${AWS::Region} VPN (libreswan) in AWS to Oracle is DOWN"
+      ComparisonOperator: LessThanThreshold
+      Dimensions:
+        - Name: Environment
+          Value: !Ref TagEnvironment
+      EvaluationPeriods: 1
+      InsufficientDataActions:
+        - !Ref HealthAlarmSNS
+      MetricName: vpn_tunnel_up
+      Namespace: Video
+      OKActions:
+        - !Ref HealthAlarmSNS
+      Period: 60
+      Statistic: Sum
+      Threshold: 1
+      Unit: Count
+
+  VPNTunnelAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions:
+        - !Ref HealthAlarmSNS
+      AlarmDescription: !Sub "WARNING: ${TagEnvironment} ${AWS::Region} VPN (libreswan) in AWS to Oracle has at least 1 tunnel down"
+      ComparisonOperator: LessThanThreshold
+      Dimensions:
+        - Name: Environment
+          Value: !Ref TagEnvironment
+      EvaluationPeriods: 2
+      InsufficientDataActions:
+        - !Ref HealthAlarmSNS
+      MetricName: vpn_tunnel_up
+      Namespace: Video
+      OKActions:
+        - !Ref HealthAlarmSNS
+      Period: 60
+      Statistic: Sum
+      Threshold: 2
+      Unit: Count
+
+  VPNTrafficOutAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: !Sub "SEVERE: ${TagEnvironment} ${AWS::Region} VPN (libreswan) in AWS detects no outbound traffic"
+      Metrics:
+      - Id: network_out
+        MetricStat:
+          Metric:
+            Namespace: AWS/EC2
+            MetricName: NetworkOut
+            Dimensions:
+              - Name: AutoScalingGroupName
+                Value: !Ref VPNServerGroup
+          Stat: Sum
+          Period: 60
+      ComparisonOperator: LessThanThreshold
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      Threshold: 5
+      AlarmActions:
+        - !Ref HealthAlarmSNS
+      InsufficientDataActions:
+        - !Ref HealthAlarmSNS
+      OKActions:
+        - !Ref HealthAlarmSNS
+
+Outputs:
+  ASG:
+    Description: ASG for VPN Server
+    Value: !Ref VPNServerGroup
+  Topic:
+    Description: SNS Topic for VPN Alarms
+    Value: !Ref HealthAlarmSNS
+  AlarmVPNDown:
+    Description: VPN Down Alarm
+    Value: !Ref VPNDownAlarm
+  AlarmVPNTunnel:
+    Description: VPN Tunnel Alarm
+    Value: !Ref VPNTunnelAlarm

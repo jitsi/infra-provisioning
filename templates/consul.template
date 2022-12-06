@@ -1,0 +1,271 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: "Consul Template"
+Parameters:
+  ConsulInstanceType:
+    Type: String
+    Description: The EC2 instance type for the Consul instances.
+    AllowedValues:
+      - t3.micro
+      - t3.small
+      - t3.medium
+      - t3.large
+      - m5.large
+      - m5.xlarge
+      - m5.2xlarge
+      - c5.large
+      - c5.xlarge
+      - c5.2xlarge
+      - c5.4xlarge
+      - c5.8xlarge
+    ConstraintDescription: Choose an instance type.
+    Default: m5.large
+  ConsulServerCount:
+    Description:
+      Count of servers to launch
+    Type: Number
+    Default: 3
+    ConstraintDescription: Server count must be at least 1
+  ConsulImage:
+    Description:
+      The AMI to use when launching consul server nodes.
+    Type: String
+  VPCId:
+    Description:
+      The VPC id to launch in
+    Type: String
+  PrivateSubnetIds:
+    Description:
+      Subnets to launch the consul servers in
+    Type: CommaDelimitedList
+  PublicSubnetIds:
+    Description:
+      Subnets to launch the ELB in
+    Type: CommaDelimitedList
+  SSLCertificateId:
+    Description:
+      The ARN of the SSL certificate
+    Type: String
+    Default: "star_jitsi_net-2023-08-19"
+    ConstraintDescription: Must be a valid SSL certificate ARN
+  HostedZoneName:
+    Description:
+      The domain name for Route53 DNS
+    Type: String
+    ConstraintDescription: Must must match SSL certificate
+    Default: jitsi.net
+  BastionSSHSecurityGroup:
+    Description:
+      The security group ID for the bastion ssh security group
+    Type: String
+    ConstraintDescription: Must be a security group
+  ConsulServerDatacenter:
+    Description:
+      The Name for use as consul datacenter
+    Type: String
+  ConsulServerEnv:
+    Description:
+      The EC2 instance tag value to filter on when joining to other Consul
+      nodes.
+    Type: String
+    Default: "dev"
+    ConstraintDescription: Must match EC2 Tag Name requirements.
+  TagEnvironment:
+    Description:
+      The EC2 instance tag value for environment tag, used to sort nodes in homer
+    Type: String
+    Default: "all"
+    ConstraintDescription: Must match EC2 Tag Name requirements.
+  TagEnvironmentType:
+    Type: String
+    Description:
+      Type of environment
+    AllowedValues:
+      - dev
+      - stage
+      - prod
+    Default: prod
+  BootstrapS3Bucket:
+    Type: String
+    Description: S3 Bucket to collect bootstrap assets
+    Default: "jitsi-bootstrap-assets"
+  KeyName:
+    Type: String
+    Description: SSH key name
+    Default: "video"
+  ConsulServerDiskDevice:
+    Type: String
+    Description: "Device name for main disk"
+    Default: "/dev/sda1"
+  ConsulServiceDiskSize:
+    Type: String
+    Description: "Disk size for consul server"
+    Default: "50"
+
+Resources:
+# consul security group
+  ConsulServerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+        GroupDescription: Allow consul traffic between agents and servers
+        VpcId:
+          Ref: VPCId
+        SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          SourceSecurityGroupId:
+            Ref: BastionSSHSecurityGroup
+        - IpProtocol: tcp
+          FromPort: 8300
+          ToPort: 8300
+          CidrIp: 10.0.0.0/8
+        - IpProtocol: tcp
+          FromPort: 8301
+          ToPort: 8301
+          CidrIp: 10.0.0.0/8
+        - IpProtocol: udp
+          FromPort: 8301
+          ToPort: 8301
+          CidrIp: 10.0.0.0/8
+        - IpProtocol: tcp
+          FromPort: 8302
+          ToPort: 8302
+          CidrIp: 10.0.0.0/8
+        - IpProtocol: udp
+          FromPort: 8302
+          ToPort: 8302
+          CidrIp: 10.0.0.0/8
+        - IpProtocol: tcp
+          FromPort: 8500
+          ToPort: 8500
+          CidrIp: 10.0.0.0/8
+        SecurityGroupEgress:
+        - IpProtocol: -1
+          FromPort: -1
+          ToPort: -1
+          CidrIp: 0.0.0.0/0
+
+# lb security group
+  LoadBalancerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+        GroupDescription: Allow https to consul servers
+        VpcId:
+          Ref: VPCId
+        SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 10.0.0.0/8
+        SecurityGroupEgress:
+        - IpProtocol: -1
+          FromPort: -1
+          ToPort: -1
+          CidrIp: 0.0.0.0/0
+
+# launch config
+  ConsulLaunchConfig:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Properties:
+      AssociatePublicIpAddress: false
+      IamInstanceProfile: ConsulServerRole
+      ImageId: !Ref ConsulImage
+      BlockDeviceMappings:
+        - DeviceName: !Ref ConsulServerDiskDevice
+          Ebs:
+            VolumeSize: !Ref ConsulServiceDiskSize
+      SecurityGroups:
+      - Ref: ConsulServerSecurityGroup
+      InstanceType: !Ref ConsulInstanceType
+      KeyName: !Ref KeyName
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash -xe
+          aws s3 cp s3://${BootstrapS3Bucket}/consul/${ConsulServerEnv}/enckey .
+          export ENC_KEY=$(cat enckey)
+          rm enckey
+          export SERVER_ENV="${ConsulServerEnv}"
+          export DATACENTER="${ConsulServerDatacenter}"
+          /usr/local/bin/consul-server-config.sh
+          service consul start
+          systemctl enable consul.service
+
+# load balancer
+  ConsulLoadBalancer:
+    Type: AWS::ElasticLoadBalancing::LoadBalancer
+    Properties:
+      Scheme: internal
+      Subnets: !Ref PublicSubnetIds
+      SecurityGroups:
+      - Ref: LoadBalancerSecurityGroup
+      Listeners:
+      - LoadBalancerPort: '443'
+        InstancePort: '8500'
+        InstanceProtocol: HTTP
+        Protocol: HTTPS
+        SSLCertificateId: !Join ["", ["arn:aws:iam::", !Ref "AWS::AccountId", ":server-certificate/", !Ref SSLCertificateId]]
+      Tags:
+        - Key: Product
+          Value: "meetings"
+        - Key: Team
+          Value: "meet@8x8.com"
+        - Key: Owner
+          Value: "Meetings"
+        - Key: Environment
+          Value: !Ref TagEnvironmentType
+        - Key: environment
+          Value: !Ref TagEnvironment
+
+# Route53 CNAME for load balancer
+  ConsulLoadBalancerDNS:
+    Type: AWS::Route53::RecordSetGroup
+    Properties:
+      HostedZoneName: !Sub "${HostedZoneName}."
+      Comment: !Sub "Consul server ELB for ${ConsulServerEnv} in ${AWS::Region}"
+      RecordSets:
+      - Name: !Join ["", ["consul-",!Ref ConsulServerEnv,"-",!Ref ConsulServerDatacenter, ".",!Ref HostedZoneName]]
+        Type: A
+        AliasTarget:
+          HostedZoneId: !GetAtt 'ConsulLoadBalancer.CanonicalHostedZoneNameID'
+          DNSName: !GetAtt 'ConsulLoadBalancer.DNSName'
+
+# autoscaling group
+  ConsulServerGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      VPCZoneIdentifier: !Ref PrivateSubnetIds
+      LaunchConfigurationName: !Ref ConsulLaunchConfig
+      DesiredCapacity: !Ref ConsulServerCount
+      MinSize: !Ref ConsulServerCount
+      MaxSize: !Ref ConsulServerCount
+      LoadBalancerNames:
+      - Ref: ConsulLoadBalancer
+      Tags:
+        - Key: Name
+          PropagateAtLaunch: true
+          Value: !Sub "consul-server-${ConsulServerEnv}"
+        - Key: Product
+          PropagateAtLaunch: true
+          Value: "meetings"
+        - Key: Team
+          PropagateAtLaunch: true
+          Value: "meet@8x8.com"
+        - Key: Owner
+          PropagateAtLaunch: true
+          Value: "Meetings"
+        - Key: Environment
+          PropagateAtLaunch: true
+          Value: !Ref TagEnvironmentType
+        - Key: consul_server
+          PropagateAtLaunch: true
+          Value: !Ref ConsulServerEnv
+        - Key: environment
+          PropagateAtLaunch: true
+          Value: !Ref TagEnvironment
+        - Key: shard-role
+          PropagateAtLaunch: true
+          Value: consul
+Outputs:
+  ConsulDNS:
+    Description: DNS for Consul ELB
+    Value: !Join ["", ["consul-",!Ref ConsulServerEnv,"-",!Ref ConsulServerDatacenter, ".",!Ref HostedZoneName]]

@@ -1,0 +1,225 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: "IPerf Server Template"
+Parameters:
+  VPCId:
+    Description:
+      The VPC id to launch in
+    Type: String
+  InstanceType:
+    Type: String
+    Description: The EC2 instance type for the instances.
+    AllowedValues:
+      - t3.micro
+      - t3.small
+      - t3.medium
+      - t3.large
+      - m5.large
+      - m5.xlarge
+      - m5.2xlarge
+      - c5.large
+      - c5.xlarge
+      - c5.2xlarge
+      - c5.4xlarge
+      - c5.8xlarge
+    ConstraintDescription: Choose an instance type.
+    Default: t3.medium
+  Image:
+    Description:
+      The AMI to use when launching servers.
+    Type: String
+  PublicSubnetIds:
+    Description:
+      Subnets to launch the Server in
+    Type: CommaDelimitedList
+  BastionSSHSecurityGroup:
+    Type: String
+    Description:
+      The ID for the SSH Security Group
+    ConstraintDescription: Must be a security group
+  CloudName:
+    Type: String
+    Description:
+      The name of the AWS VPC
+  TagEnvironment:
+    Description:
+      The EC2 instance tag value for environment tag, used to sort nodes in homer
+    Type: String
+    Default: "all"
+    ConstraintDescription: Must match EC2 Tag Name requirements.
+  TagEnvironmentType:
+    Description: dev, stage, or prod
+    AllowedValues:
+      - dev
+      - stage
+      - prod
+    Type: String
+    Default: prod
+  BootstrapS3Bucket:
+    Type: String
+    Description: S3 Bucket to collect bootstrap assets
+    Default: "jitsi-bootstrap-assets"
+  KeyName:
+    Type: String
+    Description: SSH key name
+    Default: "video"
+  DiskDevice:
+    Type: String
+    Description: "Device name for main disk"
+    Default: "/dev/sda1"
+  DiskSize:
+    Type: String
+    Description: "Disk size for IPerf server"
+    Default: "12"
+  IPerfAccessCidr:
+    Type: String
+    Description: "CIDR for incoming iperf traffic"
+    Default: "0.0.0.0/0"
+  HostedZoneId:
+    Type: String
+    Description: "Route53 zone for DNS"
+    Default: "ZP3DAJR109E5U"
+  HostedZoneDomain:
+    Type: String
+    Description: "Route53 zone for DNS"
+    Default: "infra.jitsi.net"
+  GitBranch:
+    Type: String
+    Description: "Infra branch for boot processing"
+    Default: "master"
+
+Resources:
+# EIP for use with iperf
+  EIP:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+
+# vpn-server group
+  IPerfServerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+        GroupDescription: Allow IPerf traffic
+        VpcId:
+          Ref: VPCId
+        SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          SourceSecurityGroupId:
+            Ref: BastionSSHSecurityGroup
+        - IpProtocol: tcp
+          FromPort: 5201
+          ToPort: 5207
+          CidrIp: !Ref IPerfAccessCidr
+        - IpProtocol: udp
+          FromPort: 5201
+          ToPort: 5207
+          CidrIp: !Ref IPerfAccessCidr
+
+
+# launch config
+  LaunchConfig:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Properties:
+      AssociatePublicIpAddress: true
+      IamInstanceProfile: IPerfServerRole
+      ImageId: !Ref Image
+      BlockDeviceMappings:
+        - DeviceName: !Ref DiskDevice
+          Ebs:
+            VolumeSize: !Ref DiskSize
+      SecurityGroups:
+      - Ref: IPerfServerSecurityGroup
+      InstanceType: !Ref InstanceType
+      KeyName: !Ref KeyName
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash -xe
+
+          export CLOUD_NAME="${CloudName}"
+          export ENVIRONMENT="${TagEnvironment}"
+          export GIT_BRANCH="${GitBranch}"
+
+          hostname "iperf-${CloudName}.${HostedZoneDomain}"
+
+          INSTANCE_ID=$(curl http://169.254.169.254/latest/meta-data/instance-id 2>/dev/null)
+          export AWS_DEFAULT_REGION="${AWS::Region}"
+
+          # attach instance from cloudformation stack
+          aws ec2 associate-address --public-ip ${EIP} --instance-id $INSTANCE_ID
+
+          # wait a moment before attempting any network operations
+          sleep 5
+
+          aws s3 cp s3://${BootstrapS3Bucket}/vault-password /root/.vault-password
+          aws s3 cp s3://${BootstrapS3Bucket}/id_rsa_jitsi_deployment /root/.ssh/id_rsa 
+          chmod 600 /root/.ssh/id_rsa
+
+          DEPLOY_TAGS="all"
+          
+          ansible-pull -v -U git@github.com:8x8Cloud/jitsi-video-infrastructure.git \
+            -d /tmp/bootstrap --purge \
+            -i \"127.0.0.1,\" \
+            --vault-password-file=/root/.vault-password \
+            --accept-host-key \
+            -C "$GIT_BRANCH" \
+            --tags "$DEPLOY_TAGS" \
+            -e "hcv_environment=$ENVIRONMENT cloud_name=$CLOUD_NAME" \
+           ansible/configure-iperf-aws.yml
+
+  # autoscaling group
+  IPerfServerGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      VPCZoneIdentifier: !Ref PublicSubnetIds
+      LaunchConfigurationName: !Ref LaunchConfig
+      DesiredCapacity: 1
+      MinSize: 1
+      MaxSize: 1
+      Tags:
+        - Key: Name
+          PropagateAtLaunch: true
+          Value: !Sub "iperf-${CloudName}"
+        - Key: environment
+          PropagateAtLaunch: true
+          Value: !Ref TagEnvironment
+        - Key: cloud_name
+          PropagateAtLaunch: true
+          Value: !Ref CloudName
+        - Key: shard-role
+          PropagateAtLaunch: true
+          Value: "iperf"
+        - Key: Owner
+          PropagateAtLaunch: true
+          Value: Meetings
+        - Key: Team
+          PropagateAtLaunch: true
+          Value: meet@8x8.com
+        - Key: Product
+          PropagateAtLaunch: true
+          Value: meetings
+        - Key: Environment
+          PropagateAtLaunch: true
+          Value: !Ref TagEnvironmentType
+
+  IPerfRoute53Entry:
+    Type: AWS::Route53::RecordSet
+    Properties: 
+      Comment: 'iperf for ${CloudName} ${TagEnvironment}'
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Sub "iperf-${CloudName}.${HostedZoneDomain}"
+      ResourceRecords: 
+        - !Ref EIP
+      TTL: 300
+      Type: A
+
+Outputs:
+  EIP:
+    Description: IP for iPerf
+    Value: !Ref EIP
+  DNS:
+    Description: Iperf DNS
+    Value: !Ref IPerfRoute53Entry
+  ASG:
+    Description: ASG for VPN Server
+    Value: !Ref IPerfServerGroup

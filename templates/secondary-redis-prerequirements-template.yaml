@@ -1,0 +1,46 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Security group for secondary redis for sticky template'
+Parameters:
+  VpcId:
+    Description: 'Required VPC identifier (vpc-XXXXXX)'
+    Type: 'String'
+  AccessCidrIp:
+    Description: The CIDR you want to access to the Replication Group
+    Type: String
+    Default: 10.0.0.0/8
+    AllowedPattern: '(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})/(\d{1,2})'
+    MinLength: '9'
+    MaxLength: '18'
+    ConstraintDescription: must be a valid IP CIDR range of the form x.x.x.x/x  
+  SubnetIds:
+    Description: 'Required list of subnets where to launch the cache instances (comma-separated)'
+    Type: CommaDelimitedList
+
+Resources:
+  SecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: !Ref 'AWS::StackName'
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: 6379
+        ToPort: 6379
+        CidrIp: !Ref AccessCidrIp
+
+  SubnetGroup:
+    Type: AWS::ElastiCache::SubnetGroup
+    Properties: 
+      CacheSubnetGroupName: !Ref 'AWS::StackName'
+      Description: !Ref 'AWS::StackName'
+      SubnetIds: !Ref SubnetIds
+
+Outputs:
+  ClusterName:
+    Description: 'Security Group'
+    Value: !Ref SecurityGroup
+  SubnetGroup:
+    Description: 'Subnet Group'
+    Value: !Ref SubnetGroup
+

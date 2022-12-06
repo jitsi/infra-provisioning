@@ -1,0 +1,186 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: "Recovery Agent Template"
+Parameters:
+  InstanceType:
+    Type: String
+    Description: The EC2 instance type for the instances.
+    AllowedValues:
+      - t3.micro
+      - t3.small
+      - t3.medium
+      - t3.large
+      - t3.xlarge
+      - m5.large
+      - m5.xlarge
+      - m5.2xlarge
+      - c5.large
+      - c5.xlarge
+      - c5.2xlarge
+      - c5.4xlarge
+      - c5.8xlarge
+    ConstraintDescription: Choose an instance type.
+    Default: t3.large
+  ServerCount:
+    Description:
+      Count of servers to launch
+    Type: Number
+    Default: 1
+    ConstraintDescription: Server count must be at least 1
+  Image:
+    Description:
+      The AMI to use when launching server nodes.
+    Type: String
+  VPCId:
+    Description:
+      The VPC id to launch in
+    Type: String
+  PrivateSubnetIds:
+    Description:
+      Subnets to launch the servers in
+    Type: CommaDelimitedList
+  BastionSSHSecurityGroup:
+    Description:
+      The security group ID for the bastion ssh security group
+    Type: String
+    ConstraintDescription: Must be a security group
+  CloudName:
+    Description:
+      The Name for the datacenter
+    Type: String
+  Environment:
+    Description:
+      Environment where stack is launched
+    Type: String
+    Default: "lonely"
+    ConstraintDescription: Must match EC2 Tag Name requirements.
+  EnvironmentType:
+    Description: dev, stage, or prod
+    AllowedValues:
+      - dev
+      - stage
+      - prod
+    Type: String
+    Default: dev
+  BootstrapS3Bucket:
+    Type: String
+    Description: S3 Bucket to collect bootstrap assets
+    Default: "jitsi-bootstrap-assets"
+  KeyName:
+    Type: String
+    Description: SSH key name
+    Default: "video"
+  GitBranch:
+    Type: String
+    Description: Git Branch for infra repo
+    Default: "master"
+
+Resources:
+# security group
+  ServerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+        GroupDescription: Allow traffic to servers
+        VpcId:
+          Ref: VPCId
+        SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          SourceSecurityGroupId:
+            Ref: BastionSSHSecurityGroup
+# launch config
+  LaunchConfig:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Properties:
+      AssociatePublicIpAddress: false
+      IamInstanceProfile: HipChat-Video-Jibri
+      ImageId: !Ref Image
+      SecurityGroups:
+      - Ref: ServerSecurityGroup
+      InstanceType: !Ref InstanceType
+      KeyName: !Ref KeyName
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash -xe
+          EXIT_CODE=0
+          PYTHON_MAJOR=$(python -c 'import platform; print(platform.python_version())' | cut -d '.' -f1)
+          PYTHON_IS_3=false
+          if [[ "$PYTHON_MAJOR" -eq 3 ]]; then
+            PYTHON_IS_3=true
+          fi
+          if $PYTHON_IS_3; then
+            CFN_FILE="aws-cfn-bootstrap-py3-latest.tar.gz"
+          else
+            CFN_FILE="aws-cfn-bootstrap-latest.tar.gz"
+          fi
+          wget -P /root https://s3.amazonaws.com/cloudformation-examples/$CFN_FILE &&
+          mkdir -p /root/aws-cfn-bootstrap-latest &&
+          tar xvfz /root/$CFN_FILE --strip-components=1 -C /root/aws-cfn-bootstrap-latest &&
+          easy_install /root/aws-cfn-bootstrap-latest/ &&
+          echo "[Boto]" > /etc/boto.cfg && echo "use_endpoint_heuristics = True" >> /etc/boto.cfg
+
+          tmp_msg_file="/tmp/cfn_signal_message"
+          /usr/local/bin/aws s3 cp s3://${BootstrapS3Bucket}/vault-password /root/.vault-password
+          /usr/local/bin/aws s3 cp s3://${BootstrapS3Bucket}/id_rsa_jitsi_deployment /root/.ssh/id_rsa
+          chmod 400 /root/.ssh/id_rsa
+          export ENVIRONMENT="${Environment}"
+          export CLOUD_NAME="${CloudName}"
+          export CLOUD_PROVIDER="aws"
+          export GIT_BRANCH="${GitBranch}"
+
+          export DEPLOY_TAGS="all"
+          ansible-pull -v -U git@github.com:8x8Cloud/jitsi-video-infrastructure.git \
+            -v \
+            -d /tmp/bootstrap --purge \
+            -i "127.0.0.1," \
+            --vault-password-file=/root/.vault-password \
+            --accept-host-key \
+            -C "$GIT_BRANCH" \
+            --tags "$DEPLOY_TAGS" \
+            --extra-vars "hcv_environment=$ENVIRONMENT" --extra-vars "cloud_name=$CLOUD_NAME" --extra-vars "cloud_provider=$CLOUD_PROVIDER" \
+            ansible/recovery-agent.yml >> /var/log/bootstrap.log || EXIT_CODE=1
+
+          if [ $EXIT_CODE -eq 1 ]; then echo 'Provisioning stage failed' > $tmp_msg_file; /usr/local/bin/dump-boot.sh; fi;
+
+          if [ ! -f /tmp/cfn_signal_message ]; then err_message='Server configuration';else err_message=$(cat $tmp_msg_file);fi
+
+          # Send signal about finishing configuring server
+          /usr/local/bin/cfn-signal -e $EXIT_CODE -r "$err_message" --resource ServerGroup --stack "${AWS::StackName}" --region "${AWS::Region}" || true
+          if [ ! $EXIT_CODE -eq 0 ]; then shutdown -h now;fi
+
+# autoscaling group
+  ServerGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      VPCZoneIdentifier: !Ref PrivateSubnetIds
+      LaunchConfigurationName: !Ref LaunchConfig
+      DesiredCapacity: !Ref ServerCount
+      MinSize: !Ref ServerCount
+      MaxSize: !Ref ServerCount
+      Tags:
+        - Key: Name
+          PropagateAtLaunch: true
+          Value: !Sub "${Environment}-${CloudName}-recovery-agent"
+        - Key: environment
+          PropagateAtLaunch: true
+          Value: !Ref Environment
+        - Key: shard-role
+          PropagateAtLaunch: true
+          Value: "recovery-agent"
+        - Key: Owner
+          PropagateAtLaunch: true
+          Value: Meetings
+        - Key: Team
+          PropagateAtLaunch: true
+          Value: meet@8x8.com
+        - Key: Product
+          PropagateAtLaunch: true
+          Value: meetings
+        - Key: Environment
+          PropagateAtLaunch: true
+          Value: !Ref EnvironmentType
+
+    CreationPolicy:
+      ResourceSignal:
+        Count: !Ref ServerCount
+        Timeout: PT30M

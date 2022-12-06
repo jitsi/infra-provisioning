@@ -1,0 +1,32 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: "route53 CNAME for an OCI endpoint"
+Parameters:
+  TagEnvironment:
+    Type: String
+    Description: "Enviroment name"
+  CNameValue:
+    Type: String
+    Description: "Host part of DNS entry create"
+  CNameTarget:
+    Type: String
+    Description: "Target DNS entry to point to"
+  HostedZoneId:
+    Type: String
+    Description: "Route53 zone for DNS"
+    Default: "ZP3DAJR109E5U"
+  HostedZoneDomain:
+    Type: String
+    Description: "Route53 zone for DNS"
+    Default: "infra.jitsi.net"
+
+Resources:
+  Route53Entry:
+    Type: AWS::Route53::RecordSet
+    Properties: 
+      Comment: 'endpoint in OCI {$TagEnvironment} ${CNameTarget} advertised as ${CNameValue}.${HostedZoneDomain}'
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Sub "${CNameValue}.${HostedZoneDomain}"
+      ResourceRecords: 
+        - !Ref CNameTarget
+      TTL: 300
+      Type: CNAME
