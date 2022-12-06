@@ -1,0 +1,78 @@
+{
+  "variables": {
+    "build_id": "",
+    "jitsi_videobridge_deb_pkg_version": "",
+    "jitsi_meet_meta_version": "",
+    "ansible_ssh_user": "ubuntu",
+    "base_image_ocid": "",
+    "region": "",
+    "type":"Base",
+    "availability_domain": "",
+    "subnet_ocid": "",
+    "compartment_ocid": "",
+    "shape": "",
+    "ocpus": "",
+    "memory_in_gbs": "",
+    "connection_ssh_private_key_file": "",
+    "ansible_python_interpreter": "",
+    "connection_use_private_ip": "false",
+    "connection_ssh_bastion_host": "",
+    "tag_namespace": "",
+    "base_image_name": "Build{{user `type`}}-{{user `region`}}-{{user `environment`}}-{{timestamp}}"
+  },
+  "builders": [
+    {
+      "type": "oracle-oci",
+      "availability_domain": "{{user `availability_domain`}}",
+      "region": "{{user `region`}}",
+      "base_image_ocid": "{{user `base_image_ocid`}}",
+      "compartment_ocid": "{{user `compartment_ocid`}}",
+      "subnet_ocid": "{{user `subnet_ocid`}}",
+      "shape": "{{user `shape`}}",
+      "shape_config": {
+        "ocpus": "{{user `ocpus`}}",
+        "memory_in_gbs": "{{user `memory_in_gbs`}}"
+      },
+      "image_name": "{{user `base_image_name`}}",
+      "communicator": "ssh",
+      "ssh_username": "{{user `ansible_ssh_user`}}",
+      "ssh_private_key_file": "{{user `connection_ssh_private_key_file`}}",
+      "use_private_ip": "{{user `connection_use_private_ip`}}",
+      "ssh_bastion_username": "{{user `ansible_ssh_user`}}",
+      "ssh_bastion_agent_auth": "{{user `ssh_bastion_agent_auth`}}",
+      "ssh_bastion_host": "{{user `connection_ssh_bastion_host`}}",
+      "ssh_bastion_private_key_file": "{{user `connection_ssh_private_key_file`}}",
+      "defined_tags": {
+        "{{user `tag_namespace`}}": {
+          "Name": "{{user `base_image_name`}}",
+          "build_id": "{{user `build_id`}}",
+          "TS": "{{timestamp}}",
+          "Type": "{{user `type`}}",
+          "environment_type": "dev"
+        }
+      }
+    }
+  ],
+  "provisioners": [
+    {
+      "type": "ansible",
+      "playbook_file": "../../ansible/build-base-oracle.yml",
+      "user": "{{user `ansible_ssh_user`}}",
+      "local_port": 50541,
+      "extra_arguments": [
+        "-e",
+        "ansible_python_interpreter={{user `ansible_python_interpreter`}}",
+        "-e",
+        "ansible_ssh_user={{user `ansible_ssh_user`}}",
+        "-e",
+        "cloud_provider=oracle",
+        "--vault-password-file",
+        "../../.vault-password.txt",
+        "--tags",
+        "{{user `ansible_deploy_tags`}}",
+        "--skip-tags",
+        "{{user `ansible_skip_tags`}}"
+      ]
+    }
+  ]
+}
