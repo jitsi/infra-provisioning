@@ -1,0 +1,254 @@
+{
+"AWSTemplateFormatVersion": "2010-09-09",
+"Description": "Template for the provisioning AWS resources for the HC Video CDN",
+"Parameters":{
+  "RegionAlias": {
+      "Description": "Alias for AWS Region",
+      "Type": "String",
+      "Default": "us-east-1"
+    },
+  "JitsiOriginBucketName": {
+        "Description": "Jitsi Origin bucket name",
+        "Type": "String",
+        "Default": "jitsi-cdn-origin-20181106"
+    },
+  "JitsiOriginAlias": {
+        "Description": "Jitsi Origin alias domain name",
+        "Type": "String",
+        "Default": "web-cdn.jitsi.net"
+    },
+  "JitsiOriginLogginBucket": {
+        "Description": "Jitsi Origin bucket for logs",
+        "Type": "String",
+        "Default": "jitsi-cloudfront-logs"
+    },
+  "JitsiOriginSSLArn": {
+        "Description": "Jitsi Origin ssl arn",
+        "Type": "String",
+        "Default": "arn:aws:acm:us-east-1:103425057857:certificate/411a3a4b-9c1a-490f-bb9a-a6dfd2b9455c"
+    },
+  "ASAPKeysBucketName": {
+        "Description": "ASAPKeys bucket name",
+        "Type": "String",
+        "Default": "asap-keys"
+    },
+  "ASAPKeysLogginBucket": {
+        "Description": "ASAPKeys bucket for logs",
+        "Type": "String",
+        "Default": "atl-default-s3-logging"
+    },
+  "ASAPKeysLogsPrefix": {
+        "Description": "ASAPKeys logs prefix",
+        "Type": "String",
+        "Default": "logs/asap-keys-cf/"
+    },
+  "AbotarsOriginDomainName": {
+        "Description": "Abotars domain name",
+        "Type": "String",
+        "Default": "abotars.hipch.at"
+   },
+  "AbotarsAlias": {
+        "Description": "Abotars alias domain name",
+        "Type": "String",
+        "Default":  "abotars.jitsi.net"
+   },
+  "AbotarsHTTPPort": {
+        "Description": "Abotars http port",
+        "Type": "Number",
+        "Default": "80"
+    },
+  "AbotarsHTTPSPort": {
+        "Description": "Abotars https port",
+        "Type": "Number",
+        "Default": "443"
+    },
+  "AbotarsSSLArn": {
+        "Description": "Abotars ssl arn",
+        "Type": "String",
+        "Default": "arn:aws:acm:us-east-1:103425057857:certificate/411a3a4b-9c1a-490f-bb9a-a6dfd2b9455c"
+    },
+  "ASAPKeysOriginAccessIdentity": {
+        "Description": "ASAP Keys origin access identity",
+        "Type": "String",
+        "Default": "E197IXIW36SA91"
+    },
+  "JitsiOriginAccessIdentity": {
+        "Description": "ASAP Keys origin access identity",
+        "Type": "String",
+        "Default": "EOIY10QU1Q5S0"
+    }
+},
+"Resources": {
+    "CDNJitsi" : {
+            "Type" : "AWS::CloudFront::Distribution",
+            "Properties" : {
+                "DistributionConfig" : {
+                    "Origins" : [{
+                        "DomainName" : { "Fn::Join" : ["",[{ "Ref": "JitsiOriginBucketName" },".s3.amazonaws.com"]] },
+                        "Id" : { "Fn::Join" : ["-",[ "S3",{ "Ref": "JitsiOriginBucketName" }]] },
+                        "S3OriginConfig" : {
+                            "OriginAccessIdentity" : { "Fn::Join": ["",["origin-access-identity/cloudfront/",
+                              { "Ref": "JitsiOriginAccessIdentity" }]] }
+                        }
+                    }],
+                    "Enabled" : "true",
+                    "HttpVersion": "http2",
+                    "Logging" : {
+                        "IncludeCookies" : "false",
+                        "Bucket" : { "Fn::Join" : ["",[{ "Ref": "JitsiOriginLogginBucket" },".s3.amazonaws.com"]] },
+                        "Prefix" : { "Fn::Join" : ["",[{ "Ref": "JitsiOriginAlias" },"/" ]] }
+                    },
+                    "Aliases" : [ { "Ref": "JitsiOriginAlias" } ],
+                    "DefaultCacheBehavior" : {
+                        "AllowedMethods" : [ "GET", "HEAD", "OPTIONS"],
+                        "CachedMethods" : ["GET", "HEAD"],
+                        "TargetOriginId" : { "Fn::Join" : ["-",[ "S3", { "Ref": "JitsiOriginBucketName" } ]] },
+                        "ForwardedValues" : {
+                            "QueryString" : "false",
+                            "Cookies" : { "Forward" : "none" }
+                        },
+                        "ViewerProtocolPolicy" : "redirect-to-https"
+                    },
+                    "PriceClass" : "PriceClass_All",
+                    "ViewerCertificate" : {
+                        "AcmCertificateArn" : { "Ref": "JitsiOriginSSLArn"},
+                        "SslSupportMethod" : "sni-only"
+                    }
+                },
+                "Tags" : [
+                  {
+                    "Key": "Product",
+                    "Value": "meetings"
+                  },
+                  {
+                    "Key": "Team",
+                    "Value": "meet@8x8.com"
+                  },
+                  {
+                    "Key": "Owner",
+                    "Value": "Meetings"
+                  },
+                  {
+                    "Key": "Environment",
+                    "Value": { "Ref": "TagEnvironment" }
+                  },
+                  {
+                    "Key": "environment",
+                    "Value": { "Ref": "TagEnvironmentType" }
+                  }
+                ]
+            }
+    },
+    "CDNASAPKeys" : {
+            "Type" : "AWS::CloudFront::Distribution",
+            "Properties" : {
+                "DistributionConfig" : {
+                    "Origins" : [ {
+                        "DomainName" : { "Fn::Join": ["",[{ "Ref": "ASAPKeysBucketName" },".s3.amazonaws.com"]]},
+                        "Id" : { "Fn::Join": ["-",["S3",{ "Ref": "ASAPKeysBucketName" }]]},
+                        "S3OriginConfig" : {
+                            "OriginAccessIdentity" : { "Fn::Join": ["",["origin-access-identity/cloudfront/",
+                              { "Ref" : "ASAPKeysOriginAccessIdentity" }]] }
+                        }
+                    }],
+                    "Enabled" : "true",
+                    "HttpVersion": "http1.1",
+                    "Logging" : {
+                        "IncludeCookies" : "false",
+                        "Bucket" : {"Fn::Join" : ["",[{ "Fn::Join" : ["-",[{ "Ref": "ASAPKeysLogginBucket"},
+                          { "Ref": "AWS::AccountId" },{ "Ref": "RegionAlias" }]] },".s3.amazonaws.com"]] },
+                        "Prefix" : {"Ref": "ASAPKeysLogsPrefix"}
+                    },
+                    "DefaultRootObject" : "index.html",
+                    "DefaultCacheBehavior" : {
+                        "AllowedMethods" : [ "GET", "HEAD"],
+                        "CachedMethods" : ["GET", "HEAD"],
+                        "TargetOriginId" : { "Fn::Join" : ["-",[ "S3", { "Ref": "ASAPKeysBucketName" } ]] },
+                        "ForwardedValues" : {
+                            "QueryString" : "false",
+                            "Cookies" : { "Forward" : "none" }
+                        },
+                        "ViewerProtocolPolicy" : "https-only"
+                    },
+                    "PriceClass" : "PriceClass_100",
+                    "ViewerCertificate" : {
+                        "CloudFrontDefaultCertificate" : "true"
+                    }
+                }
+            }
+    },
+    "CDNAbotars" : {
+            "Type" : "AWS::CloudFront::Distribution",
+            "Properties" : {
+                "DistributionConfig" : {
+                    "Origins" : [ {
+                        "DomainName" : { "Ref": "AbotarsOriginDomainName"},
+                        "Id" : { "Ref": "AbotarsOriginDomainName"},
+                        "CustomOriginConfig" : {
+                            "HTTPPort" : { "Ref": "AbotarsHTTPPort" },
+                            "HTTPSPort" : { "Ref": "AbotarsHTTPSPort" },
+                            "OriginProtocolPolicy" : "http-only",
+                            "OriginSSLProtocols": ["TLSv1","TLSv1.1","TLSv1.2"]
+                        }
+                    }],
+                    "Enabled" : "true",
+                    "HttpVersion": "http2",
+                    "Aliases" : [{ "Ref": "AbotarsAlias" }],
+                    "DefaultCacheBehavior" : {
+                        "AllowedMethods" : [ "GET", "HEAD", "OPTIONS"],
+                        "CachedMethods" : ["GET", "HEAD"],
+                        "TargetOriginId" : { "Ref": "AbotarsOriginDomainName"},
+                        "ForwardedValues" : {
+                            "QueryString" : "false",
+                            "Cookies" : { "Forward" : "none" }
+                        },
+                        "ViewerProtocolPolicy" : "redirect-to-https"
+                    },
+                    "PriceClass" : "PriceClass_All",
+                    "ViewerCertificate" : {
+                        "AcmCertificateArn" : { "Ref": "AbotarsSSLArn" },
+                        "SslSupportMethod" : "sni-only"
+                    }
+                }
+            }
+    }
+},
+  "Outputs" : {
+    "JitsiCDNDomainName": {
+      "Description": "JitsiCDNDomainName",
+      "Value": {
+        "Fn::GetAtt": [
+          "CDNJitsi",
+          "DomainName"
+        ]
+      },
+      "Export": {
+        "Name": "JitsiCDNDomainName"
+      }
+    },
+    "AbotarsCDNDomainName": {
+      "Description": "AbotarsCDNDomainName",
+      "Value": {
+        "Fn::GetAtt": [
+          "CDNAbotars",
+          "DomainName"
+        ]
+      },
+      "Export": {
+        "Name": "AbotarsCDNDomainName"
+      }
+    },
+    "ASAPKeysCDNDomainName": {
+      "Description": "ASAPKeysCDNDomainName",
+      "Value": {
+        "Fn::GetAtt": [
+          "CDNASAPKeys",
+          "DomainName"
+        ]
+      },
+      "Export": {
+        "Name": "ASAPKeysCDNDomainName"
+      }
+    }
+  }
+}

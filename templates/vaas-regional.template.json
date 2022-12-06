@@ -1,0 +1,193 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Template for basic SNS topics and SQS queues run once per region",
+  "Parameters": {
+    "PagerDutySNSTopicName": {
+      "Description": "String Name for SNS topic to notify PagerDuty",
+      "Type": "String",
+      "Default": "PagerDutyAlarms"
+    },
+    "PagerDutyJigasiSNSTopicName": {
+      "Description": "String Name for SNS topic to notify Jigasi PagerDuty",
+      "Type": "String",
+      "Default": "PagerDutyJigasiAlarms"
+    },
+    "JVBSNSTopicName": {
+      "Description": "String Name for SNS topic to notify PagerDuty",
+      "Type": "String",
+      "Default": "JVB-Termination-Log"
+    },
+    "JibriSNSTopicName": {
+      "Description": "String Name for SNS topic to notify PagerDuty",
+      "Type": "String",
+      "Default": "Jibri-Termination-Log"
+    },
+    "JigasiSNSTopicName": {
+      "Description": "String Name for SNS topic to notify PagerDuty",
+      "Type": "String",
+      "Default": "Jigasi-Termination-Log"
+    },
+    "ShardEventsSNSTopicName": {
+      "Description": "String Name for SNS topic to send shard events",
+      "Type": "String",
+      "Default":  "HCV-Shard-Events"
+    }
+  },
+  "Resources": {
+    "PagerDutySNSTopic" : {
+       "Type" : "AWS::SNS::Topic",
+       "Properties" : {
+          "Subscription" : [
+            {
+             "Endpoint" : "https://events.pagerduty.com/integration/899eb8e9957047dc958c8a13946c3b72/enqueue",
+             "Protocol" : "https"
+            }    
+          ],
+          "TopicName" : {"Ref": "PagerDutySNSTopicName"}
+       }
+    },
+    "PagerDutyJigasiSNSTopic" : {
+      "Type" : "AWS::SNS::Topic",
+      "Properties" : {
+         "Subscription" : [
+           {
+            "Endpoint" : "https://events.pagerduty.com/integration/85e681050a0f4fe89d2d585c41759c19/enqueue",
+            "Protocol" : "https"
+           }    
+         ],
+         "TopicName" : {"Ref": "PagerDutyJigasiSNSTopicName"}
+      }
+   },
+   "SQSJVBTerminating": {
+      "Type": "AWS::SQS::Queue",
+      "Properties": {
+        "QueueName": "jvb-terminating",
+        "DelaySeconds": "0",
+        "MaximumMessageSize": "262144",
+        "MessageRetentionPeriod": "300",
+        "ReceiveMessageWaitTimeSeconds": "0",
+        "VisibilityTimeout": "0"
+      }
+    },
+    "SQSJigasiTerminating": {
+      "Type": "AWS::SQS::Queue",
+      "Properties": {
+        "QueueName": "jigasi-terminating",
+        "DelaySeconds": "0",
+        "MaximumMessageSize": "262144",
+        "MessageRetentionPeriod": "300",
+        "ReceiveMessageWaitTimeSeconds": "0",
+        "VisibilityTimeout": "0"
+      }
+    },
+    "SQSShardEvents": {
+      "Type": "AWS::SQS::Queue",
+      "Properties": {
+        "QueueName": "shard-events",
+        "DelaySeconds": "0",
+        "MaximumMessageSize": "262144",
+        "MessageRetentionPeriod": "3600",
+        "ReceiveMessageWaitTimeSeconds": "0",
+        "VisibilityTimeout": "0"
+      }
+    },
+    "SQSJibriTerminating": {
+      "Type": "AWS::SQS::Queue",
+      "Properties": {
+        "QueueName": "jibri-terminating",
+        "DelaySeconds": "0",
+        "MaximumMessageSize": "262144",
+        "MessageRetentionPeriod": "300",
+        "ReceiveMessageWaitTimeSeconds": "0",
+        "VisibilityTimeout": "0"
+      }
+    },
+    "ShardEventsSNSTopic" : {
+       "Type" : "AWS::SNS::Topic",
+       "DependsOn": ["SQSShardEvents"],
+       "Properties" : {
+          "Subscription" : [
+            {
+             "Endpoint" : {"Fn::GetAtt": ["SQSShardEvents","Arn"]},
+             "Protocol" : "sqs"
+            }    
+          ],
+          "TopicName" : {"Ref": "ShardEventsSNSTopicName"}
+       }
+    },
+    "JVBSNSTopic" : {
+       "Type" : "AWS::SNS::Topic",
+       "Properties" : {
+          "Subscription" : [
+            {
+             "Endpoint" : "aaron.van.meerten@8x8.com",
+             "Protocol" : "email"
+            }
+          ],
+          "TopicName" : {"Ref": "JVBSNSTopicName"}
+       }
+    },
+    "JibriSNSTopic" : {
+       "Type" : "AWS::SNS::Topic",
+       "Properties" : {
+          "Subscription" : [
+            {
+             "Endpoint" : "aaron.van.meerten@8x8.com",
+             "Protocol" : "email"
+            }
+          ],
+          "TopicName" : {"Ref": "JibriSNSTopicName"}
+       }
+    },
+    "JigasiSNSTopic" : {
+       "Type" : "AWS::SNS::Topic",
+       "Properties" : {
+          "Subscription" : [
+            {
+             "Endpoint" : "aaron.van.meerten@8x8.com",
+             "Protocol" : "email"
+            }
+          ],
+          "TopicName" : {"Ref": "JigasiSNSTopicName"}
+       }
+    }
+  },
+  "Outputs" : {
+    "PagerDutySNSTopic": {
+      "Description": "PagerDuty Alarm Destination",
+      "Value": {"Ref":"PagerDutySNSTopic"}
+    },
+    "PagerDutyJigasiSNSTopic": {
+      "Description": "PagerDuty Jigasi Alarm Destination",
+      "Value": {"Ref":"PagerDutyJigasiSNSTopic"}
+    },
+    "JVBTLogSNSTopic": {
+      "Description": "PagerDuty Alarm Destination",
+      "Value": {"Ref":"JVBSNSTopic"}
+    },
+    "JibriTLogSNSTopic": {
+      "Description": "PagerDuty Alarm Destination",
+      "Value": {"Ref":"JibriSNSTopic"}
+    },
+    "JigasiTLogSNSTopic": {
+      "Description": "PagerDuty Alarm Destination",
+      "Value": {"Ref":"JigasiSNSTopic"}
+    },
+    "SQSShardEvents" : {
+      "Description": "The ShardEvents SQS Topic ID",  
+      "Value" : { "Ref" : "SQSShardEvents" }
+    },
+    "SQSJibriTerminating" : {
+      "Description": "The JibriTerminating SQS Topic ID",  
+      "Value" : { "Ref" : "SQSJibriTerminating" }
+    },
+    "SQSJVBTerminating" : {
+      "Description": "The JVBTerminating SQS Topic ID",  
+      "Value" : { "Ref" : "SQSJVBTerminating" }
+    },
+    "SQSJigasiTerminating" : {
+      "Description": "The JigasiTerminating SQS Topic ID",  
+      "Value" : { "Ref" : "SQSJigasiTerminating" }
+    }
+  }
+}

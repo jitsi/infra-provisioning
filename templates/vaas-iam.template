@@ -1,0 +1,2005 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Create IAM roles and policies for the HC Video",
+  "Resources": {
+    "LambdaCloudwatchRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "Path": "/",
+        "RoleName": "LambdaCloudwatchAlarmRole",
+        "ManagedPolicyArns": [
+          {"Ref": "AWSLambdaBasicExecutionRole"},
+          {"Ref": "CoturnAllowCloudActions"}
+        ]
+      }
+    },
+    "DatadogAWSIntegrationRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": "arn:aws:iam::464622532012:root"
+              },
+              "Action": "sts:AssumeRole",
+              "Condition": {
+                "StringEquals": {
+                  "sts:ExternalId": "7e9081abe146435ba9b6bd03cf5431ad"
+                }
+              }
+            }
+          ]
+        },
+        "Path": "/",
+        "RoleName": "DatadogAWSIntegrationRole",
+        "ManagedPolicyArns": [
+          {
+            "Ref": "DatadogAWSIntegrationPolicy"
+          }
+        ]
+      }
+    },
+    "HipChatVideoSeleniumGrid": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ec2.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            },
+            {
+              "Sid": "",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "autoscaling.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "Path": "/",
+        "RoleName": "HipChatVideo-SeleniumGrid",
+        "ManagedPolicyArns": [
+          {
+            "Ref": "AmazonSQSFullAccess"
+          },
+          {
+            "Ref": "CloudwatchAlarmsAndMetrics"
+          },
+          {
+            "Ref": "AmazonEC2ReadOnlyAccess"
+          },
+          {
+            "Ref": "S3VaasLogstashAssetsAccess"
+          },
+          {
+            "Ref": "AmazonSNSFullAccess"
+          },
+          {
+            "Ref": "CloudwatchLogsPolicy"
+          },
+          {
+            "Ref": "JitsiDumps"
+          },
+          {
+            "Ref": "EC2CreateTags"
+          },
+          {
+            "Ref": "TortureAssetsAccess"
+          },
+          {
+            "Ref": "IAMReadOnlyAccess"
+          }
+        ]
+      }
+    },
+    "HipChatVideoSeleniumGridInstanceProfile": {
+      "Type": "AWS::IAM::InstanceProfile",
+      "Properties": {
+        "InstanceProfileName": "HipChatVideo-SeleniumGrid",
+        "Path": "/",
+        "Roles": [
+          {
+            "Ref": "HipChatVideoSeleniumGrid"
+          }
+        ]
+      }
+    },
+    "VPNServerRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ec2.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            },
+            {
+              "Sid": "",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "autoscaling.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "Path": "/",
+        "RoleName": "VPNServerRole",
+        "ManagedPolicyArns": [
+          {
+            "Ref": "VPNNetworkAccess"
+          },
+          {
+            "Ref": "CloudwatchAlarmsAndMetrics"
+          },
+          {
+            "Ref": "S3VaasLogstashAssetsAccess"
+          }
+        ]
+      }
+    },
+    "VPNServerInstanceProfile": {
+      "Type": "AWS::IAM::InstanceProfile",
+      "Properties": {
+        "InstanceProfileName": "VPNServerRole",
+        "Path": "/",
+        "Roles": [
+          {
+            "Ref": "VPNServerRole"
+          }
+        ]
+      }
+    },
+    "InternalRepoRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ec2.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            },
+            {
+              "Sid": "",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "autoscaling.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "Path": "/",
+        "RoleName": "InternalRepoRole",
+        "ManagedPolicyArns": [
+          {
+            "Ref": "S3VaasLogstashAssetsAccess"
+          }
+        ]
+      }
+    },
+    "InternalRepoInstanceProfile": {
+      "Type": "AWS::IAM::InstanceProfile",
+      "Properties": {
+        "InstanceProfileName": "InternalRepoRole",
+        "Path": "/",
+        "Roles": [
+          {
+            "Ref": "InternalRepoRole"
+          }
+        ]
+      }
+    },
+    "IPerfServerRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ec2.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            },
+            {
+              "Sid": "",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "autoscaling.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "Path": "/",
+        "RoleName": "IPerfServerRole",
+        "ManagedPolicyArns": [
+          {
+            "Ref": "CloudwatchAlarmsAndMetrics"
+          },
+          {
+            "Ref": "S3VaasLogstashAssetsAccess"
+          },
+          {
+            "Ref": "EC2AssociateAddress"            
+          },
+          {
+            "Ref": "JitsiDumps"            
+          },
+          {
+            "Ref": "AmazonEC2ReadOnlyAccess"
+          }
+        ]
+      }
+    },
+    "IPerfServerInstanceProfile": {
+      "Type": "AWS::IAM::InstanceProfile",
+      "Properties": {
+        "InstanceProfileName": "IPerfServerRole",
+        "Path": "/",
+        "Roles": [
+          {
+            "Ref": "IPerfServerRole"
+          }
+        ]
+      }
+    },
+    "ConsulServerRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ec2.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            },
+            {
+              "Sid": "",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "autoscaling.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "Path": "/",
+        "RoleName": "ConsulServerRole",
+        "ManagedPolicyArns": [
+          {
+            "Ref": "AmazonEC2ReadOnlyAccess"
+          },
+          {
+            "Ref": "S3VaasLogstashAssetsAccess"
+          }
+        ]
+      }
+    },
+    "ConsulServerInstanceProfile": {
+      "Type": "AWS::IAM::InstanceProfile",
+      "Properties": {
+        "InstanceProfileName": "ConsulServerRole",
+        "Path": "/",
+        "Roles": [
+          {
+            "Ref": "ConsulServerRole"
+          }
+        ]
+      }
+    },
+    "WavefrontProxyRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ec2.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            },
+            {
+              "Sid": "",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "autoscaling.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "Path": "/",
+        "RoleName": "WavefrontProxyRole",
+        "ManagedPolicyArns": [
+          {
+            "Ref": "AmazonEC2ReadOnlyAccess"
+          },
+          {
+            "Ref": "S3VaasLogstashAssetsAccess"
+          }
+        ]
+      }
+    },
+    "WavefrontProxyInstanceProfile": {
+      "Type": "AWS::IAM::InstanceProfile",
+      "Properties": {
+        "InstanceProfileName": "WavefrontProxyRole",
+        "Path": "/",
+        "Roles": [
+          {
+            "Ref": "WavefrontProxyRole"
+          }
+        ]
+      }
+    },
+    "HipChatVideoJibri": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ec2.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            },
+            {
+              "Sid": "",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "autoscaling.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "Path": "/",
+        "RoleName": "HipChat-Video-Jibri",
+        "ManagedPolicyArns": [
+          {
+            "Ref": "AmazonSQSFullAccess"
+          },
+          {
+            "Ref": "CloudwatchAlarmsAndMetrics"
+          },
+          {
+            "Ref": "CloudwatchLogsPolicy"
+          },
+          {
+            "Ref": "AmazonEC2ReadOnlyAccess"
+          },
+          {
+            "Ref": "S3VaasLogstashAssetsAccess"
+          },
+          {
+            "Ref": "JitsiDumps"
+          },
+          {
+            "Ref": "AutoScalingPlusSNSandIAM"
+          }
+        ]
+      }
+    },
+    "HipChatVideoJibriInstanceProfile": {
+      "Type": "AWS::IAM::InstanceProfile",
+      "Properties": {
+        "InstanceProfileName": "HipChat-Video-Jibri",
+        "Path": "/",
+        "Roles": [
+          {
+            "Ref": "HipChatVideoJibri"
+          }
+        ]
+      }
+    },
+    "HipChatVideoJigasi": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ec2.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            },
+            {
+              "Sid": "",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "autoscaling.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "Path": "/",
+        "RoleName": "HipChatVideo-Jigasi",
+        "ManagedPolicyArns": [
+          {
+            "Ref": "AmazonSQSFullAccess"
+          },
+          {
+            "Ref": "AmazonEC2ReadOnlyAccess"
+          },
+          {
+            "Ref": "S3VaasLogstashAssetsAccess"
+          },
+          {
+            "Ref": "CloudwatchAlarmsAndMetrics"
+          },
+          {
+            "Ref": "AutoScalingPlusSNSandIAM"
+          },
+          {
+            "Ref": "CloudwatchLogsPolicy"
+          },
+          {
+            "Ref": "JitsiDumps"
+          },
+          {
+            "Ref": "IAMReadOnlyAccess"
+          },
+          {
+            "Ref": "AmazonSNSFullAccess"
+          }
+        ]
+      }
+    },
+    "HipChatVideoJigasiInstanceProfile": {
+      "Type": "AWS::IAM::InstanceProfile",
+      "Properties": {
+        "InstanceProfileName": "HipChatVideo-Jigasi",
+        "Path": "/",
+        "Roles": [
+          {
+            "Ref": "HipChatVideoJigasi"
+          }
+        ]
+      }
+    },
+    "HipChatVideoJenkins": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ec2.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "Path": "/",
+        "RoleName": "HipChat-Video-Jenkins",
+        "ManagedPolicyArns": [
+          {
+            "Ref": "AdministratorAccess"
+          }
+        ]
+      }
+    },
+    "HipChatVideoJenkinsInstanceProfile": {
+      "Type": "AWS::IAM::InstanceProfile",
+      "Properties": {
+        "InstanceProfileName": "HipChat-Video-Jenkins",
+        "Path": "/",
+        "Roles": [
+          {
+            "Ref": "HipChatVideoJenkins"
+          }
+        ]
+      }
+    },
+    "HipChatVideoJenkinsExternal": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ec2.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "Path": "/",
+        "RoleName": "HipChat-Video-Jenkins-External",
+        "ManagedPolicyArns": [
+          {
+            "Ref": "CloudwatchAlarmsAndMetrics"
+          },
+          {
+            "Ref": "AmazonEC2ReadOnlyAccess"
+          },
+          {
+            "Ref": "JitsiDumps"
+          },
+          {
+            "Ref": "S3VaasLogstashAssetsAccess"
+          },
+          {
+            "Ref": "EC2CreateTags"
+          }
+        ]
+      }
+    },
+    "HipChatVideoJenkinsExternalInstanceProfile": {
+      "Type": "AWS::IAM::InstanceProfile",
+      "Properties": {
+        "InstanceProfileName": "HipChat-Video-Jenkins-External",
+        "Path": "/",
+        "Roles": [
+          {
+            "Ref": "HipChatVideoJenkinsExternal"
+          }
+        ]
+      }
+    },
+    "JitsiAMIBuilder": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ec2.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "Path": "/",
+        "RoleName": "Jitsi-AMI-Builder",
+        "ManagedPolicyArns": [
+          {
+            "Ref": "BaronReleases"
+          }
+        ]
+      }
+    },
+    "JitsiAMIBuilderInstanceProfile": {
+      "Type": "AWS::IAM::InstanceProfile",
+      "Properties": {
+        "InstanceProfileName": "JitsiAMIBuilder",
+        "Path": "/",
+        "Roles": [
+          {
+            "Ref": "JitsiAMIBuilder"
+          }
+        ]
+      }
+    },
+    "HipChatVideoTorturer": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ec2.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "Path": "/",
+        "RoleName": "HipChat-Video-Torturer",
+        "ManagedPolicyArns": [
+          {
+            "Ref": "AmazonEC2ReadOnlyAccess"
+          },
+          {
+            "Ref": "TortureDumps"
+          },
+          {
+            "Ref": "CloudwatchLogsPolicy"
+          },
+          {
+            "Ref": "S3VaasLogstashAssetsAccess"
+          },
+          {
+            "Ref": "CloudwatchAlarmsAndMetrics"
+          }
+        ]
+      }
+    },
+    "HipChatVideoTorturerInstanceProfile": {
+      "Type": "AWS::IAM::InstanceProfile",
+      "Properties": {
+        "InstanceProfileName": "HipChat-Video-Torturer",
+        "Path": "/",
+        "Roles": [
+          {
+            "Ref": "HipChatVideoTorturer"
+          }
+        ]
+      }
+    },
+    "HipChatVideoMonitoring": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ec2.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "Path": "/",
+        "RoleName": "HipChatVideo-Monitoring",
+        "ManagedPolicyArns": [
+          {
+            "Ref": "CloudwatchAlarmsAndMetrics"
+          },
+          {
+            "Ref": "AmazonEC2ReadOnlyAccess"
+          },
+          {
+            "Ref": "CloudwatchLogsPolicy"
+          },
+          {
+            "Ref": "EC2CreateTags"
+          }
+        ]
+      }
+    },
+    "HipChatVideoMonitoringInstanceProfile": {
+      "Type": "AWS::IAM::InstanceProfile",
+      "Properties": {
+        "InstanceProfileName": "HipChatVideo-Monitoring",
+        "Path": "/",
+        "Roles": [
+          {
+            "Ref": "HipChatVideoMonitoring"
+          }
+        ]
+      }
+    },
+    "HipChatVideoCoturn": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ec2.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "Path": "/",
+        "RoleName": "HipChatVideo-Coturn",
+        "ManagedPolicyArns": [
+          {
+            "Ref": "AmazonEC2ReadOnlyAccess"
+          },
+          {
+            "Ref": "CloudwatchLogsPolicy"
+          },
+          {
+            "Ref": "JitsiDumps"
+          },
+          {
+            "Ref": "S3VaasLogstashAssetsAccess"
+          },
+          {
+            "Ref": "EC2CreateTags"
+          },
+          {
+            "Ref": "EC2AssociateAddress"            
+          },
+          {
+            "Ref": "CoturnAllowCloudActions"
+            
+          },
+          {
+            "Ref": "AutoScalingPlusSNSandIAM"
+          }
+        ]
+      }
+    },
+    "HipChatVideoCoturnInstanceProfile": {
+      "Type": "AWS::IAM::InstanceProfile",
+      "Properties": {
+        "InstanceProfileName": "HipChatVideo-Coturn",
+        "Path": "/",
+        "Roles": [
+          {
+            "Ref": "HipChatVideoCoturn"
+          }
+        ]
+      }
+    },
+    "HipChatVideoLoadBalancer": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ec2.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "Path": "/",
+        "RoleName": "HipChatVideo-LoadBalancer",
+        "ManagedPolicyArns": [
+          {
+            "Ref": "CloudwatchAlarmsAndMetrics"
+          },
+          {
+            "Ref": "AmazonEC2ReadOnlyAccess"
+          },
+          {
+            "Ref": "CloudwatchLogsPolicy"
+          },
+          {
+            "Ref": "JitsiDumps"
+          },
+          {
+            "Ref": "BaronReleases"
+          },
+          {
+            "Ref": "S3VaasLogstashAssetsAccess"
+          },
+          {
+            "Ref": "EC2CreateTags"
+          },
+          {
+            "Ref": "AmazonRoute53ReadOnlyAccess"
+          },
+          {
+            "Ref": "AmazonRoute53DomainsReadOnlyAccess"
+          },
+          {
+            "Ref": "EC2AssociateAddress"
+          }
+        ]
+      }
+    },
+    "HipChatVideoLoadBalancerInstanceProfile": {
+      "Type": "AWS::IAM::InstanceProfile",
+      "Properties": {
+        "InstanceProfileName": "HipChatVideo-LoadBalancer",
+        "Path": "/",
+        "Roles": [
+          {
+            "Ref": "HipChatVideoLoadBalancer"
+          }
+        ]
+      }
+    },
+    "HipChatVideoSignalNode": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ec2.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "Path": "/",
+        "RoleName": "HipChatVideo-SignalNode",
+        "ManagedPolicyArns": [
+          {
+            "Ref": "AmazonSQSFullAccess"
+          },
+          {
+            "Ref": "CloudwatchAlarmsAndMetrics"
+          },
+          {
+            "Ref": "AmazonEC2ReadOnlyAccess"
+          },
+          {
+            "Ref": "AmazonEC2ReportsAccess"
+          },
+          {
+            "Ref": "CloudwatchLogsPolicy"
+          },
+          {
+            "Ref": "JitsiDumps"
+          },
+          {
+            "Ref": "S3VaasLogstashAssetsAccess"
+          },
+          {
+            "Ref": "EC2CreateTags"
+          },
+          {
+            "Ref": "BaronReleases"
+          },
+          {
+            "Ref": "KinesisProsodyEgressFullAccess"
+          }
+        ]
+      }
+    },
+    "HipChatVideoSignalNodeInstanceProfile": {
+      "Type": "AWS::IAM::InstanceProfile",
+      "Properties": {
+        "InstanceProfileName": "HipChatVideo-SignalNode",
+        "Path": "/",
+        "Roles": [
+          {
+            "Ref": "HipChatVideoSignalNode"
+          }
+        ]
+      }
+    },
+    "HipChatVideoStandAlone": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ec2.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "Path": "/",
+        "RoleName": "HipChatVideo-StandAlone",
+        "ManagedPolicyArns": [
+          {
+            "Ref": "CloudwatchAlarmsAndMetrics"
+          },
+          {
+            "Ref": "AmazonEC2ReadOnlyAccess"
+          },
+          {
+            "Ref": "CloudwatchLogsPolicy"
+          },
+          {
+            "Ref": "JitsiDumps"
+          },
+          {
+            "Ref": "EC2CreateTags"
+          },
+          {
+            "Ref": "AmazonSNSFullAccess"
+          },
+          {
+            "Ref": "HCVStackAutomation"
+          },
+          {
+            "Ref": "BaronReleases"
+          },
+          {
+            "Ref": "KinesisProsodyEgressFullAccess"
+          },
+          {
+            "Ref": "AmazonECRFullAccess"
+          }
+        ]
+      }
+    },
+    "HipChatVideoStandAloneInstanceProfile": {
+      "Type": "AWS::IAM::InstanceProfile",
+      "Properties": {
+        "InstanceProfileName": "HipChatVideo-StandAlone",
+        "Path": "/",
+        "Roles": [
+          {
+            "Ref": "HipChatVideoStandAlone"
+          }
+        ]
+      }
+    },
+    "HipChatVideoVideoBridgeNode": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ec2.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            },
+            {
+              "Sid": "",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "autoscaling.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "Path": "/",
+        "RoleName": "HipChatVideo-VideoBridgeNode",
+        "ManagedPolicyArns": [
+          {
+            "Ref": "AmazonSQSFullAccess"
+          },
+          {
+            "Ref": "CloudwatchAlarmsAndMetrics"
+          },
+          {
+            "Ref": "AmazonEC2ReadOnlyAccess"
+          },
+          {
+            "Ref": "AmazonEC2ReportsAccess"
+          },
+          {
+            "Ref": "CloudwatchLogsPolicy"
+          },
+          {
+            "Ref": "JitsiDumps"
+          },
+          {
+            "Ref": "S3VaasLogstashAssetsAccess"
+          },
+          {
+            "Ref": "IAMReadOnlyAccess"
+          },
+          {
+            "Ref": "AutoScalingPlusSNSandIAM"
+          },
+          {
+            "Ref": "EC2AssociateAddress"            
+          }
+        ]
+      }
+    },
+    "HipChatVideoVideoBridgeNodeInstanceProfile": {
+      "Type": "AWS::IAM::InstanceProfile",
+      "Properties": {
+        "InstanceProfileName": "HipChatVideo-VideoBridgeNode",
+        "Path": "/",
+        "Roles": [
+          {
+            "Ref": "HipChatVideoVideoBridgeNode"
+          }
+        ]
+      }
+    },
+    "HipChatVideoASAPKeysBucketRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ec2.amazonaws.com",
+                "AWS": "arn:aws:iam::177626818092:role/sheep-ir"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "Path": "/",
+        "RoleName": "HipChatVideo-ASAP-Keys-Bucket-Role",
+        "ManagedPolicyArns": [
+          {
+            "Ref": "S3ASAPKeysFullAccess"
+          }
+        ]
+      }
+    },
+    "AdministratorAccess": {
+      "Type": "AWS::IAM::ManagedPolicy",
+      "Properties": {
+        "Description": "Provides full access to AWS services and resources.",
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": "*",
+              "Resource": "*"
+            }
+          ]
+        }
+      }
+    },
+    "AutoScalingPlusSNSandIAM": {
+      "Type": "AWS::IAM::ManagedPolicy",
+      "Properties": {
+        "Description": "Used for instances which manage their own lifecycle hook configurations, like the JVB or Jigasi",
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "ec2:DescribeInstances",
+                "SNS:Publish",
+                "autoscaling:DescribeLifecycleHooks",
+                "autoscaling:PutLifecycleHook",
+                "autoscaling:CompleteLifecycleAction",
+                "autoscaling:DeleteLifecycleHook",
+                "autoscaling:RecordLifecycleActionHeartbeat",
+                "autoscaling:SetInstanceHealth",
+                "autoscaling:SetInstanceProtection",
+                "autoscaling:DetachInstances",
+                "iam:PassRole",
+                "iam:GetRole",
+                "ec2:CreateTags",
+                "ec2:TerminateInstances",
+                "ec2messages:AcknowledgeMessage",
+                "ec2messages:DeleteMessage",
+                "ec2messages:FailMessage",
+                "ec2messages:GetEndpoint",
+                "ec2messages:GetMessages",
+                "ec2messages:SendReply",
+                "ssmmessages:CreateControlChannel",
+                "ssmmessages:CreateDataChannel",
+                "ssmmessages:OpenControlChannel",
+                "ssmmessages:OpenDataChannel",
+                "ssm:UpdateInstanceInformation",
+                "ssm:ListInstanceAssociations",
+                "ssm:DescribeInstanceProperties",
+                "ssm:DescribeDocumentParameters"
+              ],
+              "Resource": "*"
+            }
+          ]
+        }
+      }
+    },
+    "AmazonSQSFullAccess": {
+      "Type": "AWS::IAM::ManagedPolicy",
+      "Properties": {
+        "Description": "Provides full access to Amazon SQS via the AWS Management Console.",
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Action": [
+                "sqs:*"
+              ],
+              "Effect": "Allow",
+              "Resource": "*"
+            }
+          ]
+        }
+      }
+    },
+    "EC2DescribeAll": {
+      "Type": "AWS::IAM::ManagedPolicy",
+      "Properties": {
+        "Description": "Provides read only access to Amazon EC2 via api",
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": "ec2:Describe*",
+              "Resource": "*"
+            }
+          ]
+        }
+      }
+    },
+    "EC2DescribeAllRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ec2.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "Path": "/",
+        "ManagedPolicyArns": [
+          { "Ref": "EC2DescribeAll" }
+        ],
+        "RoleName": "EC2DescribeAllRole"
+      }
+    },
+    "AmazonEC2ReadOnlyAccess": {
+      "Type": "AWS::IAM::ManagedPolicy",
+      "Properties": {
+        "Description": "Provides read only access to Amazon EC2 via the AWS Management Console.",
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": "ec2:Describe*",
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": "elasticloadbalancing:Describe*",
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "cloudwatch:ListMetrics",
+                "cloudwatch:GetMetricStatistics",
+                "cloudwatch:Describe*"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": "autoscaling:Describe*",
+              "Resource": "*"
+            }
+          ]
+        }
+      }
+    },
+    "AmazonEC2ReportsAccess": {
+      "Type": "AWS::IAM::ManagedPolicy",
+      "Properties": {
+        "Description": "Provides full access to all Amazon EC2 reports via the AWS Management Console.",
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Action": "ec2-reports:*",
+              "Effect": "Allow",
+              "Resource": "*"
+            }
+          ]
+        }
+      }
+    },
+    "AmazonECRFullAccess": {
+      "Type": "AWS::IAM::ManagedPolicy",
+      "Properties": {
+        "Description": "Provides full access to Amazon ECR images",
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [{
+            "Effect": "Allow",
+            "Action": [
+              "ecr:GetAuthorizationToken",
+              "ecr:BatchCheckLayerAvailability",
+              "ecr:GetDownloadUrlForLayer",
+              "ecr:GetRepositoryPolicy",
+              "ecr:DescribeRepositories",
+              "ecr:ListImages",
+              "ecr:DescribeImages",
+              "ecr:BatchGetImage",
+              "ecr:GetLifecyclePolicy",
+              "ecr:GetLifecyclePolicyPreview",
+              "ecr:ListTagsForResource",
+              "ecr:DescribeImageScanFindings"
+          ],
+          "Resource": "*"
+          }]
+        }
+      }
+    },
+    "AmazonSNSFullAccess": {
+      "Type": "AWS::IAM::ManagedPolicy",
+      "Properties": {
+        "Description": "Provides full access to Amazon SNS via the AWS Management Console.",
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Action": [
+                "sns:*"
+              ],
+              "Effect": "Allow",
+              "Resource": "*"
+            }
+          ]
+        }
+      }
+    },
+    "AmazonRoute53ReadOnlyAccess": {
+      "Type": "AWS::IAM::ManagedPolicy",
+      "Properties": {
+        "Description": "Provides read only access to all Amazon Route 53 via the AWS Management Console.",
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "route53:Get*",
+                "route53:List*",
+                "route53:TestDNSAnswer"
+              ],
+              "Resource": [
+                "*"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "AmazonRoute53DomainsReadOnlyAccess": {
+      "Type": "AWS::IAM::ManagedPolicy",
+      "Properties": {
+        "Description": "Provides access to Route53 Domains list and actions.",
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "route53domains:Get*",
+                "route53domains:List*"
+              ],
+              "Resource": [
+                "*"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "CoturnAllowCloudActions": {
+      "Type": "AWS::IAM::ManagedPolicy",
+      "Properties": {
+        "Description": "Allow nodes to set Cloudwatch Alarms and send Metric Data",
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "Stmt1447702138000",
+              "Effect": "Allow",
+              "Action": [
+                "cloudwatch:DeleteAlarms",
+                "cloudwatch:EnableAlarmActions",
+                "cloudwatch:ListMetrics",
+                "cloudwatch:PutMetricAlarm",
+                "cloudwatch:PutMetricData",
+                "cloudwatch:SetAlarmState",
+                "cloudformation:ListExports",
+                "cloudformation:ListStacks",
+                "cloudformation:ListImports",
+                "cloudformation:ListChangeSets",
+                "cloudformation:DescribeStacks",
+                "cloudformation:ListStackResources",
+                "route53:ListReusableDelegationSets",
+                "route53:GetHealthCheckLastFailureReason",
+                "route53:GetHealthCheckStatus",
+                "route53:GetChange",
+                "route53:GetHostedZone",
+                "route53:ListHostedZones",
+                "route53:GetHealthCheck",
+                "route53:ChangeResourceRecordSets",
+                "route53:GetReusableDelegationSet",
+                "route53:UpdateHealthCheck",
+                "route53:DeleteHealthCheck",
+                "route53:ListHostedZonesByName",
+                "route53:ListTagsForResource",
+                "route53:ListTagsForResources",
+                "route53:GetCheckerIpRanges",
+                "route53:ListHealthChecks",
+                "route53:CreateHealthCheck",
+                "route53:ListResourceRecordSets",
+                "route53:GetGeoLocation",
+                "route53:ListGeoLocations",
+                "route53:GetHostedZoneCount",
+                "route53:GetHealthCheckCount"              ],
+              "Resource": [
+                "*"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "CloudwatchAlarmsAndMetrics": {
+      "Type": "AWS::IAM::ManagedPolicy",
+      "Properties": {
+        "Description": "Allow nodes to set Cloudwatch Alarms and send Metric Data",
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "Stmt1447702138000",
+              "Effect": "Allow",
+              "Action": [
+                "cloudwatch:PutMetricAlarm",
+                "cloudwatch:PutMetricData",
+                "cloudwatch:SetAlarmState"
+              ],
+              "Resource": [
+                "*"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "CloudwatchLogsPolicy": {
+      "Type": "AWS::IAM::ManagedPolicy",
+      "Properties": {
+        "Description": "Create and put log streams and groups",
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "logs:CreateLogGroup",
+                "logs:CreateLogStream",
+                "logs:PutLogEvents",
+                "logs:DescribeLogStreams",
+                "logs:DescribeLogGroups"
+              ],
+              "Resource": [
+                "arn:aws:logs:*:*:*"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "DatadogAWSIntegrationPolicy": {
+      "Type": "AWS::IAM::ManagedPolicy",
+      "Properties": {
+        "Description": "Policy provided by DataDog via http://docs.datadoghq.com/integrations/aws/",
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Action": [
+                "autoscaling:Describe*",
+                "budgets:ViewBudget",
+                "cloudfront:GetDistributionConfig",
+                "cloudfront:ListDistributions",
+                "cloudtrail:DescribeTrails",
+                "cloudtrail:GetTrailStatus",
+                "cloudwatch:Describe*",
+                "cloudwatch:Get*",
+                "cloudwatch:List*",
+                "codedeploy:List*",
+                "codedeploy:BatchGet*",
+                "directconnect:Describe*",
+                "dynamodb:List*",
+                "dynamodb:Describe*",
+                "ec2:Describe*",
+                "ecs:Describe*",
+                "ecs:List*",
+                "elasticache:Describe*",
+                "elasticache:List*",
+                "elasticfilesystem:DescribeFileSystems",
+                "elasticfilesystem:DescribeTags",
+                "elasticloadbalancing:Describe*",
+                "elasticmapreduce:List*",
+                "elasticmapreduce:Describe*",
+                "es:ListTags",
+                "es:ListDomainNames",
+                "es:DescribeElasticsearchDomains",
+                "health:DescribeEvents",
+                "health:DescribeEventDetails",
+                "health:DescribeAffectedEntities",
+                "kinesis:List*",
+                "kinesis:Describe*",
+                "lambda:AddPermission",
+                "lambda:GetPolicy",
+                "lambda:List*",
+                "lambda:RemovePermission",
+                "logs:Get*",
+                "logs:Describe*",
+                "logs:FilterLogEvents",
+                "logs:TestMetricFilter",
+                "logs:PutSubscriptionFilter",
+                "logs:DeleteSubscriptionFilter",
+                "logs:DescribeSubscriptionFilters",
+                "rds:Describe*",
+                "rds:List*",
+                "redshift:DescribeClusters",
+                "redshift:DescribeLoggingStatus",
+                "route53:List*",
+                "s3:GetBucketLogging",
+                "s3:GetBucketLocation",
+                "s3:GetBucketNotification",
+                "s3:GetBucketTagging",
+                "s3:ListAllMyBuckets",
+                "s3:PutBucketNotification",
+                "ses:Get*",
+                "sns:List*",
+                "sns:Publish",
+                "sqs:ListQueues",
+                "support:DescribeTrustedAdvisorChecks", 
+                "support:RefreshTrustedAdvisorCheck", 
+                "support:DescribeTrustedAdvisorCheckResult",
+                "tag:GetResources",
+                "tag:GetTagKeys",
+                "tag:GetTagValues"
+              ],
+              "Effect": "Allow",
+              "Resource": "*"
+            }
+          ]
+        }
+      }
+    },
+    "AWSLambdaBasicExecutionRole": {
+      "Type": "AWS::IAM::ManagedPolicy",
+      "Properties": {
+        "Description": "Allow basic logging from lambda",
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+                "Effect": "Allow",
+                "Action": [
+                    "logs:CreateLogGroup",
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents"
+                ],
+                "Resource": "*"
+            }
+          ]
+        }
+      }
+    },
+    "EC2CreateTags": {
+      "Type": "AWS::IAM::ManagedPolicy",
+      "Properties": {
+        "Description": "Allow nodes to tag themselves (and others)",
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "Stmt1450111924000",
+              "Effect": "Allow",
+              "Action": [
+                "ec2:CreateTags"
+              ],
+              "Resource": [
+                "*"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "VPNNetworkAccess": {
+      "Type": "AWS::IAM::ManagedPolicy",
+      "Properties": {
+        "Description": "Allow instances to associate an ENI",
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "Stmt1467943256000",
+              "Effect": "Allow",
+              "Action": [
+                "ec2:DescribeInstances",
+                "ec2:AssociateAddress",
+                "ec2:DescribeAddresses",
+                "ec2:DescribeTags",
+                "ec2:StartInstances",
+                "ec2:StopInstances",
+                "ec2:AttachNetworkInterface",
+                "ec2:DescribeNetworkInterfaceAttribute",
+                "ec2:DescribeNetworkInterfaces",
+                "ec2:DetachNetworkInterface",
+                "ec2:ModifyNetworkInterfaceAttribute",
+                "ec2:ResetNetworkInterfaceAttribute",
+                "ec2:AssignPrivateIpAddresses"
+              ],
+              "Resource": [
+                "*"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "EC2AssociateAddress": {
+      "Type": "AWS::IAM::ManagedPolicy",
+      "Properties": {
+        "Description": "Allow instances to associate an EIP",
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "Stmt1467943256000",
+              "Effect": "Allow",
+              "Action": [
+                "ec2:AssociateAddress"
+              ],
+              "Resource": [
+                "*"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "HCVStackAutomation": {
+      "Type": "AWS::IAM::ManagedPolicy",
+      "Properties": {
+        "Description": "CI/CD Agent permissions, creates/deletes the stack as well as individual instances",
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": "iam:PassRole",
+              "Resource": "*"
+            },
+            {
+              "Action": "ec2:*",
+              "Effect": "Allow",
+              "Resource": "*"
+            },
+            {
+              "Action": "logs:*",
+              "Effect": "Allow",
+              "Resource": "*"
+            },
+            {
+              "Action": "cloudformation:*",
+              "Effect": "Allow",
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": "elasticloadbalancing:*",
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": "cloudwatch:*",
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": "autoscaling:*",
+              "Resource": "*"
+            }
+          ]
+        }
+      }
+    },
+    "TortureDumps": {
+      "Type": "AWS::IAM::ManagedPolicy",
+      "Properties": {
+        "Description": "Access to torture result dumps by torurer to send logs and torture dumps",
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "Stmt1452118525000",
+              "Effect": "Allow",
+              "Action": [
+                "s3:Get*",
+                "s3:List*",
+                "s3:Put*"
+              ],
+              "Resource": [
+                "arn:aws:s3:::jitsi-tormentor-logs/*"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "JitsiDumps": {
+      "Type": "AWS::IAM::ManagedPolicy",
+      "Properties": {
+        "Description": "Access to vaas dumps by nodes to send logs and stack dumps",
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "Stmt1452118525000",
+              "Effect": "Allow",
+              "Action": [
+                "s3:Get*",
+                "s3:List*",
+                "s3:Put*"
+              ],
+              "Resource": [
+                "arn:aws:s3:::jitsi-infra-dumps/*"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "S3VaasLogstashAssetsAccess": {
+      "Type": "AWS::IAM::ManagedPolicy",
+      "Properties": {
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "Stmt1452118525000",
+              "Effect": "Allow",
+              "Action": [
+                "s3:Get*",
+                "s3:List*"
+              ],
+              "Resource": [
+                "arn:aws:s3:::jitsi-bootstrap-assets/*"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "BaronReleases": {
+      "Type": "AWS::IAM::ManagedPolicy",
+      "Properties": {
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "Stmt1452118525000",
+              "Effect": "Allow",
+              "Action": [
+                "s3:Get*",
+                "s3:List*"
+              ],
+              "Resource": [
+                "arn:aws:s3:::baron-releases/*"
+              ]
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "dynamodb:DescribeTable",
+                "dynamodb:GetItem",
+                "dynamodb:BatchGetItem",
+                "dynamodb:Scan",
+                "dynamodb:Query"
+              ],
+              "Resource": [
+                "arn:aws:dynamodb:us-west-2:103425057857:table/*TenantRegion"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "BaronPublishReleases": {
+      "Type": "AWS::IAM::ManagedPolicy",
+      "Properties": {
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "Stmt1452118525000",
+              "Effect": "Allow",
+              "Action": [
+                "s3:Put*",
+                "s3:Get*",
+                "s3:List*"
+              ],
+              "Resource": [
+                "arn:aws:s3:::baron-releases/*"
+              ]
+            }
+          ]
+        }
+      }
+    },    
+    "TortureAssetsAccess": {
+      "Type": "AWS::IAM::ManagedPolicy",
+      "Properties": {
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "Stmt1452118525001",
+              "Effect": "Allow",
+              "Action": [
+                "s3:Get*",
+                "s3:List*"
+              ],
+              "Resource": [
+                "arn:aws:s3:::jitsi-torture-checkout-u1541176306/*"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "S3ASAPKeysFullAccess": {
+      "Type": "AWS::IAM::ManagedPolicy",
+      "Properties": {
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "s3:*"
+              ],
+              "Resource": [
+                "arn:aws:s3:::asap-keys/*"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "KinesisProsodyEgressFullAccess": {
+      "Type": "AWS::IAM::ManagedPolicy",
+      "Properties": {
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": "kinesis:*",
+              "Resource": "arn:aws:kinesis:us-west-2:103425057857:stream/prosody-egress*"
+            }
+          ]
+        }
+      }
+    },
+    "IAMReadOnlyAccess": {
+      "Type": "AWS::IAM::ManagedPolicy",
+      "Properties": {
+        "Description": "Provides read only access to IAM via the AWS Management Console.",
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "iam:GenerateCredentialReport",
+                "iam:GenerateServiceLastAccessedDetails",
+                "iam:Get*",
+                "iam:List*"
+              ],
+              "Resource": "*"
+            }
+          ]
+        }
+      }
+    },
+    "AutoscalePlusDescribeForVideoNodes": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "ec2:DescribeInstances",
+                "SNS:Publish",
+                "route53:ChangeResourceRecordSets",
+                "autoscaling:DescribeLifecycleHooks",
+                "autoscaling:PutLifecycleHook",
+                "autoscaling:CompleteLifecycleAction",
+                "autoscaling:DeleteLifecycleHook",
+                "autoscaling:RecordLifecycleActionHeartbeat",
+                "autoscaling:SetInstanceHealth",
+                "iam:PassRole",
+                "iam:GetRole",
+                "ec2:CreateTags"
+              ],
+              "Resource": "*"
+            }
+          ]
+        },
+        "PolicyName": "autoscale_plus_describe_for_video_nodes",
+        "Roles": [
+          {
+            "Ref": "HipChatVideoVideoBridgeNode"
+          }
+        ]
+      }
+    },
+    "S3VaasLogstashAssetsAccessJibri": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "Stmt1452118525000",
+              "Effect": "Allow",
+              "Action": [
+                "s3:Get*",
+                "s3:List*"
+              ],
+              "Resource": [
+                "arn:aws:s3:::jitsi-bootstrap-assets/*"
+              ]
+            }
+          ]
+        },
+        "PolicyName": "policygen-HipChat-Video-Jibri-201512100030",
+        "Roles": [
+          {
+            "Ref": "HipChatVideoJibri"
+          }
+        ]
+      }
+    },
+    "SNSPublishPlusCreateTags": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "ec2:DescribeInstances",
+                "SNS:Publish",
+                "iam:PassRole",
+                "iam:GetRole",
+                "ec2:CreateTags"
+              ],
+              "Resource": "*"
+            }
+          ]
+        },
+        "PolicyName": "sns_publish_plus_create_tags",
+        "Roles": [
+          {
+            "Ref": "HipChatVideoSignalNode"
+          }
+        ]
+      }
+    },
+    "Rapid7Policy": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "cloudtrail:LookupEvents", 
+                "cloudtrail:DescribeTrails",
+                "ec2:DescribeInstances",
+                "ec2:DescribeImages",
+                "ec2:DescribeAddresses",
+                "ec2:CreateTags",
+                "ec2:DescribeTags",
+                "iam:PassRole",
+                "iam:GetRole",
+                "ec2:DescribeNetworkInterfaces"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Sid": "Stmt1452118525000",
+              "Effect": "Allow",
+              "Action": [
+                "s3:Get*",
+                "s3:List*"
+              ],
+              "Resource": [
+                "arn:aws:s3:::jitsi-bootstrap-assets/*"
+              ]
+            }
+          ]
+        },
+        "PolicyName": "Rapid7Policy",
+        "Roles": [{"Ref": "Rapid7Scanner"}]
+      }
+    },
+    "Rapid7Scanner": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ec2.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "Path": "/",
+        "RoleName": "Rapid7Scanner"
+      }
+    },
+    "Rapid7ScannerInstanceProfile": {
+      "Type": "AWS::IAM::InstanceProfile",
+      "Properties": {
+        "InstanceProfileName": "Rapid7Scanner",
+        "Path": "/",
+        "Roles": [
+          {
+            "Ref": "Rapid7Scanner"
+          }
+        ]
+      }
+    }
+  }
+}

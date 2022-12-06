@@ -1,0 +1,243 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Parameters": {
+    "AZ1Letter": {
+      "Description": "Ending letter for initial availability zone in region",
+      "Type": "String",
+      "Default": "a"
+    },
+    "AZ2Letter": {
+      "Description": "Ending letter for second availability zone in region",
+      "Type": "String",
+      "Default": "b"
+    },
+    "JigasiSubnetACidr": {
+      "Description": "CIDR for Jigasi Subnet in the 1st AvailabilityZone",
+      "Type": "String",
+      "ConstraintDescription": "Should look like 10.0.1.0/27",
+      "Default": "10.0.16.0/27"
+    },
+    "JigasiSubnetBCidr": {
+      "Description": "CIDR for Jigasi Subnet in the 2nd AvailabilityZone",
+      "Type": "String",
+      "ConstraintDescription": "Should look like 10.0.1.32/27",
+      "Default": "10.0.17.32/27"
+    },
+    "JigasiSubnetMapPublicIp": {      
+      "Description": "Indicates whether JVB subnets should receive an AWS public IP address",
+      "Type": "String",
+      "Default": "true"
+    },
+    "StackNamePrefix": {
+      "Description": "Prefix for stack",
+      "Type": "String",
+      "Default": "vaas"
+    },
+    "RegionAlias": {
+      "Description": "Alias for AWS Region",
+      "Type": "String"
+    },
+    "TagEnvironmentType": {
+      "Description": "Tag: Environment",
+      "Type": "String",
+      "Default": "prod"
+    },
+    "TagOwner": {
+      "Description": "Tag: Owner",
+      "Type": "String",
+      "Default": "Meetings"
+    },
+   "TagProduct": {
+      "Description": "Tag: Product",
+      "Type": "String",
+      "Default": "meetings"
+    },
+    "TagTeam": {
+      "Description": "Tag: Team",
+      "Type": "String",
+      "Default": "meet@8x8.com"
+    },
+    "TagService": {
+      "Description": "Tag: Service",
+      "Type": "String",
+      "Default": "jitsi-jigasi-network"
+    },
+   "TagEnvironment": {
+      "Description": "Tag: environment",
+      "Type": "String",
+      "Default": "all"
+    }
+  },
+  "Resources": {
+    "JigasiSubnetA": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "CidrBlock": {"Ref" : "JigasiSubnetACidr"},
+        "AvailabilityZone": {"Fn::Join": ["", [{ "Ref": "AWS::Region" },{ "Ref": "AZ1Letter" }]]},
+        "MapPublicIpOnLaunch": {"Ref": "JigasiSubnetMapPublicIp"},
+        "VpcId": {"Fn::ImportValue": {"Fn::Join": ["-",["VPCId", { "Ref": "StackNamePrefix" }]]}},
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {"Fn::Join": ["", [{ "Ref": "RegionAlias" },{ "Ref": "AZ1Letter" },"-",{ "Ref": "StackNamePrefix" },"-JigasiSubnet"]]}
+          },
+          {
+            "Key": "Environment",
+            "Value": {"Ref": "TagEnvironmentType"}
+          },
+          {
+            "Key": "Owner",
+            "Value": {"Ref": "TagOwner"}
+          },
+          {
+            "Key": "Product",
+            "Value": {"Ref": "TagProduct"}
+          },
+          {
+            "Key": "Team",
+            "Value": {"Ref": "TagTeam"}
+          },
+          {
+            "Key": "Service",
+            "Value": {"Ref": "TagService"}
+          },
+          {
+            "Key": "environment",
+            "Value": {"Ref": "TagEnvironment"}
+          },
+          {
+            "Key": "role",
+            "Value": "Jigasi"
+          }
+        ]
+      }
+    },
+    "JigasiSubnetB": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "CidrBlock": {"Ref" : "JigasiSubnetBCidr"},
+        "AvailabilityZone": {"Fn::Join": ["", [{ "Ref": "AWS::Region" },{ "Ref": "AZ2Letter" }]]},
+        "MapPublicIpOnLaunch": {"Ref": "JigasiSubnetMapPublicIp"},
+        "VpcId": {"Fn::ImportValue": {"Fn::Join": ["-",["VPCId", { "Ref": "StackNamePrefix" }]]}},
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {"Fn::Join": ["", [{ "Ref": "RegionAlias" },{ "Ref": "AZ2Letter" },"-",{ "Ref": "StackNamePrefix" },"-JigasiSubnet"]]}
+          },
+          {
+            "Key": "Environment",
+            "Value": {"Ref": "TagEnvironmentType"}
+          },
+          {
+            "Key": "Owner",
+            "Value": {"Ref": "TagOwner"}
+          },
+          {
+            "Key": "Product",
+            "Value": {"Ref": "TagProduct"}
+          },
+          {
+            "Key": "Team",
+            "Value": {"Ref": "TagTeam"}
+          },
+          {
+            "Key": "Service",
+            "Value": {"Ref": "TagService"}
+          },
+          {
+            "Key": "environment",
+            "Value": {"Ref": "TagEnvironment"}
+          },
+          {
+            "Key": "role",
+            "Value": "Jigasi"
+          }
+        ]
+      }
+    },
+    "subnetacl7": {
+      "Type": "AWS::EC2::SubnetNetworkAclAssociation",
+      "Properties": {
+        "NetworkAclId": {"Fn::ImportValue": {"Fn::Join": ["-",["VaasNetworkACL", { "Ref": "StackNamePrefix" }]]}},
+        "SubnetId": {
+          "Ref": "JigasiSubnetA"
+        }
+      }
+    },
+    "subnetacl8": {
+      "Type": "AWS::EC2::SubnetNetworkAclAssociation",
+      "Properties": {
+        "NetworkAclId": {"Fn::ImportValue": {"Fn::Join": ["-",["VaasNetworkACL", { "Ref": "StackNamePrefix" }]]}},
+        "SubnetId": {
+          "Ref": "JigasiSubnetB"
+        }
+      }
+    },
+    "subnetroute7": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "RouteTableId": {"Fn::ImportValue": {"Fn::Join": ["-",["VaasRouteTablePrivate", { "Ref": "StackNamePrefix" }]]}},
+        "SubnetId": {
+          "Ref": "JigasiSubnetA"
+        }
+      }
+    },
+    "subnetroute8": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "RouteTableId": {"Fn::ImportValue": {"Fn::Join": ["-",["VaasRouteTablePrivate", { "Ref": "StackNamePrefix" }]]}},
+        "SubnetId": {
+          "Ref": "JigasiSubnetB"
+        }
+      }
+    }
+  },
+  "Outputs" : {
+    "JigasiSubnetA": {
+      "Description": "The subnet IDs for Jigasi in first AZ",
+      "Value": {
+        "Ref": "JigasiSubnetA"
+      },
+      "Export": {
+        "Name": {
+          "Fn::Join": [
+            "-",
+            [
+              "JigasiSubnetA",
+              {
+                "Ref": "StackNamePrefix"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "JigasiSubnetB": {
+      "Description": "The subnet IDs for Jigasi in second AZ",
+      "Value": {
+        "Ref": "JigasiSubnetB"
+      },
+      "Export": {
+        "Name": {
+          "Fn::Join": [
+            "-",
+            [
+              "JigasiSubnetB",
+              {
+                "Ref": "StackNamePrefix"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "JigasiSubnetsIds" : {
+      "Description": "The Subnets IDs for the Jigasi Subnets",
+      "Value": { "Fn::Join": [",",[{"Ref": "JigasiSubnetA"}, {"Ref": "JigasiSubnetB" }]]},
+       "Export": {
+          "Name" : {"Fn::Join": ["-",["JigasiSubnetsIds", { "Ref": "StackNamePrefix" }]]}
+        }
+      }
+  },
+  "Description": "Video Engineering Jigasi Network Stack"
+}

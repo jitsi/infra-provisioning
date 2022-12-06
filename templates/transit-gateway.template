@@ -1,0 +1,40 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Transit Gateway for Mesh and VPC Attachment'
+Parameters:
+  CloudName:
+    Description: Cloud name
+    Type: String
+  VpcId:
+    Description: VPC for attachment
+    Type: String
+  Subnets:
+    Description: Subnets for attachment
+    Type: CommaDelimitedList
+  ASN:
+    Description: Amazon-side ASN value, must be unique
+    Type: Number
+    Default: 64512
+
+Resources:
+
+  TransitGateway:
+    Type: AWS::EC2::TransitGateway
+    Properties:
+      AmazonSideAsn: !Ref "ASN"
+      Description: !Sub "Mesh Transit Gateway for ${CloudName}"
+
+  TransitGatewayAttachment:
+    Type: AWS::EC2::TransitGatewayAttachment
+    Properties:
+      SubnetIds: !Ref "Subnets"
+      TransitGatewayId: !Ref "TransitGateway"
+      VpcId: !Ref "VpcId"
+
+Outputs:
+  TransitGatewayId:
+    Description: "Transit Gateway ID"
+    Value: !Ref "TransitGateway"
+  ASN:
+    Description: "Transit Gateway ASN"
+    Value: !Ref "ASN"

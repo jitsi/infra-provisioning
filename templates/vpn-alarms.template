@@ -1,0 +1,120 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Direct Connect Alarms for MegaPort Virtual Interfaces'
+Parameters:
+  Environment:
+    Description: 'Environment name'
+    Type: 'String'
+  VpnId1:
+    Description: 'ID for VPN Tunnel 1'
+    Type: 'String'
+  VpnId2:
+    Description: 'ID for VPN Tunnel 2'
+    Type: 'String'
+  alarmSubscription:
+    Default: "meetings-ops@8x8.com"
+    Type: "String"
+    Description: "subscriptions for default alarm SNS topic"
+  alarmSNSTopicName:
+    Default: "VPN-Health"
+    Type: "String"
+    Description: "SNS topic name to create for health events"
+
+Conditions:
+    HasSecondVPN: !Not [!Equals [!Ref VpnId2, '']]
+
+Resources:
+  # health SNS topic
+  HealthAlarmSNS:
+    Type: AWS::SNS::Topic
+    Properties:
+      Subscription:
+        - Endpoint: !Ref alarmSubscription
+          Protocol: email
+      TopicName: !Sub "${alarmSNSTopicName}-${Environment}"
+
+  Tunnel1StateDown:
+    Type: 'AWS::CloudWatch::Alarm'
+    Properties:
+      AlarmDescription: !Sub "${Environment} VPN Tunnel 1 is Down"
+      Namespace: 'AWS/VPN'
+      MetricName: TunnelState
+      Statistic: Maximum
+      Period: 60
+      EvaluationPeriods: 2
+      ComparisonOperator: LessThanThreshold
+      Threshold: 1
+      AlarmActions:
+      - !Ref HealthAlarmSNS
+      OKActions:
+      - !Ref HealthAlarmSNS
+      InsufficientDataActions:
+      - !Ref HealthAlarmSNS
+      Dimensions:
+      - Name: VpnId
+        Value: !Ref VpnId1
+
+  Tunnel2StateDown:
+    Condition: HasSecondVPN
+    Type: 'AWS::CloudWatch::Alarm'
+    Properties:
+      AlarmDescription: !Sub "${Environment} VPN Tunnel 2 is Down"
+      Namespace: 'AWS/VPN'
+      MetricName: TunnelState
+      Statistic: Maximum
+      Period: 60
+      EvaluationPeriods: 2
+      ComparisonOperator: LessThanThreshold
+      Threshold: 1
+      AlarmActions:
+      - !Ref HealthAlarmSNS
+      OKActions:
+      - !Ref HealthAlarmSNS
+      InsufficientDataActions:
+      - !Ref HealthAlarmSNS
+      Dimensions:
+      - Name: VpnId
+        Value: !Ref VpnId2
+
+  Tunnel1DataInHigh:
+    Type: 'AWS::CloudWatch::Alarm'
+    Properties:
+      AlarmDescription: !Sub "${Environment} VPN Tunnel 1 Incoming Data is High"
+      Namespace: 'AWS/VPN'
+      MetricName: TunnelDataIn
+      Statistic: Minimum
+      Period: 60
+      EvaluationPeriods: 2
+      ComparisonOperator: GreaterThanThreshold
+      Threshold: 100
+      AlarmActions:
+      - !Ref HealthAlarmSNS
+      OKActions:
+      - !Ref HealthAlarmSNS
+      InsufficientDataActions:
+      - !Ref HealthAlarmSNS
+      Dimensions:
+      - Name: VpnId
+        Value: !Ref VpnId1
+
+  Tunnel2DataInHigh:
+    Condition: HasSecondVPN
+    Type: 'AWS::CloudWatch::Alarm'
+    Properties:
+      AlarmDescription: !Sub "${Environment} VPN Tunnel 2 Incoming Data is High"
+      Namespace: 'AWS/VPN'
+      MetricName: TunnelDataIn
+      Statistic: Minimum
+      Period: 60
+      EvaluationPeriods: 2
+      ComparisonOperator: GreaterThanThreshold
+      Threshold: 100
+      AlarmActions:
+      - !Ref HealthAlarmSNS
+      OKActions:
+      - !Ref HealthAlarmSNS
+      InsufficientDataActions:
+      - !Ref HealthAlarmSNS
+      Dimensions:
+      - Name: VpnId
+        Value: !Ref VpnId2
