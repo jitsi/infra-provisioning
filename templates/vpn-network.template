@@ -1,0 +1,111 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: "VPN Network Template"
+Parameters:
+  VPCId:
+    Description:
+      The VPC id to launch in
+    Type: String
+  PublicSubnetIds:
+    Description:
+      Subnets to launch the VPN Server in
+    Type: CommaDelimitedList
+  BastionSSHSecurityGroup:
+    Description:
+      The security group ID for the bastion ssh security group
+    Type: String
+    ConstraintDescription: Must be a security group
+  TagEnvironment:
+    Description:
+      The EC2 instance tag value for environment tag, used to sort nodes in homer
+    Type: String
+    Default: "all"
+    ConstraintDescription: Must match EC2 Tag Name requirements.
+  VPNIPSecAccessCidr:
+    Type: String
+    Description: "CIDR for incoming ipsec tunnel access"
+    Default: "0.0.0.0/0"
+
+Resources:
+# vpn-server group
+  VPNServerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+        GroupDescription: Allow VPN traffic servers
+        VpcId:
+          Ref: VPCId
+        SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          SourceSecurityGroupId:
+            Ref: BastionSSHSecurityGroup
+        - IpProtocol: tcp
+          FromPort: 4500
+          ToPort: 4500
+          CidrIp: !Ref VPNIPSecAccessCidr
+        - IpProtocol: udp
+          FromPort: 4500
+          ToPort: 4500
+          CidrIp: !Ref VPNIPSecAccessCidr
+        - IpProtocol: udp
+          FromPort: 500
+          ToPort: 500
+          CidrIp: !Ref VPNIPSecAccessCidr
+        - IpProtocol: tcp
+          FromPort: 500
+          ToPort: 500
+          CidrIp: !Ref VPNIPSecAccessCidr
+        - IpProtocol: -1
+          FromPort: -1
+          ToPort: -1
+          CidrIp: 10.0.0.0/8
+        SecurityGroupEgress:
+        - IpProtocol: -1
+          FromPort: -1
+          ToPort: -1
+          CidrIp: 0.0.0.0/0
+
+  InternalIngress:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Properties:
+      GroupId: !Ref VPNServerSecurityGroup
+      IpProtocol: -1
+      FromPort: -1
+      ToPort: -1
+      SourceSecurityGroupId: !GetAtt VPNServerSecurityGroup.GroupId
+          
+  EIP:
+    Type: AWS::EC2::EIP
+
+  ENI:
+    Type: AWS::EC2::NetworkInterface
+    Properties:
+        Description: dynamic NIC for VPN
+        SourceDestCheck: 'false'
+        GroupSet:
+        - Ref: VPNServerSecurityGroup
+        SubnetId: !Select [0, !Ref PublicSubnetIds]
+        Tags:
+          - Key: environment
+            Value: !Ref TagEnvironment
+          - Key: role
+            Value: "VPN"
+          - Key: enitype
+            Value: "VPN"
+
+  EIPAssociation:
+    Type: AWS::EC2::EIPAssociation
+    Properties:
+      AllocationId: !GetAtt EIP.AllocationId
+      NetworkInterfaceId: !Ref ENI
+
+Outputs:
+  EIP:
+    Description: EIP for Floating Route
+    Value: !Ref EIP
+  ENI:
+    Description: ENI for Floating Route
+    Value: !Ref ENI
+  VPNServerSecurityGroup:
+    Description: Security group for instances
+    Value: !Ref VPNServerSecurityGroup

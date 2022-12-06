@@ -1,0 +1,40 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Transit Gateway and VPC Attachment'
+Parameters:
+  TransitGatewayId:
+    Description: Local transit gateway for attachment
+    Type: String
+  PeerTransitGatewayId:
+    Description: Peering transit gateway for attachment
+    Type: String
+  PeerRegion:
+    Description: Region for peering transit gateway
+    Type: String
+
+Resources:
+  TransitGatewayPeeringAttachment:
+    Type: AWS::EC2::TransitGatewayPeeringAttachment
+    Properties:
+      PeerAccountId: !Ref "AWS::AccountId"
+      PeerRegion: !Ref "PeerRegion"
+      PeerTransitGatewayId: !Ref "PeerTransitGatewayId"
+      TransitGatewayId: !Ref "TransitGatewayId"
+      Tags:
+        - Key: Product
+          Value: "meetings"
+        - Key: Team
+          Value: "meet@8x8.com"
+        - Key: Owner
+          Value: "Meetings"
+        - Key: Environment
+          Value: !Ref TagEnvironmentType
+        - Key: environment
+          Value: !Ref TagEnvironment
+
+Outputs:
+  AttachmentId:
+    Description: "Transit Gateway Peering Attachment ID"
+    Value: !Ref "TransitGatewayPeeringAttachment"
+
+

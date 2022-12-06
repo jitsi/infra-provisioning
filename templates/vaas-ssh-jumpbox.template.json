@@ -1,0 +1,333 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Template for the provisioning AWS resources for the HC Video SSH jumpboxes",
+  "Parameters": {
+    "KeyName": {
+      "Description": "Name of an existing EC2 KeyPair to enable SSH access to the ec2 hosts",
+      "Type": "String",
+      "MinLength": "1",
+      "MaxLength": "64",
+      "AllowedPattern": "[-_ a-zA-Z0-9]*",
+      "ConstraintDescription": "can contain only alphanumeric characters, spaces, dashes and underscores."
+    },
+    "DomainName": {
+      "Description": "HC Video internal domain name",
+      "Type": "String",
+      "Default": "infra.jitsi.net"
+    },
+    "PublicDNSHostedZoneId": {
+      "Description": "HC Video public hosted zone Id",
+      "Type": "String"
+    },
+    "PublicSubnetId": {
+      "Description": "Public Subnet Id",
+      "Type": "String"
+    },
+    "EnvironmentVPCId": {
+      "Description": "Stack VPC Id",
+      "Type": "String"
+    },
+    "ShardRole": {
+      "Description": "Shard role",
+      "Type": "String",
+      "Default": "ssh"
+    },
+    "AppInstanceType": {
+      "Description": "App server instance type",
+      "Type": "String",
+      "Default": "t3.medium",
+      "AllowedValues": [
+        "t1.micro",
+        "t2.micro",
+        "t3.medium",
+        "m1.small",
+        "m1.medium",
+        "m1.large",
+        "m3.large"
+      ],
+      "ConstraintDescription": "must be a valid and allowed EC2 instance type."
+    },
+    "AppInstanceVirtualization": {
+      "Description": "App server instance virtualization",
+      "Type": "String",
+      "Default": "HVM",
+      "AllowedValues": [
+        "HVM",
+        "PV"
+      ],
+      "ConstraintDescription": "Must be a valid and allowed virtualization type."
+    },
+    "Ec2ImageId": {
+      "Description": "AMI ID for SSH Server",
+      "Type": "String"
+    },
+    "PublicNetworkSecurityGroup": {
+      "Description": "Security Group for SSH Server",
+      "Type": "String"
+    },
+    "StackNamePrefix": {
+      "Description": "Prefix for stack name",
+      "Type": "String"
+    },
+    "RegionAlias": {
+      "Description": "Region alias for stack",
+      "Type": "String"
+    },
+  "TagName": {
+      "Description": "Tag: Name",
+      "Type": "String",
+      "Default": "vaas"
+    },
+    "TagEnvironmentType": {
+      "Description": "Tag: Environment",
+      "Type": "String",
+      "Default": "prod"
+    },
+    "TagOwner": {
+      "Description": "Tag: Owner",
+      "Type": "String",
+      "Default": "Meetings"
+    },
+   "TagProduct": {
+      "Description": "Tag: Product",
+      "Type": "String",
+      "Default": "meetings"
+    },
+    "TagTeam": {
+      "Description": "Tag: Team",
+      "Type": "String",
+      "Default": "meet@8x8.com"
+    },
+    "TagService": {
+      "Description": "Tag: Service",
+      "Type": "String",
+      "Default": "jitsi-ssh-jumpbox"
+    },
+    "TagShardRole": {
+      "Description": "Tag: shard_role",
+      "Type": "String",
+      "Default": "ssh"
+    },
+    "TagEnvironment": {
+      "Description": "Tag: environment",
+      "Type": "String",
+      "Default": "all"
+    },
+    "TagPublicDomainName": {
+      "Description": "Tag: public domain name",
+      "Type": "String",
+      "Default": "develop.jitsi.net"
+    }
+  },
+  "Resources": {
+    "SSHServerSecurityRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "ec2.amazonaws.com"
+                ]
+              },
+              "Action": [
+                "sts:AssumeRole"
+              ]
+            }
+          ]
+        },
+        "Path": "/hcvideo/ssh/",
+        "Policies": [
+          {
+            "PolicyName": "SSHServerPolicy",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": "*",
+                  "Resource": "*"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "SSHServerSecurityInstanceProfile": {
+      "Type": "AWS::IAM::InstanceProfile",
+      "Properties": {
+        "Path": "/",
+        "Roles": [
+          {
+            "Ref": "SSHServerSecurityRole"
+          }
+        ]
+      }
+    },
+    "SSHServer": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "ImageId": {
+          "Ref": "Ec2ImageId"
+        },
+        "KeyName": {
+          "Ref": "KeyName"
+        },
+        "InstanceType": {
+          "Ref": "AppInstanceType"
+        },
+        "Monitoring": "false",
+        "NetworkInterfaces": [
+          {
+            "AssociatePublicIpAddress": "true",
+            "DeviceIndex": "0",
+            "GroupSet": [
+              {
+                "Ref": "PublicNetworkSecurityGroup"
+              }
+            ],
+            "SubnetId": {
+              "Ref": "PublicSubnetId"
+            }
+          }
+        ],
+        "IamInstanceProfile": {
+          "Ref": "SSHServerSecurityInstanceProfile"
+        },
+        "Tags": [
+          {
+            "Key": "Name", "Value": {
+              "Fn::Join": ["-",
+              [{ "Ref": "RegionAlias" },{"Ref": "StackNamePrefix"}, {"Ref": "ShardRole"} ]
+              ]
+            }
+          },
+          {
+            "Key": "cloud_name", "Value": {
+              "Fn::Join": ["-",
+              [{ "Ref": "RegionAlias" },{"Ref": "StackNamePrefix"}]
+              ]
+            }
+          },
+          {
+            "Key": "Environment",
+            "Value": {"Ref": "TagEnvironmentType"}
+          },
+          {
+            "Key": "Owner",
+            "Value": {"Ref": "TagOwner"}
+          },
+          {
+            "Key": "Product",
+            "Value": {"Ref": "TagProduct"}
+          },
+          {
+            "Key": "Team",
+            "Value": {"Ref": "TagTeam"}
+          },
+          {
+            "Key": "Service",
+            "Value": {"Ref": "TagService"}
+          },
+          {
+            "Key": "shard_role",
+            "Value": {"Ref": "TagShardRole"}
+          },
+          {
+            "Key": "environment",
+            "Value": {
+              "Ref": "TagEnvironment"
+            }
+          },
+          {
+            "Key": "domain",
+            "Value": { "Ref": "TagPublicDomainName" }
+          }
+        ],
+        "UserData" : {
+          "Fn::Base64" : {
+              "Fn::Join" : [ "", [
+                "#!/bin/bash -v\n",
+                "EXIT_CODE=0\n",
+                "set -e\n",
+                "set -x\n",
+                "hostname ",{ "Ref": "RegionAlias" },"-",{"Ref": "StackNamePrefix"},"-ssh.infra.jitsi.net\n",
+                "export AWS_DEFAULT_REGION=", {"Ref": "AWS::Region"}, "\n",
+                ". /usr/local/bin/aws_cache.sh\n",
+                "/usr/local/bin/aws s3 cp s3://jitsi-bootstrap-assets/vault-password /root/.vault-password --region us-west-2\n",
+                "/usr/local/bin/aws s3 cp s3://jitsi-bootstrap-assets/id_rsa_jitsi_deployment /root/.ssh/id_rsa --region us-west-2\n",
+                "chmod 400 /root/.ssh/id_rsa\n",
+                "ansible-pull -v -U git@github.com:8x8Cloud/jitsi-video-infrastructure.git ",
+                "-d /tmp/bootstrap --purge ",
+                "-i \"localhost,\" ",
+                "-e \"hcv_environment=", {"Ref": "TagEnvironment"}, "\" ",
+                "--vault-password-file=/root/.vault-password ",
+                "--accept-host-key ",
+                "-C \"master\" ",
+                "ansible/configure-jumpbox.yml >> /var/log/bootstrap.log 2>&1 || EXIT_CODE=1\n",
+                "dhclient -6 -nw\n",
+                "rm /root/.vault-password /root/.ssh/id_rsa\n"
+              ]]
+          }
+        }
+      }
+    },
+    "SSHDNSRecord": {
+      "Type": "AWS::Route53::RecordSet",
+      "Properties": {
+        "HostedZoneId": {
+          "Ref": "PublicDNSHostedZoneId"
+        },
+        "Comment": {
+          "Fn::Join" : [ "", [
+            "SSH server host name for ",
+            { "Ref": "AWS::Region" }
+          ]] },
+        "Name" : {
+          "Fn::Join" : [ "", [
+            {"Fn::Join": ["-", 
+              [{ "Ref": "RegionAlias" },{"Ref": "StackNamePrefix"}, {"Ref": "ShardRole"} ]
+              ]},
+             ".",
+             {"Ref": "DomainName"},"."
+          ] ]
+        },
+        "Type": "A",
+        "TTL": "300",
+        "ResourceRecords": [
+          {
+            "Fn::GetAtt": [
+              "SSHServer",
+              "PublicIp"
+            ]
+          }
+        ]
+      },
+      "DependsOn": [
+        "SSHServer"
+      ]
+    }
+  },
+  "Outputs" : {
+    "SSHDNSName" : {
+      "Description": "The SSH DNS Name",  
+      "Value" : {
+          "Fn::Join" : [ "", [
+             {"Fn::Join": ["-", 
+              [{ "Ref": "RegionAlias" },{"Ref": "StackNamePrefix"}, {"Ref": "ShardRole"} ]
+              ]},
+             ".",
+             {"Ref": "DomainName"},"."
+          ] ]
+        }
+    },
+    "SSHIPAddress" : {
+      "Description": "The SSH IP Address",
+      "Value" : {"Fn::GetAtt": ["SSHServer","PublicIp"]}
+    }
+  }
+}

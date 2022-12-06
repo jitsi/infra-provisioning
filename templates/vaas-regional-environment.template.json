@@ -1,0 +1,50 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Template for basic SNS topics run once per region per environment",
+  "Parameters": {
+    "HealthAlarmSNS": {
+      "Description": "SNS topic name for environment-specific health failure Alarms",
+      "Type": "String"
+    },
+    "ASGAlarmSNS": {
+      "Description": "SNS topic for environment-specific Autoscaling Group notifications",
+      "Type": "String"
+    }
+  },
+  "Resources": {
+    "HealthSNSTopic" : {
+       "Type" : "AWS::SNS::Topic",
+       "Properties" : {
+          "Subscription" : [
+            {
+             "Endpoint" : "oncall@jitsi.net",
+             "Protocol" : "email"
+            }
+          ],
+          "TopicName" : {"Ref": "HealthAlarmSNS"}
+       }
+    },
+    "ASGSNSTopic" : {
+       "Type" : "AWS::SNS::Topic",
+       "Properties" : {
+          "Subscription" : [
+            {
+             "Endpoint" : "aaron.van.meerten@8x8.com",
+             "Protocol" : "email"
+            }
+          ],
+          "TopicName" : {"Ref": "ASGAlarmSNS"}
+       }
+    }
+  },
+  "Outputs" : {
+    "ASGSNSTopic" : {
+      "Description": "The ASG SNS Topic ID",  
+      "Value" : { "Ref" : "ASGSNSTopic" }
+    },
+    "HealthSNSTopic" : {
+      "Description": "The Health SNS Topic ID",  
+      "Value" : { "Ref" : "HealthSNSTopic" }
+    }
+  }
+}
