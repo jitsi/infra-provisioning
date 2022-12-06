@@ -1,0 +1,93 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Create IAM roles and policies for the HC Video",
+  "Resources": {
+    "LambdaConferenceMapperRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties":
+        {
+            "AssumeRolePolicyDocument": {
+                "Version": "2012-10-17",
+                "Statement": [
+                    {
+                        "Action": "sts:AssumeRole",
+                        "Effect": "Allow",
+                        "Principal": {
+                            "Service": "lambda.amazonaws.com"
+                        }
+                    }
+                ]
+            },
+            "RoleName": "conferenceMapperRole",
+            "Path": "/service-role/",
+            "ManagedPolicyArns": [
+                {
+                    "Ref": "ConferenceMapperAWSLambdaMicroserviceExecutionRole"
+                },
+                {
+                    "Ref": "ConferenceMapperAWSLambdaVPCAccessExecutionRole"
+                }
+            ]
+        }
+    },
+    "ConferenceMapperAWSLambdaMicroserviceExecutionRole": {
+      "Type": "AWS::IAM::ManagedPolicy",
+      "Properties": {
+        "Description": "Provides access to the requisite dynamodb tables",
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+                "Action": [
+                    "dynamodb:DeleteItem",
+                    "dynamodb:GetItem",
+                    "dynamodb:PutItem",
+                    "dynamodb:Query",
+                    "dynamodb:Scan",
+                    "dynamodb:UpdateItem"
+                ],
+                "Resource": "arn:aws:dynamodb:us-west-2:103425057857:table/*",
+                "Effect": "Allow"
+            }
+          ]
+        }
+      }
+    },
+    "ConferenceMapperAWSLambdaVPCAccessExecutionRole": {
+      "Type": "AWS::IAM::ManagedPolicy",
+      "Properties": {
+        "Description": "Provides minimum permissions for a Lambda function to execute while accessing a resource within a VPC - create, describe, delete network interfaces and write permissions to CloudWatch Logs.",
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+                "Action": "logs:CreateLogGroup",
+                "Resource": "arn:aws:logs:us-west-2:103425057857:*",
+                "Effect": "Allow"
+            },
+            {
+                "Action": [
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents"
+                ],
+                "Resource": [
+                    "arn:aws:logs:us-west-2:103425057857:log-group:/aws/lambda/conferenceMapper:*",
+                    "arn:aws:logs:us-west-2:103425057857:log-group:/aws/lambda/jitsi-conference-mapper:*"
+                  ],
+                "Effect": "Allow"
+            },
+            {
+                "Effect": "Allow",
+                "Action": [
+                  "ec2:CreateNetworkInterface",
+                  "ec2:DescribeNetworkInterfaces",
+                  "ec2:DeleteNetworkInterface"
+                ],
+                "Resource": "*"
+              }  
+        ]
+        }
+      }
+    }
+  }
+}

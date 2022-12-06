@@ -1,0 +1,127 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: "Device42 Server Template"
+Parameters:
+  SSHSecurityGroup:
+    Description:
+      The security group ID for the ssh security group
+    Type: String
+    ConstraintDescription: Must be a security group
+  InstanceType:
+    Type: String
+    Description: The EC2 instance type for the instances.
+    AllowedValues:
+      - t3.micro
+      - t3.small
+      - t3.medium
+      - t3.large
+      - t3.xlarge
+      - m5.large
+      - m5.xlarge
+      - m5.2xlarge
+      - c5.large
+      - c5.xlarge
+      - c5.2xlarge
+      - c5.4xlarge
+      - c5.8xlarge
+    ConstraintDescription: Choose an instance type.
+    Default: t3.large
+  ImageId:
+    Description:
+      The AMI to use when launching servers.
+    Type: String
+  VPCId:
+    Description:
+      The VPC id to launch in
+    Type: String
+  SubnetId:
+    Description:
+      Subnet to launch in
+    Type: String
+  TagEnvironment:
+    Description:
+      The EC2 instance tag value for environment tag, used to sort nodes in homer
+    Type: String
+    ConstraintDescription: Must match EC2 Tag Name requirements.
+  TagEnvironmentType:
+    Type: String
+    Default: prod
+    Description:
+      The type of environment
+  TagCloudName:
+    Type: String
+    Description:
+      The name of the AWS VPC
+  TagProduct:
+    Type: String
+    Description:
+      The name of the product
+  TagTeam:
+    Type: String
+    Description:
+      The name of the team
+  TagOwner:
+    Type: String
+    Description:
+      The name of the service owner
+  TagService:
+    Type: String
+    Default: jitsi-device42
+    Description:
+      The name of the associated service
+
+Resources:
+  # Instance Security Group
+  Device42SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Device42 SG
+      VpcId:
+        Ref: VPCId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          SourceSecurityGroupId: !Ref SSHSecurityGroup
+      Tags:
+        - Key: environment
+          Value: !Ref TagEnvironment
+        - Key: shard-role
+          Value: "device42"
+
+  # launch config
+  Device42Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref ImageId
+      SecurityGroupIds:
+      - !Ref Device42SecurityGroup
+      - !Ref SSHSecurityGroup
+      InstanceType: !Ref InstanceType
+      SubnetId: !Ref SubnetId
+      Tags:
+        - Key: Name
+          Value: !Sub "${TagEnvironment}-${TagCloudName}-device42"
+        - Key: environment
+          Value: !Ref TagEnvironment
+        - Key: shard-role
+          Value: "device42"
+        - Key: Environment
+          Value: !Ref TagEnvironmentType
+        - Key: Service
+          Value: !Ref TagService
+        - Key: Owner
+          Value: !Ref TagOwner
+        - Key: Team
+          Value: !Ref TagTeam
+        - Key: Product
+          Value: !Ref TagProduct
+        - Key: cloud_name
+          Value: !Ref TagCloudName
+
+Outputs:
+  EC2Instance:
+    Description: EC2 Instance ID for Device42
+    Value: !Ref Device42Instance
+  PrivateIP:
+    Description: Private IP for Device42 Instance
+    Value: !GetAtt Device42Instance.PrivateIp
