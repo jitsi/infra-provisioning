@@ -7,7 +7,7 @@ node {
             git branch: env.VIDEO_INFRA_BRANCH, url: env.INFRA_CONFIGURATION_REPO, credentialsId: 'jenkins-infra'
         }
         dir('infra-customization') {
-            git branch: env.VIDEO_INFRA_BRANCH, url: env.INFRA_CUSTOMIZATION_REPO, credentialsId: 'jenkins-infra'
+            git branch: env.VIDEO_INFRA_BRANCH, url: env.INFRA_CUSTOMIZATIONS_REPO, credentialsId: 'jenkins-infra'
         }
         dir('infra-provisioning') {
             git branch: env.VIDEO_INFRA_BRANCH, url: env.GIT_URL, credentialsId: 'jenkins-infra'
