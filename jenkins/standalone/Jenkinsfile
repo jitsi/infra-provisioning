@@ -29,6 +29,7 @@ node {
             def skipCreateStep = sh(
                 returnStdout: true,
                 script: """#!/bin/bash
+                    set -x
                     if [ -z "\$SKIP_CREATE_STEP_FLAG" ]; then
                         PUBLIC_IP="\$(dig \$DOMAIN +short | grep -v \$UNIQUE_ID)"
                         if [[ -z "\$PUBLIC_IP" ]]; then
