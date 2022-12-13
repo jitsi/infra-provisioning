@@ -46,7 +46,7 @@ ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 
 [ -z "$DISPLAY_NAME" ] && DISPLAY_NAME="$JUMPBOX_NAME"
 
-[ -z "$JUMPBOX_BASE_IMAGE_ID" ] && JUMPBOX_BASE_IMAGE_ID=$(../all/bin/oracle_custom_images.py --type JammyBase --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
+[ -z "$JUMPBOX_BASE_IMAGE_ID" ] && JUMPBOX_BASE_IMAGE_ID=$($LOCAL_PATH/../../scripts/oracle_custom_images.py --type JammyBase --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
 if [ -z "$JUMPBOX_BASE_IMAGE_ID" ]; then
   echo "No JUMPBOX_BASE_IMAGE_ID found.  Exiting..."
   exit 1
