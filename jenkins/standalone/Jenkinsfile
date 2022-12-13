@@ -1,4 +1,5 @@
 node {   
+    agent any
     stage('Prepare/Checkout') { // for display purposes
         dir('infra-configuration') {
             git branch: env.VIDEO_INFRA_BRANCH, url: env.INFRA_CONFIGURATION_REPO, credentialsId: 'jenkins-infra'
