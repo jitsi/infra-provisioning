@@ -77,7 +77,7 @@ ParameterKey=CNameValue,ParameterValue=$CNAME_VALUE \
 ParameterKey=HostedZoneId,ParameterValue=$CNAME_DNS_ZONE_ID \
 ParameterKey=HostedZoneDomain,ParameterValue=$CNAME_DNS_ZONE_DOMAIN_NAME \
 $STACK_TAGS \
---capabilities CAPABILITY_IAM)
+--capabilities CAPABILITY_IAM 2>&1)
 
 cf_response=$?
 
@@ -91,6 +91,16 @@ if [ $cf_response -eq 0 ];then
     CLOUD_NAME="us-east-1-peer1" $LOCAL_PATH/wait-new-stack.sh
     cf_response=$?
 else
+    if [[ $cf_response -eq 255 ]] && [[ "$CF_OPERATION" == "update-stack" ]]; then
+        echo "$STACK_OUTPUT" | grep -q "No updates are to be performed"
+        if [[ $? -eq 0 ]]; then
+            echo "Stack not updated, no changes required"
+            exit 0
+        else
+            echo "Error ($cf_response) in $CF_OPERATION operation: $STACK_OUTPUT"
+            exit $cf_response
+        fi
+    fi
     echo "Failed when attempting to initiate stack creation"
     echo $STACK_OUTPUT
 fi
