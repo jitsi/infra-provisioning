@@ -1,19 +1,23 @@
 node {   
     stage('Prepare/Checkout') { // for display purposes
-        echo %GIT_URL%
-        echo env.VIDEO_INFRA_BRANCH
-        dir('infra-configuration') {
-            git branch: env.VIDEO_INFRA_BRANCH, url: env.INFRA_CONFIGURATION_REPO, credentialsId: 'jenkins-infra'
+        script {
+            def scmUrl = scm.getUserRemoteConfigs()[0].getUrl()
+            echo scmUrl
+            echo env.VIDEO_INFRA_BRANCH
+            dir('infra-configuration') {
+                git branch: env.VIDEO_INFRA_BRANCH, url: env.INFRA_CONFIGURATION_REPO, credentialsId: 'jenkins-infra'
+            }
+            dir('infra-customization') {
+                git branch: env.VIDEO_INFRA_BRANCH, url: env.INFRA_CUSTOMIZATIONS_REPO, credentialsId: 'jenkins-infra'
+            }
+            dir('infra-provisioning') {
+                git branch: env.VIDEO_INFRA_BRANCH, url: scmUrl, credentialsId: 'jenkins-infra'
+            }
+            sh 'cp -a infra-customization/* infra-configuration'
+            sh 'cp -a infra-customization/* infra-provisioning'
         }
-        dir('infra-customization') {
-            git branch: env.VIDEO_INFRA_BRANCH, url: env.INFRA_CUSTOMIZATIONS_REPO, credentialsId: 'jenkins-infra'
-        }
-        dir('infra-provisioning') {
-            git branch: env.VIDEO_INFRA_BRANCH, url: %GIT_URL%, credentialsId: 'jenkins-infra'
-        }
-        sh 'cp -a infra-customization/* infra-configuration'
-        sh 'cp -a infra-customization/* infra-provisioning'
     }
+    
 
     stage('Provision') {
        dir('infra-provisioning') {
