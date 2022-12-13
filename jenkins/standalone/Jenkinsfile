@@ -8,15 +8,17 @@ node {
             git branch: env.VIDEO_INFRA_BRANCH, url: env.INFRA_CUSTOMIZATION_REPO, credentialsId: 'jenkins-infra'
         }
         sh 'cp -a infra-customization/* infra-configuration'
-        sh 'cp -a infra-customization/* .'
+        sh 'cp -a infra-customization/* infra-provisioning'
     }
 
     stage('Provision') {
-       if (env.CLOUD_PROVIDER == 'oracle') {
-            sh 'terraform/standalone/create-standalone-server-oracle.sh'
-        } else {
-            sh 'scripts/create-app-standalone-stack.sh'
-        }
+       dir('infra-provisioning') {
+        if (env.CLOUD_PROVIDER == 'oracle') {
+                sh 'terraform/standalone/create-standalone-server-oracle.sh'
+            } else {
+                sh 'scripts/create-app-standalone-stack.sh'
+            }
+       }
     // Run the cloud provisioning
     }
 
