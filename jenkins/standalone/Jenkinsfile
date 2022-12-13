@@ -46,6 +46,7 @@ node {
                 echo "skip create step: ${skipCreateStep}"
                 if (skipCreateStep == 'false') {
                     sh 'terraform/standalone/create-standalone-server-oracle.sh ubuntu'
+                    sh 'scripts/create-oracle-cname-stack.sh'
                 } else {
                     echo 'Skipping provision step'
                 }
