@@ -22,7 +22,7 @@ variable "dns_compartment_ocid" {}
 variable "dns_name" {}
 variable "dns_zone_name" {}
 variable "infra_configuration_repo" {}
-variable "infa_customizations_repo" {}
+variable "infra_customizations_repo" {}
 variable "user_data_lib_path" {
   default = "terraform/lib"
 }
