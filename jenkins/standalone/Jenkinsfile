@@ -1,5 +1,4 @@
 node {   
-    agent any
     stage('Prepare/Checkout') { // for display purposes
         echo env.GIT_URL
         echo env.VIDEO_INFRA_BRANCH
