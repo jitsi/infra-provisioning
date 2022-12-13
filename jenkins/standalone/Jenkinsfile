@@ -44,7 +44,7 @@ node {
             fi
             echo \$SKIP_CREATE_STEP_FLAG
 """
-                if (skipCreateStep != 'true') {
+                if skipCreateStep != 'true' {
                     sh 'terraform/standalone/create-standalone-server-oracle.sh ubuntu'
                 } else {
                     echo 'Skipping provision step'
