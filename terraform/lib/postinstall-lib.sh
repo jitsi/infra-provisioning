@@ -127,9 +127,9 @@ function checkout_repos() {
   git clone $INFRA_CONFIGURATION_REPO $BOOTSTRAP_DIRECTORY/infra-configuration
   git clone $INFRA_CUSTOMIZATIONS_REPO $BOOTSTRAP_DIRECTORY/infra-customizations
   cd $BOOTSTRAP_DIRECTORY/infra-configuration
-  git checkout $ORACLE_GIT_BRANCH
+  git checkout $GIT_BRANCH
   cd $BOOTSTRAP_DIRECTORY/infra-customizations
-  git checkout $ORACLE_GIT_BRANCH
+  git checkout $GIT_BRANCH
   cp -a $BOOTSTRAP_DIRECTORY/infra-customizations/* $BOOTSTRAP_DIRECTORY/infra-configuration
 }
 
