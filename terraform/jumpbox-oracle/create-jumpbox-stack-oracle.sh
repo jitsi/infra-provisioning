@@ -122,6 +122,6 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
   -var="image_ocid=$JUMPBOX_BASE_IMAGE_ID"\
   -var "tag_namespace=$TAG_NAMESPACE" \
   -var "infra_configuration_repo=$INFRA_CONFIGURATION_REPO" \
-  -var "infa_customizations_repo=$INFRA_CUSTOMIZATIONS_REPO" \
+  -var "infra_customizations_repo=$INFRA_CUSTOMIZATIONS_REPO" \
   $ACTION_POST_PARAMS $TF_POST_PARAMS
 
