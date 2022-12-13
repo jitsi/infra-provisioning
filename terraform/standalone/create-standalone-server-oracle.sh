@@ -12,7 +12,7 @@ fi
 
 [ -e ./sites/$ENVIRONMENT/stack-env.sh ] && . ./sites/$ENVIRONMENT/stack-env.sh
 
-# e.g. ../all/bin/terraform/standalone
+# e.g. /terraform/standalone
 LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
 [ -z "$ROLE" ] && ROLE="all"
@@ -72,7 +72,7 @@ fi
 [ -z "$S3_ENDPOINT" ] && S3_ENDPOINT="https://$ORACLE_S3_NAMESPACE.compat.objectstorage.$ORACLE_REGION.oraclecloud.com"
 [ -z "$S3_STATE_KEY" ] && S3_STATE_KEY="$ENVIRONMENT/standalone/$UNIQUE_ID/terraform.tfstate"
 
-[ -z "$IMAGE_OCID" ] && IMAGE_OCID=$(../all/bin/oracle_custom_images.py --type FocalBase --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
+[ -z "$IMAGE_OCID" ] && IMAGE_OCID=$($LOCAL_PATH/../../scripts/oracle_custom_images.py --type FocalBase --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
 if [ -z "$IMAGE_OCID" ]; then
   echo "No IMAGE_OCID found.  Exiting..."
   exit 210
