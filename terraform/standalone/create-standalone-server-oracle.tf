@@ -32,10 +32,10 @@ variable "postinstall_status_file" {}
 variable "unique_id" {}
 variable "disk_in_gbs" {}
 variable "user_data_lib_path" {
-  default = "../all/bin/terraform/lib"
+  default = "terraform/lib"
 }
 variable "user_data_file" {
-  default = "../all/bin/terraform/standalone/user-data/postinstall-runner-oracle.sh"
+  default = "terraform/standalone/user-data/postinstall-runner-oracle.sh"
 }
 
 locals {
