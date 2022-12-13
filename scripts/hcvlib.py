@@ -45,10 +45,6 @@ SHARD_TORTURE_ROLE="torture"
 SHARD_HAPROXY_ROLE="haproxy"
 SHARD_JIBRI_ROLE="jibri"
 
-JITSI_REPO_URL="https://internal-repo.jitsi.net/debian/unstable/"
-JITSI_REPO_USER="repo"
-JITSI_REPO_PASSWORD="R3p0muHn7"
-
 hcv_debug = False
 
 ORACLE_TENANT= "eghtjitsi"
