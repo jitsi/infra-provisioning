@@ -1,0 +1,27 @@
+node {   
+    stage('Prepare/Checkout') { // for display purposes
+        script {
+            def scmUrl = scm.getUserRemoteConfigs()[0].getUrl()
+            echo scmUrl
+            echo env.VIDEO_INFRA_BRANCH
+            dir('infra-customization') {
+                git branch: env.VIDEO_INFRA_BRANCH, url: env.INFRA_CUSTOMIZATIONS_REPO, credentialsId: 'jenkins-infra'
+            }
+            dir('infra-provisioning') {
+                git branch: env.VIDEO_INFRA_BRANCH, url: scmUrl, credentialsId: 'jenkins-infra'
+            }
+            sh 'cp -a infra-customization/* infra-provisioning'
+        }
+    }
+
+    stage('Provision') {
+       dir('infra-provisioning') {
+            if (env.CLOUD_PROVIDER == 'oracle') {
+                sh 'terraform/jumpbox-oracle/create-jumpbox-stack-oracle.sh ubuntu'
+            } else {
+                sh 'scripts/create-ssh-jumpbox-stack.sh'
+            }
+       }
+    // Run the cloud provisioning
+    }
+}
