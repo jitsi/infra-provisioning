@@ -22,7 +22,7 @@ node {
     stage('Provision') {
        dir('infra-provisioning') {
         if (env.CLOUD_PROVIDER == 'oracle') {
-                sh 'terraform/standalone/create-standalone-server-oracle.sh'
+                sh 'terraform/standalone/create-standalone-server-oracle.sh ubuntu'
             } else {
                 sh 'scripts/create-app-standalone-stack.sh'
             }
@@ -32,7 +32,7 @@ node {
 
     stage('Configure') {
         dir('infra-configuration') {
-            sh 'scripts/configure-standalone.sh'
+            sh 'scripts/configure-standalone.sh ubuntu'
         }
     }
 }
