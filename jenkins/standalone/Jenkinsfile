@@ -28,7 +28,7 @@ node {
                 returnStdout: true,
                 script: """#!/bin/bash
                     if [ -z "\$SKIP_CREATE_STEP_FLAG" ]; then
-                        PUBLIC_IP="\$(dig \$DOMAIN +short)"
+                        PUBLIC_IP="\$(dig \$DOMAIN +short | grep -v \$UNIQUE_ID)"
                         if [[ -z "\$PUBLIC_IP" ]]; then
                             # no ip found, so assume we must create the machine
                             SKIP_CREATE_STEP_FLAG="false"
