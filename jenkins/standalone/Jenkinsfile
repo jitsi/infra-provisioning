@@ -33,6 +33,7 @@ node {
     stage('Configure') {
         script {
             dir('infra-configuration') {
+                sh 'ls -laR'
                 sh 'scripts/configure-standalone.sh ubuntu'
             }
         }
