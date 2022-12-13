@@ -1,4 +1,6 @@
 
+BOOTSTRAP_DIRECTORY="/tmp/bootstrap"
+
 # Oracle team says it should take maximum 4 minutes until the networking is up
 # This function will only try 2 times, which should last around ~ 1 minute
 # check_private_ip will be retried multiple times
@@ -117,6 +119,38 @@ function set_hostname() {
   grep $MY_HOSTNAME /etc/hosts || echo "$MY_IP    $MY_HOSTNAME" >> /etc/hosts
 }
 
+function checkout_repos() {
+  [ -d $BOOTSTRAP_DIRECTORY/infra-configuration ] && rm -rf $BOOTSTRAP_DIRECTORY/infra-configuration
+  [ -d $BOOTSTRAP_DIRECTORY/infra-customizations ] && rm -rf $BOOTSTRAP_DIRECTORY/infra-customizations
+  git clone $INFRA_CONFIGURATION_REPO $BOOTSTRAP_DIRECTORY/infra-configuration
+  git clone $INFRA_CUSTOMIZATIONS_REPO $BOOTSTRAP_DIRECTORY/infra-customizations
+  cd $BOOTSTRAP_DIRECTORY/infra-configuration
+  git checkout $ORACLE_GIT_BRANCH
+  cd $BOOTSTRAP_DIRECTORY/infra-customizations
+  git checkout $ORACLE_GIT_BRANCH
+  cp -a $BOOTSTRAP_DIRECTORY/infra-customizations/* $BOOTSTRAP_DIRECTORY/infra-configuration
+}
+
+function run_ansible_playbook() {
+    cd $BOOTSTRAP_DIRECTORY/infra-configuration
+    PLAYBOOK=$1
+    VARS=$2
+    DEPLOY_TAGS=${ANSIBLE_TAGS-"all"}
+
+    ansible-playbook -v \
+        -i "127.0.0.1," \
+        -c local \
+        --tags "$DEPLOY_TAGS" \
+        --extra-vars "$VARS" \
+        --vault-password-file=/root/.vault-password \
+        ansible/$PLAYBOOK || status_code=1
+
+    if [ $status_code -eq 1 ]; then
+        echo 'Provisioning stage failed' > $tmp_msg_file;
+    fi
+    return $status_code
+}
+
 function ansible_pull() {
     PLAYBOOK=$1
     GIT_BRANCH=$2
@@ -178,7 +212,12 @@ function default_provision() {
   # set_hostname will build name like lonely-us-phoenix-1-consul-77-122-23.oracle.jitsi.net for 10.77.122.23
   set_hostname "$HOST_ROLE" "$MY_HOSTNAME"
 
-  ansible_pull "$ANSIBLE_PLAYBOOK" "$GIT_BRANCH" "$ANSIBLE_VARS" || status_code=1
+  if [ -z "$INFRA_CONFIGURATION_REPO" ]; then
+    ansible_pull "$ANSIBLE_PLAYBOOK" "$GIT_BRANCH" "$ANSIBLE_VARS" || status_code=1
+  else
+    checkout_repos
+    run_ansible_playbook "$ANSIBLE_PLAYBOOK"  "$ANSIBLE_VARS" || status_code=1
+  fi
 
   return $status_code;
 }
