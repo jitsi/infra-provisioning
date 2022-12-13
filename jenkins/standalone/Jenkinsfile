@@ -1,0 +1,26 @@
+node {   
+    stage('Prepare/Checkout') { // for display purposes
+        dir('infra-configuration') {
+            git branch: ${env.VIDEO_INFRA_BRANCH}, url: ${env.INFRA_CONFIGURATION_REPO}
+        }
+        dir('infra-customization') {
+            git branch: ${env.VIDEO_INFRA_BRANCH}, url: ${env.INFRA_CUSTOMIZATION_REPO}
+        }
+        sh 'cp -a infra-customization/* infra-configuration'
+    }
+
+    stage('Provision') {
+       if (${env.CLOUD_PROVIDER} == 'oracle') {
+            sh 'terraform/standalone/create-standalone-server-oracle.sh'
+        } else {
+            sh 'scripts/create-app-standalone-stack.sh'
+        }
+    // Run the cloud provisioning
+    }
+
+    stage('Configure') {
+        dir('infra-configuration') {
+            sh 'scripts/configure-standalone.sh'
+        }
+    }
+}
