@@ -1,10 +1,10 @@
 node {   
     stage('Prepare/Checkout') { // for display purposes
         dir('infra-configuration') {
-            git branch: env.VIDEO_INFRA_BRANCH, url: env.INFRA_CONFIGURATION_REPO, credentialsId: 'jenkins-infra'
+            git branch: 'main', url: env.INFRA_CONFIGURATION_REPO, credentialsId: 'jenkins-infra'
         }
         dir('infra-customization') {
-            git branch: env.VIDEO_INFRA_BRANCH, url: env.INFRA_CUSTOMIZATION_REPO, credentialsId: 'jenkins-infra'
+            git branch: 'main', url: env.INFRA_CUSTOMIZATION_REPO, credentialsId: 'jenkins-infra'
         }
         sh 'cp -a infra-customization/* infra-configuration'
         sh 'cp -a infra-customization/* .'
