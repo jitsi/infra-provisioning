@@ -31,8 +31,10 @@ node {
     }
 
     stage('Configure') {
-        dir('infra-configuration') {
-            sh 'scripts/configure-standalone.sh ubuntu'
+        script {
+            dir('infra-configuration') {
+                sh 'scripts/configure-standalone.sh ubuntu'
+            }
         }
     }
 }
