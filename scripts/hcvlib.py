@@ -35,7 +35,7 @@ DOMAIN_TAG="domain"
 RELEASE_NUMBER_TAG="release_number"
 CLOUD_PROVIDER_TAG="cloud_provider"
 AUTO_SCALE_TAG_NAME="aws:autoscaling:groupName"
-REGIONS_FILE_PATH=os.path.dirname(os.path.realpath(__file__))+"/../../../ansible/environments/all/group_vars/all.yml"
+REGIONS_FILE_PATH=os.path.dirname(os.path.realpath(__file__))+"/../config/vars.yml"
 
 SHARD_CORE_ROLE="core"
 SHARD_JVB_ROLE="JVB"
