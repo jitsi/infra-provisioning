@@ -16,6 +16,8 @@ node {
             sh 'cp -a infra-customization/* infra-configuration'
             sh 'cp -a infra-customization/* infra-provisioning'
             sh 'cp ~/.vault-password infra-configuration/.vault-password.txt'
+            sh 'rm -rf test-results'
+            sh 'mkdir test-results'
 
         }
     }
