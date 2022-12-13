@@ -27,7 +27,6 @@ node {
             def skipCreateStep = sh(
                 returnStdout: true,
                 script: """#!/bin/bash
-                    set -x
                     if [ -z "\$SKIP_CREATE_STEP_FLAG" ]; then
                         PUBLIC_IP="\$(dig \$DOMAIN +short)"
                         if [[ -z "\$PUBLIC_IP" ]]; then
@@ -43,7 +42,7 @@ node {
                             fi
                         fi
                     fi
-                    echo \$SKIP_CREATE_STEP_FLAG""")
+                    echo \$SKIP_CREATE_STEP_FLAG""").trim()
                 echo "skip create step: ${skipCreateStep}"
                 if (skipCreateStep == 'false') {
                     sh 'terraform/standalone/create-standalone-server-oracle.sh ubuntu'
