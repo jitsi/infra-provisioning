@@ -1,6 +1,6 @@
 node {   
     stage('Prepare/Checkout') { // for display purposes
-        echo env.GIT_URL
+        echo %GIT_URL%
         echo env.VIDEO_INFRA_BRANCH
         dir('infra-configuration') {
             git branch: env.VIDEO_INFRA_BRANCH, url: env.INFRA_CONFIGURATION_REPO, credentialsId: 'jenkins-infra'
