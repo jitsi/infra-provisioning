@@ -68,8 +68,9 @@ rm -f .facts/default
 
 DEPLOY_TAGS=${ANSIBLE_TAGS-"all"}
 
+# support packer 1.8
 PACKER_VERSION=$(packer --version)
-if [[ $(echo $PACKER_VERSION | cut -d'.' -f2) -gt 7 ]]; then
+if [[ $(echo $PACKER_VERSION | cut -d'.' -f1) -ge 1 ]] && [[ $(echo $PACKER_VERSION | cut -d'.' -f2) -gt 7 ]]; then
   packer init $LOCAL_PATH/../build/require.pkr.hcl
 fi
 
