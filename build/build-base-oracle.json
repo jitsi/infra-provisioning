@@ -40,7 +40,6 @@
       "ssh_private_key_file": "{{user `connection_ssh_private_key_file`}}",
       "use_private_ip": "{{user `connection_use_private_ip`}}",
       "ssh_bastion_username": "{{user `ansible_ssh_user`}}",
-      "ssh_bastion_agent_auth": "{{user `ssh_bastion_agent_auth`}}",
       "ssh_bastion_host": "{{user `connection_ssh_bastion_host`}}",
       "ssh_bastion_private_key_file": "{{user `connection_ssh_private_key_file`}}",
       "defined_tags": {

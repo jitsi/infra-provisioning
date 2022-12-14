@@ -85,7 +85,6 @@ packer build \
 -var "ansible_python_interpreter=/usr/bin/python3" \
 -var "ansible_deploy_tags=$DEPLOY_TAGS" \
 -var "ansible_skip_tags=failfast" \
--var "ssh_bastion_agent_auth=true" \
 -var "connection_use_private_ip=$CONNECTION_USE_PRIVATE_IP" \
 -var "connection_ssh_bastion_host=$CONNECTION_SSH_BASTION_HOST" \
 -var "connection_ssh_private_key_file=$CONNECTION_SSH_PRIVATE_KEY_FILE" \
