@@ -26,7 +26,9 @@ node {
     stage('Provision') {
        dir('infra-provisioning') {
         if (env.CLOUD_PROVIDER == 'oracle') {
-            sh 'scripts/build-jammy-base-oracle.sh ubuntu'
+            lock('packer-build') {
+               sh 'scripts/build-jammy-base-oracle.sh ubuntu'
+            }
             sh 'scripts/replicate-image-oracle.sh ubuntu'
         } else {
             sh 'scripts/build-base-image.sh ubuntu'
