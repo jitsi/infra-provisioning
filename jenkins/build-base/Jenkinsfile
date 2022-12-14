@@ -1,0 +1,37 @@
+node {   
+    stage('Prepare/Checkout') { // for display purposes
+        script {
+            def scmUrl = scm.getUserRemoteConfigs()[0].getUrl()
+            echo scmUrl
+            echo env.VIDEO_INFRA_BRANCH
+            dir('infra-configuration') {
+                git branch: env.VIDEO_INFRA_BRANCH, url: env.INFRA_CONFIGURATION_REPO, credentialsId: 'jenkins-infra'
+            }
+            dir('infra-customization') {
+                git branch: env.VIDEO_INFRA_BRANCH, url: env.INFRA_CUSTOMIZATIONS_REPO, credentialsId: 'jenkins-infra'
+            }
+            dir('infra-provisioning') {
+                git branch: env.VIDEO_INFRA_BRANCH, url: scmUrl, credentialsId: 'jenkins-infra'
+            }
+            sh 'cp -a infra-customization/* infra-configuration'
+            sh 'cp -a infra-customization/* infra-provisioning'
+            sh 'cp ~/.vault-password infra-configuration/.vault-password.txt'
+            sh 'cp ~/.vault-password infra-provisioning/.vault-password.txt'
+            sh 'rm -rf test-results'
+            sh 'mkdir test-results'
+
+        }
+    }
+
+    stage('Provision') {
+       dir('infra-provisioning') {
+        if (env.CLOUD_PROVIDER == 'oracle') {
+            sh 'scripts/build-jammy-base-oracle.sh ubuntu'
+            sh 'scripts/replicate-image-oracle.sh ubuntu'
+        } else {
+            sh 'scripts/build-base-image.sh ubuntu'
+        }
+       }
+    // Run the cloud provisioning
+    }
+}
