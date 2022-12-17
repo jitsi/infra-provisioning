@@ -16,8 +16,6 @@ node {
                 }
                 sh 'cp -a infra-customization/* infra-configuration'
                 sh 'cp -a infra-customization/* infra-provisioning'
-                sh 'cp ~/.vault-password infra-configuration/.vault-password.txt'
-                sh 'cp ~/.vault-password infra-provisioning/.vault-password.txt'
                 sh 'rm -rf test-results'
                 sh 'mkdir test-results'
 
@@ -27,7 +25,7 @@ node {
         stage('Provision') {
           dir('infra-provisioning') {
             if (env.CLOUD_PROVIDER == 'oracle') {
-              withCredentials([file(credentialsId: 'oci-jenkins-config', variable: 'OCI_CLI_CONFIG_FILE'), file(credentialsId: 'oci-jenkins-pem', variable: 'OCI_CLI_KEY_FILE')]) {
+              withCredentials([file(credentialsId: 'oci-jenkins-config', variable: 'OCI_CLI_CONFIG_FILE'), file(credentialsId: 'oci-jenkins-pem', variable: 'OCI_CLI_KEY_FILE'),string(credentialsId: 'ansible-vault-password', variable: 'ANSIBLE_VAULT_PASSWORD')]) {
 
                 sh 'scripts/build-jammy-base-oracle.sh ubuntu'
                 sh 'scripts/replicate-image-oracle.sh ubuntu'
