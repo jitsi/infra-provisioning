@@ -60,8 +60,13 @@ node {
                         export AWS_DEFAULT_REGION=us-west-2
                         cp "$OCI_CLI_CONFIG_FILE" ~/.oci/config
                         cp "$OCI_CLI_KEY_FILE" ~/.oci/private-key.pem
-                        terraform/standalone/create-standalone-server-oracle.sh $SSH_USERNAME
-                        scripts/create-oracle-cname-stack.sh'''
+                        terraform/standalone/create-standalone-server-oracle.sh $SSH_USERNAME'''
+                    }
+                    withCredentials([
+                        string(credentialsId: 'jenkins-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
+                        string(credentialsId: 'jenkins-aws-id', variable: 'AWS_ACCESS_KEY_ID'),
+                    ]) {
+                        sh 'scripts/create-oracle-cname-stack.sh'
                     }
                 } else {
                     echo 'Skipping provision step'
