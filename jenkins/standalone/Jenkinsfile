@@ -47,18 +47,15 @@ node {
                 echo "skip create step: ${skipCreateStep}"
                 if (skipCreateStep == 'false') {
                     withCredentials([
-                        string(credentialsId: 'oci-jenkins-terraform-aws-secret', variable: 'OCI_TERRAFORM_AWS_SECRET'),
-                        string(credentialsId: 'oci-jenkins-terraform-aws-id', variable: 'OCI_TERRAFORM_AWS_ID'),
+                        string(credentialsId: 'oci-jenkins-terraform-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
+                        string(credentialsId: 'oci-jenkins-terraform-aws-id', variable: 'AWS_ACCESS_KEY_ID'),
                         file(credentialsId: 'oci-jenkins-config', variable: 'OCI_CLI_CONFIG_FILE'), 
                         file(credentialsId: 'oci-jenkins-pem', variable: 'OCI_CLI_KEY_FILE'),
                         sshUserPrivateKey(credentialsId: 'ssh-ubuntu', keyFileVariable: 'CONNECTION_SSH_PRIVATE_KEY_FILE', usernameVariable: 'SSH_USERNAME')
                     ]) {
-                        sh 'rm -rf ~/.oci ~/.aws'
                         sh 'mkdir -p ~/.oci'
-                        sh 'mkdir -p ~/.aws'
-                        sh 'echo -e "[default]\nregion = us-west-2\n" > ~/.aws/config'
-                        sh 'cat ~/.aws/config'
-                        sh 'echo -e "[profile oracle]\naws_access_key_id=$OCI_TERRAFORM_AWS_ID\naws_secret_access_key=$OCI_TERRAFORM_AWS_SECRET\n" > ~/.aws/credentials'
+                        sh 'export AWS_DEFAULT_REGION=us-west-2'
+//                        sh 'echo -e "[profile oracle]\naws_access_key_id=$AWS_ACCESS_KEY_ID\naws_secret_access_key=$AWS_SECRET_ACCESS_KEY\n" > ~/.aws/credentials'
                         sh 'cp "$OCI_CLI_CONFIG_FILE" ~/.oci/config'
                         sh 'cp "$OCI_CLI_KEY_FILE" ~/.oci/private-key.pem'
                         sh 'terraform/standalone/create-standalone-server-oracle.sh ubuntu'
