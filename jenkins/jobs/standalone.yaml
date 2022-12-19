@@ -12,6 +12,11 @@
           description: "DOMAIN is site DNS used to access standalone, should match $UNIQUE_ID.$DNS_ZONE_DOMAIN_NAME  in script."
           trim: true
       - string:
+          name: SKIP_CREATE_STEP_FLAG
+          default:
+          description: "Controls whether to (re)provision instance via terraform.  Should be 'true' to skip, or 'false' to ensure provisioning occurs no matter what."
+          trim: true
+      - string:
           name: VIDEO_INFRA_BRANCH
           default: main
           description: "Controls checkout branch for infra repos, defaults to 'main'."
