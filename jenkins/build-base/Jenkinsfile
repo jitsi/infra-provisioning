@@ -1,4 +1,5 @@
-node {   
+node {
+  timestamps {
     sshagent (credentials: ['video-infra']) {
         stage('Prepare/Checkout') { // for display purposes
             script {
@@ -41,4 +42,5 @@ node {
         // Run the cloud provisioning
         }
     }
+  }
 }
