@@ -1,6 +1,16 @@
 - job:
-    name: build base image
+    name: provision standalone
     parameters:
+      - string:
+          name: UNIQUE_ID
+          default:
+          description: "UNIQUE_ID used to identify standalone, defaults to 'standalone' in script."
+          trim: true
+      - string:
+          name: DOMAIN
+          default:
+          description: "DOMAIN is site DNS used to access standalone, should match $UNIQUE_ID.$DNS_ZONE_DOMAIN_NAME  in script."
+          trim: true
       - string:
           name: VIDEO_INFRA_BRANCH
           default: main
@@ -12,11 +22,6 @@
           description: "Environment to build in, defaults to 'lonely'."
           trim: true
       - string:
-          name: IMAGE_TYPE
-          default: JammyBase
-          description: "Type of base image to build, could be FocalBase, defaults to 'JammyBase'."
-          trim: true
-      - string:
           name: ORACLE_REGION
           default: us-phoenix-1
           description: "Region to build in, defaults to 'us-phoenix-1'."
@@ -26,10 +31,6 @@
           default: oracle
           description: "Cloud to build for, defaults to 'oracle'."
           trim: true
-      - bool:
-          name: FORCE_BUILD_IMAGE
-          default: false
-          description: "Flag to control whether to force image builds if a matching image exists"
       - string:
           name: INFRA_CONFIGURATION_REPO
           default: git@github.com:jitsi/infra-configuration.git
@@ -54,5 +55,5 @@
             browser-url: https://github.com/jitsi/infra-provisioning
             submodule:
               recursive: true
-      script-path: jenkins/build-base/Jenkinsfile
+      script-path: jenkins/standalone/Jenkinsfile
       lightweight-checkout: true

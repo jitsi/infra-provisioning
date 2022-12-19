@@ -31,7 +31,6 @@ node {
                 sh 'cp "$OCI_CLI_CONFIG_FILE" ~/.oci/config'
                 sh 'cp "$OCI_CLI_KEY_FILE" ~/.oci/private-key.pem'
                 sh 'echo "$ANSIBLE_VAULT_PASSWORD_PATH" > ./.vault-password.txt'
-                sh 'ls -la ~/.oci'
                 sh 'scripts/build-jammy-base-oracle.sh ubuntu'
                 sh 'scripts/replicate-image-oracle.sh ubuntu'
               }
