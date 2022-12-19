@@ -51,14 +51,16 @@ node {
                         string(credentialsId: 'oci-jenkins-terraform-aws-id', variable: 'AWS_ACCESS_KEY_ID'),
                         file(credentialsId: 'oci-jenkins-config', variable: 'OCI_CLI_CONFIG_FILE'), 
                         file(credentialsId: 'oci-jenkins-pem', variable: 'OCI_CLI_KEY_FILE'),
-                        sshUserPrivateKey(credentialsId: 'ssh-ubuntu', keyFileVariable: 'CONNECTION_SSH_PRIVATE_KEY_FILE', usernameVariable: 'SSH_USERNAME')
+                        sshUserPrivateKey(credentialsId: 'ssh-ubuntu', keyFileVariable: 'USER_PRIVATE_KEY_PATH', usernameVariable: 'SSH_USERNAME')
                     ]) {
                         sh 'mkdir -p ~/.oci'
+                        sh 'export USER_PUBLIC_KEY_PATH=${USER_PRIVATE_KEY_PATH}.pub'
+                        sh 'ssh-keygen -y -f $USER_PRIVATE_KEY_PATH > $USER_PUBLIC_KEY_PATH'
                         sh 'export AWS_DEFAULT_REGION=us-west-2'
 //                        sh 'echo -e "[profile oracle]\naws_access_key_id=$AWS_ACCESS_KEY_ID\naws_secret_access_key=$AWS_SECRET_ACCESS_KEY\n" > ~/.aws/credentials'
                         sh 'cp "$OCI_CLI_CONFIG_FILE" ~/.oci/config'
                         sh 'cp "$OCI_CLI_KEY_FILE" ~/.oci/private-key.pem'
-                        sh 'terraform/standalone/create-standalone-server-oracle.sh ubuntu'
+                        sh 'terraform/standalone/create-standalone-server-oracle.sh $SSH_USERNAME'
                         sh 'scripts/create-oracle-cname-stack.sh'
                     }
                 } else {
