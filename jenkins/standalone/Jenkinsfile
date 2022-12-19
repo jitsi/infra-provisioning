@@ -54,6 +54,7 @@ node {
                         sshUserPrivateKey(credentialsId: 'ssh-ubuntu', keyFileVariable: 'USER_PRIVATE_KEY_PATH', usernameVariable: 'SSH_USERNAME')
                     ]) {
                         sh '''#!/bin/bash
+                        set -x
                         mkdir -p ~/.oci ~/.ssh
                         export USER_PUBLIC_KEY_PATH=~/.ssh/ssh_key.pub
                         ssh-keygen -y -f "$USER_PRIVATE_KEY_PATH" > "$USER_PUBLIC_KEY_PATH"
