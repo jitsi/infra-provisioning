@@ -46,10 +46,15 @@ node {
                         echo \$SKIP_CREATE_STEP_FLAG""").trim()
                 echo "skip create step: ${skipCreateStep}"
                 if (skipCreateStep == 'false') {
-                    withCredentials([file(credentialsId: 'oci-jenkins-config', variable: 'OCI_CLI_CONFIG_FILE'), file(credentialsId: 'oci-jenkins-pem', variable: 'OCI_CLI_KEY_FILE'),string(credentialsId: 'ansible-vault-password', variable: 'ANSIBLE_VAULT_PASSWORD_PATH'),sshUserPrivateKey(credentialsId: 'ssh-ubuntu', keyFileVariable: 'CONNECTION_SSH_PRIVATE_KEY_FILE', usernameVariable: 'SSH_USERNAME')]) {
+                    withCredentials([string(credentialsId: 'oci-jenkins-terraform-aws-secret', variable: 'OCI_TERRAFORM_AWS_SECRET'),string(credentialsId: 'oci-jenkins-terraform-aws-id', variable: 'OCI_TERRAFORM_AWS_ID'),file(credentialsId: 'oci-jenkins-config', variable: 'OCI_CLI_CONFIG_FILE'), file(credentialsId: 'oci-jenkins-pem', variable: 'OCI_CLI_KEY_FILE'),string(credentialsId: 'ansible-vault-password', variable: 'ANSIBLE_VAULT_PASSWORD_PATH'),sshUserPrivateKey(credentialsId: 'ssh-ubuntu', keyFileVariable: 'CONNECTION_SSH_PRIVATE_KEY_FILE', usernameVariable: 'SSH_USERNAME')]) {
                         sh 'mkdir -p ~/.oci'
+                        sh 'mkdir -p ~/.aws'
+                        sh 'echo -e \'[default]\nregion = us-west-2\n\' > ~/.aws/config'
+                        sh 'echo -e \'[profile oracle]\naws_access_key_id=$OCI_TERRAFORM_AWS_ID\naws_secret_access_key=$OCI_TERRAFORM_AWS_SECRET\n\' > ~/.aws/credentials'
                         sh 'cp "$OCI_CLI_CONFIG_FILE" ~/.oci/config'
                         sh 'cp "$OCI_CLI_KEY_FILE" ~/.oci/private-key.pem'
+                        sh 'cp "$OCI_CLI_KEY_FILE" ~/.oci/private-key.pem'
+                        sh 'cp "$OCI_TERRAFORM_AWS_FILE" ~/.aws/credentials'
                         sh 'terraform/standalone/create-standalone-server-oracle.sh ubuntu'
                         sh 'scripts/create-oracle-cname-stack.sh'
                     }
