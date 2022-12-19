@@ -55,8 +55,8 @@ node {
                     ]) {
                         sh '''#!/bin/bash
                         mkdir -p ~/.oci ~/.ssh
-                        export USER_PUBLIC_KEY_PATH="~/.ssh/ssh_key.pub"
-                        ssh-keygen -y -f "$USER_PRIVATE_KEY_PATH" > $USER_PUBLIC_KEY_PATH
+                        export USER_PUBLIC_KEY_PATH=~/.ssh/ssh_key.pub
+                        ssh-keygen -y -f "$USER_PRIVATE_KEY_PATH" > "$USER_PUBLIC_KEY_PATH"
                         export AWS_DEFAULT_REGION=us-west-2
                         cp "$OCI_CLI_CONFIG_FILE" ~/.oci/config
                         cp "$OCI_CLI_KEY_FILE" ~/.oci/private-key.pem
