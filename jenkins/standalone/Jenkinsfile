@@ -54,7 +54,7 @@ node {
                         sshUserPrivateKey(credentialsId: 'ssh-ubuntu', keyFileVariable: 'USER_PRIVATE_KEY_PATH', usernameVariable: 'SSH_USERNAME')
                     ]) {
                         sh 'mkdir -p ~/.oci'
-                        sh 'export USER_PUBLIC_KEY_PATH="${USER_PRIVATE_KEY_PATH}.pub"'
+                        sh 'export USER_PUBLIC_KEY_PATH="./ssh.pub"'
                         sh 'ssh-keygen -y -f "$USER_PRIVATE_KEY_PATH" > "$USER_PUBLIC_KEY_PATH"'
                         sh 'export AWS_DEFAULT_REGION=us-west-2'
 //                        sh 'echo -e "[profile oracle]\naws_access_key_id=$AWS_ACCESS_KEY_ID\naws_secret_access_key=$AWS_SECRET_ACCESS_KEY\n" > ~/.aws/credentials'
