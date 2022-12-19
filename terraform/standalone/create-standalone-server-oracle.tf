@@ -7,7 +7,6 @@ variable "availability_domains" {
   type = list(string)
 }
 variable "role" {}
-variable "git_branch" {}
 variable "tenancy_ocid" {}
 variable "compartment_ocid" {}
 variable "vcn_name" {}
@@ -43,7 +42,6 @@ locals {
     "${var.tag_namespace}.environment" = var.environment
     "${var.tag_namespace}.domain" = var.domain
     "${var.tag_namespace}.environment_type" = var.environment_type
-    "${var.tag_namespace}.git_branch" = var.git_branch
     "${var.tag_namespace}.role" = var.role
     "${var.tag_namespace}.shard-role" = var.role
     "${var.tag_namespace}.Name" = var.name
