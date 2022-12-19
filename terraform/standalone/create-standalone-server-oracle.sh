@@ -18,7 +18,6 @@ LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 [ -z "$ROLE" ] && ROLE="all"
 [ -z "$UNIQUE_ID" ] && UNIQUE_ID="standalone"
 [ -z "$NAME" ] && NAME="$ENVIRONMENT-$ORACLE_REGION-$UNIQUE_ID"
-[ -z "$ORACLE_GIT_BRANCH" ] && ORACLE_GIT_BRANCH="master"
 
 [ -e "$LOCAL_PATH/../../clouds/oracle.sh" ] && . $LOCAL_PATH/../../clouds/oracle.sh
 
@@ -66,6 +65,9 @@ fi
 
 
 [ -z "$BASTION_HOST" ] && BASTION_HOST="$CONNECTION_SSH_BASTION_HOST"
+
+# add bastion hosts to known hosts if not present
+grep -q "$BASTION_HOST" ~/.ssh/known_hosts || ssh-keyscan -H $BASTION_HOST >> ~/.ssh/known_hosts
 
 [ -z "$S3_PROFILE" ] && S3_PROFILE="oracle"
 [ -z "$S3_STATE_BUCKET" ] && S3_STATE_BUCKET="tf-state-$ENVIRONMENT"
@@ -129,7 +131,6 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
   -var="disk_in_gbs=$DISK_IN_GBS" \
   -var="availability_domains=$AVAILABILITY_DOMAINS" \
   -var="role=$ROLE" \
-  -var="git_branch=$ORACLE_GIT_BRANCH" \
   -var="tenancy_ocid=$TENANCY_OCID" \
   -var="compartment_ocid=$COMPARTMENT_OCID" \
   -var="vcn_name=$VCN_NAME" \
