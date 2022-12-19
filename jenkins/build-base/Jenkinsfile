@@ -27,8 +27,8 @@ node {
             if (env.CLOUD_PROVIDER == 'oracle') {
               withCredentials([file(credentialsId: 'oci-jenkins-config', variable: 'OCI_CLI_CONFIG_FILE'), file(credentialsId: 'oci-jenkins-pem', variable: 'OCI_CLI_KEY_FILE'),string(credentialsId: 'ansible-vault-password', variable: 'ANSIBLE_VAULT_PASSWORD'),sshUserPrivateKey(credentialsId: 'ssh-ubuntu', keyFileVariable: 'CONNECTION_SSH_PRIVATE_KEY_FILE', usernameVariable: 'SSH_USERNAME')]) {
                 sh 'mkdir -p ~/.oci'
-                sh 'cp $OCI_CLI_CONFIG_FILE ~/.oci'
-                sh 'cp $OCI_CLI_KEY_FILE ~/.oci/private-key.pem'
+                sh 'cp "$OCI_CLI_CONFIG_FILE" ~/.oci/config'
+                sh 'cp "$OCI_CLI_KEY_FILE" ~/.oci/private-key.pem'
                 sh 'ls -la ~/.oci'
                 sh 'scripts/build-jammy-base-oracle.sh ubuntu'
                 sh 'scripts/replicate-image-oracle.sh ubuntu'
