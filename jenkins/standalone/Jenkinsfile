@@ -57,6 +57,7 @@ node {
                         sh 'mkdir -p ~/.oci'
                         sh 'mkdir -p ~/.aws'
                         sh 'echo -e "[default]\nregion = us-west-2\n" > ~/.aws/config'
+                        sh 'cat ~/.aws/config'
                         sh 'echo -e "[profile oracle]\naws_access_key_id=$OCI_TERRAFORM_AWS_ID\naws_secret_access_key=$OCI_TERRAFORM_AWS_SECRET\n" > ~/.aws/credentials'
                         sh 'cp "$OCI_CLI_CONFIG_FILE" ~/.oci/config'
                         sh 'cp "$OCI_CLI_KEY_FILE" ~/.oci/private-key.pem'
