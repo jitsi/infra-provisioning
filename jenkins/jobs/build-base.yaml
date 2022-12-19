@@ -21,6 +21,10 @@
           name: CLOUD_PROVIDER
           default: oracle
           description: "Cloud to build for, defaults to 'oracle'."
+      - bool:
+          name: FORCE_BUILD_IMAGE
+          default: false
+          description: "Flag to control whether to force image builds if a matching image exists"
       - string:
           name: INFRA_CONFIGURATION_REPO
           default: git@github.com:jitsi/infra-configuration.git
