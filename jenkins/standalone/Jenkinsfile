@@ -47,6 +47,7 @@ node {
                 echo "skip create step: ${skipCreateStep}"
                 if (skipCreateStep == 'false') {
                     withCredentials([string(credentialsId: 'oci-jenkins-terraform-aws-secret', variable: 'OCI_TERRAFORM_AWS_SECRET'),string(credentialsId: 'oci-jenkins-terraform-aws-id', variable: 'OCI_TERRAFORM_AWS_ID'),file(credentialsId: 'oci-jenkins-config', variable: 'OCI_CLI_CONFIG_FILE'), file(credentialsId: 'oci-jenkins-pem', variable: 'OCI_CLI_KEY_FILE'),string(credentialsId: 'ansible-vault-password', variable: 'ANSIBLE_VAULT_PASSWORD_PATH'),sshUserPrivateKey(credentialsId: 'ssh-ubuntu', keyFileVariable: 'CONNECTION_SSH_PRIVATE_KEY_FILE', usernameVariable: 'SSH_USERNAME')]) {
+                        sh 'rm -rf ~/.oci ~/.aws'
                         sh 'mkdir -p ~/.oci'
                         sh 'mkdir -p ~/.aws'
                         sh 'echo -e \'[default]\nregion = us-west-2\n\' > ~/.aws/config'
