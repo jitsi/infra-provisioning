@@ -267,7 +267,7 @@ resource "null_resource" "cloud_init_output" {
   depends_on = [null_resource.verify_cloud_init]
 
   provisioner "local-exec" {
-    command = "ssh -o StrictHostKeyChecking=no -J ${var.user}@${var.bastion_host} ${var.user}@${local.private_ip} 'echo hostname: $HOSTNAME, privateIp: ${local.private_ip} - $(cloud-init status)' >> ${var.postinstall_status_file}"
+    command = "ssh -i ${var.user_private_key_path} -o StrictHostKeyChecking=no -J ${var.user}@${var.bastion_host} ${var.user}@${local.private_ip} 'echo hostname: $HOSTNAME, privateIp: ${local.private_ip} - $(cloud-init status)' >> ${var.postinstall_status_file}"
   }
 }
 
