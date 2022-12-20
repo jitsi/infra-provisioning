@@ -1,13 +1,11 @@
 {
   "variables": {
     "build_id": "",
-    "jitsi_videobridge_deb_pkg_version": "",
-    "jitsi_meet_meta_version": "",
-    "ansible_ssh_user": "ubuntu",
+    "environment": "",
+    "ansible_ssh_user": "",
     "ansible_build_path": "../../infra-configuration/ansible",
     "base_image_ocid": "",
     "region": "",
-    "type":"Base",
     "availability_domain": "",
     "subnet_ocid": "",
     "compartment_ocid": "",
@@ -19,7 +17,10 @@
     "connection_use_private_ip": "false",
     "connection_ssh_bastion_host": "",
     "tag_namespace": "",
-    "base_image_name": "Build{{user `type`}}-{{user `region`}}-{{user `environment`}}-{{timestamp}}"
+    "ansible_deploy_tags": "",
+    "ansible_skip_tags": "",
+    "jibri_deb_pkg_version": "",
+    "jibri_image_name": "BuildJavaJibri-{{user `region`}}-{{user `environment`}}-{{user `jibri_deb_pkg_version`}}-{{timestamp}}"
   },
   "builders": [
     {
@@ -34,7 +35,7 @@
         "ocpus": "{{user `ocpus`}}",
         "memory_in_gbs": "{{user `memory_in_gbs`}}"
       },
-      "image_name": "{{user `base_image_name`}}",
+      "image_name": "{{user `jibri_image_name`}}",
       "communicator": "ssh",
       "ssh_username": "{{user `ansible_ssh_user`}}",
       "ssh_private_key_file": "{{user `connection_ssh_private_key_file`}}",
@@ -44,10 +45,11 @@
       "ssh_bastion_private_key_file": "{{user `connection_ssh_private_key_file`}}",
       "defined_tags": {
         "{{user `tag_namespace`}}": {
-          "Name": "{{user `base_image_name`}}",
+          "Name": "{{user `jibri_image_name`}}",
           "build_id": "{{user `build_id`}}",
+          "Version": "{{user `jibri_deb_pkg_version`}}",
           "TS": "{{timestamp}}",
-          "Type": "{{user `type`}}",
+          "Type": "JavaJibri",
           "environment_type": "dev"
         }
       }
@@ -56,15 +58,19 @@
   "provisioners": [
     {
       "type": "ansible",
-      "playbook_file": "{{user `ansible_build_path`}}/build-base-oracle.yml",
+      "playbook_file": "{{user `ansible_build_path`}}/build-java-jibri-oracle.yml",
       "user": "{{user `ansible_ssh_user`}}",
       "extra_arguments": [
         "-e",
-        "ansible_python_interpreter={{user `ansible_python_interpreter`}}",
-        "-e",
         "ansible_ssh_user={{user `ansible_ssh_user`}}",
         "-e",
+        "ansible_python_interpreter={{user `ansible_python_interpreter`}}",
+        "-e",
+        "jibri_deb_pkg_version={{user `jibri_deb_pkg_version`}}",
+        "-e",
         "cloud_provider=oracle",
+        "-e",
+        "hcv_environment={{user `environment`}}",
         "--vault-password-file",
         ".vault-password.txt",
         "--tags",
