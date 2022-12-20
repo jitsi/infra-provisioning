@@ -4,7 +4,20 @@ set -x
 # IF THE CURRENT DIRECTORY HAS stack-env.sh THEN INCLUDE IT
 [ -e ./stack-env.sh ] && . ./stack-env.sh
 
-[ -z "$BUCKET_NAMESPACE" ] && export BUCKET_NAMESPACE="fr4eeztjonbe"
+if [ -z "$ENVIRONMENT" ]; then
+  echo "No ENVIRONMENT found. Exiting..."
+  exit 203
+fi
+
+[ -e ./sites/$ENVIRONMENT/stack-env.sh ] && . ./sites/$ENVIRONMENT/stack-env.sh
+
+# e.g. /terraform/standalone
+LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
+
+#pull in cloud-specific variables, e.g. tenancy
+[ -e "$LOCAL_PATH/../clouds/oracle.sh" ] && . $LOCAL_PATH/../clouds/oracle.sh
+
+[ -z "$BUCKET_NAMESPACE" ] && export BUCKET_NAMESPACE="$ORACLE_S3_NAMESPACE"
 
 function create_bucket_if_not_present() {
   local bucket_name=$1
@@ -57,17 +70,6 @@ function create_lifecycle_policy_if_not_present() {
     echo "Lifecycle policy $policy_name already exists and it is enabled $policy_enabled. Skipping its creation."
   fi
 }
-
-if [ -z $ENVIRONMENT ]; then
-  echo "No ENVIRONMENT provided or found. Exiting..."
-  exit 201
-fi
-
-[ -e "../all/clouds/oracle.sh" ] && . ../all/clouds/oracle.sh
-
-# Get the compartment, which is the same for all regions in this env
-DEFAULT_ORACLE_CLOUD_NAME="$DEFAULT_ORACLE_REGION-$ENVIRONMENT-oracle"
-[ -e "../all/clouds/${DEFAULT_ORACLE_CLOUD_NAME}.sh" ] && . ../all/clouds/${DEFAULT_ORACLE_CLOUD_NAME}.sh
 
 # e.g. 'us-phoenix-1 eu-amsterdam-1'
 if [ -z "$ORACLE_REGIONS" ]; then

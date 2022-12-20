@@ -1,0 +1,51 @@
+- job:
+    name: provision VCN
+    parameters:
+      - string:
+          name: VIDEO_INFRA_BRANCH
+          default: main
+          description: "Controls checkout branch for infra repos, defaults to 'main'."
+          trim: true
+      - string:
+          name: ENVIRONMENT
+          default: lonely
+          description: "Environment to build in, defaults to 'lonely'."
+          trim: true
+      - string:
+          name: ORACLE_REGION
+          default: us-phoenix-1
+          description: "Region to build in, defaults to 'us-phoenix-1'."
+          trim: true
+      - string:
+          name: VCN_CIDR_ROOT
+          description: "Root for the CIDR. The result cidr will be {root_cidr}.0.0/16"
+          trim: true
+      - bool:
+          name: PROVISION_VCN
+          default: true
+          description: "If true, the VCN and main subnets/network security groups will be created. Use false if the VCN already exists."
+      - bool:
+          name: PROVISION_VCN_ADSUBNETS
+          default: true
+          description: "If true, the private Route Table, NAT Gateway, NAT Subnet and Coturn subnet will be created as well"
+      - string:
+          name: INFRA_CUSTOMIZATIONS_REPO
+          default: git@github.com:jitsi/infra-customizations.git
+          description: "Repo with customized configurations, defaults to 'git@github.com:jitsi/infra-customizations.git'."
+          trim: true
+ 
+    project-type: pipeline
+    sandbox: true
+    pipeline-scm:
+      scm:
+        - git:
+            url: git@github.com:jitsi/infra-provisioning.git
+            credentials-id: "video-infra"
+            branches:
+              - "origin/${VIDEO_INFRA_BRANCH}"
+            browser: githubweb
+            browser-url: https://github.com/jitsi/infra-provisioning
+            submodule:
+              recursive: true
+      script-path: jenkins/vcn/Jenkinsfile
+      lightweight-checkout: true

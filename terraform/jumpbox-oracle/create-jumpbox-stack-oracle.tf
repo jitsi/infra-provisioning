@@ -21,11 +21,13 @@ variable "memory_in_gbs" {}
 variable "dns_compartment_ocid" {}
 variable "dns_name" {}
 variable "dns_zone_name" {}
+variable "infra_configuration_repo" {}
+variable "infra_customizations_repo" {}
 variable "user_data_lib_path" {
-  default = "../all/bin/terraform/lib"
+  default = "terraform/lib"
 }
 variable "user_data_file" {
-    default = "../all/bin/terraform/jumpbox-oracle/configure-jumpbox-local-oracle.sh"
+    default = "terraform/jumpbox-oracle/configure-jumpbox-local-oracle.sh"
 }
 provider "oci" {
     region = var.oracle_region
@@ -92,6 +94,7 @@ resource "oci_core_instance" "oci-instance" {
         content = join("",[
           file("${path.cwd}/${var.user_data_lib_path}/postinstall-header.sh"), # load the header
           file("${path.cwd}/${var.user_data_lib_path}/postinstall-lib.sh"), # load the lib
+          "\nINFRA_CONFIGURATION_REPO=${var.infra_configuration_repo}\nINFRA_CUSTOMIZATIONS_REPO=${var.infra_customizations_repo}\n", #repo variables
           file("${path.cwd}/${var.user_data_file}"), # load our customizations
           file("${path.cwd}/${var.user_data_lib_path}/postinstall-footer.sh") # load the footer
         ])      

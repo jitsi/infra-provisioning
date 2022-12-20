@@ -1,0 +1,41 @@
+node {   
+  timestamps {
+    stage('Prepare/Checkout') { // for display purposes
+        script {
+            def scmUrl = scm.getUserRemoteConfigs()[0].getUrl()
+            dir('infra-customization') {
+                git branch: env.VIDEO_INFRA_BRANCH, url: env.INFRA_CUSTOMIZATIONS_REPO, credentialsId: 'video-infra'
+            }
+            dir('infra-provisioning') {
+                git branch: env.VIDEO_INFRA_BRANCH, url: scmUrl, credentialsId: 'video-infra'
+            }
+            sh 'cp -a infra-customization/* infra-provisioning'
+        }
+    }
+    stage('Provision') {
+        // Run the cloud provisioning
+        dir('infra-provisioning') {
+            if (env.CLOUD_PROVIDER == 'oracle') {
+                withCredentials([
+                    string(credentialsId: 'oci-jenkins-terraform-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
+                    string(credentialsId: 'oci-jenkins-terraform-aws-id', variable: 'AWS_ACCESS_KEY_ID'),
+                    file(credentialsId: 'oci-jenkins-config', variable: 'OCI_CLI_CONFIG_FILE'), 
+                    file(credentialsId: 'oci-jenkins-pem', variable: 'OCI_CLI_KEY_FILE'),
+                    sshUserPrivateKey(credentialsId: 'ssh-ubuntu', keyFileVariable: 'USER_PRIVATE_KEY_PATH', usernameVariable: 'SSH_USERNAME')
+                ]) {
+                    sh '''#!/bin/bash
+                    set -x
+                    mkdir -p ~/.oci ~/.ssh
+                    export USER_PUBLIC_KEY_PATH=~/.ssh/ssh_key.pub
+                    ssh-keygen -y -f "$USER_PRIVATE_KEY_PATH" > "$USER_PUBLIC_KEY_PATH"
+                    cp "$OCI_CLI_CONFIG_FILE" ~/.oci/config
+                    cp "$OCI_CLI_KEY_FILE" ~/.oci/private-key.pem
+                    terraform/jumpbox-oracle/create-jumpbox-stack-oracle.sh $SSH_USERNAME'''
+                }
+            } else {
+                sh 'scripts/create-ssh-jumpbox-stack.sh'
+            }
+        }
+    }
+  }
+}

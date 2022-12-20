@@ -4,6 +4,7 @@
     "jitsi_videobridge_deb_pkg_version": "",
     "jitsi_meet_meta_version": "",
     "ansible_ssh_user": "ubuntu",
+    "ansible_build_path": "../../infra-configuration/ansible",
     "base_image_ocid": "",
     "region": "",
     "type":"Base",
@@ -39,7 +40,6 @@
       "ssh_private_key_file": "{{user `connection_ssh_private_key_file`}}",
       "use_private_ip": "{{user `connection_use_private_ip`}}",
       "ssh_bastion_username": "{{user `ansible_ssh_user`}}",
-      "ssh_bastion_agent_auth": "{{user `ssh_bastion_agent_auth`}}",
       "ssh_bastion_host": "{{user `connection_ssh_bastion_host`}}",
       "ssh_bastion_private_key_file": "{{user `connection_ssh_private_key_file`}}",
       "defined_tags": {
@@ -56,7 +56,7 @@
   "provisioners": [
     {
       "type": "ansible",
-      "playbook_file": "../../ansible/build-base-oracle.yml",
+      "playbook_file": "{{user `ansible_build_path`}}/build-base-oracle.yml",
       "user": "{{user `ansible_ssh_user`}}",
       "local_port": 50541,
       "extra_arguments": [
@@ -67,7 +67,7 @@
         "-e",
         "cloud_provider=oracle",
         "--vault-password-file",
-        "../../.vault-password.txt",
+        ".vault-password.txt",
         "--tags",
         "{{user `ansible_deploy_tags`}}",
         "--skip-tags",
