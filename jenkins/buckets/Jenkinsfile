@@ -18,13 +18,16 @@ node {
         dir('infra-provisioning') {
             withCredentials([
                 file(credentialsId: 'oci-jenkins-config', variable: 'OCI_CLI_CONFIG_FILE'),
-                file(credentialsId: 'oci-jenkins-pem', variable: 'OCI_CLI_KEY_FILE')
+                file(credentialsId: 'oci-jenkins-pem', variable: 'OCI_CLI_KEY_FILE'),
+                sshUserPrivateKey(credentialsId: 'video-infra', keyFileVariable: 'USER_PRIVATE_KEY_PATH', usernameVariable: 'SSH_USERNAME'),
+                string(credentialsId: 'ansible-vault-password', variable: 'ANSIBLE_VAULT_PASSWORD_VALUE'),
             ]) {
                 sh 'rm -rf ~/.oci'
                 sh 'mkdir -p ~/.oci'
                 sh 'cp "$OCI_CLI_CONFIG_FILE" ~/.oci/config'
                 sh 'cp "$OCI_CLI_KEY_FILE" ~/.oci/private-key.pem'
                 sh 'scripts/create-buckets-oracle.sh'
+                sh 'scripts/create-bucket-credentials-oracle.sh'
             }
         }
     }
