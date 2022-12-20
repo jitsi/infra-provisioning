@@ -22,4 +22,5 @@ RUN if [ "$TARGETPLATFORM" = "linux/amd64" ]; then ARCHITECTURE="amd64"; elif [ 
     wget https://releases.hashicorp.com/terraform/1.3.6/terraform_1.3.6_linux_${ARCHITECTURE}.zip && unzip ./terraform*.zip && mv terraform /usr/bin/terraform
 
 USER jenkins
+RUN mkdir -p /home/jenkins/.ansible/cp
 #ENTRYPOINT ["/usr/local/bin/jenkins-agent"]
