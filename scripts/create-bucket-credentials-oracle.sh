@@ -29,7 +29,7 @@ if [ -z "$ORACLE_REGIONS" ]; then
   exit 203
 fi
 
-if [ -z "$USER_PRIVATE_KEY_PATH" ]
+if [ -z "$USER_PRIVATE_KEY_PATH" ]; then
   echo "No USER_PRIVATE_KEY_PATH found. Exiting..."
   exit 203
 fi
