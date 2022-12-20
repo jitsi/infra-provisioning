@@ -131,7 +131,7 @@ function checkout_repos() {
   cd $BOOTSTRAP_DIRECTORY/infra-customizations
   git checkout $GIT_BRANCH
   cp -a $BOOTSTRAP_DIRECTORY/infra-customizations/* $BOOTSTRAP_DIRECTORY/infra-configuration
-  cd $BOOTSTRAP_DIRECTORY
+  cd /root
 }
 
 function run_ansible_playbook() {
