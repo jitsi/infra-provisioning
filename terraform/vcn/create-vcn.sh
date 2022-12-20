@@ -5,12 +5,17 @@ set -x #echo on
 [ -e ./stack-env.sh ] && . ./stack-env.sh
 
 if [ -z "$ENVIRONMENT" ]; then
-   echo "No ENVIRONMENT provided or found.  Exiting ..."
-   exit 201
+  echo "No ENVIRONMENT found. Exiting..."
+  exit 203
 fi
 
+[ -e ./sites/$ENVIRONMENT/stack-env.sh ] && . ./sites/$ENVIRONMENT/stack-env.sh
+
+# e.g. /terraform/standalone
+LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
+
 #pull in cloud-specific variables, e.g. tenancy
-[ -e "../all/clouds/oracle.sh" ] && . ../all/clouds/oracle.sh
+[ -e "$LOCAL_PATH/../../clouds/oracle.sh" ] && . $LOCAL_PATH/../../clouds/oracle.sh
 
 if [ -z "$ORACLE_REGION" ]; then
   echo "No ORACLE_REGION found.  Exiting..."
@@ -18,7 +23,7 @@ if [ -z "$ORACLE_REGION" ]; then
 fi
 
 ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
-[ -e "../all/clouds/${ORACLE_CLOUD_NAME}.sh" ] && . ../all/clouds/${ORACLE_CLOUD_NAME}.sh
+[ -e "$LOCAL_PATH/../../${ORACLE_CLOUD_NAME}.sh" ] && . $LOCAL_PATH/../../clouds/${ORACLE_CLOUD_NAME}.sh
 
 [ -z "$VCN_CIDR_ROOT" ] && VCN_CIDR_ROOT="10.50"
 [ -z "$VCN_CIDR" ] && VCN_CIDR="$VCN_CIDR_ROOT.0.0/16"
@@ -34,7 +39,7 @@ rm -f terraform.tfstate
 
 [ -z "$S3_PROFILE" ] && S3_PROFILE="oracle"
 [ -z "$S3_STATE_BUCKET" ] && S3_STATE_BUCKET="tf-state-$ENVIRONMENT"
-[ -z "$S3_ENDPOINT" ] && S3_ENDPOINT="https://fr4eeztjonbe.compat.objectstorage.$ORACLE_REGION.oraclecloud.com"
+[ -z "$S3_ENDPOINT" ] && S3_ENDPOINT="https://$ORACLE_S3_NAMESPACE.compat.objectstorage.$ORACLE_REGION.oraclecloud.com"
 
 S3_STATE_BASE="$ENVIRONMENT/vcn"
 [ -z "$S3_STATE_KEY" ] && S3_STATE_KEY="${S3_STATE_BASE}/terraform.tfstate"
@@ -43,11 +48,11 @@ S3_STATE_BASE="$ENVIRONMENT/vcn"
 TERRAFORM_MAJOR_VERSION=$(terraform -v | head -1  | awk '{print $2}' | cut -d'.' -f1)
 TF_GLOBALS_CHDIR=
 if [[ "$TERRAFORM_MAJOR_VERSION" == "v1" ]]; then
-  TF_GLOBALS_CHDIR="-chdir=../all/bin/terraform/vcn/"
+  TF_GLOBALS_CHDIR="-chdir=$LOCAL_PATH"
   TF_CLI_ARGS=""
   TF_POST_PARAMS=
 else
-  TF_POST_PARAMS="../all/bin/terraform/vcn/"
+  TF_POST_PARAMS="$LOCAL_PATH"
 fi
 #The —reconfigure option disregards any existing configuration, preventing migration of any existing state
 terraform $TF_GLOBALS_CHDIR init \
