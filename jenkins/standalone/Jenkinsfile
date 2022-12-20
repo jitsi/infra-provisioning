@@ -83,8 +83,7 @@ node {
         }
     }
     stage('Configure') {
-        sshagent (credentials: ['video-infra']) {
-
+      sshagent (credentials: ['ssh-ubuntu']) {
         script {
             dir('infra-configuration') {
                     withCredentials([string(credentialsId: 'ansible-vault-password', variable: 'ANSIBLE_VAULT_PASSWORD_PATH'),sshUserPrivateKey(credentialsId: 'ssh-ubuntu', keyFileVariable: 'CONNECTION_SSH_PRIVATE_KEY_FILE', usernameVariable: 'SSH_USERNAME')]) {
@@ -93,7 +92,7 @@ node {
                     }
             }
         }
-        }
+      }
     }
   }
 }
