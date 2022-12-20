@@ -9,7 +9,7 @@ LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 [ -z $CLOUD_NAME ] && CLOUD_NAME=$DEFAULT_CLOUD
 
 #pull in cloud-specific variables
-[ -e "$LOCAL_PATH/../clouds/${CLOUD_NAME}.sh" ] && . $LOCAL_PATH../clouds/${CLOUD_NAME}.sh
+[ -e "$LOCAL_PATH/../clouds/${CLOUD_NAME}.sh" ] && . $LOCAL_PATH/../clouds/${CLOUD_NAME}.sh
 
 export AWS_DEFAULT_REGION="$EC2_REGION"
 
