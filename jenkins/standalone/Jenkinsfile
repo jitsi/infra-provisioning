@@ -1,7 +1,7 @@
 node {   
   timestamps {
-    sshagent (credentials: ['video-infra']) {
         stage('Prepare/Checkout') { // for display purposes
+          sshagent (credentials: ['video-infra']) {
             script {
                 def scmUrl = scm.getUserRemoteConfigs()[0].getUrl()
                 echo scmUrl
@@ -21,8 +21,10 @@ node {
                 sh 'mkdir test-results'
 
             }
+          }
         }
         stage('Provision') {
+         sshagent (credentials: ['video-infra']) {
           dir('infra-provisioning') {
             if (env.CLOUD_PROVIDER == 'oracle') {
                 def skipCreateStep = sh(
@@ -78,9 +80,11 @@ node {
             }
           }
         // Run the cloud provisioning
+         }
         }
-
         stage('Configure') {
+          sshagent (credentials: ['video-infra']) {
+
             script {
                 dir('infra-configuration') {
                         withCredentials([string(credentialsId: 'ansible-vault-password', variable: 'ANSIBLE_VAULT_PASSWORD_PATH'),sshUserPrivateKey(credentialsId: 'ssh-ubuntu', keyFileVariable: 'CONNECTION_SSH_PRIVATE_KEY_FILE', usernameVariable: 'SSH_USERNAME')]) {
@@ -89,6 +93,7 @@ node {
                         }
                 }
             }
+          }
         }
     }
   }
