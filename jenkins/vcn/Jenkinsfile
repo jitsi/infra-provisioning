@@ -1,0 +1,39 @@
+node {
+  timestamps {
+    stage('Prepare/Checkout') { // for display purposes
+        script {
+            def scmUrl = scm.getUserRemoteConfigs()[0].getUrl()
+            echo scmUrl
+            echo env.VIDEO_INFRA_BRANCH
+            dir('infra-customization') {
+                git branch: env.VIDEO_INFRA_BRANCH, url: env.INFRA_CUSTOMIZATIONS_REPO, credentialsId: 'video-infra'
+            }
+            dir('infra-provisioning') {
+                git branch: env.VIDEO_INFRA_BRANCH, url: scmUrl, credentialsId: 'video-infra'
+            }
+            sh 'cp -a infra-customization/* infra-provisioning'
+        }
+    }
+    stage('Provision') {
+        dir('infra-provisioning') {
+            withCredentials([
+                string(credentialsId: 'oci-jenkins-terraform-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
+                string(credentialsId: 'oci-jenkins-terraform-aws-id', variable: 'AWS_ACCESS_KEY_ID'),
+                file(credentialsId: 'oci-jenkins-config', variable: 'OCI_CLI_CONFIG_FILE'),
+                file(credentialsId: 'oci-jenkins-pem', variable: 'OCI_CLI_KEY_FILE')
+            ]) {
+                sh 'rm -rf ~/.oci'
+                sh 'mkdir -p ~/.oci'
+                sh 'cp "$OCI_CLI_CONFIG_FILE" ~/.oci/config'
+                sh 'cp "$OCI_CLI_KEY_FILE" ~/.oci/private-key.pem'
+                if (env.PROVISION_VCN) {
+                    sh 'terraform/vcn/create-vcn.sh'
+                }
+                if (env.PROVISION_VCN_ADSUBNETS) {
+                    sh 'terraform/vcn-adsubnets/create-ad-subnets.sh'
+                }
+            }
+        }
+    }
+  }
+}
