@@ -36,6 +36,6 @@ fi
 
 
 for ORACLE_REGION in $ORACLE_REGIONS; do
-    os object put --region $ORACLE_REGION --bucket $BUCKET_NAME --name id_rsa --file $USER_PRIVATE_KEY_PATH
-    os object put --region $ORACLE_REGION --bucket $BUCKET_NAME --name vault-password --file $VAULT_PASSWORD_FILE
+    oci os object put --region $ORACLE_REGION --bucket $BUCKET_NAME --name id_rsa --file $USER_PRIVATE_KEY_PATH
+    oci os object put --region $ORACLE_REGION --bucket $BUCKET_NAME --name vault-password --file $VAULT_PASSWORD_FILE
 done
