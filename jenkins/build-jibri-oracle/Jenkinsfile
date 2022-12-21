@@ -1,5 +1,5 @@
 def checkSkipBuild() {
-    echo 'checking for existing images before building'
+    echo 'checking for existing images before building, FORCE_BUILD_IMAGE is $FORCE_BUILD_IMAGE'
     def checkOutput = sh(
         returnStdout: true,
         script: """#!/bin/bash
