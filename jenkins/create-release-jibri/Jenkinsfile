@@ -18,15 +18,10 @@ def git_branch
 // use incoming branch/tag or tag repo with new tag based on build ID
 // either way set it into git_branch variable to use later
 def tagRelease(release,env_branch) {
-    if (env_branch) {
-        git_branch = env_branch
-        // do nothing here, since git branch is specified
-    } else {
-        git_branch = 'jibri-release-'+release
-        env.RELEASE_BRANCH = git_branch
-        sh 'git tag ' + git_branch
-        sh 'git push origin '+git_branch
-    }
+    git_branch = 'jibri-release-'+release
+    env.RELEASE_BRANCH = git_branch
+    sh 'git tag ' + git_branch
+    sh 'git push origin '+git_branch
     return git_branch
 }
 
@@ -89,12 +84,16 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                         git branch: env.VIDEO_INFRA_BRANCH, url: env.INFRA_CUSTOMIZATIONS_REPO, credentialsId: 'video-infra'
                     }
                     script {
-                        git_branch = tagRelease(env.BUILD_ID, env.RELEASE_BRANCH)
-                        dir('infra-configuration') {
-                            tagRelease(env.BUILD_ID, git_branch)
-                        }
-                        dir('infra-customization') {
-                            tagRelease(env.BUILD_ID, git_branch)
+                        if (!env.RELEASE_BRANCH) {
+                            git_branch = tagRelease(env.BUILD_ID, env.RELEASE_BRANCH)
+                            dir('infra-configuration') {
+                                tagRelease(env.BUILD_ID)
+                            }
+                            dir('infra-customization') {
+                                tagRelease(env.BUILD_ID)
+                            }
+                        } else {
+                            git_branch = env.RELEASE_BRANCH
                         }
                     }
                }
