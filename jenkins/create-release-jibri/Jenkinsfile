@@ -42,10 +42,12 @@ def buildJibriImageAws(build_id,jibriVersion,force_build_ami) {
 }
 
 // trigger build Jibri image oracle job with appropriate parameters
-def buildJibriImageOracle(clouds,jibriVersion,force_build_image) {
+def buildJibriImageOracle(environment,clouds,jibriVersion,force_build_image,video_infra_branch) {
     def buildImage = build job: 'build image jibri oracle',parameters: [
         [$class: 'StringParameterValue', name: 'CLOUDS', value: clouds],
         [$class: 'StringParameterValue', name: 'JIBRI_VERSION', value: jibriVersion],
+        [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: environment],
+        [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: video_infra_branch],
         [$class: 'BooleanParameterValue', name: 'FORCE_BUILD_IMAGE', value: force_build_image]
     ]
 
@@ -104,9 +106,11 @@ pipeline {				//indicate the job is written in Declarative Pipeline
             steps {
                 script {
                     buildJibriImageOracle(
+                            env.ENVIRONMENT,
                             env.CLOUDS,
                             env.JIBRI_VERSION,
-                            env.FORCE_BUILD_IMAGE
+                            env.FORCE_BUILD_IMAGE,
+                            env.VIDEO_INFRA_BRANCH
                             )
                 }
             }
