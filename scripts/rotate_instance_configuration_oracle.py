@@ -145,6 +145,8 @@ if args.metadata_eip:
     metadata_files.append(metadata_eip_lib_file_contents)
 
 if args.infra_configuration_repo and args.infra_customizations_repo:
+    existing_instance_configuration_details.data.freeform_tags['configuration_repo'] = args.infra_configuration_repo
+    existing_instance_configuration_details.data.freeform_tags['customizations_repo'] = args.infra_customizations_repo
     metadata_files.append(bytes("\nexport INFRA_CONFIGURATION_REPO=\"{}\"\nexport INFRA_CUSTOMIZATIONS_REPO=\"{}\"\n".format(args.infra_configuration_repo,args.infra_customizations_repo),"utf8"))
 
 
@@ -196,6 +198,7 @@ launch_details = InstanceConfigurationLaunchInstanceDetails(
         user_data=encoded_user_data.decode('utf-8')
     ),
     defined_tags=existing_instance_configuration_details.data.defined_tags,
+    freeform_tags=existing_instance_configuration_details.data.freeform_tags,
     create_vnic_details=existing_instance_configuration_details.data.instance_details.launch_details.create_vnic_details
 )
 
@@ -208,7 +211,8 @@ instance_config_details = CreateInstanceConfigurationDetails(
     display_name=display_name,
     compartment_id=existing_instance_configuration_details.data.compartment_id,
     instance_details=instance_details,
-    defined_tags=existing_instance_configuration_details.data.defined_tags
+    defined_tags=existing_instance_configuration_details.data.defined_tags,
+    freeform_tags=existing_instance_configuration_details.data.freeform_tags
 )
 
 new_instance_configuration_details = compute_management_client.create_instance_configuration(instance_config_details)
@@ -216,6 +220,7 @@ new_instance_configuration_details = compute_management_client.create_instance_c
 if not args.custom_autoscaler:
     instance_pool_details = UpdateInstancePoolDetails(
         defined_tags=existing_instance_configuration_details.data.defined_tags,
+        freeform_tags=existing_instance_configuration_details.data.freeform_tags,
         instance_configuration_id=new_instance_configuration_details.data.id
     )
 
