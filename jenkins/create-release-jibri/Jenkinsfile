@@ -65,8 +65,7 @@ def provisionJibri(shard_environment,cloud_name,release_number,gitBranch,jibriVe
 
 pipeline {				//indicate the job is written in Declarative Pipeline
     agent any				//agent specifies where the pipeline will execute.
-    sshagent (credentials: ['video-infra']) {
-      stages {
+    stages {
         // output stage, shows off our input parameters
         stage ("setup") {
             steps {
@@ -87,6 +86,7 @@ pipeline {				//indicate the job is written in Declarative Pipeline
         }
         // tag the new release or load git_branch from input parameters
         stage("tag release") {
+          sshagent (credentials: ['video-infra']) {
             steps {
                 script {
                     if (!env.RELEASE_BRANCH) {
@@ -101,8 +101,8 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                         git_branch = env.RELEASE_BRANCH
                     }
                 }
-               }
             }
+          }
         }
         stage("build and replicate Jibri image in AWS") {
             when {
