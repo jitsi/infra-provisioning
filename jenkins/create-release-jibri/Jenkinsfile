@@ -65,37 +65,42 @@ def provisionJibri(shard_environment,cloud_name,release_number,gitBranch,jibriVe
 
 pipeline {				//indicate the job is written in Declarative Pipeline
     agent any				//agent specifies where the pipeline will execute.
-    stages {
+    sshagent (credentials: ['video-infra']) {
+      stages {
         // output stage, shows off our input parameters
         stage ("setup") {
             steps {
                 echo 'Jibri Release'
                 echo "JIBRI VERSION ${env.JIBRI_VERSION}"
+                def scmUrl = scm.getUserRemoteConfigs()[0].getUrl()
+                dir('infra-configuration') {
+                    checkout([$class: 'GitSCM', branches: [[name: "origin/${VIDEO_INFRA_BRANCH}"]], extensions: [[$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: false, recursiveSubmodules: true, reference: '', trackingSubmodules: false]], userRemoteConfigs: [[credentialsId: 'video-infra', url: env.INFRA_CONFIGURATION_REPO]]])
+                }
+                dir('infra-customization') {
+                    git branch: env.VIDEO_INFRA_BRANCH, url: env.INFRA_CUSTOMIZATIONS_REPO, credentialsId: 'video-infra'
+                }
+                dir('infra-provisioning') {
+                    git branch: env.VIDEO_INFRA_BRANCH, url: scmUrl, credentialsId: 'video-infra'
+                }
+                sh 'cp -a infra-customization/* infra-provisioning'
             }
         }
         // tag the new release or load git_branch from input parameters
         stage("tag release") {
             steps {
-               sshagent (credentials: ['video-infra']) {
-                    dir('infra-configuration') {
-                        checkout([$class: 'GitSCM', branches: [[name: "origin/${VIDEO_INFRA_BRANCH}"]], extensions: [[$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: false, recursiveSubmodules: true, reference: '', trackingSubmodules: false]], userRemoteConfigs: [[credentialsId: 'video-infra', url: env.INFRA_CONFIGURATION_REPO]]])
-                    }
-                    dir('infra-customization') {
-                        git branch: env.VIDEO_INFRA_BRANCH, url: env.INFRA_CUSTOMIZATIONS_REPO, credentialsId: 'video-infra'
-                    }
-                    script {
-                        if (!env.RELEASE_BRANCH) {
-                            git_branch = tagRelease(env.BUILD_ID, env.RELEASE_BRANCH)
-                            dir('infra-configuration') {
-                                tagRelease(env.BUILD_ID, '')
-                            }
-                            dir('infra-customization') {
-                                tagRelease(env.BUILD_ID, '')
-                            }
-                        } else {
-                            git_branch = env.RELEASE_BRANCH
+                script {
+                    if (!env.RELEASE_BRANCH) {
+                        git_branch = tagRelease(env.BUILD_ID, env.RELEASE_BRANCH)
+                        dir('infra-configuration') {
+                            tagRelease(env.BUILD_ID, '')
                         }
+                        dir('infra-customization') {
+                            tagRelease(env.BUILD_ID, '')
+                        }
+                    } else {
+                        git_branch = env.RELEASE_BRANCH
                     }
+                }
                }
             }
         }
@@ -133,6 +138,7 @@ pipeline {				//indicate the job is written in Declarative Pipeline
         stage("provision jibri pools") {
             steps {
                 script {
+                  dir('infra-provisioning') {
                     echo "Provision jibri in provider ${env.CLOUD_PROVIDER}, environment ${env.ENVIRONMENT}, clouds ${env.CLOUDS}, autoscaler enabled ${env.JIBRI_AUTOSCALER_ENABLED} ";
                     def cloud_list = split_clouds(env.ENVIRONMENT,env.CLOUDS);
                     echo "cloud list ${cloud_list}";
@@ -154,6 +160,7 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                     // branch out here, run all create shard jobs at once
                     // only succeed if all branches succeed
                     parallel branches
+                  }
                 }
             }
         }
