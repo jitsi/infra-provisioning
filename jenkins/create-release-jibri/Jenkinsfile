@@ -54,7 +54,7 @@ def buildJibriImageOracle(environment,clouds,jibriVersion,force_build_image,vide
     return buildImage
 }
 
-def provisionJibri(shard_environment,cloud_name,release_number,gitBranch,jibriVersion,cloud_provider,oracle_desired_capacity,jibri_autoscaler_enabled) {
+def provisionJibri(shard_environment,cloud_name,release_number,gitBranch,jibriVersion,cloud_provider,video_infra_branch) {
     def provision = build job: 'provision jibri',parameters: [
         [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: shard_environment],
         [$class: 'StringParameterValue', name: 'CLOUD_NAME', value: cloud_name],
@@ -62,6 +62,7 @@ def provisionJibri(shard_environment,cloud_name,release_number,gitBranch,jibriVe
         [$class: 'StringParameterValue', name: 'JIBRI_RELEASE_NUMBER', value: release_number],
         [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: gitBranch],
         [$class: 'StringParameterValue', name: 'CLOUD_PROVIDER', value: cloud_provider]
+        [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: video_infra_branch]
     ]
 
     return provision
@@ -147,8 +148,7 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                                 git_branch,
                                 env.JIBRI_VERSION,
                                 env.CLOUD_PROVIDER,
-                                env.ORACLE_DESIRED_CAPACITY,
-                                env.JIBRI_AUTOSCALER_ENABLED
+                                env.VIDEO_INFRA_BRANCH
                             )
                         }
                     }

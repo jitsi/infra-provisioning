@@ -1,0 +1,70 @@
+- job:
+    name: provision jibri
+    parameters:
+      - string:
+          name: JIBRI_VERSION
+          description: "Controls the version of jibri to build."
+          trim: true
+      - string:
+          name: VIDEO_INFRA_BRANCH
+          default: main
+          description: "Controls checkout branch for infra repos, defaults to 'main'."
+          trim: true
+      - string:
+          name: ENVIRONMENT
+          default: lonely
+          description: "Environment to build in, defaults to 'lonely'."
+          trim: true
+      - string:
+          name: CLOUD_PROVIDER
+          default: oracle
+          description: "Cloud Provider, defaults to 'oracle'"
+          trim: true
+      - string:
+          name: RELEASE_BRANCH
+          default: main
+          description: "Name of an existing infra branch to use when creating the release, defaults to 'main'."
+          trim: true
+      - string:
+          name: CLOUD_NAME
+          description: "Name of cloud to build in"
+          trim: true
+      - string:
+          name: JIBRI_INSTANCE_TYPE
+          description: "Size of EC2 instance to use for the jibri instance"
+      - string:
+          name: JIBRI_TYPE
+          default: java-jibri
+          description: "Type of jibri to deploy, either 'java-jibri' or 'sip-jibri'."
+      - string:
+          name: JIBRI_IMAGE_ID
+          description: "Image ID to use in provisioning, otherwise defaults to JIBRI_VERSION search"
+      - string:
+          name: JIBRI_RELEASE_NUMBER
+          description: "Release number with which to tag all jibri instances"
+      - string:
+          name: INFRA_CONFIGURATION_REPO
+          default: git@github.com:jitsi/infra-configuration.git
+          description: "Repo for configuration code (ansible etc), defaults to 'git@github.com:jitsi/infra-configuration.git'."
+          trim: true
+      - string:
+          name: INFRA_CUSTOMIZATIONS_REPO
+          default: git@github.com:jitsi/infra-customizations.git
+          description: "Repo with customized configurations, defaults to 'git@github.com:jitsi/infra-customizations.git'."
+          trim: true
+ 
+    project-type: pipeline
+    sandbox: true
+    pipeline-scm:
+      scm:
+        - git:
+            url: git@github.com:jitsi/infra-provisioning.git
+            credentials-id: "video-infra"
+            branches:
+              - "origin/${VIDEO_INFRA_BRANCH}"
+            browser: githubweb
+            browser-url: https://github.com/jitsi/infra-provisioning
+            submodule:
+              recursive: true
+      script-path: jenkins/provision-jibri/Jenkinsfile
+      lightweight-checkout: true
