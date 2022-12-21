@@ -1,5 +1,7 @@
 - job:
-    name: provision buckets
+    name: provision-buckets
+    display-name: provision buckets
+    concurrent: true
     parameters:
       - string:
           name: VIDEO_INFRA_BRANCH

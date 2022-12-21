@@ -27,7 +27,7 @@ def tagRelease(release,env_branch) {
 
 // trigger build Jibri image aws job with appropriate parameters
 def buildJibriImageAws(build_id,jibriVersion,force_build_ami) {
-    def buildImage = build job: 'build image jibri aws',parameters: [
+    def buildImage = build job: 'build-image-jibri-aws',parameters: [
         [$class: 'BooleanParameterValue', name: 'FORCE_BUILD_AMI', value: force_build_ami],
         [$class: 'StringParameterValue', name: 'JIBRI_BUILD_ID', value: build_id],
         [$class: 'StringParameterValue', name: 'JIBRI_VERSION', value: jibriVersion]
@@ -38,7 +38,7 @@ def buildJibriImageAws(build_id,jibriVersion,force_build_ami) {
 
 // trigger build Jibri image oracle job with appropriate parameters
 def buildJibriImageOracle(environment,clouds,jibriVersion,force_build_image,video_infra_branch) {
-    def buildImage = build job: 'build image jibri oracle',parameters: [
+    def buildImage = build job: 'build-image-jibri-oracle',parameters: [
         [$class: 'StringParameterValue', name: 'CLOUDS', value: clouds],
         [$class: 'StringParameterValue', name: 'JIBRI_VERSION', value: jibriVersion],
         [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: environment],
@@ -50,7 +50,7 @@ def buildJibriImageOracle(environment,clouds,jibriVersion,force_build_image,vide
 }
 
 def provisionJibri(shard_environment,cloud_name,release_number,gitBranch,jibriVersion,cloud_provider,video_infra_branch) {
-    def provision = build job: 'provision jibri',parameters: [
+    def provision = build job: 'provision-jibri',parameters: [
         [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: shard_environment],
         [$class: 'StringParameterValue', name: 'CLOUD_NAME', value: cloud_name],
         [$class: 'StringParameterValue', name: 'JIBRI_VERSION', value: jibriVersion],
@@ -173,7 +173,7 @@ pipeline {				//indicate the job is written in Declarative Pipeline
             }
             steps {
                  script {
-                     build job: 'jibri rotate',parameters: [[$class: 'StringParameterValue', name: 'ENVIRONMENT', value: env.ENVIRONMENT]]
+                     build job: 'jibri-rotate',parameters: [[$class: 'StringParameterValue', name: 'ENVIRONMENT', value: env.ENVIRONMENT]]
                  }
              }
         }

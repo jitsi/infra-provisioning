@@ -1,25 +1,17 @@
 - job:
-    name: provision standalone
+    name: provision-jumpbox
+    display-name: provision jumpbox
+    concurrent: true
     parameters:
-      - string:
-          name: UNIQUE_ID
-          default:
-          description: "UNIQUE_ID used to identify standalone, defaults to 'standalone' in script."
-          trim: true
-      - string:
-          name: DOMAIN
-          default:
-          description: "DOMAIN is site DNS used to access standalone, should match $UNIQUE_ID.$DNS_ZONE_DOMAIN_NAME  in script."
-          trim: true
-      - string:
-          name: SKIP_CREATE_STEP_FLAG
-          default:
-          description: "Controls whether to (re)provision instance via terraform.  Should be 'true' to skip, or 'false' to ensure provisioning occurs no matter what."
-          trim: true
       - string:
           name: VIDEO_INFRA_BRANCH
           default: main
           description: "Controls checkout branch for infra repos, defaults to 'main'."
+          trim: true
+      - string:
+          name: ORACLE_GIT_BRANCH
+          default: main
+          description: "Controls checkout branch for jumpbox, defaults to 'main'."
           trim: true
       - string:
           name: ENVIRONMENT
@@ -60,5 +52,5 @@
             browser-url: https://github.com/jitsi/infra-provisioning
             submodule:
               recursive: true
-      script-path: jenkins/standalone/Jenkinsfile
+      script-path: jenkins/jumpbox/Jenkinsfile
       lightweight-checkout: true
