@@ -60,7 +60,7 @@ def provisionJibri(shard_environment,cloud_name,release_number,gitBranch,jibriVe
         [$class: 'StringParameterValue', name: 'CLOUD_NAME', value: cloud_name],
         [$class: 'StringParameterValue', name: 'JIBRI_VERSION', value: jibriVersion],
         [$class: 'StringParameterValue', name: 'JIBRI_RELEASE_NUMBER', value: release_number],
-        [$class: 'StringParameterValue', name: 'GIT_BRANCH', value: gitBranch],
+        [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: gitBranch],
         [$class: 'StringParameterValue', name: 'CLOUD_PROVIDER', value: cloud_provider]
     ]
 
