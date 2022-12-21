@@ -1,0 +1,15 @@
+- view-template:
+    name: 'image'
+    description: 'image build jobs'
+    view-type: list
+    regex: 'build-image-.*'
+
+- project:
+    name: 'image-view'
+    views:
+        - 'image'
+    seq:
+        - a
+        - b
+        - c
+

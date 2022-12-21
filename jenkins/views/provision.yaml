@@ -1,0 +1,14 @@
+- view-template:
+    name: 'provision'
+    description: 'jobs that provision resources'
+    view-type: list
+    regex: 'provision-.*'
+
+- project:
+    name: 'provision-view'
+    views:
+        - 'provision'
+    seq:
+        - a
+        - b
+        - c
