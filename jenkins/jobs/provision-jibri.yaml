@@ -1,5 +1,7 @@
 - job:
-    name: provision jibri
+    name: provision-jibri
+    display-name: provision jibri
+    concurrent: true
     parameters:
       - string:
           name: JIBRI_VERSION

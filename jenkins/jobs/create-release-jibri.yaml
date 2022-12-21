@@ -1,5 +1,7 @@
 - job:
-    name: create release - jibri
+    name: create-release-jibri
+    display-name: create release - jibri
+    concurrent: true
     parameters:
       - string:
           name: JIBRI_VERSION
