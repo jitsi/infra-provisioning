@@ -86,8 +86,8 @@ pipeline {				//indicate the job is written in Declarative Pipeline
         }
         // tag the new release or load git_branch from input parameters
         stage("tag release") {
-          sshagent (credentials: ['video-infra']) {
-            steps {
+          steps {
+            sshagent (credentials: ['video-infra']) {
                 script {
                     if (!env.RELEASE_BRANCH) {
                         git_branch = tagRelease(env.BUILD_ID, env.RELEASE_BRANCH)
