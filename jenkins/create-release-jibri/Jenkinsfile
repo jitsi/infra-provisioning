@@ -80,9 +80,11 @@ pipeline {				//indicate the job is written in Declarative Pipeline
         // tag the new release or load git_branch from input parameters
         stage("tag release") {
             steps {
-                script {
-                    git_branch = tagRelease(env.BUILD_ID, env.RELEASE_BRANCH)
-                }
+               sshagent (credentials: ['video-infra']) {
+                    script {
+                        git_branch = tagRelease(env.BUILD_ID, env.RELEASE_BRANCH)
+                    }
+               }
             }
         }
         stage("build and replicate Jibri image in AWS") {
