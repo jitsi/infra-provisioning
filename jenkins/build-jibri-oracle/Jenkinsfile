@@ -65,16 +65,7 @@ node {
 
         }
     }
-    stage("Jibri Image Check Build") {
-        script {
-            dir("infra-provisioning") {
-                skipCheck = checkSkipBuild()
-            }
-        }
-    }
-
     stage('Provision') {
-      if (skipCheck == false) {
         dir('infra-provisioning') {
           withCredentials([
             file(credentialsId: 'oci-jenkins-config', variable: 'OCI_CLI_CONFIG_FILE'),
@@ -85,10 +76,16 @@ node {
             sh 'cp "$OCI_CLI_CONFIG_FILE" ~/.oci/config'
             sh 'cp "$OCI_CLI_KEY_FILE" ~/.oci/private-key.pem'
             sh 'echo "$ANSIBLE_VAULT_PASSWORD_VALUE" > ./.vault-password.txt'
-            echo 'Oracle Jibri Image Creation'
-            createJibriImageOracle()
-            echo 'Oracle Jibri Image Replication'
-            replicateImageOracle()
+            skipCheck = checkSkipBuild()
+            if (skipCheck == false) {
+
+                echo 'Oracle Jibri Image Creation'
+                createJibriImageOracle()
+                echo 'Oracle Jibri Image Replication'
+                replicateImageOracle()
+            } else {
+                echo 'Skipping image creation, already exists'
+            }
           }
         }
       }
