@@ -75,6 +75,11 @@ parser.add_argument('--ocpus', action='store', help='Instance CPUS',
 parser.add_argument('--memory', action='store', help='Instance Memory in GBs',
                     default=False)
 
+parser.add_argument('--infra_configuration_repo', action='store', help='Repo for instance configuration',
+                    default=False)
+
+parser.add_argument('--infra_customizations_repo', action='store', help='Repo for instance customizations',
+                    default=False)
 
 args = parser.parse_args()
 
@@ -138,6 +143,10 @@ metadata_files=[metadata_header_contents,metadata_lib_file_contents]
 #only append eip library if flag is set (JVB and coturn)
 if args.metadata_eip:
     metadata_files.append(metadata_eip_lib_file_contents)
+
+if args.infra_configuration_repo and args.infra_customizations_repo:
+    metadata_files.append("\nINFRA_CONFIGURATION_REPO={}\nINFRA_CUSTOMIZATIONS_REPO={}\n".format(args.infra_configuration_repo,args.infra_customizations_repo))
+
 
 metadata_files.extend([metadata_file_contents,metadata_footer_contents])
 

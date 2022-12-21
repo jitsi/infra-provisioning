@@ -273,7 +273,7 @@ elif [ "$getGroupHttpCode" == 200 ]; then
   [ ! -z "$MEMORY_IN_GBS" ] && SHAPE_PARAMS="$SHAPE_PARAMS --memory $MEMORY_IN_GBS"
 
   NEW_INSTANCE_CONFIGURATION_ID=$($LOCAL_PATH/rotate_instance_configuration_oracle.py --region "$ORACLE_REGION" --image_id "$JIBRI_IMAGE_OCID" \
-    --jibri_release_number "$JIBRI_RELEASE_NUMBER" --git_branch "$ORACLE_GIT_BRANCH" \
+    --jibri_release_number "$JIBRI_RELEASE_NUMBER" --git_branch "$ORACLE_GIT_BRANCH" --infra_customizations_repo "$INFRA_CUSTOMIZATIONS_REPO" --infra_configuration_repo "$INFRA_CONFIGURATION_REPO" \
     --instance_configuration_id "$EXISTING_INSTANCE_CONFIGURATION_ID" --tag_namespace "$TAG_NAMESPACE" --user_public_key_path "$USER_PUBLIC_KEY_PATH" --metadata_lib_path "$METADATA_LIB_PATH" --metadata_path "$METADATA_PATH" --custom_autoscaler \
     $SHAPE_PARAMS)
 
