@@ -145,7 +145,7 @@ if args.metadata_eip:
     metadata_files.append(metadata_eip_lib_file_contents)
 
 if args.infra_configuration_repo and args.infra_customizations_repo:
-    metadata_files.append("\nINFRA_CONFIGURATION_REPO={}\nINFRA_CUSTOMIZATIONS_REPO={}\n".format(args.infra_configuration_repo,args.infra_customizations_repo))
+    metadata_files.append(bytes("\nINFRA_CONFIGURATION_REPO=\"{}\"\nINFRA_CUSTOMIZATIONS_REPO=\"{}\"\n".format(args.infra_configuration_repo,args.infra_customizations_repo),"utf8"))
 
 
 metadata_files.extend([metadata_file_contents,metadata_footer_contents])
