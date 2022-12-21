@@ -87,10 +87,10 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                         if (!env.RELEASE_BRANCH) {
                             git_branch = tagRelease(env.BUILD_ID, env.RELEASE_BRANCH)
                             dir('infra-configuration') {
-                                tagRelease(env.BUILD_ID)
+                                tagRelease(env.BUILD_ID, '')
                             }
                             dir('infra-customization') {
-                                tagRelease(env.BUILD_ID)
+                                tagRelease(env.BUILD_ID, '')
                             }
                         } else {
                             git_branch = env.RELEASE_BRANCH
