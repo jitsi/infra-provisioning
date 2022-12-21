@@ -156,6 +156,8 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
   -var="shard_role=$JIBRI_TYPE" \
   -var="aws_cloud_name=$CLOUD_NAME" \
   -var="jibri_release_number=$JIBRI_RELEASE_NUMBER" \
+  -var "infra_configuration_repo=$INFRA_CONFIGURATION_REPO" \
+  -var "infra_customizations_repo=$INFRA_CUSTOMIZATIONS_REPO" \
   $ACTION_POST_PARAMS $TF_POST_PARAMS
 
 if [[ "$ENVIRONMENT_TYPE" == "prod" ]]; then

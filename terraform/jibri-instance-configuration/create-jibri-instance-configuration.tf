@@ -28,6 +28,9 @@ variable "user_data_lib_path" {
 variable "user_data_file" {
   default = "terraform/jibri-instance-configuration/user-data/postinstall-runner-oracle.sh"
 }
+variable "infra_configuration_repo" {}
+variable "infra_customizations_repo" {}
+
 
 
 locals {
@@ -123,6 +126,7 @@ resource "oci_core_instance_configuration" "oci_instance_configuration" {
         user_data = base64encode(join("",[
           file("${path.cwd}/${var.user_data_lib_path}/postinstall-header.sh"), # load the header
           file("${path.cwd}/${var.user_data_lib_path}/postinstall-lib.sh"), # load the lib
+          "\nINFRA_CONFIGURATION_REPO=${var.infra_configuration_repo}\nINFRA_CUSTOMIZATIONS_REPO=${var.infra_customizations_repo}\n", #repo variables
           file("${path.cwd}/${var.user_data_file}"), # load our customizations
           file("${path.cwd}/${var.user_data_lib_path}/postinstall-footer.sh") # load the footer
         ]))
