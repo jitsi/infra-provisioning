@@ -1,0 +1,155 @@
+// splits incoming clouds into a list
+// alternately loads defaults for environment into a list
+def split_clouds(shard_environment,cloud_names) {
+    if (cloud_names) {
+        clouds = cloud_names.split(' ')
+    } else {
+        clouds = sh(
+            returnStdout: true,
+            script: 'scripts/release_clouds.sh '+shard_environment
+        ).trim().split(' ');
+    }
+    return clouds
+}
+
+// global var to track git branch from env or new tags
+def git_branch
+
+// use incoming branch/tag or tag repo with new tag based on build ID
+// either way set it into git_branch variable to use later
+def tagRelease(release,env_branch) {
+    if (env_branch) {
+        git_branch = env_branch
+        // do nothing here, since git branch is specified
+    } else {
+        git_branch = 'jibri-release-'+release
+        env.RELEASE_BRANCH = git_branch
+        sh 'git tag ' + git_branch
+        sh 'git push origin '+git_branch
+    }
+    return git_branch
+}
+
+// trigger build Jibri image aws job with appropriate parameters
+def buildJibriImageAws(build_id,jibriVersion,force_build_ami) {
+    def buildImage = build job: 'build image jibri aws',parameters: [
+        [$class: 'BooleanParameterValue', name: 'FORCE_BUILD_AMI', value: force_build_ami],
+        [$class: 'StringParameterValue', name: 'JIBRI_BUILD_ID', value: build_id],
+        [$class: 'StringParameterValue', name: 'JIBRI_VERSION', value: jibriVersion]
+    ]
+
+    return buildImage
+}
+
+// trigger build Jibri image oracle job with appropriate parameters
+def buildJibriImageOracle(clouds,jibriVersion,force_build_image) {
+    def buildImage = build job: 'build image jibri oracle',parameters: [
+        [$class: 'StringParameterValue', name: 'CLOUDS', value: clouds],
+        [$class: 'StringParameterValue', name: 'JIBRI_VERSION', value: jibriVersion],
+        [$class: 'BooleanParameterValue', name: 'FORCE_BUILD_IMAGE', value: force_build_image]
+    ]
+
+    return buildImage
+}
+
+def provisionJibri(shard_environment,cloud_name,release_number,gitBranch,jibriVersion,cloud_provider,oracle_desired_capacity,jibri_autoscaler_enabled) {
+    def provision = build job: 'provision jibri',parameters: [
+        [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: shard_environment],
+        [$class: 'StringParameterValue', name: 'CLOUD_NAME', value: cloud_name],
+        [$class: 'StringParameterValue', name: 'JIBRI_VERSION', value: jibriVersion],
+        [$class: 'StringParameterValue', name: 'JIBRI_RELEASE_NUMBER', value: release_number],
+        [$class: 'StringParameterValue', name: 'GIT_BRANCH', value: gitBranch],
+        [$class: 'StringParameterValue', name: 'CLOUD_PROVIDER', value: cloud_provider]
+    ]
+
+    return provision
+}
+
+pipeline {				//indicate the job is written in Declarative Pipeline
+    agent any				//agent specifies where the pipeline will execute.
+    stages {
+        // output stage, shows off our input parameters
+        stage ("setup") {
+            steps {
+                echo 'Jibri Release'
+                echo "JIBRI VERSION ${env.JIBRI_VERSION}"
+            }
+        }
+        // tag the new release or load git_branch from input parameters
+        stage("tag release") {
+            steps {
+                script {
+                    git_branch = tagRelease(env.BUILD_ID, env.RELEASE_BRANCH)
+                }
+            }
+        }
+        stage("build and replicate Jibri image in AWS") {
+            when {
+                expression {env.CLOUD_PROVIDER == 'aws'}
+            }
+            steps {
+                script {
+                    buildJibriImageAws(
+                            env.BUILD_ID,
+                            env.JIBRI_VERSION,
+                            env.FORCE_BUILD_IMAGE
+                            )
+                }
+            }
+        }
+        stage("build and replicate Jibri image in Oracle") {
+            when {
+                expression {env.CLOUD_PROVIDER == 'oracle'}
+            }
+            steps {
+                script {
+                    buildJibriImageOracle(
+                            env.CLOUDS,
+                            env.JIBRI_VERSION,
+                            env.FORCE_BUILD_IMAGE
+                            )
+                }
+            }
+        }
+        // provision jibri pools for the release
+        stage("provision jibri pools") {
+            steps {
+                script {
+                    echo "Provision jibri in provider ${env.CLOUD_PROVIDER}, environment ${env.ENVIRONMENT}, clouds ${env.CLOUDS}, autoscaler enabled ${env.JIBRI_AUTOSCALER_ENABLED} ";
+                    def cloud_list = split_clouds(env.ENVIRONMENT,env.CLOUDS);
+                    echo "cloud list ${cloud_list}";
+                    def branches = [:]
+                    for(i = 0; i < cloud_list.size(); i++) {
+                        def curr = i
+                        echo "pipeline branch ${curr} for shard ${cloud_list[curr]}";
+                        branches["Build ${cloud_list[curr]}"] = {
+                            provisionJibri(env.ENVIRONMENT,
+                                cloud_list[curr],
+                                env.BUILD_ID,
+                                git_branch,
+                                env.JIBRI_VERSION,
+                                env.CLOUD_PROVIDER,
+                                env.ORACLE_DESIRED_CAPACITY,
+                                env.JIBRI_AUTOSCALER_ENABLED
+                            )
+                        }
+                    }
+                    // branch out here, run all create shard jobs at once
+                    // only succeed if all branches succeed
+                    parallel branches
+                }
+            }
+        }
+        // trigger rotation of jibris for new version
+        stage ("rotation of old jibris") {
+            when {
+               expression {env.CLOUD_PROVIDER == 'aws'}
+            }
+            steps {
+                 script {
+                     build job: 'jibri rotate',parameters: [[$class: 'StringParameterValue', name: 'ENVIRONMENT', value: env.ENVIRONMENT]]
+                 }
+             }
+        }
+    }
+}

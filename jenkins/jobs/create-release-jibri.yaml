@@ -1,5 +1,5 @@
 - job:
-    name: build image jibri oracle
+    name: create release - jibri
     parameters:
       - string:
           name: JIBRI_VERSION
@@ -16,9 +16,17 @@
           description: "Environment to build in, defaults to 'lonely'."
           trim: true
       - string:
-          name: ORACLE_REGION
-          default: us-phoenix-1
-          description: "Region to build in, defaults to 'us-phoenix-1'."
+          name: CLOUD_PROVIDER
+          default: oracle
+          description: "Cloud Provider, defaults to 'oracle'"
+          trim: true
+      - string:
+          name: RELEASE_BRANCH
+          description: "Name of an existing infra branch to use when creating the release, otherwise tags HEAD with jibri-release-$BUILD_ID"
+          trim: true
+      - string:
+          name: CLOUDS
+          description: "Clouds to build in, defaults to RELEASE_CLOUDS for environment."
           trim: true
       - bool:
           name: FORCE_BUILD_IMAGE
@@ -48,5 +56,5 @@
             browser-url: https://github.com/jitsi/infra-provisioning
             submodule:
               recursive: true
-      script-path: jenkins/build-jibri-oracle/Jenkinsfile
+      script-path: jenkins/create-release-jibri/Jenkinsfile
       lightweight-checkout: true

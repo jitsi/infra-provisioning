@@ -1,0 +1,19 @@
+# override dump and provision commands
+export PROVISION_COMMAND="provisioning"
+export DUMP_COMMAND="dump"
+# do not clean up credentials, re-used on reconfiguration
+export CLEAN_CREDENTIALS="false"
+
+function dump() {
+  sudo /usr/local/bin/dump-jibri.sh
+}
+
+function provisioning() {
+  local status_code=0
+  $TIMEOUT_BIN $PROVISIONING_TIMEOUT sudo /usr/local/bin/postinstall-jibri.sh >>/var/log/bootstrap.log 2>&1 || status_code=1
+  if [ $status_code -eq 1 ]; then
+    echo 'Provisioning stage failed' >$tmp_msg_file
+  fi
+
+  return $status_code
+}
