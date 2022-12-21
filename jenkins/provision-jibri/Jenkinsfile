@@ -1,0 +1,42 @@
+node {
+  timestamps {
+    stage('Prepare/Checkout') { // for display purposes
+        script {
+            def scmUrl = scm.getUserRemoteConfigs()[0].getUrl()
+            dir('infra-customization') {
+                git branch: env.VIDEO_INFRA_BRANCH, url: env.INFRA_CUSTOMIZATIONS_REPO, credentialsId: 'video-infra'
+            }
+            dir('infra-provisioning') {
+                git branch: env.VIDEO_INFRA_BRANCH, url: scmUrl, credentialsId: 'video-infra'
+            }
+            sh 'cp -a infra-customization/* infra-provisioning'
+        }
+    }
+    stage('Provision') {
+        dir('infra-provisioning') {
+            withCredentials([
+                file(credentialsId: 'oci-jenkins-config', variable: 'OCI_CLI_CONFIG_FILE'),
+                file(credentialsId: 'oci-jenkins-pem', variable: 'OCI_CLI_KEY_FILE'),
+                string(credentialsId: 'ansible-vault-password', variable: 'ANSIBLE_VAULT_PASSWORD_VALUE'),
+                sshUserPrivateKey(credentialsId: 'ssh-ubuntu', keyFileVariable: 'USER_PRIVATE_KEY_PATH',usernameVariable: 'SSH_USERNAME'),
+                string(credentialsId: 'asap-jwt-kid-dev', variable: 'ASAP_JWT_KID_DEV'),
+                string(credentialsId: 'asap-jwt-kid-prod', variable: 'ASAP_JWT_KID_PROD'),
+                file(credentialsId: 'asap-jwt-key-dev', variable: 'ASAP_JWT_KEY_DEV'),
+                file(credentialsId: 'asap-jwt-key-prod', variable: 'ASAP_JWT_KEY_PROD')
+            ]) {
+                sh 'rm -rf ~/.oci'
+                sh 'mkdir -p ~/.oci'
+                sh 'cp "$OCI_CLI_CONFIG_FILE" ~/.oci/config'
+                sh 'cp "$OCI_CLI_KEY_FILE" ~/.oci/private-key.pem'
+                sh 'echo "$ANSIBLE_VAULT_PASSWORD_VALUE" > ./.vault-password.txt'
+                sh '''#!/bin/bash
+                    export USER_PUBLIC_KEY_PATH=~/.ssh/ssh_key.pub
+                    ssh-keygen -y -f "$USER_PRIVATE_KEY_PATH" > "$USER_PUBLIC_KEY_PATH"
+                    export ORACLE_GIT_BRANCH=$RELEASE_BRANCH
+                    scripts/provision-jibri-aws-oracle.sh'''
+            }
+        }
+    }
+  }
+}
+
