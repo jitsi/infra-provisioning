@@ -179,9 +179,3 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
   -var "infra_configuration_repo=$INFRA_CONFIGURATION_REPO" \
   -var "infra_customizations_repo=$INFRA_CUSTOMIZATIONS_REPO" \
   $ACTION_POST_PARAMS $TF_POST_PARAMS
-
-[ -z "$SKIP_CNAME" ] && SKIP_CNAME="false"
-if [[ "$SKIP_CNAME" != "true" ]]; then
-  echo "Creating CNAME in jitsi.net..."
-  CNAME_DNS_ZONE_ID="ZJ6O8D5EJO64L" CNAME_DNS_ZONE_DOMAIN_NAME="jitsi.net" STACK_NAME=${RESOURCE_NAME_ROOT}-cname UNIQUE_ID=${RESOURCE_NAME_ROOT} CNAME_TARGET=${DNS_NAME} CNAME_VALUE=${RESOURCE_NAME_ROOT} $LOCAL_PATH/../../scripts/create-oracle-cname-stack.sh
-fi
