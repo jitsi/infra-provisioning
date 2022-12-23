@@ -3,6 +3,7 @@ def rotateConsul(oracle_region) {
     sh(
         script: '''#!/bin/bash
         export USER_PUBLIC_KEY_PATH=~/.ssh/ssh_key.pub
+        export ORACLE_GIT_BRANCH="$RELEASE_BRANCH"
         scripts/rotate-consul-oracle.sh $SSH_USERNAME'''
     )
 }
