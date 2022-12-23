@@ -34,7 +34,7 @@ pipeline {
             steps {
               timestamps {
                 script {
-                    echo 'consul provision beginning'
+                    echo 'consul destruction beginning'
                     dir('infra-provisioning') {
                         withCredentials([
                             file(credentialsId: 'oci-jenkins-config', variable: 'OCI_CLI_CONFIG_FILE'),
