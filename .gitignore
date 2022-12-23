@@ -31,4 +31,6 @@ config
 clouds
 cloud_vpcs
 regions
+sites
+ansible
 .vault-password.txt

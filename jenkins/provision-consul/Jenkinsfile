@@ -1,0 +1,92 @@
+
+def rotateConsul(oracle_region) {
+    sh(
+        script: "ORACLE_REGION=${oracle_region} scripts/rotate-consul-oracle.sh $SSH_USERNAME"
+    )
+}
+
+def setupOCI() {
+    sh 'rm -rf ~/.oci'
+    sh 'mkdir -p ~/.oci'
+    sh 'cp "$OCI_CLI_CONFIG_FILE" ~/.oci/config'
+    sh 'cp "$OCI_CLI_KEY_FILE" ~/.oci/private-key.pem'
+}
+def setupAnsible() {
+    sh 'echo "$ANSIBLE_VAULT_PASSWORD_PATH" > ./.vault-password.txt'
+}
+def setupSSH() {
+    sh '''#!/bin/bash
+    export USER_PUBLIC_KEY_PATH=~/.ssh/ssh_key.pub
+    ssh-keygen -y -f "$USER_PRIVATE_KEY_PATH" > "$USER_PUBLIC_KEY_PATH"'''
+}
+
+pipeline {
+    agent any
+    stages {
+        // output stage, shows off our input parameters
+        stage ("setup") {
+            steps {
+              timestamps {
+                echo 'Jibri Release'
+                echo "JIBRI VERSION ${env.JIBRI_VERSION}"
+                script {
+                    def scmUrl = scm.getUserRemoteConfigs()[0].getUrl()
+                    dir('infra-configuration') {
+                        checkout([$class: 'GitSCM', branches: [[name: "origin/${VIDEO_INFRA_BRANCH}"]], extensions: [[$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: false, recursiveSubmodules: true, reference: '', trackingSubmodules: false]], userRemoteConfigs: [[credentialsId: 'video-infra', url: env.INFRA_CONFIGURATION_REPO]]])
+                    }
+                    dir('infra-customization') {
+                        git branch: env.VIDEO_INFRA_BRANCH, url: env.INFRA_CUSTOMIZATIONS_REPO, credentialsId: 'video-infra'
+                    }
+                    dir('infra-provisioning') {
+                        git branch: env.VIDEO_INFRA_BRANCH, url: scmUrl, credentialsId: 'video-infra'
+                    }
+                    sh 'cp -a infra-customization/* infra-provisioning'
+                }
+              }
+            }
+        }
+        stage ("consul rotation") {
+            steps {
+              timestamps {
+                script {
+                    echo 'consul provision beginning'
+                    dir('infra-provisioning') {
+                        withCredentials([
+                            file(credentialsId: 'oci-jenkins-config', variable: 'OCI_CLI_CONFIG_FILE'),
+                            file(credentialsId: 'oci-jenkins-pem', variable: 'OCI_CLI_KEY_FILE'),
+                            string(credentialsId: 'oci-jenkins-terraform-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
+                            string(credentialsId: 'oci-jenkins-terraform-aws-id', variable: 'AWS_ACCESS_KEY_ID'),
+                            string(credentialsId: 'ansible-vault-password', variable: 'ANSIBLE_VAULT_PASSWORD_PATH'),
+                            sshUserPrivateKey(credentialsId: 'ssh-ubuntu', keyFileVariable: 'USER_PRIVATE_KEY_PATH', usernameVariable: 'SSH_USERNAME')
+                        ]) {
+                            setupOCI()
+                            setupAnsible()
+                            setupSSH()
+                            sh '''#!/bin/bash
+                            export USER_PUBLIC_KEY_PATH=~/.ssh/ssh_key.pub
+                            export ORACLE_GIT_BRANCH=\"$RELEASE_BRANCH\"
+                            terraform/consul-server/create-consul-server-oracle.sh $SSH_USERNAME'''
+                        }
+                        withCredentials([
+                            string(credentialsId: 'jenkins-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
+                            string(credentialsId: 'jenkins-aws-id', variable: 'AWS_ACCESS_KEY_ID')
+                        ]) {
+                            sh '''#!/bin/bash
+                            set -x
+                            . clouds/oracle.sh
+                            export RESOURCE_NAME_ROOT="\$ENVIRONMENT-\$ORACLE_REGION-consul"
+                            export DNS_NAME="\$RESOURCE_NAME_ROOT.\$DEFAULT_DNS_ZONE_NAME"
+                            export CNAME_VALUE="\$RESOURCE_NAME_ROOT"
+                            export STACK_NAME="\${RESOURCE_NAME_ROOT}-cname"
+                            export UNIQUE_ID="\${RESOURCE_NAME_ROOT}"
+                            export CNAME_TARGET="\${DNS_NAME}"
+                            export CNAME_VALUE="\${RESOURCE_NAME_ROOT}"
+                            scripts/create-oracle-cname-stack.sh'''
+                        }
+                    }
+                }
+              }
+            }
+        }
+    }
+}
