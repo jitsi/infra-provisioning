@@ -54,8 +54,8 @@ pipeline {
                         withCredentials([
                             file(credentialsId: 'oci-jenkins-config', variable: 'OCI_CLI_CONFIG_FILE'),
                             file(credentialsId: 'oci-jenkins-pem', variable: 'OCI_CLI_KEY_FILE'),
-                            string(credentialsId: 'oci-jenkins-terraform-aws-secret', variable: 'OCI_S3_AWS_SECRET_ACCESS_KEY'),
-                            string(credentialsId: 'oci-jenkins-terraform-aws-id', variable: 'OCI_S3_AWS_ACCESS_KEY_ID'),
+                            string(credentialsId: 'oci-jenkins-terraform-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
+                            string(credentialsId: 'oci-jenkins-terraform-aws-id', variable: 'AWS_ACCESS_KEY_ID'),
                             string(credentialsId: 'ansible-vault-password', variable: 'ANSIBLE_VAULT_PASSWORD_PATH'),
                             sshUserPrivateKey(credentialsId: 'ssh-ubuntu', keyFileVariable: 'USER_PRIVATE_KEY_PATH', usernameVariable: 'SSH_USERNAME')
                         ]) {
@@ -63,8 +63,6 @@ pipeline {
                             setupAnsible()
                             setupSSH()
                             sh '''#!/bin/bash
-                            export AWS_SECRET_ACCESS_KEY="\$OCI_S3_AWS_SECRET_ACCESS_KEY"
-                            export AWS_ACCESS_KEY_ID="\$OCI_S3_AWS_ACCESS_KEY_ID"
                             export USER_PUBLIC_KEY_PATH=~/.ssh/ssh_key.pub
                             export ORACLE_GIT_BRANCH=\"$RELEASE_BRANCH\"
                             terraform/consul-server/create-consul-server-oracle.sh $SSH_USERNAME'''
