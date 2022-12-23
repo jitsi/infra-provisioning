@@ -39,6 +39,8 @@ pipeline {
                         withCredentials([
                             file(credentialsId: 'oci-jenkins-config', variable: 'OCI_CLI_CONFIG_FILE'),
                             file(credentialsId: 'oci-jenkins-pem', variable: 'OCI_CLI_KEY_FILE'),
+                            string(credentialsId: 'oci-jenkins-terraform-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
+                            string(credentialsId: 'oci-jenkins-terraform-aws-id', variable: 'AWS_ACCESS_KEY_ID')
                         ]) {
                             setupOCI()
                             sh 'terraform/destroy-consul-stack/destroy-consul-stack-oracle.sh'
