@@ -57,9 +57,12 @@ pipeline {
                             file(credentialsId: 'oci-jenkins-pem', variable: 'OCI_CLI_KEY_FILE'),
                             sshUserPrivateKey(credentialsId: 'ssh-ubuntu', keyFileVariable: 'USER_PRIVATE_KEY_FILE', usernameVariable: 'SSH_USERNAME')
                         ]) {
+                          sshagent (credentials: ['ssh-ubuntu']) {
+
                             setupOCI()
                             setupSSH()
                             rotateConsul(env.ORACLE_REGION)
+                          }
                         }
                     }
                 }
