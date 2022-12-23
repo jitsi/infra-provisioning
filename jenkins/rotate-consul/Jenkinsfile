@@ -17,7 +17,7 @@ def setupSSH() {
     sh '''#!/bin/bash
     set -x
     export USER_PUBLIC_KEY_PATH=~/.ssh/ssh_key.pub
-    ssh-keygen -y -f "$USER_PRIVATE_KEY_PATH" > "$USER_PUBLIC_KEY_PATH"'''
+    ssh-keygen -y -f "$USER_PRIVATE_KEY_FILE" > "$USER_PUBLIC_KEY_PATH"'''
 }
 
 pipeline {
@@ -54,7 +54,7 @@ pipeline {
                         withCredentials([
                             file(credentialsId: 'oci-jenkins-config', variable: 'OCI_CLI_CONFIG_FILE'),
                             file(credentialsId: 'oci-jenkins-pem', variable: 'OCI_CLI_KEY_FILE'),
-                            sshUserPrivateKey(credentialsId: 'ssh-ubuntu', keyFileVariable: 'SSH_PRIVATE_KEY_FILE', usernameVariable: 'SSH_USERNAME')
+                            sshUserPrivateKey(credentialsId: 'ssh-ubuntu', keyFileVariable: 'USER_PRIVATE_KEY_FILE', usernameVariable: 'SSH_USERNAME')
                         ]) {
                             setupOCI()
                             setupSSH()
