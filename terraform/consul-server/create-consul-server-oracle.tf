@@ -59,6 +59,16 @@ locals {
     "${var.tag_namespace}.role" = var.role
     "${var.tag_namespace}.Name" = var.name
   }
+  common_metadata = {
+      user_data = base64encode(join("",[
+        file("${path.cwd}/${var.user_data_lib_path}/postinstall-header.sh"), # load the header
+        file("${path.cwd}/${var.user_data_lib_path}/postinstall-lib.sh"), # load the lib
+        "\nexport INFRA_CONFIGURATION_REPO=${var.infra_configuration_repo}\nexport INFRA_CUSTOMIZATIONS_REPO=${var.infra_customizations_repo}\n", #repo variables
+        file("${path.cwd}/${var.user_data_file}"), # load our customizations
+        file("${path.cwd}/${var.user_data_lib_path}/postinstall-footer.sh") # load the footer
+      ]))
+      ssh_authorized_keys = file(var.user_public_key_path)
+    }
 }
 
 provider "oci" {
@@ -249,16 +259,7 @@ resource "oci_core_instance_configuration" "oci_instance_configuration_a" {
         image_id = var.image_ocid
       }
 
-      metadata = {
-        user_data = base64encode(join("",[
-          file("${path.cwd}/${var.user_data_lib_path}/postinstall-header.sh"), # load the header
-          file("${path.cwd}/${var.user_data_lib_path}/postinstall-lib.sh"), # load the lib
-          "\nexport INFRA_CONFIGURATION_REPO=${var.infra_configuration_repo}\nexport INFRA_CUSTOMIZATIONS_REPO=${var.infra_customizations_repo}\n", #repo variables
-          file("${path.cwd}/${var.user_data_file}"), # load our customizations
-          file("${path.cwd}/${var.user_data_lib_path}/postinstall-footer.sh") # load the footer
-        ]))
-        ssh_authorized_keys = file(var.user_public_key_path)
-      }
+      metadata = vars.common_metadata
     }
   }
 }
@@ -296,16 +297,7 @@ resource "oci_core_instance_configuration" "oci_instance_configuration_b" {
         image_id = var.image_ocid
       }
 
-      metadata = {
-        user_data = base64encode(join("",[
-          file("${path.cwd}/${var.user_data_lib_path}/postinstall-header.sh"), # load the header
-          file("${path.cwd}/${var.user_data_lib_path}/postinstall-lib.sh"), # load the lib
-          "\nexport INFRA_CONFIGURATION_REPO=${var.infra_configuration_repo}\nexport INFRA_CUSTOMIZATIONS_REPO=${var.infra_customizations_repo}\n", #repo variables
-          file("${path.cwd}/${var.user_data_file}"), # load our customizations
-          file("${path.cwd}/${var.user_data_lib_path}/postinstall-footer.sh") # load the footer
-        ]))
-        ssh_authorized_keys = file(var.user_public_key_path)
-      }
+      metadata = vars.common_metadata
     }
   }
 }
@@ -343,16 +335,7 @@ resource "oci_core_instance_configuration" "oci_instance_configuration_c" {
         image_id = var.image_ocid
       }
 
-      metadata = {
-        user_data = base64encode(join("",[
-          file("${path.cwd}/${var.user_data_lib_path}/postinstall-header.sh"), # load the header
-          file("${path.cwd}/${var.user_data_lib_path}/postinstall-lib.sh"), # load the lib
-          "\nexport INFRA_CONFIGURATION_REPO=${var.infra_configuration_repo}\nexport INFRA_CUSTOMIZATIONS_REPO=${var.infra_customizations_repo}\n", #repo variables
-          file("${path.cwd}/${var.user_data_file}"), # load our customizations
-          file("${path.cwd}/${var.user_data_lib_path}/postinstall-footer.sh") # load the footer
-        ]))
-        ssh_authorized_keys = file(var.user_public_key_path)
-      }
+      metadata = vars.common_metadata
     }
   }
 }
