@@ -62,7 +62,9 @@ pipeline {
                             setupOCI()
                             setupAnsible()
                             setupSSH()
-                            sh 'terraform/consul-server/create-consul-server-oracle.sh $SSH_USERNAME'
+                            sh '''#!/bin/bash
+                            export USER_PUBLIC_KEY_PATH=~/.ssh/ssh_key.pub
+                            terraform/consul-server/create-consul-server-oracle.sh $SSH_USERNAME'''
                         }
                         withCredentials([
                             string(credentialsId: 'oci-jenkins-terraform-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
