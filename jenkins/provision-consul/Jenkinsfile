@@ -70,14 +70,12 @@ pipeline {
                             terraform/consul-server/create-consul-server-oracle.sh $SSH_USERNAME'''
                         }
                         withCredentials([
-                            string(credentialsId: 'oci-jenkins-terraform-aws-secret', variable: 'AWS_JENKINS_SECRET_ACCESS_KEY'),
-                            string(credentialsId: 'oci-jenkins-terraform-aws-id', variable: 'AWS_JENKINS_ACCESS_KEY_ID')
+                            string(credentialsId: 'jenkins-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
+                            string(credentialsId: 'jenkins-aws-id', variable: 'AWS_ACCESS_KEY_ID')
                         ]) {
                             sh '''#!/bin/bash
                             set -x
                             . clouds/oracle.sh
-                            export AWS_SECRET_ACCESS_KEY="\$AWS_JENKINS_SECRET_ACCESS_KEY"
-                            export AWS_ACCESS_KEY_ID="\$AWS_JENKINS_ACCESS_KEY_ID"
                             export RESOURCE_NAME_ROOT="\$ENVIRONMENT-\$ORACLE_REGION-consul"
                             export DNS_NAME="\$RESOURCE_NAME_ROOT.\$DEFAULT_DNS_ZONE_NAME"
                             export CNAME_VALUE="\$RESOURCE_NAME_ROOT"
