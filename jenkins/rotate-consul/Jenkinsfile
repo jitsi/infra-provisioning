@@ -1,7 +1,9 @@
 
 def rotateConsul(oracle_region) {
     sh(
-        script: "ORACLE_REGION=${oracle_region} scripts/rotate-consul-oracle.sh $SSH_USERNAME"
+        script: '''#!/bin/bash
+        export USER_PUBLIC_KEY_PATH=~/.ssh/ssh_key.pub
+        ORACLE_REGION=${oracle_region} scripts/rotate-consul-oracle.sh $SSH_USERNAME'''
     )
 }
 
@@ -14,14 +16,19 @@ def setupOCI() {
 def setupAnsible() {
     sh 'echo "$ANSIBLE_VAULT_PASSWORD_PATH" > ./.vault-password.txt'
 }
+def setupSSH() {
+    sh '''#!/bin/bash
+    export USER_PUBLIC_KEY_PATH=~/.ssh/ssh_key.pub
+    ssh-keygen -y -f "$USER_PRIVATE_KEY_PATH" > "$USER_PUBLIC_KEY_PATH"'''
+}
 
 pipeline {
-  timestamps {
     agent any
     stages {
         // output stage, shows off our input parameters
         stage ("setup") {
             steps {
+              timestamps {
                 echo 'Jibri Release'
                 echo "JIBRI VERSION ${env.JIBRI_VERSION}"
                 script {
@@ -37,10 +44,12 @@ pipeline {
                     }
                     sh 'cp -a infra-customization/* infra-provisioning'
                 }
+              }
             }
         }
         stage ("consul rotation") {
             steps {
+              timestamps {
                 script {
                     echo 'consul rotate beginning'
                     dir('infra-provisioning') {
@@ -51,11 +60,13 @@ pipeline {
                             sshUserPrivateKey(credentialsId: 'ssh-ubuntu', keyFileVariable: 'CONNECTION_SSH_PRIVATE_KEY_FILE', usernameVariable: 'SSH_USERNAME')
                         ]) {
                             setupOCI()
+                            setupSSH()
                             setupAnsible()
                             rotateConsul(env.ORACLE_REGION)
                         }
                     }
                 }
+              }
             }
         }
      }

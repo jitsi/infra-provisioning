@@ -1,0 +1,50 @@
+- job:
+    name: rotate-consul
+    display-name: rotate consul
+    concurrent: true
+    parameters:
+      - string:
+          name: VIDEO_INFRA_BRANCH
+          default: main
+          description: "Controls checkout branch for infra repos, defaults to 'main'."
+          trim: true
+      - string:
+          name: ENVIRONMENT
+          default: lonely
+          description: "Environment to build in, defaults to 'lonely'."
+          trim: true
+      - string:
+          name: RELEASE_BRANCH
+          default: main
+          description: "Name of an existing infra branch to use when creating the release, defaults to 'main'."
+          trim: true
+      - string:
+          name: ORACLE_REGION
+          description: "Oracle Region to build in"
+          trim: true
+      - string:
+          name: INFRA_CONFIGURATION_REPO
+          default: git@github.com:jitsi/infra-configuration.git
+          description: "Repo for configuration code (ansible etc), defaults to 'git@github.com:jitsi/infra-configuration.git'."
+          trim: true
+      - string:
+          name: INFRA_CUSTOMIZATIONS_REPO
+          default: git@github.com:jitsi/infra-customizations.git
+          description: "Repo with customized configurations, defaults to 'git@github.com:jitsi/infra-customizations.git'."
+          trim: true
+ 
+    project-type: pipeline
+    sandbox: true
+    pipeline-scm:
+      scm:
+        - git:
+            url: git@github.com:jitsi/infra-provisioning.git
+            credentials-id: "video-infra"
+            branches:
+              - "origin/${VIDEO_INFRA_BRANCH}"
+            browser: githubweb
+            browser-url: https://github.com/jitsi/infra-provisioning
+            submodule:
+              recursive: true
+      script-path: jenkins/rotate-consul/Jenkinsfile
+      lightweight-checkout: true
