@@ -259,7 +259,7 @@ resource "oci_core_instance_configuration" "oci_instance_configuration_a" {
         image_id = var.image_ocid
       }
 
-      metadata = vars.common_metadata
+      metadata = local.common_metadata
     }
   }
 }
@@ -297,7 +297,7 @@ resource "oci_core_instance_configuration" "oci_instance_configuration_b" {
         image_id = var.image_ocid
       }
 
-      metadata = vars.common_metadata
+      metadata = local.common_metadata
     }
   }
 }
@@ -335,7 +335,7 @@ resource "oci_core_instance_configuration" "oci_instance_configuration_c" {
         image_id = var.image_ocid
       }
 
-      metadata = vars.common_metadata
+      metadata = local.common_metadata
     }
   }
 }
