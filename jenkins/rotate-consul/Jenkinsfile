@@ -18,7 +18,7 @@ def setupSSH() {
     sh '''#!/bin/bash
     set -x
     export USER_PUBLIC_KEY_PATH=~/.ssh/ssh_key.pub
-    ssh-keygen -y -f "$USER_PRIVATE_KEY_FILE" > "$USER_PUBLIC_KEY_PATH"'''
+    ssh-keygen -y -f "$USER_PRIVATE_KEY_PATH" > "$USER_PUBLIC_KEY_PATH"'''
 }
 def setupAnsible() {
     sh 'echo "$ANSIBLE_VAULT_PASSWORD_PATH" > ./.vault-password.txt'
@@ -61,7 +61,7 @@ pipeline {
                             string(credentialsId: 'oci-jenkins-terraform-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
                             string(credentialsId: 'oci-jenkins-terraform-aws-id', variable: 'AWS_ACCESS_KEY_ID'),
                             string(credentialsId: 'ansible-vault-password', variable: 'ANSIBLE_VAULT_PASSWORD_PATH'),
-                            sshUserPrivateKey(credentialsId: 'ssh-ubuntu', keyFileVariable: 'USER_PRIVATE_KEY_FILE', usernameVariable: 'SSH_USERNAME')
+                            sshUserPrivateKey(credentialsId: 'ssh-ubuntu', keyFileVariable: 'USER_PRIVATE_KEY_PATH', usernameVariable: 'SSH_USERNAME')
                         ]) {
                           sshagent (credentials: ['ssh-ubuntu']) {
                             setupOCI()
