@@ -90,17 +90,22 @@ SHAPE_PARAMS=
 [ ! -z "$MEMORY_IN_GBS" ] && SHAPE_PARAMS="$SHAPE_PARAMS --memory $MEMORY_IN_GBS"
 
 echo "Rotating instance pool $INSTANCE_POOL_ID"
-
-[ "$INCLUDE_EIP_LIB" == "true" ] && METADATA_EIP_FLAG="--metadata_eip"
-echo "Rotating the instance configuration of the instance pool"
-$LOCAL_PATH/rotate_instance_configuration_oracle.py \
-  --region "$ORACLE_REGION" --image_id "$IMAGE_OCID" \
-  --infra_customizations_repo "$INFRA_CUSTOMIZATIONS_REPO" --infra_configuration_repo "$INFRA_CONFIGURATION_REPO" \
-  --git_branch "$ORACLE_GIT_BRANCH" \
-  --instance_pool_id "$INSTANCE_POOL_ID" \
-  --tag_namespace "$TAG_NAMESPACE" \
-  --user_public_key_path "$USER_PUBLIC_KEY_PATH" \
-  $METADATA_EIP_FLAG --metadata_lib_path "$METADATA_LIB_PATH" --metadata_path "$METADATA_PATH" $SHAPE_PARAMS
+if [ ! -z "$ROTATE_INSTANCE_CONFIGURATION_SCRIPT" ]; then
+  echo "Running provided rotation script $ROTATE_INSTANCE_CONFIGURATION_SCRIPT"
+  # source this script in case any variables need to be used that were set in the pre script
+  . $ROTATE_INSTANCE_CONFIGURATION_SCRIPT $SSH_USER
+else
+  echo "Rotating the instance configuration of the instance pool using default rotation python"
+  [ "$INCLUDE_EIP_LIB" == "true" ] && METADATA_EIP_FLAG="--metadata_eip"
+  $LOCAL_PATH/rotate_instance_configuration_oracle.py \
+    --region "$ORACLE_REGION" --image_id "$IMAGE_OCID" \
+    --infra_customizations_repo "$INFRA_CUSTOMIZATIONS_REPO" --infra_configuration_repo "$INFRA_CONFIGURATION_REPO" \
+    --git_branch "$ORACLE_GIT_BRANCH" \
+    --instance_pool_id "$INSTANCE_POOL_ID" \
+    --tag_namespace "$TAG_NAMESPACE" \
+    --user_public_key_path "$USER_PUBLIC_KEY_PATH" \
+    $METADATA_EIP_FLAG --metadata_lib_path "$METADATA_LIB_PATH" --metadata_path "$METADATA_PATH" $SHAPE_PARAMS
+fi
 
 ROTATE_IC_RESULT_CODE=$?
 if [ "$ROTATE_IC_RESULT_CODE" -ne 0 ]; then

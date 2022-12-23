@@ -82,6 +82,7 @@ for x in {a..c}; do
 
   export INSTANCE_PRE_DETACH_SCRIPT="$LOCAL_PATH/rotate-consul-pre-detach.sh"
   export INSTANCE_POST_ATTACH_SCRIPT="$LOCAL_PATH/rotate-consul-post-attach.sh"
+  export ROTATE_INSTANCE_CONFIGURATION_SCRIPT="$LOCAL_PATH/../terraform/consul-server/create-consul-server-oracle.sh"
 
   export ENVIRONMENT
   export ORACLE_REGION
