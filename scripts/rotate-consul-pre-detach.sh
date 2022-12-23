@@ -1,12 +1,19 @@
 
+#!/bin/bash
+if [ -z "$1" ]; then
+  SSH_USER=$(whoami)
+  echo "## ssh user not defined, using current user: $SSH_USER"
+else
+  SSH_USER=$1
+  echo "## will ssh as $SSH_USER"
+fi
+
 echo "## rotate-consul-pre-detch: getting private IP"
 INSTANCE_PRIMARY_PRIVATE_IP=$(oci compute instance list-vnics --region $ORACLE_REGION --instance-id $INSTANCE_ID | jq -r '.data[] | select(.["is-primary"] == true) | .["private-ip"]')
 if [ "$INSTANCE_PRIMARY_PRIVATE_IP" == "null" ]; then
     echo "## ERROR: no private IP found, something went wrong with rotation $INSTANCE_ID in $ORACLE_REGION"
     exit 1
 fi
-
-[ -z "$SSH_USER" ] && SSH_USER=$(whoami)
 
 LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 

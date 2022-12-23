@@ -51,7 +51,7 @@ if [ -z "$IMAGE_OCID" ]; then
   exit 202
 fi
 
-[ -z "$ORACLE_GIT_BRANCH" ] && ORACLE_GIT_BRANCH="master"
+[ -z "$ORACLE_GIT_BRANCH" ] && ORACLE_GIT_BRANCH="main"
 
 if [ -z "$METADATA_PATH" ]; then
   echo "No METADATA_PATH provided or found. Exiting .."
@@ -133,7 +133,7 @@ if [[ $INSTANCE_COUNT -gt 0 ]]; then
     export SSH_USER
     if [ ! -z "$INSTANCE_PRE_DETACH_SCRIPT" ]; then
       # source this script in case any variables need to be set between pre and post stages
-      . $INSTANCE_PRE_DETACH_SCRIPT
+      . $INSTANCE_PRE_DETACH_SCRIPT $SSH_USER
     fi
 
     # look up current load balancer, use if defined
@@ -211,7 +211,7 @@ if [[ $INSTANCE_COUNT -gt 0 ]]; then
     fi
     if [ ! -z "$INSTANCE_POST_ATTACH_SCRIPT" ]; then
       # source this script in case any variables need to be used that were set in the pre script
-      . $INSTANCE_POST_ATTACH_SCRIPT
+      . $INSTANCE_POST_ATTACH_SCRIPT $SSH_USER
     fi
 
   done

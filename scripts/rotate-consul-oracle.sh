@@ -48,7 +48,7 @@ if [ -z "$IMAGE_OCID" ]; then
   exit 1
 fi
 
-[ -z "$ORACLE_GIT_BRANCH" ] && ORACLE_GIT_BRANCH="master"
+[ -z "$ORACLE_GIT_BRANCH" ] && ORACLE_GIT_BRANCH="main"
 [ -z "$NAME" ] && NAME="$ENVIRONMENT-$ORACLE_REGION-consul"
 [ -z "$INSTANCE_POOL_BASE_NAME" ] && INSTANCE_POOL_BASE_NAME="ConsulInstancePool"
 
