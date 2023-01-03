@@ -335,11 +335,16 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
     -var "infra_customizations_repo=$INFRA_CUSTOMIZATIONS_REPO" \
     $ACTION_POST_PARAMS $TF_POST_PARAMS
 
-  oci os object get --bucket-name $S3_STATE_BUCKET --name $S3_STATE_KEY_IP --region $ORACLE_REGION --file $LOCAL_IP_KEY
   if [ $? -eq 0 ]; then
-    echo "Using new instance pool bucket state file generated from terraform apply"
+    oci os object get --bucket-name $S3_STATE_BUCKET --name $S3_STATE_KEY_IP --region $ORACLE_REGION --file $LOCAL_IP_KEY
+    if [ $? -eq 0 ]; then
+      echo "Using new instance pool bucket state file generated from terraform apply"
+    else
+      echo "Failure fetching newly applied terraform state, instance pools may not be defined properly below"
+    fi
   else
-    echo "Failure fetching newly applied terraform state, instance pools may not be defined properly below"
+    echo "Failure in selenium grid instance pool terraform, exiting..."
+    exit 5
   fi
 fi
 
