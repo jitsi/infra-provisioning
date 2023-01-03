@@ -45,7 +45,7 @@ pipeline {
               }
             }
         }
-        stage ("consul rotation") {
+        stage ("consul provisioning") {
             steps {
               timestamps {
                 script {
