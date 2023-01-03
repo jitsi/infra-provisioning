@@ -38,7 +38,7 @@ pipeline {
               }
             }
         }
-        stage ("consul provisioning") {
+        stage ("selenium grid provisioning") {
             steps {
               timestamps {
                 script {
