@@ -21,6 +21,10 @@
           name: LB_WHITELIST
           description: "default is [\"10.0.0.0/8\"]"
           trim: true
+      - bool:
+          name: UPGRADE_GRID
+          description: "Check to re-run terraform for existing grid"
+          default: false
       - string:
           name: ACTION
           default: apply
