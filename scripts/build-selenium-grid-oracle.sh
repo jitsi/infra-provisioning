@@ -105,7 +105,8 @@ packer build \
   -var "oracle_region=$ORACLE_REGION" \
   -var "availability_domain=$AVAILABILITY_DOMAIN" \
   -var "subnet_ocid=$PUBLIC_SUBNET_2_OCID" \
-  -var "compartment_ocid=$TENANCY_OCID" \
+  -var "compartment_ocid=$COMPARTMENT_OCID" \
+  -var "tenancy_ocid=$TENANCY_OCID" \
   -var "shape=$SHAPE" \
   -var "ocpus=$OCPUS" \
   -var "memory_in_gbs=$MEMORY_IN_GBS" \
