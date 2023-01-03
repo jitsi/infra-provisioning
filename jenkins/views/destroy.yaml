@@ -1,0 +1,14 @@
+- view-template:
+    name: 'destroy'
+    description: 'jobs that tear down resources'
+    view-type: list
+    regex: 'destroy-.*'
+
+- project:
+    name: 'destroy-view'
+    views:
+        - 'destroy'
+    seq:
+        - a
+        - b
+        - c
