@@ -38,6 +38,7 @@
           trim: true
       - string:
           name: ORACLE_REGION
+          default: us-phoenix-1
           description: "Oracle Region to build in"
           trim: true
       - string:
