@@ -1,15 +1,20 @@
 #!/bin/bash
 set -x
+#!/usr/bin/env bash
+set -x
+unset SSH_USER
+
 # IF THE CURRENT DIRECTORY HAS stack-env.sh THEN INCLUDE IT
 [ -e ./stack-env.sh ] && . ./stack-env.sh
 
-# e.g. ../all/bin/terraform/wavefront-proxy
-LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
-
-if [ -z $ENVIRONMENT ]; then
-  echo "No ENVIRONMENT provided or found. Exiting..."
-  exit 201
+if [ -z "$ENVIRONMENT" ]; then
+  echo "No ENVIRONMENT found. Exiting..."
+  exit 203
 fi
+
+[ -e ./sites/$ENVIRONMENT/stack-env.sh ] && . ./sites/$ENVIRONMENT/stack-env.sh
+
+LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
 if [ -z $GRID_NAME ]; then
   echo "No GRID_NAME provided or found. Exiting..."
@@ -35,13 +40,13 @@ fi
 [ -z "$NAME" ] && NAME="$ENVIRONMENT-$ORACLE_REGION-$ROLE-$GRID_NAME"
 [ -z "$ORACLE_GIT_BRANCH" ] && ORACLE_GIT_BRANCH="main"
 
-[ -e "../all/clouds/oracle.sh" ] && . ../all/clouds/oracle.sh
+[ -e "$LOCAL_PATH/../../clouds/oracle.sh" ] && . $LOCAL_PATH/../../clouds/oracle.sh
 
 ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
-[ -e "../all/clouds/${ORACLE_CLOUD_NAME}.sh" ] && . ../all/clouds/${ORACLE_CLOUD_NAME}.sh
+[ -e "$LOCAL_PATH/../../clouds/${ORACLE_CLOUD_NAME}.sh" ] && . $LOCAL_PATH/../../clouds/${ORACLE_CLOUD_NAME}.sh
 
 # find hub and shutdown consul
-HUB_IP=$($LOCAL_PATH/../../node.py --grid $GRID_NAME --role selenium-grid --grid_role hub --region $ORACLE_REGION --environment $ENVIRONMENT --batch)
+HUB_IP=$($LOCAL_PATH/../../scripts/node.py --grid $GRID_NAME --role selenium-grid --grid_role hub --region $ORACLE_REGION --environment $ENVIRONMENT --batch)
 if [ ! -z "$HUB_IP" ]; then
     echo "Found hub for $GRID_NAME in $ENVIRONMENT $ORACLE_REGION: $HUB_IP"
     ssh -F $LOCAL_PATH/../../config/ssh.config $SSH_USER@$HUB_IP sudo consul leave
@@ -55,7 +60,7 @@ fi
 
 [ -z "$S3_PROFILE" ] && S3_PROFILE="oracle"
 [ -z "$S3_STATE_BUCKET" ] && S3_STATE_BUCKET="tf-state-$ENVIRONMENT"
-[ -z "$S3_ENDPOINT" ] && S3_ENDPOINT="https://fr4eeztjonbe.compat.objectstorage.$ORACLE_REGION.oraclecloud.com"
+[ -z "$S3_ENDPOINT" ] && S3_ENDPOINT="https://$ORACLE_S3_NAMESPACE.compat.objectstorage.$ORACLE_REGION.oraclecloud.com"
 S3_STATE_BASE="$ENVIRONMENT/grid/$GRID_NAME/components"
 
 [ -z "$S3_STATE_KEY" ] && S3_STATE_KEY="${S3_STATE_BASE}/terraform.tfstate"
