@@ -52,6 +52,7 @@ pipeline {
                             string(credentialsId: 'ansible-vault-password', variable: 'ANSIBLE_VAULT_PASSWORD_PATH'),
                             sshUserPrivateKey(credentialsId: 'ssh-ubuntu', keyFileVariable: 'USER_PRIVATE_KEY_PATH', usernameVariable: 'SSH_USERNAME')
                         ]) {
+                          sshagent (credentials: ['ssh-ubuntu']) {
                             setupOCI()
                             setupAnsible()
                             setupSSH()
@@ -59,6 +60,7 @@ pipeline {
                             export USER_PUBLIC_KEY_PATH=~/.ssh/ssh_key.pub
                             export ORACLE_GIT_BRANCH=\"$RELEASE_BRANCH\"
                             terraform/selenium-grid/create-selenium-grid-oracle.sh $SSH_USERNAME'''
+                          }
                         }
                     }
                 }
