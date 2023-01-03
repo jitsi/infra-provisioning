@@ -10,8 +10,21 @@
           trim: true
       - string:
           name: ENVIRONMENT
-          default: lonely
-          description: "Environment to build in, defaults to 'lonely'."
+          default: torture-test
+          description: "Environment to build in, defaults to 'torture-test'."
+          trim: true
+      - string:
+          name: GRID_NAME
+          description: "GRID_NAME tag used to differentiate grids"
+          trim: true
+      - string:
+          name: LB_WHITELIST
+          description: "default is [\"10.0.0.0/8\"]"
+          trim: true
+      - string:
+          name: ACTION
+          default: apply
+          description: "\"apply\" or \"import\" into the terraform. import is only needed if the state of the stack has gotten out of sync."
           trim: true
       - string:
           name: CLOUD_PROVIDER
