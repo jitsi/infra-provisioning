@@ -36,28 +36,22 @@ pipeline {
               }
             }
         }
-        stage ("selenium grid provisioning") {
+        stage ("selenium grid delete") {
             steps {
               timestamps {
                 script {
-                    echo 'selenium provision beginning'
+                    echo 'selenium delete beginning'
                     dir('infra-provisioning') {
                         withCredentials([
                             file(credentialsId: 'oci-jenkins-config', variable: 'OCI_CLI_CONFIG_FILE'),
                             file(credentialsId: 'oci-jenkins-pem', variable: 'OCI_CLI_KEY_FILE'),
                             string(credentialsId: 'oci-jenkins-terraform-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
-                            string(credentialsId: 'oci-jenkins-terraform-aws-id', variable: 'AWS_ACCESS_KEY_ID'),
-                            string(credentialsId: 'ansible-vault-password', variable: 'ANSIBLE_VAULT_PASSWORD_PATH'),
-                            sshUserPrivateKey(credentialsId: 'ssh-ubuntu', keyFileVariable: 'USER_PRIVATE_KEY_PATH', usernameVariable: 'SSH_USERNAME')
+                            string(credentialsId: 'oci-jenkins-terraform-aws-id', variable: 'AWS_ACCESS_KEY_ID')
                         ]) {
                           sshagent (credentials: ['ssh-ubuntu']) {
                             setupOCI()
-                            setupAnsible()
-                            setupSSH()
                             sh '''#!/bin/bash
-                            export USER_PUBLIC_KEY_PATH=~/.ssh/ssh_key.pub
-                            export ORACLE_GIT_BRANCH=\"$RELEASE_BRANCH\"
-                            terraform/selenium-grid/create-selenium-grid-oracle.sh $SSH_USERNAME'''
+                            terraform/selenium-grid/delete-selenium-grid-oracle.sh $SSH_USERNAME'''
                           }
                         }
                     }
