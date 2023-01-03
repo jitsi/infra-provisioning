@@ -59,7 +59,6 @@
       "type": "ansible",
       "playbook_file": "{{user `ansible_build_path`}}/build-selenium-grid-oracle.yml",
       "user": "{{user `ansible_ssh_user`}}",
-      "local_port": 50531,
       "extra_arguments": [
         "-e",
         "ansible_ssh_user={{user `ansible_ssh_user`}}",
