@@ -58,7 +58,7 @@
   "provisioners": [
     {
       "type": "ansible",
-      "playbook_file": "{{user `ansible_build_path`}}/ansible/build-jvb-oracle.yml",
+      "playbook_file": "{{user `ansible_build_path`}}/build-jvb-oracle.yml",
       "user": "{{user `ansible_ssh_user`}}",
       "extra_arguments": [
         "-e",
