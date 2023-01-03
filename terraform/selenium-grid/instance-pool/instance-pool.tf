@@ -277,15 +277,6 @@ resource "null_resource" "verify_cloud_init_hub" {
   }
 }
 
-resource "null_resource" "cloud_init_output_hub" {
-  count = 1
-  depends_on = [null_resource.verify_cloud_init_hub]
-
-  provisioner "local-exec" {
-    command = "ssh -o StrictHostKeyChecking=no -J ${var.user}@${var.bastion_host} ${var.user}@${element(local.hub_private_ips, count.index)} 'echo hostname: $HOSTNAME, privateIp: ${element(local.hub_private_ips, count.index)} - $(cloud-init status)' >> ${var.postinstall_status_file}"
-  }
-}
-
 resource "null_resource" "verify_cloud_init_node" {
   count = var.instance_pool_size
   depends_on = [data.oci_core_instance.oci_instance_datasources_node]
@@ -307,15 +298,6 @@ resource "null_resource" "verify_cloud_init_node" {
     inline = [
       "cloud-init status --wait"
     ]
-  }
-}
-
-resource "null_resource" "cloud_init_output_node" {
-  count = var.instance_pool_size
-  depends_on = [null_resource.verify_cloud_init_node]
-
-  provisioner "local-exec" {
-    command = "ssh -o StrictHostKeyChecking=no -J ${var.user}@${var.bastion_host} ${var.user}@${element(local.node_private_ips, count.index)} 'echo hostname: $HOSTNAME, privateIp: ${element(local.node_private_ips, count.index)} - $(cloud-init status)' >> ${var.postinstall_status_file}"
   }
 }
 
