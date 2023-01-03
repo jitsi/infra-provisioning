@@ -49,5 +49,5 @@
             browser-url: https://github.com/jitsi/infra-provisioning
             submodule:
               recursive: true
-      script-path: jenkins/vcn/Jenkinsfile
+      script-path: jenkins/groovy/vcn/Jenkinsfile
       lightweight-checkout: true
