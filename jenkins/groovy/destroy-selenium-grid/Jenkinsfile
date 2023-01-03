@@ -51,7 +51,7 @@ pipeline {
                           sshagent (credentials: ['ssh-ubuntu']) {
                             setupOCI()
                             sh '''#!/bin/bash
-                            terraform/selenium-grid/delete-selenium-grid-oracle.sh $SSH_USERNAME'''
+                            terraform/selenium-grid/delete-selenium-grid-oracle.sh ubuntu'''
                           }
                         }
                     }
