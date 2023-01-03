@@ -46,5 +46,5 @@
             browser-url: https://github.com/jitsi/infra-provisioning
             submodule:
               recursive: true
-      script-path: jenkins/build-selenium-grid-oracle/Jenkinsfile
+      script-path: jenkins/groovy/build-selenium-grid-oracle/Jenkinsfile
       lightweight-checkout: true
