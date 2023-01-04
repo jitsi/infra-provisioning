@@ -100,12 +100,10 @@ if [ -z "$IMAGE_OCID" ]; then
   exit 1
 fi
 
-
 [ -z "$S3_PROFILE" ] && S3_PROFILE="oracle"
 [ -z "$S3_STATE_BUCKET" ] && S3_STATE_BUCKET="tf-state-$ENVIRONMENT"
 [ -z "$S3_ENDPOINT" ] && S3_ENDPOINT="https://$ORACLE_S3_NAMESPACE.compat.objectstorage.$ORACLE_REGION.oraclecloud.com"
 [ -z "$S3_STATE_KEY" ] && S3_STATE_KEY="$ENVIRONMENT/$SHARD/instance-config-terraform.tfstate"
-
 
 TERRAFORM_MAJOR_VERSION=$(terraform -v | head -1  | awk '{print $2}' | cut -d'.' -f1)
 TF_GLOBALS_CHDIR=
@@ -125,7 +123,9 @@ terraform $TF_GLOBALS_CHDIR init \
   -backend-config="endpoint=$S3_ENDPOINT" \
   -reconfigure $TF_POST_PARAMS
 
-terraform $TF_GLOBALS_CHDIR  apply \
+[ -z "$ACTION" ] && ACTION="apply"
+
+terraform $TF_GLOBALS_CHDIR $ACTION \
   -var="domain=$DOMAIN" \
   -var="environment=$ENVIRONMENT" \
   -var="name=$NAME" \

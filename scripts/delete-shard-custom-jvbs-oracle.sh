@@ -155,9 +155,11 @@ fi
 
 # Delete instance configuration(s) for that shard
 ##################################
-INSTANCE_CONFIGURATIONS=$(oci compute-management instance-configuration list --region "$ORACLE_REGION" -c "$COMPARTMENT_OCID" --sort-by TIMECREATED --sort-order DESC --all --query 'data[?"defined-tags".'\"$TAG_NAMESPACE\"'."shard" == `'"$SHARD"'`]' | jq -r .[].id)
+$LOCAL_PATH/../terraform/create-jvb-instance-configuration/delete-jvb-instance-configuration.sh
 
-for INSTANCE_CONFIGURATION_ID in $INSTANCE_CONFIGURATIONS; do
-  echo "Deleting instance configuration $INSTANCE_CONFIGURATION_ID"
-  oci compute-management instance-configuration delete --instance-configuration-id "$INSTANCE_CONFIGURATION_ID" --region "$ORACLE_REGION" --force
-done
+# INSTANCE_CONFIGURATIONS=$(oci compute-management instance-configuration list --region "$ORACLE_REGION" -c "$COMPARTMENT_OCID" --sort-by TIMECREATED --sort-order DESC --all --query 'data[?"defined-tags".'\"$TAG_NAMESPACE\"'."shard" == `'"$SHARD"'`]' | jq -r .[].id)
+
+# for INSTANCE_CONFIGURATION_ID in $INSTANCE_CONFIGURATIONS; do
+#   echo "Deleting instance configuration $INSTANCE_CONFIGURATION_ID"
+#   oci compute-management instance-configuration delete --instance-configuration-id "$INSTANCE_CONFIGURATION_ID" --region "$ORACLE_REGION" --force
+# done
