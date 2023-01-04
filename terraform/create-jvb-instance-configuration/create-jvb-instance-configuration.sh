@@ -46,7 +46,7 @@ fi
 [ -z "$JVB_VERSION" ] && JVB_VERSION='latest'
 
 #pull in cloud-specific variables, e.g. tenancy
-[ -e "$LOCAL_PATH/../clouds/oracle.sh" ] && . $LOCAL_PATH/../clouds/oracle.sh
+[ -e "$LOCAL_PATH/../../clouds/oracle.sh" ] && . $LOCAL_PATH/../../clouds/oracle.sh
 
 if [ -z "$ORACLE_REGION" ]; then
   echo "No ORACLE_REGION found.  Exiting..."
