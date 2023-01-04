@@ -51,7 +51,7 @@ pipeline {
                           sshagent (credentials: ['ssh-ubuntu']) {
                             setupOCI()
                             sh '''#!/bin/bash
-                            delete-jvb-pool-oracle.sh ubuntu'''
+                            scripts/delete-jvb-pool-oracle.sh ubuntu'''
                           }
                         }
                     }
