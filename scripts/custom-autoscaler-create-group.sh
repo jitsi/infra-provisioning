@@ -10,10 +10,12 @@ if [ -z "$ENVIRONMENT" ]; then
   exit 203
 fi
 
+LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
+
 [ -e ./sites/$ENVIRONMENT/stack-env.sh ] && . ./sites/$ENVIRONMENT/stack-env.sh
 
 #pull in cloud-specific variables, e.g. tenancy
-[ -e "../all/clouds/oracle.sh" ] && . ../all/clouds/oracle.sh
+[ -e "$LOCAL_PATH/../clouds/oracle.sh" ] && . $LOCAL_PATH/../clouds/oracle.sh
 
 if [ -z "$ORACLE_REGION" ]; then
   echo "No ORACLE_REGION found.  Exiting..."
@@ -21,14 +23,18 @@ if [ -z "$ORACLE_REGION" ]; then
 fi
 
 ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
-[ -e "../all/clouds/${ORACLE_CLOUD_NAME}.sh" ] && . ../all/clouds/"${ORACLE_CLOUD_NAME}".sh
+[ -e "$LOCAL_PATH/../clouds/${ORACLE_CLOUD_NAME}.sh" ] && . $LOCAL_PATH/../clouds/"${ORACLE_CLOUD_NAME}".sh
 
-if [ -z "$SIDECAR_ENV_VARIABLES" ]; then
-  echo "No SIDECAR_ENV_VARIABLES provided or found. Exiting.. "
-  exit 211
+if [ -z "$JWT_ENV_FILE" ]; then 
+  if [ -z "$SIDECAR_ENV_VARIABLES" ]; then
+    echo "No SIDECAR_ENV_VARIABLES provided or found. Exiting.. "
+    exit 211
+  fi
+
+  JWT_ENV_FILE="/etc/jitsi/autoscaler-sidecar/$SIDECAR_ENV_VARIABLES"
 fi
 
-[ -z "$TOKEN" ] && TOKEN=$(JWT_ENV_FILE="/etc/jitsi/autoscaler-sidecar/$SIDECAR_ENV_VARIABLES" /opt/jitsi/jitsi-autoscaler-sidecar/scripts/jwt.sh)
+[ -z "$TOKEN" ] && TOKEN=$(JWT_ENV_FILE=$JWT_ENV_FILE /opt/jitsi/jitsi-autoscaler-sidecar/scripts/jwt.sh)
 
 if [ -z "$AUTOSCALER_URL" ]; then
   echo "No AUTOSCALER_URL provided or found. Exiting.. "
