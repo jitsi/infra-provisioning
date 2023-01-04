@@ -27,7 +27,7 @@ variable "autoscaler_sidecar_jvb_flag" {}
 variable "memory_in_gbs" {}
 variable "ocpus" {}
 variable "user_data_file" {
-  default = "terraform/create-jvb-stack/user-data/postinstall-runner-oracle.sh"
+  default = "terraform/create-jvb-instance-configuration/user-data/postinstall-runner-oracle.sh"
 }
 variable "user_data_lib_path" {
   default = "terraform/lib"
