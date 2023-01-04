@@ -1,0 +1,55 @@
+- job:
+    name: destroy-jvb-pool
+    display-name: destroy JVB pool
+    concurrent: true
+    parameters:
+      - string:
+          name: VIDEO_INFRA_BRANCH
+          default: main
+          description: "Controls checkout branch for infra repos, defaults to 'main'."
+          trim: true
+      - string:
+          name: ENVIRONMENT
+          description: "Environment to find JVB pool in."
+          trim: true
+      - string:
+          name: RELEASE_NUMBER
+          description: "Release to find JVB pool in."
+          trim: true
+      - string:
+          name: JVB_POOL_MODE
+          description: "Pool mode for JVBs, defaults to 'global'"
+      - string:
+          name: JVB_POOL_NAME
+          description: "Pool name, can be specified instead of release and mode"
+      - string:
+          name: ORACLE_REGION
+          default: us-phoenix-1
+          description: "Oracle Region to build in"
+          trim: true
+      - string:
+          name: INFRA_CONFIGURATION_REPO
+          default: git@github.com:jitsi/infra-configuration.git
+          description: "Repo for configuration code (ansible etc), defaults to 'git@github.com:jitsi/infra-configuration.git'."
+          trim: true
+      - string:
+          name: INFRA_CUSTOMIZATIONS_REPO
+          default: git@github.com:jitsi/infra-customizations.git
+          description: "Repo with customized configurations, defaults to 'git@github.com:jitsi/infra-customizations.git'."
+          trim: true
+ 
+    project-type: pipeline
+    sandbox: true
+    pipeline-scm:
+      scm:
+        - git:
+            url: git@github.com:jitsi/infra-provisioning.git
+            credentials-id: "video-infra"
+            branches:
+              - "origin/${VIDEO_INFRA_BRANCH}"
+            browser: githubweb
+            browser-url: https://github.com/jitsi/infra-provisioning
+            submodule:
+              recursive: true
+      script-path: jenkins/groovy/destroy-jvb-pool/Jenkinsfile
+      lightweight-checkout: true
