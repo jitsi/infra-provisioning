@@ -111,8 +111,8 @@ def newShards(hcv_environment,cloud_name,core_provider,workspace,release_branch,
 
 // trigger create shard JVBs job with appropriate parameters
 def createShardJVBs(hcv_environment,cloud_name,stack_id,instance_pool_size,shape,availability_domains,jvb_version,jvb_image_ocid,release_branch,release_number,jvb_autoscaler_enabled) {
-    def createJVBs = build job: 'provision-shard-jvbs-oracle',parameters: [
-        [$class: 'StringParameterValue', name: 'HCV_ENVIRONMENT', value: hcv_environment],
+    def createJVBs = build job: 'provision-jvb-shard',parameters: [
+        [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: hcv_environment],
         [$class: 'StringParameterValue', name: 'CLOUD_NAME', value: cloud_name],
         [$class: 'StringParameterValue', name: 'STACK_ID', value: stack_id],
         [$class: 'StringParameterValue', name: 'INSTANCE_POOL_SIZE', value: instance_pool_size],
@@ -120,7 +120,7 @@ def createShardJVBs(hcv_environment,cloud_name,stack_id,instance_pool_size,shape
         [$class: 'StringParameterValue', name: 'AVAILABILITY_DOMAINS', value: availability_domains],
         [$class: 'StringParameterValue', name: 'JVB_VERSION', value: jvb_version],
         [$class: 'StringParameterValue', name: 'JVB_IMAGE_OCID', value: jvb_image_ocid],
-        [$class: 'StringParameterValue', name: 'ORACLE_GIT_BRANCH', value: release_branch],
+        [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: release_branch],
         [$class: 'StringParameterValue', name: 'RELEASE_NUMBER', value: release_number],
         [$class: 'StringParameterValue', name: 'JVB_AUTOSCALER_ENABLED', value: jvb_autoscaler_enabled],
     ]
@@ -129,8 +129,8 @@ def createShardJVBs(hcv_environment,cloud_name,stack_id,instance_pool_size,shape
 }
 
 def scaleShardJVBs(hcv_environment,cloud_name,shard,instance_pool_size,wait_for_postinstall,sleep_seconds_before_postinstall_check,release_number,jvb_autoscaler_enabled) {
-    def scaleShardJVBs = build job: 'jitsi-scale-jvbs-oracle',parameters: [
-        [$class: 'StringParameterValue', name: 'HCV_ENVIRONMENT', value: hcv_environment],
+    def scaleShardJVBs = build job: 'scale-jvb-shard',parameters: [
+        [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: hcv_environment],
         [$class: 'StringParameterValue', name: 'CLOUD_NAME', value: cloud_name],
         [$class: 'StringParameterValue', name: 'SHARD', value: shard],
         [$class: 'StringParameterValue', name: 'INSTANCE_POOL_SIZE', value: instance_pool_size],
