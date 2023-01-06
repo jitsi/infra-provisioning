@@ -174,7 +174,7 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
   -var="ingress_nsg_cidr=$INGRESS_NSG_CIDR" \
   -var "infra_configuration_repo=$INFRA_CONFIGURATION_REPO" \
   -var "infra_customizations_repo=$INFRA_CUSTOMIZATIONS_REPO" \
-  $ACTION_POST_PARAMS $TF_POST_PARAMS
+  $ACTION_POST_PARAMS $TF_POST_PARAMS 2>&1
 
 RET=$?
 
