@@ -123,7 +123,7 @@ terraform $TF_GLOBALS_CHDIR init \
   -backend-config="region=$ORACLE_REGION" \
   -backend-config="profile=$S3_PROFILE" \
   -backend-config="endpoint=$S3_ENDPOINT" \
-  -reconfigure $TF_POST_PARAMS
+  -reconfigure $TF_POST_PARAMS 2>&1
 
 [ -z "$ACTION" ] && ACTION="apply"
 
