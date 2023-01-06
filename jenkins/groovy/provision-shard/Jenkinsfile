@@ -8,16 +8,6 @@ def makeShardProperties(cloud_name,hcv_environment,default_instance_pool_size_e_
     def makeShardProperties = sh(
         returnStdout: true,
         script: """#!/bin/bash
-         export ENABLE_E_4=${env.ENABLE_E_4}
-         export ENABLE_E_3=${env.ENABLE_E_3}
-         export INSTANCE_POOL_SIZE_E_4=${env.INSTANCE_POOL_SIZE_E_4}
-         export INSTANCE_POOL_SIZE_E_3=${env.INSTANCE_POOL_SIZE_E_3}
-         export INSTANCE_POOL_SIZE_2_4=${env.INSTANCE_POOL_SIZE_2_4}
-         export INSTANCE_POOL_SIZE_1_4=${env.INSTANCE_POOL_SIZE_1_4}
-         export DEFAULT_INSTANCE_POOL_SIZE_E_4=${default_instance_pool_size_e_4}
-         export DEFAULT_INSTANCE_POOL_SIZE_E_3=${default_instance_pool_size_e_3}
-         export DEFAULT_INSTANCE_POOL_SIZE_2_4=${default_instance_pool_size_2_4}
-         export DEFAULT_INSTANCE_POOL_SIZE_1_4=${default_instance_pool_size_1_4}
          export CLOUD_NAME=${cloud_name}
          export HCV_ENVIRONMENT=${hcv_environment}
          export JVB_AUTOSCALER_ENABLED=true
