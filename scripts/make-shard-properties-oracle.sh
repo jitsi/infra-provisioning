@@ -167,7 +167,7 @@ function get_available() {
 AVAILABLE_SHARD_COUNT_2_4=0
 AVAILABLE_SHARD_COUNT_1_4=0
 
-AVAILABILITY_DOMAINS_IN_REGION=($(oci iam availability-domain list --region=$ORACLE_REGION | jq .data[].name | jq --slurp 'join(" ")' | jq -r .))
+AVAILABILITY_DOMAINS_IN_REGION=($(oci iam availability-domain list --region=$ORACLE_REGION --compartment-id $TENANCY_OCID | jq .data[].name | jq --slurp 'join(" ")' | jq -r .))
 
 if [[ $ORACLE_REGION == 'eu-frankfurt-1' ]]; then
   AVAILABILITY_DOMAINS_SHAPE_E_4=("${AVAILABILITY_DOMAINS_IN_REGION[@]}")
