@@ -122,6 +122,7 @@ def createShardJVBs(hcv_environment,cloud_name,stack_id,instance_pool_size,shape
         [$class: 'StringParameterValue', name: 'JVB_IMAGE_OCID', value: jvb_image_ocid],
         [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: release_branch],
         [$class: 'StringParameterValue', name: 'RELEASE_NUMBER', value: release_number],
+        [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH],
         [$class: 'StringParameterValue', name: 'JVB_AUTOSCALER_ENABLED', value: jvb_autoscaler_enabled],
     ]
 
@@ -137,6 +138,7 @@ def scaleShardJVBs(hcv_environment,cloud_name,shard,instance_pool_size,wait_for_
         [$class: 'StringParameterValue', name: 'WAIT_FOR_POSTINSTALL', value: wait_for_postinstall],
         [$class: 'StringParameterValue', name: 'SLEEP_SECONDS_BEFORE_POSTINSTALL_CHECKS', value: sleep_seconds_before_postinstall_check],
         [$class: 'StringParameterValue', name: 'RELEASE_NUMBER', value: release_number],
+        [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH],
         [$class: 'StringParameterValue', name: 'JVB_AUTOSCALER_ENABLED', value: jvb_autoscaler_enabled],
         [$class: 'StringParameterValue', name: 'AUTOSCALER_POOL_MIN_SIZE', value: instance_pool_size],
     ]
@@ -146,7 +148,7 @@ def scaleShardJVBs(hcv_environment,cloud_name,shard,instance_pool_size,wait_for_
 
 def validateShard(hcv_environment,shards) {
     def validateShard = build job: 'validate-shard',wait: false,parameters: [
-        [$class: 'StringParameterValue', name: 'HCV_ENVIRONMENT', value: hcv_environment],
+        [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: hcv_environment],
         [$class: 'StringParameterValue', name: 'SHARDS', value: shards]
     ]
 
@@ -155,7 +157,7 @@ def validateShard(hcv_environment,shards) {
 
 def reconfigureEnvironment(hcv_environment) {
     def result = build job: 'autoscaler-reconfigure-environment',wait: true,parameters: [
-        [$class: 'StringParameterValue', name: 'HCV_ENVIRONMENT', value: hcv_environment]
+        [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: hcv_environment]
     ]
     return result
 }

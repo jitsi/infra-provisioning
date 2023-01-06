@@ -20,6 +20,22 @@
           description: "Region to build in"
           trim: true
       - string:
+          name: CLOUD_NAME
+          description: "Cloud to build in"
+          trim: true
+      - string:
+          name: SHARD_COUNT
+          description: "Number of shards to build"
+          trim: true
+      - string:
+          name: SHARD_NUMBERS
+          description: "Shard number(s) to build"
+          trim: true
+      - string:
+          name: INSTANCE_POOL_SIZE_E_4
+          description: "Pool size for E4 shape"
+          trim: true
+      - string:
           name: RELEASE_NUMBER
           description: "Release number for shard"
           trim: true
