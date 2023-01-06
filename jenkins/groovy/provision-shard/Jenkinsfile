@@ -167,6 +167,7 @@ pipeline {
      stages {
         stage('Prepare/Checkout') { // for display purposes
             steps {
+              timestamps {
                 script {
                     def scmUrl = scm.getUserRemoteConfigs()[0].getUrl()
                     dir('infra-customization') {
@@ -194,17 +195,21 @@ pipeline {
                         sh 'echo "$ANSIBLE_VAULT_PASSWORD_VALUE" > infra-configuration/.vault-password.txt'
                     }
                 }
+              }
             }
         }
         stage ("Setup") {
             steps {
+              timestamps {
                 echo 'Jitsi Shards Creation Beginning'
                 sh 'printenv'
                 sh 'mkdir -p test-results'
+              }
             }
         }
         stage("load flags") {
             steps {
+              timestamps {
                 script {
                     dir("infra-provisioning") {
                         skipShardJVBs = checkSkipShardJVBs(env.ENVIRONMENT)
@@ -213,6 +218,7 @@ pipeline {
                         echo useReleaseBackends
                     }
                 }
+              }
             }
         }
         stage ("Make shard properties Oracle") {
@@ -223,6 +229,7 @@ pipeline {
                 }
             }
             steps {
+              timestamps {
                 script {
                       if (! env.INSTANCE_POOL_SIZE_E_4) {
                         usedInstancePoolSizeE_4 = 2
@@ -251,6 +258,7 @@ pipeline {
                         shardPropertiesOracle = makeShardProperties(env.CLOUD_NAME,env.ENVIRONMENT,usedInstancePoolSizeE_4,usedInstancePoolSizeE_3,usedInstancePoolSize2_4,usedInstancePoolSize1_4)
                       }
                 }
+              }
             }
         }
 
@@ -261,6 +269,7 @@ pipeline {
                 }
             }
             steps {
+              timestamps {
                 script {
                     dir('infra-provisioning') {
                         withCredentials([
@@ -272,6 +281,7 @@ pipeline {
                         }
                     }
                 }
+              }
             }
         }
         stage ("Create Oracle shards") {
@@ -281,6 +291,7 @@ pipeline {
                 }
             }
             steps {
+              timestamps {
                 dir('infra-provisioning') {
                     withCredentials([
                         string(credentialsId: 'oci-jenkins-terraform-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
@@ -292,6 +303,7 @@ pipeline {
                         }
                     }
                 }
+              }
             }
         }
         stage("Deploy few Oracle JVBs and Downscale AWS JVBs") {
@@ -302,6 +314,7 @@ pipeline {
                 }
             }
             steps {
+              timestamps {
                 script {
                     def branches = [:]
                     def stack_ids = split_stacks()
@@ -381,6 +394,7 @@ pipeline {
                     // only succeed if all branches succeed
                     parallel branches
                 }
+              }
             }
         }
 
@@ -393,6 +407,7 @@ pipeline {
                 }
             }
             steps {
+              timestamps {
                 script {
                     def branches = [:]
                     def props = readProperties file: 'test-results/new_shards.properties'
@@ -423,6 +438,7 @@ pipeline {
 
                     parallel branches
                 }
+              }
             }
         }
 
@@ -435,6 +451,7 @@ pipeline {
                 }
             }
             steps {
+              timestamps {
                 script {
                     def branches = [:]
                     def props = readProperties file: 'test-results/new_shards.properties'
@@ -471,17 +488,21 @@ pipeline {
                         parallel branches
                     }
                 }
+              }
             }
         }
         stage("Trigger autoscaler reconfiguration") {
             steps {
+              timestamps {
                 script {
                     reconfigureEnvironment(env.ENVIRONMENT)
                 }
+              }
             }
         }
         stage("Wait for healthy shards") {
             steps {
+              timestamps {
                 script {
                   sshagent (credentials: ['ssh-ubuntu']) {
 
@@ -491,6 +512,7 @@ pipeline {
                     }
                   }
                 }
+              }
             }            
         }
         stage("Mark shards ready") {
@@ -499,12 +521,14 @@ pipeline {
                 expression { env.SKIP_SHARD_READY != 'true' }
             }
             steps {
+              timestamps {
                 script {
                     def shardProps = readProperties file: 'test-results/new_shards.properties'
                     dir("infra-provisioning") {
                         markShardReady(shardProps.HCV_ENVIRONMENT,shardProps.SHARDS)
                     }
                 }
+              }
             }
         }
         stage("Enable shard alarms") {
@@ -514,12 +538,14 @@ pipeline {
                 }
             }
             steps {
+              timestamps {
                 script {
                     def shardProps = readProperties file: 'test-results/new_shards.properties'
                     dir("infra-provisioning") {
                         enableShardAlarms(shardProps.HCV_ENVIRONMENT,shardProps.SHARDS)
                     }
                 }
+              }
             }
         }
     }
