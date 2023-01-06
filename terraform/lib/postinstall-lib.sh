@@ -128,9 +128,11 @@ function checkout_repos() {
   git clone $INFRA_CUSTOMIZATIONS_REPO $BOOTSTRAP_DIRECTORY/infra-customizations
   cd $BOOTSTRAP_DIRECTORY/infra-configuration
   git checkout $GIT_BRANCH
+  git show-ref heads/$GIT_BRANCH
   cd -
   cd $BOOTSTRAP_DIRECTORY/infra-customizations
   git checkout $GIT_BRANCH
+  git show-ref heads/$GIT_BRANCH
   cp -a $BOOTSTRAP_DIRECTORY/infra-customizations/* $BOOTSTRAP_DIRECTORY/infra-configuration
   cd -
 }
