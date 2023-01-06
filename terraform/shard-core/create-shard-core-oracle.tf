@@ -113,6 +113,9 @@ terraform {
       oci = {
           source  = "oracle/oci"
       }
+      null = {
+          source = "hashicorp/null"
+      }
   }
 }
 
@@ -366,16 +369,22 @@ resource "null_resource" "verify_cloud_init" {
       "cloud-init status --wait"
     ]
   }
+  triggers = {
+    always_run = "${timestamp()}"
+  }  
 }
 
-resource "null_resource" "cloud_init_output" {
-  count = 1
-  depends_on = [null_resource.verify_cloud_init]
+# resource "null_resource" "cloud_init_output" {
+#   count = 1
+#   depends_on = [null_resource.verify_cloud_init]
 
-  provisioner "local-exec" {
-    command = "ssh -o StrictHostKeyChecking=no -J ${var.user}@${var.bastion_host} ${var.user}@${local.private_ip} 'echo hostname: $HOSTNAME, privateIp: ${local.private_ip} - $(cloud-init status)' >> ${var.postinstall_status_file}"
-  }
-}
+#   provisioner "local-exec" {
+#     command = "ssh -o StrictHostKeyChecking=no -J ${var.user}@${var.bastion_host} ${var.user}@${local.private_ip} 'echo hostname: $HOSTNAME, privateIp: ${local.private_ip} - $(cloud-init status)' >> ${var.postinstall_status_file}"
+#   }
+#   triggers = {
+#     always_run = "${timestamp()}"
+#   }
+# }
 
 resource "oci_health_checks_http_monitor" "shard_http_health" {
     #Required
