@@ -164,6 +164,9 @@ def skipShardJVBs
 
 pipeline {
     agent any
+    options {
+        ansiColor('xterm')
+    }
      stages {
         stage('Prepare/Checkout') { // for display purposes
             steps {
