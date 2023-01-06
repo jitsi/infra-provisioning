@@ -24,7 +24,7 @@ def createSignalImageOracle() {
         export CLOUDS=\$(scripts/release_clouds.sh \$ENVIRONMENT)
         [ -z "\$SIGNAL_VERSION" ] && export SIGNAL_VERSION="\$JICOFO_VERSION-\$JITSI_MEET_VERSION-\$PROSODY_VERSION"
         export FORCE_BUILD_IMAGE=true
-        ../all/bin/build-signal-oracle.sh ubuntu
+        scripts/build-signal-oracle.sh ubuntu
         if [ \$? -eq 0 ]; then
             echo "Image creation successful"
         else
