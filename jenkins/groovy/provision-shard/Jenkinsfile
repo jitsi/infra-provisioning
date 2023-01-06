@@ -178,8 +178,21 @@ pipeline {
                     dir('infra-provisioning') {
                         git branch: env.VIDEO_INFRA_BRANCH, url: scmUrl, credentialsId: 'video-infra'
                     }
+
                     sh 'cp -a infra-customization/* infra-provisioning'
                     sh 'cp -a infra-customization/* infra-configuration'
+                    withCredentials([
+                        file(credentialsId: 'oci-jenkins-config', variable: 'OCI_CLI_CONFIG_FILE'),
+                        file(credentialsId: 'oci-jenkins-pem', variable: 'OCI_CLI_KEY_FILE'),
+                        string(credentialsId: 'ansible-vault-password', variable: 'ANSIBLE_VAULT_PASSWORD_VALUE')
+                    ]) {
+                        sh '''#!/bin/bash
+                        mkdir -p ~/.oci
+                        cp "$OCI_CLI_CONFIG_FILE" ~/.oci/config
+                        cp "$OCI_CLI_KEY_FILE" ~/.oci/private-key.pem'''
+                        sh 'echo "$ANSIBLE_VAULT_PASSWORD_VALUE" > infra-provisioning/.vault-password.txt'
+                        sh 'echo "$ANSIBLE_VAULT_PASSWORD_VALUE" > infra-configuration/.vault-password.txt'
+                    }
                 }
             }
         }
@@ -234,17 +247,8 @@ pipeline {
                       } else {
                         usedInstancePoolSize1_4 = env.INSTANCE_POOL_SIZE_1_4 as int
                       }
-                      withCredentials([
-                            file(credentialsId: 'oci-jenkins-config', variable: 'OCI_CLI_CONFIG_FILE'),
-                            file(credentialsId: 'oci-jenkins-pem', variable: 'OCI_CLI_KEY_FILE')
-                      ]) {
-                          sh '''#!/bin/bash
-                            mkdir -p ~/.oci
-                            cp "$OCI_CLI_CONFIG_FILE" ~/.oci/config
-                            cp "$OCI_CLI_KEY_FILE" ~/.oci/private-key.pem'''
-                          dir('infra-provisioning') {
-                            shardPropertiesOracle = makeShardProperties(env.CLOUD_NAME,env.ENVIRONMENT,usedInstancePoolSizeE_4,usedInstancePoolSizeE_3,usedInstancePoolSize2_4,usedInstancePoolSize1_4)
-                          }
+                      dir('infra-provisioning') {
+                        shardPropertiesOracle = makeShardProperties(env.CLOUD_NAME,env.ENVIRONMENT,usedInstancePoolSizeE_4,usedInstancePoolSizeE_3,usedInstancePoolSize2_4,usedInstancePoolSize1_4)
                       }
                 }
             }
@@ -262,7 +266,6 @@ pipeline {
                         withCredentials([
                             string(credentialsId: 'jenkins-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
                             string(credentialsId: 'jenkins-aws-id', variable: 'AWS_ACCESS_KEY_ID'),
-                            string(credentialsId: 'ansible-vault-password', variable: 'ANSIBLE_VAULT_PASSWORD_VALUE'),
                             sshUserPrivateKey(credentialsId: 'ssh-ubuntu', keyFileVariable: 'USER_PRIVATE_KEY_PATH',usernameVariable: 'SSH_USERNAME')
                         ]) {                        
                             def awsReplyShards = newShards(env.ENVIRONMENT,env.CLOUD_NAME,env.CORE_CLOUD_PROVIDER,env.WORKSPACE,env.RELEASE_BRANCH,env.RELEASE_NUMBER)
@@ -280,18 +283,10 @@ pipeline {
             steps {
                 dir('infra-provisioning') {
                     withCredentials([
-                        file(credentialsId: 'oci-jenkins-config', variable: 'OCI_CLI_CONFIG_FILE'),
-                        file(credentialsId: 'oci-jenkins-pem', variable: 'OCI_CLI_KEY_FILE'),
-                        string(credentialsId: 'ansible-vault-password', variable: 'ANSIBLE_VAULT_PASSWORD_VALUE'),
                         string(credentialsId: 'oci-jenkins-terraform-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
                         string(credentialsId: 'oci-jenkins-terraform-aws-id', variable: 'AWS_ACCESS_KEY_ID'),
                         sshUserPrivateKey(credentialsId: 'ssh-ubuntu', keyFileVariable: 'USER_PRIVATE_KEY_PATH',usernameVariable: 'SSH_USERNAME')
                     ]) {
-                        sh '''#!/bin/bash
-                          mkdir -p ~/.oci
-                          cp "$OCI_CLI_CONFIG_FILE" ~/.oci/config
-                          cp "$OCI_CLI_KEY_FILE" ~/.oci/private-key.pem'''
-                        sh 'echo "$ANSIBLE_VAULT_PASSWORD_VALUE" > ./.vault-password.txt'
                         script {
                             def ociReplyShards = newShards(env.ENVIRONMENT,env.CLOUD_NAME,env.CORE_CLOUD_PROVIDER,env.WORKSPACE,env.RELEASE_BRANCH,env.RELEASE_NUMBER)
                         }
