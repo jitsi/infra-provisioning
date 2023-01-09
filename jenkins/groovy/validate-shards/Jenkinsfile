@@ -41,7 +41,7 @@ pipeline {
       steps {
         sshagent (credentials: ['ssh-ubuntu']) {
           dir('infra-provisioning') {
-            sh 'scripts/validate-shards.sh'
+            sh 'scripts/validate-shards.sh ubuntu'
           }
         }
       }
