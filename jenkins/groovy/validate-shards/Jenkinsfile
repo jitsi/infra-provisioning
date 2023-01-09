@@ -40,7 +40,9 @@ pipeline {
     stage('Provision') {
       steps {
         sshagent (credentials: ['ssh-ubuntu']) {
+          dir('infra-provisioning') {
             sh 'scripts/validate-shards.sh'
+          }
         }
       }
     }
