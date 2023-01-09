@@ -91,7 +91,6 @@ echo \$USE_RELEASE_BACKENDS"""
 def newShards(hcv_environment,cloud_name,core_provider,workspace,release_branch,release_number) {
 
     def replyShards = sh(
-        returnStdout: true,
         script: """#!/bin/bash
          export USER_PUBLIC_KEY_PATH=~/.ssh/ssh_key.pub
          ssh-keygen -y -f "\$USER_PRIVATE_KEY_PATH" > "\$USER_PUBLIC_KEY_PATH"
@@ -282,8 +281,8 @@ pipeline {
                             string(credentialsId: 'jenkins-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
                             string(credentialsId: 'jenkins-aws-id', variable: 'AWS_ACCESS_KEY_ID'),
                             sshUserPrivateKey(credentialsId: 'ssh-ubuntu', keyFileVariable: 'USER_PRIVATE_KEY_PATH',usernameVariable: 'SSH_USERNAME')
-                        ]) {                        
-                            def awsReplyShards = newShards(env.ENVIRONMENT,env.CLOUD_NAME,env.CORE_CLOUD_PROVIDER,env.WORKSPACE,env.RELEASE_BRANCH,env.RELEASE_NUMBER)
+                        ]) {
+                            newShards(env.ENVIRONMENT,env.CLOUD_NAME,env.CORE_CLOUD_PROVIDER,env.WORKSPACE,env.RELEASE_BRANCH,env.RELEASE_NUMBER)
                         }
                     }
                 }
@@ -305,7 +304,7 @@ pipeline {
                         sshUserPrivateKey(credentialsId: 'ssh-ubuntu', keyFileVariable: 'USER_PRIVATE_KEY_PATH',usernameVariable: 'SSH_USERNAME')
                     ]) {
                         script {
-                            def ociReplyShards = newShards(env.ENVIRONMENT,env.CLOUD_NAME,env.CORE_CLOUD_PROVIDER,env.WORKSPACE,env.RELEASE_BRANCH,env.RELEASE_NUMBER)
+                            newShards(env.ENVIRONMENT,env.CLOUD_NAME,env.CORE_CLOUD_PROVIDER,env.WORKSPACE,env.RELEASE_BRANCH,env.RELEASE_NUMBER)
                         }
                     }
                 }

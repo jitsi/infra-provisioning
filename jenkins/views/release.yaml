@@ -1,0 +1,14 @@
+- view-template:
+    name: 'release'
+    description: 'jobs that create releases for resources'
+    view-type: list
+    regex: 'release-.*'
+
+- project:
+    name: 'release-view'
+    views:
+        - 'release'
+    seq:
+        - a
+        - b
+        - c

@@ -123,7 +123,7 @@ terraform $TF_GLOBALS_CHDIR init \
   -backend-config="region=$ORACLE_REGION" \
   -backend-config="profile=$S3_PROFILE" \
   -backend-config="endpoint=$S3_ENDPOINT" \
-  -reconfigure $TF_POST_PARAMS 2>&1
+  -reconfigure $TF_POST_PARAMS
 
 [ -z "$ACTION" ] && ACTION="apply"
 
@@ -174,7 +174,7 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
   -var="ingress_nsg_cidr=$INGRESS_NSG_CIDR" \
   -var "infra_configuration_repo=$INFRA_CONFIGURATION_REPO" \
   -var "infra_customizations_repo=$INFRA_CUSTOMIZATIONS_REPO" \
-  $ACTION_POST_PARAMS $TF_POST_PARAMS 2>&1
+  $ACTION_POST_PARAMS $TF_POST_PARAMS
 
 RET=$?
 
