@@ -49,7 +49,7 @@ export ORACLE_REGION
 ALARM_ACTION="disable" $LOCAL_PATH/../../scripts/update-shard-alarm.sh $SSH_USER
 
 # now login and stop nginx on the shard, to ensure no more conferences go to it
-$LOCAL_PATH/../../stop-shard-services.sh $SHARD $SSH_USER
+$LOCAL_PATH/../../scripts/stop-shard-services.sh $SHARD $SSH_USER
 
 
 [ -z "$S3_PROFILE" ] && S3_PROFILE="oracle"
