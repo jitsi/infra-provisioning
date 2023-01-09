@@ -7,7 +7,7 @@
 #IF THE CURRENT DIRECTORY HAS stack-env.sh THEN INCLUDE IT
 [ -e ./stack-env.sh ] && . ./stack-env.sh
 
-LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
+LOCAL_PATH=$(realpath $(dirname "${BASH_SOURCE[0]}"))
 
 if [ -z "$ENVIRONMENT" ]; then
   echo "No ENVIRONMENT found. Exiting..."

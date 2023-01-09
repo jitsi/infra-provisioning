@@ -15,7 +15,7 @@ fi
 
 [ -e ./sites/$ENVIRONMENT/stack-env.sh ] && . ./sites/$ENVIRONMENT/stack-env.sh
 
-LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
+LOCAL_PATH=$(realpath $(dirname "${BASH_SOURCE[0]}"))
 
 unset ANSIBLE_SSH_USER
 if [  -z "$1" ]

@@ -15,7 +15,7 @@ fi
 
 echo "## reload-haproxy: beginning"
 
-LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
+LOCAL_PATH=$(realpath $(dirname "${BASH_SOURCE[0]}"))
 
 if [  -z "$1" ]; then
   ANSIBLE_SSH_USER=$(whoami)
