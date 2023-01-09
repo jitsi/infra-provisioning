@@ -32,6 +32,7 @@ pipeline {
                         git branch: env.VIDEO_INFRA_BRANCH, url: scmUrl, credentialsId: 'video-infra'
                     }
                     sh 'cp -a infra-customization/* infra-provisioning'
+                    sh 'mkdir -p test-results'
                 }
               }
             }
