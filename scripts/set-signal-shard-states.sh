@@ -59,23 +59,31 @@ done
 
 cd $ANSIBLE_BUILD_PATH
 
+OUT_RET=0
 if [ ! -z "$SHARD_READY_IPS" ]; then
     ansible-playbook ansible/set-signal-state.yml \
         -i "$SHARD_READY_IPS," \
         -e "ansible_ssh_user=$ANSIBLE_SSH_USER" \
         -e "shard_state=ready"
+    OUT_RET=$?
 fi
 
+
+SEC_RET=0
 if [ ! -z "$SHARD_DRAIN_IPS" ]; then
     ansible-playbook ansible/set-signal-state.yml \
         -i "$SHARD_DRAIN_IPS," \
         -e "ansible_ssh_user=$ANSIBLE_SSH_USER" \
         -e "shard_state=drain"
+    SEC_RET=$?
+fi
+
+if [[ $OUT_RET -eq 0 ]]; then
+    OUT_RET=$SEC_RET
 fi
 
 cd -
 
-OUT_RET=$?
 # check for failures further up in the script, only exit cleanly if all steps were successful
 if [ $RET -eq 0 ]; then
     exit $OUT_RET
