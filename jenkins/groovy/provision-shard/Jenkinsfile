@@ -452,10 +452,12 @@ pipeline {
             steps {
               timestamps {
                 script {
+                  sshagent (credentials: ['ssh-ubuntu']) {
                     def shardProps = readProperties file: 'test-results/new_shards.properties'
                     dir("infra-provisioning") {
                         enableShardAlarms(shardProps.HCV_ENVIRONMENT,shardProps.SHARDS)
                     }
+                  }
                 }
               }
             }
