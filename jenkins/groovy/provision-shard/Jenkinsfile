@@ -156,8 +156,9 @@ def validateShard(hcv_environment,shards) {
 }
 
 def reconfigureEnvironment(hcv_environment) {
-    def result = build job: 'autoscaler-reconfigure-environment',wait: true,parameters: [
-        [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: hcv_environment]
+    def result = build job: 'reconfigure-autoscaler-environment',wait: true,parameters: [
+        [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: hcv_environment],
+        [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH]
     ]
     return result
 }
@@ -510,7 +511,6 @@ pipeline {
               timestamps {
                 script {
                   sshagent (credentials: ['ssh-ubuntu']) {
-
                     def shardProps = readProperties file: 'test-results/new_shards.properties'
                     dir("./environments/${shardProps.HCV_ENVIRONMENT}") {
                         waitShardHealth(shardProps.HCV_ENVIRONMENT,shardProps.SHARDS)
@@ -528,10 +528,12 @@ pipeline {
             steps {
               timestamps {
                 script {
+                  sshagent (credentials: ['ssh-ubuntu']) {
                     def shardProps = readProperties file: 'test-results/new_shards.properties'
                     dir("infra-provisioning") {
                         markShardReady(shardProps.HCV_ENVIRONMENT,shardProps.SHARDS)
                     }
+                  }
                 }
               }
             }
