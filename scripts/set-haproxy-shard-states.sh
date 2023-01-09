@@ -3,7 +3,7 @@ set -x
 #IF THE CURRENT DIRECTORY HAS stack-env.sh THEN INCLUDE IT
 [ -e ./stack-env.sh ] && . ./stack-env.sh
 
-LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
+LOCAL_PATH=$(realpath $(dirname "${BASH_SOURCE[0]}"))
 
 [ -e $LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh ] && . $LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh
 
@@ -76,12 +76,13 @@ HAPROXY_CACHE="./haproxy.inventory"
 #update inventory cache every 2 hours
 CACHE_TTL=1440
 
+cd $ANSIBLE_BUILD_PATH
+
 # set HAPROXY_CACHE and build cache if needed
 CACHE_TTL=$CACHE_TTL . $LOCAL_PATH/haproxy-buildcache.sh
 
 ANSIBLE_INVENTORY=${ANSIBLE_INVENTORY-"$HAPROXY_CACHE"}
 
-cd $ANSIBLE_BUILD_PATH
 
 ansible-playbook ansible/haproxy-shard-states.yml \
 -i $ANSIBLE_INVENTORY \
