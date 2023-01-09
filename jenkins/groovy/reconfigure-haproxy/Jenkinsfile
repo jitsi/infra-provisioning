@@ -12,7 +12,7 @@ def setupAnsible() {
 def reloadHaproxy() {
     sh(
         script: """#!/bin/bash
-        export LOG_DEST="../test-results"
+        export LOG_DEST="../../test-results"
         scripts/reload-haproxy.sh ubuntu
         exit \$?"""
     )
