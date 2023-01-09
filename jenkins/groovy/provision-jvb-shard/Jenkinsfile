@@ -26,6 +26,7 @@ node {
                 file(credentialsId: 'asap-jwt-key-dev', variable: 'ASAP_JWT_KEY_DEV'),
                 file(credentialsId: 'asap-jwt-key-prod', variable: 'ASAP_JWT_KEY_PROD')
             ]) {
+              ansiColor('xterm') {
                 sh 'rm -rf ~/.oci'
                 sh 'mkdir -p ~/.oci'
                 sh 'cp "$OCI_CLI_CONFIG_FILE" ~/.oci/config'
@@ -36,6 +37,7 @@ node {
                     ssh-keygen -y -f "$USER_PRIVATE_KEY_PATH" > "$USER_PUBLIC_KEY_PATH"
                     export ORACLE_GIT_BRANCH=$RELEASE_BRANCH
                     scripts/create-shard-jvbs-oracle-main.sh $SSH_USERNAME'''
+              }
             }
         }
     }
