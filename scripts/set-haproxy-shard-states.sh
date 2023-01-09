@@ -40,7 +40,7 @@ if [ "$SET_SIGNAL_STATE" == "true" ]; then
 
   if [ "$SKIP_NON_SIGNAL_STATE" == "true" ]; then
     echo "Skipping non-signal state changes, exiting..."
-    exit 0
+    exit $RET
   fi
 fi
 
