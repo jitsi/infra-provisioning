@@ -146,7 +146,7 @@ def scaleShardJVBs(hcv_environment,cloud_name,shard,instance_pool_size,wait_for_
 }
 
 def validateShard(hcv_environment,shards) {
-    def validateShard = build job: 'validate-shard',wait: false,parameters: [
+    def validateShard = build job: 'validate-shards',wait: false,parameters: [
         [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: hcv_environment],
         [$class: 'StringParameterValue', name: 'SHARDS', value: shards]
     ]
