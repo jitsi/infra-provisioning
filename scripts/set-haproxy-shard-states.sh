@@ -32,7 +32,7 @@ RET=0
 if [ "$SET_SIGNAL_STATE" == "true" ]; then
   export SHARDS_READY
   export SHARDS_DRAIN
-  $LOCAL/set-signal-shard-states.sh $ANSIBLE_SSH_USER
+  $LOCAL_PATH/set-signal-shard-states.sh $ANSIBLE_SSH_USER
   if [ $? -gt 0 ]; then
     echo "Signal drain failed, shard states likely to be inconsistent"
     RET=2
