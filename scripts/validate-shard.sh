@@ -101,7 +101,7 @@ fi
 
 [ -z $TORTURE_BRANCH ] && TORTURE_BRANCH="master"
 
-[ -z "$TORTURE_PATH" ] && TORTURE_PATH="../../../test-results/$TEST_ID"
+[ -z "$TORTURE_PATH" ] && TORTURE_PATH="../test-results/$TEST_ID"
 
 [ -d "$TORTURE_PATH" ] || mkdir -p $TORTURE_PATH
 
@@ -137,7 +137,7 @@ ansible-playbook --verbose ansible/torturetest-shard-locally.yml \
 -e "ec2_keypair=$EC2_SSH_KEYPAIR" \
 -e "ec2_torture_image_id=$TORTURE_IMAGE_ID" \
 -e "infra_path=$(realpath $LOCAL_PATH/../../..)" \
---vault-password-file ../../.vault-password.txt \
+--vault-password-file .vault-password.txt \
 --tags "$DEPLOY_TAGS"
 
 if [ $? -eq 0 ]; then
