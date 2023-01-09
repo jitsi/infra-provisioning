@@ -1,6 +1,6 @@
 - job:
-    name: reconfigure-autoscaler-group
-    display-name: reconfigure autoscaler group
+    name: reconfigure-autoscaler-desired-values
+    display-name: reconfigure autoscaler desired values
     concurrent: true
     parameters:
       - string:
@@ -25,6 +25,18 @@
           description: "Set this ONLY to OVERWRITE the default value"
           trim: true
       - string:
+          name: MIN_DESIRED
+          description: "Minimum instance count. Setting a value is optional"
+          trim: true
+      - string:
+          name: MAX_DESIRED
+          description: "Maximum instance count. Setting a value is optional"
+          trim: true
+      - string:
+          name: DESIRED_COUNT
+          description: "Desired instance count. Setting a value is optional"
+          trim: true
+      - string:
           name: INFRA_CUSTOMIZATIONS_REPO
           default: git@github.com:jitsi/infra-customizations.git
           description: "Repo with customized configurations, defaults to 'git@github.com:jitsi/infra-customizations.git'."
@@ -43,5 +55,5 @@
             browser-url: https://github.com/jitsi/infra-provisioning
             submodule:
               recursive: true
-      script-path: jenkins/groovy/reconfigure-autoscaler-group/Jenkinsfile
+      script-path: jenkins/groovy/reconfigure-autoscaler-desired-values/Jenkinsfile
       lightweight-checkout: true
