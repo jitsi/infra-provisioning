@@ -39,9 +39,11 @@ pipeline {
     }
     stage('Provision') {
       steps {
-        sshagent (credentials: ['ssh-ubuntu']) {
-          dir('infra-provisioning') {
-            sh "scripts/validate-shards.sh ${env.ENVIRONMENT} \"${env.SHARDS}\" ubuntu"
+        lock('validate-grid') {
+          sshagent (credentials: ['ssh-ubuntu']) {
+            dir('infra-provisioning') {
+              sh "scripts/validate-shards.sh ${env.ENVIRONMENT} \"${env.SHARDS}\" ubuntu"
+            }
           }
         }
       }
