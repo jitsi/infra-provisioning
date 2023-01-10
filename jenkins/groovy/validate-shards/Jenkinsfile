@@ -2,6 +2,7 @@ pipeline {
   agent any
   options {
     timestamps()
+    ansiColor('xterm')
   }
   stages {
     stage('Prepare/Checkout') { // for display purposes
