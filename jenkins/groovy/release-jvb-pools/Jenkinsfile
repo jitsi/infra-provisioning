@@ -1,0 +1,94 @@
+
+def poolModes() {
+    modes=[:]
+    def modesStr = sh(
+        returnStdout: true,
+        script: """
+        scripts/get-jvb-pool-modes-for-environment.sh"""
+    ).trim();
+
+    if (modesStr.length() > 0) {
+        modes = modesStr.split(' ');
+    }
+    return modes
+}
+
+
+// trigger create shard JVBs job with appropriate parameters
+def createJVBPool(hcv_environment,cloud_name,oracle_region,jvb_version,release_branch,release_number,jvb_pool_mode,video_infra_branch) {
+    def createPool = build job: 'provision-jvb-pool',parameters: [
+        [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: hcv_environment],
+        [$class: 'StringParameterValue', name: 'CLOUD_NAME', value: cloud_name],
+        [$class: 'StringParameterValue', name: 'ORACLE_REGION', value: oracle_region],
+        [$class: 'StringParameterValue', name: 'JVB_VERSION', value: jvb_version],
+        [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: release_branch],
+        [$class: 'StringParameterValue', name: 'RELEASE_NUMBER', value: release_number],
+        [$class: 'StringParameterValue', name: 'JVB_POOL_MODE', value: jvb_pool_mode],
+        [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: video_infra_branch]
+    ]
+
+    return createPool
+}
+
+
+pipeline {
+    agent any
+    options {
+        ansiColor('xterm')
+        timestamps()
+    }
+
+    stages {
+        stage('Prepare/Checkout') { // for display purposes
+            steps {
+                script {
+                    def scmUrl = scm.getUserRemoteConfigs()[0].getUrl()
+                    dir('infra-customization') {
+                        git branch: env.VIDEO_INFRA_BRANCH, url: env.INFRA_CUSTOMIZATIONS_REPO, credentialsId: 'video-infra'
+                    }
+                    dir('infra-provisioning') {
+                        git branch: env.VIDEO_INFRA_BRANCH, url: scmUrl, credentialsId: 'video-infra'
+                    }
+
+                    sh 'cp -a infra-customization/* infra-provisioning'
+                }
+            }
+        }
+        stage ("JVB Pool Release") {
+            steps {
+                script {
+                    echo 'JVB Pool Release Beginning'
+                    sh 'printenv'
+                    def branches = [:]
+
+                    dir("infra-provisioning") {
+                        def modes = poolModes();
+                        if (modes.size() > 0) {
+                            for(i = 0; i < modes.size(); i++) {
+                                def curr = i
+
+                                branches["Pool ${modes[curr]}"] = {
+                                    createJVBPool(
+                                        env.ENVIRONMENT,
+                                        env.CLOUD_NAME,
+                                        env.ORACLE_REGION,
+                                        env.JVB_VERSION,
+                                        env.RELEASE_BRANCH,
+                                        env.RELEASE_NUMBER,
+                                        modes[curr],
+                                        env.VIDEO_INFRA_BRANCH
+                                    )
+                                }
+                            }
+                            // branch out here, run all deploy JVBs pool jobs at once
+                            // only succeed if all branches succeed
+                            parallel branches
+                        } else {
+                            echo 'No pool modes enabled, skipping JVB pools'
+                        }
+                    }
+                }
+            }
+        }
+     }
+}

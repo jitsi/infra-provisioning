@@ -152,11 +152,11 @@ else
 fi
 
 if [[ "$CONSUL_INCLUDE_AWS" == "true" ]]; then
-    SSH_PID=$(ps auxww | grep "ssh \-fNT -L127.0.0.1:$PORT" | awk '{print $2}')
+    SSH_PID=$(ps auxww | grep "ssh \-o StrictHostKeyChecking=no \-fNT -L127.0.0.1:$PORT" | awk '{print $2}')
     kill $SSH_PID
 fi
-    
+
 if [[ "$CONSUL_INCLUDE_OCI" == "true" ]]; then
-    SSH_OCI_PID=$(ps auxww | grep "ssh \-fNT -L127.0.0.1:$PORT_OCI" | awk '{print $2}')
+    SSH_OCI_PID=$(ps auxww | grep "ssh \-o StrictHostKeyChecking=no \-fNT -L127.0.0.1:$PORT_OCI" | awk '{print $2}')
     kill $SSH_OCI_PID
 fi

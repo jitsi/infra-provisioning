@@ -1,0 +1,193 @@
+
+def listPools() {
+    pools=[:]
+    def poolsStr = sh(
+        returnStdout: true,
+        script: """
+        export RELEASE_NUMBER="${env.RELEASE_NUMBER}"
+        scripts/list-jvb-pools.sh"""
+    ).trim();
+
+    if (poolsStr.length() > 0) {
+        pools = poolsStr.split(' ');
+    }
+    return pools
+}
+
+def listShards() {
+    shards=[:]
+    def shardStr = sh(
+        returnStdout: true,
+        script: """
+        export RELEASE_NUMBER="${env.RELEASE_NUMBER}"
+        scripts/list-release-shards.sh ubuntu"""
+    ).trim();
+
+    if (shardStr.length() > 0) {
+        shards = shardStr.split(' ');
+    }
+    return shards
+}
+
+def checkReleaseBackends(hcv_environment) {
+    def ret = 'false';
+
+    def useReleaseBackends = sh(
+       returnStdout: true,
+       script: """#!/bin/bash
+. ./sites/${hcv_environment}/stack-env.sh
+echo \$USE_RELEASE_BACKENDS"""
+    ).trim();
+
+    if (useReleaseBackends.length() > 0) {
+        ret = useReleaseBackends;
+    }
+
+    return ret;
+}
+
+// trigger create shard JVBs job with appropriate parameters
+def deleteJVBPool(hcv_environment,jvb_pool_name) {
+    def deletePool = build job: 'destroy-jvb-pool',parameters: [
+        [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: hcv_environment],
+        [$class: 'StringParameterValue', name: 'JVB_POOL_NAME', value: jvb_pool_name],
+        [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH]
+    ]
+
+    return deletePool
+}
+// trigger create shard JVBs job with appropriate parameters
+def deleteShard(hcv_environment,shard_name) {
+    def deleteShard = build job: 'destroy-shards',parameters: [
+        [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: hcv_environment],
+        [$class: 'StringParameterValue', name: 'SHARDS', value: shard_name],
+        [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH]
+    ]
+
+    return deleteShard
+}
+
+def versioningManagerDeleteRelease(hvc_environment, release_number, force_unpin) {
+    sh(
+        script: """#!/bin/bash
+export VERSIONING_ACTION=DELETE_RELEASE
+export VERSIONING_RELEASE="${release_number}"
+export VERSIONING_FORCE_UNPIN="${force_unpin}"
+scripts/versioning-manager.sh
+"""
+    )
+}
+
+pipeline {
+    agent any
+    options {
+        ansiColor('xterm')
+        timestamps()
+    }
+    stages {
+        stage('Prepare/Checkout') { // for display purposes
+            steps {
+                script {
+                    def scmUrl = scm.getUserRemoteConfigs()[0].getUrl()
+                    dir('infra-customization') {
+                        git branch: env.VIDEO_INFRA_BRANCH, url: env.INFRA_CUSTOMIZATIONS_REPO, credentialsId: 'video-infra'
+                    }
+                    dir('infra-provisioning') {
+                        git branch: env.VIDEO_INFRA_BRANCH, url: scmUrl, credentialsId: 'video-infra'
+                    }
+
+                    sh 'cp -a infra-customization/* infra-provisioning'
+                }
+            }
+        }
+        stage ("load flags") {
+            steps {
+                script {
+                    dir('infra-provisioning') {
+                        useReleaseBackends = checkReleaseBackends(env.ENVIRONMENT)
+                        echo useReleaseBackends
+                    }
+                }
+            }
+        }
+        stage ("Delete Release Resources") {
+            steps {
+                script {
+                    echo 'Release Delete Beginning'
+                    sh 'printenv'
+                    def branches = [:]
+                    withCredentials([
+                        string(credentialsId: 'asap-jwt-kid-dev', variable: 'ASAP_JWT_KID_DEV'),
+                        string(credentialsId: 'asap-jwt-kid-prod', variable: 'ASAP_JWT_KID_PROD'),
+                        file(credentialsId: 'asap-jwt-key-dev', variable: 'ASAP_JWT_KEY_DEV'),
+                        file(credentialsId: 'asap-jwt-key-prod', variable: 'ASAP_JWT_KEY_PROD')
+                    ]) {
+                      sshagent (credentials: ['ssh-ubuntu']) {
+                        dir("infra-provisioning") {
+
+                            def pools = listPools();
+                            def shards = listShards();
+                            if ((pools.size() > 0) || (shards.size()>0)) {
+                                if (pools.size() > 0) {
+                                    for(i = 0; i < pools.size(); i++) {
+                                        def curr = i
+
+                                        branches["Pool ${pools[curr]}"] = {
+                                            deleteJVBPool(
+                                                env.ENVIRONMENT,
+                                                pools[curr]
+                                            )
+                                        }
+                                    }
+                                }
+                                if (shards.size() > 0) {
+                                    for(i = 0; i < shards.size(); i++) {
+                                        def scurr = i
+                                        branches["Shard ${shards[scurr]}"] = {
+                                            deleteShard(
+                                                env.ENVIRONMENT,
+                                                shards[scurr]
+                                            )
+                                        }
+                                    }
+                                }
+                                // branch out here, run all deploy JVBs pool jobs at once
+                                // only succeed if all branches succeed
+                                parallel branches
+                            } else {
+                                echo 'No JVB pools or shards found in release, skipping delete'
+                            }
+                        }
+                      }
+                    }
+                }
+            }
+        }
+        stage ("delete release in versioning manager") {
+            when {
+                expression { useReleaseBackends == 'true' }
+            }
+            steps {
+                withCredentials([
+                    string(credentialsId: 'asap-jwt-kid-dev', variable: 'ASAP_JWT_KID_DEV'),
+                    string(credentialsId: 'asap-jwt-kid-prod', variable: 'ASAP_JWT_KID_PROD'),
+                    file(credentialsId: 'asap-jwt-key-dev', variable: 'ASAP_JWT_KEY_DEV'),
+                    file(credentialsId: 'asap-jwt-key-prod', variable: 'ASAP_JWT_KEY_PROD')
+                ]) {
+                    dir('infra-provisioning') {
+                        versioningManagerDeleteRelease(env.ENVIRONMENT, env.RELEASE_NUMBER, env.FORCE_UNPIN)
+                    }
+                }
+            }
+        }
+        // trigger rotation of load balancers to remove deleted shards
+        stage ("rotate load balancers") {
+            steps {
+                build job: 'reconfigure-haproxy',parameters: [
+                    [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: env.ENVIRONMENT],
+                    [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH]
+                ]
+            }
+        }
+     }
+}

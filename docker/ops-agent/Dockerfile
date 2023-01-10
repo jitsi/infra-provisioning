@@ -28,6 +28,8 @@ RUN echo "deb [signed-by=/usr/share/keyrings/nodesource-archive-keyring.gpg] htt
 RUN apt-get update && apt-get -y install nodejs
 RUN mkdir -p /opt/jitsi && git clone https://github.com/jitsi/jitsi-autoscaler-sidecar.git /opt/jitsi/jitsi-autoscaler-sidecar \
     && cd /opt/jitsi/jitsi-autoscaler-sidecar && npm install && npm run build
+RUN mkdir -p /opt/jitsi && git clone https://github.com/jitsi/token-generator.git /opt/jitsi/token-generator \
+    && cd /opt/jitsi/token-generator && npm install && npm run build
 
 USER jenkins
 RUN mkdir -p /home/jenkins/.ansible/cp
