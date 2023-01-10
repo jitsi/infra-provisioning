@@ -15,11 +15,13 @@ def setupSSH() {
 
 pipeline {
     agent any
+    options {
+        timestamps()
+    }
     stages {
         // output stage, shows off our input parameters
         stage ("setup") {
             steps {
-              timestamps {
                 script {
                     def scmUrl = scm.getUserRemoteConfigs()[0].getUrl()
                     dir('infra-configuration') {
@@ -34,12 +36,10 @@ pipeline {
                     sh 'cp -a infra-customization/* infra-provisioning'
                     sh 'mkdir -p test-results'
                 }
-              }
             }
         }
         stage ("destroy shards") {
             steps {
-              timestamps {
                 script {
                     echo 'shard delete beginning'
                     dir('infra-provisioning') {
@@ -61,7 +61,6 @@ pipeline {
                         }
                     }
                 }
-              }
             }
         }
     }

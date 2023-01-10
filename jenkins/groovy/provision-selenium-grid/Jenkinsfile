@@ -15,11 +15,13 @@ def setupSSH() {
 
 pipeline {
     agent any
+    options {
+        timestamps()
+    }
     stages {
         // output stage, shows off our input parameters
         stage ("setup") {
             steps {
-              timestamps {
                 script {
                     def scmUrl = scm.getUserRemoteConfigs()[0].getUrl()
                     dir('infra-configuration') {
@@ -33,12 +35,10 @@ pipeline {
                     }
                     sh 'cp -a infra-customization/* infra-provisioning'
                 }
-              }
             }
         }
         stage ("selenium grid provisioning") {
             steps {
-              timestamps {
                 script {
                     echo 'selenium provision beginning'
                     dir('infra-provisioning') {
@@ -50,7 +50,7 @@ pipeline {
                             string(credentialsId: 'ansible-vault-password', variable: 'ANSIBLE_VAULT_PASSWORD_PATH'),
                             sshUserPrivateKey(credentialsId: 'ssh-ubuntu', keyFileVariable: 'USER_PRIVATE_KEY_PATH', usernameVariable: 'SSH_USERNAME')
                         ]) {
-                          sshagent (credentials: ['ssh-ubuntu']) {
+                            sshagent (credentials: ['ssh-ubuntu']) {
                             setupOCI()
                             setupAnsible()
                             setupSSH()
@@ -58,11 +58,10 @@ pipeline {
                             export USER_PUBLIC_KEY_PATH=~/.ssh/ssh_key.pub
                             export ORACLE_GIT_BRANCH=\"$RELEASE_BRANCH\"
                             terraform/selenium-grid/create-selenium-grid-oracle.sh $SSH_USERNAME'''
-                          }
+                            }
                         }
                     }
                 }
-              }
             }
         }
     }

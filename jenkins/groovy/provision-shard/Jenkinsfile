@@ -128,27 +128,11 @@ def createShardJVBs(hcv_environment,cloud_name,stack_id,instance_pool_size,shape
     return createJVBs
 }
 
-def scaleShardJVBs(hcv_environment,cloud_name,shard,instance_pool_size,wait_for_postinstall,sleep_seconds_before_postinstall_check,release_number,jvb_autoscaler_enabled) {
-    def scaleShardJVBs = build job: 'scale-jvb-shard',parameters: [
-        [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: hcv_environment],
-        [$class: 'StringParameterValue', name: 'CLOUD_NAME', value: cloud_name],
-        [$class: 'StringParameterValue', name: 'SHARD', value: shard],
-        [$class: 'StringParameterValue', name: 'INSTANCE_POOL_SIZE', value: instance_pool_size],
-        [$class: 'StringParameterValue', name: 'WAIT_FOR_POSTINSTALL', value: wait_for_postinstall],
-        [$class: 'StringParameterValue', name: 'SLEEP_SECONDS_BEFORE_POSTINSTALL_CHECKS', value: sleep_seconds_before_postinstall_check],
-        [$class: 'StringParameterValue', name: 'RELEASE_NUMBER', value: release_number],
-        [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH],
-        [$class: 'StringParameterValue', name: 'JVB_AUTOSCALER_ENABLED', value: jvb_autoscaler_enabled],
-        [$class: 'StringParameterValue', name: 'AUTOSCALER_POOL_MIN_SIZE', value: instance_pool_size],
-    ]
-
-    return scaleShardJVBs
-}
-
 def validateShard(hcv_environment,shards) {
     def validateShard = build job: 'validate-shards',wait: false,parameters: [
         [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: hcv_environment],
-        [$class: 'StringParameterValue', name: 'SHARDS', value: shards]
+        [$class: 'StringParameterValue', name: 'SHARDS', value: shards],
+        [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH]
     ]
 
     return validateShard
