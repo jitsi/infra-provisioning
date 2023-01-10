@@ -44,7 +44,9 @@ pipeline {
         lock('validate-grid') {
           sshagent (credentials: ['ssh-ubuntu']) {
             dir('infra-provisioning') {
-              sh "scripts/validate-shards.sh ${env.ENVIRONMENT} \"${env.SHARDS}\" ubuntu"
+              sh """#!/bin/bash
+              export ANSIBLE_FORCE_COLOR=True
+              scripts/validate-shards.sh ${env.ENVIRONMENT} \"${env.SHARDS}\" ubuntu"""
             }
           }
         }
