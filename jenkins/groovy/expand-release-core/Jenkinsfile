@@ -142,7 +142,7 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                                                 cloud_list[curr],
                                                 env.CORE_CLOUD_PROVIDER,
                                                 "oracle",
-                                                "1",
+                                                shard_count,
                                                 oracle_shards[s],
                                                 env.RELEASE_NUMBER,
                                                 git_branch,
