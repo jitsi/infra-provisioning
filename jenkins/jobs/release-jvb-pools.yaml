@@ -1,19 +1,39 @@
 - job:
-    name: build-image-signal-oracle
+    name: release-jvb-pools
+    display-name: release JVB pools
     concurrent: true
-    display-name: build image Signal oracle
     parameters:
       - string:
-          name: JITSI_MEET_VERSION
-          description: "Controls the version of jitsi meet to build."
+          name: JVB_VERSION
+          description: "JVB image version for shard"
           trim: true
       - string:
-          name: JICOFO_VERSION
-          description: "Controls the version of jicofo to build."
+          name: ENVIRONMENT
+          description: "Environment to build in"
           trim: true
       - string:
-          name: PROSODY_VERSION
-          description: "Controls the version of prosody to build."
+          name: ORACLE_REGION
+          description: "Region to build in"
+          trim: true
+      - string:
+          name: CLOUDS
+          description: "Clouds to build in, defaults to RELEASE_CLOUDS"
+          trim: true
+      - string:
+          name: RELEASE_BRANCH
+          description: "Release branch for shard"
+          trim: true
+      - string:
+          name: VISITORS_ENABLED
+          description: "Visitor flag"
+          trim: true
+      - string:
+          name: INSTANCE_SHAPE_OCPUS
+          description: "CPU count for signal node"
+          trim: true
+      - string:
+          name: MEMORY_IN_GBS
+          description: "Membory for signal node"
           trim: true
       - string:
           name: VIDEO_INFRA_BRANCH
@@ -21,23 +41,15 @@
           description: "Controls checkout branch for infra repos, defaults to 'main'."
           trim: true
       - string:
-          name: ENVIRONMENT
-          default: lonely
-          description: "Environment to build in, defaults to 'lonely'."
+          name: CLOUD_PROVIDER
+          default: oracle
+          description: "Cloud to build JVBs in, defaults to 'oracle'."
           trim: true
       - string:
-          name: CLOUDS
-          description: "List of clouds to copy image into."
+          name: CORE_CLOUD_PROVIDER
+          default: oracle
+          description: "Cloud to build signal node in, defaults to 'oracle'."
           trim: true
-      - string:
-          name: ORACLE_REGION
-          default: us-phoenix-1
-          description: "Region to build in, defaults to 'us-phoenix-1'."
-          trim: true
-      - bool:
-          name: FORCE_BUILD_IMAGE
-          default: false
-          description: "Flag to control whether to force image builds if a matching image exists"
       - string:
           name: INFRA_CONFIGURATION_REPO
           default: git@github.com:jitsi/infra-configuration.git
@@ -62,5 +74,5 @@
             browser-url: https://github.com/jitsi/infra-provisioning
             submodule:
               recursive: true
-      script-path: jenkins/groovy/build-signal-oracle/Jenkinsfile
+      script-path: jenkins/groovy/release-jvb-pools/Jenkinsfile
       lightweight-checkout: true

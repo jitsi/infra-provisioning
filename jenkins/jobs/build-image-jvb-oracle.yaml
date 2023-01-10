@@ -18,6 +18,10 @@
           description: "Environment to build in, defaults to 'lonely'."
           trim: true
       - string:
+          name: CLOUDS
+          description: "List of clouds to copy image into."
+          trim: true
+      - string:
           name: ORACLE_REGION
           default: us-phoenix-1
           description: "Region to build in, defaults to 'us-phoenix-1'."

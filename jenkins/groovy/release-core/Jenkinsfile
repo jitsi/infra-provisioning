@@ -1,0 +1,369 @@
+// splits incoming clouds into a list
+// alternately loads defaults for environment into a list
+def split_clouds(shard_environment,cloud_names) {
+    if (cloud_names) {
+        clouds = cloud_names.split(' ')
+    } else {
+        clouds = sh(
+            returnStdout: true,
+            script: 'scripts/release_clouds.sh '+shard_environment
+        ).trim().split(' ');
+    }
+    return clouds
+}
+
+// splits the string like jicofoVer-jitsiMeetVer-ProsodyVer starting on the right
+// so we can have '-' in the jicofoVer
+def rsplit(str, number_parts) {
+    def parts = str.split('-').reverse();
+    def result = new String[number_parts];
+    def lastPart = "";
+
+    parts.eachWithIndex { a, i ->
+        if (i < number_parts - 1) {
+            result[i] = a;
+        }
+        else {
+            lastPart = a + "-" + lastPart;
+        }
+    }
+    // drop the last '-'
+    result[number_parts - 1] = lastPart.substring(0, lastPart.length() - 1);;
+    return result.reverse();
+}
+
+// generates unique new shard numbers for environment based on existing shards currently deployed
+def generate_numbers(shard_environment,cloud_list) {
+    def shardNumbers = sh(
+        returnStdout: true,
+        script: """
+            export ENVIRONMENT=${shard_environment}
+            export COUNT=${cloud_list.size()}
+            scripts/shard.sh new ubuntu"""
+    ).split(' ');
+
+    return shardNumbers;
+}
+
+def reconfigureEnvironment(hcv_environment) {
+    def result = build job: 'reconfigure-autoscaler-environment',wait: true,parameters: [
+        [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: hcv_environment],
+        [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH]
+    ]
+    return result
+}
+
+def checkReleaseBackends(hcv_environment) {
+    def ret = 'false';
+
+    def useReleaseBackends = sh(
+       returnStdout: true,
+       script: """#!/bin/bash
+. ./sites/${hcv_environment}/stack-env.sh
+echo \$USE_RELEASE_BACKENDS"""
+    ).trim();
+
+    if (useReleaseBackends.length() > 0) {
+        ret = useReleaseBackends;
+    }
+
+    return ret;
+}
+
+def enableReleaseAlarms(hcv_environment, release_number) {
+    sh(
+        script:"""#!/bin/bash
+export RELEASE_NUMBER="${release_number}"
+scripts/enable-alarms-for-shards.sh ubuntu"""
+    )
+}
+
+// global var to track git branch from env or new tags
+def git_branch
+
+// use incoming branch/tag or tag repo with new tag based on build ID
+// either way set it into git_branch variable to use later
+def tagRelease(release) {
+    git_branch = 'release-'+release
+    env.RELEASE_BRANCH = git_branch
+    sh 'git tag ' + git_branch
+    sh 'git push origin '+git_branch
+    return git_branch
+}
+
+// trigger build JVB image oracle job with appropriate parameters
+def buildJvbImage(jvbVersion,clouds,force_build_jvb_image,video_infra_branch) {
+    def buildImage = build job: 'build-image-jvb-oracle',parameters: [
+        [$class: 'StringParameterValue', name: 'JVB_VERSION', value: jvbVersion],
+        [$class: 'StringParameterValue', name: 'CLOUDS', value: clouds],
+        [$class: 'BooleanParameterValue', name: 'FORCE_BUILD_IMAGE', value: force_build_jvb_image],
+        [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: video_infra_branch]
+    ]
+
+    return buildImage
+}
+
+// trigger build JVB image oracle job with appropriate parameters
+def buildSignalImage(signalVersion,hcv_environment,clouds,force_build_image,video_infra_branch) {
+    def signalVersionParts = rsplit(signalVersion, 3);
+    def buildImage = build job: 'build-image-signal-oracle',parameters: [
+        [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: hcv_environment],
+        [$class: 'StringParameterValue', name: 'CLOUDS', value: clouds],
+        [$class: 'StringParameterValue', name: 'JICOFO_VERSION', value: signalVersionParts[0]],
+        [$class: 'StringParameterValue', name: 'JITSI_MEET_VERSION', value: signalVersionParts[1]],
+        [$class: 'StringParameterValue', name: 'PROSODY_VERSION', value: signalVersionParts[2]],
+        [$class: 'BooleanParameterValue', name: 'FORCE_BUILD_IMAGE', value: force_build_image],
+        [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: video_infra_branch]
+    ]
+
+    return buildImage
+}
+
+def releaseJVBPools(shard_environment,cloud_name,release_number,gitBranch,jvbVersion) {
+    def jvbPools = build job: 'release-jvb-pools',parameters: [
+        [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: shard_environment],
+        [$class: 'StringParameterValue', name: 'CLOUD_NAME', value: cloud_name],
+        [$class: 'StringParameterValue', name: 'JVB_VERSION', value: jvbVersion],
+        [$class: 'StringParameterValue', name: 'RELEASE_NUMBER', value: release_number],
+        [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: gitBranch]
+    ]
+
+    return jvbPools
+}
+
+// trigger create shard job with appopriate parameters
+def createShard(shard_environment,cloud_name,jvb_cloud_provider,core_cloud_provider,shard_count,shard_number,release_number,gitBranch,jvbVersion,signalVersion) {
+    def createShard = build job: 'provision-shard',parameters: [
+        [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: shard_environment],
+        [$class: 'StringParameterValue', name: 'CLOUD_NAME', value: cloud_name],
+        [$class: 'StringParameterValue', name: 'CLOUD_PROVIDER', value: jvb_cloud_provider],
+        [$class: 'StringParameterValue', name: 'CORE_CLOUD_PROVIDER', value: core_cloud_provider],
+        [$class: 'StringParameterValue', name: 'SHARD_COUNT', value: shard_count],
+        [$class: 'StringParameterValue', name: 'SHARD_NUMBERS', value: shard_number],
+        [$class: 'StringParameterValue', name: 'SIGNAL_VERSION', value: signalVersion],
+        [$class: 'StringParameterValue', name: 'JVB_VERSION', value: jvbVersion],
+        [$class: 'StringParameterValue', name: 'RELEASE_NUMBER', value: release_number],
+        [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: gitBranch],
+        [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH]
+    ]
+
+    return createShard
+}
+
+def versioningManagerCreateRelease(shard_environment, release_number, signal_version, jvb_version) {
+    sh(
+        script: """#!/bin/bash
+export VERSIONING_ACTION=CREATE_RELEASE
+export VERSIONING_RELEASE="${release_number}"
+export VERSIONING_RELEASE_STATUS=PENDING
+export SIGNAL_VERSION="${signal_version}"
+export JVB_VERSION="${jvb_version}"
+scripts/versioning-manager.sh
+"""
+    )
+}
+
+pipeline {
+    agent any
+    options {
+        ansiColor('xterm')
+        timestamps()
+    }
+    stages {
+        stage('Prepare/Checkout') { // for display purposes
+            steps {
+                script {
+                    def scmUrl = scm.getUserRemoteConfigs()[0].getUrl()
+                    dir('infra-customization') {
+                        git branch: env.VIDEO_INFRA_BRANCH, url: env.INFRA_CUSTOMIZATIONS_REPO, credentialsId: 'video-infra'
+                    }
+                    dir('infra-configuration') {
+                        git branch: env.VIDEO_INFRA_BRANCH, url: env.INFRA_CONFIGURATION_REPO, credentialsId: 'video-infra'
+                    }
+                    dir('infra-provisioning') {
+                        git branch: env.VIDEO_INFRA_BRANCH, url: scmUrl, credentialsId: 'video-infra'
+                    }
+
+                    sh 'cp -a infra-customization/* infra-provisioning'
+                    sh 'cp -a infra-customization/* infra-configuration'
+                    withCredentials([
+                        file(credentialsId: 'oci-jenkins-config', variable: 'OCI_CLI_CONFIG_FILE'),
+                        file(credentialsId: 'oci-jenkins-pem', variable: 'OCI_CLI_KEY_FILE'),
+                        string(credentialsId: 'ansible-vault-password', variable: 'ANSIBLE_VAULT_PASSWORD_VALUE')
+                    ]) {
+                        sh '''#!/bin/bash
+                        mkdir -p ~/.oci
+                        cp "$OCI_CLI_CONFIG_FILE" ~/.oci/config
+                        cp "$OCI_CLI_KEY_FILE" ~/.oci/private-key.pem'''
+                        sh 'echo "$ANSIBLE_VAULT_PASSWORD_VALUE" > infra-provisioning/.vault-password.txt'
+                        sh 'echo "$ANSIBLE_VAULT_PASSWORD_VALUE" > infra-configuration/.vault-password.txt'
+                    }
+                }
+            }
+        }
+        // output stage, shows off our input parameters
+        stage ("setup") {
+            steps {
+                echo 'Jitsi Release Creation Beginning'
+                echo "JVB VERSION ${env.JVB_VERSION}"
+                echo "SIGNAL VERSION ${env.SIGNAL_VERSION}"
+            }
+        }
+        stage ("load flags") {
+            steps {
+                script {
+                    dir('infra-provisioning') {
+                        useReleaseBackends = checkReleaseBackends(env.ENVIRONMENT)
+                        echo useReleaseBackends
+                    }
+                }
+            }
+        }
+        // tag the new release or load git_branch from input parameters
+        stage("tag release") {
+            steps {
+                sshagent (credentials: ['video-infra']) {
+                    script {
+                        if (!env.RELEASE_BRANCH) {
+                            git_branch = tagRelease(env.BUILD_ID)
+                            dir('infra-configuration') {
+                                tagRelease(env.BUILD_ID)
+                            }
+                            dir('infra-customization') {
+                                tagRelease(env.BUILD_ID)
+                            }
+                        } else {
+                            git_branch = env.RELEASE_BRANCH
+                        }
+                    }
+                }
+            }
+        }
+        stage ("create in versioning manager") {
+            when {
+                expression { useReleaseBackends == 'true' }
+            }
+            steps {
+                withCredentials([
+                    string(credentialsId: 'asap-jwt-kid-dev', variable: 'ASAP_JWT_KID_DEV'),
+                    string(credentialsId: 'asap-jwt-kid-prod', variable: 'ASAP_JWT_KID_PROD'),
+                    file(credentialsId: 'asap-jwt-key-dev', variable: 'ASAP_JWT_KEY_DEV'),
+                    file(credentialsId: 'asap-jwt-key-prod', variable: 'ASAP_JWT_KEY_PROD')
+                ]) {
+                    script {
+                        dir('infra-provisioning') {
+                            versioningManagerCreateRelease(env.ENVIRONMENT, env.BUILD_ID, env.SIGNAL_VERSION, env.JVB_VERSION)
+                        }
+                    }
+                }
+            }
+        }
+        // create images for oracle
+        stage("build oracle images") {
+            parallel {
+                stage("build JVB image in Oracle") {
+                    when {
+                        expression {env.CLOUD_PROVIDER == 'oracle'}
+                    }
+                    steps {
+                        script {
+                            buildJvbImage(env.JVB_VERSION,
+                                    env.CLOUDS,
+                                    env.FORCE_BUILD_JVB_IMAGE,
+                                    env.VIDEO_INFRA_BRANCH
+                                    )
+                        }
+                    }
+                }
+
+                stage("build signal image in Oracle") {
+                    when {
+                        expression {env.CORE_CLOUD_PROVIDER == 'oracle'}
+                    }
+                    steps {
+                        script {
+                            buildSignalImage(env.SIGNAL_VERSION,
+                                env.ENVIRONMENT,
+                                env.CLOUDS,
+                                env.FORCE_BUILD_SIGNAL_IMAGE,
+                                env.VIDEO_INFRA_BRANCH
+                            )
+                        }
+                    }
+                }
+            }
+        }
+        stage("create new shards") {
+            steps {
+                script {
+                    dir('infra-provisioning') {
+                        echo "Create shards in ${env.ENVIRONMENT} clouds ${env.CLOUDS}";
+                        def cloud_list = split_clouds(env.ENVIRONMENT,env.CLOUDS);
+                        echo "cloud list ${cloud_list}";
+                        def shard_numbers = generate_numbers(env.ENVIRONMENT,cloud_list);
+                        def branches = [:]
+                        for(i = 0; i < cloud_list.size(); i++) {
+                            def curr = i
+                            branches["JVB Pools ${cloud_list[curr]}"] = {
+                                releaseJVBPools(env.ENVIRONMENT,
+                                    cloud_list[curr],
+                                    env.BUILD_ID,
+                                    git_branch,
+                                    env.JVB_VERSION
+                                )
+                            }
+                            echo "pipeline branch ${curr} for shard ${cloud_list[curr]}";
+                            def shard_count = shard_numbers[curr].split(' ').size().toString()
+                            branches["Shard ${cloud_list[curr]}"] = {
+                                createShard(env.ENVIRONMENT,
+                                    cloud_list[curr],
+                                    env.CLOUD_PROVIDER,
+                                    env.CORE_CLOUD_PROVIDER,
+                                    shard_count,
+                                    shard_numbers[curr],
+                                    env.BUILD_ID,
+                                    git_branch,
+                                    env.JVB_VERSION,
+                                    env.SIGNAL_VERSION
+                                )
+                            }
+                        }
+                        // branch out here, run all create shard jobs at once
+                        // only succeed if all branches succeed
+                        parallel branches
+                    }
+                }
+            }
+        }
+
+        stage("trigger autoscaler reconfiguration") {
+            steps {
+                script {
+                    reconfigureEnvironment(env.ENVIRONMENT)
+                }
+            }
+        }
+
+        stage("enable shard alarms") {
+            steps {
+                script {
+                  sshagent (credentials: ['ssh-ubuntu']) {
+                    enableReleaseAlarms(env.ENVIRONMENT,env.BUILD_ID)
+                  }
+                }
+            }
+        }
+
+        stage ("update load balancers with new shards") {
+            steps {
+                script {
+                    build job: 'reconfigure-haproxy',parameters: [
+                        [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: env.ENVIRONMENT],
+                        [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH]
+                    ]
+                }
+            }
+        }
+    }
+}
+
