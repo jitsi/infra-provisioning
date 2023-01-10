@@ -12,14 +12,6 @@ def split_clouds(shard_environment,cloud_names) {
     return clouds
 }
 
-def reconfigureEnvironment(hcv_environment) {
-    def result = build job: 'reconfigure-autoscaler-environment',wait: true,parameters: [
-        [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: hcv_environment],
-        [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH]
-    ]
-    return result
-}
-
 // generates unique new shard numbers for environment based on existing shards currently deployed
 def expand_release() {
     sh(
@@ -101,6 +93,7 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                             string(credentialsId: 'jenkins-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
                             string(credentialsId: 'jenkins-aws-id', variable: 'AWS_ACCESS_KEY_ID')
                     ]) {
+                      sshagent (credentials: ['ssh-ubuntu']) {
                         dir('infra-provisioning') {
                             echo "Create shards in ${env.ENVIRONMENT} clouds ${env.CLOUDS}";
                             def cloud_list = split_clouds(env.ENVIRONMENT,env.CLOUDS);
@@ -164,15 +157,17 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                             // only succeed if all branches succeed
                             parallel branches                    
                         }
+                      }
                     }
                 }
             }
         }
         stage("Trigger autoscaler reconfiguration") {
             steps {
-                script {
-                    reconfigureEnvironment(env.ENVIRONMENT)
-                }
+                build job: 'reconfigure-autoscaler-environment',wait: true,parameters: [
+                    [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: env.ENVIRONMENT],
+                    [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH]
+                ]
             }
         }
         // trigger rotation of load balancers to discover new shards
