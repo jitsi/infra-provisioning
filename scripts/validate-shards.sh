@@ -1,4 +1,5 @@
 #!/bin/bash
+set -x
 
 LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
