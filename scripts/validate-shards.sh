@@ -18,7 +18,7 @@ run_check_validate() {
 #jenkins build number, we get it from jenkins
 [ -z $BUILD_NUMBER ] && BUILD_NUMBER='N/A'
 
-[ -z "$TORTURE_PATH" ] && TORTURE_PATH="../../../test-results-$TEST_ID"
+[ -z "$TORTURE_PATH" ] && TORTURE_PATH="../test-results-$TEST_ID"
 
 [ -d "$TORTURE_PATH" ] || mkdir -p $TORTURE_PATH
 
