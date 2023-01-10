@@ -126,7 +126,8 @@ def releaseJVBPools(shard_environment,cloud_name,release_number,gitBranch,jvbVer
         [$class: 'StringParameterValue', name: 'CLOUD_NAME', value: cloud_name],
         [$class: 'StringParameterValue', name: 'JVB_VERSION', value: jvbVersion],
         [$class: 'StringParameterValue', name: 'RELEASE_NUMBER', value: release_number],
-        [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: gitBranch]
+        [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: gitBranch],
+        [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH]
     ]
 
     return jvbPools
