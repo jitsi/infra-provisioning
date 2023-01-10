@@ -46,7 +46,7 @@ fi
 #do something
 ALL_PASSED=true
 for s in $IN_SHARDS; do
-  run_check_validate $IN_ENVIRONMENT $s 2>&1 | tee $TORTURE_PATH/validate-output-$s
+  run_check_validate $IN_ENVIRONMENT $s 2>&1 > $TORTURE_PATH/validate-output-$s
   success=$?
   if [ "$success" -eq 0 ]; then
     echo "Wait successful $s $success"
