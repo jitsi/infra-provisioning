@@ -7,11 +7,13 @@ def setupOCI() {
 
 pipeline {
     agent any
+    options {
+        timestamps()
+    }
     stages {
         // output stage, shows off our input parameters
         stage ("setup") {
             steps {
-              timestamps {
                 echo 'Jibri Release'
                 echo "JIBRI VERSION ${env.JIBRI_VERSION}"
                 script {
@@ -27,12 +29,10 @@ pipeline {
                     }
                     sh 'cp -a infra-customization/* infra-provisioning'
                 }
-              }
             }
         }
         stage ("consul rotation") {
             steps {
-              timestamps {
                 script {
                     echo 'consul destruction beginning'
                     dir('infra-provisioning') {
@@ -47,8 +47,7 @@ pipeline {
                         }
                     }
                 }
-              }
             }
         }
-     }
+    }
 }

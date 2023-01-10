@@ -1,0 +1,444 @@
+def shardPropertiesOracle
+def usedInstancePoolSize2_4
+def usedInstancePoolSize1_4
+def scale_to_size_per_shard = [:]
+
+def makeShardProperties(cloud_name,hcv_environment,default_instance_pool_size_e_4,default_instance_pool_size_e_3,default_instance_pool_size_2_4,default_instance_pool_size_1_4) {
+
+    def makeShardProperties = sh(
+        returnStdout: true,
+        script: """#!/bin/bash
+         export CLOUD_NAME=${cloud_name}
+         export HCV_ENVIRONMENT=${hcv_environment}
+         export JVB_AUTOSCALER_ENABLED=true
+         scripts/make-shard-properties-oracle.sh"""
+    )
+    shardPropertiesOracleLocal = readJSON file: 'shard-properties-oracle.json'
+
+    return shardPropertiesOracleLocal
+}
+
+def split_stacks() {
+
+    clouds = sh(
+       returnStdout: true,
+       script: 'echo $(cat "test-results/shard_create_output.txt" | jq .StackId | jq --slurp .[] | jq -r .)'
+    ).trim().split(' ');
+
+    return clouds
+}
+
+def enableShardAlarms(hcv_environment, shardList) {
+    sh(
+        script:"""#!/bin/bash
+        export SHARDS="${shardList}"
+        echo "Sleeping 300 to ensure external health check stats are updated"
+        sleep 300
+        scripts/enable-alarms-for-shards.sh ubuntu"""
+    )
+}
+
+def waitShardHealth(hcv_environment, shardList) {
+    sh(
+        script:"""#!/bin/bash
+        export SHARDS="${shardList}"
+        scripts/wait-healthy-shards.sh ubuntu"""
+    )
+}
+
+def markShardReady(hcv_environment, shardList) {
+    sh(
+        script:"""#!/bin/bash
+        export SHARDS_READY="${shardList}"
+        SKIP_NON_SIGNAL_STATE=true scripts/set-haproxy-shard-states.sh ubuntu"""
+    )
+}
+
+def checkSkipShardJVBs(hcv_environment) {
+    def ret = 'false';
+
+    def skipShardJVBs = sh(
+       returnStdout: true,
+       script: """#!/bin/bash
+. ./sites/${hcv_environment}/stack-env.sh
+echo \$SKIP_SHARD_JVBS"""
+    ).trim();
+
+    if (skipShardJVBs.length() > 0) {
+        ret = skipShardJVBs;
+    }
+
+    return ret;
+}
+
+def checkReleaseBackends(hcv_environment) {
+    def ret = 'false';
+
+    def useReleaseBackends = sh(
+       returnStdout: true,
+       script: """#!/bin/bash
+. ./sites/${hcv_environment}/stack-env.sh
+echo \$USE_RELEASE_BACKENDS"""
+    ).trim();
+
+    if (useReleaseBackends.length() > 0) {
+        ret = useReleaseBackends;
+    }
+
+    return ret;
+}
+
+def newShards(hcv_environment,cloud_name,core_provider,workspace,release_branch,release_number) {
+
+    def replyShards = sh(
+        script: """#!/bin/bash
+         export USER_PUBLIC_KEY_PATH=~/.ssh/ssh_key.pub
+         ssh-keygen -y -f "\$USER_PRIVATE_KEY_PATH" > "\$USER_PUBLIC_KEY_PATH"
+         export HCV_ENVIRONMENT=${hcv_environment}
+         export CLOUD_NAME=${cloud_name}
+         export GIT_BRANCH=${release_branch}
+         export ORACLE_GIT_BRANCH=${release_branch}
+         export CORE_CLOUD_PROVIDER=${core_provider}
+         export RELEASE_NUMBER=${release_number}
+         export SHARD_CREATE_OUTPUT_FILE=${workspace}/test-results/shard_create_output.txt
+         export NEW_SHARDS_FILE=${workspace}/test-results/new_shards.properties
+         scripts/create-and-wait-shards.sh ubuntu"""
+    );
+
+    return replyShards
+}
+
+// trigger create shard JVBs job with appropriate parameters
+def createShardJVBs(hcv_environment,cloud_name,stack_id,instance_pool_size,shape,availability_domains,jvb_version,jvb_image_ocid,release_branch,release_number,jvb_autoscaler_enabled) {
+    def createJVBs = build job: 'provision-jvb-shard',parameters: [
+        [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: hcv_environment],
+        [$class: 'StringParameterValue', name: 'CLOUD_NAME', value: cloud_name],
+        [$class: 'StringParameterValue', name: 'STACK_ID', value: stack_id],
+        [$class: 'StringParameterValue', name: 'INSTANCE_POOL_SIZE', value: instance_pool_size],
+        [$class: 'StringParameterValue', name: 'SHAPE', value: shape],
+        [$class: 'StringParameterValue', name: 'AVAILABILITY_DOMAINS', value: availability_domains],
+        [$class: 'StringParameterValue', name: 'JVB_VERSION', value: jvb_version],
+        [$class: 'StringParameterValue', name: 'JVB_IMAGE_OCID', value: jvb_image_ocid],
+        [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: release_branch],
+        [$class: 'StringParameterValue', name: 'RELEASE_NUMBER', value: release_number],
+        [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH],
+        [$class: 'StringParameterValue', name: 'JVB_AUTOSCALER_ENABLED', value: jvb_autoscaler_enabled],
+    ]
+
+    return createJVBs
+}
+
+def validateShard(hcv_environment,shards) {
+    def validateShard = build job: 'validate-shards',wait: false,parameters: [
+        [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: hcv_environment],
+        [$class: 'StringParameterValue', name: 'SHARDS', value: shards],
+        [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH]
+    ]
+
+    return validateShard
+}
+
+def reconfigureEnvironment(hcv_environment) {
+    def result = build job: 'reconfigure-autoscaler-environment',wait: true,parameters: [
+        [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: hcv_environment],
+        [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH]
+    ]
+    return result
+}
+
+def skipShardJVBs
+
+pipeline {
+    agent any
+    options {
+        ansiColor('xterm')
+        timestamps()
+    }
+    stages {
+        stage('Prepare/Checkout') { // for display purposes
+            steps {
+                script {
+                    def scmUrl = scm.getUserRemoteConfigs()[0].getUrl()
+                    dir('infra-customization') {
+                        git branch: env.VIDEO_INFRA_BRANCH, url: env.INFRA_CUSTOMIZATIONS_REPO, credentialsId: 'video-infra'
+                    }
+                    dir('infra-configuration') {
+                        git branch: env.VIDEO_INFRA_BRANCH, url: env.INFRA_CONFIGURATION_REPO, credentialsId: 'video-infra'
+                    }
+                    dir('infra-provisioning') {
+                        git branch: env.VIDEO_INFRA_BRANCH, url: scmUrl, credentialsId: 'video-infra'
+                    }
+
+                    sh 'cp -a infra-customization/* infra-provisioning'
+                    sh 'cp -a infra-customization/* infra-configuration'
+                    withCredentials([
+                        file(credentialsId: 'oci-jenkins-config', variable: 'OCI_CLI_CONFIG_FILE'),
+                        file(credentialsId: 'oci-jenkins-pem', variable: 'OCI_CLI_KEY_FILE'),
+                        string(credentialsId: 'ansible-vault-password', variable: 'ANSIBLE_VAULT_PASSWORD_VALUE')
+                    ]) {
+                        sh '''#!/bin/bash
+                        mkdir -p ~/.oci
+                        cp "$OCI_CLI_CONFIG_FILE" ~/.oci/config
+                        cp "$OCI_CLI_KEY_FILE" ~/.oci/private-key.pem'''
+                        sh 'echo "$ANSIBLE_VAULT_PASSWORD_VALUE" > infra-provisioning/.vault-password.txt'
+                        sh 'echo "$ANSIBLE_VAULT_PASSWORD_VALUE" > infra-configuration/.vault-password.txt'
+                    }
+                }
+            }
+        }
+        stage ("Setup") {
+            steps {
+                echo 'Jitsi Shards Creation Beginning'
+                sh 'printenv'
+                sh 'mkdir -p test-results'
+            }
+        }
+        stage("load flags") {
+            steps {
+                script {
+                    dir("infra-provisioning") {
+                        skipShardJVBs = checkSkipShardJVBs(env.ENVIRONMENT)
+                        echo skipShardJVBs
+                        useReleaseBackends = checkReleaseBackends(env.ENVIRONMENT)
+                        echo useReleaseBackends
+                    }
+                }
+            }
+        }
+        stage ("Make shard properties Oracle") {
+            when {
+                allOf{
+                   expression {env.CLOUD_PROVIDER == 'oracle'}
+                   expression {skipShardJVBs == 'false'}
+                }
+            }
+            steps {
+                script {
+                    if (! env.INSTANCE_POOL_SIZE_E_4) {
+                        usedInstancePoolSizeE_4 = 2
+                    } else {
+                        usedInstancePoolSizeE_4 = env.INSTANCE_POOL_SIZE_E_4 as int
+                    }
+
+                    if (! env.INSTANCE_POOL_SIZE_E_3) {
+                        usedInstancePoolSizeE_3 = 2
+                    } else {
+                        usedInstancePoolSizeE_3 = env.INSTANCE_POOL_SIZE_E_3 as int
+                    }
+
+                    if (! env.INSTANCE_POOL_SIZE_2_4) {
+                        usedInstancePoolSize2_4 = 2
+                    } else {
+                        usedInstancePoolSize2_4 = env.INSTANCE_POOL_SIZE_2_4 as int
+                    }
+
+                    if (! env.INSTANCE_POOL_SIZE_1_4) {
+                        usedInstancePoolSize1_4 = 2
+                    } else {
+                        usedInstancePoolSize1_4 = env.INSTANCE_POOL_SIZE_1_4 as int
+                    }
+                    dir('infra-provisioning') {
+                        shardPropertiesOracle = makeShardProperties(env.CLOUD_NAME,env.ENVIRONMENT,usedInstancePoolSizeE_4,usedInstancePoolSizeE_3,usedInstancePoolSize2_4,usedInstancePoolSize1_4)
+                    }
+                }
+            }
+        }
+
+        stage ("Create AWS shards") {
+            when {
+                allOf{
+                   expression {env.CORE_CLOUD_PROVIDER == 'aws'}
+                }
+            }
+            steps {
+                script {
+                    dir('infra-provisioning') {
+                        withCredentials([
+                            string(credentialsId: 'jenkins-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
+                            string(credentialsId: 'jenkins-aws-id', variable: 'AWS_ACCESS_KEY_ID'),
+                            sshUserPrivateKey(credentialsId: 'ssh-ubuntu', keyFileVariable: 'USER_PRIVATE_KEY_PATH',usernameVariable: 'SSH_USERNAME')
+                        ]) {
+                            newShards(env.ENVIRONMENT,env.CLOUD_NAME,env.CORE_CLOUD_PROVIDER,env.WORKSPACE,env.RELEASE_BRANCH,env.RELEASE_NUMBER)
+                        }
+                    }
+                }
+            }
+        }
+        stage ("Create Oracle shards") {
+            when {
+                allOf{
+                   expression {env.CORE_CLOUD_PROVIDER == 'oracle'}
+                }
+            }
+            steps {
+                dir('infra-provisioning') {
+                    withCredentials([
+                        string(credentialsId: 'oci-jenkins-terraform-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
+                        string(credentialsId: 'oci-jenkins-terraform-aws-id', variable: 'AWS_ACCESS_KEY_ID'),
+                        sshUserPrivateKey(credentialsId: 'ssh-ubuntu', keyFileVariable: 'USER_PRIVATE_KEY_PATH',usernameVariable: 'SSH_USERNAME')
+                    ]) {
+                        script {
+                            newShards(env.ENVIRONMENT,env.CLOUD_NAME,env.CORE_CLOUD_PROVIDER,env.WORKSPACE,env.RELEASE_BRANCH,env.RELEASE_NUMBER)
+                        }
+                    }
+                }
+            }
+        }
+        stage("Deploy few Oracle JVBs and Downscale AWS JVBs") {
+            when {
+                allOf{
+                   expression {env.CLOUD_PROVIDER == 'oracle'}
+                   expression {skipShardJVBs == 'false'}
+                }
+            }
+            steps {
+                script {
+                    def branches = [:]
+                    def stack_ids = split_stacks()
+                    def out_shard_count_shape_e_4_as_int = shardPropertiesOracle.OUT_SHARD_COUNT_SHAPE_E_4 as int
+                    def out_shard_count_shape_e_3_as_int = shardPropertiesOracle.OUT_SHARD_COUNT_SHAPE_E_3 as int
+                    def out_shard_count_shape_2_4_as_int = shardPropertiesOracle.OUT_SHARD_COUNT_SHAPE_2_4 as int
+                    def out_shard_count_shape_1_4_as_int = shardPropertiesOracle.OUT_SHARD_COUNT_SHAPE_1_4 as int
+                    def out_shard_pool_size_e_4_as_int = shardPropertiesOracle.OUT_SHARD_POOL_SIZE_E_4 as int
+                    def out_shard_pool_size_e_3_as_int = shardPropertiesOracle.OUT_SHARD_POOL_SIZE_E_3 as int
+                    def out_shard_pool_size_2_4_as_int = shardPropertiesOracle.OUT_SHARD_POOL_SIZE_2_4 as int
+                    def out_shard_pool_size_1_4_as_int = shardPropertiesOracle.OUT_SHARD_POOL_SIZE_1_4 as int
+                    def jvb_autoscaler_enabled=shardPropertiesOracle.OUT_JVB_AUTOSCALER_ENABLED.toString()
+
+                    for(i = 0; i < stack_ids.size(); i++) {
+                        def curr = i
+                        scale_to_size_per_shard[curr] = 0
+                    }
+
+                    for(i = 0; i < stack_ids.size(); i++) {
+                        def curr = i
+                        // Shards in new_shards.properties are in reverse order than the stacks
+                        def shard_index = stack_ids.size() - curr - 1;
+                        def instance_pool_size
+                        def shape
+                        def availability_domains
+                        echo "pipeline branch ${curr}";
+                        if (curr < out_shard_count_shape_e_4_as_int){
+                          instance_pool_size=out_shard_pool_size_e_4_as_int
+                          shape="VM.Standard.E4.Flex"
+                          availability_domains=shardPropertiesOracle.OUT_AVAILABILITY_DOMAINS_SHAPE_E_4.toString()
+                        } else if (curr - out_shard_count_shape_e_4_as_int < out_shard_count_shape_e_3_as_int){
+                          instance_pool_size=out_shard_pool_size_e_3_as_int
+                          shape="VM.Standard.E3.Flex"
+                          availability_domains=shardPropertiesOracle.OUT_AVAILABILITY_DOMAINS_SHAPE_E_3.toString()
+                        } else if (curr - out_shard_count_shape_e_4_as_int -  out_shard_count_shape_e_3_as_int < out_shard_count_shape_2_4_as_int){
+                          instance_pool_size=out_shard_pool_size_2_4_as_int
+                          shape="VM.Standard2.4"
+                          availability_domains=shardPropertiesOracle.OUT_AVAILABILITY_DOMAINS_SHAPE_2_4.toString()
+                        } else if (curr - out_shard_count_shape_e_4_as_int - out_shard_count_shape_e_3_as_int - out_shard_count_shape_2_4_as_int < out_shard_count_shape_1_4_as_int){
+                            instance_pool_size=out_shard_pool_size_1_4_as_int
+                            shape="VM.Standard1.4"
+                            availability_domains=shardPropertiesOracle.OUT_AVAILABILITY_DOMAINS_SHAPE_1_4.toString()
+                        } else {
+                            // As we check this before creating shards, this should never happen
+                            echo "Error. No more Oracle instances left to provision the JVBs in the remaining shards"
+                            currentBuild.result = 'FAILURE'
+                            return
+                        }
+
+                        // Deploy a small pool of Oracle JVB instances with checking status via cloud init
+                        def initial_instance_pool_size = env.INITIAL_ORACLE_JVB_POOL_SIZE as int
+                        if(initial_instance_pool_size >= instance_pool_size) {
+                            initial_instance_pool_size = instance_pool_size
+                            // no need to scale up after initial JVB deploy
+                            scale_to_size_per_shard[shard_index] = 0
+                        } else {
+                            scale_to_size_per_shard[shard_index] = instance_pool_size
+                        }
+
+                        branches["Build ${curr}"] = {
+                            createShardJVBs(
+                                env.ENVIRONMENT,
+                                env.CLOUD_NAME,
+                                stack_ids[curr],
+                                initial_instance_pool_size.toString(),
+                                shape,
+                                availability_domains,
+                                env.JVB_VERSION,
+                                env.JVB_IMAGE_OCID,
+                                env.RELEASE_BRANCH,
+                                env.RELEASE_NUMBER,
+                                jvb_autoscaler_enabled
+                            )
+                        }
+                    }
+                    // branch out here, run all deploy JVBs jobs at once
+                    // only succeed if all branches succeed
+                    parallel branches
+                }
+            }
+        }
+        stage("Trigger autoscaler reconfiguration") {
+            steps {
+                script {
+                    reconfigureEnvironment(env.ENVIRONMENT)
+                }
+            }
+        }
+        stage("Wait for healthy shards") {
+            steps {
+                script {
+                  sshagent (credentials: ['ssh-ubuntu']) {
+                    def shardProps = readProperties file: 'test-results/new_shards.properties'
+                    dir("infra-provisioning") {
+                        waitShardHealth(shardProps.HCV_ENVIRONMENT,shardProps.SHARDS)
+                    }
+                  }
+                }
+            }
+        }
+        stage("Mark shards ready") {
+            when {
+                expression { useReleaseBackends == 'true' }
+                expression { env.SKIP_SHARD_READY != 'true' }
+            }
+            steps {
+                script {
+                  sshagent (credentials: ['ssh-ubuntu']) {
+                    def shardProps = readProperties file: 'test-results/new_shards.properties'
+                    dir("infra-provisioning") {
+                        markShardReady(shardProps.HCV_ENVIRONMENT,shardProps.SHARDS)
+                    }
+                  }
+                }
+            }
+        }
+        stage("Enable shard alarms") {
+            when {
+                allOf{
+                   expression {env.CLOUD_PROVIDER == 'oracle'}
+                }
+            }
+            steps {
+                script {
+                  sshagent (credentials: ['ssh-ubuntu']) {
+                    def shardProps = readProperties file: 'test-results/new_shards.properties'
+                    dir("infra-provisioning") {
+                        enableShardAlarms(shardProps.HCV_ENVIRONMENT,shardProps.SHARDS)
+                    }
+                  }
+                }
+            }
+        }
+    }
+
+    post {
+        success{
+           script {
+                def props = readProperties file: 'test-results/new_shards.properties'
+                validateShard(props.HCV_ENVIRONMENT,props.SHARDS)
+           }
+        }
+        always {
+           archiveArtifacts artifacts: 'test-results/*', fingerprint: true, onlyIfSuccessful: true
+        }
+        cleanup {
+            cleanWs()
+        }
+    }
+}

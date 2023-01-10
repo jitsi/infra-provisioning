@@ -15,11 +15,13 @@ def setupSSH() {
 
 pipeline {
     agent any
+    options {
+        timestamps()
+    }
     stages {
         // output stage, shows off our input parameters
         stage ("setup") {
             steps {
-              timestamps {
                 script {
                     def scmUrl = scm.getUserRemoteConfigs()[0].getUrl()
                     dir('infra-configuration') {
@@ -33,12 +35,10 @@ pipeline {
                     }
                     sh 'cp -a infra-customization/* infra-provisioning'
                 }
-              }
             }
         }
         stage ("JVB pool delete") {
             steps {
-              timestamps {
                 script {
                     echo 'JVB pool delete beginning'
                     dir('infra-provisioning') {
@@ -60,7 +60,6 @@ pipeline {
                         }
                     }
                 }
-              }
             }
         }
     }

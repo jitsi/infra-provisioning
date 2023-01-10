@@ -2,8 +2,8 @@
 # run main function implemented by specific role
 [ -z "$MAIN_COMMAND" ] && MAIN_COMMAND=default_main
 $MAIN_COMMAND
-
-if [ ! $? -eq 0 ]; then
+EXIT_CODE=$?
+if [ ! $EXIT_CODE -eq 0 ]; then
 
   if [ -f $tmp_msg_file ]; then
     err_message=$(cat $tmp_msg_file)

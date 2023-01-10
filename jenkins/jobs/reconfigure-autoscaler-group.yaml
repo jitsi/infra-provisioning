@@ -1,0 +1,47 @@
+- job:
+    name: reconfigure-autoscaler-group
+    display-name: reconfigure autoscaler group
+    concurrent: true
+    parameters:
+      - string:
+          name: VIDEO_INFRA_BRANCH
+          default: main
+          description: "Controls checkout branch for infra repos, defaults to 'main'."
+          trim: true
+      - string:
+          name: ENVIRONMENT
+          description: "Environment to trigger reconfiguration."
+          trim: true
+      - string:
+          name: TYPE
+          description: "Type of group to trigger reconfiguration."
+          trim: true
+      - string:
+          name: ORACLE_REGION
+          description: "Region of group to trigger reconfiguration."
+          trim: true
+      - string:
+          name: GROUP_NAME
+          description: "Set this ONLY to OVERWRITE the default value"
+          trim: true
+      - string:
+          name: INFRA_CUSTOMIZATIONS_REPO
+          default: git@github.com:jitsi/infra-customizations.git
+          description: "Repo with customized configurations, defaults to 'git@github.com:jitsi/infra-customizations.git'."
+          trim: true
+ 
+    project-type: pipeline
+    sandbox: true
+    pipeline-scm:
+      scm:
+        - git:
+            url: git@github.com:jitsi/infra-provisioning.git
+            credentials-id: "video-infra"
+            branches:
+              - "origin/${VIDEO_INFRA_BRANCH}"
+            browser: githubweb
+            browser-url: https://github.com/jitsi/infra-provisioning
+            submodule:
+              recursive: true
+      script-path: jenkins/groovy/reconfigure-autoscaler-group/Jenkinsfile
+      lightweight-checkout: true

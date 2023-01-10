@@ -51,7 +51,7 @@ if [ -z "$JIBRI_RELEASE_NUMBER" ]; then
   exit 205
 fi
 
-[ -z "$ORACLE_GIT_BRANCH" ] && ORACLE_GIT_BRANCH="master"
+[ -z "$ORACLE_GIT_BRANCH" ] && ORACLE_GIT_BRANCH="main"
 
 [ -z "$JIBRI_TYPE" ] && export JIBRI_TYPE="java-jibri"
 if [ "$JIBRI_TYPE" != "java-jibri" ] &&  [ "$JIBRI_TYPE" != "sip-jibri" ]; then

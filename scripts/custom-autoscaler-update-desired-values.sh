@@ -10,6 +10,8 @@ if [ -z "$ENVIRONMENT" ]; then
   exit 203
 fi
 
+[ -e ./sites/$ENVIRONMENT/stack-env.sh ] && . ./sites/$ENVIRONMENT/stack-env.sh
+
 LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
 #pull in cloud-specific variables, e.g. tenancy

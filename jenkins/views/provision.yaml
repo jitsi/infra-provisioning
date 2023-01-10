@@ -2,7 +2,7 @@
     name: 'provision'
     description: 'jobs that provision resources'
     view-type: list
-    regex: 'provision-.*'
+    regex: '(provision|validate)-.*'
 
 - project:
     name: 'provision-view'

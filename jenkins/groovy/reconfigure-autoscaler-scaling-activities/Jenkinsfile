@@ -1,0 +1,29 @@
+node {
+  timestamps {
+    stage('Prepare/Checkout') { // for display purposes
+        script {
+            def scmUrl = scm.getUserRemoteConfigs()[0].getUrl()
+            dir('infra-customization') {
+                git branch: env.VIDEO_INFRA_BRANCH, url: env.INFRA_CUSTOMIZATIONS_REPO, credentialsId: 'video-infra'
+            }
+            dir('infra-provisioning') {
+                git branch: env.VIDEO_INFRA_BRANCH, url: scmUrl, credentialsId: 'video-infra'
+            }
+            sh 'cp -a infra-customization/* infra-provisioning'
+        }
+    }
+    stage('Reconfigure') {
+        dir('infra-provisioning') {
+            withCredentials([
+                string(credentialsId: 'asap-jwt-kid-dev', variable: 'ASAP_JWT_KID_DEV'),
+                string(credentialsId: 'asap-jwt-kid-prod', variable: 'ASAP_JWT_KID_PROD'),
+                file(credentialsId: 'asap-jwt-key-dev', variable: 'ASAP_JWT_KEY_DEV'),
+                file(credentialsId: 'asap-jwt-key-prod', variable: 'ASAP_JWT_KEY_PROD')
+            ]) {
+                sh '''#!/bin/bash
+                    scripts/custom-autoscaler-update-scaling-activities.sh'''
+            }
+        }
+    }
+  }
+}
