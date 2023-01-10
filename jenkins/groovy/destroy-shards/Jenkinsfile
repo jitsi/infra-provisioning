@@ -35,6 +35,11 @@ pipeline {
                     }
                     sh 'cp -a infra-customization/* infra-provisioning'
                     sh 'mkdir -p test-results'
+                    withCredentials([
+                        string(credentialsId: 'ansible-vault-password', variable: 'ANSIBLE_VAULT_PASSWORD_VALUE')
+                    ]) {
+                        sh 'echo "$ANSIBLE_VAULT_PASSWORD_VALUE" > infra-configuration/.vault-password.txt'
+                    }
                 }
             }
         }
