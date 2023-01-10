@@ -97,56 +97,35 @@ pipeline {				//indicate the job is written in Declarative Pipeline
         stage("create shards") {
             steps {
                 script {
-                    dir('infra-provisioning') {
-                        echo "Create shards in ${env.ENVIRONMENT} clouds ${env.CLOUDS}";
-                        def cloud_list = split_clouds(env.ENVIRONMENT,env.CLOUDS);
-                        def shards_by_cloud;
-                        def aws_shards_by_cloud;
-                        def oracle_shards_by_cloud;
-                        echo "cloud list ${cloud_list}";
-                        shards_by_cloud = expand_release();
-                        oracle_shards_by_cloud = shards_by_cloud.oracleShardsByCloud
-                        aws_shards_by_cloud = shards_by_cloud.awsShardsByCloud
-                        def branches = [:]
-                        for(i = 0; i < cloud_list.size(); i++) {
-                            def curr = i
-                            echo "pipeline branch ${curr} for shard ${cloud_list[curr]}";
-                            if (aws_shards_by_cloud.containsKey(cloud_list[curr])) {
-                                shards_created = true;
-                                def shard_count = aws_shards_by_cloud[cloud_list[curr]].split(' ').size().toString()
-                                echo "createShard ${env.ENVIRONMENT} ${cloud_list[curr]} ${shard_count} ${aws_shards_by_cloud[cloud_list[curr]]} ${env.RELEASE_NUMBER} ${git_branch} ${env.JVB_VERSION} ${env.SIGNAL_VERSION}"
-                                branches["aws ${cloud_list[curr]}"] = {
-                                    createShard(env.ENVIRONMENT,
-                                        cloud_list[curr],
-                                        "aws",
-                                        "aws",
-                                        shard_count,
-                                        aws_shards_by_cloud[cloud_list[curr]],
-                                        env.RELEASE_NUMBER,
-                                        git_branch,
-                                        env.JVB_VERSION,
-                                        env.SIGNAL_VERSION
-                                    ) 
-                                }
-                            }
-                        }
-                        for(i = 0; i < cloud_list.size(); i++) {
-                            def curr = i
-                            echo "pipeline branch ${curr} for shard ${cloud_list[curr]}";
-                            if (oracle_shards_by_cloud.containsKey(cloud_list[curr])) {
-                                shards_created = true;
-                                def oracle_shards = oracle_shards_by_cloud[cloud_list[curr]].split(' ')
-                                def shard_count = oracle_shards.size();
-                                echo "createShard ${env.ENVIRONMENT} ${cloud_list[curr]} ${shard_count.toString()} ${oracle_shards_by_cloud[cloud_list[curr]]} ${env.RELEASE_NUMBER} ${git_branch} ${env.JVB_VERSION} ${env.SIGNAL_VERSION}"
-                                for(j = 0; j < shard_count; j++) {
-                                    def s = j
-                                    branches["oracle ${cloud_list[curr]} ${j}"] = {
+                    withCredentials([
+                            string(credentialsId: 'jenkins-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
+                            string(credentialsId: 'jenkins-aws-id', variable: 'AWS_ACCESS_KEY_ID')
+                    ]) {
+                        dir('infra-provisioning') {
+                            echo "Create shards in ${env.ENVIRONMENT} clouds ${env.CLOUDS}";
+                            def cloud_list = split_clouds(env.ENVIRONMENT,env.CLOUDS);
+                            def shards_by_cloud;
+                            def aws_shards_by_cloud;
+                            def oracle_shards_by_cloud;
+                            echo "cloud list ${cloud_list}";
+                            shards_by_cloud = expand_release();
+                            oracle_shards_by_cloud = shards_by_cloud.oracleShardsByCloud
+                            aws_shards_by_cloud = shards_by_cloud.awsShardsByCloud
+                            def branches = [:]
+                            for(i = 0; i < cloud_list.size(); i++) {
+                                def curr = i
+                                echo "pipeline branch ${curr} for shard ${cloud_list[curr]}";
+                                if (aws_shards_by_cloud.containsKey(cloud_list[curr])) {
+                                    shards_created = true;
+                                    def shard_count = aws_shards_by_cloud[cloud_list[curr]].split(' ').size().toString()
+                                    echo "createShard ${env.ENVIRONMENT} ${cloud_list[curr]} ${shard_count} ${aws_shards_by_cloud[cloud_list[curr]]} ${env.RELEASE_NUMBER} ${git_branch} ${env.JVB_VERSION} ${env.SIGNAL_VERSION}"
+                                    branches["aws ${cloud_list[curr]}"] = {
                                         createShard(env.ENVIRONMENT,
                                             cloud_list[curr],
-                                            env.CORE_CLOUD_PROVIDER,
-                                            "oracle",
-                                            "1",
-                                            oracle_shards[s],
+                                            "aws",
+                                            "aws",
+                                            shard_count,
+                                            aws_shards_by_cloud[cloud_list[curr]],
                                             env.RELEASE_NUMBER,
                                             git_branch,
                                             env.JVB_VERSION,
@@ -155,11 +134,36 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                                     }
                                 }
                             }
+                            for(i = 0; i < cloud_list.size(); i++) {
+                                def curr = i
+                                echo "pipeline branch ${curr} for shard ${cloud_list[curr]}";
+                                if (oracle_shards_by_cloud.containsKey(cloud_list[curr])) {
+                                    shards_created = true;
+                                    def oracle_shards = oracle_shards_by_cloud[cloud_list[curr]].split(' ')
+                                    def shard_count = oracle_shards.size();
+                                    echo "createShard ${env.ENVIRONMENT} ${cloud_list[curr]} ${shard_count.toString()} ${oracle_shards_by_cloud[cloud_list[curr]]} ${env.RELEASE_NUMBER} ${git_branch} ${env.JVB_VERSION} ${env.SIGNAL_VERSION}"
+                                    for(j = 0; j < shard_count; j++) {
+                                        def s = j
+                                        branches["oracle ${cloud_list[curr]} ${j}"] = {
+                                            createShard(env.ENVIRONMENT,
+                                                cloud_list[curr],
+                                                env.CORE_CLOUD_PROVIDER,
+                                                "oracle",
+                                                "1",
+                                                oracle_shards[s],
+                                                env.RELEASE_NUMBER,
+                                                git_branch,
+                                                env.JVB_VERSION,
+                                                env.SIGNAL_VERSION
+                                            ) 
+                                        }
+                                    }
+                                }
+                            }
+                            // branch out here, run all create shard jobs at once
+                            // only succeed if all branches succeed
+                            parallel branches                    
                         }
-                        // branch out here, run all create shard jobs at once
-                        // only succeed if all branches succeed
-                    parallel branches
-                        
                     }
                 }
             }
