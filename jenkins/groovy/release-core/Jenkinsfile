@@ -354,22 +354,20 @@ pipeline {
 
         stage("enable shard alarms") {
             steps {
-                script {
-                  sshagent (credentials: ['ssh-ubuntu']) {
-                    enableReleaseAlarms(env.ENVIRONMENT,env.BUILD_ID)
-                  }
+                sshagent (credentials: ['ssh-ubuntu']) {
+                    dir('infra-provisioning') {
+                        enableReleaseAlarms(env.ENVIRONMENT,env.BUILD_ID)
+                    }
                 }
             }
         }
 
         stage ("update load balancers with new shards") {
             steps {
-                script {
-                    build job: 'reconfigure-haproxy',parameters: [
-                        [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: env.ENVIRONMENT],
-                        [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH]
-                    ]
-                }
+                build job: 'reconfigure-haproxy',parameters: [
+                    [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: env.ENVIRONMENT],
+                    [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH]
+                ]
             }
         }
     }
