@@ -296,6 +296,7 @@ pipeline {
         stage("create new shards") {
             steps {
                 script {
+                  sshagent (credentials: ['ssh-ubuntu']) {
                     dir('infra-provisioning') {
                         echo "Create shards in ${env.ENVIRONMENT} clouds ${env.CLOUDS}";
                         def cloud_list = split_clouds(env.ENVIRONMENT,env.CLOUDS);
@@ -332,6 +333,7 @@ pipeline {
                         // only succeed if all branches succeed
                         parallel branches
                     }
+                  }
                 }
             }
         }

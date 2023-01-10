@@ -1,8 +1,12 @@
 - job:
-    name: release-jvb-pools
-    display-name: release JVB pools
+    name: expand-release-core
+    display-name: expand release core (shards)
     concurrent: true
     parameters:
+      - string:
+          name: SIGNAL_VERSION
+          description: "Signal image version for shard."
+          trim: true
       - string:
           name: JVB_VERSION
           description: "JVB image version for shard"
@@ -34,6 +38,11 @@
           description: "Cloud to build JVBs in, defaults to 'oracle'."
           trim: true
       - string:
+          name: CORE_CLOUD_PROVIDER
+          default: oracle
+          description: "Cloud to build signal node in, defaults to 'oracle'."
+          trim: true
+      - string:
           name: INFRA_CONFIGURATION_REPO
           default: git@github.com:jitsi/infra-configuration.git
           description: "Repo for configuration code (ansible etc), defaults to 'git@github.com:jitsi/infra-configuration.git'."
@@ -57,5 +66,5 @@
             browser-url: https://github.com/jitsi/infra-provisioning
             submodule:
               recursive: true
-      script-path: jenkins/groovy/release-jvb-pools/Jenkinsfile
+      script-path: jenkins/groovy/expand-release-core/Jenkinsfile
       lightweight-checkout: true
