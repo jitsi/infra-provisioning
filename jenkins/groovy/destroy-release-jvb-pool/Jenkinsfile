@@ -1,0 +1,89 @@
+
+def listPools() {
+    pools=[:]
+    def poolsStr = sh(
+        returnStdout: true,
+        script: """
+        export RELEASE_NUMBER="${env.RELEASE_NUMBER}"
+        scripts/list-jvb-pools.sh"""
+    ).trim();
+
+    if (poolsStr.length() > 0) {
+        pools = poolsStr.split(' ');
+    }
+    return pools
+}
+
+
+// trigger create shard JVBs job with appropriate parameters
+def deleteJVBPool(hcv_environment,jvb_pool_name) {
+    def deletePool = build job: 'destroy-jvb-pool',parameters: [
+        [$class: 'StringParameterValue', name: 'HCV_ENVIRONMENT', value: hcv_environment],
+        [$class: 'StringParameterValue', name: 'JVB_POOL_NAME', value: jvb_pool_name],
+        [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH]
+    ]
+
+    return deletePool
+}
+
+
+pipeline {
+    agent any
+    options {
+        ansiColor('xterm')
+        timestamps()
+    }
+    stages {
+        stage('Prepare/Checkout') { // for display purposes
+            steps {
+                script {
+                    def scmUrl = scm.getUserRemoteConfigs()[0].getUrl()
+                    dir('infra-customization') {
+                        git branch: env.VIDEO_INFRA_BRANCH, url: env.INFRA_CUSTOMIZATIONS_REPO, credentialsId: 'video-infra'
+                    }
+                    dir('infra-provisioning') {
+                        git branch: env.VIDEO_INFRA_BRANCH, url: scmUrl, credentialsId: 'video-infra'
+                    }
+
+                    sh 'cp -a infra-customization/* infra-provisioning'
+                }
+            }
+        }
+        stage ("JVB Pool Delete") {
+            steps {
+                script {
+                    echo 'JVB Pool Delete Beginning'
+                    sh 'printenv'
+                    def branches = [:]
+                    withCredentials([
+                        string(credentialsId: 'asap-jwt-kid-dev', variable: 'ASAP_JWT_KID_DEV'),
+                        string(credentialsId: 'asap-jwt-kid-prod', variable: 'ASAP_JWT_KID_PROD'),
+                        file(credentialsId: 'asap-jwt-key-dev', variable: 'ASAP_JWT_KEY_DEV'),
+                        file(credentialsId: 'asap-jwt-key-prod', variable: 'ASAP_JWT_KEY_PROD')
+                    ]) {
+                        dir("infra-provisioning") {
+                            def pools = listPools();
+                            if (pools.size() > 0) {
+                                for(i = 0; i < pools.size(); i++) {
+                                    def curr = i
+
+                                    branches["Pool ${pools[curr]}"] = {
+                                        deleteJVBPool(
+                                            env.HCV_ENVIRONMENT,
+                                            pools[curr]
+                                        )
+                                    }
+                                }
+                                // branch out here, run all deploy JVBs pool jobs at once
+                                // only succeed if all branches succeed
+                                parallel branches
+                            } else {
+                                echo 'No JVB pools found in release, skipping delete'
+                            }
+                        }
+                    }
+                }
+            }
+        }
+     }
+}
