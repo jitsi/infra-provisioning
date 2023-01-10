@@ -170,7 +170,7 @@ pipeline {
         ansiColor('xterm')
         timestamps()
     }
-     stages {
+    stages {
         stage('Prepare/Checkout') { // for display purposes
             steps {
                 script {
