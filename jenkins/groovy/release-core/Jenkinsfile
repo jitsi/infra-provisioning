@@ -297,41 +297,46 @@ pipeline {
             steps {
                 script {
                   sshagent (credentials: ['ssh-ubuntu']) {
-                    dir('infra-provisioning') {
-                        echo "Create shards in ${env.ENVIRONMENT} clouds ${env.CLOUDS}";
-                        def cloud_list = split_clouds(env.ENVIRONMENT,env.CLOUDS);
-                        echo "cloud list ${cloud_list}";
-                        def shard_numbers = generate_numbers(env.ENVIRONMENT,cloud_list);
-                        def branches = [:]
-                        for(i = 0; i < cloud_list.size(); i++) {
-                            def curr = i
-                            branches["JVB Pools ${cloud_list[curr]}"] = {
-                                releaseJVBPools(env.ENVIRONMENT,
-                                    cloud_list[curr],
-                                    env.BUILD_ID,
-                                    git_branch,
-                                    env.JVB_VERSION
-                                )
+                    withCredentials([
+                            string(credentialsId: 'jenkins-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
+                            string(credentialsId: 'jenkins-aws-id', variable: 'AWS_ACCESS_KEY_ID')
+                    ]) {
+                        dir('infra-provisioning') {
+                            echo "Create shards in ${env.ENVIRONMENT} clouds ${env.CLOUDS}";
+                            def cloud_list = split_clouds(env.ENVIRONMENT,env.CLOUDS);
+                            echo "cloud list ${cloud_list}";
+                            def shard_numbers = generate_numbers(env.ENVIRONMENT,cloud_list);
+                            def branches = [:]
+                            for(i = 0; i < cloud_list.size(); i++) {
+                                def curr = i
+                                branches["JVB Pools ${cloud_list[curr]}"] = {
+                                    releaseJVBPools(env.ENVIRONMENT,
+                                        cloud_list[curr],
+                                        env.BUILD_ID,
+                                        git_branch,
+                                        env.JVB_VERSION
+                                    )
+                                }
+                                echo "pipeline branch ${curr} for shard ${cloud_list[curr]}";
+                                def shard_count = shard_numbers[curr].split(' ').size().toString()
+                                branches["Shard ${cloud_list[curr]}"] = {
+                                    createShard(env.ENVIRONMENT,
+                                        cloud_list[curr],
+                                        env.CLOUD_PROVIDER,
+                                        env.CORE_CLOUD_PROVIDER,
+                                        shard_count,
+                                        shard_numbers[curr],
+                                        env.BUILD_ID,
+                                        git_branch,
+                                        env.JVB_VERSION,
+                                        env.SIGNAL_VERSION
+                                    )
+                                }
                             }
-                            echo "pipeline branch ${curr} for shard ${cloud_list[curr]}";
-                            def shard_count = shard_numbers[curr].split(' ').size().toString()
-                            branches["Shard ${cloud_list[curr]}"] = {
-                                createShard(env.ENVIRONMENT,
-                                    cloud_list[curr],
-                                    env.CLOUD_PROVIDER,
-                                    env.CORE_CLOUD_PROVIDER,
-                                    shard_count,
-                                    shard_numbers[curr],
-                                    env.BUILD_ID,
-                                    git_branch,
-                                    env.JVB_VERSION,
-                                    env.SIGNAL_VERSION
-                                )
-                            }
+                            // branch out here, run all create shard jobs at once
+                            // only succeed if all branches succeed
+                            parallel branches
                         }
-                        // branch out here, run all create shard jobs at once
-                        // only succeed if all branches succeed
-                        parallel branches
                     }
                   }
                 }
