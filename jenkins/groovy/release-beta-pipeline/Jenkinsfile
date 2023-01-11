@@ -69,23 +69,27 @@ pipeline {				//indicate the job is written in Declarative Pipeline
             parallel {
               stage ("build JVB oracle") {		//an arbitrary stage name
                 steps {
-                    build job: 'build-image-jvb-oracle',parameters: [
-                            [$class: 'StringParameterValue', name: 'JVB_VERSION', value: params.JVB_VERSION],
-                            [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: params.ENVIRONMENT],
-                            [$class: 'StringParameterValue', name: 'FORCE_BUILD_IMAGE', value: params.FORCE_BUILD_IMAGE],
-                            [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH]
-                        ]
+                    script {
+                        build job: 'build-image-jvb-oracle',parameters: [
+                                [$class: 'StringParameterValue', name: 'JVB_VERSION', value: params.JVB_VERSION],
+                                [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: params.ENVIRONMENT],
+                                [$class: 'BooleanParameterValue', name: 'FORCE_BUILD_IMAGE', value: (params.FORCE_BUILD_IMAGE=='true')],
+                                [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH]
+                            ]
+                    }
                 }
               }
               stage ("build Signal Oracle") {		//an arbitrary stage name
                 steps {
-                  build job: 'build-image-signal-oracle',parameters: [
-                    [$class: 'StringParameterValue', name: 'JITSI_MEET_VERSION', value: params.JITSI_MEET_VERSION],
-                    [$class: 'StringParameterValue', name: 'JICOFO_VERSION', value: params.JICOFO_VERSION],
-                    [$class: 'StringParameterValue', name: 'PROSODY_VERSION', value: params.PROSODY_VERSION],
-                    [$class: 'StringParameterValue', name: 'FORCE_BUILD_IMAGE', value: params.FORCE_BUILD_IMAGE],
-                    [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH]
-                  ]
+                    script {
+                        build job: 'build-image-signal-oracle',parameters: [
+                            [$class: 'StringParameterValue', name: 'JITSI_MEET_VERSION', value: params.JITSI_MEET_VERSION],
+                            [$class: 'StringParameterValue', name: 'JICOFO_VERSION', value: params.JICOFO_VERSION],
+                            [$class: 'StringParameterValue', name: 'PROSODY_VERSION', value: params.PROSODY_VERSION],
+                            [$class: 'BooleanParameterValue', name: 'FORCE_BUILD_IMAGE', value: (params.FORCE_BUILD_IMAGE=='true')],
+                            [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH]
+                        ]
+                    }
                 }
               }
             }
