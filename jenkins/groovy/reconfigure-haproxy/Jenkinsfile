@@ -20,11 +20,13 @@ def reloadHaproxy() {
 
 pipeline {
     agent any
+    options {
+        timestamps()
+    }
     stages {
         // output stage, shows off our input parameters
         stage ("setup") {
             steps {
-              timestamps {
                 script {
                     def scmUrl = scm.getUserRemoteConfigs()[0].getUrl()
                     dir('infra-configuration') {
@@ -40,12 +42,10 @@ pipeline {
                     sh 'cp -a infra-customization/* infra-provisioning'
                     sh 'cp -a infra-customization/* infra-configuration'
                 }
-              }
             }
         }
         stage ("haproxy reload") {
             steps {
-              timestamps {
                 script {
                     echo 'haproxy reload'
                     dir('infra-configuration') {
@@ -69,7 +69,6 @@ pipeline {
                         }
                     }
                 }
-              }
             }
         }
     }
