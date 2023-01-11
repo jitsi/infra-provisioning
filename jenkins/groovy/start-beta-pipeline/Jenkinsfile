@@ -33,7 +33,7 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                     ]) {
 
                         sh '''#!/bin/bash
-                        echo "$ANSIBLE_VAULT_PASSWORD_PATH" > ./.vault-password.txt
+                        echo "$ANSIBLE_VAULT_PASSWORD_PATH" > .vault-password.txt
                         scripts/get-latest-jitsi-versions.sh'''
                     }
                 }
