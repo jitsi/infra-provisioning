@@ -8,7 +8,7 @@ pipeline {				//indicate the job is written in Declarative Pipeline
         stage ("setup") {
             steps {
                 echo 'Jitsi Start Pipeline Beginning'
-                sh '''echo JITSI MEET META VERSION ${JITSI_MEET_META_VERSION}'''
+                sh '''echo JITSI MEET META VERSION: \${JITSI_MEET_META_VERSION}'''
 
                 script {
                     def scmUrl = scm.getUserRemoteConfigs()[0].getUrl()
