@@ -12,6 +12,7 @@ def setupAnsible() {
 def reconfigureShardStates() {
     sh(
         script: """#!/bin/bash
+        export ANSIBLE_FORCE_COLOR=True
         scripts/set-signal-shard-states.sh ubuntu
         exit \$?"""
     )
@@ -19,6 +20,10 @@ def reconfigureShardStates() {
 
 pipeline {
     agent any
+    options {
+        ansiColor('xterm')
+        timestamps()
+    }
     stages {
         // output stage, shows off our input parameters
         stage ("setup") {
