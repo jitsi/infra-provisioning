@@ -1,6 +1,6 @@
 - job:
-    name: reconfigure-shard-states
-    display-name: reconfigure shard states
+    name: reconfigure-shard-cdn-versions
+    display-name: reconfigure shard CDN versions
     concurrent: true
     parameters:
       - string:
@@ -39,5 +39,5 @@
             browser-url: https://github.com/jitsi/infra-provisioning
             submodule:
               recursive: true
-      script-path: jenkins/groovy/reconfigure-shard-states/Jenkinsfile
+      script-path: jenkins/groovy/reconfigure-shard-cdn-version/Jenkinsfile
       lightweight-checkout: true
