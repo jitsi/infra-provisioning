@@ -1,6 +1,13 @@
-node {
-  timestamps {
+pipeline {
+  agent any
+  options {
+      ansiColor('xterm')
+      timestamps()
+      buildDiscarder(logRotator(numToKeepStr: '10', artifactNumToKeepStr: '10'))
+  }
+  stages {
     stage('Prepare/Checkout') { // for display purposes
+      steps {
         script {
             def scmUrl = scm.getUserRemoteConfigs()[0].getUrl()
             echo scmUrl
@@ -13,9 +20,12 @@ node {
             }
             sh 'cp -a infra-customization/* infra-provisioning'
         }
+      }
     }
     stage('Provision') {
+      steps {
         dir('infra-provisioning') {
+          script {
             withCredentials([
                 string(credentialsId: 'oci-jenkins-terraform-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
                 string(credentialsId: 'oci-jenkins-terraform-aws-id', variable: 'AWS_ACCESS_KEY_ID'),
@@ -33,7 +43,9 @@ node {
                     sh 'terraform/vcn-adsubnets/create-ad-subnets.sh'
                 }
             }
+          }
         }
+      }
     }
   }
 }
