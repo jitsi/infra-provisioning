@@ -26,6 +26,10 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                             setupAnsible()
                         }
                     }
+                    dir('infra-customization') {
+                        git branch: env.VIDEO_INFRA_BRANCH, url: env.INFRA_CUSTOMIZATIONS_REPO, credentialsId: 'video-infra'
+                    }
+                    sh 'cp -a infra-customization/* infra-configuration'
                 }
             }
         }
