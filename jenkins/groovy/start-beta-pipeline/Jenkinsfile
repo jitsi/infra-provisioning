@@ -44,7 +44,7 @@ pipeline {				//indicate the job is written in Declarative Pipeline
         stage ("trigger build") {
             steps {
                 script {
-                    def versionParams = readProperties('infra-configuration/build_versions.properties')
+                    def versionParams = readProperties file: 'infra-configuration/build_versions.properties'
 
                     build job: 'release-beta-pipeline', wait: false, parameters: [
                         string(name: 'JVB_VERSION', versionParams.JVB_VERSION),
