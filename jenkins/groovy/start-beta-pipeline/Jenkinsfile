@@ -47,13 +47,13 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                     def versionParams = readProperties file: 'infra-configuration/build_versions.properties'
 
                     build job: 'release-beta-pipeline', wait: false, parameters: [
-                        string(name: 'JVB_VERSION', versionParams.JVB_VERSION),
-                        string(name: 'JITSI_MEET_VERSION', versionParams.JITSI_MEET_VERSION),
-                        string(name: 'PROSODY_VERSION', versionParams.PROSODY_VERSION),
-                        string(name: 'JICOFO_VERSION', versionParams.JICOFO_VERSION),
-                        string(name: 'ENVIRONMENT', env.ENVIRONMENT),
-                        string(name: 'FORCE_BUILD_IMAGE', env.FORCE_BUILD_IMAGE),
-                        string(name: 'VIDEO_INFRA_BRANCH', env.VIDEO_INFRA_BRANCH)
+                        [$class: 'StringParameterValue', name: 'JVB_VERSION', value: versionParams.JVB_VERSION],
+                        [$class: 'StringParameterValue', name: 'JITSI_MEET_VERSION', value: versionParams.JITSI_MEET_VERSION],
+                        [$class: 'StringParameterValue', name: 'PROSODY_VERSION', value: versionParams.PROSODY_VERSION],
+                        [$class: 'StringParameterValue', name: 'JICOFO_VERSION', value: versionParams.JICOFO_VERSION],
+                        [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: env.ENVIRONMENT],
+                        [$class: 'StringParameterValue', name: 'FORCE_BUILD_IMAGE', value: env.FORCE_BUILD_IMAGE],
+                        [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH]
                     ]
                 }
             }
