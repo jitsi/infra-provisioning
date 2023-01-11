@@ -20,6 +20,10 @@
           description: "JVB version"
           trim: true
       - string:
+          name: JITSI_MEET_META_VERSION
+          description: "Meta package version"
+          trim: true
+      - string:
           name: ENVIRONMENT
           description: "Environment to build in, defaults to 'beta-meet-jit-si'"
           default: beta-meet-jit-si
