@@ -26,9 +26,16 @@ def replicateImageOracle() {
 }
 
 
-node {
-  timestamps {
+pipeline {
+  agent any
+  options {
+      ansiColor('xterm')
+      timestamps()
+      buildDiscarder(logRotator(numToKeepStr: '10', artifactNumToKeepStr: '10'))
+  }
+  stages {
     stage('Prepare/Checkout') { // for display purposes
+      steps {
         script {
             def scmUrl = scm.getUserRemoteConfigs()[0].getUrl()
             dir('infra-configuration') {
@@ -44,9 +51,12 @@ node {
             sh 'cp -a infra-customization/* infra-provisioning'
 
         }
+      }
     }
     stage('Provision') {
+      steps {
         dir('infra-provisioning') {
+          script {
             withCredentials([
                 file(credentialsId: 'oci-jenkins-config', variable: 'OCI_CLI_CONFIG_FILE'),
                 file(credentialsId: 'oci-jenkins-pem', variable: 'OCI_CLI_KEY_FILE'),
@@ -63,7 +73,9 @@ node {
                 echo 'Oracle Jibri Image Replication'
                 replicateImageOracle()
             }
+          }
         }
+      }
     }
   }
 }

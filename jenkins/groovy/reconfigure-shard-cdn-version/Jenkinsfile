@@ -5,11 +5,7 @@ def setupOCI() {
     sh 'cp "$OCI_CLI_KEY_FILE" ~/.oci/private-key.pem'
 }
 
-def setupAnsible() {
-    sh 'echo "$ANSIBLE_VAULT_PASSWORD_PATH" > ./.vault-password.txt'
-}
-
-def reconfigureShardStates() {
+def reconfigureShardCDNVersion() {
     sh(
         script: """#!/bin/bash
         scripts/set-shard-cdn-version.sh ubuntu
@@ -29,9 +25,6 @@ pipeline {
             steps {
                 script {
                     def scmUrl = scm.getUserRemoteConfigs()[0].getUrl()
-                    dir('infra-configuration') {
-                        checkout([$class: 'GitSCM', branches: [[name: "origin/${VIDEO_INFRA_BRANCH}"]], extensions: [[$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: false, recursiveSubmodules: true, reference: '', trackingSubmodules: false]], userRemoteConfigs: [[credentialsId: 'video-infra', url: env.INFRA_CONFIGURATION_REPO]]])
-                    }
                     dir('infra-customization') {
                         git branch: env.VIDEO_INFRA_BRANCH, url: env.INFRA_CUSTOMIZATIONS_REPO, credentialsId: 'video-infra'
                     }
@@ -43,17 +36,10 @@ pipeline {
                 }
             }
         }
-        stage ("haproxy reload") {
+        stage ("reconfigure CDN") {
             steps {
                 script {
-                    echo 'haproxy reload'
-                    dir('infra-configuration') {
-                        withCredentials([
-                            string(credentialsId: 'ansible-vault-password', variable: 'ANSIBLE_VAULT_PASSWORD_PATH')
-                        ]) {
-                            setupAnsible()
-                        }
-                    }
+                    echo 'reconfigure CDN'
                     dir('infra-provisioning') {
                         withCredentials([
                             file(credentialsId: 'oci-jenkins-config', variable: 'OCI_CLI_CONFIG_FILE'),
@@ -63,7 +49,7 @@ pipeline {
                         ]) {
                           sshagent (credentials: ['ssh-ubuntu']) {
                             setupOCI()
-                            reconfigureShardStates()
+                            reconfigureShardCDNVersion()
                           }
                         }
                     }
