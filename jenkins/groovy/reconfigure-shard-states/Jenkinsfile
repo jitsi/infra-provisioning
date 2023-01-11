@@ -35,7 +35,6 @@ pipeline {
                     dir('infra-provisioning') {
                         git branch: env.VIDEO_INFRA_BRANCH, url: scmUrl, credentialsId: 'video-infra'
                     }
-                    sh 'mkdir -p test-results'
                     sh 'cp -a infra-customization/* infra-provisioning'
                     sh 'cp -a infra-customization/* infra-configuration'
                 }
@@ -74,7 +73,6 @@ pipeline {
     }
     post {
         always {
-            archiveArtifacts artifacts: 'test-results/**.log'
             // Clean up afterwards
             cleanWs()
         }
