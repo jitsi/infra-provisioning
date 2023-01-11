@@ -49,7 +49,7 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                     build job: 'release-beta-pipeline', wait: false, parameters: [
                         [$class: 'StringParameterValue', name: 'JVB_VERSION', value: versionParams.JVB_VERSION],
                         [$class: 'StringParameterValue', name: 'JITSI_MEET_VERSION', value: versionParams.JITSI_MEET_VERSION],
-                        [$class: 'StringParameterValue', name: 'PROSODY_VERSION', value: versionParams.PROSODY_VERSION],
+                        [$class: 'StringParameterValue', name: 'PROSODY_VERSION', value: env.PROSODY_VERSION],
                         [$class: 'StringParameterValue', name: 'JICOFO_VERSION', value: versionParams.JICOFO_VERSION],
                         [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: env.ENVIRONMENT],
                         [$class: 'StringParameterValue', name: 'FORCE_BUILD_IMAGE', value: env.FORCE_BUILD_IMAGE],
