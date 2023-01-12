@@ -21,5 +21,5 @@ RUN if [ "$TARGETPLATFORM" = "linux/amd64" ]; then ARCHITECTURE="amd64"; elif [ 
     tee /etc/apt/sources.list.d/docker.list && apt-get update
 RUN apt-get -y install docker-ce docker-ce-cli containerd.io docker-compose-plugin
 RUN usermod -a -G docker jenkins && usermod -a -G shadow jenkins
-RUN useradd ubuntu --system
+RUN adduser -q --disabled-password --gecos "" ubuntu && mkdir /home/ubuntu/.ssh && chown ubuntu /home/ubuntu/.ssh
 RUN mkdir -p /home/jenkins/triggers && touch /home/jenkins/triggers/reconfigure-users-jenkins && chown -R jenkins:jenkins /home/jenkins/triggers
