@@ -9,11 +9,11 @@ def setupAnsible() {
     sh 'echo "$ANSIBLE_VAULT_PASSWORD_PATH" > ./.vault-password.txt'
 }
 
-def reloadHaproxy() {
+def reconfigureShardStates() {
     sh(
         script: """#!/bin/bash
-        export LOG_DEST="../../test-results"
-        scripts/reload-haproxy.sh ubuntu
+        export ANSIBLE_FORCE_COLOR=True
+        scripts/set-signal-shard-states.sh ubuntu
         exit \$?"""
     )
 }
@@ -21,6 +21,7 @@ def reloadHaproxy() {
 pipeline {
     agent any
     options {
+        ansiColor('xterm')
         timestamps()
     }
     stages {
@@ -38,7 +39,6 @@ pipeline {
                     dir('infra-provisioning') {
                         git branch: env.VIDEO_INFRA_BRANCH, url: scmUrl, credentialsId: 'video-infra'
                     }
-                    sh 'mkdir -p test-results'
                     sh 'cp -a infra-customization/* infra-provisioning'
                     sh 'cp -a infra-customization/* infra-configuration'
                 }
@@ -64,7 +64,7 @@ pipeline {
                         ]) {
                           sshagent (credentials: ['ssh-ubuntu']) {
                             setupOCI()
-                            reloadHaproxy()
+                            reconfigureShardStates()
                           }
                         }
                     }
@@ -74,7 +74,6 @@ pipeline {
     }
     post {
         always {
-            archiveArtifacts artifacts: 'test-results/**.log'
             // Clean up afterwards
             cleanWs()
         }

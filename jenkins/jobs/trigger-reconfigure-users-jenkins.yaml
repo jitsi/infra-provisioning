@@ -1,0 +1,16 @@
+- job:
+    name: trigger-reconfigure-users-jenkins
+    display-name: trigger reconfigure users jenkins
+    concurrent: false
+    node: jenkins-local
+    triggers:
+      - monitor-files:
+          cron: 'H/5 * * * *'
+          files:
+            - path: '/home/jenkins/triggers/reconfigure-users-jenkins'
+    project-type: freestyle
+    sandbox: true
+    builders:
+      - trigger-builds:
+        - project:
+          - "reconfigure-users-jenkins"

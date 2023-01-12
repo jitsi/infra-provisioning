@@ -17,7 +17,7 @@ fi
 
 [ -z "$ROLE" ] && ROLE="haproxy"
 [ -z "$NAME" ] && NAME="$ENVIRONMENT-$ORACLE_REGION-$ROLE"
-[ -z "$ORACLE_GIT_BRANCH" ] && ORACLE_GIT_BRANCH="master"
+[ -z "$ORACLE_GIT_BRANCH" ] && ORACLE_GIT_BRANCH="main"
 
 [ -e "../all/clouds/oracle.sh" ] && . ../all/clouds/oracle.sh
 

@@ -22,6 +22,7 @@ def createJVBImageOracle() {
         script: """#!/bin/bash
         export CLOUDS=\$(scripts/release_clouds.sh \$ENVIRONMENT)
         export FORCE_BUILD_IMAGE=true
+        export ANSIBLE_FORCE_COLOR=True
         scripts/build-jvb-oracle.sh ubuntu
         if [ \$? -eq 0 ]; then
             echo "Image creation successful"
@@ -46,9 +47,16 @@ def replicateImageOracle() {
 
 def skipCheck = false;
 
-node {
-  timestamps {
+pipeline {
+  agent any
+  options {
+      ansiColor('xterm')
+      timestamps()
+      buildDiscarder(logRotator(numToKeepStr: '10', artifactNumToKeepStr: '10'))
+  }
+  stages {
     stage('Prepare/Checkout') { // for display purposes
+      steps {
         script {
             def scmUrl = scm.getUserRemoteConfigs()[0].getUrl()
             dir('infra-configuration') {
@@ -64,9 +72,12 @@ node {
             sh 'cp -a infra-customization/* infra-provisioning'
 
         }
+      }
     }
     stage('Provision') {
+      steps {
         dir('infra-provisioning') {
+          script {
             withCredentials([
                 file(credentialsId: 'oci-jenkins-config', variable: 'OCI_CLI_CONFIG_FILE'),
                 file(credentialsId: 'oci-jenkins-pem', variable: 'OCI_CLI_KEY_FILE'),
@@ -89,7 +100,9 @@ node {
                     echo 'Skipping image creation, already exists'
                 }
             }
+          }
         }
+      }
     }
   }
 }

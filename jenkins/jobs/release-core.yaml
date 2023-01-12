@@ -54,6 +54,14 @@
           default: oracle
           description: "Cloud to build signal node in, defaults to 'oracle'."
           trim: true
+      - bool:
+          name: FORCE_BUILD_JVB_IMAGE
+          default: false
+          description: "Force JVB image to build"
+      - bool:
+          name: FORCE_BUILD_SIGNAL_IMAGE
+          default: false
+          description: "Force Signal image to build"
       - string:
           name: INFRA_CONFIGURATION_REPO
           default: git@github.com:jitsi/infra-configuration.git

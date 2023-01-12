@@ -1,0 +1,43 @@
+- job:
+    name: reconfigure-shard-cdn-versions
+    display-name: reconfigure shard CDN versions
+    concurrent: true
+    parameters:
+      - string:
+          name: VIDEO_INFRA_BRANCH
+          default: main
+          description: "Controls checkout branch for infra repos, defaults to 'main'."
+          trim: true
+      - string:
+          name: ENVIRONMENT
+          description: "Environment to update CDN link"
+          trim: true
+      - string:
+          name: RELEASE_NUMBER
+          description: "release number of the shards to include"
+          trim: true
+      - string:
+          name: CDN_VERSION
+          description: "CDN version, either raw jitsi-meet-web version like '5151' or with branding version like '5151.1812'"
+          trim: true
+      - string:
+          name: INFRA_CUSTOMIZATIONS_REPO
+          default: git@github.com:jitsi/infra-customizations.git
+          description: "Repo with customized configurations, defaults to 'git@github.com:jitsi/infra-customizations.git'."
+          trim: true
+ 
+    project-type: pipeline
+    sandbox: true
+    pipeline-scm:
+      scm:
+        - git:
+            url: git@github.com:jitsi/infra-provisioning.git
+            credentials-id: "video-infra"
+            branches:
+              - "origin/${VIDEO_INFRA_BRANCH}"
+            browser: githubweb
+            browser-url: https://github.com/jitsi/infra-provisioning
+            submodule:
+              recursive: true
+      script-path: jenkins/groovy/reconfigure-shard-cdn-version/Jenkinsfile
+      lightweight-checkout: true

@@ -1,0 +1,165 @@
+def oldReleasesFromEnvironment(environment) {
+    def releases = sh(
+        returnStdout: true,
+        script: """#!/bin/bash
+            export ENVIRONMENT="${environment}"
+            scripts/shard.sh list_releases ubuntu"""
+    ).split(' ');
+    def latestRelease = releases[releases.length-1]
+    def oldReleases = releases.findAll{!it.equals(latestRelease)}
+    return oldReleases
+}
+
+// get the list of all shards in the environment matching the release number
+def newShardsFromRelease(environment,release) {
+    def shards = sh(
+        returnStdout: true,
+        script: """#!/bin/bash
+            export ENVIRONMENT="${environment}"
+            export RELEASE_NUMBER="${release}"
+            scripts/shard.sh list ubuntu"""
+    );
+    return shards
+}
+// get the inverse of the above, all shards in the environment not matching the release
+def oldShardsFromRelease(environment,release) {
+    def shards = sh(
+        returnStdout: true,
+        script: """#!/bin/bash
+            export ENVIRONMENT="${environment}"
+            export RELEASE_NUMBER="${release}"
+            export RELEASE_INVERSE="true"
+            scripts/shard.sh list ubuntu"""
+    );
+    return shards    
+}
+
+pipeline {				//indicate the job is written in Declarative Pipeline
+    agent any				//agent specifies where the pipeline will execute. 
+    options {
+        timestamps()
+    }
+    stages {
+        // output stage, shows off our input parameters
+        stage ("setup") {
+            steps {
+                echo 'Jitsi Build Pipeline Begninning'
+                sh '''echo JVB VERSION ${JVB_VERSION}'''
+                sh '''echo JICOFO VERSION ${JICOFO_VERSION}'''
+                sh '''echo JITSI MEET VERSION ${JITSI_MEET_VERSION}'''
+
+                script {
+                    def scmUrl = scm.getUserRemoteConfigs()[0].getUrl()
+                    dir('infra-configuration') {
+                        checkout([$class: 'GitSCM', branches: [[name: "origin/${VIDEO_INFRA_BRANCH}"]], extensions: [[$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: false, recursiveSubmodules: true, reference: '', trackingSubmodules: false]], userRemoteConfigs: [[credentialsId: 'video-infra', url: env.INFRA_CONFIGURATION_REPO]]])
+                    }
+                    dir('infra-customization') {
+                        git branch: env.VIDEO_INFRA_BRANCH, url: env.INFRA_CUSTOMIZATIONS_REPO, credentialsId: 'video-infra'
+                    }
+                    dir('infra-provisioning') {
+                        git branch: env.VIDEO_INFRA_BRANCH, url: scmUrl, credentialsId: 'video-infra'
+                    }
+                    sh 'mkdir -p test-results'
+                    sh 'cp -a infra-customization/* infra-provisioning'
+                    sh 'cp -a infra-customization/* infra-configuration'
+                }
+            }
+        }
+        stage ("build") {		//an arbitrary stage name
+            parallel {
+              stage ("build JVB oracle") {		//an arbitrary stage name
+                steps {
+                    script {
+                        build job: 'build-image-jvb-oracle',parameters: [
+                                [$class: 'StringParameterValue', name: 'JVB_VERSION', value: params.JVB_VERSION],
+                                [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: params.ENVIRONMENT],
+                                [$class: 'BooleanParameterValue', name: 'FORCE_BUILD_IMAGE', value: (params.FORCE_BUILD_IMAGE=='true')],
+                                [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH]
+                            ]
+                    }
+                }
+              }
+              stage ("build Signal Oracle") {		//an arbitrary stage name
+                steps {
+                    script {
+                        build job: 'build-image-signal-oracle',parameters: [
+                            [$class: 'StringParameterValue', name: 'JITSI_MEET_VERSION', value: params.JITSI_MEET_VERSION],
+                            [$class: 'StringParameterValue', name: 'JICOFO_VERSION', value: params.JICOFO_VERSION],
+                            [$class: 'StringParameterValue', name: 'PROSODY_VERSION', value: params.PROSODY_VERSION],
+                            [$class: 'BooleanParameterValue', name: 'FORCE_BUILD_IMAGE', value: (params.FORCE_BUILD_IMAGE=='true')],
+                            [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH]
+                        ]
+                    }
+                }
+              }
+            }
+        }
+        stage ("release") {		//an arbitrary stage name
+        	environment {
+                SIGNAL_VERSION = "${params.JICOFO_VERSION}-${params.JITSI_MEET_VERSION}-${params.PROSODY_VERSION}"
+        	}
+            steps {
+                dir('infra-provisioning') {
+                    withCredentials([
+                        file(credentialsId: 'oci-jenkins-config', variable: 'OCI_CLI_CONFIG_FILE'),
+                        file(credentialsId: 'oci-jenkins-pem', variable: 'OCI_CLI_KEY_FILE'),
+                        string(credentialsId: 'jenkins-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
+                        string(credentialsId: 'jenkins-aws-id', variable: 'AWS_ACCESS_KEY_ID')                            
+                    ]) {
+                        sshagent (credentials: ['ssh-ubuntu']) {
+                            script {
+                                def releaseJob = build job: 'release-core',parameters: [
+                                    [$class: 'StringParameterValue', name: 'CLOUD_PROVIDER', value: params.CLOUD_PROVIDER],
+                                    [$class: 'StringParameterValue', name: 'CORE_CLOUD_PROVIDER', value: params.CORE_CLOUD_PROVIDER],
+                                    [$class: 'StringParameterValue', name: 'JVB_VERSION', value: params.JVB_VERSION],
+                                    [$class: 'StringParameterValue', name: 'SIGNAL_VERSION', value: env.SIGNAL_VERSION],
+                                    [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: env.ENVIRONMENT],
+                                    [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH]
+                                ]
+                                def newShards = newShardsFromRelease(env.ENVIRONMENT,releaseJob.getNumber())
+                                def oldShards = oldShardsFromRelease(env.ENVIRONMENT,releaseJob.getNumber())
+                                build job: 'reconfigure-shard-states',parameters: [
+                                    [$class: 'StringParameterValue', name: 'SHARDS_DRAIN', value: oldShards],
+                                    [$class: 'StringParameterValue', name: 'SHARDS_READY', value: newShards],
+                                    [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: env.ENVIRONMENT],
+                                    [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH]
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        stage ("cleanup") {		//an arbitrary stage name
+            steps {
+                dir('infra-provisioning') {
+                    withCredentials([
+                        file(credentialsId: 'oci-jenkins-config', variable: 'OCI_CLI_CONFIG_FILE'),
+                        file(credentialsId: 'oci-jenkins-pem', variable: 'OCI_CLI_KEY_FILE'),
+                        string(credentialsId: 'jenkins-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
+                        string(credentialsId: 'jenkins-aws-id', variable: 'AWS_ACCESS_KEY_ID')                            
+                    ]) {
+                        sshagent (credentials: ['ssh-ubuntu']) {
+                            script {
+                                def OLD_RELEASES = oldReleasesFromEnvironment(env.ENVIRONMENT).join(' ')
+                                build job: 'destroy-release-core',parameters: [
+                                    [$class: 'StringParameterValue', name: 'RELEASE_NUMBER', value: OLD_RELEASES],
+                                    [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: env.ENVIRONMENT],
+                                    [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH]
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    post {
+        fixed {
+            slackSend color: "good", message: "Successfully fixed build of ${env.JOB_NAME} ${env.BUILD_NUMBER} (<${env.BUILD_URL}|Open>)\nSignal ${params.JICOFO_VERSION}-${params.JITSI_MEET_VERSION}-${params.PROSODY_VERSION} JVB  ${params.JVB_VERSION} ${env.ENVIRONMENT}"
+        }
+        failure {
+            slackSend color: "danger", message: "Failure in build of build of ${env.JOB_NAME} ${env.BUILD_NUMBER} (<${env.BUILD_URL}|Open>)\nSignal ${params.JICOFO_VERSION}-${params.JITSI_MEET_VERSION}-${params.PROSODY_VERSION} JVB  ${params.JVB_VERSION} ${env.ENVIRONMENT}"
+        }
+    }
+}

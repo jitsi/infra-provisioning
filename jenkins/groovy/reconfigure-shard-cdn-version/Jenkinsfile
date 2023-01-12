@@ -5,15 +5,10 @@ def setupOCI() {
     sh 'cp "$OCI_CLI_KEY_FILE" ~/.oci/private-key.pem'
 }
 
-def setupAnsible() {
-    sh 'echo "$ANSIBLE_VAULT_PASSWORD_PATH" > ./.vault-password.txt'
-}
-
-def reloadHaproxy() {
+def reconfigureShardCDNVersion() {
     sh(
         script: """#!/bin/bash
-        export LOG_DEST="../../test-results"
-        scripts/reload-haproxy.sh ubuntu
+        scripts/set-shard-cdn-version.sh ubuntu
         exit \$?"""
     )
 }
@@ -21,6 +16,7 @@ def reloadHaproxy() {
 pipeline {
     agent any
     options {
+        ansiColor('xterm')
         timestamps()
     }
     stages {
@@ -29,32 +25,20 @@ pipeline {
             steps {
                 script {
                     def scmUrl = scm.getUserRemoteConfigs()[0].getUrl()
-                    dir('infra-configuration') {
-                        checkout([$class: 'GitSCM', branches: [[name: "origin/${VIDEO_INFRA_BRANCH}"]], extensions: [[$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: false, recursiveSubmodules: true, reference: '', trackingSubmodules: false]], userRemoteConfigs: [[credentialsId: 'video-infra', url: env.INFRA_CONFIGURATION_REPO]]])
-                    }
                     dir('infra-customization') {
                         git branch: env.VIDEO_INFRA_BRANCH, url: env.INFRA_CUSTOMIZATIONS_REPO, credentialsId: 'video-infra'
                     }
                     dir('infra-provisioning') {
                         git branch: env.VIDEO_INFRA_BRANCH, url: scmUrl, credentialsId: 'video-infra'
                     }
-                    sh 'mkdir -p test-results'
                     sh 'cp -a infra-customization/* infra-provisioning'
-                    sh 'cp -a infra-customization/* infra-configuration'
                 }
             }
         }
-        stage ("haproxy reload") {
+        stage ("reconfigure CDN") {
             steps {
                 script {
-                    echo 'haproxy reload'
-                    dir('infra-configuration') {
-                        withCredentials([
-                            string(credentialsId: 'ansible-vault-password', variable: 'ANSIBLE_VAULT_PASSWORD_PATH')
-                        ]) {
-                            setupAnsible()
-                        }
-                    }
+                    echo 'reconfigure CDN'
                     dir('infra-provisioning') {
                         withCredentials([
                             file(credentialsId: 'oci-jenkins-config', variable: 'OCI_CLI_CONFIG_FILE'),
@@ -64,7 +48,7 @@ pipeline {
                         ]) {
                           sshagent (credentials: ['ssh-ubuntu']) {
                             setupOCI()
-                            reloadHaproxy()
+                            reconfigureShardCDNVersion()
                           }
                         }
                     }
@@ -74,7 +58,6 @@ pipeline {
     }
     post {
         always {
-            archiveArtifacts artifacts: 'test-results/**.log'
             // Clean up afterwards
             cleanWs()
         }

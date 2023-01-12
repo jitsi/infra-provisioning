@@ -1,6 +1,13 @@
-node {   
-  timestamps {
+pipeline {
+  agent any
+  options {
+      ansiColor('xterm')
+      timestamps()
+      buildDiscarder(logRotator(numToKeepStr: '10', artifactNumToKeepStr: '10'))
+  }
+  stages {
     stage('Prepare/Checkout') { // for display purposes
+      steps {
         script {
             def scmUrl = scm.getUserRemoteConfigs()[0].getUrl()
             dir('infra-customization') {
@@ -11,10 +18,13 @@ node {
             }
             sh 'cp -a infra-customization/* infra-provisioning'
         }
+      }
     }
     stage('Provision') {
+      steps {
         // Run the cloud provisioning
         dir('infra-provisioning') {
+          script {
             if (env.CLOUD_PROVIDER == 'oracle') {
                 withCredentials([
                     string(credentialsId: 'oci-jenkins-terraform-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
@@ -35,7 +45,9 @@ node {
             } else {
                 sh 'scripts/create-ssh-jumpbox-stack.sh'
             }
+          }
         }
+      }
     }
   }
 }

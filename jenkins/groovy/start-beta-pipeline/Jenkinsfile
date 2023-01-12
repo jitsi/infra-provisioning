@@ -1,0 +1,62 @@
+pipeline {				//indicate the job is written in Declarative Pipeline
+    agent any				//agent specifies where the pipeline will execute. 
+    options {
+        ansiColor('xterm')
+        timestamps()
+    }
+    stages {
+        // output stage, shows off our input parameters
+        stage ("setup") {
+            steps {
+                echo 'Jitsi Start Pipeline Beginning'
+                sh '''echo JITSI MEET META VERSION: \${JITSI_MEET_META_VERSION}'''
+
+                script {
+                    def scmUrl = scm.getUserRemoteConfigs()[0].getUrl()
+
+                    dir('infra-configuration') {
+                        checkout([$class: 'GitSCM', branches: [[name: "origin/${VIDEO_INFRA_BRANCH}"]], extensions: [[$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: false, recursiveSubmodules: true, reference: '', trackingSubmodules: false]], userRemoteConfigs: [[credentialsId: 'video-infra', url: env.INFRA_CONFIGURATION_REPO]]])
+                    }
+
+                    dir('infra-customization') {
+                        git branch: env.VIDEO_INFRA_BRANCH, url: env.INFRA_CUSTOMIZATIONS_REPO, credentialsId: 'video-infra'
+                    }
+
+                    sh 'cp -a infra-customization/* infra-configuration'
+                }
+            }
+        }
+        stage ("find versions") {
+            steps {
+                dir('infra-configuration') {
+                    withCredentials([
+                        string(credentialsId: 'ansible-vault-password', variable: 'ANSIBLE_VAULT_PASSWORD_PATH')
+                    ]) {
+
+                        sh '''#!/bin/bash
+                        echo "$ANSIBLE_VAULT_PASSWORD_PATH" > .vault-password.txt
+                        export ANSIBLE_FORCE_COLOR=True
+                        scripts/get-latest-jitsi-versions.sh'''
+                    }
+                }
+            }
+        }
+        stage ("trigger build") {
+            steps {
+                script {
+                    def versionParams = readProperties file: 'infra-configuration/build_versions.properties'
+
+                    build job: 'release-beta-pipeline', wait: false, parameters: [
+                        [$class: 'StringParameterValue', name: 'JVB_VERSION', value: versionParams.JVB_VERSION],
+                        [$class: 'StringParameterValue', name: 'JITSI_MEET_VERSION', value: versionParams.JITSI_MEET_VERSION],
+                        [$class: 'StringParameterValue', name: 'PROSODY_VERSION', value: env.PROSODY_VERSION],
+                        [$class: 'StringParameterValue', name: 'JICOFO_VERSION', value: versionParams.JICOFO_VERSION],
+                        [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: env.ENVIRONMENT],
+                        [$class: 'StringParameterValue', name: 'FORCE_BUILD_IMAGE', value: env.FORCE_BUILD_IMAGE],
+                        [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH]
+                    ]
+                }
+            }
+        }
+    }
+}
