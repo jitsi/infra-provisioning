@@ -16,8 +16,8 @@
           description: "Region to build in"
           trim: true
       - string:
-          name: CLOUDS
-          description: "Clouds to build in, defaults to RELEASE_CLOUDS"
+          name: CLOUD_NAME
+          description: "Cloud name to build in"
           trim: true
       - string:
           name: RELEASE_BRANCH

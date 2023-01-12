@@ -1,7 +1,7 @@
 - job:
     name: release-beta-pipeline
     display-name: release beta pipeline
-    concurrent: true
+    concurrent: false
     parameters:
       - string:
           name: JICOFO_VERSION
