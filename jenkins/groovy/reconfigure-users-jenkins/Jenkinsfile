@@ -43,5 +43,10 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                 }
             }
         }
+        stage ("clear trigger") {
+            steps {
+                sh '''rm -f /home/jenkins/triggers/reconfigure-users-jenkins'''
+            }
+        }
     }
 }

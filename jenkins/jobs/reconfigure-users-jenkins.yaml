@@ -18,7 +18,16 @@
           default: git@github.com:jitsi/infra-customizations.git
           description: "Repo with customized configurations, defaults to 'git@github.com:jitsi/infra-customizations.git'."
           trim: true
- 
+    triggers:
+        - monitor-folders:
+            path: '/home/jenkins/triggers'
+            includes:
+              - 'reconfigure-users-jenkins'
+            check-modification-date: false
+            check-content: false
+            check-fewer: false
+            cron: H/5 * * * *
+
     project-type: pipeline
     sandbox: true
     pipeline-scm:
