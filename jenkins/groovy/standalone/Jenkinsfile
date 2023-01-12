@@ -71,6 +71,7 @@ pipeline {
                             cp "$OCI_CLI_CONFIG_FILE" ~/.oci/config
                             cp "$OCI_CLI_KEY_FILE" ~/.oci/private-key.pem
                             echo \$SSH_AUTH_SOCK
+                            export ANSIBLE_FORCE_COLOR=True
                             terraform/standalone/create-standalone-server-oracle.sh $SSH_USERNAME'''
                         }
                         withCredentials([
