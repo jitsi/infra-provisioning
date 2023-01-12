@@ -1,7 +1,8 @@
 - job:
     name: reconfigure-users-jenkins
     display-name: reconfigure users jenkins
-    concurrent: true
+    concurrent: false
+    node: jenkins-local
     parameters:
       - string:
           name: VIDEO_INFRA_BRANCH
@@ -18,11 +19,6 @@
           default: git@github.com:jitsi/infra-customizations.git
           description: "Repo with customized configurations, defaults to 'git@github.com:jitsi/infra-customizations.git'."
           trim: true
-    triggers:
-      - monitor-files:
-          cron: '* * * * *'
-          files:
-            - path: '/home/jenkins/triggers/reconfigure-users-jenkins'
     project-type: pipeline
     sandbox: true
     pipeline-scm:
