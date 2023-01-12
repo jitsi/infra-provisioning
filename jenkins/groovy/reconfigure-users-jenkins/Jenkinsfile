@@ -1,5 +1,7 @@
 pipeline {				//indicate the job is written in Declarative Pipeline
-    agent jenkins-local				//agent specifies where the pipeline will execute. 
+    agent { //agent specifies where the pipeline will execute. 
+        label 'jenkins-local'
+    }	
     options {
         ansiColor('xterm')
         timestamps()
