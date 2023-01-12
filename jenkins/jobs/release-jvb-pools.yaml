@@ -5,7 +5,7 @@
     parameters:
       - string:
           name: JVB_VERSION
-          description: "JVB image version for shard"
+          description: "JVB image version for pool"
           trim: true
       - string:
           name: ENVIRONMENT
@@ -20,8 +20,12 @@
           description: "Cloud name to build in"
           trim: true
       - string:
+          name: RELEASE_NUMBER
+          description: "Release number for pool"
+          trim: true
+      - string:
           name: RELEASE_BRANCH
-          description: "Release branch for shard"
+          description: "Release branch for pool"
           trim: true
       - string:
           name: VIDEO_INFRA_BRANCH
