@@ -102,7 +102,9 @@ pipeline {
                         sshUserPrivateKey(credentialsId: 'ssh-ubuntu', keyFileVariable: 'CONNECTION_SSH_PRIVATE_KEY_FILE', usernameVariable: 'SSH_USERNAME')
                     ]) {
                         sh 'echo "$ANSIBLE_VAULT_PASSWORD_PATH" > ./.vault-password.txt'
-                        sh 'scripts/configure-standalone.sh $SSH_USERNAME'
+                        sh '''#!/bin/bash
+                        export ANSIBLE_FORCE_COLOR=True
+                        scripts/configure-standalone.sh $SSH_USERNAME'''
                     }
             }
           }
