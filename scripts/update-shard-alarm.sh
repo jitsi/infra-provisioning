@@ -1,4 +1,5 @@
 #!/bin/bash
+set -x
 
 [ -e ./stack-env.sh ] && . ./stack-env.sh
 
