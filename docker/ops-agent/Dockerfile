@@ -8,6 +8,7 @@ ARG TARGETPLATFORM
 ARG BUILDPLATFORM
 COPY --from=0 /usr/bin/yq /usr/bin/yq
 COPY ./requirements.txt /home/jenkins/requirements.txt
+COPY ./s3cfg /home/jenkins/.s3cfg
 
 USER root
 RUN apt-get update && apt-get -y install procps dnsutils jq python3-pip wget curl gpg unzip zip git python-is-python3 maven xvfb imagemagick s3cmd sudo && pip install -r /home/jenkins/requirements.txt && pip install jenkins-job-builder
