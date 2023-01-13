@@ -17,10 +17,12 @@ LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 [ -z "$ROLE" ] && ROLE="core"
 [ -z "$ORACLE_GIT_BRANCH" ] && ORACLE_GIT_BRANCH="main"
 
-[ -z "$SIGNAL_VERSION" ] && [ ! -z "$JICOFO_VERSION" ] && [ ! -z "$JITSI_MEET_VERSION" ] && SIGNAL_VERSION="${JICOFO_VERSION}-${JITSI_MEET_VERSION}-${PROSODY_VERSION}"
+[ -z "$SIGNAL_VERSION" ] && [ ! -z "$JICOFO_VERSION" ] && [ ! -z "$JITSI_MEET_VERSION" ] && SIGNAL_VERSION="${JICOFO_VERSION}-${JITSI_MEET_VERSION}"
 [ -z "$SIGNAL_VERSION" ] && SIGNAL_VERSION='latest'
 
 [ -z "$RELEASE_NUMBER" ] && RELEASE_NUMBER=0
+
+[ -z "$VISITORS_ENABLED" ] && VISITORS_ENABLED="false"
 
 #Default shard base name to environment name
 [ -z "$SHARD_BASE" ] && SHARD_BASE=$ENVIRONMENT
@@ -40,11 +42,18 @@ ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 
 CLOUD_NAME="$ENVIRONMENT-$ORACLE_REGION"
 [ -z "$SHAPE" ] && SHAPE="$DEFAULT_STANDALONE_SHAPE"
-[ -z "$SHAPE" ] && SHAPE="VM.Standard.E4.Flex"
+[ -z "$SHAPE" ] && SHAPE="VM.Standard.E3.Flex"
 
 [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS="16"
 [ -z "$INSTANCE_SHAPE_OCPUS" ] && INSTANCE_SHAPE_OCPUS="4"
 [ -z "$DISK_IN_GBS" ] && DISK_IN_GBS="50"
+[ -z "$VISITORS_COUNT" ] && VISITORS_COUNT="0"
+
+if [[ "$VISITORS_ENABLED" == "true" ]]; then
+  MEMORY_IN_GBS=$((2*MEMORY_IN_GBS));
+  INSTANCE_SHAPE_OCPUS=$((2*INSTANCE_SHAPE_OCPUS));
+  VISITORS_COUNT="$INSTANCE_SHAPE_OCPUS"
+fi
 
 [ -z "$DNS_ZONE_NAME" ] && DNS_ZONE_NAME="$DEFAULT_DNS_ZONE_NAME"
 
@@ -174,6 +183,8 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
   -var="ingress_nsg_cidr=$INGRESS_NSG_CIDR" \
   -var "infra_configuration_repo=$INFRA_CONFIGURATION_REPO" \
   -var "infra_customizations_repo=$INFRA_CUSTOMIZATIONS_REPO" \
+  -var="visitors_enabled=$VISITORS_ENABLED" \
+  -var="visitors_count=$VISITORS_COUNT" \
   $ACTION_POST_PARAMS $TF_POST_PARAMS
 
 RET=$?
