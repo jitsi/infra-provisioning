@@ -51,7 +51,8 @@ cd $ANSIBLE_BUILD_PATH
 ansible-playbook ansible/stop-shard-services.yml \
 -i "$SHARD_IP," \
 -e "ansible_ssh_user=$ANSIBLE_SSH_USER"
+RET=$?
 
 cd -
 
-exit $?
+exit $RET
