@@ -66,6 +66,12 @@ variable "alarm_any_body" {
 variable "alarm_repeat_notification_duration" {
   default = ""
 }
+variable "visitors_enabled" {
+  default = "false"
+}
+variable "visitors_count" {
+  default = "0"
+}
 
 variable "alarm_severity" {
   default = "CRITICAL"
@@ -95,6 +101,10 @@ locals {
     "${var.tag_namespace}.shard-role" = var.role
     "${var.tag_namespace}.Name" = var.name
   }
+  freeform_tags = {
+    "visitors_enabled" = var.visitors_enabled
+    "visitors_count" = var.visitors_count
+  }
 }
 
 provider "oci" {
@@ -115,7 +125,7 @@ terraform {
       }
       null = {
           source = "hashicorp/null"
-      }
+      }      
   }
 }
 
@@ -304,6 +314,7 @@ resource "oci_core_instance" "instance" {
     }
 
     defined_tags = local.common_tags
+    freeform_tags = local.freeform_tags
 
     display_name = var.instance_display_name
 
@@ -371,20 +382,9 @@ resource "null_resource" "verify_cloud_init" {
   }
   triggers = {
     always_run = "${timestamp()}"
-  }  
+  }
 }
 
-# resource "null_resource" "cloud_init_output" {
-#   count = 1
-#   depends_on = [null_resource.verify_cloud_init]
-
-#   provisioner "local-exec" {
-#     command = "ssh -o StrictHostKeyChecking=no -J ${var.user}@${var.bastion_host} ${var.user}@${local.private_ip} 'echo hostname: $HOSTNAME, privateIp: ${local.private_ip} - $(cloud-init status)' >> ${var.postinstall_status_file}"
-#   }
-#   triggers = {
-#     always_run = "${timestamp()}"
-#   }
-# }
 
 resource "oci_health_checks_http_monitor" "shard_http_health" {
     #Required
