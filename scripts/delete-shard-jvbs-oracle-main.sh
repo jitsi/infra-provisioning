@@ -35,15 +35,15 @@ for x in $SHARDS; do
   if [ "$SHARD_CORE_CLOUD_PROVIDER" == "aws" ]; then
     SHARD_CLOUD_PROVIDER=$CLOUD_PROVIDER
     [ -z "$SHARD_CLOUD_PROVIDER" ] && SHARD_CLOUD_PROVIDER=$($LOCAL_PATH/shard.py --shard_provider --environment $HCV_ENVIRONMENT --shard $x)
-    SHARD=$x $LOCAL_PATH/delete-shard.sh $SSH_USER >>../../../test-results/shard_delete_output.txt || AWS_SHARD_DELETE_SUCCESS=1
+    SHARD=$x $LOCAL_PATH/delete-shard.sh $SSH_USER || SHARD_DELETE_SUCCESS=1
   fi
   if [ "$SHARD_CORE_CLOUD_PROVIDER" == "oracle" ]; then
     SHARD_CLOUD_PROVIDER="oracle"
-    SHARD=$x $LOCAL_PATH/../terraform/shard-core/destroy-shard-core-oracle.sh $SSH_USER >>$LOCAL_PATH/../../test-results/shard_core_delete_output.txt || AWS_SHARD_DELETE_SUCCESS=1
+    SHARD=$x $LOCAL_PATH/../terraform/shard-core/destroy-shard-core-oracle.sh $SSH_USER || SHARD_DELETE_SUCCESS=1
   fi
 
   if [ "$SHARD_CLOUD_PROVIDER" == 'oracle' ]; then
-    if [ "$AWS_SHARD_DELETE_SUCCESS" -eq 0 ]; then
+    if [ "$SHARD_DELETE_SUCCESS" -eq 0 ]; then
       # for oracle, try to delete both the group and the static instance pool
       echo "Deleting custom JVB group, if any, and its associated instance configuration, if not used by another pool..."
       SHARD_CORE_CLOUD_PROVIDER=$SHARD_CORE_CLOUD_PROVIDER SHARD=$x $LOCAL_PATH/delete-shard-custom-jvbs-oracle.sh
