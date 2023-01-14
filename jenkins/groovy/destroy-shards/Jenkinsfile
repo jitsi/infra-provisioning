@@ -16,6 +16,7 @@ def setupSSH() {
 pipeline {
     agent any
     options {
+        ansiColor('xterm')
         timestamps()
     }
     stages {
@@ -62,6 +63,7 @@ pipeline {
                           sshagent (credentials: ['ssh-ubuntu']) {
                             setupOCI()
                             sh '''#!/bin/bash
+                            export ANSIBLE_FORCE_COLOR=True
                             scripts/delete-shard-jvbs-oracle-main.sh ubuntu'''
                           }
                         }
