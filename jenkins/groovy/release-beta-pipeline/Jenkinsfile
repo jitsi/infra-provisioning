@@ -1,11 +1,12 @@
-def oldReleasesFromEnvironment(environment) {
+def myRelease
+
+def oldReleasesFromEnvironment(environment, latestRelease) {
     def releases = sh(
         returnStdout: true,
         script: """#!/bin/bash
             export ENVIRONMENT="${environment}"
             scripts/shard.sh list_releases ubuntu"""
     ).split(' ');
-    def latestRelease = releases[releases.length-1]
     def oldReleases = releases.findAll{!it.equals(latestRelease)}
     return oldReleases
 }
@@ -116,8 +117,9 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                                     [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: env.ENVIRONMENT],
                                     [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH]
                                 ]
-                                def newShards = newShardsFromRelease(env.ENVIRONMENT,releaseJob.getNumber())
-                                def oldShards = oldShardsFromRelease(env.ENVIRONMENT,releaseJob.getNumber())
+                                myRelease = releaseJob.getNumber();
+                                def newShards = newShardsFromRelease(env.ENVIRONMENT,myRelease)
+                                def oldShards = oldShardsFromRelease(env.ENVIRONMENT,myRelease)
                                 build job: 'reconfigure-shard-states',parameters: [
                                     [$class: 'StringParameterValue', name: 'SHARDS_DRAIN', value: oldShards],
                                     [$class: 'StringParameterValue', name: 'SHARDS_READY', value: newShards],
@@ -141,7 +143,7 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                     ]) {
                         sshagent (credentials: ['ssh-ubuntu']) {
                             script {
-                                def OLD_RELEASES = oldReleasesFromEnvironment(env.ENVIRONMENT).join(' ')
+                                def OLD_RELEASES = oldReleasesFromEnvironment(env.ENVIRONMENT, myRelease).join(' ')
                                 build job: 'destroy-release-core',parameters: [
                                     [$class: 'StringParameterValue', name: 'RELEASE_NUMBER', value: OLD_RELEASES],
                                     [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: env.ENVIRONMENT],
