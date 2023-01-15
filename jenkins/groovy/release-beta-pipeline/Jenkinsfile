@@ -4,10 +4,12 @@ def oldReleasesFromEnvironment(environment, latestRelease) {
     def releases = sh(
         returnStdout: true,
         script: """#!/bin/bash
+            set -x
             export ENVIRONMENT="${environment}"
             scripts/shard.sh list_releases ubuntu"""
     ).split(' ');
     def oldReleases = releases.findAll{!it.equals(latestRelease)}
+    echo oldReleases
     return oldReleases
 }
 
@@ -143,7 +145,7 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                     ]) {
                         sshagent (credentials: ['ssh-ubuntu']) {
                             script {
-                                def OLD_RELEASES = oldReleasesFromEnvironment(env.ENVIRONMENT, myRelease).join(' ')
+                                def OLD_RELEASES = oldReleasesFromEnvironment(env.ENVIRONMENT, myRelease.toString()).join(' ')
                                 build job: 'destroy-release-core',parameters: [
                                     [$class: 'StringParameterValue', name: 'RELEASE_NUMBER', value: OLD_RELEASES],
                                     [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: env.ENVIRONMENT],
