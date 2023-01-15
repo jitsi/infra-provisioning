@@ -8,7 +8,7 @@ def oldReleasesFromEnvironment(environment, latestRelease) {
             scripts/shard.sh list_releases ubuntu"""
     ).split(' ');
     def oldReleases = releases.findAll{!it.equals(latestRelease)}
-    echo "${oldReleases}"
+    echo "Deleting ${oldReleases}"
     return oldReleases
 }
 
