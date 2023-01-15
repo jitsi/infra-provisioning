@@ -4,7 +4,6 @@ def oldReleasesFromEnvironment(environment, latestRelease) {
     def releases = sh(
         returnStdout: true,
         script: """#!/bin/bash
-            set -x
             export ENVIRONMENT="${environment}"
             scripts/shard.sh list_releases ubuntu"""
     ).split(' ');
