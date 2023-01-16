@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -x
 
 # haproxy-status-lock.sh
 # crates a lock file on haproxy to indicate it should not be checked by
@@ -28,7 +29,7 @@ else
 fi
 
 if [ "$SKIP_BUILD_CACHE" == "true" ]; then
-  SKIP_BUILD_CACHE=="true"
+  export SKIP_BUILD_CACHE="true"
 fi
 
 HAPROXY_STATUS_OUTPUT="../../../haproxy-status/$ENVIRONMENT"
