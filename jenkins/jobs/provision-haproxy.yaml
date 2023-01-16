@@ -29,7 +29,11 @@
           trim: true
       - string:
           name: CLOUD_NAME
-          description: "Name of cloud to build in"
+          description: "Name of cloud to build in, for AWS"
+          trim: true
+      - string:
+          name: ORACLE_REGION
+          description: "Name of region to build in, for Oracle"
           trim: true
       - string:
           name: INFRA_CONFIGURATION_REPO
