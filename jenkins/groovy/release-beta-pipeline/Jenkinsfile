@@ -1,15 +1,15 @@
 def myRelease
 
 def oldReleasesFromEnvironment(environment, latestRelease) {
-    echo "Old releases not matching $latestRelease"
+    echo "Searching for old releases not matching $latestRelease"
     def releases = sh(
         returnStdout: true,
         script: """#!/bin/bash
             export ENVIRONMENT="${environment}"
             scripts/shard.sh list_releases ubuntu"""
-    ).split(' ');
+    ).trim().split(' ');
     def oldReleases = releases.findAll{!it.equals(latestRelease)}
-    echo "$oldReleases"
+    echo "Found old releases: $oldReleases"
     return oldReleases
 }
 
