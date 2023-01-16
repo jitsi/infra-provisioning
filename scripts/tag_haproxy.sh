@@ -48,5 +48,5 @@ SKIP_BUILD_CACHE=${HAPROXY_IGNORE_CACHE-"false"}
 # set HAPROXY_CACHE and build cache if needed
 SKIP_BUILD_CACHE=$SKIP_BUILD_CACHE CACHE_TTL=$CACHE_TTL . $LOCAL_PATH/haproxy-buildcache.sh
 
-ansible-playbook  -i "$HAPROXY_CACHE" ansible/clear_cloud_cache.yml -e "ansible_ssh_user=$ANSIBLE_SSH_USER"
+ansible-playbook  -i "$HAPROXY_CACHE" ansible/clear-cloud-cache.yml -e "ansible_ssh_user=$ANSIBLE_SSH_USER"
 cd -
