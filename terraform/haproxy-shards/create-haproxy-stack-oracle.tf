@@ -156,6 +156,18 @@ resource "oci_load_balancer" "oci_load_balancer" {
   network_security_group_ids = [var.lb_security_group_id]
 }
 
+resource "oci_load_balancer_backend_set" "oci_load_balancer_bs" {
+  load_balancer_id = oci_load_balancer.oci_load_balancer.id
+  name = "HAProxyLBBS"
+  policy = "ROUND_ROBIN"
+  health_checker {
+    protocol = "HTTP"
+    url_path = "/haproxy_health"
+    port = 8081
+    retries = 3
+  }
+}
+
 resource "oci_load_balancer_rule_set" "redirect_rule_set" {
     #Required
     items {
