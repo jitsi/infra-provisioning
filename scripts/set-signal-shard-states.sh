@@ -39,22 +39,24 @@ SHARD_READY_IPS=""
 for SHARD in $SHARDS_READY; do
     SHARD_REGION=$($LOCAL_PATH/shard.py --shard_region --shard $SHARD --environment $ENVIRONMENT)
     SHARD_IP=$($LOCAL_PATH/node.py --environment $ENVIRONMENT --shard $SHARD --role core --oracle --region $SHARD_REGION --batch)
-    if [ -z $SHARD_IP ]; then
+    if [ -z "$SHARD_IP" ]; then
         echo "No SHARD_IP found from $SHARD, skipping"
         RET=2
+    else
+        SHARD_READY_IPS="$SHARD_IP,$SHARD_READY_IPS"
     fi
-    SHARD_READY_IPS="$SHARD_IP,$SHARD_READY_IPS"
 done
 
 SHARDS_DRAIN_IPS=""
 for SHARD in $SHARDS_DRAIN; do
     SHARD_REGION=$($LOCAL_PATH/shard.py --shard_region --shard $SHARD --environment $ENVIRONMENT)
     SHARD_IP=$($LOCAL_PATH/node.py --environment $ENVIRONMENT --shard $SHARD --role core --oracle --region $SHARD_REGION --batch)
-    if [ -z $SHARD_IP ]; then
+    if [ -z "$SHARD_IP" ]; then
         echo "No SHARD_IP found from $SHARD, skipping"
         RET=2
+    else
+        SHARD_DRAIN_IPS="$SHARD_IP,$SHARD_DRAIN_IPS"
     fi
-    SHARD_DRAIN_IPS="$SHARD_IP,$SHARD_DRAIN_IPS"
 done
 
 cd $ANSIBLE_BUILD_PATH
