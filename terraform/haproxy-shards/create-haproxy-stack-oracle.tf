@@ -369,6 +369,27 @@ resource "oci_core_instance_pool" "oci_instance_pool" {
     vnic_selection = "PrimaryVnic"
   }
 
+  load_balancers {
+    load_balancer_id = oci_load_balancer.oci_load_balancer.id
+    backend_set_name = oci_load_balancer_backend_set.oci_load_balancer_bs.name
+    port = 81
+    vnic_selection = "PrimaryVnic"
+  }
+
+  load_balancers {
+    load_balancer_id = oci_load_balancer.oci_load_balancer.id
+    backend_set_name = oci_load_balancer_backend_set.oci_load_balancer_bs.name
+    port = 82
+    vnic_selection = "PrimaryVnic"
+  }
+
+  load_balancers {
+    load_balancer_id = oci_load_balancer.oci_load_balancer.id
+    backend_set_name = oci_load_balancer_backend_set.oci_load_balancer_bs.name
+    port = 83
+    vnic_selection = "PrimaryVnic"
+  }
+
   defined_tags = local.common_tags
   freeform_tags = local.common_freeform_tags
 }
