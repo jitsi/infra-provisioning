@@ -42,6 +42,7 @@ def tagRelease(release) {
 def tagExistingProxies(stack_environment,cloud_provider,haproxy_release_number,gitBranch) {
     sh """#!/bin/bash
         export CLOUD_PROVIDER=${cloud_provider}
+        export ANSIBLE_FORCE_COLOR=True
         scripts/tag_haproxy.sh ${stack_environment} ${haproxy_release_number} ${gitBranch} ubuntu"""
 }
 
