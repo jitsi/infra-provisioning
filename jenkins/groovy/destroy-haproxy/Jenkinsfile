@@ -49,7 +49,7 @@ pipeline {
                             string(credentialsId: 'oci-jenkins-terraform-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
                             string(credentialsId: 'oci-jenkins-terraform-aws-id', variable: 'AWS_ACCESS_KEY_ID')
                         ]) {
-                          sshagent(['ssh-ubuntu']) {
+                          sshagent(credentials: ['ssh-ubuntu']) {
                             setupOCI()
                             sh '''#!/bin/bash
                             export ANSIBLE_FORCE_COLOR=True
