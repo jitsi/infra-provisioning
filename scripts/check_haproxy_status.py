@@ -127,7 +127,6 @@ def load_stats_file(dirpath, sfile):
 # admin,FRONTEND,,,0,1,2000,14401,2265341,11516963,0,0,0,,,,,OPEN,,,,,,,,,1,2,0,,,,0,1,0,2,,,,0,14401,0,0,0,0,,1,2,14401,,,0,0,0,0,,,,,,,,
 # admin,BACKEND,0,0,0,0,200,0,2265341,11516963,0,0,,0,0,0,0,UP,0,0,0,,0,57080,0,,1,2,0,,0,,1,0,,0,,,,0,0,0,0,0,0,,,,,0,0,0,0,0,0,8,,,0,0,0,0,
 # www-http,FRONTEND,,,0,8,2000,170,17818,26503,0,0,86,,,,,OPEN,,,,,,,,,1,3,0,,,,0,0,0,6,,,,0,0,84,86,0,0,,0,6,170,,,0,0,0,0,,,,,,,,
-# www-https,FRONTEND,,,19,29,2000,2716,30956979,52627976,0,0,552,,,,,OPEN,,,,,,,,,1,4,0,,,,0,0,0,6,,,,0,35066,75,571,3,20,,1,10,35743,,,0,0,0,0,,,,,,,,
 # nodes,hcv-meetjitsi-ap-se-2a-s2,0,0,5,11,,18771,16346506,33179741,,0,,0,0,0,0,UP,1,1,0,0,0,56270,810,,1,5,12,,978,,2,1,,9,L7OK,200,4,0,18660,75,19,3,0,0,,,,12,0,,,,,0,OK,,0,1,7195,9112,
 
     #split stats into categories based on svname and sid (server ID)
@@ -638,14 +637,14 @@ def main():
         last_stats=stats[-1]
 
 
-#        pprint(combined_stats['frontend_stats']['www-https'])
+#        pprint(combined_stats['frontend_stats']['www-http'])
         
         log_print("Stat File count: %s"%len(stats))
         log_print("Table File count: %s"%len(tables))
         log_print("Total rooms: %s"%str(len(last_table['servers_by_room'])))
         log_print("Total sessions: %s"%str(combined_stats['server_stats']['totals']['scur']))
         log_print("Current server request rate: %s"%str(combined_stats['server_stats']['totals']['rate']))
-        log_print("Current frontend request rate: %s"%str(combined_stats['frontend_stats']['www-https']['req_rate']))
+        log_print("Current frontend request rate: %s"%str(combined_stats['frontend_stats']['www-http']['req_rate']))
         for server in list(last_table['rooms_by_server'].keys()):
             sname = 'UNKNOWN'
             scount = 0
