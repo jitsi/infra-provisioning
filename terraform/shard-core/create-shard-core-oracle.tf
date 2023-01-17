@@ -372,7 +372,7 @@ resource "null_resource" "verify_cloud_init" {
     bastion_user = var.user
     bastion_private_key = file(var.user_private_key_path)
 
-    timeout = "10m"
+    timeout = "5m"
   }
 
   provisioner "remote-exec" {

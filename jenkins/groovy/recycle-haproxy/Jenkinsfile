@@ -1,22 +1,23 @@
-def setupOCI() {
-    sh 'rm -rf ~/.oci'
-    sh 'mkdir -p ~/.oci'
-    sh 'cp "$OCI_CLI_CONFIG_FILE" ~/.oci/config'
-    sh 'cp "$OCI_CLI_KEY_FILE" ~/.oci/private-key.pem'
+
+def recycleHaproxyAWS() {
+    sh(
+        script: "scripts/recycle-haproxy.sh ubuntu"
+    )
+}
+
+def recycleHaproxyOracle() {
+    sh(
+        script: """#!/bin/bash
+        mkdir -p ~/.oci
+        cp "\$OCI_CLI_CONFIG_FILE" ~/.oci/config
+        cp "\$OCI_CLI_KEY_FILE" ~/.oci/private-key.pem
+        export ANSIBLE_FORCE_COLOR=True
+        scripts/recycle-haproxy-oracle.sh ubuntu"""
+    )
 }
 
 def setupAnsible() {
     sh 'echo "$ANSIBLE_VAULT_PASSWORD_PATH" > ./.vault-password.txt'
-}
-
-def reloadHaproxy() {
-    sh(
-        script: """#!/bin/bash
-        export LOG_DEST="../../test-results"
-        export ANSIBLE_FORCE_COLOR=True
-        scripts/reload-haproxy.sh ubuntu
-        exit \$?"""
-    )
 }
 
 pipeline {
@@ -41,15 +42,16 @@ pipeline {
                         git branch: env.VIDEO_INFRA_BRANCH, url: scmUrl, credentialsId: 'video-infra'
                     }
                     sh 'mkdir -p test-results'
+                    sh 'mkdir -p haproxy-status'
                     sh 'cp -a infra-customization/* infra-provisioning'
                     sh 'cp -a infra-customization/* infra-configuration'
                 }
             }
         }
-        stage ("haproxy reload") {
+        stage ("haproxy recycle") {
             steps {
                 script {
-                    echo 'haproxy reload'
+                    echo 'haproxy recycle beginning'
                     dir('infra-configuration') {
                         withCredentials([
                             string(credentialsId: 'ansible-vault-password', variable: 'ANSIBLE_VAULT_PASSWORD_PATH')
@@ -57,17 +59,26 @@ pipeline {
                             setupAnsible()
                         }
                     }
-                    dir('infra-provisioning') {
-                      lock("haproxy-state-${env.ENVIRONMENT}") {
-                        withCredentials([
-                            file(credentialsId: 'oci-jenkins-config', variable: 'OCI_CLI_CONFIG_FILE'),
-                            file(credentialsId: 'oci-jenkins-pem', variable: 'OCI_CLI_KEY_FILE'),
-                            string(credentialsId: 'jenkins-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
-                            string(credentialsId: 'jenkins-aws-id', variable: 'AWS_ACCESS_KEY_ID')                            
-                        ]) {
+                    lock("haproxy-state-${env.ENVIRONMENT}") {
+                      dir('infra-provisioning') {
+                        if (env.CLOUD_PROVIDER == 'aws') {
+                            withCredentials([
+                                string(credentialsId: 'jenkins-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
+                                string(credentialsId: 'jenkins-aws-id', variable: 'AWS_ACCESS_KEY_ID')
+                            ]) {
+                                recycleHaproxyAWS()
+                            }
+                        }
+                        if (env.CLOUD_PROVIDER == 'oracle') {
                           sshagent (credentials: ['ssh-ubuntu']) {
-                            setupOCI()
-                            reloadHaproxy()
+                            withCredentials([
+                                file(credentialsId: 'oci-jenkins-config', variable: 'OCI_CLI_CONFIG_FILE'),
+                                file(credentialsId: 'oci-jenkins-pem', variable: 'OCI_CLI_KEY_FILE'),
+                                string(credentialsId: 'jenkins-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
+                                string(credentialsId: 'jenkins-aws-id', variable: 'AWS_ACCESS_KEY_ID')
+                            ]) {
+                                recycleHaproxyOracle()
+                            }
                           }
                         }
                       }
@@ -75,12 +86,5 @@ pipeline {
                 }
             }
         }
-    }
-    post {
-        always {
-            archiveArtifacts artifacts: 'test-results/**.log'
-            // Clean up afterwards
-            cleanWs()
-        }
-    }
+     }
 }

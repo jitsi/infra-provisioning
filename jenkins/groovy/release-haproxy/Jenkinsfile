@@ -1,0 +1,185 @@
+// splits incoming clouds into a list
+// alternately loads defaults for environment into a list
+def split_clouds(stack_environment,cloud_names) {
+    if (cloud_names) {
+        clouds = cloud_names.split(' ')
+    } else {
+        clouds = sh(
+            returnStdout: true,
+            script: 'scripts/release_clouds.sh '+stack_environment
+        ).trim().split(' ');
+    }
+    return clouds
+}
+def oracle_regions(cloud_list) {
+    def oracle_regions=[]
+    for(i = 0; i < cloud_list.size(); i++) {
+        oracle_regions[i] = sh(
+            returnStdout: true,
+            script: """#!/bin/bash
+                . clouds/${cloud_list[i]}.sh
+                echo \$ORACLE_REGION"""
+        )
+    }
+    return oracle_regions
+}
+
+
+// global var to track git branch from env or new tags
+def git_branch
+
+// use incoming branch/tag or tag repo with new tag based on build ID
+// either way set it into git_branch variable to use later
+def tagRelease(release) {
+    git_branch = 'release-'+release
+    env.RELEASE_BRANCH = git_branch
+    sh 'git tag ' + git_branch
+    sh 'git push origin '+git_branch
+    return git_branch
+}
+
+
+def tagExistingProxies(stack_environment,cloud_provider,haproxy_release_number,gitBranch) {
+    sh """#!/bin/bash
+        export CLOUD_PROVIDER=${cloud_provider}
+        export ANSIBLE_FORCE_COLOR=True
+        scripts/tag_haproxy.sh ${stack_environment} ${haproxy_release_number} ${gitBranch} ubuntu"""
+}
+
+// trigger create or update stack job with appropriate parameters
+def createHAProxyStack(stack_environment,cloud_provider,cloud_name,oracle_region,haproxy_release_number,gitBranch) {
+    def createStack = build job: 'provision-haproxy',parameters: [
+        [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: stack_environment],
+        [$class: 'StringParameterValue', name: 'CLOUD_NAME', value: cloud_name],
+        [$class: 'StringParameterValue', name: 'ORACLE_REGION', value: oracle_region],
+        [$class: 'StringParameterValue', name: 'CLOUD_PROVIDER', value: cloud_provider],
+        [$class: 'StringParameterValue', name: 'HAPROXY_RELEASE_NUMBER', value: haproxy_release_number],
+        [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: gitBranch],
+        [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH]
+    ]
+
+    return createStack
+}
+
+
+pipeline {				//indicate the job is written in Declarative Pipeline
+    agent any				//agent specifies where the pipeline will execute. 
+    stages {
+        stage('Prepare/Checkout') { // for display purposes
+            steps {
+                script {
+                    def scmUrl = scm.getUserRemoteConfigs()[0].getUrl()
+                    dir('infra-customization') {
+                        git branch: env.VIDEO_INFRA_BRANCH, url: env.INFRA_CUSTOMIZATIONS_REPO, credentialsId: 'video-infra'
+                    }
+                    dir('infra-configuration') {
+                        git branch: env.VIDEO_INFRA_BRANCH, url: env.INFRA_CONFIGURATION_REPO, credentialsId: 'video-infra'
+                    }
+                    dir('infra-provisioning') {
+                        git branch: env.VIDEO_INFRA_BRANCH, url: scmUrl, credentialsId: 'video-infra'
+                    }
+
+                    sh 'cp -a infra-customization/* infra-provisioning'
+                    sh 'cp -a infra-customization/* infra-configuration'
+                    withCredentials([
+                        file(credentialsId: 'oci-jenkins-config', variable: 'OCI_CLI_CONFIG_FILE'),
+                        file(credentialsId: 'oci-jenkins-pem', variable: 'OCI_CLI_KEY_FILE'),
+                        string(credentialsId: 'ansible-vault-password', variable: 'ANSIBLE_VAULT_PASSWORD_VALUE')
+                    ]) {
+                        sh '''#!/bin/bash
+                        mkdir -p ~/.oci
+                        cp "$OCI_CLI_CONFIG_FILE" ~/.oci/config
+                        cp "$OCI_CLI_KEY_FILE" ~/.oci/private-key.pem'''
+                        sh 'echo "$ANSIBLE_VAULT_PASSWORD_VALUE" > infra-provisioning/.vault-password.txt'
+                        sh 'echo "$ANSIBLE_VAULT_PASSWORD_VALUE" > infra-configuration/.vault-password.txt'
+                    }
+                }
+            }
+        }
+        // output stage, shows off our input parameters
+        stage ("setup") {
+            steps {
+                echo 'HAProxy Release Creation'
+            }
+        }
+        // tag the new release or load git_branch from input parameters
+        // tag the new release or load git_branch from input parameters
+        stage("tag release") {
+            steps {
+                sshagent (credentials: ['video-infra']) {
+                    script {
+                        if (!env.RELEASE_BRANCH) {
+                            git_branch = tagRelease(env.BUILD_ID)
+                            dir('infra-configuration') {
+                                tagRelease(env.BUILD_ID)
+                            }
+                            dir('infra-customization') {
+                                tagRelease(env.BUILD_ID)
+                            }
+                        } else {
+                            git_branch = env.RELEASE_BRANCH
+                        }
+                    }
+                }
+            }
+        }
+        // create or update stacks for the release
+        stage("create stacks") {
+            steps {
+                script {
+                    dir('infra-provisioning') {
+                        echo "Create stacks in ${env.ENVIRONMENT} clouds ${env.CLOUDS}";
+                        def cloud_list = split_clouds(env.ENVIRONMENT,env.CLOUDS);
+                        def oracle_region = oracle_regions(cloud_list);
+                        echo "cloud list ${cloud_list}";
+                        def branches = [:]
+                        for(i = 0; i < cloud_list.size(); i++) {
+                            def curr = i
+                            echo "pipeline branch ${curr} for stack in ${cloud_list[curr]}";
+                            branches["Build ${cloud_list[curr]}"] = {
+                                createHAProxyStack(env.ENVIRONMENT,
+                                    env.CLOUD_PROVIDER,
+                                    cloud_list[curr],
+                                    oracle_region[curr],
+                                    env.BUILD_ID,
+                                    git_branch
+                                )
+                            }
+                        }
+                        // branch out here, run all create jobs at once
+                        // only succeed if all branches succeed
+                        parallel branches
+                    }
+                }
+            }
+        }
+        // update tags and clear caches for existing proxies
+        stage ("tag existing proxies") {
+            steps {
+                script {
+                    sshagent (credentials: ['ssh-ubuntu']) {
+                        withCredentials([
+                                string(credentialsId: 'jenkins-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
+                                string(credentialsId: 'jenkins-aws-id', variable: 'AWS_ACCESS_KEY_ID')
+                        ]) {
+                            dir('infra-provisioning') {
+                                tagExistingProxies(env.ENVIRONMENT,env.CLOUD_PROVIDER,env.BUILD_ID,git_branch)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        // trigger rotation of load balancers to trigger reconfigure step using new branches
+        stage ("rotate load balancers") {
+            steps {
+                script {
+                    build job: 'reconfigure-haproxy',parameters: [
+                        [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: env.ENVIRONMENT],
+                        [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH]
+                    ]
+                }
+            }
+        }
+    }
+}
