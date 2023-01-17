@@ -18,6 +18,8 @@ fi
 
 LOCAL_PATH=$(realpath $(dirname "${BASH_SOURCE[0]}"))
 
+[ -z "$ANSIBLE_BUILD_PATH" ] && ANSIBLE_BUILD_PATH="$LOCAL_PATH/../../infra-configuration"
+
 unset ANSIBLE_SSH_USER
 if [  -z "$1" ]
 then
@@ -32,7 +34,9 @@ if [ "$SKIP_BUILD_CACHE" == "true" ]; then
   export SKIP_BUILD_CACHE="true"
 fi
 
-HAPROXY_STATUS_OUTPUT="../../../haproxy-status/$ENVIRONMENT"
+HAPROXY_STATUS_OUTPUT="$LOCAL_PATH/../../haproxy-status/$ENVIRONMENT"
+
+cd $ANSIBLE_BUILD_PATH
 
 # set HAPROXY_CACHE and build cache if needed
 SKIP_BUILD_CACHE=$SKIP_BUILD_CACHE . $LOCAL_PATH/haproxy-buildcache.sh 
@@ -53,7 +57,13 @@ ansible-playbook --verbose ansible/haproxy-status-lock.yml -i $ANSIBLE_INVENTORY
 -e "hcv_haproxy_status_lock_action=$HAPROXY_STATUS_LOCK_ACTION" \
 --tags "$DEPLOY_TAGS"
 
-if [ $? -ne 0 ]; then
+RET=$?
+
+cd -
+
+if [ $RET -ne 0 ]; then
     echo "## ERROR: haproxy-status-lock.yml run failed"
     exit 2
 fi
+
+exit $RET
