@@ -424,6 +424,10 @@ resource "null_resource" "verify_cloud_init" {
       "cloud-init status --wait"
     ]
   }
+  triggers = {
+    always_run = "${timestamp()}"
+  }
+
 }
 
 resource "null_resource" "cloud_init_output" {
@@ -433,6 +437,10 @@ resource "null_resource" "cloud_init_output" {
   provisioner "local-exec" {
     command = "ssh -o StrictHostKeyChecking=no -J ${var.user}@${var.bastion_host} ${var.user}@${element(local.private_ips, count.index)} 'echo hostname: $HOSTNAME, privateIp: ${element(local.private_ips, count.index)} - $(cloud-init status)' >> ${var.postinstall_status_file}"
   }
+  triggers = {
+    always_run = "${timestamp()}"
+  }
+
 }
 
 resource "oci_monitoring_alarm" "proxy_5xx_alarm_email" {
