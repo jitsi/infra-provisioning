@@ -16,6 +16,8 @@ fi
 
 LOCAL_PATH=$(realpath $(dirname "${BASH_SOURCE[0]}"))
 
+[ -z "$ANSIBLE_BUILD_PATH" ] && ANSIBLE_BUILD_PATH="$LOCAL_PATH/../../infra-configuration"
+
 [ -z "$LOG_PATH" ] && LOG_PATH="/var/log/proxy_monitor/$ENVIRONMENT-stick-table-fixes.json.log"
 
 unset ANSIBLE_SSH_USER
@@ -36,6 +38,8 @@ HAPROXY_STATUS_COMPARE_OLD=${HAPROXY_STATUS_COMPARE_OLD-"false"}
 
 usage() { echo "Usage: $0 [<username>]" 1>&2; }
 #usage
+
+cd $ANSIBLE_BUILD_PATH
 
 #update inventory cache every 2 hours
 CACHE_TTL=${HAPROXY_CACHE_TTL-"7200"}
@@ -66,7 +70,7 @@ fi
 
 echo "## $(date +%Y-%m-%dT%H:%M:%S) haproxy-status: pulling stick tables from ${ANSIBLE_INVENTORY}"
 
-ansible-playbook --verbose ../../ansible/haproxy-status.yml --extra-vars "hcv_environment=$ENVIRONMENT" \
+ansible-playbook --verbose ansible/haproxy-status.yml --extra-vars "hcv_environment=$ENVIRONMENT" \
 -i $ANSIBLE_INVENTORY \
 -e "ansible_ssh_user=$ANSIBLE_SSH_USER" \
 -e "hcv_haproxy_status_ignore_lock=$HAPROXY_STATUS_IGNORE_LOCK" \
@@ -101,3 +105,5 @@ else
       echo "## $(date +%Y-%m-%dT%H:%M:%S) haproxy-status: no split brains detected in $ENVIRONMENT"
   fi
 fi
+
+cd -
