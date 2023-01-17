@@ -41,6 +41,7 @@ pipeline {
         stage ("destroy haproxy") {
             steps {
                 script {
+                  lock("haproxy-state-${env.ENVIRONMENT}") {
                     echo 'haproxy destruction beginning'
                     dir('infra-provisioning') {
                         withCredentials([
@@ -57,6 +58,7 @@ pipeline {
                           }
                         }
                     }
+                  }
                 }
             }
         }

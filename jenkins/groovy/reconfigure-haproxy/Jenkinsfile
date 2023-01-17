@@ -58,6 +58,7 @@ pipeline {
                         }
                     }
                     dir('infra-provisioning') {
+                      lock("haproxy-state-${env.ENVIRONMENT}") {
                         withCredentials([
                             file(credentialsId: 'oci-jenkins-config', variable: 'OCI_CLI_CONFIG_FILE'),
                             file(credentialsId: 'oci-jenkins-pem', variable: 'OCI_CLI_KEY_FILE'),
@@ -69,6 +70,7 @@ pipeline {
                             reloadHaproxy()
                           }
                         }
+                      }
                     }
                 }
             }
