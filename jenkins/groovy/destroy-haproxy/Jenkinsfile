@@ -29,6 +29,7 @@ pipeline {
                         git branch: env.VIDEO_INFRA_BRANCH, url: scmUrl, credentialsId: 'video-infra'
                     }
                     sh 'cp -a infra-customization/* infra-provisioning'
+                    sh 'cp -a infra-customization/* infra-configuration'
                     withCredentials([
                         string(credentialsId: 'ansible-vault-password', variable: 'ANSIBLE_VAULT_PASSWORD_PATH')
                     ]) {
