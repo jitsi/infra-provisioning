@@ -1,0 +1,44 @@
+
+def haproxyStatus(environment) {
+    sh(
+        script: """#!/bin/bash
+        ../../../infra-provisioning/scripts/haproxy-status.sh ubuntu"""
+    )
+}
+
+pipeline {
+    agent any
+    options {
+        timestamps()
+        ansiColor('xterm')
+    }
+    stages {
+        // output stage, shows off our input parameters
+        stage ("setup") {
+            steps {
+                script {
+                    def scmUrl = scm.getUserRemoteConfigs()[0].getUrl()
+                    dir('infra-provisioning') {
+                        git branch: env.VIDEO_INFRA_BRANCH, url: scmUrl, credentialsId: 'video-infra'
+                    }
+                    sh 'mkdir -p test-results'
+                    sh 'mkdir -p haproxy-status'
+                    sh 'cp -a infra-customization/* infra-provisioning'
+                    sh 'cp -a infra-customization/* infra-configuration'
+                }
+            }
+        }
+        stage ("monitor haproxies") {
+            steps {
+                script {
+                    echo 'haproxy monitor beginning'
+                    lock("haproxy-state-${env.ENVIRONMENT}") {
+                        dir('infra-customizations-private/sites/${env.ENVIRONMENT}') {
+                            haproxyStatus()
+                        }
+                    }
+                }
+            }
+        }
+     }
+}
