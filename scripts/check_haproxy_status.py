@@ -209,7 +209,7 @@ def combine_server_stats(stats,stat_key):
             if stat_file[stat_key][sid]['status'] in healthy_statuses or stat_file[stat_key][sid]['agent_health'] in healthy_agent_statuses:
                 health_status[sid] += 1
             else:
-                if stat_file[stat_key][sid]['svname'] not in skip_sv_health_names:
+                if stat_file[stat_key][sid]['svname'] not in skip_sv_health_names and not stat_file[stat_key][sid]['svname'].startswith('shard-'):
                     log_info('unhealthy server {} - status: {}, agent_health: {}'.format(stat_file[stat_key][sid]['svname'], stat_file[stat_key][sid]['status'], stat_file[stat_key][sid]['agent_health']))
     #now normalize the health status back to 1 (if all proxies see as healthy)
     for sid in list(health_status.keys()):
