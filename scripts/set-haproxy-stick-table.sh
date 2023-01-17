@@ -13,6 +13,8 @@ fi
 
 LOCAL_PATH=$(realpath $(dirname "${BASH_SOURCE[0]}"))
 
+[ -z "$ANSIBLE_BUILD_PATH" ] && ANSIBLE_BUILD_PATH="$LOCAL_PATH/../../infra-configuration"
+
 if [  -z "$1" ]
 then
   ANSIBLE_SSH_USER=$(whoami)
@@ -24,6 +26,8 @@ fi
 
 [ -z "$STICK_TABLE_RUN" ] && STICK_TABLE_RUN="standalone"
 [ -z "$STICK_TABLE_FILENAME" ] && STICK_TABLE_FILENAME="stick-table-${STICK_TABLE_RUN}.json"
+
+cd $ANSIBLE_BUILD_PATH
 
 if [ -z "$STICK_TABLE_ENTRIES_FILE" ]; then
     echo "Need to define STICK_TABLE_ENTRIES_FILE"
@@ -60,3 +64,5 @@ ansible-playbook ansible/haproxy-set-stick-table.yml \
 -i $ANSIBLE_INVENTORY \
 --extra-vars="$EXTRA" \
 -e "ansible_ssh_user=$ANSIBLE_SSH_USER"
+
+cd -
