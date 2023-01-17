@@ -17,7 +17,6 @@ def createHAProxyStackOracle() {
         export ORACLE_REGION=${env.ORACLE_REGION}
         export ORACLE_GIT_BRANCH=${env.RELEASE_BRANCH}
         export HAPROXY_RELEASE_NUMBER=${env.HAPROXY_RELEASE_NUMBER}
-        export POSTINSTALL_STATUS_FILE="/tmp/haproxy_postinstall_status.txt"
         terraform/haproxy-shards/create-haproxy-stack-oracle.sh ubuntu"""
     )
 }
