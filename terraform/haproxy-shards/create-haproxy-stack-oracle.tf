@@ -432,7 +432,7 @@ resource "oci_dns_rrset" "haproxy_dns_record" {
 
 resource "null_resource" "cloud_init_output" {
   count = var.instance_pool_size
-  depends_on = [null_resource.verify_cloud_init]
+  depends_on = [data.oci_core_instance.oci_instance_datasources]
 
   provisioner "local-exec" {
     command = "ssh -o StrictHostKeyChecking=no -J ${var.user}@${var.bastion_host} ${var.user}@${element(local.private_ips, count.index)} 'cloud-init status --wait && echo hostname: $HOSTNAME, privateIp: ${element(local.private_ips, count.index)} - $(cloud-init status)' >> ${var.postinstall_status_file}"
@@ -454,7 +454,7 @@ resource "oci_monitoring_alarm" "proxy_5xx_alarm_email" {
 
     severity = var.alarm_severity
     depends_on = [
-      null_resource.verify_cloud_init
+      null_resource.cloud_init_output
     ]
     #Optional
     body = var.alarm_5xx_body
@@ -478,7 +478,7 @@ resource "oci_monitoring_alarm" "proxy_health_alarm" {
     query = "UnHealthyBackendServers[1m]{backendSetName = \"HAProxyLBBS\", resourceId = \"${oci_load_balancer.oci_load_balancer.id}\"}.max() > 0"
     severity = var.alarm_severity
     depends_on = [
-      null_resource.verify_cloud_init
+      null_resource.cloud_init_output
     ]
     #Optional
     body = var.alarm_health_body
