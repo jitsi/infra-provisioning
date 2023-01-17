@@ -435,7 +435,7 @@ resource "null_resource" "cloud_init_output" {
   depends_on = [data.oci_core_instance.oci_instance_datasources]
 
   provisioner "local-exec" {
-    command = "ssh -o StrictHostKeyChecking=no -J ${var.user}@${var.bastion_host} ${var.user}@${element(local.private_ips, count.index)} 'echo hostname: $HOSTNAME, privateIp: ${element(local.private_ips, count.index)} - $(cloud-init status)' >> ${var.postinstall_status_file}"
+    command = "ssh -o StrictHostKeyChecking=no -J ${var.user}@${var.bastion_host} ${var.user}@${element(local.private_ips, count.index)} 'cloud-init status --wait && echo hostname: $HOSTNAME, privateIp: ${element(local.private_ips, count.index)} - $(cloud-init status)' >> ${var.postinstall_status_file}"
   }
   triggers = {
     always_run = "${timestamp()}"
