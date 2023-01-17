@@ -73,6 +73,8 @@ pipeline {
                             withCredentials([
                                 file(credentialsId: 'oci-jenkins-config', variable: 'OCI_CLI_CONFIG_FILE'),
                                 file(credentialsId: 'oci-jenkins-pem', variable: 'OCI_CLI_KEY_FILE'),
+                                string(credentialsId: 'jenkins-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
+                                string(credentialsId: 'jenkins-aws-id', variable: 'AWS_ACCESS_KEY_ID')
                             ]) {
                                 recycleHaproxyOracle()
                             }
