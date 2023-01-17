@@ -5,6 +5,9 @@ variable "environment" {}
 variable "vcn_cidr" {}
 variable "public_subnet_cidr" {}
 variable "jvb_subnet_cidr" {}
+variable "ops_peer_cidrs" {
+  type = list(string)
+}
 variable "vcn_name" {}
 variable "vcn_dns_label" {}
 variable "resource_name_root" {}
@@ -120,6 +123,20 @@ resource "oci_core_security_list" "public_security_list" {
         }
     }
 
+    // allow inbound ssh traffic from ops networks
+    dynamic "ingress_security_rules" {
+      for_each = toset(var.ops_peer_cidrs)
+      content {
+        protocol  = "6"         // tcp
+        source    = ingress_security_rules.value
+        stateless = false
+        tcp_options {
+            min = 22
+            max = 22
+        }
+      }
+    }
+
     // allow inbound icmp traffic of a specific type
     ingress_security_rules {
         protocol    = 1
@@ -172,6 +189,20 @@ resource "oci_core_security_list" "private_security_list" {
             min = 22
             max = 22
         }
+    }
+
+    // allow inbound ssh traffic from ops networks
+    dynamic "ingress_security_rules" {
+      for_each = toset(var.ops_peer_cidrs)
+      content {
+        protocol  = "6"         // tcp
+        source    = ingress_security_rules.value
+        stateless = false
+        tcp_options {
+            min = 22
+            max = 22
+        }
+      }
     }
 
     ingress_security_rules {
