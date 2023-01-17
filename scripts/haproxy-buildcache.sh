@@ -39,7 +39,7 @@ if [ ! -z "$CACHE_TTL" ] && [ "$SKIP_BUILD_CACHE" != "true" ]; then
         TIMEDIFF=$(expr $CURTIME - $FILETIME)
         if [ ! $TIMEDIFF -gt $CACHE_TTL ]; then
             echo "## skipping haproxy-buildcache; cache is fresh enough"
-            SKIP_BUILD_CACHE=true
+            SKIP_BUILD_CACHE="true"
         fi
     fi
 fi

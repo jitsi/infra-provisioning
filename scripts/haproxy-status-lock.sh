@@ -31,7 +31,7 @@ else
 fi
 
 if [ "$SKIP_BUILD_CACHE" == "true" ]; then
-  export SKIP_BUILD_CACHE="true"
+  export HAPROXY_IGNORE_CACHE="true"
 fi
 
 HAPROXY_STATUS_OUTPUT="$LOCAL_PATH/../../haproxy-status/$ENVIRONMENT"
