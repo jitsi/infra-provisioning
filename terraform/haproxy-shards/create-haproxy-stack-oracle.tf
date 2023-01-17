@@ -402,40 +402,40 @@ resource "oci_dns_rrset" "haproxy_dns_record" {
   }
 }
 
-resource "null_resource" "verify_cloud_init" {
-  count = var.instance_pool_size
-  depends_on = [data.oci_core_instance.oci_instance_datasources]
+# resource "null_resource" "verify_cloud_init" {
+#   count = var.instance_pool_size
+#   depends_on = [data.oci_core_instance.oci_instance_datasources]
 
-  connection {
-    type = "ssh"
-    host = element(local.private_ips, count.index)
-    user = var.user
-    private_key = file(var.user_private_key_path)
+#   connection {
+#     type = "ssh"
+#     host = element(local.private_ips, count.index)
+#     user = var.user
+#     private_key = file(var.user_private_key_path)
 
-    bastion_host = var.bastion_host
-    bastion_user = var.user
-    bastion_private_key = file(var.user_private_key_path)
+#     bastion_host = var.bastion_host
+#     bastion_user = var.user
+#     bastion_private_key = file(var.user_private_key_path)
 
-    timeout = "10m"
-  }
+#     timeout = "5m"
+#   }
 
-  provisioner "remote-exec" {
-    inline = [
-      "cloud-init status --wait"
-    ]
-  }
-  triggers = {
-    always_run = "${timestamp()}"
-  }
+#   provisioner "remote-exec" {
+#     inline = [
+#       "cloud-init status --wait"
+#     ]
+#   }
+#   triggers = {
+#     always_run = "${timestamp()}"
+#   }
 
-}
+# }
 
 resource "null_resource" "cloud_init_output" {
   count = var.instance_pool_size
   depends_on = [null_resource.verify_cloud_init]
 
   provisioner "local-exec" {
-    command = "ssh -o StrictHostKeyChecking=no -J ${var.user}@${var.bastion_host} ${var.user}@${element(local.private_ips, count.index)} 'echo hostname: $HOSTNAME, privateIp: ${element(local.private_ips, count.index)} - $(cloud-init status)' >> ${var.postinstall_status_file}"
+    command = "ssh -o StrictHostKeyChecking=no -J ${var.user}@${var.bastion_host} ${var.user}@${element(local.private_ips, count.index)} 'cloud-init status --wait && echo hostname: $HOSTNAME, privateIp: ${element(local.private_ips, count.index)} - $(cloud-init status)' >> ${var.postinstall_status_file}"
   }
   triggers = {
     always_run = "${timestamp()}"
