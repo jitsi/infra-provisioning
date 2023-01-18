@@ -31,7 +31,7 @@ def git_branch
 // use incoming branch/tag or tag repo with new tag based on build ID
 // either way set it into git_branch variable to use later
 def tagRelease(release) {
-    git_branch = 'release-'+release
+    git_branch = 'haproxy-release-'+release
     env.RELEASE_BRANCH = git_branch
     sh 'git tag ' + git_branch
     sh 'git push origin '+git_branch
