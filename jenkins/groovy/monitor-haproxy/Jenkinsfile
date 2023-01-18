@@ -1,8 +1,15 @@
 
-def haproxyStatus(environment) {
+def haproxyStatus() {
     sh(
-        script: """#!/bin/bash
-        ../../../infra-provisioning/scripts/haproxy-status.sh ubuntu"""
+        script: """#!bin/bash
+        export LOG_PATH="/$(realpath ../haproxy-status/stick-table-fixes.json.log)"
+        scripts/haproxy-status.sh ubuntu"""
+    )
+}
+
+def putResultsInBucket() {
+    sh(
+        script: "oci os object put --bucket-name dump-logs-ops-prod --name monitor-haproxy/${ENVIRONMENT}/$(date +%F_%T)/ --file haproxy-status/** --region us-phoenix-1"
     )
 }
 
@@ -18,6 +25,12 @@ pipeline {
             steps {
                 script {
                     def scmUrl = scm.getUserRemoteConfigs()[0].getUrl()
+                    dir('infra-configuration') {
+                        checkout([$class: 'GitSCM', branches: [[name: "origin/${VIDEO_INFRA_BRANCH}"]], extensions: [[$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: false, recursiveSubmodules: true, reference: '', trackingSubmodules: false]], userRemoteConfigs: [[credentialsId: 'video-infra', url: env.INFRA_CONFIGURATION_REPO]]])
+                    }
+                    dir('infra-customization') {
+                        git branch: env.VIDEO_INFRA_BRANCH, url: env.INFRA_CUSTOMIZATIONS_REPO, credentialsId: 'video-infra'
+                    }
                     dir('infra-provisioning') {
                         git branch: env.VIDEO_INFRA_BRANCH, url: scmUrl, credentialsId: 'video-infra'
                     }
@@ -31,14 +44,39 @@ pipeline {
         stage ("monitor haproxies") {
             steps {
                 script {
-                    echo 'haproxy monitor beginning'
-                    lock("haproxy-state-${env.ENVIRONMENT}") {
-                        dir('infra-customizations-private/sites/${env.ENVIRONMENT}') {
-                            haproxyStatus()
+                    echo 'haproxy reload'
+                    dir('infra-configuration') {
+                        withCredentials([
+                            string(credentialsId: 'ansible-vault-password', variable: 'ANSIBLE_VAULT_PASSWORD_PATH')
+                        ]) {
+                            setupAnsible()
                         }
+                    }
+                    dir('infra-provisioning') {
+                      lock("haproxy-state-${env.ENVIRONMENT}") {
+                        withCredentials([
+                            file(credentialsId: 'oci-jenkins-config', variable: 'OCI_CLI_CONFIG_FILE'),
+                            file(credentialsId: 'oci-jenkins-pem', variable: 'OCI_CLI_KEY_FILE'),
+                            string(credentialsId: 'jenkins-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
+                            string(credentialsId: 'jenkins-aws-id', variable: 'AWS_ACCESS_KEY_ID')
+                        ]) {
+                          sshagent (credentials: ['ssh-ubuntu']) {
+                            setupOCI()
+                            haproxyStatus()
+                          }
+                        }
+                      }
                     }
                 }
             }
         }
-     }
+    }
+    post {
+        always {
+            archiveArtifacts artifacts: 'haproxy-status/**', allowEmptyArchive: false
+            putResultsInBucket()
+            // Clean up afterwards
+            cleanWs()
+        }
+    }
 }
