@@ -70,32 +70,31 @@ pipeline {
             }
             sh 'cp -a infra-customization/* infra-configuration'
             sh 'cp -a infra-customization/* infra-provisioning'
-
-        }
-      }
-    }
-    stage('Provision') {
-      steps {
-        dir('infra-provisioning') {
-          script {
             withCredentials([
                 file(credentialsId: 'oci-jenkins-config', variable: 'OCI_CLI_CONFIG_FILE'),
                 file(credentialsId: 'oci-jenkins-pem', variable: 'OCI_CLI_KEY_FILE'),
-                string(credentialsId: 'ansible-vault-password', variable: 'ANSIBLE_VAULT_PASSWORD_VALUE'),
-                sshUserPrivateKey(credentialsId: 'ssh-ubuntu', keyFileVariable: 'CONNECTION_SSH_PRIVATE_KEY_FILE', usernameVariable: 'SSH_USERNAME')
             ]) {
                 sh 'rm -rf ~/.oci'
                 sh 'mkdir -p ~/.oci'
                 sh 'cp "$OCI_CLI_CONFIG_FILE" ~/.oci/config'
                 sh 'cp "$OCI_CLI_KEY_FILE" ~/.oci/private-key.pem'
+            }
+        }
+      }
+    }
+    stage('Build Image') {
+      steps {
+        dir('infra-provisioning') {
+          script {
+            withCredentials([
+                string(credentialsId: 'ansible-vault-password', variable: 'ANSIBLE_VAULT_PASSWORD_VALUE'),
+                sshUserPrivateKey(credentialsId: 'ssh-ubuntu', keyFileVariable: 'CONNECTION_SSH_PRIVATE_KEY_FILE', usernameVariable: 'SSH_USERNAME')
+            ]) {
                 sh 'echo "$ANSIBLE_VAULT_PASSWORD_VALUE" > ./.vault-password.txt'
                 skipCheck = checkSkipBuild()
                 if (skipCheck == false) {
-
                     echo 'Oracle JVB Image Creation'
                     createJVBImageOracle()
-                    echo 'Oracle JVB Image Replication'
-                    replicateImageOracle()
                 } else {
                     echo 'Skipping image creation, already exists'
                 }
@@ -103,6 +102,18 @@ pipeline {
           }
         }
       }
+    }
+    stage('Replicate Image') {
+        steps {
+            script {
+                if (skipCheck == false) {
+                    echo 'Oracle JVB Image Replication'
+                    replicateImageOracle()
+                } else {
+                    echo 'Skipping image replication, already exists'
+                }
+            }
+        }
     }
   }
 }
