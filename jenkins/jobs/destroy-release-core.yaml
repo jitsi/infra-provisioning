@@ -10,11 +10,16 @@
           trim: true
       - string:
           name: ENVIRONMENT
-          description: "Environment to find JVB pool in."
+          description: "Environment to find release in."
           trim: true
       - string:
           name: RELEASE_NUMBER
-          description: "Release to find JVB pool in."
+          description: "Release number for shards and pools."
+          trim: true
+      - string:
+          name: FORCE_UNPIN
+          default: 'false'
+          description: "force unpin all tenants using this release in the versioning-manager service"
           trim: true
       - string:
           name: INFRA_CONFIGURATION_REPO
