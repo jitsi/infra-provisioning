@@ -64,6 +64,11 @@ def createHAProxyStack(stack_environment,cloud_provider,cloud_name,oracle_region
 
 pipeline {				//indicate the job is written in Declarative Pipeline
     agent any				//agent specifies where the pipeline will execute. 
+    options {
+        ansiColor('xterm')
+        timestamps()
+        buildDiscarder(logRotator(numToKeepStr: '10', artifactNumToKeepStr: '10'))
+    }
     stages {
         stage('Prepare/Checkout') { // for display purposes
             steps {
