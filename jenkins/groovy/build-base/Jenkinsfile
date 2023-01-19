@@ -48,6 +48,7 @@ def setupRepos() {
 }
 
 def utils
+def skipCheck = false
 
 pipeline {
   agent any
@@ -72,7 +73,22 @@ pipeline {
         }
       }
     }
+    stage('Check Existing') {
+      when {
+        expression {env.CLOUD_PROVIDER == 'oracle'}
+      }
+      steps {
+        script {
+          dir('infra-provisioning') {
+            skipCheck = utils.checkSkipBuild(env.IMAGE_TYPE, env.ENVIRONMENT)
+          }          
+        }
+      }
+    }
     stage('Build Image') {
+      when {
+        expression {skipCheck == false}
+      }
       steps {
         dir('infra-provisioning') {
           script {
@@ -92,7 +108,10 @@ pipeline {
     }
     stage('Replicate Image') {
         when {
+          allOf {
+            expression {skipCheck == false}
             expression {env.CLOUD_PROVIDER == 'oracle'}
+          }
         }
         steps {
             script {
