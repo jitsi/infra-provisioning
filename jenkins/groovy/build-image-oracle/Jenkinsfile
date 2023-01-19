@@ -26,6 +26,9 @@ pipeline {
     stage('Check Existing') {
       steps {
         script {
+          if (env.IMAGE_TYPE == "") {
+            error("No image type specified, failing")
+          }
           dir('infra-provisioning') {
             skipCheck = utils.CheckSkipBuild(env.IMAGE_TYPE, env.ENVIRONMENT, (params.FORCE_BUILD_IMAGE ? 'true' : 'false'))
           }          
