@@ -9,10 +9,15 @@ def replicateImageOracle() {
     )
 }
 def setupOCI() {
-    sh 'rm -rf ~/.oci'
-    sh 'mkdir -p ~/.oci'
-    sh 'cp "$OCI_CLI_CONFIG_FILE" ~/.oci/config'
-    sh 'cp "$OCI_CLI_KEY_FILE" ~/.oci/private-key.pem'
+  withCredentials([
+    file(credentialsId: 'oci-jenkins-config', variable: 'OCI_CLI_CONFIG_FILE'),
+    file(credentialsId: 'oci-jenkins-pem', variable: 'OCI_CLI_KEY_FILE')
+  ]) {
+      sh 'rm -rf ~/.oci'
+      sh 'mkdir -p ~/.oci'
+      sh 'cp "$OCI_CLI_CONFIG_FILE" ~/.oci/config'
+      sh 'cp "$OCI_CLI_KEY_FILE" ~/.oci/private-key.pem'
+  }
 }
 def setupAnsible() {
     sh 'echo "$ANSIBLE_VAULT_PASSWORD_PATH" > ./.vault-password.txt'
@@ -20,13 +25,16 @@ def setupAnsible() {
 
 def setupRepos() {
   sshagent (credentials: ['video-infra']) {
-      echo env.VIDEO_INFRA_BRANCH
+      def scmUrl = scm.getUserRemoteConfigs()[0].getUrl()
+      dir('infra-provisioning') {
+          git branch: env.VIDEO_INFRA_BRANCH, url: scmUrl, credentialsId: 'video-infra'
+      }
       dir('infra-configuration') {
           checkout([$class: 'GitSCM', branches: [[name: "origin/${VIDEO_INFRA_BRANCH}"]], extensions: [[$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: false, recursiveSubmodules: true, reference: '', trackingSubmodules: false]], userRemoteConfigs: [[credentialsId: 'video-infra', url: env.INFRA_CONFIGURATION_REPO]]])
           withCredentials([
             string(credentialsId: 'ansible-vault-password', variable: 'ANSIBLE_VAULT_PASSWORD_PATH'),
           ]) {
-            utils.setupAnsible()
+            setupAnsible()
           }
       }
       dir('infra-customization') {
@@ -53,22 +61,14 @@ pipeline {
       steps {
         script {
           def rootDir = pwd()
-          println("Current Directory: " + rootDir)
           utils = load "${rootDir}/jenkins/groovy/Utils.groovy"
 
-          def scmUrl = scm.getUserRemoteConfigs()[0].getUrl()
-          dir('infra-provisioning') {
-              git branch: env.VIDEO_INFRA_BRANCH, url: scmUrl, credentialsId: 'video-infra'
-          }
           setupRepos()
+
           if (env.CLOUD_PROVIDER == 'oracle') {
-            withCredentials([
-              file(credentialsId: 'oci-jenkins-config', variable: 'OCI_CLI_CONFIG_FILE'),
-              file(credentialsId: 'oci-jenkins-pem', variable: 'OCI_CLI_KEY_FILE')
-            ]) {
-              setupOCI()
-            }
+            setupOCI()
           }
+
         }
       }
     }
