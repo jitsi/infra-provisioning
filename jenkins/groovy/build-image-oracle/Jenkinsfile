@@ -27,6 +27,7 @@ pipeline {
       steps {
         script {
           dir('infra-provisioning') {
+            echo "Force build: ${env.FORCE_BUILD_IMAGE}"
             skipCheck = utils.CheckSkipBuild(env.IMAGE_TYPE, env.ENVIRONMENT, env.FORCE_BUILD_IMAGE ? 'true' : 'false')
           }          
         }
