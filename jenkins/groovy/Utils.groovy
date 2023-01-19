@@ -35,7 +35,7 @@ def CheckSkipBuild(image_type, environment, force_build) {
         export IMAGE_TYPE="${image_type}"
         export CLOUDS=\$(scripts/release_clouds.sh ${environment})
         SKIP_BUILD=false
-        if [[ "${$force_build}" != "true" ]]; then
+        if [[ "${force_build}" != "true" ]]; then
             scripts/check-build-oracle-image-for-clouds.sh 1>&2 && SKIP_BUILD=true
         fi
         if \$SKIP_BUILD; then
