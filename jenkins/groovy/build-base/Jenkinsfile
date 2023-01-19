@@ -1,51 +1,3 @@
-def replicateImageOracle() {
-    sh(
-        script: """#!/bin/bash
-        export FORCE_BUILD_IMAGE=true
-        # copy new image to root tenancy
-        export DEST_COMPARTMENT_USE_TENANCY="true"
-        scripts/replicate-image-oracle.sh
-        exit \$?"""
-    )
-}
-def setupOCI() {
-  withCredentials([
-    file(credentialsId: 'oci-jenkins-config', variable: 'OCI_CLI_CONFIG_FILE'),
-    file(credentialsId: 'oci-jenkins-pem', variable: 'OCI_CLI_KEY_FILE')
-  ]) {
-      sh 'rm -rf ~/.oci'
-      sh 'mkdir -p ~/.oci'
-      sh 'cp "$OCI_CLI_CONFIG_FILE" ~/.oci/config'
-      sh 'cp "$OCI_CLI_KEY_FILE" ~/.oci/private-key.pem'
-  }
-}
-def setupAnsible() {
-    sh 'echo "$ANSIBLE_VAULT_PASSWORD_PATH" > ./.vault-password.txt'
-}
-
-def setupRepos() {
-  sshagent (credentials: ['video-infra']) {
-      def scmUrl = scm.getUserRemoteConfigs()[0].getUrl()
-      dir('infra-provisioning') {
-          git branch: env.VIDEO_INFRA_BRANCH, url: scmUrl, credentialsId: 'video-infra'
-      }
-      dir('infra-configuration') {
-          checkout([$class: 'GitSCM', branches: [[name: "origin/${VIDEO_INFRA_BRANCH}"]], extensions: [[$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: false, recursiveSubmodules: true, reference: '', trackingSubmodules: false]], userRemoteConfigs: [[credentialsId: 'video-infra', url: env.INFRA_CONFIGURATION_REPO]]])
-          withCredentials([
-            string(credentialsId: 'ansible-vault-password', variable: 'ANSIBLE_VAULT_PASSWORD_PATH'),
-          ]) {
-            setupAnsible()
-          }
-      }
-      dir('infra-customization') {
-          git branch: env.VIDEO_INFRA_BRANCH, url: env.INFRA_CUSTOMIZATIONS_REPO, credentialsId: 'video-infra'
-      }
-      sh 'cp -a infra-customization/* infra-configuration'
-      sh 'cp -a infra-customization/* infra-provisioning'
-      sh 'rm -rf test-results'
-      sh 'mkdir test-results'
-  }
-}
 
 def utils
 def skipCheck = false
@@ -64,12 +16,14 @@ pipeline {
           def rootDir = pwd()
           utils = load "${rootDir}/jenkins/groovy/Utils.groovy"
 
-          setupRepos()
+          utils.SetupRepos()
 
           if (env.CLOUD_PROVIDER == 'oracle') {
-            setupOCI()
+            utils.SetupOCI()
           }
 
+          sh 'rm -rf test-results'
+          sh 'mkdir test-results'
         }
       }
     }
@@ -117,7 +71,7 @@ pipeline {
             script {
                 if (skipCheck == false) {
                     echo 'Oracle Image Replication'
-                    replicateImageOracle()
+                    utils.ReplicateImageOracle()
                 } else {
                     echo 'Skipping image replication, already exists'
                 }
