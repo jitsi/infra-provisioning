@@ -52,12 +52,13 @@ pipeline {
     stage('Prepare/Checkout') { // for display purposes
       steps {
         script {
+          def rootDir = pwd()
+          println("Current Directory: " + rootDir)
+          utils = load "${rootDir}/jenkins/groovy/Utils.groovy"
+
           def scmUrl = scm.getUserRemoteConfigs()[0].getUrl()
           dir('infra-provisioning') {
               git branch: env.VIDEO_INFRA_BRANCH, url: scmUrl, credentialsId: 'video-infra'
-              def rootDir = pwd()
-              println("Current Directory: " + rootDir)
-              utils = load "${rootDir}/jenkins/groovy/Utils.Groovy"
           }
           setupRepos()
           if (env.CLOUD_PROVIDER == 'oracle') {
