@@ -80,7 +80,7 @@ pipeline {
       steps {
         script {
           dir('infra-provisioning') {
-            skipCheck = utils.checkSkipBuild(env.IMAGE_TYPE, env.ENVIRONMENT)
+            skipCheck = utils.CheckSkipBuild(env.IMAGE_TYPE, env.ENVIRONMENT)
           }          
         }
       }
