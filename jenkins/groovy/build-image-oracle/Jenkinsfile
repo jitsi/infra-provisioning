@@ -27,7 +27,7 @@ pipeline {
       steps {
         script {
           dir('infra-provisioning') {
-            skipCheck = utils.CheckSkipBuild(env.IMAGE_TYPE, env.ENVIRONMENT)
+            skipCheck = utils.CheckSkipBuild(env.IMAGE_TYPE, env.ENVIRONMENT, env.FORCE_BUILD_IMAGE ? 'true' : 'false')
           }          
         }
       }
