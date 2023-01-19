@@ -42,12 +42,14 @@ pipeline {
       steps {
         dir('infra-provisioning') {
           script {
-            utils.SetupAnsible()
-            withCredentials([
-                sshUserPrivateKey(credentialsId: 'ssh-ubuntu', keyFileVariable: 'CONNECTION_SSH_PRIVATE_KEY_FILE', usernameVariable: 'SSH_USERNAME')
-            ]) {
-                echo "Oracle ${env.IMAGE_TYPE} Image Creation"
-                utils.CreateImageOracle(env.IMAGE_TYPE)
+            lock("image-build-${env.IMAGE_TYPE}") {
+              utils.SetupAnsible()
+              withCredentials([
+                  sshUserPrivateKey(credentialsId: 'ssh-ubuntu', keyFileVariable: 'CONNECTION_SSH_PRIVATE_KEY_FILE', usernameVariable: 'SSH_USERNAME')
+              ]) {
+                  echo "Oracle ${env.IMAGE_TYPE} Image Creation"
+                  utils.CreateImageOracle(env.IMAGE_TYPE)
+              }
             }
           }
         }
