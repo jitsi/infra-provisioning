@@ -46,18 +46,18 @@ def CheckSkipBuild(image_type, environment) {
     return (checkOutput == 'skip');
 }
 
-def SetupRepos() {
+def SetupRepos(branch) {
   sshagent (credentials: ['video-infra']) {
       def scmUrl = scm.getUserRemoteConfigs()[0].getUrl()
       dir('infra-provisioning') {
-          git branch: env.VIDEO_INFRA_BRANCH, url: scmUrl, credentialsId: 'video-infra'
+          git branch: branch, url: scmUrl, credentialsId: 'video-infra'
       }
       dir('infra-configuration') {
-          checkout([$class: 'GitSCM', branches: [[name: "origin/${VIDEO_INFRA_BRANCH}"]], extensions: [[$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: false, recursiveSubmodules: true, reference: '', trackingSubmodules: false]], userRemoteConfigs: [[credentialsId: 'video-infra', url: env.INFRA_CONFIGURATION_REPO]]])
+          checkout([$class: 'GitSCM', branches: [[name: "origin/${branch}"]], extensions: [[$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: false, recursiveSubmodules: true, reference: '', trackingSubmodules: false]], userRemoteConfigs: [[credentialsId: 'video-infra', url: env.INFRA_CONFIGURATION_REPO]]])
           SetupAnsible()
       }
       dir('infra-customization') {
-          git branch: env.VIDEO_INFRA_BRANCH, url: env.INFRA_CUSTOMIZATIONS_REPO, credentialsId: 'video-infra'
+          git branch: branch, url: env.INFRA_CUSTOMIZATIONS_REPO, credentialsId: 'video-infra'
       }
       sh 'cp -a infra-customization/* infra-configuration'
       sh 'cp -a infra-customization/* infra-provisioning'

@@ -13,22 +13,25 @@ pipeline {
     stage('Prepare/Checkout') { // for display purposes
       steps {
         script {
+          // load utility function
           def rootDir = pwd()
           utils = load "${rootDir}/jenkins/groovy/Utils.groovy"
+          // checkout repos
+          utils.SetupRepos(env.VIDEO_INFRA_BRANCH)
 
-          utils.SetupRepos()
-
+          // setup OCI credentials
           if (env.CLOUD_PROVIDER == 'oracle') {
             utils.SetupOCI()
           }
 
+          // clean and create test-results subdir
           sh 'rm -rf test-results'
           sh 'mkdir test-results'
         }
       }
     }
     stage('Check Existing') {
-      when {
+      when { // only support oracle check build for now
         expression {env.CLOUD_PROVIDER == 'oracle'}
       }
       steps {
@@ -40,7 +43,7 @@ pipeline {
       }
     }
     stage('Build Image') {
-      when {
+      when { // only run if image needs to be built
         expression {skipCheck == false}
       }
       steps {
