@@ -1,19 +1,3 @@
-def createJVBImageOracle() {
-    sh(
-        script: """#!/bin/bash
-        export CLOUDS=\$(scripts/release_clouds.sh \$ENVIRONMENT)
-        export FORCE_BUILD_IMAGE=true
-        export ANSIBLE_FORCE_COLOR=True
-        scripts/build-jvb-oracle.sh ubuntu
-        if [ \$? -eq 0 ]; then
-            echo "Image creation successful"
-        else
-            echo "Failed to create image, skipping replication"
-            exit 2
-        fi"""
-    )
-}
-
 def utils
 def skipCheck = false;
 
@@ -40,13 +24,10 @@ pipeline {
       }
     }
     stage('Check Existing') {
-      when { // only support oracle check build for now
-        expression {env.CLOUD_PROVIDER == 'oracle'}
-      }
       steps {
         script {
           dir('infra-provisioning') {
-            skipCheck = utils.CheckSkipBuild('JVB', env.ENVIRONMENT)
+            skipCheck = utils.CheckSkipBuild(env.IMAGE_TYPE, env.ENVIRONMENT)
           }          
         }
       }
@@ -62,8 +43,8 @@ pipeline {
             withCredentials([
                 sshUserPrivateKey(credentialsId: 'ssh-ubuntu', keyFileVariable: 'CONNECTION_SSH_PRIVATE_KEY_FILE', usernameVariable: 'SSH_USERNAME')
             ]) {
-                echo 'Oracle JVB Image Creation'
-                createJVBImageOracle()
+                echo "Oracle ${env.IMAGE_TYPE} Image Creation"
+                utils.CreateImageOracle(env.IMAGE_TYPE)
             }
           }
         }
@@ -75,8 +56,8 @@ pipeline {
         }
         steps {
             script {
-                echo 'Oracle JVB Image Replication'
-                replicateImageOracle()
+                echo "Oracle ${env.IMAGE_TYPE} Image Replication"
+                utils.ReplicateImageOracle(env.IMAGE_TYPE)
             }
         }
     }
