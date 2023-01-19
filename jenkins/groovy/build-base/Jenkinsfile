@@ -34,15 +34,14 @@ def setupRepos() {
       dir('infra-customization') {
           git branch: env.VIDEO_INFRA_BRANCH, url: env.INFRA_CUSTOMIZATIONS_REPO, credentialsId: 'video-infra'
       }
-      dir('infra-provisioning') {
-          git branch: env.VIDEO_INFRA_BRANCH, url: scmUrl, credentialsId: 'video-infra'
-      }
       sh 'cp -a infra-customization/* infra-configuration'
       sh 'cp -a infra-customization/* infra-provisioning'
       sh 'rm -rf test-results'
       sh 'mkdir test-results'
   }
 }
+
+def utils
 
 pipeline {
   agent any
@@ -55,9 +54,12 @@ pipeline {
     stage('Prepare/Checkout') { // for display purposes
       steps {
         script {
-          def rootDir = pwd()
-          println("Current Directory: " + rootDir)
-          def utils = load "${rootDir}/jenkins/groovy/Utils.Groovy"
+          dir('infra-provisioning') {
+              git branch: env.VIDEO_INFRA_BRANCH, url: scmUrl, credentialsId: 'video-infra'
+              def rootDir = pwd()
+              println("Current Directory: " + rootDir)
+              utils = load "${rootDir}/jenkins/groovy/Utils.Groovy"
+          }
           setupRepos()
           if (env.CLOUD_PROVIDER == 'oracle') {
             withCredentials([
