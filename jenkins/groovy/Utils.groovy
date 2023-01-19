@@ -10,10 +10,15 @@ def ReplicateImageOracle(image_type) {
     )
 }
 def SetupOCI() {
-    sh 'rm -rf ~/.oci'
-    sh 'mkdir -p ~/.oci'
-    sh 'cp "$OCI_CLI_CONFIG_FILE" ~/.oci/config'
-    sh 'cp "$OCI_CLI_KEY_FILE" ~/.oci/private-key.pem'
+    withCredentials([
+        file(credentialsId: 'oci-jenkins-config', variable: 'OCI_CLI_CONFIG_FILE'),
+        file(credentialsId: 'oci-jenkins-pem', variable: 'OCI_CLI_KEY_FILE')
+    ]) {
+        sh 'rm -rf ~/.oci'
+        sh 'mkdir -p ~/.oci'
+        sh 'cp "$OCI_CLI_CONFIG_FILE" ~/.oci/config'
+        sh 'cp "$OCI_CLI_KEY_FILE" ~/.oci/private-key.pem'
+    }
 }
 def SetupAnsible() {
     withCredentials([
