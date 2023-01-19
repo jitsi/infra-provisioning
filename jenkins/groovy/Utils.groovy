@@ -28,7 +28,7 @@ def SetupAnsible() {
     }
 }
 def CheckSkipBuild(image_type, environment) {
-    echo "checking for existing images before building, FORCE_BUILD_IMAGE is ${env.FORCE_BUILD_IMAGE}"
+    echo "checking for existing ${image_type} images before building, FORCE_BUILD_IMAGE is ${env.FORCE_BUILD_IMAGE}"
     def checkOutput = sh(
         returnStdout: true,
         script: """#!/bin/bash
