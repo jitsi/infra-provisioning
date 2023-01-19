@@ -9,7 +9,7 @@ def haproxyStatus() {
 
 def putResultsInBucket() {
     sh(
-        script: "oci os object bulk-upload --bucket-name dump-logs-ops-prod --name monitor-haproxy\${ENVIRONMENT}/\$(date +%F_%T)/ --src-dir haproxy-status --region us-phoenix-1"
+        script: "oci os object bulk-upload --bucket-name dump-logs-ops-prod --prefix monitor-haproxy\${ENVIRONMENT}/\$(date +%F_%T)/ --src-dir haproxy-status --region us-phoenix-1"
     )
 }
 
