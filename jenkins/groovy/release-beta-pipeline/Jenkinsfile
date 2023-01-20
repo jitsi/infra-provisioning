@@ -44,27 +44,21 @@ pipeline {				//indicate the job is written in Declarative Pipeline
     }
     stages {
         // output stage, shows off our input parameters
-        stage ("setup") {
+        stage('Prepare/Checkout') {
             steps {
                 echo 'Jitsi Build Pipeline Begninning'
                 sh '''echo JVB VERSION ${JVB_VERSION}'''
                 sh '''echo JICOFO VERSION ${JICOFO_VERSION}'''
                 sh '''echo JITSI MEET VERSION ${JITSI_MEET_VERSION}'''
-
                 script {
-                    def scmUrl = scm.getUserRemoteConfigs()[0].getUrl()
-                    dir('infra-configuration') {
-                        checkout([$class: 'GitSCM', branches: [[name: "origin/${VIDEO_INFRA_BRANCH}"]], extensions: [[$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: false, recursiveSubmodules: true, reference: '', trackingSubmodules: false]], userRemoteConfigs: [[credentialsId: 'video-infra', url: env.INFRA_CONFIGURATION_REPO]]])
-                    }
-                    dir('infra-customization') {
-                        git branch: env.VIDEO_INFRA_BRANCH, url: env.INFRA_CUSTOMIZATIONS_REPO, credentialsId: 'video-infra'
-                    }
-                    dir('infra-provisioning') {
-                        git branch: env.VIDEO_INFRA_BRANCH, url: scmUrl, credentialsId: 'video-infra'
-                    }
-                    sh 'mkdir -p test-results'
-                    sh 'cp -a infra-customization/* infra-provisioning'
-                    sh 'cp -a infra-customization/* infra-configuration'
+                    // load utility function
+                    def rootDir = pwd()
+                    utils = load "${rootDir}/jenkins/groovy/Utils.groovy"
+                    // checkout repos
+                    utils.SetupRepos(env.VIDEO_INFRA_BRANCH)
+
+                    // setup OCI credentials
+                    utils.SetupOCI()
                 }
             }
         }
@@ -107,8 +101,6 @@ pipeline {				//indicate the job is written in Declarative Pipeline
             steps {
                 dir('infra-provisioning') {
                     withCredentials([
-                        file(credentialsId: 'oci-jenkins-config', variable: 'OCI_CLI_CONFIG_FILE'),
-                        file(credentialsId: 'oci-jenkins-pem', variable: 'OCI_CLI_KEY_FILE'),
                         string(credentialsId: 'jenkins-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
                         string(credentialsId: 'jenkins-aws-id', variable: 'AWS_ACCESS_KEY_ID')                            
                     ]) {
@@ -141,8 +133,6 @@ pipeline {				//indicate the job is written in Declarative Pipeline
             steps {
                 dir('infra-provisioning') {
                     withCredentials([
-                        file(credentialsId: 'oci-jenkins-config', variable: 'OCI_CLI_CONFIG_FILE'),
-                        file(credentialsId: 'oci-jenkins-pem', variable: 'OCI_CLI_KEY_FILE'),
                         string(credentialsId: 'jenkins-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
                         string(credentialsId: 'jenkins-aws-id', variable: 'AWS_ACCESS_KEY_ID')                            
                     ]) {

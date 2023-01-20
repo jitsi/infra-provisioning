@@ -116,4 +116,46 @@ def CreateImageOracle(image_type) {
     }
 }
 
+// use incoming branch/tag or tag repo with new tag based on build ID
+def TagRelease(type,release,env_branch) {
+    def tag_branch
+    if (!env_branch) {
+        sshagent (credentials: ['video-infra']) {        
+            tag_branch = ApplyReleaseTagRelease(type,release)
+            dir('infra-configuration') {
+                ApplyReleaseTagRelease(type,release)
+            }
+            dir('infra-customization') {
+                ApplyReleaseTagRelease(type,release)
+            }
+        }
+    } else {
+        tag_branch = env_branch
+    }
+    return tag_branch
+}
+
+// apply specific release tag to branch
+def ApplyReleaseTagRelease(type,release) {
+    git_branch = "${type}-${release}"
+    sh 'git tag ' + git_branch
+    sh 'git push origin '+git_branch
+}
+
+def ReconfigureEnvironment(hcv_environment, video_infra_branch) {
+    def result = build job: 'reconfigure-autoscaler-environment',wait: true,parameters: [
+        [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: hcv_environment],
+        [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: video_infra_branch]
+    ]
+    return result
+}
+
+def ReconfigureHAProxy(environment, video_infra_branch) {
+    def result = build job: 'reconfigure-haproxy',parameters: [
+        [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: environment],
+        [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: video_infra_branch]
+    ]
+    return result
+}
+
 return this
