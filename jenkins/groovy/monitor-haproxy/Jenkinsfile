@@ -13,7 +13,7 @@ def setupAnsible() {
 def haproxyStatus() {
     echo 'run haproxy status'
     sh(
-        script: """#!bin/bash
+        script: """#!/bin/bash
         export LOG_PATH="/\$(realpath ../haproxy-status/stick-table-fixes.json.log)"
         scripts/haproxy-status.sh ubuntu"""
     )
