@@ -82,6 +82,8 @@ if [ $? -ne 0 ]; then
     exit 2
 fi
 
+set +x
+
 if [ "$HAPROXY_STATUS_COMPARE_OLD" == "true" ]; then
   # compare old and new stick tables with no further action
   $LOCAL_PATH/check_haproxy_status.py --environment $ENVIRONMENT --directory $HAPROXY_STATUS_OUTPUT --compare_old true
