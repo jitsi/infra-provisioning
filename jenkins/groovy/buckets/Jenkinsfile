@@ -9,16 +9,15 @@ pipeline {
     stage('Prepare/Checkout') { // for display purposes
       steps {
         script {
-            def scmUrl = scm.getUserRemoteConfigs()[0].getUrl()
-            echo scmUrl
-            echo env.VIDEO_INFRA_BRANCH
-            dir('infra-customization') {
-                git branch: env.VIDEO_INFRA_BRANCH, url: env.INFRA_CUSTOMIZATIONS_REPO, credentialsId: 'video-infra'
-            }
-            dir('infra-provisioning') {
-                git branch: env.VIDEO_INFRA_BRANCH, url: scmUrl, credentialsId: 'video-infra'
-            }
-            sh 'cp -a infra-customization/* infra-provisioning'
+          // load utility function
+          def rootDir = pwd()
+          utils = load "${rootDir}/jenkins/groovy/Utils.groovy"
+          // checkout repos
+          utils.SetupRepos(env.VIDEO_INFRA_BRANCH)
+
+          // setup OCI credentials
+          utils.SetupOCI()
+
         }
       }
     }
@@ -26,16 +25,11 @@ pipeline {
       steps {
         dir('infra-provisioning') {
           script {
+            // include vault password for bucket credentials
+            utils.SetupAnsible()
             withCredentials([
-                file(credentialsId: 'oci-jenkins-config', variable: 'OCI_CLI_CONFIG_FILE'),
-                file(credentialsId: 'oci-jenkins-pem', variable: 'OCI_CLI_KEY_FILE'),
                 sshUserPrivateKey(credentialsId: 'video-infra', keyFileVariable: 'USER_PRIVATE_KEY_PATH', usernameVariable: 'SSH_USERNAME'),
-                string(credentialsId: 'ansible-vault-password', variable: 'ANSIBLE_VAULT_PASSWORD_VALUE'),
             ]) {
-                sh 'rm -rf ~/.oci'
-                sh 'mkdir -p ~/.oci'
-                sh 'cp "$OCI_CLI_CONFIG_FILE" ~/.oci/config'
-                sh 'cp "$OCI_CLI_KEY_FILE" ~/.oci/private-key.pem'
                 sh 'scripts/create-buckets-oracle.sh'
                 sh 'scripts/create-bucket-credentials-oracle.sh'
             }

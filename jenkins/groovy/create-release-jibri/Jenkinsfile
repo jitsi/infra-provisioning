@@ -38,7 +38,8 @@ def buildJibriImageAws(build_id,jibriVersion,force_build_ami) {
 
 // trigger build Jibri image oracle job with appropriate parameters
 def buildJibriImageOracle(environment,clouds,jibriVersion,force_build_image,video_infra_branch) {
-    def buildImage = build job: 'build-image-jibri-oracle',parameters: [
+    def buildImage = build job: 'build-image-oracle',parameters: [
+        [$class: 'StringParameterValue', name: 'IMAGE_TYPE', value: 'JavaJibri'],
         [$class: 'StringParameterValue', name: 'CLOUDS', value: clouds],
         [$class: 'StringParameterValue', name: 'JIBRI_VERSION', value: jibriVersion],
         [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: environment],
