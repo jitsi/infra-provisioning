@@ -12,19 +12,6 @@ def split_clouds(shard_environment,cloud_names) {
     return clouds
 }
 
-// global var to track git branch from env or new tags
-def git_branch
-
-// use incoming branch/tag or tag repo with new tag based on build ID
-// either way set it into git_branch variable to use later
-def tagRelease(release,env_branch) {
-    git_branch = 'jibri-release-'+release
-    env.RELEASE_BRANCH = git_branch
-    sh 'git tag ' + git_branch
-    sh 'git push origin '+git_branch
-    return git_branch
-}
-
 // trigger build Jibri image aws job with appropriate parameters
 def buildJibriImageAws(build_id,jibriVersion,force_build_ami) {
     def buildImage = build job: 'build-image-jibri-aws',parameters: [
@@ -64,46 +51,37 @@ def provisionJibri(shard_environment,cloud_name,release_number,gitBranch,jibriVe
     return provision
 }
 
+// global var to track git branch from env or new tags
+def git_branch
+
 pipeline {				//indicate the job is written in Declarative Pipeline
     agent any				//agent specifies where the pipeline will execute.
     stages {
         // output stage, shows off our input parameters
-        stage ("setup") {
+        stage('Prepare/Checkout') {
             steps {
-                echo 'Jibri Release'
-                echo "JIBRI VERSION ${env.JIBRI_VERSION}"
                 script {
-                    def scmUrl = scm.getUserRemoteConfigs()[0].getUrl()
-                    dir('infra-configuration') {
-                        checkout([$class: 'GitSCM', branches: [[name: "origin/${VIDEO_INFRA_BRANCH}"]], extensions: [[$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: false, recursiveSubmodules: true, reference: '', trackingSubmodules: false]], userRemoteConfigs: [[credentialsId: 'video-infra', url: env.INFRA_CONFIGURATION_REPO]]])
-                    }
-                    dir('infra-customization') {
-                        git branch: env.VIDEO_INFRA_BRANCH, url: env.INFRA_CUSTOMIZATIONS_REPO, credentialsId: 'video-infra'
-                    }
-                    dir('infra-provisioning') {
-                        git branch: env.VIDEO_INFRA_BRANCH, url: scmUrl, credentialsId: 'video-infra'
-                    }
-                    sh 'cp -a infra-customization/* infra-provisioning'
+                    echo 'Jibri Release'
+                    echo "JIBRI VERSION ${env.JIBRI_VERSION}"
+                    // load utility function
+                    def rootDir = pwd()
+                    utils = load "${rootDir}/jenkins/groovy/Utils.groovy"
+                    // checkout repos
+                    utils.SetupRepos(env.VIDEO_INFRA_BRANCH)
+
+                    // setup OCI credentials
+                    utils.SetupOCI()
                 }
             }
         }
         // tag the new release or load git_branch from input parameters
         stage("tag release") {
           steps {
-            sshagent (credentials: ['video-infra']) {
-                script {
-                    if (!env.RELEASE_BRANCH) {
-                        git_branch = tagRelease(env.BUILD_ID, env.RELEASE_BRANCH)
-                        dir('infra-configuration') {
-                            tagRelease(env.BUILD_ID, '')
-                        }
-                        dir('infra-customization') {
-                            tagRelease(env.BUILD_ID, '')
-                        }
-                    } else {
-                        git_branch = env.RELEASE_BRANCH
-                    }
-                }
+            script {
+                // use incoming branch/tag or tag repo with new tag based on build ID
+                // either way set it into git_branch variable to use later
+                git_branch = utils.TagRelease('jibri-release',env.BUILD_ID, env.RELEASE_BRANCH)
+                env.RELEASE_BRANCH = git_branch
             }
           }
         }

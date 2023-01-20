@@ -45,13 +45,7 @@ def generate_numbers(shard_environment,cloud_list) {
     return shardNumbers;
 }
 
-def reconfigureEnvironment(hcv_environment) {
-    def result = build job: 'reconfigure-autoscaler-environment',wait: true,parameters: [
-        [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: hcv_environment],
-        [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH]
-    ]
-    return result
-}
+
 
 def checkReleaseBackends(hcv_environment) {
     def ret = 'false';
@@ -174,34 +168,21 @@ pipeline {
         timestamps()
     }
     stages {
-        stage('Prepare/Checkout') { // for display purposes
+        // output stage, shows off our input parameters
+        stage('Prepare/Checkout') {
             steps {
+                echo 'Jitsi Release Creation Beginning'
+                echo "JVB VERSION ${env.JVB_VERSION}"
+                echo "SIGNAL VERSION ${env.SIGNAL_VERSION}"
                 script {
-                    def scmUrl = scm.getUserRemoteConfigs()[0].getUrl()
-                    dir('infra-customization') {
-                        git branch: env.VIDEO_INFRA_BRANCH, url: env.INFRA_CUSTOMIZATIONS_REPO, credentialsId: 'video-infra'
-                    }
-                    dir('infra-configuration') {
-                        git branch: env.VIDEO_INFRA_BRANCH, url: env.INFRA_CONFIGURATION_REPO, credentialsId: 'video-infra'
-                    }
-                    dir('infra-provisioning') {
-                        git branch: env.VIDEO_INFRA_BRANCH, url: scmUrl, credentialsId: 'video-infra'
-                    }
+                    // load utility function
+                    def rootDir = pwd()
+                    utils = load "${rootDir}/jenkins/groovy/Utils.groovy"
+                    // checkout repos
+                    utils.SetupRepos(env.VIDEO_INFRA_BRANCH)
 
-                    sh 'cp -a infra-customization/* infra-provisioning'
-                    sh 'cp -a infra-customization/* infra-configuration'
-                    withCredentials([
-                        file(credentialsId: 'oci-jenkins-config', variable: 'OCI_CLI_CONFIG_FILE'),
-                        file(credentialsId: 'oci-jenkins-pem', variable: 'OCI_CLI_KEY_FILE'),
-                        string(credentialsId: 'ansible-vault-password', variable: 'ANSIBLE_VAULT_PASSWORD_VALUE')
-                    ]) {
-                        sh '''#!/bin/bash
-                        mkdir -p ~/.oci
-                        cp "$OCI_CLI_CONFIG_FILE" ~/.oci/config
-                        cp "$OCI_CLI_KEY_FILE" ~/.oci/private-key.pem'''
-                        sh 'echo "$ANSIBLE_VAULT_PASSWORD_VALUE" > infra-provisioning/.vault-password.txt'
-                        sh 'echo "$ANSIBLE_VAULT_PASSWORD_VALUE" > infra-configuration/.vault-password.txt'
-                    }
+                    // setup OCI credentials
+                    utils.SetupOCI()
                 }
             }
         }
@@ -226,20 +207,11 @@ pipeline {
         // tag the new release or load git_branch from input parameters
         stage("tag release") {
             steps {
-                sshagent (credentials: ['video-infra']) {
-                    script {
-                        if (!env.RELEASE_BRANCH) {
-                            git_branch = tagRelease(env.BUILD_ID)
-                            dir('infra-configuration') {
-                                tagRelease(env.BUILD_ID)
-                            }
-                            dir('infra-customization') {
-                                tagRelease(env.BUILD_ID)
-                            }
-                        } else {
-                            git_branch = env.RELEASE_BRANCH
-                        }
-                    }
+                script {
+                   // use incoming branch/tag or tag repo with new tag based on build ID
+                    // either way set it into git_branch variable to use later
+                    git_branch = utils.TagRelease('release',env.BUILD_ID, env.RELEASE_BRANCH)
+                    env.RELEASE_BRANCH = git_branch
                 }
             }
         }
@@ -349,7 +321,7 @@ pipeline {
         stage("trigger autoscaler reconfiguration") {
             steps {
                 script {
-                    reconfigureEnvironment(env.ENVIRONMENT)
+                    utils.ReconfigureEnvironment(env.ENVIRONMENT, env.VIDEO_INFRA_BRANCH)
                 }
             }
         }
@@ -366,10 +338,9 @@ pipeline {
 
         stage ("update load balancers with new shards") {
             steps {
-                build job: 'reconfigure-haproxy',parameters: [
-                    [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: env.ENVIRONMENT],
-                    [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH]
-                ]
+                script {
+                    utils.ReconfigureHAProxy(env.ENVIRONMENT, env.VIDEO_INFRA_BRANCH)
+                }
             }
         }
     }
