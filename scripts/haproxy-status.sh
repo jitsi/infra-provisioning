@@ -70,6 +70,8 @@ fi
 
 echo "## $(date +%Y-%m-%dT%H:%M:%S) haproxy-status: pulling stick tables from ${ANSIBLE_INVENTORY}"
 
+set -x
+
 ansible-playbook --verbose ansible/haproxy-status.yml --extra-vars "hcv_environment=$ENVIRONMENT" \
 -i $ANSIBLE_INVENTORY \
 -e "ansible_ssh_user=$ANSIBLE_SSH_USER" \
