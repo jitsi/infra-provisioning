@@ -18,7 +18,11 @@ LOCAL_PATH=$(realpath $(dirname "${BASH_SOURCE[0]}"))
 
 [ -z "$ANSIBLE_BUILD_PATH" ] && ANSIBLE_BUILD_PATH="$LOCAL_PATH/../../infra-configuration"
 
+set -x
+
 [ -z "$LOG_PATH" ] && LOG_PATH="/var/log/proxy_monitor/$ENVIRONMENT-stick-table-fixes.json.log"
+
+set +x
 
 unset ANSIBLE_SSH_USER
 if [  -z "$1" ]
