@@ -14,14 +14,27 @@ def haproxyStatus() {
     echo 'run haproxy status'
     sh(
         script: """#!/bin/bash
-        export LOG_PATH="/\$(realpath ../haproxy-status/stick-table-fixes.json.log)"
+        export LOG_PATH="\$(realpath ../haproxy-status/stick-table-fixes.json.log)"
         scripts/haproxy-status.sh ubuntu"""
     )
 }
 
-def putResultsInBucket() {
+def putAllLogResultsInBucket() {
     sh(
         script: "oci os object bulk-upload --bucket-name dump-logs-ops-prod --prefix monitor-haproxy/\${ENVIRONMENT}/\$(date +%F_%T)/ --src-dir haproxy-status/\${ENVIRONMENT} --region us-phoenix-1"
+    )
+}
+
+def putStickTableFixesInBucket() {
+    sh(
+        script: """#!/bin/bash
+        STICK_TABLE_FIXES="haproxy-status/\${ENVIRONMENT}/stick-table-fixes.json"
+        if [ -e \$STICK_TABLE_FIXES ]; then
+          oci os object put --bucket-name dump-logs-ops-prod --name monitor-haproxy/\${ENVIRONMENT}/\$(date +%F_%T)_stick-table-fixes.json --file \$STICK_TABLE_FIXES --region us-phoenix-1"
+        else
+          echo "## putStickTableFixesInBucket(): no stick table fixes"
+        fi
+        """
     )
 }
 
@@ -87,9 +100,8 @@ pipeline {
     post {
         always {
             archiveArtifacts artifacts: 'haproxy-status/**', allowEmptyArchive: false
-            putResultsInBucket()
-            // Clean up afterwards
-            cleanWs()
+            putStickTableFixesInBucket()
+            cleanWs() // clean up
         }
     }
 }
