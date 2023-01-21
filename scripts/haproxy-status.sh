@@ -82,7 +82,7 @@ if [ $? -ne 0 ]; then
     exit 2
 fi
 
-set +x
+#set +x
 
 if [ "$HAPROXY_STATUS_COMPARE_OLD" == "true" ]; then
   # compare old and new stick tables with no further action
