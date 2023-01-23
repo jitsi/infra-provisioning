@@ -14,7 +14,19 @@ pipeline {
                         string(
                             name: 'ENVIRONMENT',
                             value: 'beta-meet-jit-si',
-                        )
+                        ),
+                        string(
+                            name: 'VIDEO_INFRA_BRANCH',
+                            value: "${env.VIDEO_INFRA_BRANCH}",
+                        ),
+                        string(
+                            name: 'INFRA_CONFIGURATION_REPO',
+                            value: "${env.INFRA_CONFIGURATION_REPO}",
+                        ),
+                        string(
+                            name: 'INFRA_CUSTOMIZATIONS_REPO',
+                            value: "${env.INFRA_CUSTOMIZATIONS_REPO}",
+                        ),
                     ],
                 )
             }
