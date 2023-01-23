@@ -55,13 +55,23 @@ def SetupRepos(branch) {
       dir('infra-configuration') {
           try {
             checkout([$class: 'GitSCM', branches: [[name: "origin/${branch}"]], extensions: [[$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: false, recursiveSubmodules: true, reference: '', trackingSubmodules: false]], userRemoteConfigs: [[credentialsId: 'video-infra', url: env.INFRA_CONFIGURATION_REPO]]])
-          } catch (Exception e) {
-            echo 'branch checkout may have failed' + e.toString()
+          } catch (hudson.AbortException e) {
+            if e.toString().contains('Couldn\'t find any revision to build') {
+                echo 'WARNING: couldn\'t find branch ${branch} in infra-configuration repo, falling back to main'
+                checkout([$class: 'GitSCM', branches: [[name: "origin/main"]], extensions: [[$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: false, recursiveSubmodules: true, reference: '', trackingSubmodules: false]], userRemoteConfigs: [[credentialsId: 'video-infra', url: env.INFRA_CONFIGURATION_REPO]]])
+            }
           }
           SetupAnsible()
       }
       dir('infra-customization') {
-          git branch: branch, url: env.INFRA_CUSTOMIZATIONS_REPO, credentialsId: 'video-infra'
+          try {
+            git branch: branch, url: env.INFRA_CUSTOMIZATIONS_REPO, credentialsId: 'video-infra'
+          } catch (hudson.AbortException e) {
+            if e.toString().contains('Couldn\'t find any revision to build') {
+                echo "WARNING: couldn't find branch ${branch} in infra-customization repo, falling back to main"
+                git branch: 'main', url: env.INFRA_CUSTOMIZATIONS_REPO, credentialsId: 'video-infra'
+            }
+          }
       }
       sh 'cp -a infra-customization/* infra-configuration'
       sh 'cp -a infra-customization/* infra-provisioning'
