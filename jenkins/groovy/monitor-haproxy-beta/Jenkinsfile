@@ -1,0 +1,26 @@
+pipeline {
+    agent any
+    options {
+        timestamps()
+        ansiColor('xterm')
+    }
+    stages {
+        // output stage, shows off our input parameters
+        stage ("build monitor-haproxy for beta-meet-jit-si") {
+            build(
+                job: 'monitor-haproxy',
+                parameters: [
+                    string(
+                        name: 'ENVIRONMENT',
+                        value: 'beta-meet-jit-si',
+                    )
+                ],
+            )
+        }
+    }
+    post {
+        always {
+            cleanWs() // clean up
+        }
+    }
+}
