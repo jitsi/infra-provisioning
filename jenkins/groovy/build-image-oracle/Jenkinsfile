@@ -56,15 +56,17 @@ pipeline {
       }
     }
     stage('Replicate Image') {
-        when { // only run if image needs to be built
-            expression {skipCheck == false}
+      when { // only run if image needs to be built
+          expression {skipCheck == false}
+      }
+      steps {
+        dir('infra-provisioning') {
+          script {
+              echo "Oracle ${env.IMAGE_TYPE} Image Replication"
+              utils.ReplicateImageOracle(env.IMAGE_TYPE)
+          }
         }
-        steps {
-            script {
-                echo "Oracle ${env.IMAGE_TYPE} Image Replication"
-                utils.ReplicateImageOracle(env.IMAGE_TYPE)
-            }
-        }
+      }
     }
   }
 }
