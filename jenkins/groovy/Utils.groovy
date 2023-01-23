@@ -158,4 +158,17 @@ def ReconfigureHAProxy(environment, video_infra_branch) {
     return result
 }
 
+def SetupSSH() {
+    withCredentials([
+        sshUserPrivateKey(credentialsId: 'ssh-ubuntu', keyFileVariable: 'USER_PRIVATE_KEY_PATH', usernameVariable: 'SSH_USERNAME')
+    ]) {
+        sh '''#!/bin/bash
+        export USER_PUBLIC_KEY_PATH=~/.ssh/ssh_key.pub
+        ssh-keygen -y -f "$USER_PRIVATE_KEY_PATH" > "$USER_PUBLIC_KEY_PATH"'''
+        env.SSH_USERNAME=SSH_USERNAME
+    }
+    env.USER_PUBLIC_KEY_PATH='~/.ssh/ssh_key.pub'
+}
+
+
 return this
