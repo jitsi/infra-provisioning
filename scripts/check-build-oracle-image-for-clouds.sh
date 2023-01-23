@@ -13,6 +13,10 @@ fi
 
 [ -z "$CLOUDS" ] && CLOUDS=$($LOCAL_PATH/release_clouds.sh $ENVIRONMENT)
 
+if [[ "$IMAGE_TYPE" == "Signal" ]]; then
+    export SIGNAL_VERSION="$JICOFO_VERSION-$JITSI_MEET_VERSION-$PROSODY_VERSION"
+fi
+
 BUILD_IMAGE=false
 for C in $CLOUDS; do
     . $LOCAL_PATH/../clouds/${C}.sh
