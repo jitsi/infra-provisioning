@@ -1,15 +1,3 @@
-def setupOCI() {
-    echo 'set up OCI'
-    sh 'rm -rf ~/.oci'
-    sh 'mkdir -p ~/.oci'
-    sh 'cp "$OCI_CLI_CONFIG_FILE" ~/.oci/config'
-    sh 'cp "$OCI_CLI_KEY_FILE" ~/.oci/private-key.pem'
-}
-
-def setupAnsible() {
-    sh 'echo "$ANSIBLE_VAULT_PASSWORD_PATH" > ./.vault-password.txt'
-}
-
 def haproxyStatus() {
     echo 'run haproxy status'
     sh(
@@ -49,32 +37,27 @@ pipeline {
         stage ("setup") {
             steps {
                 script {
-                    def scmUrl = scm.getUserRemoteConfigs()[0].getUrl()
-                    dir('infra-configuration') {
-                        checkout([$class: 'GitSCM', branches: [[name: "origin/${VIDEO_INFRA_BRANCH}"]], extensions: [[$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: false, recursiveSubmodules: true, reference: '', trackingSubmodules: false]], userRemoteConfigs: [[credentialsId: 'video-infra', url: env.INFRA_CONFIGURATION_REPO]]])
-                    }
-                    dir('infra-customization') {
-                        git branch: env.VIDEO_INFRA_BRANCH, url: env.INFRA_CUSTOMIZATIONS_REPO, credentialsId: 'video-infra'
-                    }
-                    dir('infra-provisioning') {
-                        git branch: env.VIDEO_INFRA_BRANCH, url: scmUrl, credentialsId: 'video-infra'
-                    }
+                    // load utility function
+                    def rootDir = pwd()
+                    utils = load "${rootDir}/jenkins/groovy/Utils.groovy"
+                    // checkout repos
+                    utils.SetupRepos(env.VIDEO_INFRA_BRANCH)
+                    // setup OCI credentials
+                    utils.SetupOCI()
                     sh 'mkdir -p test-results'
                     sh 'mkdir -p haproxy-status'
-                    sh 'cp -a infra-customization/* infra-provisioning'
-                    sh 'cp -a infra-customization/* infra-configuration'
                 }
             }
         }
         stage ("monitor haproxies") {
             steps {
                 script {
-                    echo 'haproxy reload'
+                    echo 'setting up ansible'
                     dir('infra-configuration') {
                         withCredentials([
                             string(credentialsId: 'ansible-vault-password', variable: 'ANSIBLE_VAULT_PASSWORD_PATH')
                         ]) {
-                            setupAnsible()
+                            utils.SetupAnsible()
                         }
                     }
                     dir('infra-provisioning') {
@@ -85,9 +68,7 @@ pipeline {
                             string(credentialsId: 'jenkins-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
                             string(credentialsId: 'jenkins-aws-id', variable: 'AWS_ACCESS_KEY_ID')
                         ]) {
-                          echo 'running ssh agent'
                           sshagent (credentials: ['ssh-ubuntu']) {
-                            setupOCI()
                             haproxyStatus()
                           }
                         }
