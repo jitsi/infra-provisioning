@@ -1,3 +1,5 @@
+// splits incoming clouds into a list
+// alternately loads defaults for environment into a list
 def SplitClouds(shard_environment,cloud_names) {
     if (cloud_names) {
         clouds = cloud_names.split(' ')
