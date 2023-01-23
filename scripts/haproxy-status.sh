@@ -70,6 +70,8 @@ fi
 
 echo "## $(date +%Y-%m-%dT%H:%M:%S) haproxy-status: pulling stick tables from ${ANSIBLE_INVENTORY}"
 
+set -x
+
 ansible-playbook --verbose ansible/haproxy-status.yml --extra-vars "hcv_environment=$ENVIRONMENT" \
 -i $ANSIBLE_INVENTORY \
 -e "ansible_ssh_user=$ANSIBLE_SSH_USER" \
@@ -79,6 +81,8 @@ if [ $? -ne 0 ]; then
     echo "## $(date +%Y-%m-%dT%H:%M:%S) ERROR: haproxy-status.yml run failed"
     exit 2
 fi
+
+set +x
 
 if [ "$HAPROXY_STATUS_COMPARE_OLD" == "true" ]; then
   # compare old and new stick tables with no further action

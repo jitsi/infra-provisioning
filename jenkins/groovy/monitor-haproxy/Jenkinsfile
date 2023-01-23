@@ -1,0 +1,107 @@
+def setupOCI() {
+    echo 'set up OCI'
+    sh 'rm -rf ~/.oci'
+    sh 'mkdir -p ~/.oci'
+    sh 'cp "$OCI_CLI_CONFIG_FILE" ~/.oci/config'
+    sh 'cp "$OCI_CLI_KEY_FILE" ~/.oci/private-key.pem'
+}
+
+def setupAnsible() {
+    sh 'echo "$ANSIBLE_VAULT_PASSWORD_PATH" > ./.vault-password.txt'
+}
+
+def haproxyStatus() {
+    echo 'run haproxy status'
+    sh(
+        script: """#!/bin/bash
+        export LOG_PATH="\$(realpath ../haproxy-status/stick-table-fixes.json.log)"
+        scripts/haproxy-status.sh ubuntu"""
+    )
+}
+
+def putAllLogResultsInBucket() {
+    sh(
+        script: "oci os object bulk-upload --bucket-name dump-logs-ops-prod --prefix monitor-haproxy/\${ENVIRONMENT}/\$(date +%F_%T)/ --src-dir haproxy-status/\${ENVIRONMENT} --region us-phoenix-1"
+    )
+}
+
+def putStickTableFixesInBucket() {
+    sh(
+        script: """#!/bin/bash
+        STICK_TABLE_FIXES="haproxy-status/\${ENVIRONMENT}/stick-table-fixes.json"
+        if [ -e \$STICK_TABLE_FIXES ]; then
+          oci os object put --bucket-name dump-logs-ops-prod --name monitor-haproxy/\${ENVIRONMENT}/\$(date +%F_%T)_stick-table-fixes.json --file \$STICK_TABLE_FIXES --region us-phoenix-1
+        else
+          echo "no stick table fixes to put in bucket"
+        fi
+        """
+    )
+}
+
+pipeline {
+    agent any
+    options {
+        timestamps()
+        ansiColor('xterm')
+    }
+    stages {
+        // output stage, shows off our input parameters
+        stage ("setup") {
+            steps {
+                script {
+                    def scmUrl = scm.getUserRemoteConfigs()[0].getUrl()
+                    dir('infra-configuration') {
+                        checkout([$class: 'GitSCM', branches: [[name: "origin/${VIDEO_INFRA_BRANCH}"]], extensions: [[$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: false, recursiveSubmodules: true, reference: '', trackingSubmodules: false]], userRemoteConfigs: [[credentialsId: 'video-infra', url: env.INFRA_CONFIGURATION_REPO]]])
+                    }
+                    dir('infra-customization') {
+                        git branch: env.VIDEO_INFRA_BRANCH, url: env.INFRA_CUSTOMIZATIONS_REPO, credentialsId: 'video-infra'
+                    }
+                    dir('infra-provisioning') {
+                        git branch: env.VIDEO_INFRA_BRANCH, url: scmUrl, credentialsId: 'video-infra'
+                    }
+                    sh 'mkdir -p test-results'
+                    sh 'mkdir -p haproxy-status'
+                    sh 'cp -a infra-customization/* infra-provisioning'
+                    sh 'cp -a infra-customization/* infra-configuration'
+                }
+            }
+        }
+        stage ("monitor haproxies") {
+            steps {
+                script {
+                    echo 'haproxy reload'
+                    dir('infra-configuration') {
+                        withCredentials([
+                            string(credentialsId: 'ansible-vault-password', variable: 'ANSIBLE_VAULT_PASSWORD_PATH')
+                        ]) {
+                            setupAnsible()
+                        }
+                    }
+                    dir('infra-provisioning') {
+                      lock("haproxy-state-${env.ENVIRONMENT}") {
+                        withCredentials([
+                            file(credentialsId: 'oci-jenkins-config', variable: 'OCI_CLI_CONFIG_FILE'),
+                            file(credentialsId: 'oci-jenkins-pem', variable: 'OCI_CLI_KEY_FILE'),
+                            string(credentialsId: 'jenkins-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
+                            string(credentialsId: 'jenkins-aws-id', variable: 'AWS_ACCESS_KEY_ID')
+                        ]) {
+                          echo 'running ssh agent'
+                          sshagent (credentials: ['ssh-ubuntu']) {
+                            setupOCI()
+                            haproxyStatus()
+                          }
+                        }
+                      }
+                    }
+                }
+            }
+        }
+    }
+    post {
+        always {
+            archiveArtifacts artifacts: 'haproxy-status/**', allowEmptyArchive: false
+            putStickTableFixesInBucket()
+            cleanWs() // clean up
+        }
+    }
+}

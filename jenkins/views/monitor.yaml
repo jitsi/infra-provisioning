@@ -1,0 +1,14 @@
+- view-template:
+    name: 'monitor'
+    description: 'jobs that monitor resources'
+    view-type: list
+    regex: '(monitor)-.*'
+
+- project:
+    name: 'monitor-view'
+    views:
+        - 'monitor'
+    seq:
+        - a
+        - b
+        - c
