@@ -310,7 +310,7 @@ def add_parameters(t):
         "TagGitBranch",
         Description="Tag: git_branch",
         Type="String",
-        Default="master"
+        Default="main"
     ))
 
     datadog_enabled_param = t.add_parameter(Parameter(
