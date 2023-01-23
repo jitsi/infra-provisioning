@@ -46,6 +46,7 @@ case $IMAGE_TYPE in
         checkImage "$IMAGE_TYPE" "latest"
         if [ $? -eq 0 ]; then
           IMAGE_EXISTS="true"
+          echo "$IMAGE_TYPE $ORACLE_REGION: $IMAGE_OCID"
         else
           IMAGE_EXISTS="false"
         fi
