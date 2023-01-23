@@ -46,6 +46,12 @@ for C in $CLOUDS; do
             BUILD_IMAGE=true
         fi
     fi
+    if [[ ! $BUILD_IMAGE ]]; then
+        if [[ "$IMAGE_EXISTS" == "false" ]]; then
+            echo "No $IMAGE_TYPE image found in region $ORACLE_REGION"
+            BUILD_IMAGE=true
+        fi
+    fi
 done
 
 if $BUILD_IMAGE; then

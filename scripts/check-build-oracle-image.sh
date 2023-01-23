@@ -32,6 +32,27 @@ function checkImage() {
     return 1
 }
 
+case $IMAGE_TYPE in
+    # do nothing for known types, to check for them all at once if needful
+    'JVB')
+        ;;
+    'Signal')
+        ;;
+    'Jigasi')
+        ;;
+    'JavaJibri')
+        ;;
+    *)
+        checkImage "$IMAGE_TYPE" "latest"
+        if [ $? -eq 0 ]; then
+          IMAGE_EXISTS="true"
+        else
+          IMAGE_EXISTS="false"
+        fi
+        export IMAGE_EXISTS
+        ;;
+esac
+
 if [ ! -z "$JVB_VERSION" ]; then
     checkImage "JVB" "$JVB_VERSION"
     if [ $? -eq 0 ]; then
