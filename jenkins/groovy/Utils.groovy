@@ -53,7 +53,11 @@ def SetupRepos(branch) {
           git branch: branch, url: scmUrl, credentialsId: 'video-infra'
       }
       dir('infra-configuration') {
-          checkout([$class: 'GitSCM', branches: [[name: "origin/${branch}"]], extensions: [[$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: false, recursiveSubmodules: true, reference: '', trackingSubmodules: false]], userRemoteConfigs: [[credentialsId: 'video-infra', url: env.INFRA_CONFIGURATION_REPO]]])
+          try {
+            checkout([$class: 'GitSCM', branches: [[name: "origin/${branch}"]], extensions: [[$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: false, recursiveSubmodules: true, reference: '', trackingSubmodules: false]], userRemoteConfigs: [[credentialsId: 'video-infra', url: env.INFRA_CONFIGURATION_REPO]]])
+          } catch (Exception e) {
+            echo 'branch checkout may have failed' + e.toString()
+          }
           SetupAnsible()
       }
       dir('infra-customization') {
