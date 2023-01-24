@@ -9,11 +9,6 @@
           description: "Controls checkout branch for infra repos, defaults to 'main'."
           trim: true
       - string:
-          name: ENVIRONMENT
-          default: lonely
-          description: "Environment to build in, defaults to 'lonely'."
-          trim: true
-      - string:
           name: IMAGE_TYPE
           description: "Type of image to build."
           trim: true
