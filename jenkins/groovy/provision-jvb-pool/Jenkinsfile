@@ -1,3 +1,4 @@
+def utils
 pipeline {
   agent any
   options {
@@ -9,14 +10,14 @@ pipeline {
     stage('Prepare/Checkout') { // for display purposes
       steps {
         script {
-            def scmUrl = scm.getUserRemoteConfigs()[0].getUrl()
-            dir('infra-customization') {
-                git branch: env.VIDEO_INFRA_BRANCH, url: env.INFRA_CUSTOMIZATIONS_REPO, credentialsId: 'video-infra'
-            }
-            dir('infra-provisioning') {
-                git branch: env.VIDEO_INFRA_BRANCH, url: scmUrl, credentialsId: 'video-infra'
-            }
-            sh 'cp -a infra-customization/* infra-provisioning'
+          // load utility function
+          def rootDir = pwd()
+          utils = load "${rootDir}/jenkins/groovy/Utils.groovy"
+          // checkout repos
+          utils.SetupRepos(env.VIDEO_INFRA_BRANCH)
+
+          // setup OCI credentials
+          utils.SetupOCI()
         }
       }
     }
@@ -25,9 +26,6 @@ pipeline {
         dir('infra-provisioning') {
           script {
             withCredentials([
-                file(credentialsId: 'oci-jenkins-config', variable: 'OCI_CLI_CONFIG_FILE'),
-                file(credentialsId: 'oci-jenkins-pem', variable: 'OCI_CLI_KEY_FILE'),
-                string(credentialsId: 'ansible-vault-password', variable: 'ANSIBLE_VAULT_PASSWORD_VALUE'),
                 string(credentialsId: 'oci-jenkins-terraform-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
                 string(credentialsId: 'oci-jenkins-terraform-aws-id', variable: 'AWS_ACCESS_KEY_ID'),
                 sshUserPrivateKey(credentialsId: 'ssh-ubuntu', keyFileVariable: 'USER_PRIVATE_KEY_PATH',usernameVariable: 'SSH_USERNAME'),
@@ -36,11 +34,7 @@ pipeline {
                 file(credentialsId: 'asap-jwt-key-dev', variable: 'ASAP_JWT_KEY_DEV'),
                 file(credentialsId: 'asap-jwt-key-prod', variable: 'ASAP_JWT_KEY_PROD')
             ]) {
-                sh 'rm -rf ~/.oci'
-                sh 'mkdir -p ~/.oci'
-                sh 'cp "$OCI_CLI_CONFIG_FILE" ~/.oci/config'
-                sh 'cp "$OCI_CLI_KEY_FILE" ~/.oci/private-key.pem'
-                sh 'echo "$ANSIBLE_VAULT_PASSWORD_VALUE" > ./.vault-password.txt'
+                utils.SetupAnsible()
                 sh '''#!/bin/bash
                     export USER_PUBLIC_KEY_PATH=~/.ssh/ssh_key.pub
                     ssh-keygen -y -f "$USER_PRIVATE_KEY_PATH" > "$USER_PUBLIC_KEY_PATH"

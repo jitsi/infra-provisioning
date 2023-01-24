@@ -6,7 +6,7 @@ def reconfigureCDNStates() {
         exit \$?"""
     )
 }
-
+def utils
 pipeline {
     agent any
     options {

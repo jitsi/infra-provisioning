@@ -6,7 +6,7 @@ def reconfigureShardStates() {
         exit \$?"""
     )
 }
-
+def utils
 pipeline {
     agent any
     options {

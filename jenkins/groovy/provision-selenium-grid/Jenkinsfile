@@ -1,18 +1,4 @@
-def setupOCI() {
-    sh 'rm -rf ~/.oci'
-    sh 'mkdir -p ~/.oci'
-    sh 'cp "$OCI_CLI_CONFIG_FILE" ~/.oci/config'
-    sh 'cp "$OCI_CLI_KEY_FILE" ~/.oci/private-key.pem'
-}
-def setupAnsible() {
-    sh 'echo "$ANSIBLE_VAULT_PASSWORD_PATH" > ./.vault-password.txt'
-}
-def setupSSH() {
-    sh '''#!/bin/bash
-    export USER_PUBLIC_KEY_PATH=~/.ssh/ssh_key.pub
-    ssh-keygen -y -f "$USER_PRIVATE_KEY_PATH" > "$USER_PUBLIC_KEY_PATH"'''
-}
-
+def utils
 pipeline {
     agent any
     options {

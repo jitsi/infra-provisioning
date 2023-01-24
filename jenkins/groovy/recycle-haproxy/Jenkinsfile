@@ -12,7 +12,7 @@ def recycleHaproxyOracle() {
         scripts/recycle-haproxy-oracle.sh ubuntu"""
     )
 }
-
+def utils
 pipeline {
     agent any
     options {

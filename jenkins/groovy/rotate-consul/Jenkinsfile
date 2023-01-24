@@ -7,7 +7,7 @@ def rotateConsul(oracle_region) {
         scripts/rotate-consul-oracle.sh $SSH_USERNAME'''
     )
 }
-
+def utils
 pipeline {
     agent any
     options {

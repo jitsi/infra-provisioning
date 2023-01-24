@@ -53,6 +53,7 @@ def provisionJibri(shard_environment,cloud_name,release_number,gitBranch,jibriVe
 
 // global var to track git branch from env or new tags
 def git_branch
+def utils
 
 pipeline {				//indicate the job is written in Declarative Pipeline
     agent any				//agent specifies where the pipeline will execute.
