@@ -484,7 +484,7 @@ def add_parameters():
         "TagGitBranch",
         Description="Tag: git_branch",
         Type="String",
-        Default="master"
+        Default="main"
     ))
 
     tag_shard_unseen_param = t.add_parameter(Parameter(

@@ -159,7 +159,7 @@ def add_parameters():
         "TagGitBranch",
         Description="Tag: git_branch",
         Type="String",
-        Default="master"
+        Default="main"
     ))
 
 def add_security(opts):

@@ -200,7 +200,7 @@ Resources:
               export AWS_DEFAULT_REGION=$CURRENT_EC2_REGION
 
               #if there's still no git branch set, assume master
-              [ -z "$GIT_BRANCH" ] && GIT_BRANCH="master"
+              [ -z "$GIT_BRANCH" ] && GIT_BRANCH="main"
 
               #ensure files are present for access to encrypted vault and private repository
               [ -e "/root/.vault-password" ] || /usr/local/bin/aws s3 cp s3://$S3_BUCKET/vault-password /root/.vault-password

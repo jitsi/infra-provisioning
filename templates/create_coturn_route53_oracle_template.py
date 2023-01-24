@@ -114,7 +114,7 @@ def add_parameters():
         "TagGitBranch",
         Description="Tag: git_branch",
         Type="String",
-        Default="master"
+        Default="main"
     ))
 
 def add_route53_records(t, oracle_public_ip_list, route53_turn_tcp=False):

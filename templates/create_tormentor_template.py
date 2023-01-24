@@ -142,7 +142,7 @@ def add_tormentor_cft_parameters(t, opts):
         "TagGitBranch",
         Description="Tag: git_branch",
         Type="String",
-        Default="master"
+        Default="main"
     ))
 
 
