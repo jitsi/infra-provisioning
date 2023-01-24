@@ -172,6 +172,7 @@ def ApplyReleaseTagRelease(type,release) {
     git_branch = "${type}-${release}"
     sh 'git tag ' + git_branch
     sh 'git push origin '+git_branch
+    return git_branch
 }
 
 def ReconfigureEnvironment(hcv_environment, video_infra_branch) {
