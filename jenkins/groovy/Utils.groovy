@@ -52,16 +52,18 @@ def SetupRepos(branch) {
       dir('infra-provisioning') {
           git branch: branch, url: scmUrl, credentialsId: 'video-infra'
       }
-      dir('infra-configuration') {
-          try {
-            checkout([$class: 'GitSCM', branches: [[name: "origin/${branch}"]], extensions: [[$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: false, recursiveSubmodules: true, reference: '', trackingSubmodules: false]], userRemoteConfigs: [[credentialsId: 'video-infra', url: env.INFRA_CONFIGURATION_REPO]]])
-          } catch (hudson.AbortException e) {
-            if (e.toString().contains('Couldn\'t find any revision to build')) {
-                echo "WARNING: couldn't find branch ${branch} in infra-configuration repo, falling back to main"
-                checkout([$class: 'GitSCM', branches: [[name: "origin/main"]], extensions: [[$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: false, recursiveSubmodules: true, reference: '', trackingSubmodules: false]], userRemoteConfigs: [[credentialsId: 'video-infra', url: env.INFRA_CONFIGURATION_REPO]]])
+      if (env.INFRA_CONFIGURATION_REPO) {
+        dir('infra-configuration') {
+            try {
+                checkout([$class: 'GitSCM', branches: [[name: "origin/${branch}"]], extensions: [[$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: false, recursiveSubmodules: true, reference: '', trackingSubmodules: false]], userRemoteConfigs: [[credentialsId: 'video-infra', url: env.INFRA_CONFIGURATION_REPO]]])
+            } catch (hudson.AbortException e) {
+                if (e.toString().contains('Couldn\'t find any revision to build')) {
+                    echo "WARNING: couldn't find branch ${branch} in infra-configuration repo, falling back to main"
+                    checkout([$class: 'GitSCM', branches: [[name: "origin/main"]], extensions: [[$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: false, recursiveSubmodules: true, reference: '', trackingSubmodules: false]], userRemoteConfigs: [[credentialsId: 'video-infra', url: env.INFRA_CONFIGURATION_REPO]]])
+                }
             }
-          }
-          SetupAnsible()
+            SetupAnsible()
+        }
       }
       dir('infra-customization') {
           try {
@@ -73,7 +75,9 @@ def SetupRepos(branch) {
             }
           }
       }
-      sh 'cp -a infra-customization/* infra-configuration'
+      if (env.INFRA_CONFIGURATION_REPO) {
+        sh 'cp -a infra-customization/* infra-configuration'
+      }
       sh 'cp -a infra-customization/* infra-provisioning'
   }
 }
