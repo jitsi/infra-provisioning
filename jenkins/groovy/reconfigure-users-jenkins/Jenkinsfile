@@ -14,32 +14,23 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                 sh '''echo JITSI MEET META VERSION: \${JITSI_MEET_META_VERSION}'''
 
                 script {
-                    def scmUrl = scm.getUserRemoteConfigs()[0].getUrl()
+                    // load utility function
+                    def rootDir = pwd()
+                    utils = load "${rootDir}/jenkins/groovy/Utils.groovy"
+                    // checkout repos
+                    utils.SetupRepos(env.VIDEO_INFRA_BRANCH)
 
-                    dir('infra-configuration') {
-                        checkout([$class: 'GitSCM', branches: [[name: "origin/${VIDEO_INFRA_BRANCH}"]], extensions: [[$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: false, recursiveSubmodules: true, reference: '', trackingSubmodules: false]], userRemoteConfigs: [[credentialsId: 'video-infra', url: env.INFRA_CONFIGURATION_REPO]]])
-                    }
-
-                    dir('infra-customization') {
-                        git branch: env.VIDEO_INFRA_BRANCH, url: env.INFRA_CUSTOMIZATIONS_REPO, credentialsId: 'video-infra'
-                    }
-
-                    sh 'cp -a infra-customization/* infra-configuration'
+                    // setup OCI credentials
+                    utils.SetupOCI()
                 }
             }
         }
         stage ("configure users") {
             steps {
                 dir('infra-configuration') {
-                    withCredentials([
-                        string(credentialsId: 'ansible-vault-password', variable: 'ANSIBLE_VAULT_PASSWORD_PATH')
-                    ]) {
-
-                        sh '''#!/bin/bash
-                        echo "$ANSIBLE_VAULT_PASSWORD_PATH" > .vault-password.txt
-                        export ANSIBLE_FORCE_COLOR=True
-                        scripts/configure-users.sh'''
-                    }
+                    sh '''#!/bin/bash
+                    export ANSIBLE_FORCE_COLOR=True
+                    scripts/configure-users.sh'''
                 }
             }
         }

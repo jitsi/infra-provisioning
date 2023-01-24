@@ -23,17 +23,14 @@ pipeline {
         stage ("setup") {
             steps {
                 script {
-                    def scmUrl = scm.getUserRemoteConfigs()[0].getUrl()
-                    dir('infra-configuration') {
-                        checkout([$class: 'GitSCM', branches: [[name: "origin/${VIDEO_INFRA_BRANCH}"]], extensions: [[$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: false, recursiveSubmodules: true, reference: '', trackingSubmodules: false]], userRemoteConfigs: [[credentialsId: 'video-infra', url: env.INFRA_CONFIGURATION_REPO]]])
-                    }
-                    dir('infra-customization') {
-                        git branch: env.VIDEO_INFRA_BRANCH, url: env.INFRA_CUSTOMIZATIONS_REPO, credentialsId: 'video-infra'
-                    }
-                    dir('infra-provisioning') {
-                        git branch: env.VIDEO_INFRA_BRANCH, url: scmUrl, credentialsId: 'video-infra'
-                    }
-                    sh 'cp -a infra-customization/* infra-provisioning'
+                    // load utility function
+                    def rootDir = pwd()
+                    utils = load "${rootDir}/jenkins/groovy/Utils.groovy"
+                    // checkout repos
+                    utils.SetupRepos(env.VIDEO_INFRA_BRANCH)
+
+                    // setup OCI credentials
+                    utils.SetupOCI()
                 }
             }
         }
@@ -43,17 +40,12 @@ pipeline {
                     echo 'selenium provision beginning'
                     dir('infra-provisioning') {
                         withCredentials([
-                            file(credentialsId: 'oci-jenkins-config', variable: 'OCI_CLI_CONFIG_FILE'),
-                            file(credentialsId: 'oci-jenkins-pem', variable: 'OCI_CLI_KEY_FILE'),
                             string(credentialsId: 'oci-jenkins-terraform-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
                             string(credentialsId: 'oci-jenkins-terraform-aws-id', variable: 'AWS_ACCESS_KEY_ID'),
-                            string(credentialsId: 'ansible-vault-password', variable: 'ANSIBLE_VAULT_PASSWORD_PATH'),
                             sshUserPrivateKey(credentialsId: 'ssh-ubuntu', keyFileVariable: 'USER_PRIVATE_KEY_PATH', usernameVariable: 'SSH_USERNAME')
                         ]) {
                             sshagent (credentials: ['ssh-ubuntu']) {
-                            setupOCI()
-                            setupAnsible()
-                            setupSSH()
+                            utils.SetupSSH()
                             sh '''#!/bin/bash
                             export USER_PUBLIC_KEY_PATH=~/.ssh/ssh_key.pub
                             export ORACLE_GIT_BRANCH=\"$RELEASE_BRANCH\"
