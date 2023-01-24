@@ -18,6 +18,11 @@
           default: git@github.com:jitsi/infra-customizations.git
           description: "Repo with customized configurations, defaults to 'git@github.com:jitsi/infra-customizations.git'."
           trim: true
+    triggers:
+      - reverse:
+          jobs: 'monitor-haproxy-beta'
+          result: 'failure'
+    quiet-period: 30
  
     project-type: pipeline
     sandbox: true
