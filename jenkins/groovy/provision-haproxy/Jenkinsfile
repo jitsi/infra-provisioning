@@ -21,6 +21,7 @@ def createHAProxyStackOracle() {
     )
 }
 
+def utils
 pipeline {
     agent any
     options {
@@ -32,32 +33,16 @@ pipeline {
         stage('Prepare/Checkout') { // for display purposes
             steps {
                 script {
-                    def scmUrl = scm.getUserRemoteConfigs()[0].getUrl()
-                    dir('infra-customization') {
-                        git branch: env.VIDEO_INFRA_BRANCH, url: env.INFRA_CUSTOMIZATIONS_REPO, credentialsId: 'video-infra'
-                    }
-                    dir('infra-configuration') {
-                        git branch: env.VIDEO_INFRA_BRANCH, url: env.INFRA_CONFIGURATION_REPO, credentialsId: 'video-infra'
-                    }
-                    dir('infra-provisioning') {
-                        git branch: env.VIDEO_INFRA_BRANCH, url: scmUrl, credentialsId: 'video-infra'
-                    }
+                    // load utility function
+                    def rootDir = pwd()
+                    utils = load "${rootDir}/jenkins/groovy/Utils.groovy"
+                    // checkout repos
+                    utils.SetupRepos(env.VIDEO_INFRA_BRANCH)
 
-                    sh 'cp -a infra-customization/* infra-provisioning'
-                    sh 'cp -a infra-customization/* infra-configuration'
+                    // setup OCI credentials
+                    utils.SetupOCI()
+
                     sh 'mkdir -p test-results'
-                    withCredentials([
-                        file(credentialsId: 'oci-jenkins-config', variable: 'OCI_CLI_CONFIG_FILE'),
-                        file(credentialsId: 'oci-jenkins-pem', variable: 'OCI_CLI_KEY_FILE'),
-                        string(credentialsId: 'ansible-vault-password', variable: 'ANSIBLE_VAULT_PASSWORD_VALUE')
-                    ]) {
-                        sh '''#!/bin/bash
-                        mkdir -p ~/.oci
-                        cp "$OCI_CLI_CONFIG_FILE" ~/.oci/config
-                        cp "$OCI_CLI_KEY_FILE" ~/.oci/private-key.pem'''
-                        sh 'echo "$ANSIBLE_VAULT_PASSWORD_VALUE" > infra-provisioning/.vault-password.txt'
-                        sh 'echo "$ANSIBLE_VAULT_PASSWORD_VALUE" > infra-configuration/.vault-password.txt'
-                    }
                 }
             }
         }
@@ -79,6 +64,7 @@ pipeline {
                                 string(credentialsId: 'oci-jenkins-terraform-aws-id', variable: 'AWS_ACCESS_KEY_ID'),
                                 sshUserPrivateKey(credentialsId: 'ssh-ubuntu', keyFileVariable: 'USER_PRIVATE_KEY_PATH',usernameVariable: 'SSH_USERNAME')
                             ]) {
+                              utils.SetupSSH()
                               sshagent (credentials: ['ssh-ubuntu']) {
                                 createHAProxyStackOracle()
                               }

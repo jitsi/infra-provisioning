@@ -30,7 +30,7 @@ def createJVBPool(hcv_environment,cloud_name,oracle_region,jvb_version,release_b
     return createPool
 }
 
-
+def utils
 pipeline {
     agent any
     options {
@@ -42,15 +42,14 @@ pipeline {
         stage('Prepare/Checkout') { // for display purposes
             steps {
                 script {
-                    def scmUrl = scm.getUserRemoteConfigs()[0].getUrl()
-                    dir('infra-customization') {
-                        git branch: env.VIDEO_INFRA_BRANCH, url: env.INFRA_CUSTOMIZATIONS_REPO, credentialsId: 'video-infra'
-                    }
-                    dir('infra-provisioning') {
-                        git branch: env.VIDEO_INFRA_BRANCH, url: scmUrl, credentialsId: 'video-infra'
-                    }
+                    // load utility function
+                    def rootDir = pwd()
+                    utils = load "${rootDir}/jenkins/groovy/Utils.groovy"
+                    // checkout repos
+                    utils.SetupRepos(env.VIDEO_INFRA_BRANCH)
 
-                    sh 'cp -a infra-customization/* infra-provisioning'
+                    // setup OCI credentials
+                    utils.SetupOCI()
                 }
             }
         }

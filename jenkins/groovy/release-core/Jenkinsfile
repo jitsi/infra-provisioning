@@ -160,7 +160,7 @@ scripts/versioning-manager.sh
 """
     )
 }
-
+def utils
 pipeline {
     agent any
     options {
