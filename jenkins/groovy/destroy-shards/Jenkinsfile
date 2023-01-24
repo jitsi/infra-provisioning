@@ -36,7 +36,6 @@ pipeline {
                             file(credentialsId: 'asap-jwt-key-prod', variable: 'ASAP_JWT_KEY_PROD')
                         ]) {
                           sshagent (credentials: ['ssh-ubuntu']) {
-                            setupOCI()
                             sh '''#!/bin/bash
                             export ANSIBLE_FORCE_COLOR=True
                             scripts/delete-shard-jvbs-oracle-main.sh ubuntu'''
