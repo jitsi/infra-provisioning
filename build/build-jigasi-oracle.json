@@ -1,0 +1,83 @@
+{
+  "variables": {
+    "build_id": "",
+    "environment": "",
+    "ansible_build_path": "../../infra-configuration/ansible",
+    "ansible_ssh_user": "",
+    "base_image_ocid": "",
+    "region": "",
+    "availability_domain": "",
+    "subnet_ocid": "",
+    "compartment_ocid": "",
+    "shape": "",
+    "ocpus": "",
+    "memory_in_gbs": "",
+    "connection_ssh_private_key_file": "",
+    "ansible_python_interpreter": "",
+    "connection_use_private_ip": "false",
+    "connection_ssh_bastion_host": "",
+    "tag_namespace": "",
+    "ansible_deploy_tags": "",
+    "ansible_skip_tags": "",
+    "jigasi_deb_pkg_version": "",
+    "jigasi_image_name": "BuildJigasi-{{user `region`}}-{{user `environment`}}-{{user `jigasi_deb_pkg_version`}}-{{timestamp}}"
+  },
+  "builders": [
+    {
+      "type": "oracle-oci",
+      "availability_domain": "{{user `availability_domain`}}",
+      "region": "{{user `region`}}",
+      "base_image_ocid": "{{user `base_image_ocid`}}",
+      "compartment_ocid": "{{user `compartment_ocid`}}",
+      "subnet_ocid": "{{user `subnet_ocid`}}",
+      "shape": "{{user `shape`}}",
+      "shape_config": {
+        "ocpus": "{{user `ocpus`}}",
+        "memory_in_gbs": "{{user `memory_in_gbs`}}"
+      },
+      "image_name": "{{user `jigasi_image_name`}}",
+      "communicator": "ssh",
+      "ssh_username": "{{user `ansible_ssh_user`}}",
+      "ssh_private_key_file": "{{user `connection_ssh_private_key_file`}}",
+      "use_private_ip": "{{user `connection_use_private_ip`}}",
+      "ssh_bastion_username": "{{user `ansible_ssh_user`}}",
+      "ssh_bastion_host": "{{user `connection_ssh_bastion_host`}}",
+      "ssh_bastion_private_key_file": "{{user `connection_ssh_private_key_file`}}",
+      "defined_tags": {
+        "{{user `tag_namespace`}}": {
+          "Name": "{{user `jigasi_image_name`}}",
+          "build_id": "{{user `build_id`}}",
+          "Version": "{{user `jigasi_deb_pkg_version`}}",
+          "TS": "{{timestamp}}",
+          "Type": "Jigasi",
+          "environment_type": "dev"
+        }
+      }
+    }
+  ],
+  "provisioners": [
+    {
+      "type": "ansible",
+      "playbook_file": "{{user `ansible_build_path`}}/build-jigasi-oracle.yml",
+      "user": "{{user `ansible_ssh_user`}}",
+      "extra_arguments": [
+        "-e",
+        "ansible_ssh_user={{user `ansible_ssh_user`}}",
+        "-e",
+        "ansible_python_interpreter={{user `ansible_python_interpreter`}}",
+        "-e",
+        "jigasi_deb_pkg_version={{user `jigasi_deb_pkg_version`}}",
+        "-e",
+        "cloud_provider=oracle",
+        "-e",
+        "hcv_environment={{user `environment`}}",
+        "--vault-password-file",
+        ".vault-password.txt",
+        "--tags",
+        "{{user `ansible_deploy_tags`}}",
+        "--skip-tags",
+        "{{user `ansible_skip_tags`}}"
+      ]
+    }
+  ]
+}

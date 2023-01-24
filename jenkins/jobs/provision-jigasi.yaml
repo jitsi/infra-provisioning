@@ -1,21 +1,16 @@
 - job:
-    name: build-image-oracle
+    name: provision-jigasi
+    display-name: provision jigasi
     concurrent: true
-    display-name: build image oracle
     parameters:
+      - string:
+          name: JIGASI_VERSION
+          description: "Controls the version of jigasi to build."
+          trim: true
       - string:
           name: VIDEO_INFRA_BRANCH
           default: main
           description: "Controls checkout branch for infra repos, defaults to 'main'."
-          trim: true
-      - string:
-          name: IMAGE_TYPE
-          description: "Type of base image to build, could be 'JVB', 'Jigasi', 'JavaJibri', 'Signal', 'SeleniumGrid' 'JammyBase' defaults to 'JammyBase'."
-          trim: true
-      - string:
-          name: ORACLE_REGION
-          default: us-phoenix-1
-          description: "Region to build in, defaults to 'us-phoenix-1'."
           trim: true
       - string:
           name: ENVIRONMENT
@@ -23,33 +18,26 @@
           description: "Environment to build in, defaults to 'lonely'."
           trim: true
       - string:
-          name: JITSI_MEET_VERSION
-          description: "Jitsi Meet Version"
+          name: CLOUD_PROVIDER
+          default: oracle
+          description: "Cloud Provider, defaults to 'oracle'"
           trim: true
       - string:
-          name: JICOFO_VERSION
-          description: "Jicofo Version"
+          name: RELEASE_BRANCH
+          default: main
+          description: "Name of an existing infra branch to use when creating the release, defaults to 'main'."
           trim: true
       - string:
-          name: PROSODY_VERSION
-          description: "Prosody Version"
+          name: CLOUD_NAME
+          description: "Name of cloud to build in"
           trim: true
       - string:
-          name: JVB_VERSION
-          description: "Videobridge Version"
+          name: JIGASI_TRANSCRIBER_FLAG
+          description: "Controls whether to deploy a transcriber or traditional jigasi, set to 'true' for transcriber"
           trim: true
       - string:
-          name: JIGASI_VERSION
-          description: "Jigasi Version"
-          trim: true
-      - string:
-          name: JIBRI_VERSION
-          description: "Jibri Version"
-          trim: true
-      - bool:
-          name: FORCE_BUILD_IMAGE
-          default: false
-          description: "Flag to control whether to force image builds if a matching image exists"
+          name: JIGASI_RELEASE_NUMBER
+          description: "Release number with which to tag all jigasi instances"
       - string:
           name: INFRA_CONFIGURATION_REPO
           default: git@github.com:jitsi/infra-configuration.git
@@ -74,5 +62,5 @@
             browser-url: https://github.com/jitsi/infra-provisioning
             submodule:
               recursive: true
-      script-path: jenkins/groovy/build-image-oracle/Jenkinsfile
+      script-path: jenkins/groovy/provision-jigasi/Jenkinsfile
       lightweight-checkout: true

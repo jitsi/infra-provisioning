@@ -1,3 +1,17 @@
+// splits incoming clouds into a list
+// alternately loads defaults for environment into a list
+def SplitClouds(shard_environment,cloud_names) {
+    if (cloud_names) {
+        clouds = cloud_names.split(' ')
+    } else {
+        clouds = sh(
+            returnStdout: true,
+            script: 'scripts/release_clouds.sh '+shard_environment
+        ).trim().split(' ');
+    }
+    return clouds
+}
+
 def ReplicateImageOracle(image_type) {
     sh(
         script: """#!/bin/bash
@@ -187,6 +201,5 @@ def SetupSSH() {
     }
     env.USER_PUBLIC_KEY_PATH='~/.ssh/ssh_key.pub'
 }
-
 
 return this
