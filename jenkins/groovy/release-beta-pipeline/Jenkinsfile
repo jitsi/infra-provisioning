@@ -36,7 +36,7 @@ def oldShardsFromRelease(environment,release) {
     );
     return shards    
 }
-
+def utils
 pipeline {				//indicate the job is written in Declarative Pipeline
     agent any				//agent specifies where the pipeline will execute. 
     options {

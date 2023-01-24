@@ -227,7 +227,7 @@ def add_selenium_grid_cft_parameters(t, opts):
         "TagGitBranch",
         Description="Tag: git_branch",
         Type="String",
-        Default="master"
+        Default="main"
     ))
 
 

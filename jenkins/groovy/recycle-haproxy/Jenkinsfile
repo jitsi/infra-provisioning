@@ -8,18 +8,11 @@ def recycleHaproxyAWS() {
 def recycleHaproxyOracle() {
     sh(
         script: """#!/bin/bash
-        mkdir -p ~/.oci
-        cp "\$OCI_CLI_CONFIG_FILE" ~/.oci/config
-        cp "\$OCI_CLI_KEY_FILE" ~/.oci/private-key.pem
         export ANSIBLE_FORCE_COLOR=True
         scripts/recycle-haproxy-oracle.sh ubuntu"""
     )
 }
-
-def setupAnsible() {
-    sh 'echo "$ANSIBLE_VAULT_PASSWORD_PATH" > ./.vault-password.txt'
-}
-
+def utils
 pipeline {
     agent any
     options {
@@ -31,35 +24,24 @@ pipeline {
         stage ("setup") {
             steps {
                 script {
-                    def scmUrl = scm.getUserRemoteConfigs()[0].getUrl()
-                    dir('infra-configuration') {
-                        checkout([$class: 'GitSCM', branches: [[name: "origin/${VIDEO_INFRA_BRANCH}"]], extensions: [[$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: false, recursiveSubmodules: true, reference: '', trackingSubmodules: false]], userRemoteConfigs: [[credentialsId: 'video-infra', url: env.INFRA_CONFIGURATION_REPO]]])
-                    }
-                    dir('infra-customization') {
-                        git branch: env.VIDEO_INFRA_BRANCH, url: env.INFRA_CUSTOMIZATIONS_REPO, credentialsId: 'video-infra'
-                    }
-                    dir('infra-provisioning') {
-                        git branch: env.VIDEO_INFRA_BRANCH, url: scmUrl, credentialsId: 'video-infra'
-                    }
+                    // load utility function
+                    def rootDir = pwd()
+                    utils = load "${rootDir}/jenkins/groovy/Utils.groovy"
+                    // checkout repos
+                    utils.SetupRepos(env.VIDEO_INFRA_BRANCH)
+
+                    // setup OCI credentials
+                    utils.SetupOCI()
                     sh 'mkdir -p test-results'
                     sh 'mkdir -p haproxy-status'
-                    sh 'cp -a infra-customization/* infra-provisioning'
-                    sh 'cp -a infra-customization/* infra-configuration'
                 }
             }
         }
         stage ("haproxy recycle") {
             steps {
                 script {
-                    echo 'haproxy recycle beginning'
-                    dir('infra-configuration') {
-                        withCredentials([
-                            string(credentialsId: 'ansible-vault-password', variable: 'ANSIBLE_VAULT_PASSWORD_PATH')
-                        ]) {
-                            setupAnsible()
-                        }
-                    }
                     lock("haproxy-state-${env.ENVIRONMENT}") {
+                      echo 'haproxy recycle beginning'
                       dir('infra-provisioning') {
                         if (env.CLOUD_PROVIDER == 'aws') {
                             withCredentials([
@@ -72,8 +54,6 @@ pipeline {
                         if (env.CLOUD_PROVIDER == 'oracle') {
                           sshagent (credentials: ['ssh-ubuntu']) {
                             withCredentials([
-                                file(credentialsId: 'oci-jenkins-config', variable: 'OCI_CLI_CONFIG_FILE'),
-                                file(credentialsId: 'oci-jenkins-pem', variable: 'OCI_CLI_KEY_FILE'),
                                 string(credentialsId: 'jenkins-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
                                 string(credentialsId: 'jenkins-aws-id', variable: 'AWS_ACCESS_KEY_ID')
                             ]) {

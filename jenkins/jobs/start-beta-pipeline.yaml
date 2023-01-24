@@ -4,11 +4,6 @@
     concurrent: true
     parameters:
       - string:
-          name: PROSODY_VERSION
-          description: "Prosody version"
-          default: '0.12.2'
-          trim: true
-      - string:
           name: JITSI_MEET_META_VERSION
           description: "Meta package version"
           trim: true

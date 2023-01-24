@@ -323,7 +323,7 @@ def add_parameters():
         "TagGitBranch",
         Description="Tag: git_branch",
         Type="String",
-        Default="master"
+        Default="main"
     ))
 
     tag_git_branch_param = t.add_parameter(Parameter(
@@ -336,7 +336,7 @@ def add_parameters():
         "TagProxyReleaseNumber",
         Description="Tag: proxy release number",
         Type="String",
-        Default="master"
+        Default="main"
     ))
 
 def add_alb_parameters(t):

@@ -26,6 +26,7 @@ def putStickTableFixesInBucket() {
     )
 }
 
+def utils
 pipeline {
     agent any
     options {
