@@ -1,6 +1,22 @@
-// trigger build Jibri image aws job with appropriate parameters
+// splits incoming clouds into a list
+// alternately loads defaults for environment into a list
+def split_clouds(shard_environment,cloud_names) {
+    if (cloud_names) {
+        clouds = cloud_names.split(' ')
+    } else {
+        clouds = sh(
+            returnStdout: true,
+            script: 'scripts/release_clouds_sip_jibri.sh '+shard_environment
+        ).trim().split(' ');
+    }
+    return clouds
+}
+
+// global var to track git branch from env or new tags
+def git_branch
+
 def buildJibriImageAws(build_id,jibriVersion,force_build_ami) {
-    def buildImage = build job: 'build-image-jibri-aws',parameters: [
+    def buildImage = build job: 'jibri-image',parameters: [
         [$class: 'BooleanParameterValue', name: 'FORCE_BUILD_AMI', value: force_build_ami],
         [$class: 'StringParameterValue', name: 'JIBRI_BUILD_ID', value: build_id],
         [$class: 'StringParameterValue', name: 'JIBRI_VERSION', value: jibriVersion]
@@ -9,13 +25,12 @@ def buildJibriImageAws(build_id,jibriVersion,force_build_ami) {
     return buildImage
 }
 
-// trigger build Jibri image oracle job with appropriate parameters
 def buildJibriImageOracle(environment,clouds,jibriVersion,force_build_image,video_infra_branch) {
     def buildImage = build job: 'build-image-oracle',parameters: [
         [$class: 'StringParameterValue', name: 'IMAGE_TYPE', value: 'JavaJibri'],
+        [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: environment],
         [$class: 'StringParameterValue', name: 'CLOUDS', value: clouds],
         [$class: 'StringParameterValue', name: 'JIBRI_VERSION', value: jibriVersion],
-        [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: environment],
         [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: video_infra_branch],
         [$class: 'BooleanParameterValue', name: 'FORCE_BUILD_IMAGE', value: force_build_image]
     ]
@@ -23,7 +38,7 @@ def buildJibriImageOracle(environment,clouds,jibriVersion,force_build_image,vide
     return buildImage
 }
 
-def provisionJibri(shard_environment,cloud_name,release_number,gitBranch,jibriVersion,cloud_provider,video_infra_branch) {
+def provisionJibri(shard_environment,cloud_name,release_number,gitBranch,jibriVersion,cloud_provider,jibri_type,video_infra_branch) {
     def provision = build job: 'provision-jibri',parameters: [
         [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: shard_environment],
         [$class: 'StringParameterValue', name: 'CLOUD_NAME', value: cloud_name],
@@ -31,20 +46,25 @@ def provisionJibri(shard_environment,cloud_name,release_number,gitBranch,jibriVe
         [$class: 'StringParameterValue', name: 'JIBRI_RELEASE_NUMBER', value: release_number],
         [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: gitBranch],
         [$class: 'StringParameterValue', name: 'CLOUD_PROVIDER', value: cloud_provider],
-        [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: video_infra_branch]
+        [$class: 'StringParameterValue', name: 'JIBRI_TYPE', value: jibri_type],
+        [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: video_infra_branch],
     ]
 
     return provision
 }
 
-// global var to track git branch from env or new tags
-def git_branch
 def utils
 
 pipeline {				//indicate the job is written in Declarative Pipeline
     agent any				//agent specifies where the pipeline will execute.
     stages {
         // output stage, shows off our input parameters
+        stage ("setup") {
+            steps {
+                echo 'Sip Jibri Release'
+                echo "JIBRI VERSION ${env.JIBRI_VERSION}"
+            }
+        }
         stage('Prepare/Checkout') {
             steps {
                 script {
@@ -56,18 +76,21 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                     // checkout repos
                     utils.SetupRepos(env.VIDEO_INFRA_BRANCH)
 
-                    // setup OCI credentials
-                    utils.SetupOCI()
+                    if (env.CLOUD_PROVIDER == 'oracle') {
+                        // setup OCI credentials
+                        utils.SetupOCI()
+                    }
                 }
             }
         }
+        // tag the new release or load git_branch from input parameters
         // tag the new release or load git_branch from input parameters
         stage("tag release") {
           steps {
             script {
                 // use incoming branch/tag or tag repo with new tag based on build ID
                 // either way set it into git_branch variable to use later
-                git_branch = utils.TagRelease('jibri-release',env.BUILD_ID, env.RELEASE_BRANCH)
+                git_branch = utils.TagRelease('sip-jibri-release',env.BUILD_ID, env.RELEASE_BRANCH)
                 env.RELEASE_BRANCH = git_branch
             }
           }
@@ -107,8 +130,8 @@ pipeline {				//indicate the job is written in Declarative Pipeline
             steps {
                 script {
                   dir('infra-provisioning') {
-                    echo "Provision jibri in provider ${env.CLOUD_PROVIDER}, environment ${env.ENVIRONMENT}, clouds ${env.CLOUDS}, autoscaler enabled ${env.JIBRI_AUTOSCALER_ENABLED} ";
-                    def cloud_list = utils.SplitClouds(env.ENVIRONMENT,env.CLOUDS);
+                    echo "Provision jibri in provider ${env.CLOUD_PROVIDER}, environment ${env.ENVIRONMENT}, clouds ${env.CLOUDS} ";
+                    def cloud_list = split_clouds(env.ENVIRONMENT,env.CLOUDS);
                     echo "cloud list ${cloud_list}";
                     def branches = [:]
                     for(i = 0; i < cloud_list.size(); i++) {
@@ -121,6 +144,7 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                                 git_branch,
                                 env.JIBRI_VERSION,
                                 env.CLOUD_PROVIDER,
+                                'sip-jibri',
                                 env.VIDEO_INFRA_BRANCH
                             )
                         }
@@ -139,7 +163,10 @@ pipeline {				//indicate the job is written in Declarative Pipeline
             }
             steps {
                  script {
-                     build job: 'jibri-rotate',parameters: [[$class: 'StringParameterValue', name: 'ENVIRONMENT', value: env.ENVIRONMENT]]
+                     build job: 'jibri-rotate',parameters: [
+                        [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: env.ENVIRONMENT],
+                        [$class: 'StringParameterValue', name: 'SHARD_ROLE', value: 'sip-jibri']
+                     ]
                  }
              }
         }
