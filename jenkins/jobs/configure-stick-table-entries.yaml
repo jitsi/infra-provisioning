@@ -17,6 +17,11 @@
           description: 'JSON List of {"key":"roomname","id":10} to stick roomname to shard 0'
           trim: true
       - string:
+          name: INFRA_CONFIGURATION_REPO
+          default: git@github.com:jitsi/infra-configuration.git
+          description: "Repo for configuration code (ansible etc), defaults to 'git@github.com:jitsi/infra-configuration.git'."
+          trim: true
+      - string:
           name: INFRA_CUSTOMIZATIONS_REPO
           default: git@github.com:jitsi/infra-customizations.git
           description: "Repo with customized configurations, defaults to 'git@github.com:jitsi/infra-customizations.git'."
