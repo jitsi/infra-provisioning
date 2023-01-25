@@ -76,7 +76,7 @@ pipeline {
         }
         stage ("get payments-service URL for this enviroment") {
             steps {
-                script{ 
+                script { 
                     dir("infra-provisioning") {
                         paymentsServiceURL = getPaymentsServiceURL(env.ENVIRONMENT)
                         if (paymentsServiceURL != 'false') {
@@ -84,6 +84,7 @@ pipeline {
                         }
                         echo 'payment service URL: ' + paymentsServiceURL
                         echo 'payment service deployed: ' + paymentsServiceDeployed
+                    }
                 }
             }
         }
@@ -111,5 +112,5 @@ pipeline {
                 }
             }
         }
-     }
+    }
 }
