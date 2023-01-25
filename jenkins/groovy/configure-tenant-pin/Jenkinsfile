@@ -35,21 +35,21 @@ echo \$VERSIONING_URL"""
 def updateConsulPin(tenant, release_number) {
     echo 'updating pin in consul'
     sh(
-        script: "PIN_ACTION=SET_PIN TENANT=${tenant} RELEASE_NUMBER=${release_number} scripts/consul-set-tenant-pin.sh ubuntu"
+        script: "PIN_ACTION=SET_PIN TENANT=${tenant} RELEASE_NUMBER=${release_number} ../../infra-provisioning/scripts/consul-set-tenant-pin.sh ubuntu"
     )
 }
 
 def deleteConsulPin(tenant) {
     echo 'deleting pin in consul'
     sh(
-        script: "PIN_ACTION=DELETE_PIN TENANT=${tenant} scripts/consul-set-tenant-pin.sh ubuntu"
+        script: "PIN_ACTION=DELETE_PIN TENANT=${tenant} ../../infra-provisioning/scripts/consul-set-tenant-pin.sh ubuntu"
     )
 }
 
 def updateVersioningPin(tenant, release_number) {
     echo 'updating pin in versioning-manager'
     sh(
-        script: "VERSIONING_ACTION=SET_TENANT_PIN TENANT=${tenant} RELEASE_NUMBER=${release_number} scripts/versioning-manager.sh ubuntu"
+        script: "VERSIONING_ACTION=SET_TENANT_PIN TENANT=${tenant} RELEASE_NUMBER=${release_number} ../../infra-provisioning/scripts/versioning-manager.sh ubuntu"
     )
 }
 
