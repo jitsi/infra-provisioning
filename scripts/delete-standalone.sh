@@ -28,6 +28,16 @@ LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
 [ -z "$UNIQUE_ID" ] && UNIQUE_ID="$TEST_ID"
 
+if [ -z "$ANSIBLE_SSH_USER" ]; then
+    if [  -z "$1" ]; then
+        ANSIBLE_SSH_USER=$(whoami)
+        echo "Ansible SSH user is not defined. We use current user: $ANSIBLE_SSH_USER"
+    else
+        ANSIBLE_SSH_USER=$1
+        echo "Run ansible as $ANSIBLE_SSH_USER"
+    fi
+fi
+
 if [[ "$CLOUD_PROVIDER" == "aws" ]]; then
 
     #default cloud from basic defaults
@@ -113,7 +123,6 @@ if [[ "$CLOUD_PROVIDER" == "aws" ]]; then
 fi
 
 if [[ "$CLOUD_PROVIDER" == "oracle" ]]; then
-
     #load cloud defaults
     [ -e $LOCAL_PATH/../clouds/oracle.sh ] && . $LOCAL_PATH/../clouds/oracle.sh
 
@@ -129,6 +138,8 @@ if [[ "$CLOUD_PROVIDER" == "oracle" ]]; then
         echo "No ORACLE_REGION provided, exiting..."
         exit 1
     fi
+
+    $LOCAL_PATH/stop-standalone-services.sh $ANSIBLE_SSH_USER
 
     UNIQUE_ID=$UNIQUE_ID $LOCAL_PATH/../terraform/standalone/delete-standalone-server-oracle.sh
     FINAL_RET=$?
