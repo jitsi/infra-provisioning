@@ -1,0 +1,162 @@
+
+def checkReleaseBackends(environment) {
+    def ret = 'false';
+    def useReleaseBackends = sh(
+       returnStdout: true,
+       script: """#!/bin/bash
+. ./sites/${environment}/stack-env.sh
+echo \$USE_RELEASE_BACKENDS"""
+    ).trim();
+
+    if (useReleaseBackends.length() > 0) {
+        ret = useReleaseBackends;
+    }
+
+    return ret;
+}
+
+def getVersioningManagerURL(environment) {
+    def versioningManagerDeployed = 'false';
+    def ret = 'false';
+    def versioningManagerURL = sh(
+       returnStdout: true,
+       script: """#!/bin/bash
+. ./sites/${environment}/stack-env.sh
+echo \$VERSIONING_URL"""
+    ).trim();
+
+    if (versioningManagerURL.length() > 0) {
+        ret = versioningManagerURL;
+    }
+
+    return ret;
+}
+
+def updateConsulPin(tenant, release_number) {
+    echo 'updating pin in consul'
+    sh(
+        script: "PIN_ACTION=SET_PIN TENANT=${tenant} RELEASE_NUMBER=${release_number} ../all/bin/consul-set-tenant-pin.sh ubuntu"
+    )
+}
+
+def deleteConsulPin(tenant) {
+    echo 'deleting pin in consul'
+    sh(
+        script: "PIN_ACTION=DELETE_PIN TENANT=${tenant} ../all/bin/consul-set-tenant-pin.sh ubuntu"
+    )
+}
+
+def updateVersioningPin(tenant, release_number) {
+    echo 'updating pin in versioning-manager'
+    sh(
+        script: "VERSIONING_ACTION=SET_TENANT_PIN TENANT=${tenant} RELEASE_NUMBER=${release_number} ../all/bin/versioning-manager.sh ubuntu"
+    )
+}
+
+def deleteVersioningPin(tenant) {
+    echo 'deleting pin in versioning-manager'
+    sh(
+        script: "VERSIONING_ACTION=DELETE_TENANT_PIN TENANT=${tenant} ../all/bin/versioning-manager.sh ubuntu"
+    )
+}
+
+pipeline {
+    agent any
+    options {
+        ansiColor('xterm')
+        timestamps()
+    }
+    stages {
+        stage ("setup") {
+            steps {
+                script {
+                    // load utility function
+                    def rootDir = pwd()
+                    utils = load "${rootDir}/jenkins/groovy/Utils.groovy"
+                    // checkout repos
+                    utils.SetupRepos(env.VIDEO_INFRA_BRANCH)
+
+                    // setup OCI credentials
+                    utils.SetupOCI()
+
+                    sh 'mkdir -p test-results'
+                }
+            }
+        }
+        stage ("check that environment supports release backends") {
+            steps {
+                script {
+                    useReleaseBackends = checkReleaseBackends(env.ENVIRONMENT)
+                    if (useReleaseBackends != 'true') {
+                        error 'environment does not support tenant pinning'
+                    }
+                }
+            }
+        }
+        stage ("check if versionining-manager is used for tenant pins in this environment") {
+            steps {
+                script{ 
+                    versioningManagerURL = getVersioningManagerURL(env.ENVIRONMENT)
+                    if (versioningManagerURL != 'false') {
+                        versioningManagerDeployed = 'true'
+                    }
+                }
+            }
+        }
+        stage ("modify tenant pin in consul") {
+            when {
+                allOf {
+                    expression { useReleaseBackends == 'true' }
+                    expression { versioningManagerDeployed != 'true' }
+                }
+            }
+            steps {
+                script {
+                    echo "PIN_ACTION: ${env.PIN_ACTION}"
+                    if (env.PIN_ACTION == 'SET_PIN') {
+                        dir("./environments/${env.ENVIRONMENT}") {
+                            updateConsulPin(env.CUSTOMER_ID, env.RELEASE_NUMBER)
+                        }
+                    } else if (env.PIN_ACTION == 'DELETE_PIN') {
+                        dir("./environments/${env.ENVIRONMENT}") {
+                            deleteConsulPin(env.CUSTOMER_ID)
+                        }
+                    } else {
+                        error 'invalid PIN_ACTION; should be SET_PIN or DELETE_PIN'
+                    }
+                }
+            }
+        }
+        stage ("modify pin in versioning-manager") {
+            when {
+                allOf {
+                    expression { useReleaseBackends == 'true' }
+                    expression { versioningManagerDeployed == 'true' }
+                }
+            }
+            steps {
+                script {
+                    echo "PIN_ACTION: ${env.PIN_ACTION}"
+                    if (env.PIN_ACTION == 'SET_PIN') {
+                        dir("./environments/${env.ENVIRONMENT}") {
+                            updateVersioningPin(env.CUSTOMER_ID, env.RELEASE_NUMBER)
+                        }
+                    } else if (env.PIN_ACTION == 'DELETE_PIN') {
+                        dir("./environments/${env.ENVIRONMENT}") {
+                            deleteVersioningPin(env.CUSTOMER_ID)
+                        }
+                    } else {
+                        error 'invalid PIN_ACTION; should be SET_PIN or DELETE_PIN'
+                    }
+                }
+            }
+        }
+    }
+    post {
+        always {
+            archiveArtifacts artifacts: 'test-results/**'
+            // Clean up afterwards
+            cleanWs()
+        }
+    }
+}
