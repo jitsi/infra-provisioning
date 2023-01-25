@@ -2,6 +2,10 @@
 
 echo "# consul-set-tenant-pin.sh starting"
 
+if [ ! -z "$DEBUG" ]; then
+  set -x
+fi
+
 if [  -z "$1" ]; then
   ANSIBLE_SSH_USER=$(whoami)
 else
@@ -12,6 +16,8 @@ if [ -z "$ENVIRONMENT" ]; then
     echo "## no ENVIRONMENT set, exiting"
     exit 2
 fi
+
+LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
 [ -e $LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh ] && . $LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh
 

@@ -8,10 +8,16 @@
 
 echo "# starting versioning-manager.sh"
 
+if [ ! -z "$DEBUG" ]; then
+  set -x
+fi
+
 if [ -z "$ENVIRONMENT" ]; then
   echo "No ENVIRONMENT found. Exiting..."
   exit 203
 fi
+
+LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
 [ -e $LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh ] && . $LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh
 
