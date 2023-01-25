@@ -1,13 +1,13 @@
 - view-template:
-    name: 'reconfigure'
+    name: 'configure'
     description: 'jobs that reconfigure resources in place'
     view-type: list
-    regex: 'reconfigure-.*'
+    regex: '(configure|reconfigure)-.*'
 
 - project:
-    name: 'reconfigure-view'
+    name: 'configure-view'
     views:
-        - 'reconfigure'
+        - 'configure'
     seq:
         - a
         - b
