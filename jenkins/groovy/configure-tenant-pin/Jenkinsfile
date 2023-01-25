@@ -56,7 +56,7 @@ def updateVersioningPin(tenant, release_number) {
 def deleteVersioningPin(tenant) {
     echo 'deleting pin in versioning-manager'
     sh(
-        script: "VERSIONING_ACTION=DELETE_TENANT_PIN TENANT=${tenant} scripts/versioning-manager.sh ubuntu"
+        script: "VERSIONING_ACTION=DELETE_TENANT_PIN TENANT=${tenant} ../../infra-provisioning/scripts/versioning-manager.sh ubuntu"
     )
 }
 
@@ -118,11 +118,11 @@ pipeline {
                 script {
                     echo "PIN_ACTION: ${env.PIN_ACTION}"
                     if (env.PIN_ACTION == 'SET_PIN') {
-                        dir("./environments/${env.ENVIRONMENT}") {
+                        dir("infra-customization/sites/${env.ENVIRONMENT}") {
                             updateConsulPin(env.CUSTOMER_ID, env.RELEASE_NUMBER)
                         }
                     } else if (env.PIN_ACTION == 'DELETE_PIN') {
-                        dir("./environments/${env.ENVIRONMENT}") {
+                        dir("infra-customization/sites/${env.ENVIRONMENT}") {
                             deleteConsulPin(env.CUSTOMER_ID)
                         }
                     } else {
@@ -143,12 +143,14 @@ pipeline {
                     echo "PIN_ACTION: ${env.PIN_ACTION}"
                     sh( script: "pwd")
                     sh( script: "ls -al")
+                    sh( script: "ls infra-provisioning")
+                    sh( script: "ls infra-customization")
                     if (env.PIN_ACTION == 'SET_PIN') {
-                        dir("./sites/${env.ENVIRONMENT}") {
+                        dir("infra-customization/sites/${env.ENVIRONMENT}") {
                             updateVersioningPin(env.CUSTOMER_ID, env.RELEASE_NUMBER)
                         }
                     } else if (env.PIN_ACTION == 'DELETE_PIN') {
-                        dir("./sites/${env.ENVIRONMENT}") {
+                        dir("infra-customization/sites/${env.ENVIRONMENT}") {
                             deleteVersioningPin(env.CUSTOMER_ID)
                         }
                     } else {
