@@ -120,8 +120,10 @@ pipeline {
                     if (env.PIN_ACTION == 'SET_PIN') {
                         dir("infra-provisioning") {
                             withCredentials([
-                                string(credentialsId: 'oci-jenkins-terraform-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
-                                string(credentialsId: 'oci-jenkins-terraform-aws-id', variable: 'AWS_ACCESS_KEY_ID')
+                                string(credentialsId: 'asap-jwt-kid-dev', variable: 'ASAP_JWT_KID_DEV'),
+                                string(credentialsId: 'asap-jwt-kid-prod', variable: 'ASAP_JWT_KID_PROD'),
+                                file(credentialsId: 'asap-jwt-key-dev', variable: 'ASAP_JWT_KEY_DEV'),
+                                file(credentialsId: 'asap-jwt-key-prod', variable: 'ASAP_JWT_KEY_PROD')
                             ]) {
                                 sshagent(credentials: ['ssh-ubuntu']) {
                                     updateConsulPin(env.ENVIRONMENT, env.CUSTOMER_ID, env.RELEASE_NUMBER)
@@ -131,8 +133,10 @@ pipeline {
                     } else if (env.PIN_ACTION == 'DELETE_PIN') {
                         dir("infra-provisioning") {
                             withCredentials([
-                                string(credentialsId: 'oci-jenkins-terraform-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
-                                string(credentialsId: 'oci-jenkins-terraform-aws-id', variable: 'AWS_ACCESS_KEY_ID')
+                                string(credentialsId: 'asap-jwt-kid-dev', variable: 'ASAP_JWT_KID_DEV'),
+                                string(credentialsId: 'asap-jwt-kid-prod', variable: 'ASAP_JWT_KID_PROD'),
+                                file(credentialsId: 'asap-jwt-key-dev', variable: 'ASAP_JWT_KEY_DEV'),
+                                file(credentialsId: 'asap-jwt-key-prod', variable: 'ASAP_JWT_KEY_PROD')
                             ]) {
                                 sshagent(credentials: ['ssh-ubuntu']) {
                                     deleteConsulPin(env.ENVIRONMENT, env.CUSTOMER_ID)
@@ -158,8 +162,10 @@ pipeline {
                     if (env.PIN_ACTION == 'SET_PIN') {
                         dir("infra-provisioning") {
                             withCredentials([
-                                string(credentialsId: 'oci-jenkins-terraform-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
-                                string(credentialsId: 'oci-jenkins-terraform-aws-id', variable: 'AWS_ACCESS_KEY_ID')
+                                string(credentialsId: 'asap-jwt-kid-dev', variable: 'ASAP_JWT_KID_DEV'),
+                                string(credentialsId: 'asap-jwt-kid-prod', variable: 'ASAP_JWT_KID_PROD'),
+                                file(credentialsId: 'asap-jwt-key-dev', variable: 'ASAP_JWT_KEY_DEV'),
+                                file(credentialsId: 'asap-jwt-key-prod', variable: 'ASAP_JWT_KEY_PROD')
                             ]) {
                                 sshagent(credentials: ['ssh-ubuntu']) {
                                     updateVersioningPin(env.ENVIRONMENT, env.CUSTOMER_ID, env.RELEASE_NUMBER)
@@ -169,8 +175,10 @@ pipeline {
                     } else if (env.PIN_ACTION == 'DELETE_PIN') {
                         dir("infra-provisioning") {
                             withCredentials([
-                                string(credentialsId: 'oci-jenkins-terraform-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
-                                string(credentialsId: 'oci-jenkins-terraform-aws-id', variable: 'AWS_ACCESS_KEY_ID')
+                                string(credentialsId: 'asap-jwt-kid-dev', variable: 'ASAP_JWT_KID_DEV'),
+                                string(credentialsId: 'asap-jwt-kid-prod', variable: 'ASAP_JWT_KID_PROD'),
+                                file(credentialsId: 'asap-jwt-key-dev', variable: 'ASAP_JWT_KEY_DEV'),
+                                file(credentialsId: 'asap-jwt-key-prod', variable: 'ASAP_JWT_KEY_PROD')
                             ]) {
                                 sshagent(credentials: ['ssh-ubuntu']) {
                                     deleteVersioningPin(env.ENVIRONMENT, env.CUSTOMER_ID)
