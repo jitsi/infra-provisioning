@@ -32,17 +32,18 @@ if [ -z "$CF_AUTH_KEY" ]; then
     exit 4
 fi
 
+if [ -z "$SHED_VALUE" ]; then
+    if [ -z "$POOL_STATE" ]; then
+        echo "No POOL_STATE set, exiting"
+        exit 2
+    fi
 
-if [ -z "$POOL_STATE" ]; then
-    echo "No POOL_STATE set, exiting"
-    exit 2
-fi
-
-if [[ "$POOL_STATE" == "ready" ]]; then
-    SHED_VALUE=0
-fi
-if [[ "$POOL_STATE" == "drain" ]]; then
-    SHED_VALUE=100
+    if [[ "$POOL_STATE" == "ready" ]]; then
+        SHED_VALUE=0
+    fi
+    if [[ "$POOL_STATE" == "drain" ]]; then
+        SHED_VALUE=100
+    fi
 fi
 
 echo "Setting pool $POOL in $ACCOUNT_ID to $POOL_STATE"
