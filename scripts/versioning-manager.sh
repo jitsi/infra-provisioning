@@ -8,17 +8,12 @@
 
 echo "# starting versioning-manager.sh"
 
-#set -x
-
-#IF THE CURRENT DIRECTORY HAS stack-env.sh THEN INCLUDE IT
-[ -e ./stack-env.sh ] && . ./stack-env.sh
-
 if [ -z "$ENVIRONMENT" ]; then
   echo "No ENVIRONMENT found. Exiting..."
   exit 203
 fi
 
-[ -e ./sites/$ENVIRONMENT/stack-env.sh ] && . ./sites/$ENVIRONMENT/stack-env.sh
+[ -e $LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh ] && . $LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh
 
 if [ -z "$VERSIONING_ACTION" ]; then
   echo "## ERROR: no VERSIONING_ACTION provided or found, exiting..."
