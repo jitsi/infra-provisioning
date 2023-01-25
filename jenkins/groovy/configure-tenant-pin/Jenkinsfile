@@ -86,9 +86,11 @@ pipeline {
         stage ("check that environment supports release backends") {
             steps {
                 script {
-                    useReleaseBackends = checkReleaseBackends(env.ENVIRONMENT)
-                    if (useReleaseBackends != 'true') {
-                        error 'environment does not support tenant pinning'
+                    dir("infra-provisioning") {
+                        useReleaseBackends = checkReleaseBackends(env.ENVIRONMENT)
+                        if (useReleaseBackends != 'true') {
+                            error 'environment does not support tenant pinning'
+                        }
                     }
                 }
             }
@@ -96,9 +98,11 @@ pipeline {
         stage ("check if versionining-manager is used for tenant pins in this environment") {
             steps {
                 script{ 
-                    versioningManagerURL = getVersioningManagerURL(env.ENVIRONMENT)
-                    if (versioningManagerURL != 'false') {
-                        versioningManagerDeployed = 'true'
+                    dir("infra-provisioning") {
+                        versioningManagerURL = getVersioningManagerURL(env.ENVIRONMENT)
+                        if (versioningManagerURL != 'false') {
+                            versioningManagerDeployed = 'true'
+                        }
                     }
                 }
             }
