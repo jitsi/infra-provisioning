@@ -18,7 +18,6 @@ if [ -z "$ENVIRONMENT" ]; then
 fi
 
 LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
-
 [ -e $LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh ] && . $LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh
 
 if [ -z "$VERSIONING_ACTION" ]; then
