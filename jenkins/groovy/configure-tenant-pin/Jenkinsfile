@@ -119,11 +119,25 @@ pipeline {
                     echo "PIN_ACTION: ${env.PIN_ACTION}"
                     if (env.PIN_ACTION == 'SET_PIN') {
                         dir("infra-provisioning") {
-                            updateConsulPin(env.ENVIRONMENT, env.CUSTOMER_ID, env.RELEASE_NUMBER)
+                            withCredentials([
+                                string(credentialsId: 'oci-jenkins-terraform-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
+                                string(credentialsId: 'oci-jenkins-terraform-aws-id', variable: 'AWS_ACCESS_KEY_ID')
+                            ]) {
+                                sshagent(credentials: ['ssh-ubuntu']) {
+                                    updateConsulPin(env.ENVIRONMENT, env.CUSTOMER_ID, env.RELEASE_NUMBER)
+                                }
+                            }
                         }
                     } else if (env.PIN_ACTION == 'DELETE_PIN') {
                         dir("infra-provisioning") {
-                            deleteConsulPin(env.ENVIRONMENT, env.CUSTOMER_ID)
+                            withCredentials([
+                                string(credentialsId: 'oci-jenkins-terraform-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
+                                string(credentialsId: 'oci-jenkins-terraform-aws-id', variable: 'AWS_ACCESS_KEY_ID')
+                            ]) {
+                                sshagent(credentials: ['ssh-ubuntu']) {
+                                    deleteConsulPin(env.ENVIRONMENT, env.CUSTOMER_ID)
+                                }
+                            }
                         }
                     } else {
                         error 'invalid PIN_ACTION; should be SET_PIN or DELETE_PIN'
@@ -143,11 +157,25 @@ pipeline {
                     echo "PIN_ACTION: ${env.PIN_ACTION}"
                     if (env.PIN_ACTION == 'SET_PIN') {
                         dir("infra-provisioning") {
-                            updateVersioningPin(env.ENVIRONMENT, env.CUSTOMER_ID, env.RELEASE_NUMBER)
+                            withCredentials([
+                                string(credentialsId: 'oci-jenkins-terraform-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
+                                string(credentialsId: 'oci-jenkins-terraform-aws-id', variable: 'AWS_ACCESS_KEY_ID')
+                            ]) {
+                                sshagent(credentials: ['ssh-ubuntu']) {
+                                    updateVersioningPin(env.ENVIRONMENT, env.CUSTOMER_ID, env.RELEASE_NUMBER)
+                                }
+                            }
                         }
                     } else if (env.PIN_ACTION == 'DELETE_PIN') {
                         dir("infra-provisioning") {
-                            deleteVersioningPin(env.ENVIRONMENT, env.CUSTOMER_ID)
+                            withCredentials([
+                                string(credentialsId: 'oci-jenkins-terraform-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
+                                string(credentialsId: 'oci-jenkins-terraform-aws-id', variable: 'AWS_ACCESS_KEY_ID')
+                            ]) {
+                                sshagent(credentials: ['ssh-ubuntu']) {
+                                    deleteVersioningPin(env.ENVIRONMENT, env.CUSTOMER_ID)
+                                }
+                            }
                         }
                     } else {
                         error 'invalid PIN_ACTION; should be SET_PIN or DELETE_PIN'
