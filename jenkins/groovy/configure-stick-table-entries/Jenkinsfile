@@ -1,0 +1,43 @@
+def utils
+pipeline {
+  agent any
+  options {
+      ansiColor('xterm')
+      timestamps()
+      buildDiscarder(logRotator(numToKeepStr: '10', artifactNumToKeepStr: '10'))
+  }
+  stages {
+    stage('Prepare/Checkout') { // for display purposes
+      steps {
+        script {
+          // load utility function
+          def rootDir = pwd()
+          utils = load "${rootDir}/jenkins/groovy/Utils.groovy"
+          // checkout repos
+          utils.SetupRepos(env.VIDEO_INFRA_BRANCH)
+
+          // setup OCI credentials
+          utils.SetupOCI()
+        }
+      }
+    }
+    stage('Reconfigure') {
+      steps {
+        dir('infra-provisioning') {
+          script {
+            withCredentials([
+              string(credentialsId: 'jenkins-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
+              string(credentialsId: 'jenkins-aws-id', variable: 'AWS_ACCESS_KEY_ID')
+            ]) {
+              sshagent (credentials: ['ssh-ubuntu']) {
+                sh '''
+                echo "$STICK_TABLE_ENTRIES" > ./stick-table-entries.json
+                STICK_TABLE_RUN=$BUILD_NUMBER STICK_TABLE_ENTRIES_FILE=$(realpath ./stick-table-entries.json) scripts/set-haproxy-stick-table.sh ubuntu'''
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
