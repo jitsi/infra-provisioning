@@ -24,6 +24,7 @@ pipeline {				//indicate the job is written in Declarative Pipeline
             steps {
                 script {
                     dir("infra-provisioning") {
+                      sshagent(credentials: ['ssh-ubuntu']) {
                         if (env.CLOUD_PROVIDER == 'oracle') {
                             withCredentials([
                                 string(credentialsId: 'oci-jenkins-terraform-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
@@ -46,6 +47,7 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                                 sh 'scripts/delete-standalone.sh'
                             }
                         }
+                      }
                     }
                 }
             }
