@@ -141,12 +141,14 @@ pipeline {
             steps {
                 script {
                     echo "PIN_ACTION: ${env.PIN_ACTION}"
+                    sh( script: "pwd")
+                    sh( script: "ls -al")
                     if (env.PIN_ACTION == 'SET_PIN') {
-                        dir("./environments/${env.ENVIRONMENT}") {
+                        dir("./sites/${env.ENVIRONMENT}") {
                             updateVersioningPin(env.CUSTOMER_ID, env.RELEASE_NUMBER)
                         }
                     } else if (env.PIN_ACTION == 'DELETE_PIN') {
-                        dir("./environments/${env.ENVIRONMENT}") {
+                        dir("./sites/${env.ENVIRONMENT}") {
                             deleteVersioningPin(env.CUSTOMER_ID)
                         }
                     } else {
