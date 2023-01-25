@@ -1,0 +1,46 @@
+- job:
+    name: reconfigure-cfpool-state
+    display-name: reconfigure cloudflare pool state
+    concurrent: true
+    parameters:
+      - string:
+          name: VIDEO_INFRA_BRANCH
+          default: main
+          description: "Controls checkout branch for infra repos, defaults to 'main'."
+          trim: true
+      - string:
+          name: ACCOUNT_ID
+          description: "Cloudflare Account ID where pool exists"
+          trim: true
+      - string:
+          name: POOL
+          description: "Pool to reconfigure"
+          trim: true
+      - string:
+          name: POOL_STATE
+          description: "State to set pool, either 'ready' or 'drain'"
+          trim: true
+      - string:
+          name: POOL_STATE
+          description: "State to set pool, either 'ready' or 'drain'"
+          trim: true
+      - string:
+          name: SHED_VALUE
+          description: "Set instead of POOL_STATE if partial drain is required, 0 is fully ready, 100 is fully drained"
+          trim: true
+
+    project-type: pipeline
+    sandbox: true
+    pipeline-scm:
+      scm:
+        - git:
+            url: git@github.com:jitsi/infra-provisioning.git
+            credentials-id: "video-infra"
+            branches:
+              - "origin/${VIDEO_INFRA_BRANCH}"
+            browser: githubweb
+            browser-url: https://github.com/jitsi/infra-provisioning
+            submodule:
+              recursive: true
+      script-path: jenkins/groovy/reconfigure-cfpool-state/Jenkinsfile
+      lightweight-checkout: true
