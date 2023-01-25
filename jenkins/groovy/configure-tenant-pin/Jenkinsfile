@@ -103,6 +103,8 @@ pipeline {
                         if (versioningManagerURL != 'false') {
                             versioningManagerDeployed = 'true'
                         }
+                        echo 'versioning manager URL: ' + versioningManagerURL
+                        echo 'versioning manager deployed: ' + versioningManagerDeployed
                     }
                 }
             }
