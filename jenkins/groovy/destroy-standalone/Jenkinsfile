@@ -30,7 +30,7 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                                 string(credentialsId: 'oci-jenkins-terraform-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
                                 string(credentialsId: 'oci-jenkins-terraform-aws-id', variable: 'AWS_ACCESS_KEY_ID')
                             ]) {
-                                sh 'scripts/delete-standalone.sh'
+                                sh 'scripts/delete-standalone.sh ubuntu'
                             }
                             withCredentials([
                                 string(credentialsId: 'jenkins-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
@@ -44,7 +44,7 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                                 string(credentialsId: 'jenkins-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
                                 string(credentialsId: 'jenkins-aws-id', variable: 'AWS_ACCESS_KEY_ID')
                             ]) {
-                                sh 'scripts/delete-standalone.sh'
+                                sh 'scripts/delete-standalone.sh ubuntu'
                             }
                         }
                       }
