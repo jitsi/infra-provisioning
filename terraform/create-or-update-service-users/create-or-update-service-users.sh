@@ -5,7 +5,7 @@ set -x #echo on
 LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
 #pull in cloud-specific variables, e.g. tenancy
-. $LOCAL_PATH/../../../clouds/oracle.sh
+. $LOCAL_PATH/../../clouds/oracle.sh
 
 #Consider eu-frankfurt-1 the home region to save the terraform state
 ORACLE_REGION=eu-frankfurt-1
@@ -15,14 +15,13 @@ ENVIRONMENT=all
 
 [ -z "$S3_PROFILE" ] && S3_PROFILE="oracle"
 [ -z "$S3_STATE_BUCKET" ] && S3_STATE_BUCKET="tf-state-$ENVIRONMENT"
-[ -z "$S3_ENDPOINT" ] && S3_ENDPOINT="https://fr4eeztjonbe.compat.objectstorage.$ORACLE_REGION.oraclecloud.com"
+[ -z "$S3_ENDPOINT" ] && S3_ENDPOINT="https://$ORACLE_S3_NAMESPACE.compat.objectstorage.$ORACLE_REGION.oraclecloud.com"
 [ -z "$S3_STATE_KEY" ] && S3_STATE_KEY="$ENVIRONMENT/$SERVICE_USER_TYPE-service-users/terraform.tfstate"
 
 TERRAFORM_MAJOR_VERSION=$(terraform -v | head -1  | awk '{print $2}' | cut -d'.' -f1)
 TF_GLOBALS_CHDIR=
 if [[ "$TERRAFORM_MAJOR_VERSION" == "v1" ]]; then
   TF_GLOBALS_CHDIR="-chdir=$LOCAL_PATH"
-  TF_CLI_ARGS=""
   TF_POST_PARAMS=
 else
   TF_POST_PARAMS="$LOCAL_PATH"
