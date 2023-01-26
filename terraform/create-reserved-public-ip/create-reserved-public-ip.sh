@@ -4,10 +4,17 @@ set -x #echo on
 #IF THE CURRENT DIRECTORY HAS stack-env.sh THEN INCLUDE IT
 [ -e ./stack-env.sh ] && . ./stack-env.sh
 
+if [ -z "$ENVIRONMENT" ]; then
+  echo "No ENVIRONMENT found. Exiting..."
+  exit 203
+fi
+
+[ -e ./sites/$ENVIRONMENT/stack-env.sh ] && . ./sites/$ENVIRONMENT/stack-env.sh
+
 LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
 #load cloud defaults
-[ -e ../all/clouds/all.sh ] && . ../all/clouds/all.sh
+[ -e $LOCAL_PATH/../../clouds/all.sh ] && . $LOCAL_PATH/../../clouds/all.sh
 
 # We need an envirnment "all"
 if [ -z "$ENVIRONMENT" ]; then
@@ -16,7 +23,7 @@ if [ -z "$ENVIRONMENT" ]; then
 fi
 
 #pull in cloud-specific variables, e.g. tenancy
-[ -e "../all/clouds/oracle.sh" ] && . ../all/clouds/oracle.sh
+[ -e "$LOCAL_PATH/../../clouds/oracle.sh" ] && . $LOCAL_PATH/../../clouds/oracle.sh
 
 if [ -z "$ORACLE_REGION" ]; then
   echo "No ORACLE_REGION found.  Exiting..."
@@ -24,7 +31,7 @@ if [ -z "$ORACLE_REGION" ]; then
 fi
 
 ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
-[ -e "../all/clouds/${ORACLE_CLOUD_NAME}.sh" ] && . ../all/clouds/${ORACLE_CLOUD_NAME}.sh
+[ -e "$LOCAL_PATH/../../clouds/${ORACLE_CLOUD_NAME}.sh" ] && . $LOCAL_PATH/../../clouds/${ORACLE_CLOUD_NAME}.sh
 
 [ -z "$DESIRED_CAPACITY" ] && DESIRED_CAPACITY="2"
 
@@ -35,14 +42,13 @@ SHARD_ROLE="coturn"
 
 [ -z "$S3_PROFILE" ] && S3_PROFILE="oracle"
 [ -z "$S3_STATE_BUCKET" ] && S3_STATE_BUCKET="tf-state-$ENVIRONMENT"
-[ -z "$S3_ENDPOINT" ] && S3_ENDPOINT="https://fr4eeztjonbe.compat.objectstorage.$ORACLE_REGION.oraclecloud.com"
+[ -z "$S3_ENDPOINT" ] && S3_ENDPOINT="https://$ORACLE_S3_NAMESPACE.compat.objectstorage.$ORACLE_REGION.oraclecloud.com"
 [ -z "$S3_STATE_KEY" ] && S3_STATE_KEY="$ENVIRONMENT/reserved-ips/$NAME/terraform.tfstate"
 
 TERRAFORM_MAJOR_VERSION=$(terraform -v | head -1  | awk '{print $2}' | cut -d'.' -f1)
 TF_GLOBALS_CHDIR=
 if [[ "$TERRAFORM_MAJOR_VERSION" == "v1" ]]; then
   TF_GLOBALS_CHDIR="-chdir=$LOCAL_PATH"
-  TF_CLI_ARGS=""
   TF_POST_PARAMS=
 else
   TF_POST_PARAMS="$LOCAL_PATH"

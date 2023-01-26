@@ -1,0 +1,23 @@
+pipeline {				//indicate the job is written in Declarative Pipeline
+    agent any				//agent specifies where the pipeline will execute. 
+    stages {
+        // output stage, shows off our input parameters
+        stage ("pool state") {
+            steps {
+                withCredentials([
+                    string(credentialsId: 'cloudflare-auth-key', variable: 'CF_AUTH_KEY'),
+                    string(credentialsId: 'cloudflare-auth-email', variable: 'CF_AUTH_EMAIL')
+                ]) {
+                    sh(
+                    script: """
+                    echo 'Set pool state'
+                    echo "POOL ${env.POOL}"
+                    echo "ACCOUNT ${env.ACCOUNT_ID}"
+                    echo "STATE ${env.POOL_STATE}"
+                    scripts/set-cfpool-state.sh"""
+                    )
+                }
+            }
+        }
+    }
+}

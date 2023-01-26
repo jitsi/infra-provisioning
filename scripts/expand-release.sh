@@ -58,7 +58,7 @@ for CLOUD in $CLOUDS; do
     . $LOCAL_PATH/../clouds/$CLOUD.sh
 
     # deprecated, to be removed: expand shards with AWS JVBs
-    # SHARDS=$(INCLUDE_AWS="true" INCLUDE_OCI="false" CLOUD_NAME="$CLOUD" RELEASE_NUMBER="$RELEASE_NUMBER" ENVIRONMENT="$ENVIRONMENT" ../all/bin/cloud_shards.sh $ANSIBLE_SSH_USER)
+    # SHARDS=$(INCLUDE_AWS="true" INCLUDE_OCI="false" CLOUD_NAME="$CLOUD" RELEASE_NUMBER="$RELEASE_NUMBER" ENVIRONMENT="$ENVIRONMENT" $LOCAL_PATH/cloud_shards.sh $ANSIBLE_SSH_USER)
     # SHARD_COUNT=$(echo $SHARDS | wc -w)
     # DESIRED_COUNT=$SHARD_DEFAULT_COUNT_AWS
     # if [ -f "$SHARD_COUNT_FILE_AWS" ]; then

@@ -4,15 +4,18 @@ set -x
 # IF THE CURRENT DIRECTORY HAS stack-env.sh THEN INCLUDE IT
 [ -e ./stack-env.sh ] && . ./stack-env.sh
 
-# e.g. ../all/bin/terraform/wavefront-proxy
-LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
-
-if [ -z $ENVIRONMENT ]; then
-  echo "No ENVIRONMENT provided or found. Exiting..."
-  exit 201
+if [ -z "$ENVIRONMENT" ]; then
+   echo "No ENVIRONMENT provided or found.  Exiting ..."
+   exit 201
 fi
 
-[ -e "../all/clouds/oracle.sh" ] && . ../all/clouds/oracle.sh
+[ -e ./sites/$ENVIRONMENT/stack-env.sh ] && . ./sites/$ENVIRONMENT/stack-env.sh
+
+# e.g. terraform/wavefront-proxy
+LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
+
+
+[ -e "$LOCAL_PATH/../clouds/oracle.sh" ] && . $LOCAL_PATH/../clouds/oracle.sh
 
 if [ -z "$ORACLE_REGION" ]; then
   echo "No ORACLE_REGION found. Exiting..."
@@ -20,7 +23,7 @@ if [ -z "$ORACLE_REGION" ]; then
 fi
 
 ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
-[ -e "../all/clouds/${ORACLE_CLOUD_NAME}.sh" ] && . ../all/clouds/${ORACLE_CLOUD_NAME}.sh
+[ -e "$LOCAL_PATH/../clouds/${ORACLE_CLOUD_NAME}.sh" ] && . $LOCAL_PATH/../clouds/${ORACLE_CLOUD_NAME}.sh
 
 [ -z "$OLD_SHARD_ROLE" ] && OLD_SHARD_ROLE="null"
 [ -z "$NEW_SHARD_ROLE" ] && NEW_SHARD_ROLE="JVB"

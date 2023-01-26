@@ -3,7 +3,7 @@
 # IF THE CURRENT DIRECTORY HAS stack-env.sh THEN INCLUDE IT
 [ -e ./stack-env.sh ] && . ./stack-env.sh
 
-# e.g. ../all/bin/terraform/wavefront-proxy
+# e.g. $LOCAL_PATH/terraform/wavefront-proxy
 LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
 if [ -z $ENVIRONMENT ]; then
@@ -11,7 +11,7 @@ if [ -z $ENVIRONMENT ]; then
   exit 201
 fi
 
-[ -e "../all/clouds/oracle.sh" ] && . ../all/clouds/oracle.sh
+[ -e "$LOCAL_PATH/../clouds/oracle.sh" ] && . $LOCAL_PATH/../clouds/oracle.sh
 
 if [ -z "$ORACLE_REGION" ]; then
   echo "No ORACLE_REGION found. Exiting..."
@@ -19,7 +19,7 @@ if [ -z "$ORACLE_REGION" ]; then
 fi
 
 ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
-[ -e "../all/clouds/${ORACLE_CLOUD_NAME}.sh" ] && . ../all/clouds/${ORACLE_CLOUD_NAME}.sh
+[ -e "$LOCAL_PATH/../clouds/${ORACLE_CLOUD_NAME}.sh" ] && . $LOCAL_PATH/../clouds/${ORACLE_CLOUD_NAME}.sh
 
 if [ -z "$COMPARTMENT_OCID" ]; then
   echo "No COMPARTMENT_OCID found. Exiting..."

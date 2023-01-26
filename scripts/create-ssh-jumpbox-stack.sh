@@ -1,16 +1,18 @@
 #!/bin/bash
 set -x #echo on
 
+LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
+
 #cloud all
-[ -e ../all/clouds/all.sh ] && . ../all/clouds/all.sh
+[ -e $LOCAL_PATH/../clouds/all.sh ] && . $LOCAL_PATH/../clouds/all.sh
 
 #pull in region-specific variables
-[ -e "../all/clouds/${CLOUD_NAME}.sh" ] && . ../all/clouds/${CLOUD_NAME}.sh
+[ -e "$LOCAL_PATH/../clouds/${CLOUD_NAME}.sh" ] && . $LOCAL_PATH/../clouds/${CLOUD_NAME}.sh
 
 #default region from basic defaults
 [ -z $EC2_REGION ] && EC2_REGION=$DEFAULT_REGION
 
-$(../all/bin/cloud.py --region $EC2_REGION --name $CLOUD_NAME --action export)
+$($LOCAL_PATH/cloud.py --region $EC2_REGION --name $CLOUD_NAME --action export)
 
 #some regions have their own lettering scheme
 [ -z $JVB_AZ_LETTER1 ] && JVB_AZ_LETTER1="a"
@@ -61,7 +63,7 @@ fi
 [ -z $DNS_ZONE_ID ] && DNS_ZONE_ID="ZP3DAJR109E5U"
 [ -z $DNS_ZONE_DOMAIN_NAME ] && DNS_ZONE_DOMAIN_NAME="infra.jitsi.net"
 
-[ -z "$EC2_IMAGE_ID" ] && EC2_IMAGE_ID=$(../all/bin/ami.py --batch --type=FocalBase --version=latest --region="$EC2_REGION")
+[ -z "$EC2_IMAGE_ID" ] && EC2_IMAGE_ID=$($LOCAL_PATH/ami.py --batch --type=FocalBase --version=latest --region="$EC2_REGION")
 [ -z "$EC2_IMAGE_ID" ] && EC2_IMAGE_ID=$DEFAULT_EC2_IMAGE_ID
 
 describe_stack=$(aws cloudformation describe-stacks --region "$EC2_REGION" --stack-name "$STACK_NAME")
@@ -78,7 +80,7 @@ else
 fi
 
 #Use the standard cloudformation template by default
-[ -z $CF_TEMPLATE_JSON ] && CF_TEMPLATE_JSON="../all/templates/vaas-ssh-jumpbox.template.json"
+[ -z $CF_TEMPLATE_JSON ] && CF_TEMPLATE_JSON="$LOCAL_PATH/../templates/vaas-ssh-jumpbox.template.json"
 
 # ParameterKey=SubnetIds,ParameterValue="$SUBNET_IDS" \
 
