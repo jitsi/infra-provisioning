@@ -1,14 +1,16 @@
 #!/bin/bash
 set -x #echo on
 
+LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
+
 #load cloud defaults
-[ -e ../all/clouds/all.sh ] && . ../all/clouds/all.sh
+[ -e $LOCAL_PATH/../clouds/all.sh ] && . $LOCAL_PATH/../clouds/all.sh
 
 #default cloud if not set
 [ -z $CLOUD_NAME ] && CLOUD_NAME=$DEFAULT_CLOUD
 
 #pull in cloud-specific variables
-[ -e "../all/clouds/${CLOUD_NAME}.sh" ] && . ../all/clouds/${CLOUD_NAME}.sh
+[ -e "$LOCAL_PATH/../clouds/${CLOUD_NAME}.sh" ] && . $LOCAL_PATH/../clouds/${CLOUD_NAME}.sh
 
 #make sure we have a cloud prefix
 [ -z $CLOUD_PREFIX ] && CLOUD_PREFIX=$DEFAULT_CLOUD_PREFIX
@@ -65,7 +67,7 @@ set -x #echo on
 [ -z $EC2_KEY_NAME ] && EC2_KEY_NAME="video"
 
 #Look up base image
-[ -z "$EC2_IMAGE_ID" ] && EC2_IMAGE_ID=$(../all/bin/ami.py --batch --type=FocalBase --version=latest --region="$EC2_REGION")
+[ -z "$EC2_IMAGE_ID" ] && EC2_IMAGE_ID=$($LOCAL_PATH/ami.py --batch --type=FocalBase --version=latest --region="$EC2_REGION")
 
 #No image was found, probably not built yet?
 if [ -z "$EC2_IMAGE_ID" ]; then
@@ -130,7 +132,7 @@ network_template_generator () {
     #clean current template
     cat /dev/null > $CF_TEMPLATE_JSON
     #generate new template
-    ../all/templates/create_network_template.py --filepath $CF_TEMPLATE_JSON --stackprefix $STACK_NAME_PREFIX $*
+    $LOCAL_PATH/../templates/create_network_template.py --filepath $CF_TEMPLATE_JSON --stackprefix $STACK_NAME_PREFIX $*
     aws s3 cp $CF_TEMPLATE_JSON s3://jitsi-cf-templates/network/$STACK_NAME.json
 }
 
@@ -180,7 +182,7 @@ create_aws_network_stack () {
             # Once the stack is built, wait for it to be completed
             STACK_IDS=$(echo $STACK_OUTPUT | jq -r ".StackId")
             export STACK_IDS
-            ../all/bin/wait-new-stack.sh
+            $LOCAL_PATH/wait-new-stack.sh
         else
             echo "Failed when attempting to initiate stack creation"
             echo $STACK_OUTPUT

@@ -7,7 +7,7 @@ set -x #echo on
 source $LOCAL_PATH/../clouds/oracle.sh
 
 # pull cloud defaults to get ORACLE_REGION
-source $LOCAL_PATH/../all/clouds/all.sh
+source $LOCAL_PATH/../clouds/all.sh
 
 #IF THE CURRENT DIRECTORY HAS stack-env.sh THEN INCLUDE IT
 [ -e ./stack-env.sh ] && . ./stack-env.sh
@@ -105,7 +105,7 @@ esac
 [ -z "$EXPORT_ORACLE_REGION" ] && EXPORT_ORACLE_REGION=$DEFAULT_ORACLE_REGION
 
 ORACLE_CLOUD_NAME="$EXPORT_ORACLE_REGION-$EXPORT_ENVIRONMENT-oracle"
-[ -e "$LOCAL_PATH/../all/clouds/${ORACLE_CLOUD_NAME}.sh" ] && . $LOCAL_PATH/../all/clouds/${ORACLE_CLOUD_NAME}.sh
+[ -e "$LOCAL_PATH/../clouds/${ORACLE_CLOUD_NAME}.sh" ] && . $LOCAL_PATH/../clouds/${ORACLE_CLOUD_NAME}.sh
 
 [ "$DEST_COMPARTMENT_USE_TENANCY" == "true" ] && DEST_COMPARTMENT_OCID="$TENANCY_OCID"
 
