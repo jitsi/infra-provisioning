@@ -1,8 +1,6 @@
 #!/bin/bash
 set -x #echo on
 
-
-# e.g. ../all/bin/terraform/haproxy-shards
 LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
 #load cloud defaults

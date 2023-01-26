@@ -15,7 +15,6 @@ fi
 
 [ -e ./sites/$ENVIRONMENT/stack-env.sh ] && . ./sites/$ENVIRONMENT/stack-env.sh
 
-# e.g. ../all/bin/terraform/haproxy-shards
 LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
 [ -z "$ROLE" ] && ROLE="haproxy"

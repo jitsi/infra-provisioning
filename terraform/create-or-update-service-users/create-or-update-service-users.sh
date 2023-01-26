@@ -1,7 +1,7 @@
 #!/bin/bash
 set -x #echo on
 
-# e.g. ../all/bin/terraform/compartment/
+# e.g. terraform/compartment/
 LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
 #pull in cloud-specific variables, e.g. tenancy

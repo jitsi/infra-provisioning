@@ -23,11 +23,14 @@ variable "dns_compartment_ocid" {}
 variable "dns_name" {}
 variable "dns_zone_name" {}
 variable "user_data_lib_path" {
-  default = "../all/bin/terraform/lib"
+  default = "terraform/lib"
 }
 variable "user_data_file" {
-    default = "../all/bin/terraform/firezone/configure-firezone-local-oracle.sh"
+    default = "terraform/firezone/configure-firezone-local-oracle.sh"
 }
+variable "infra_configuration_repo" {}
+variable "infra_customizations_repo" {}
+
 provider "oci" {
     region = var.oracle_region
     tenancy_ocid = var.tenancy_ocid
@@ -148,6 +151,7 @@ resource "oci_core_instance" "oci-instance" {
         content = join("",[
           file("${path.cwd}/${var.user_data_lib_path}/postinstall-header.sh"), # load the header
           file("${path.cwd}/${var.user_data_lib_path}/postinstall-lib.sh"), # load the lib
+          "\nexport INFRA_CONFIGURATION_REPO=${var.infra_configuration_repo}\nexport INFRA_CUSTOMIZATIONS_REPO=${var.infra_customizations_repo}\n", #repo variables
           file("${path.cwd}/${var.user_data_file}"), # load our customizations
           file("${path.cwd}/${var.user_data_lib_path}/postinstall-footer.sh") # load the footer
         ])

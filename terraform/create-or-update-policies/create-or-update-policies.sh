@@ -1,7 +1,6 @@
 #!/bin/bash
 set -x #echo on
 
-# e.g. ../all/bin/terraform/haproxy-shards
 LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
 #load cloud defaults
@@ -17,14 +16,9 @@ fi
 
 [ -e ./sites/$ENVIRONMENT/stack-env.sh ] && . ./sites/$ENVIRONMENT/stack-env.sh
 
-
 #pull in cloud-specific variables, e.g. tenancy
 [ -e "$LOCAL_PATH/../../clouds/oracle.sh" ] && . $LOCAL_PATH/../../clouds/oracle.sh
 
-if [ -z "$ENVIRONMENT" ]; then
-  echo "No ENVIRONMENT found.  Exiting..."
-  exit 1
-fi
 
 COMPARTMENT_NAME=$ENVIRONMENT
 JIBRI_POLICY_NAME="$COMPARTMENT_NAME-jibris-policy"
@@ -103,10 +97,10 @@ fi
 TERRAFORM_MAJOR_VERSION=$(terraform -v | head -1  | awk '{print $2}' | cut -d'.' -f1)
 TF_GLOBALS_CHDIR=
 if [[ "$TERRAFORM_MAJOR_VERSION" == "v1" ]]; then
-  TF_GLOBALS_CHDIR="-chdir=../all/bin/terraform/create-or-update-policies"
+  TF_GLOBALS_CHDIR="-chdir=$LOCAL_PATH"
   TF_POST_PARAMS=
 else
-  TF_POST_PARAMS="../all/bin/terraform/create-or-update-policies"
+  TF_POST_PARAMS="$LOCAL_PATH"
 fi
 #The —reconfigure option disregards any existing configuration, preventing migration of any existing state
 terraform $TF_GLOBALS_CHDIR init \
