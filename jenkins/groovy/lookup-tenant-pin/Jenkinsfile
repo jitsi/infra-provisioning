@@ -4,8 +4,8 @@ def checkReleaseBackends(environment) {
     def useReleaseBackends = sh(
        returnStdout: true,
        script: """#!/bin/bash
-ls
-ls ./sites
+echo $(ls)
+echo $(ls sites)
 . ./sites/${environment}/stack-env.sh
 echo \$USE_RELEASE_BACKENDS"""
     ).trim();
