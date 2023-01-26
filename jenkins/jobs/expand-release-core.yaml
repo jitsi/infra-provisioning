@@ -25,7 +25,11 @@
           trim: true
       - string:
           name: RELEASE_BRANCH
-          description: "Release branch for shard"
+          description: "Release branch for shards"
+          trim: true
+      - string:
+          name: RELEASE_NUMBER
+          description: "Release number for shards"
           trim: true
       - string:
           name: VIDEO_INFRA_BRANCH
