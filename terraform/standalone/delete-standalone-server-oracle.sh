@@ -4,16 +4,18 @@
 set -x
 unset SSH_USER
 
+
 # IF THE CURRENT DIRECTORY HAS stack-env.sh THEN INCLUDE IT
 [ -e ./stack-env.sh ] && . ./stack-env.sh
 
-# e.g. terraform/haproxy-shards
-LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
-
-if [ -z $ENVIRONMENT ]; then
-  echo "No ENVIRONMENT provided or found. Exiting..."
-  exit 201
+if [ -z "$ENVIRONMENT" ]; then
+  echo "No ENVIRONMENT found. Exiting..."
+  exit 203
 fi
+
+[ -e ./sites/$ENVIRONMENT/stack-env.sh ] && . ./sites/$ENVIRONMENT/stack-env.sh
+
+LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
 [ -z "$ROLE" ] && ROLE="haproxy"
 [ -z "$NAME" ] && NAME="$ENVIRONMENT-$ORACLE_REGION-$ROLE"

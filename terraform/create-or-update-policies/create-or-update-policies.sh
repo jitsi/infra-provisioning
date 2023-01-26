@@ -6,12 +6,12 @@ LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 #load cloud defaults
 [ -e $LOCAL_PATH/../../clouds/all.sh ] && . $LOCAL_PATH/../../clouds/all.sh
 
-#IF THE CURRENT DIRECTORY HAS stack-env.sh THEN INCLUDE IT
+# IF THE CURRENT DIRECTORY HAS stack-env.sh THEN INCLUDE IT
 [ -e ./stack-env.sh ] && . ./stack-env.sh
 
 if [ -z "$ENVIRONMENT" ]; then
-   echo "No ENVIRONMENT provided or found.  Exiting ..."
-   exit 201
+  echo "No ENVIRONMENT found. Exiting..."
+  exit 203
 fi
 
 [ -e ./sites/$ENVIRONMENT/stack-env.sh ] && . ./sites/$ENVIRONMENT/stack-env.sh
@@ -39,7 +39,7 @@ done
 #Consider eu-amsterdam-1 the home region to save the terraform state for policies
 ORACLE_REGION=eu-amsterdam-1
 ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
-[ -e "$LOCAL_PATH/../../clouds/${ORACLE_CLOUD_NAME}.sh" ] && . ../all/clouds/"${ORACLE_CLOUD_NAME}".sh
+[ -e "$LOCAL_PATH/../../clouds/${ORACLE_CLOUD_NAME}.sh" ] && . $LOCAL_PATH/../../clouds/"${ORACLE_CLOUD_NAME}".sh
 
 VCN_IDS=()
 
@@ -98,7 +98,6 @@ TERRAFORM_MAJOR_VERSION=$(terraform -v | head -1  | awk '{print $2}' | cut -d'.'
 TF_GLOBALS_CHDIR=
 if [[ "$TERRAFORM_MAJOR_VERSION" == "v1" ]]; then
   TF_GLOBALS_CHDIR="-chdir=$LOCAL_PATH"
-  TF_CLI_ARGS=""
   TF_POST_PARAMS=
 else
   TF_POST_PARAMS="$LOCAL_PATH"

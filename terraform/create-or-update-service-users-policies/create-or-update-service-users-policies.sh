@@ -6,7 +6,7 @@ LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 #load cloud defaults
 [ -e $LOCAL_PATH/../../clouds/all.sh ] && . $LOCAL_PATH/../../clouds/all.sh
 
-#IF THE CURRENT DIRECTORY HAS stack-env.sh THEN INCLUDE IT
+# IF THE CURRENT DIRECTORY HAS stack-env.sh THEN INCLUDE IT
 [ -e ./stack-env.sh ] && . ./stack-env.sh
 
 if [ -z "$ENVIRONMENT" ]; then
@@ -18,7 +18,6 @@ fi
 
 #pull in cloud-specific variables, e.g. tenancy
 [ -e "$LOCAL_PATH/../../clouds/oracle.sh" ] && . $LOCAL_PATH/../../clouds/oracle.sh
-
 
 if [ -z "$SERVICE_USER_TYPE" ]; then
   echo "No SERVICE_USER_TYPE found.  Exiting..."
@@ -41,7 +40,7 @@ done
 #Consider eu-amsterdam-1 the home region to save the terraform state for policies
 ORACLE_REGION=eu-amsterdam-1
 ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
-[ -e "$LOCAL_PATH/../../clouds/${ORACLE_CLOUD_NAME}.sh" ] && . ../all/clouds/"${ORACLE_CLOUD_NAME}".sh
+[ -e "$LOCAL_PATH/../../clouds/${ORACLE_CLOUD_NAME}.sh" ] && . $LOCAL_PATH/../../clouds/"${ORACLE_CLOUD_NAME}".sh
 
 COMPARTMENT_NAME="$ENVIRONMENT"
 VIDEO_EDITOR_GROUP_NAME="$SERVICE_USER_TYPE-video-editor-group"

@@ -5,7 +5,7 @@ set -x #echo on
 LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
 #pull in cloud-specific variables, e.g. tenancy
-. $LOCAL_PATH/../../../clouds/oracle.sh
+. $LOCAL_PATH/../../clouds/oracle.sh
 
 #Consider eu-frankfurt-1 the home region to save the terraform state
 ORACLE_REGION=eu-frankfurt-1
