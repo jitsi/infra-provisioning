@@ -10,7 +10,7 @@ LOCAL_PATH=$(realpath $(dirname "${BASH_SOURCE[0]}"))
 [ -z "$ANSIBLE_BUILD_PATH" ] && ANSIBLE_BUILD_PATH="$LOCAL_PATH/../../infra-configuration"
 
 #Check that haproxy knows about this shards
-#[ -z "$SKIP_HAPROXY_CHECK" ] && ../all/bin/check_haproxy_updated.sh
+#[ -z "$SKIP_HAPROXY_CHECK" ] && $LOCAL_PATH/check_haproxy_updated.sh
 
 if [  -z "$1" ]
 then
@@ -90,6 +90,8 @@ ansible-playbook ansible/haproxy-shard-states.yml \
 -e "ansible_ssh_user=$ANSIBLE_SSH_USER" --vault-password-file .vault-password.txt
 
 OUT_RET=$?
+
+cd -
 # check for failures further up in the script, only exit cleanly if all steps were successful
 if [ $RET -eq 0 ]; then
   exit $OUT_RET

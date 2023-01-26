@@ -15,6 +15,7 @@ LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
 #load cloud defaults
 [ -e $LOCAL_PATH/../clouds/all.sh ] && . $LOCAL_PATH/../clouds/all.sh
+[ -e $LOCAL_PATH/../clouds/oracle.sh ] && . $LOCAL_PATH/../clouds/oracle.sh
 
 if [ -z "$ENVIRONMENT" ]; then
     echo "No ENVIRONMENT provided or found.  Exiting without creating stack."
@@ -28,15 +29,13 @@ AZ_REGION="us-east-1"
 
 #Automated DNS entries in this zone
 
-[ -z "$CNAME_DNS_ZONE_ID" ] && CNAME_DNS_ZONE_ID="$DNS_ZONE_ID"
-[ -z "$CNAME_DNS_ZONE_ID" ] && CNAME_DNS_ZONE_ID="ZJ6O8D5EJO64L"
+[ -z "$CNAME_DNS_ZONE_ID" ] && CNAME_DNS_ZONE_ID="$TOP_LEVEL_DNS_ZONE_ID"
 
-[ -z "$CNAME_DNS_ZONE_DOMAIN_NAME" ] && CNAME_DNS_ZONE_DOMAIN_NAME="$DNS_ZONE_DOMAIN_NAME"
-[ -z "$CNAME_DNS_ZONE_DOMAIN_NAME" ] && CNAME_DNS_ZONE_DOMAIN_NAME="jitsi.net"
+[ -z "$CNAME_DNS_ZONE_DOMAIN_NAME" ] && CNAME_DNS_ZONE_DOMAIN_NAME="$TOP_LEVEL_DNS_ZONE_NAME"
 
 [ -z "$ORACLE_CLOUD_NAME" ] && ORACLE_CLOUD_NAME="${ENVIRONMENT}-${ORACLE_REGION}"
 
-[ -z "$CNAME_TARGET" ] && CNAME_TARGET="${ORACLE_CLOUD_NAME}-${UNIQUE_ID}.oracle.infra.jitsi.net"
+[ -z "$CNAME_TARGET" ] && CNAME_TARGET="${ORACLE_CLOUD_NAME}-${UNIQUE_ID}.$ORACLE_DNS_ZONE_NAME"
 [ -z "$CNAME_VALUE" ] && CNAME_VALUE="${UNIQUE_ID}"
 
 CF_TEMPLATE_YAML="$LOCAL_PATH/../templates/oracle-cname.template"

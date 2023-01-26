@@ -4,8 +4,10 @@ set +x #echo on
 export ENABLE_VPC_PEERING=true
 export VPC_PEERING_STATUS_TAG=$ENABLE_VPC_PEERING
 
+LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
+
 #load cloud defaults
-[ -e ../all/clouds/all.sh ] && . ../all/clouds/all.sh
+[ -e $LOCAL_PATH/../clouds/all.sh ] && . $LOCAL_PATH/../clouds/all.sh
 
 PEERING_CLOUDS=()
 
@@ -22,7 +24,7 @@ for region in ${DEFAULT_BUILD_REGIONS[@]} ; do
     export CLOUD_NAME="$REGION_ALIAS-${DEFAULT_CLOUD_PREFIX}"
     export CF_TEMPLATE_JSON="/tmp/${REGION_ALIAS}-${DEFAULT_CLOUD_PREFIX}-vaas-network-tmp.template.json"
     
-    if [ ! -e ../all/clouds/${CLOUD_NAME}.sh ];then
+    if [ ! -e $LOCAL_PATH/../clouds/${CLOUD_NAME}.sh ];then
         continue
     fi
 
@@ -47,8 +49,8 @@ for peering_cloud in ${PEERING_CLOUDS[@]} ; do
     CLOUD_NAME=$peering_cloud
    
     ( 
-        . ../all/clouds/${CLOUD_NAME}.sh
-        ../all/bin/create_network_vpc_peering.py --region $EC2_REGION -dr $DEFAULT_BUILD_REGIONS -cp ${DEFAULT_CLOUD_PREFIX}
+        . $LOCAL_PATH/../clouds/${CLOUD_NAME}.sh
+        $LOCAL_PATH/create_network_vpc_peering.py --region $EC2_REGION -dr $DEFAULT_BUILD_REGIONS -cp ${DEFAULT_CLOUD_PREFIX}
 
     )
     

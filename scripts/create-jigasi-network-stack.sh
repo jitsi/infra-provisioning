@@ -1,14 +1,16 @@
 #!/bin/bash
 set -x #echo on
 
+LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
+
 #load cloud defaults
-[ -e ../all/clouds/all.sh ] && . ../all/clouds/all.sh
+[ -e $LOCAL_PATH/../clouds/all.sh ] && . $LOCAL_PATH/../clouds/all.sh
 
 #default cloud if not set
 [ -z $CLOUD_NAME ] && CLOUD_NAME=$DEFAULT_CLOUD
 
 #pull in cloud-specific variables
-[ -e "../all/clouds/${CLOUD_NAME}.sh" ] && . ../all/clouds/${CLOUD_NAME}.sh
+[ -e "$LOCAL_PATH/../clouds/${CLOUD_NAME}.sh" ] && . $LOCAL_PATH/../clouds/${CLOUD_NAME}.sh
 
 
 #make sure we have a cloud prefix
@@ -68,7 +70,7 @@ check_current_region_name $EC2_REGION
 echo > $CF_TEMPLATE_JSON
 
 #generate new template
-../all/templates/create_network_jigasi_template.py --region "$EC2_REGION" --regionalias "$REGION_ALIAS" --stackprefix "$CLOUD_PREFIX" --filepath $CF_TEMPLATE_JSON \
+$LOCAL_PATH/../templates/create_network_jigasi_template.py --region "$EC2_REGION" --regionalias "$REGION_ALIAS" --stackprefix "$CLOUD_PREFIX" --filepath $CF_TEMPLATE_JSON \
 --pull_network_stack "$PULL_NETWORK_STACK"
 
 describe_stack=$(aws cloudformation describe-stacks --region "$EC2_REGION" --stack-name "$STACK_NAME")

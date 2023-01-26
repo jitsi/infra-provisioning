@@ -11,11 +11,13 @@ fi
 [ -e ./sites/$ENVIRONMENT/stack-env.sh ] && . ./sites/$ENVIRONMENT/stack-env.sh
 
 #Check that haproxy knows about this shards
-#[ -z "$SKIP_HAPROXY_CHECK" ] && ../all/bin/check_haproxy_updated.sh
+#[ -z "$SKIP_HAPROXY_CHECK" ] && $LOCAL_PATH/check_haproxy_updated.sh
 
 echo "## starting set-haproxy-health-value.sh"
 
 LOCAL_PATH=$(realpath $(dirname "${BASH_SOURCE[0]}"))
+
+[ -z "$ANSIBLE_BUILD_PATH" ] && ANSIBLE_BUILD_PATH="$LOCAL_PATH/../../infra-configuration"
 
 if [  -z "$1" ]
 then
@@ -25,6 +27,8 @@ else
   ANSIBLE_SSH_USER=$1
   echo "Run ansible as $ANSIBLE_SSH_USER"
 fi
+
+cd $ANSIBLE_BUILD_PATH
 
 #update inventory cache every 2 hours
 CACHE_TTL=1440
@@ -52,5 +56,8 @@ ansible-playbook ansible/haproxy-health-value.yml \
 -i $ANSIBLE_INVENTORY \
 --extra-vars="$EXTRA" \
 -e "ansible_ssh_user=$ANSIBLE_SSH_USER" --vault-password-file .vault-password.txt
+RET=$?
 
-exit $?
+cd - 
+
+exit $RET

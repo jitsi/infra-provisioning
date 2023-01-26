@@ -7,13 +7,13 @@ LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 [ -e ./stack-env.sh ] && . ./stack-env.sh
 
 #load cloud defaults
-[ -e ../all/clouds/all.sh ] && . ../all/clouds/all.sh
+[ -e $LOCAL_PATH/../clouds/all.sh ] && . $LOCAL_PATH/../clouds/all.sh
 
 #default cloud if not set
 [ -z $CLOUD_NAME ] && CLOUD_NAME=$DEFAULT_CLOUD
 
 #pull in cloud-specific variables
-[ -e "$LOCAL_PATH/clouds/${CLOUD_NAME}.sh" ] && . ../all/clouds/${CLOUD_NAME}.sh
+[ -e "$LOCAL_PATH/../clouds/${CLOUD_NAME}.sh" ] && . $LOCAL_PATH/../clouds/${CLOUD_NAME}.sh
 
 [ -z "$EC2_AWS_ASN" ] && EC2_AWS_ASN="64512"
 

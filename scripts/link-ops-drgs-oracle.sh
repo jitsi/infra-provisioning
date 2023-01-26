@@ -3,6 +3,13 @@
 #IF THE CURRENT DIRECTORY HAS stack-env.sh THEN INCLUDE IT
 [ -e ./stack-env.sh ] && . ./stack-env.sh
 
+if [ -z "$ENVIRONMENT" ]; then
+   echo "No ENVIRONMENT provided or found.  Exiting ..."
+   exit 201
+fi
+
+[ -e ./sites/$ENVIRONMENT/stack-env.sh ] && . ./sites/$ENVIRONMENT/stack-env.sh
+
 LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
 #set -x #echo on
@@ -29,10 +36,10 @@ if [ -z "$DRG_PEER_REGIONS" ]; then
 fi
 
 #pull in cloud-specific variables, e.g. tenancy
-[ -e "../all/clouds/oracle.sh" ] && . ../all/clouds/oracle.sh
+[ -e "$LOCAL_PATH/../clouds/oracle.sh" ] && . $LOCAL_PATH/../clouds/oracle.sh
 
 ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
-[ -e "../all/clouds/${ORACLE_CLOUD_NAME}.sh" ] && . ../all/clouds/${ORACLE_CLOUD_NAME}.sh
+[ -e "$LOCAL_PATH/../clouds/${ORACLE_CLOUD_NAME}.sh" ] && . $LOCAL_PATH/../clouds/${ORACLE_CLOUD_NAME}.sh
 
 
 if [ -z "$COMPARTMENT_OCID" ]; then

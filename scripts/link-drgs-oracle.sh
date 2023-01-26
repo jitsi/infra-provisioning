@@ -3,15 +3,16 @@
 #IF THE CURRENT DIRECTORY HAS stack-env.sh THEN INCLUDE IT
 [ -e ./stack-env.sh ] && . ./stack-env.sh
 
+if [ -z "$ENVIRONMENT" ]; then
+   echo "No ENVIRONMENT provided or found.  Exiting ..."
+   exit 201
+fi
+
+[ -e ./sites/$ENVIRONMENT/stack-env.sh ] && . ./sites/$ENVIRONMENT/stack-env.sh
+
 LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
 #set -x #echo on
-
-# We need an envirnment "all"
-if [ -z "$ENVIRONMENT" ]; then
-  echo "No Environment provided or found. Exiting .."
-  exit 202
-fi
 
 if [ -z "$ORACLE_REGION" ]; then
   echo "No ORACLE_REGION found.  Exiting..."
@@ -24,10 +25,10 @@ if [ -z "$DRG_PEER_REGIONS" ]; then
 fi
 
 #pull in cloud-specific variables, e.g. tenancy
-[ -e "../all/clouds/oracle.sh" ] && . ../all/clouds/oracle.sh
+[ -e "$LOCAL_PATH/../clouds/oracle.sh" ] && . $LOCAL_PATH/../clouds/oracle.sh
 
 ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
-[ -e "../all/clouds/${ORACLE_CLOUD_NAME}.sh" ] && . ../all/clouds/${ORACLE_CLOUD_NAME}.sh
+[ -e "$LOCAL_PATH/../clouds/${ORACLE_CLOUD_NAME}.sh" ] && . $LOCAL_PATH/../clouds/${ORACLE_CLOUD_NAME}.sh
 
 # TRANSIT_GATEWAY_ROUTES=$(CLOUD_NAME="$CLOUD_NAME" ROUTE_TYPES="vpc,peering" $LOCAL_PATH/describe-transit-gateway-routes.sh)
 # CIDRS=$(echo $TRANSIT_GATEWAY_ROUTES | jq -r ".cidrs[]")
