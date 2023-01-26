@@ -10,15 +10,12 @@ def expand_release() {
     return [awsShardsByCloud: awsShardsByCloud, oracleShardsByCloud: oracleShardsByCloud];
 }
 
-// global var to track git branch from env or new tags
-def git_branch
-
 // global var to track whether parallel tasks were started or not
 def shards_created = false;
 
 
 // trigger create shard job with appopriate parameters
-def createShard(shard_environment,cloud_name,core_cloud_provider,cloud_provider,shard_count,shard_numbers,release_number,gitBranch,jvbVersion,signalVersion) {
+def createShard(shard_environment,cloud_name,core_cloud_provider,cloud_provider,shard_count,shard_numbers,release_number,gitBranch,jvbVersion,signalVersion,video_infra_branch) {
     def createShard = build job: 'provision-shard',parameters: [
         [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: shard_environment],
         [$class: 'StringParameterValue', name: 'CLOUD_NAME', value: cloud_name],
@@ -29,7 +26,8 @@ def createShard(shard_environment,cloud_name,core_cloud_provider,cloud_provider,
         [$class: 'StringParameterValue', name: 'SIGNAL_VERSION', value: signalVersion],
         [$class: 'StringParameterValue', name: 'JVB_VERSION', value: jvbVersion],
         [$class: 'StringParameterValue', name: 'RELEASE_NUMBER', value: release_number],
-        [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: gitBranch]
+        [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: gitBranch],
+        [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: video_infra_branch]
     ]
 
     return createShard
@@ -66,7 +64,7 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                 echo "SIGNAL VERSION ${env.SIGNAL_VERSION}"
                 echo "CLOUDS ${env.CLOUDS}"
                 echo "RELEASE NUMBER ${env.RELEASE_NUMBER}"
-                echo "GIT BRANCH ${git_branch}"
+                echo "GIT BRANCH ${env.RELEASE_BRANCH}"
             }
         }
         stage("create shards") {
@@ -94,7 +92,7 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                                 if (aws_shards_by_cloud.containsKey(cloud_list[curr])) {
                                     shards_created = true;
                                     def shard_count = aws_shards_by_cloud[cloud_list[curr]].split(' ').size().toString()
-                                    echo "createShard ${env.ENVIRONMENT} ${cloud_list[curr]} ${shard_count} ${aws_shards_by_cloud[cloud_list[curr]]} ${env.RELEASE_NUMBER} ${git_branch} ${env.JVB_VERSION} ${env.SIGNAL_VERSION}"
+                                    echo "createShard ${env.ENVIRONMENT} ${cloud_list[curr]} ${shard_count} ${aws_shards_by_cloud[cloud_list[curr]]} ${env.RELEASE_NUMBER} ${env.RELEASE_BRANCH} ${env.JVB_VERSION} ${env.SIGNAL_VERSION}"
                                     branches["aws ${cloud_list[curr]}"] = {
                                         createShard(env.ENVIRONMENT,
                                             cloud_list[curr],
@@ -103,9 +101,10 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                                             shard_count,
                                             aws_shards_by_cloud[cloud_list[curr]],
                                             env.RELEASE_NUMBER,
-                                            git_branch,
+                                            env.RELEASE_BRANCH,
                                             env.JVB_VERSION,
-                                            env.SIGNAL_VERSION
+                                            env.SIGNAL_VERSION,
+                                            env.VIDEO_INFRA_BRANCH
                                         ) 
                                     }
                                 }
@@ -116,8 +115,8 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                                 if (oracle_shards_by_cloud.containsKey(cloud_list[curr])) {
                                     shards_created = true;
                                     def oracle_shards = oracle_shards_by_cloud[cloud_list[curr]].split(' ')
-                                    def shard_count = oracle_shards.size().toString();
-                                    echo "createShard ${env.ENVIRONMENT} ${cloud_list[curr]} ${shard_count.toString()} ${oracle_shards_by_cloud[cloud_list[curr]]} ${env.RELEASE_NUMBER} ${git_branch} ${env.JVB_VERSION} ${env.SIGNAL_VERSION}"
+                                    def shard_count = oracle_shards.size();
+                                    echo "createShard ${env.ENVIRONMENT} ${cloud_list[curr]} ${shard_count.toString()} ${oracle_shards_by_cloud[cloud_list[curr]]} ${env.RELEASE_NUMBER} ${env.RELEASE_BRANCH} ${env.JVB_VERSION} ${env.SIGNAL_VERSION}"
                                     for(j = 0; j < shard_count; j++) {
                                         def s = j
                                         branches["oracle ${cloud_list[curr]} ${j}"] = {
@@ -125,12 +124,13 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                                                 cloud_list[curr],
                                                 env.CORE_CLOUD_PROVIDER,
                                                 "oracle",
-                                                shard_count,
+                                                '1',
                                                 oracle_shards[s],
                                                 env.RELEASE_NUMBER,
-                                                git_branch,
+                                                env.RELEASE_BRANCH,
                                                 env.JVB_VERSION,
-                                                env.SIGNAL_VERSION
+                                                env.SIGNAL_VERSION,
+                                                env.VIDEO_INFRA_BRANCH
                                             ) 
                                         }
                                     }
