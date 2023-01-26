@@ -116,7 +116,7 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                                 if (oracle_shards_by_cloud.containsKey(cloud_list[curr])) {
                                     shards_created = true;
                                     def oracle_shards = oracle_shards_by_cloud[cloud_list[curr]].split(' ')
-                                    def shard_count = oracle_shards.size();
+                                    def shard_count = oracle_shards.size().toString();
                                     echo "createShard ${env.ENVIRONMENT} ${cloud_list[curr]} ${shard_count.toString()} ${oracle_shards_by_cloud[cloud_list[curr]]} ${env.RELEASE_NUMBER} ${git_branch} ${env.JVB_VERSION} ${env.SIGNAL_VERSION}"
                                     for(j = 0; j < shard_count; j++) {
                                         def s = j
