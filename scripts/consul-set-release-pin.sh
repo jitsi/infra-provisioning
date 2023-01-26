@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "# consul-set-tenant-pin.sh starting"
+echo "# consul-set-release-pin.sh starting"
 
 if [ ! -z "$DEBUG" ]; then
   set -x

@@ -1,0 +1,120 @@
+def checkReleaseBackends(environment) {
+    def ret = 'false';
+
+    def useReleaseBackends = sh(
+       returnStdout: true,
+       script: """#!/bin/bash
+. ./sites/${environment}/stack-env.sh
+echo \$USE_RELEASE_BACKENDS"""
+    ).trim();
+
+    if (useReleaseBackends.length() > 0) {
+        ret = useReleaseBackends;
+    }
+
+    return ret;
+}
+
+def setReleaseGA(environment) {
+    def setReleaseResult = sh(
+        returnStatus: true,
+        script: """#!/bin/bash
+ENVIRONMENT=${environment} scripts/set-release-ga.sh ubuntu
+"""
+    )
+    if (setReleaseResult != 0) {
+        return 'false';
+    }
+    return 'true';
+}
+
+def versioningManagerSetGA(environment, release_number) {
+    sh(
+        script: """#!/bin/bash
+export VERSIONING_ACTION=SET_RELEASE_GA
+export VERSIONING_RELEASE="${release_number}"
+ENVIRONMENT=${environment} scripts/versioning-manager.sh
+"""
+    )
+}
+
+def addLiveLocalPoolsToScheduler(environment, release_number) {
+    sh(
+        script: """#!/bin/bash
+LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
+[ -e $LOCAL_PATH/../clouds/all.sh ] && . $LOCAL_PATH/../clouds/all.sh
+for REGION in \$ORACLE_REGIONS; do
+    JVB_GROUPS="\$(ALL_RELEASES=true ORACLE_REGION=\${REGION} scripts/custom-autoscaler-list-groups.sh)"
+    if [[ \${#JVB_GROUPS} != 0 ]]; then
+        echo "## found jvb scaling groups for \${REGION}: \${JVB_GROUPS}"
+    fi
+    for GROUP in \$JVB_GROUPS; do
+        if [[ "\$GROUP" =~ "JVB" ]] && [[ "\$GROUP" =~ "${release_number}" ]] && [[ "\$GROUP" =~ "-local-" ]]; then
+            echo "## adding to scheduler: \${GROUP}"
+            ENABLE_SCHEDULER=true ORACLE_REGION=\${REGION} GROUP_NAME=\${GROUP} TYPE=JVB scripts/custom-autoscaler-update-scaling-activities.sh
+        else
+            echo "## removing from scheduler: \${GROUP}"
+            ENABLE_SCHEDULER=false ORACLE_REGION=\${REGION} GROUP_NAME=\${GROUP} TYPE=JVB scripts/custom-autoscaler-update-scaling-activities.sh
+        fi
+    done
+done
+"""
+    )
+}
+
+pipeline {
+    agent any
+     stages {
+        stage ("load flags") {
+            steps {
+                script {
+                    useReleaseBackends = checkReleaseBackends(env.ENVIRONMENT)
+                    echo useReleaseBackends
+                }
+            }
+        }
+        stage ("set release GA on haproxies then in consul") {
+            steps {
+                script {
+                    echo 'setting release live'
+                    sh(
+                        script: "cp ~/.vault-password .vault-password.txt"
+                    )
+                    lock('haproxy-state') {
+                        dir("./environments/${env.ENVIRONMENT}") {
+                            setReleaseSucceeded = setReleaseGA()
+                        }
+                    }
+                    echo setReleaseSucceeded
+                }
+            }
+        }
+        stage ("set release GA in versioning manager") {
+            when {
+                expression { useReleaseBackends == 'true' }
+                expression { setReleaseSucceeded == 'true' }
+            }
+            steps {
+                script {
+                    versioningManagerSetGA(env.ENVIRONMENT, env.RELEASE_NUMBER)
+                }
+            }
+        }
+        stage ("enable release JVB pools for use with autoscaler") {
+            when {
+                expression { setReleaseSucceeded == 'true' }
+            }
+            steps {
+                script {
+                    addLiveLocalPoolsToScheduler(env.ENVIRONMENT, env.RELEASE_NUMBER)
+                }
+            }
+            
+        }
+     }
+     post {
+        failure {
+            slackSend color: "danger", message: "${env.JOB_NAME} - ${env.BUILD_NUMBER$} failed to set GA release for ${env.ENVIRONMENT} with release ${env.RELEASE_NUMBER}"
+        }
+    }
+}

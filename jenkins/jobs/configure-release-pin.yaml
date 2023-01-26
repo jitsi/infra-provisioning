@@ -1,12 +1,22 @@
 - job:
-    name: lookup-tenant-pin
-    display-name: look up tenant pin
+    name: configure-release-pin
+    display-name: configure release pin
     concurrent: true
     parameters:
       - string:
           name: CUSTOMER_ID
           default:
           description: "The customer ID, i.e., the URL directory for this customer's conferences."
+          trim: true
+      - string:
+          name: PIN_ACTION
+          default: "SET_PIN"
+          description: "SET_PIN or DELETE_PIN"
+          trim: true
+      - string:
+          name: RELEASE_NUMBER
+          default:
+          description: "The release number to pin to. This is the release job number. Only required for SET_PIN"
           trim: true
       - string:
           name: VIDEO_INFRA_BRANCH
@@ -42,5 +52,5 @@
             browser-url: https://github.com/jitsi/infra-provisioning
             submodule:
               recursive: true
-      script-path: jenkins/groovy/lookup-tenant-pin/Jenkinsfile
+      script-path: jenkins/groovy/configure-release-pin/Jenkinsfile
       lightweight-checkout: true

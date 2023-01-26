@@ -35,14 +35,14 @@ echo \$VERSIONING_URL"""
 def updateConsulPin(environment, tenant, release_number) {
     echo 'updating pin in consul'
     sh(
-        script: "ENVIRONMENT=${environment} PIN_ACTION=SET_PIN TENANT=${tenant} RELEASE_NUMBER=${release_number} scripts/consul-set-tenant-pin.sh ubuntu"
+        script: "ENVIRONMENT=${environment} PIN_ACTION=SET_PIN TENANT=${tenant} RELEASE_NUMBER=${release_number} scripts/consul-set-release-pin.sh ubuntu"
     )
 }
 
 def deleteConsulPin(environment, tenant) {
     echo 'deleting pin in consul'
     sh(
-        script: "ENVIRONMENT=${environment} PIN_ACTION=DELETE_PIN TENANT=${tenant} scripts/consul-set-tenant-pin.sh ubuntu"
+        script: "ENVIRONMENT=${environment} PIN_ACTION=DELETE_PIN TENANT=${tenant} scripts/consul-set-release-pin.sh ubuntu"
     )
 }
 
@@ -95,7 +95,7 @@ pipeline {
                 }
             }
         }
-        stage ("check if versionining-manager is used for tenant pins in this environment") {
+        stage ("check if versionining-manager is used for tenant release pins in this environment") {
             steps {
                 script{ 
                     dir("infra-provisioning") {
@@ -109,7 +109,7 @@ pipeline {
                 }
             }
         }
-        stage ("modify tenant pin in consul") {
+        stage ("modify tenant release pin in consul") {
             when {
                 allOf {
                     expression { useReleaseBackends == 'true' }

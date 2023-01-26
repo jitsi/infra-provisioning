@@ -1,6 +1,6 @@
 - job:
-    name: configure-tenant-pin
-    display-name: configure tenant pin
+    name: set-release-ga
+    display-name: set release GA
     concurrent: true
     parameters:
       - string:
@@ -52,5 +52,5 @@
             browser-url: https://github.com/jitsi/infra-provisioning
             submodule:
               recursive: true
-      script-path: jenkins/groovy/configure-tenant-pin/Jenkinsfile
+      script-path: jenkins/groovy/set-release-ga/Jenkinsfile
       lightweight-checkout: true
