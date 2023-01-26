@@ -12,7 +12,7 @@ if [ -z "$ENVIRONMENT" ]; then
 fi
 
 #pull in cloud-specific variables, e.g. tenancy
-[ -e "../all/clouds/oracle.sh" ] && . ../all/clouds/oracle.sh
+[ -e "$LOCAL_PATH/../../clouds/oracle.sh" ] && . $LOCAL_PATH/../../clouds/oracle.sh
 
 #Error Message: Please go to your home region fra to execute CREATE, UPDATE and DELETE operations.
 ORACLE_REGION=eu-frankfurt-1
@@ -22,7 +22,7 @@ if [ -z "$ORACLE_REGION" ]; then
 fi
 
 ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
-[ -e "../all/clouds/${ORACLE_CLOUD_NAME}.sh" ] && . ../all/clouds/${ORACLE_CLOUD_NAME}.sh
+[ -e "$LOCAL_PATH/../../clouds/${ORACLE_CLOUD_NAME}.sh" ] && . $LOCAL_PATH/../../clouds/${ORACLE_CLOUD_NAME}.sh
 
 # use default tag namespace if not defined
 [ -z "$TAG_NAMESPACE_NAME" ] && TAG_NAMESPACE_NAME="$TAG_NAMESPACE"
@@ -34,14 +34,13 @@ rm -f terraform.tfstate
 
 [ -z "$S3_PROFILE" ] && S3_PROFILE="oracle"
 [ -z "$S3_STATE_BUCKET" ] && S3_STATE_BUCKET="tf-state-$ENVIRONMENT"
-[ -z "$S3_ENDPOINT" ] && S3_ENDPOINT="https://fr4eeztjonbe.compat.objectstorage.$ORACLE_REGION.oraclecloud.com"
+[ -z "$S3_ENDPOINT" ] && S3_ENDPOINT="https://$ORACLE_S3_NAMESPACE.compat.objectstorage.$ORACLE_REGION.oraclecloud.com"
 [ -z "$S3_STATE_KEY" ] && S3_STATE_KEY="$ENVIRONMENT/tags/terraform.tfstate"
 
 TERRAFORM_MAJOR_VERSION=$(terraform -v | head -1  | awk '{print $2}' | cut -d'.' -f1)
 TF_GLOBALS_CHDIR=
 if [[ "$TERRAFORM_MAJOR_VERSION" == "v1" ]]; then
   TF_GLOBALS_CHDIR="-chdir=$LOCAL_PATH"
-  TF_CLI_ARGS=""
   TF_POST_PARAMS=
 else
   TF_POST_PARAMS="$LOCAL_PATH"

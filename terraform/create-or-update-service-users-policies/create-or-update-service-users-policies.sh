@@ -1,19 +1,24 @@
 #!/bin/bash
 set -x #echo on
 
+LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
+
 #load cloud defaults
-[ -e ../all/clouds/all.sh ] && . ../all/clouds/all.sh
+[ -e $LOCAL_PATH/../../clouds/all.sh ] && . $LOCAL_PATH/../../clouds/all.sh
 
 #IF THE CURRENT DIRECTORY HAS stack-env.sh THEN INCLUDE IT
 [ -e ./stack-env.sh ] && . ./stack-env.sh
 
-#pull in cloud-specific variables, e.g. tenancy
-[ -e "../all/clouds/oracle.sh" ] && . ../all/clouds/oracle.sh
-
 if [ -z "$ENVIRONMENT" ]; then
-  echo "No ENVIRONMENT found.  Exiting..."
-  exit 1
+  echo "No ENVIRONMENT found. Exiting..."
+  exit 203
 fi
+
+[ -e ./sites/$ENVIRONMENT/stack-env.sh ] && . ./sites/$ENVIRONMENT/stack-env.sh
+
+#pull in cloud-specific variables, e.g. tenancy
+[ -e "$LOCAL_PATH/../../clouds/oracle.sh" ] && . $LOCAL_PATH/../../clouds/oracle.sh
+
 
 if [ -z "$SERVICE_USER_TYPE" ]; then
   echo "No SERVICE_USER_TYPE found.  Exiting..."
@@ -23,7 +28,7 @@ fi
 ###Find equivalent Oracle regions
 REGIONS=()
 for CLOUD_NAME in $RELEASE_CLOUDS; do
-  source ../all/clouds/$CLOUD_NAME.sh
+  source $LOCAL_PATH/../../clouds/$CLOUD_NAME.sh
   if [ -z "$ORACLE_REGION" ]; then
     echo "No ORACLE_REGION equivalent found for cloud ${CLOUD_NAME}, exiting..."
     exit 2
@@ -36,7 +41,7 @@ done
 #Consider eu-amsterdam-1 the home region to save the terraform state for policies
 ORACLE_REGION=eu-amsterdam-1
 ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
-[ -e "../all/clouds/${ORACLE_CLOUD_NAME}.sh" ] && . ../all/clouds/"${ORACLE_CLOUD_NAME}".sh
+[ -e "$LOCAL_PATH/../../clouds/${ORACLE_CLOUD_NAME}.sh" ] && . ../all/clouds/"${ORACLE_CLOUD_NAME}".sh
 
 COMPARTMENT_NAME="$ENVIRONMENT"
 VIDEO_EDITOR_GROUP_NAME="$SERVICE_USER_TYPE-video-editor-group"
@@ -76,17 +81,16 @@ CS_HISTORY_REGION_LIST=$(
 
 [ -z "$S3_PROFILE" ] && S3_PROFILE="oracle"
 [ -z "$S3_STATE_BUCKET" ] && S3_STATE_BUCKET="tf-state-$ENVIRONMENT"
-[ -z "$S3_ENDPOINT" ] && S3_ENDPOINT="https://fr4eeztjonbe.compat.objectstorage.$ORACLE_REGION.oraclecloud.com"
+[ -z "$S3_ENDPOINT" ] && S3_ENDPOINT="https://$ORACLE_S3_NAMESPACE.compat.objectstorage.$ORACLE_REGION.oraclecloud.com"
 [ -z "$S3_STATE_KEY" ] && S3_STATE_KEY="$ENVIRONMENT/$SERVICE_USER_TYPE-service-users-policies/terraform.tfstate"
 
 TERRAFORM_MAJOR_VERSION=$(terraform -v | head -1  | awk '{print $2}' | cut -d'.' -f1)
 TF_GLOBALS_CHDIR=
 if [[ "$TERRAFORM_MAJOR_VERSION" == "v1" ]]; then
-  TF_GLOBALS_CHDIR="-chdir=../all/bin/terraform/create-or-update-service-users-policies"
-  TF_CLI_ARGS=""
+  TF_GLOBALS_CHDIR="-chdir=$LOCAL_PATH"
   TF_POST_PARAMS=
 else
-  TF_POST_PARAMS="../all/bin/terraform/create-or-update-service-users-policies"
+  TF_POST_PARAMS="$LOCAL_PATH"
 fi
 
 #The —reconfigure option disregards any existing configuration, preventing migration of any existing state

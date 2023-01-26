@@ -22,7 +22,7 @@ fi
 
 [ -z "$USER_PRIVATE_KEY_PATH" ] && USER_PRIVATE_KEY_PATH="~/.ssh/id_rsa"
 
-[ -e "../all/clouds/oracle.sh" ] && . ../all/clouds/oracle.sh
+[ -e "$LOCAL_PATH/../../clouds/oracle.sh" ] && . $LOCAL_PATH/../../clouds/oracle.sh
 
 if [ -z "$ORACLE_REGION" ]; then
   echo "No ORACLE_REGION found.  Exiting..."
@@ -30,7 +30,7 @@ if [ -z "$ORACLE_REGION" ]; then
 fi
 
 ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
-[ -e "../all/clouds/${ORACLE_CLOUD_NAME}.sh" ] && . ../all/clouds/${ORACLE_CLOUD_NAME}.sh
+[ -e "$LOCAL_PATH/../../clouds/${ORACLE_CLOUD_NAME}.sh" ] && . $LOCAL_PATH/../../clouds/${ORACLE_CLOUD_NAME}.sh
 
 [ -z "$SHAPE" ] && SHAPE="$SHAPE_E_3"
 [ -z "$OCPUS" ] && OCPUS="2"
@@ -40,7 +40,7 @@ ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 
 [ -z "$DISPLAY_NAME" ] && DISPLAY_NAME="$FIREZONE_NAME"
 
-[ -z "$FIREZONE_BASE_IMAGE_ID" ] && FIREZONE_BASE_IMAGE_ID=$(../all/bin/oracle_custom_images.py --type FocalBase --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
+[ -z "$FIREZONE_BASE_IMAGE_ID" ] && FIREZONE_BASE_IMAGE_ID=$($LOCAL_PATH/oracle_custom_images.py --type FocalBase --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
 if [ -z "$FIREZONE_BASE_IMAGE_ID" ]; then
   echo "No FIREZONE_BASE_IMAGE_ID found.  Exiting..."
   exit 1
@@ -59,17 +59,16 @@ RESOURCE_NAME_ROOT="${ORACLE_CLOUD_NAME}-vpn"
 
 [ -z "$S3_PROFILE" ] && S3_PROFILE="oracle"
 [ -z "$S3_STATE_BUCKET" ] && S3_STATE_BUCKET="tf-state-$ENVIRONMENT"
-[ -z "$S3_ENDPOINT" ] && S3_ENDPOINT="https://fr4eeztjonbe.compat.objectstorage.$ORACLE_REGION.oraclecloud.com"
+[ -z "$S3_ENDPOINT" ] && S3_ENDPOINT="https://$ORACLE_S3_NAMESPACE.compat.objectstorage.$ORACLE_REGION.oraclecloud.com"
 [ -z "$S3_STATE_KEY" ] && S3_STATE_KEY="$FIREZONE_NAME/terraform.tfstate"
 
 TERRAFORM_MAJOR_VERSION=$(terraform -v | head -1  | awk '{print $2}' | cut -d'.' -f1)
 TF_GLOBALS_CHDIR=
 if [[ "$TERRAFORM_MAJOR_VERSION" == "v1" ]]; then
-  TF_GLOBALS_CHDIR="-chdir=../all/bin/terraform/firezone"
-  TF_CLI_ARGS=""
+  TF_GLOBALS_CHDIR="-chdir=$LOCAL_PATH"
   TF_POST_PARAMS=
 else
-  TF_POST_PARAMS="../all/bin/terraform/firezone"
+  TF_POST_PARAMS="$LOCAL_PATH"
 fi
 
 #The —reconfigure option disregards any existing configuration, preventing migration of any existing state
@@ -118,5 +117,7 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
   -var="security_group_ocid=$PUBLIC_SECURITY_GROUP_OCID"\
   -var="image_ocid=$FIREZONE_BASE_IMAGE_ID"\
   -var "tag_namespace=$TAG_NAMESPACE" \
+  -var "infra_configuration_repo=$INFRA_CONFIGURATION_REPO" \
+  -var "infra_customizations_repo=$INFRA_CUSTOMIZATIONS_REPO" \
   $ACTION_POST_PARAMS $TF_POST_PARAMS
 

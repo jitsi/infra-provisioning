@@ -14,7 +14,7 @@ fi
 
 [ -e ./sites/$ENVIRONMENT/stack-env.sh ] && . ./sites/$ENVIRONMENT/stack-env.sh
 
-# e.g. ../all/bin/terraform/haproxy-shards
+# e.g. terraform/haproxy-shards
 LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
 if [ -z $ENVIRONMENT ]; then
@@ -51,7 +51,6 @@ if [ $? -eq 0 ]; then
     TF_GLOBALS_CHDIR=
     if [[ "$TERRAFORM_MAJOR_VERSION" == "v1" ]]; then
       TF_GLOBALS_CHDIR="-chdir=$LOCAL_PATH/destroy"
-      TF_CLI_ARGS=""
       TF_POST_PARAMS=
     else
       TF_POST_PARAMS="$LOCAL_PATH/destroy"
