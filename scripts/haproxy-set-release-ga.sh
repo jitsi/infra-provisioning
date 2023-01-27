@@ -20,7 +20,6 @@ if [ -z "$RELEASE_NUMBER" ]; then
 fi
 
 LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
-
 [ -e $LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh ] && . $LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh
 
 [ -z "$CACHE_TTL" ] && CACHE_TTL=0

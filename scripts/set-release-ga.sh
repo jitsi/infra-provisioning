@@ -10,7 +10,8 @@ if [ -z "$ENVIRONMENT" ]; then
    exit 201
 fi
 
-[ -e ./sites/$ENVIRONMENT/stack-env.sh ] && . ./sites/$ENVIRONMENT/stack-env.sh
+LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
+[ -e $LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh ] && . $LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh
 
 if [ -z "$1" ]
 then
