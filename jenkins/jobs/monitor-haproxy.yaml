@@ -1,6 +1,7 @@
 - job:
     name: monitor-haproxy
     display-name: monitor haproxy
+    description: 'Runs haproxy-status.sh against the haproxy fleet to determine if there are stick table inconsistencies, and repairs them if needed. This helps mitigate split brains.'
     concurrent: true
     parameters:
       - string:
