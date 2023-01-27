@@ -4,6 +4,8 @@
 # takes an optional argument that causes the rebuild to only happen
 # if $1 ms have passed
 
+set -x
+
 #IF THE CURRENT DIRECTORY HAS stack-env.sh THEN INCLUDE IT
 [ -e ./stack-env.sh ] && . ./stack-env.sh
 
