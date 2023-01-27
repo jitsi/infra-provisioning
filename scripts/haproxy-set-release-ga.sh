@@ -39,10 +39,10 @@ fi
 
 ANSIBLE_INVENTORY=${ANSIBLE_INVENTORY-"$HAPROXY_CACHE"}
 
-ansible-playbook ansible/haproxy-release-live.yml \
+ansible-playbook ../../ansible/haproxy-release-live.yml \
 -i $ANSIBLE_INVENTORY \
 -e "haproxy_release_live=release-$RELEASE_NUMBER" \
 -e "$EXTRA" \
--e "ansible_ssh_user=$ANSIBLE_SSH_USER" --vault-password-file .vault-password.txt
+-e "ansible_ssh_user=$ANSIBLE_SSH_USER" --vault-password-file ../../.vault-password.txt
 
 exit $?
