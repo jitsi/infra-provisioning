@@ -3,8 +3,6 @@
 #IF THE CURRENT DIRECTORY HAS stack-env.sh THEN INCLUDE IT
 [ -e ./stack-env.sh ] && . ./stack-env.sh
 
-set -x
-
 echo "## starting haproxy-set-release-ga.sh"
 
 if [ -z "$1" ]
