@@ -147,8 +147,11 @@ pipeline {
         }
      }
      post {
+        always {
+            cleanWs()
+        }
         failure {
-            slackSend color: "danger", message: "${env.JOB_NAME} - ${env.BUILD_NUMBER$} failed to set GA release for ${env.ENVIRONMENT} with release ${env.RELEASE_NUMBER}"
+            slackSend color: "danger", message: "${env.JOB_NAME} - ${env.BUILD_NUMBER} failed to set GA release for ${env.ENVIRONMENT} with release ${env.RELEASE_NUMBER}"
         }
     }
 }
