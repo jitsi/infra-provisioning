@@ -49,7 +49,7 @@ def deleteConsulPin(environment, tenant) {
 def updateVersioningPin(environment, tenant, release_number) {
     echo 'updating pin in versioning-manager'
     sh(
-        script: "DEBUG=true ENVIRONMENT=${environment} VERSIONING_ACTION=SET_TENANT_PIN TENANT=${tenant} RELEASE_NUMBER=${release_number} scripts/versioning-manager.sh ubuntu"
+        script: "ENVIRONMENT=${environment} VERSIONING_ACTION=SET_TENANT_PIN TENANT=${tenant} RELEASE_NUMBER=${release_number} scripts/versioning-manager.sh ubuntu"
     )
 }
 
