@@ -95,7 +95,7 @@ pipeline {
                     echo 'setting release live'
                     lock('haproxy-state') {
                         dir("./environments/${env.ENVIRONMENT}") {
-                            setReleaseSucceeded = setReleaseGA()
+                            setReleaseSucceeded = setReleaseGA(env.ENVIRONMENT)
                         }
                     }
                     echo setReleaseSucceeded
