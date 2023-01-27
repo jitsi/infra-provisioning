@@ -1,6 +1,7 @@
 - job:
     name: configure-release-pin
     display-name: configure release pin
+    description: 'Set or delete a pin from a customer to a specific release. Set may only be applied to the current or most recent GA release.'
     concurrent: true
     parameters:
       - string:
