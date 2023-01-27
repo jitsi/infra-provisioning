@@ -77,9 +77,6 @@ pipeline {
             steps {
                 script {
                     echo 'setting release live'
-                    sh(
-                        script: "cp ~/.vault-password .vault-password.txt"
-                    )
                     lock('haproxy-state') {
                         dir("./environments/${env.ENVIRONMENT}") {
                             setReleaseSucceeded = setReleaseGA()
