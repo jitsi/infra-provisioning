@@ -32,9 +32,9 @@ cd $ANSIBLE_BUILD_PATH
 # set HAPROXY_CACHE and build cache if appropraite
 if [ "$SKIP_BUILD_CACHE" == "true" ]; then
     echo "## haproxy-set-release-ga.sh using existing inventory cache"
-    CACHE_TTL=$CACHE_TTL SKIP_BUILD_CACHE="true" . $LOCAL_PATH/scripts/haproxy-buildcache.sh
+    CACHE_TTL=$CACHE_TTL SKIP_BUILD_CACHE="true" . $LOCAL_PATH/haproxy-buildcache.sh
 else
-    CACHE_TTL=$CACHE_TTL . $LOCAL_PATH/scripts/haproxy-buildcache.sh
+    CACHE_TTL=$CACHE_TTL . $LOCAL_PATH/haproxy-buildcache.sh
 fi
 
 if [ $? -ne 0 ]; then
