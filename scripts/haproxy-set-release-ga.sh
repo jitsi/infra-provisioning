@@ -29,6 +29,14 @@ cd $ANSIBLE_BUILD_PATH
 
 [ -z "$CACHE_TTL" ] && CACHE_TTL=0
 
+
+# set HAPROXY_CACHE and build cache if needed
+CACHE_TTL=$CACHE_TTL . $LOCAL_PATH/haproxy-buildcache.sh 
+if [ $? -ne 0 ]; then
+    echo "## $(date +%Y-%m-%dT%H:%M:%S) haproxy-status ERROR: haproxy-buildcache.sh unable to build inventory"
+    exit 1
+fi
+
 # set HAPROXY_CACHE and build cache if appropraite
 if [ "$SKIP_BUILD_CACHE" == "true" ]; then
     echo "## haproxy-set-release-ga.sh using existing inventory cache"
