@@ -84,8 +84,10 @@ pipeline {
         stage ("load flags") {
             steps {
                 script {
-                    useReleaseBackends = checkReleaseBackends(env.ENVIRONMENT)
-                    echo useReleaseBackends
+                    dir("infra-provisioning") {
+                        useReleaseBackends = checkReleaseBackends(env.ENVIRONMENT)
+                        echo useReleaseBackends
+                    }
                 }
             }
         }
@@ -94,7 +96,7 @@ pipeline {
                 script {
                     echo 'setting release live'
                     lock('haproxy-state') {
-                        dir("./environments/${env.ENVIRONMENT}") {
+                        dir("infra-provisioning") {
                             setReleaseSucceeded = setReleaseGA(env.ENVIRONMENT)
                         }
                     }
@@ -109,7 +111,9 @@ pipeline {
             }
             steps {
                 script {
-                    versioningManagerSetGA(env.ENVIRONMENT, env.RELEASE_NUMBER)
+                    dir("infra-provisioning") {
+                        versioningManagerSetGA(env.ENVIRONMENT, env.RELEASE_NUMBER)
+                    }
                 }
             }
         }
@@ -119,7 +123,9 @@ pipeline {
             }
             steps {
                 script {
-                    addLiveLocalPoolsToScheduler(env.ENVIRONMENT, env.RELEASE_NUMBER)
+                    dir("infra-provisioning") {
+                        addLiveLocalPoolsToScheduler(env.ENVIRONMENT, env.RELEASE_NUMBER)
+                    }
                 }
             }
             
