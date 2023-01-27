@@ -52,7 +52,7 @@ fi
 
 ANSIBLE_INVENTORY=${ANSIBLE_INVENTORY-"$HAPROXY_CACHE"}
 
-ansible-playbook ansible/haproxy-release-ga.yml \
+ansible-playbook ansible/haproxy-set-release-ga.yml \
 -i $ANSIBLE_INVENTORY \
 -e "haproxy_release_live=release-$RELEASE_NUMBER" \
 -e "$EXTRA" \
