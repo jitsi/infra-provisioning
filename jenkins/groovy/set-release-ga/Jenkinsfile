@@ -41,8 +41,8 @@ ENVIRONMENT=${environment} scripts/versioning-manager.sh
 def addLiveLocalPoolsToScheduler(environment, release_number) {
     sh(
         script: """#!/bin/bash
-LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
-[ -e $LOCAL_PATH/../clouds/all.sh ] && . $LOCAL_PATH/../clouds/all.sh
+LOCAL_PATH=\$(dirname "${BASH_SOURCE[0]}")
+[ -e \$LOCAL_PATH/../clouds/all.sh ] && . \$LOCAL_PATH/../clouds/all.sh
 for REGION in \$ORACLE_REGIONS; do
     JVB_GROUPS="\$(ALL_RELEASES=true ORACLE_REGION=\${REGION} scripts/custom-autoscaler-list-groups.sh)"
     if [[ \${#JVB_GROUPS} != 0 ]]; then
