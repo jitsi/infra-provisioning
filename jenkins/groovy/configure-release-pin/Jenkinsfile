@@ -78,8 +78,6 @@ pipeline {
 
                     // setup OCI credentials
                     utils.SetupOCI()
-
-                    sh 'mkdir -p test-results'
                 }
             }
         }
@@ -196,9 +194,7 @@ pipeline {
     }
     post {
         always {
-            archiveArtifacts artifacts: 'test-results/**'
-            // Clean up afterwards
-            cleanWs()
+            cleanWs()  // clean up afterwards
         }
     }
 }
