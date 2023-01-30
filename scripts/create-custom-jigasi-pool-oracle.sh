@@ -19,7 +19,7 @@ source $LOCAL_PATH/../clouds/all.sh
 
 [ -z "$CLOUD_NAME" ] && CLOUD_NAME=$DEFAULT_CLOUD
 
-source "$LOCAL_PATH/../$CLOUD_NAME.sh"
+source "$LOCAL_PATH/../clouds/$CLOUD_NAME.sh"
 
 # pull in oracle-specific definitions
 [ -e "$LOCAL_PATH/../clouds/oracle.sh" ] && . $LOCAL_PATH/../clouds/oracle.sh
