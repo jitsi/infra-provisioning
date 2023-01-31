@@ -14,7 +14,8 @@ def oracle_regions(cloud_list) {
 def coturnClouds(clouds) {
     def coturn_clouds
     if (!clouds) {
-        coturn_clouds = sh(returnStdout: true
+        coturn_clouds = sh(
+            returnStdout: true,
             script: '''#!/bin/bash
                 source clouds/all.sh
                 echo $COTURN_CLOUDS'''.trim().split(' ')
