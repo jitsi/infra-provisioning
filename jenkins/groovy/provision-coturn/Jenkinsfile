@@ -45,7 +45,7 @@ pipeline {
                 }
             }
         }
-        stage ("HAProxy Stack Creation") {
+        stage ("coTURN Stack Creation") {
             steps {
                 script {
                     dir("infra-provisioning") {
