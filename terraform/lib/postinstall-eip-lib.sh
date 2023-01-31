@@ -22,7 +22,7 @@ function switch_to_secondary_vnic() {
   fi
 
   echo "Add rule for seconday NIC "
-  export SECONDARY_PRIVATE_IP=$(ip route show | grep ens5 | sed -e 's/^\(.\{13\}\).*/\1/')
+  export SECONDARY_PRIVATE_IP=$(ip route show | grep ens3 | sed -e 's/^\(.\{13\}\).*/\1/')
   sudo ip rule add to $SECONDARY_PRIVATE_IP table ort1 || status_code=1
 
   if [ $status_code -gt 0 ]; then
@@ -47,7 +47,7 @@ function switch_to_secondary_vnic() {
     return $status_code
   fi
 
-  export NIC2_ROUTE="default via "$(ip route show | grep ens5 | awk '{ print substr($1,1,index($1,"/")-2)1 " " $2 " " $3}')
+  export NIC2_ROUTE="default via "$(ip route show | grep ens3 | awk '{ print substr($1,1,index($1,"/")-2)1 " " $2 " " $3}')
   sudo ip route add $NIC2_ROUTE || status_code=1
   return $status_code
 }
