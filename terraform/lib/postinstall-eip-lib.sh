@@ -22,7 +22,7 @@ function switch_to_secondary_vnic() {
   fi
 
   echo "Add rule for seconday NIC "
-  export SECONDARY_PRIVATE_IP=$(ip route show | grep ens4 | sed -e 's/^\(.\{13\}\).*/\1/')
+  export SECONDARY_PRIVATE_IP=$(ip route show | grep ens4 | awk '{print $1}')
   sudo ip rule add to $SECONDARY_PRIVATE_IP table ort1 || status_code=1
 
   if [ $status_code -gt 0 ]; then
