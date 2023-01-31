@@ -16,7 +16,7 @@ def createCoTURNStackOracle() {
         export ORACLE_REGION=${env.ORACLE_REGION}
         export ORACLE_GIT_BRANCH=${env.RELEASE_BRANCH}
         export COTURN_RELEASE_NUMBER=${env.COTURN_RELEASE_NUMBER}
-        terraform/create-coturn-stack/create-haproxy-stack-oracle.sh ubuntu"""
+        terraform/create-coturn-stack/create-coturn-stack-oracle.sh ubuntu"""
     )
 }
 
