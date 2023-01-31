@@ -111,6 +111,7 @@ def CreateImageOracle(image_type) {
         case 'Jigasi':
             image_script = 'build-jigasi-oracle.sh'
         break;
+        case 'coTURN':
         case 'CoTURN':
             image_script = 'build-coturn-oracle.sh'
         break;
