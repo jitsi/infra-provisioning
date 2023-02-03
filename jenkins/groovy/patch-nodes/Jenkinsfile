@@ -26,6 +26,8 @@ pipeline {
                     utils = load "${rootDir}/jenkins/groovy/Utils.groovy"
                     // checkout repos
                     utils.SetupRepos(env.VIDEO_INFRA_BRANCH)
+                    // setup OCI credentials
+                    utils.SetupOCI()
 
                     sh 'mkdir -p test-results'
                 }
