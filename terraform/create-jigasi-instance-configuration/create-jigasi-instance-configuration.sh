@@ -32,7 +32,7 @@ fi
 [ -z "$JIGASI_VERSION" ] && JIGASI_VERSION='latest'
 
 #pull in cloud-specific variables, e.g. tenancy
-[ -e "$LOCAL_PATH/../clouds/oracle.sh" ] && . $LOCAL_PATH/../clouds/oracle.sh
+[ -e "$LOCAL_PATH/../../clouds/oracle.sh" ] && . $LOCAL_PATH/../../clouds/oracle.sh
 
 if [ -z "$ORACLE_REGION" ]; then
   echo "No ORACLE_REGION found.  Exiting..."
@@ -45,7 +45,7 @@ if [ -z "$CLOUD_NAME" ]; then
 fi
 
 ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
-[ -e "$LOCAL_PATH/../clouds/${ORACLE_CLOUD_NAME}.sh" ] && . $LOCAL_PATH/../clouds/${ORACLE_CLOUD_NAME}.sh
+[ -e "$LOCAL_PATH/../../clouds/${ORACLE_CLOUD_NAME}.sh" ] && . $LOCAL_PATH/../../clouds/${ORACLE_CLOUD_NAME}.sh
 
 [ -z "$SHAPE" ] && SHAPE="$JIGASI_SHAPE"
 [ -z "$SHAPE" ] && SHAPE="$DEFAULT_JIGASI_SHAPE"
