@@ -74,6 +74,7 @@ fi
 if [[ "$JIGASI_TRANSCRIBER_FLAG" == "true" ]]; then
   # put transcribers in the NAT subnet
   INSTANCE_CONFIG_SUFFIX="TranscriberInstanceConfig"
+  SHARD_ROLE="jigasi-transcriber"
   [ -z "$JIGASI_SUBNET_NAME" ] && JIGASI_SUBNET_NAME="${ORACLE_REGION}-${ENVIRONMENT}-NATSubnet"
 else
   INSTANCE_CONFIG_SUFFIX="JigasiInstanceConfig"
@@ -93,8 +94,12 @@ fi
 [ -z "$VCN_NAME" ] && VCN_NAME="${ORACLE_REGION}-${ENVIRONMENT}-vcn"
 [ -z "$JIGASI_SECURITY_GROUP_NAME" ] && JIGASI_SECURITY_GROUP_NAME="${ORACLE_REGION}-${ENVIRONMENT}-JigasiCustomSecurityGroup"
 
+[ -z "$S3_PROFILE" ] && S3_PROFILE="oracle"
+[ -z "$S3_STATE_BUCKET" ] && S3_STATE_BUCKET="tf-state-$ENVIRONMENT"
+[ -z "$S3_ENDPOINT" ] && S3_ENDPOINT="https://$ORACLE_S3_NAMESPACE.compat.objectstorage.$ORACLE_REGION.oraclecloud.com"
+[ -z "$S3_STATE_KEY" ] && S3_STATE_KEY="$ENVIRONMENT/$SHARD_ROLE/instance-config-terraform.tfstate"
+
 rm -f terraform.tfstate
-#The —reconfigure option disregards any existing configuration, preventing migration of any existing state
 TERRAFORM_MAJOR_VERSION=$(terraform -v | head -1  | awk '{print $2}' | cut -d'.' -f1)
 TF_GLOBALS_CHDIR=
 if [[ "$TERRAFORM_MAJOR_VERSION" == "v1" ]]; then
