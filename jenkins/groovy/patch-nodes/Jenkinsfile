@@ -28,6 +28,8 @@ pipeline {
                     utils.SetupRepos(env.VIDEO_INFRA_BRANCH)
                     // setup OCI credentials
                     utils.SetupOCI()
+                    // setup SSH
+                    utils.SetupSSH()
 
                     sh 'mkdir -p test-results'
                 }
