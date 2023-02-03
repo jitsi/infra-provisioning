@@ -1,0 +1,44 @@
+
+pipeline {
+    agent any
+    options {
+        ansiColor('xterm')
+        timestamps()
+    }
+    stages {
+        stage ("setup") {
+            steps {
+                script {
+                    // load utility function
+                    def rootDir = pwd()
+                    utils = load "${rootDir}/jenkins/groovy/Utils.groovy"
+                    // checkout repos
+                    utils.SetupRepos(env.VIDEO_INFRA_BRANCH)
+
+                    sh 'mkdir -p test-results'
+                }
+            }
+        } 
+        stage ("patch a batch of nodes") {
+            steps {
+                script {
+                    sh(
+                        script: "cp ~/.vault-password .vault-password.txt"
+                    )
+                    dir("infra-provisioning") {
+                        sh(
+                            script: "ENVIRONMENT=${env.ENVIRONMENT} scripts/patch-nodes.sh ubuntu"
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+// ANSIBLE_PLAYBOOK_FILE
+// ENVIRONMENT
+// SHARD_ROLE
+// ORACLE_REGION
+// BATCH_SIZE
