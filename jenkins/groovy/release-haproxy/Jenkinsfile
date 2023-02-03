@@ -11,20 +11,8 @@ def oracle_regions(cloud_list) {
     return oracle_regions
 }
 
-
 // global var to track git branch from env or new tags
 def git_branch
-
-// use incoming branch/tag or tag repo with new tag based on build ID
-// either way set it into git_branch variable to use later
-def tagRelease(release) {
-    git_branch = 'haproxy-release-'+release
-    env.RELEASE_BRANCH = git_branch
-    sh 'git tag ' + git_branch
-    sh 'git push origin '+git_branch
-    return git_branch
-}
-
 
 def tagExistingProxies(stack_environment,cloud_provider,haproxy_release_number,gitBranch) {
     sh """#!/bin/bash
@@ -78,25 +66,15 @@ pipeline {				//indicate the job is written in Declarative Pipeline
             }
         }
         // tag the new release or load git_branch from input parameters
-        // tag the new release or load git_branch from input parameters
         stage("tag release") {
-            steps {
-                sshagent (credentials: ['video-infra']) {
-                    script {
-                        if (!env.RELEASE_BRANCH) {
-                            git_branch = tagRelease(env.BUILD_ID)
-                            dir('infra-configuration') {
-                                tagRelease(env.BUILD_ID)
-                            }
-                            dir('infra-customization') {
-                                tagRelease(env.BUILD_ID)
-                            }
-                        } else {
-                            git_branch = env.RELEASE_BRANCH
-                        }
-                    }
-                }
+          steps {
+            script {
+                // use incoming branch/tag or tag repo with new tag based on build ID
+                // either way set it into git_branch variable to use later
+                git_branch = utils.TagRelease('haproxy-release',env.BUILD_ID, env.RELEASE_BRANCH)
+                env.RELEASE_BRANCH = git_branch
             }
+          }
         }
         // create or update stacks for the release
         stage("create stacks") {

@@ -29,10 +29,10 @@ pipeline {
                 }
             }
         }
-        stage ("haproxy reload") {
+        stage ("shard state") {
             steps {
                 script {
-                    echo 'haproxy reload'
+                    echo 'set state on shards'
                     dir('infra-provisioning') {
                         withCredentials([
                             string(credentialsId: 'jenkins-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
