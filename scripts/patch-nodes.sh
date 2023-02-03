@@ -44,6 +44,13 @@ split -l $BATCH_SIZE $ANSIBLE_INVENTORY ".batch/${ROLE}-${ORACLE_REGION}-"
 
 FAILED_COUNT=0
 ANSIBLE_FAILURES=0
+echo 'x'
+ls
+echo 'x'
+ls ..
+echo 'x'
+ls ../..
+
 for BATCH_INVENTORY in .batch/${ROLE}-${ORACLE_REGION}-*; do
     echo "[tag_shard_role_$ROLE]" > ./batch.inventory
     if [[ "$SKIP_SSH_CONFIRMATION" == "true" ]]; then
