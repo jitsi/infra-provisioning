@@ -44,13 +44,14 @@ split -l $BATCH_SIZE $ANSIBLE_INVENTORY ".batch/${ROLE}-${ORACLE_REGION}-"
 
 FAILED_COUNT=0
 ANSIBLE_FAILURES=0
+pwd
 for BATCH_INVENTORY in .batch/${ROLE}-${ORACLE_REGION}-*; do
     echo "[tag_shard_role_$ROLE]" > ./batch.inventory
     if [[ "$SKIP_SSH_CONFIRMATION" == "true" ]]; then
         cat $BATCH_INVENTORY >> ./batch.inventory
     else
         for ip in $(cat $BATCH_INVENTORY | tail -n+1 | awk '{print $1}'); do
-            timeout 10 ssh -F $LOCAL_PATH/../config/ssh.config $ANSIBLE_SSH_USER@$ip "uptime > /dev/null" && echo $ip >> ./batch.inventory || FAILED_COUNT=$(($FAILED_COUNT+1))
+            timeout 10 ssh -o StrictHostKeyChecking=no -F $LOCAL_PATH/../config/ssh.config $ANSIBLE_SSH_USER@$ip "uptime > /dev/null" && echo $ip >> ./batch.inventory || FAILED_COUNT=$(($FAILED_COUNT+1))
         done
     fi
 
