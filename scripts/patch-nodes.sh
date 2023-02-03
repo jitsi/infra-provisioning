@@ -44,16 +44,16 @@ split -l $BATCH_SIZE $ANSIBLE_INVENTORY ".batch/${ROLE}-${ORACLE_REGION}-"
 
 FAILED_COUNT=0
 ANSIBLE_FAILURES=0
-echo 'a'
-ls
-echo 'b'
-ls ..
-echo 'c'
+echo 'aaaa'
+ls ../infra-configuration/ansible 
+echo 'bbbb'
 ls $LOCAL_PATH/..
-echo 'd'
+echo 'cccc'
 ls ansible
-echo 'e'
+echo 'dddd'
 ls ../ansible
+echo 'eeee'
+ls $LOCAL_PATH/../ansible
 
 for BATCH_INVENTORY in .batch/${ROLE}-${ORACLE_REGION}-*; do
     echo "[tag_shard_role_$ROLE]" > ./batch.inventory
