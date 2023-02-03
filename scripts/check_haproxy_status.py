@@ -644,7 +644,7 @@ def main():
         log_print("Total rooms: %s"%str(len(last_table['servers_by_room'])))
         log_print("Total sessions: %s"%str(combined_stats['server_stats']['totals']['scur']))
         log_print("Current server request rate: %s"%str(combined_stats['server_stats']['totals']['rate']))
-        log_print("Current frontend request rate: %s"%str(combined_stats['frontend_stats']['www-http']['req_rate']))
+        #log_print("Current frontend request rate: %s"%str(combined_stats['frontend_stats']['www-http']['req_rate']))
         for server in list(last_table['rooms_by_server'].keys()):
             sname = 'UNKNOWN'
             scount = 0
