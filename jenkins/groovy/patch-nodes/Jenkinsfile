@@ -28,8 +28,6 @@ pipeline {
                     utils.SetupRepos(env.VIDEO_INFRA_BRANCH)
                     // setup OCI credentials
                     utils.SetupOCI()
-                    // setup SSH
-                    utils.SetupSSH()
 
                     sh 'mkdir -p test-results'
                 }
@@ -46,7 +44,10 @@ pipeline {
                             file(credentialsId: 'oci-jenkins-pem', variable: 'OCI_CLI_KEY_FILE'),
                             sshUserPrivateKey(credentialsId: 'ssh-ubuntu', keyFileVariable: 'USER_PRIVATE_KEY_PATH', usernameVariable: 'SSH_USERNAME')
                         ]) {
-                            runBatchPatchNodes()
+                            utils.SetupSSH()
+                            sshagent (credentials: ['ssh-ubuntu']) {
+                                runBatchPatchNodes()
+                            }
                         }
                     }
                 }
