@@ -19,15 +19,15 @@ if [ -z "$ENVIRONMENT" ]; then
   exit 2
 fi
 
-[ -z "$SHARD_ROLE" ] && SHARD_ROLE="ssh"
+[ -z "$ROLE" ] && ROLE="ssh"
 [ -z "$ORACLE_REGION" ] && ORACLE_REGION="all"
 
 LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 [ -e $LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh ] && . $LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh
 
 if [ -z "$ANSIBLE_INVENTORY" ]; then 
-  ANSIBLE_INVENTORY="./batch-${SHARD_ROLE}-${ORACLE_REGION}.inventory"
-  $LOCAL_PATH/node.py --environment $ENVIRONMENT --role $SHARD_ROLE --region $ORACLE_REGION --oracle --batch --inventory > $ANSIBLE_INVENTORY
+  ANSIBLE_INVENTORY="./batch-${ROLE}-${ORACLE_REGION}.inventory"
+  $LOCAL_PATH/node.py --environment $ENVIRONMENT --role $ROLE --region $ORACLE_REGION --oracle --batch --inventory > $ANSIBLE_INVENTORY
 fi
 
 DEPLOY_TAGS=${ANSIBLE_TAGS-"all"}
@@ -40,12 +40,12 @@ set -x
 
 [ -d ./.batch ] && rm -rf .batch
 mkdir .batch
-split -l $BATCH_SIZE $ANSIBLE_INVENTORY ".batch/${SHARD_ROLE}-${ORACLE_REGION}-"
+split -l $BATCH_SIZE $ANSIBLE_INVENTORY ".batch/${ROLE}-${ORACLE_REGION}-"
 
 FAILED_COUNT=0
 ANSIBLE_FAILURES=0
-for BATCH_INVENTORY in .batch/${SHARD_ROLE}-${ORACLE_REGION}-*; do
-    echo "[tag_shard_role_$SHARD_ROLE]" > ./batch.inventory
+for BATCH_INVENTORY in .batch/${ROLE}-${ORACLE_REGION}-*; do
+    echo "[tag_shard_role_$ROLE]" > ./batch.inventory
     if [[ "$SKIP_SSH_CONFIRMATION" == "true" ]]; then
         cat $BATCH_INVENTORY >> ./batch.inventory
     else
@@ -59,7 +59,7 @@ for BATCH_INVENTORY in .batch/${SHARD_ROLE}-${ORACLE_REGION}-*; do
 
         ansible-playbook $ANSIBLE_PLAYBOOK \
             -i ./batch.inventory \
-            -e "ansible_ssh_user=$ANSIBLE_SSH_USER hcv_environment=$ENVIRONMENT shard_role=$SHARD_ROLE" \
+            -e "ansible_ssh_user=$ANSIBLE_SSH_USER hcv_environment=$ENVIRONMENT shard_role=$ROLE" \
             --vault-password-file .vault-password.txt \
             --tags "$DEPLOY_TAGS"
 

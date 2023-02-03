@@ -1,0 +1,70 @@
+- job:
+    name: patch-nodes
+    display-name: batch patch nodes
+    description: 'Patch all nodes based on their ROLE, in batches.'
+    concurrent: true
+    parameters:
+      - string:
+          name: ANSIBLE_PLAYBOOK_FILE
+          default: patch-nodes-default.yml
+          description: 'Playbook file to run against the nodes.'
+          trim: true
+      - string:
+          name: ROLE
+          default: ssh
+          description: 'Role of the nodes that will be patched.'
+          trim: true
+      - string:
+          name: ORACLE_REGION
+          default: all
+          description: 'Region to run the batch against.'
+          trim: true
+      - string:
+          name: BATCH_SIZE
+          default: 10
+          description: 'Number of nodes to patch at once.'
+          trim: true
+      - string:
+          name: SKIP_SSH_CONFIRMATION
+          default: false
+          description: 'If set to true, skips the step of ssh to the instance to confirm it is up and accessible.  This is best left off when dealing with large batches that may have autoscaled and changed since inventory was built.'
+          trim: true
+      - string:
+          name: ANSIBLE_TAGS
+          trim: true
+      - string:
+          name: VIDEO_INFRA_BRANCH
+          default: main
+          description: "Controls checkout branch for infra repos, defaults to 'main'."
+          trim: true
+      - string:
+          name: ENVIRONMENT
+          default:
+          description: "Environment to patch nodes in."
+          trim: true
+      - string:
+          name: INFRA_CONFIGURATION_REPO
+          default: git@github.com:jitsi/infra-configuration.git
+          description: "Repo for configuration code (ansible etc), defaults to 'git@github.com:jitsi/infra-configuration.git'."
+          trim: true
+      - string:
+          name: INFRA_CUSTOMIZATIONS_REPO
+          default: git@github.com:jitsi/infra-customizations.git
+          description: "Repo with customized configurations, defaults to 'git@github.com:jitsi/infra-customizations.git'."
+          trim: true
+ 
+    project-type: pipeline
+    sandbox: true
+    pipeline-scm:
+      scm:
+        - git:
+            url: git@github.com:jitsi/infra-provisioning.git
+            credentials-id: "video-infra"
+            branches:
+              - "origin/${VIDEO_INFRA_BRANCH}"
+            browser: githubweb
+            browser-url: https://github.com/jitsi/infra-provisioning
+            submodule:
+              recursive: true
+      script-path: jenkins/groovy/patch-nodes/Jenkinsfile
+      lightweight-checkout: true

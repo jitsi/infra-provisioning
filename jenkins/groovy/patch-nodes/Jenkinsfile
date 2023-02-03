@@ -1,4 +1,16 @@
 
+def runBatchPatchNodes() {
+    sh(
+        script: """#!/bin/bash
+        export ENVIRONMENT=${env.ENVIRONMENT}
+        export ANSIBLE_PLAYBOOK_FILE=${env.ANSIBLE_PLAYBOOK_FILE}
+        export ROLE=${env.ROLE}
+        export ORACLE_REGION=${env.ORACLE_REGION}
+        export BATCH_SIZE=${env.BATCH_SIZE}
+        scripts/patch-nodes.sh ubuntu"""
+    )
+}
+
 pipeline {
     agent any
     options {
@@ -22,23 +34,15 @@ pipeline {
         stage ("patch a batch of nodes") {
             steps {
                 script {
-                    sh(
-                        script: "cp ~/.vault-password .vault-password.txt"
-                    )
                     dir("infra-provisioning") {
-                        sh(
-                            script: "ENVIRONMENT=${env.ENVIRONMENT} scripts/patch-nodes.sh ubuntu"
-                        )
+                        withCredentials([
+                            sshUserPrivateKey(credentialsId: 'ssh-ubuntu', keyFileVariable: 'CONNECTION_SSH_PRIVATE_KEY_FILE', usernameVariable: 'SSH_USERNAME')
+                        ]) {
+                            runBatchPatchNodes()
+                        }
                     }
                 }
             }
         }
     }
 }
-
-
-// ANSIBLE_PLAYBOOK_FILE
-// ENVIRONMENT
-// SHARD_ROLE
-// ORACLE_REGION
-// BATCH_SIZE

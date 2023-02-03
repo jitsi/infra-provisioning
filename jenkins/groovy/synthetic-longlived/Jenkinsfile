@@ -1,0 +1,103 @@
+def versioningManagerSetGA(environment, release_number) {
+    sh(
+        script: """#!/bin/bash
+export VERSIONING_ACTION=SET_RELEASE_GA
+export VERSIONING_RELEASE="${release_number}"
+ENVIRONMENT=${environment} scripts/versioning-manager.sh
+"""
+    )
+}
+
+pipeline {
+    agent any
+     stages {
+        stage ("setup") {
+            steps {
+                script {
+                    // load utility function
+                    def rootDir = pwd()
+                    utils = load "${rootDir}/jenkins/groovy/Utils.groovy"
+                    // checkout repos
+                    utils.SetupRepos(env.VIDEO_INFRA_BRANCH)
+
+                    // setup OCI credentials
+                    utils.SetupOCI()
+
+                    sh 'mkdir -p test-results'
+                }
+            }
+        }  
+        stage ("load flags") {
+            steps {
+                script {
+                    dir("infra-provisioning") {
+                        useReleaseBackends = checkReleaseBackends(env.ENVIRONMENT)
+                        echo useReleaseBackends
+                    }
+                }
+            }
+        }
+        stage ("set release GA on haproxies then in consul") {
+            steps {
+                script {
+                    echo 'setting release live'
+                    lock('haproxy-state') {
+                        dir("infra-provisioning") {
+                            withCredentials([
+                                file(credentialsId: 'oci-jenkins-config', variable: 'OCI_CLI_CONFIG_FILE'),
+                                file(credentialsId: 'oci-jenkins-pem', variable: 'OCI_CLI_KEY_FILE'),
+                                string(credentialsId: 'jenkins-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
+                                string(credentialsId: 'jenkins-aws-id', variable: 'AWS_ACCESS_KEY_ID')
+                            ]) {
+                                sshagent (credentials: ['ssh-ubuntu']) {
+                                    setReleaseSucceeded = setReleaseGA(env.ENVIRONMENT)
+                                }
+                            }
+                        }
+                    }
+                    echo setReleaseSucceeded
+                }
+            }
+        }
+        stage ("set release GA in versioning manager") {
+            when {
+                expression { useReleaseBackends == 'true' }
+                expression { setReleaseSucceeded == 'true' }
+            }
+            steps {
+                script {
+                    dir("infra-provisioning") {
+                        withCredentials([
+                            string(credentialsId: 'asap-jwt-kid-dev', variable: 'ASAP_JWT_KID_DEV'),
+                            string(credentialsId: 'asap-jwt-kid-prod', variable: 'ASAP_JWT_KID_PROD'),
+                            file(credentialsId: 'asap-jwt-key-dev', variable: 'ASAP_JWT_KEY_DEV'),
+                            file(credentialsId: 'asap-jwt-key-prod', variable: 'ASAP_JWT_KEY_PROD')
+                        ]) {
+                            versioningManagerSetGA(env.ENVIRONMENT, env.RELEASE_NUMBER)
+                        }
+                    }
+                }
+            }
+        }
+        stage ("enable release JVB pools for use with autoscaler") {
+            when {
+                expression { setReleaseSucceeded == 'true' }
+            }
+            steps {
+                script {
+                    dir("infra-provisioning") {
+                        addLiveLocalPoolsToScheduler(env.ENVIRONMENT, env.RELEASE_NUMBER)
+                    }
+                }
+            }
+        }
+     }
+     post {
+        always {
+            cleanWs()
+        }
+        failure {
+            slackSend color: "danger", message: "${env.JOB_NAME} - build ${env.BUILD_NUMBER} failed to set release ${env.RELEASE_NUMBER} as GA in ${env.ENVIRONMENT}"
+        }
+    }
+}
