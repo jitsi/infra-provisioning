@@ -104,7 +104,14 @@ else
   TF_POST_PARAMS="$LOCAL_PATH"
 fi
 
-terraform $TF_GLOBALS_CHDIR init $TF_POST_PARAMS
+#The —reconfigure option disregards any existing configuration, preventing migration of any existing state
+terraform $TF_GLOBALS_CHDIR init \
+  -backend-config="bucket=$S3_STATE_BUCKET" \
+  -backend-config="key=$S3_STATE_KEY" \
+  -backend-config="region=$ORACLE_REGION" \
+  -backend-config="profile=$S3_PROFILE" \
+  -backend-config="endpoint=$S3_ENDPOINT" \
+  -reconfigure $TF_POST_PARAMS
 
 [ -z "$ACTION" ] && ACTION="apply"
 
