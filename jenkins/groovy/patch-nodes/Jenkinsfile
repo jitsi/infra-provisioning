@@ -26,8 +26,6 @@ pipeline {
                     utils = load "${rootDir}/jenkins/groovy/Utils.groovy"
                     // checkout repos
                     utils.SetupRepos(env.VIDEO_INFRA_BRANCH)
-                    // setup OCI credentials
-                    utils.SetupOCI()
 
                     sh 'mkdir -p test-results'
                 }
@@ -45,6 +43,8 @@ pipeline {
                             sshUserPrivateKey(credentialsId: 'ssh-ubuntu', keyFileVariable: 'USER_PRIVATE_KEY_PATH', usernameVariable: 'SSH_USERNAME'),
                             string(credentialsId: 'ansible-vault-password', variable: 'ANSIBLE_VAULT_PASSWORD_PATH')
                         ]) {
+                            utils.SetupOCI()
+                            utils.SetupAnsible()
                             utils.SetupSSH()
                             sshagent (credentials: ['ssh-ubuntu']) {
                                 runBatchPatchNodes()
