@@ -32,7 +32,7 @@ fi
 
 DEPLOY_TAGS=${ANSIBLE_TAGS-"all"}
 ANSIBLE_PLAYBOOK_FILE=${ANSIBLE_PLAYBOOK_FILE-"patch-nodes-default.yml"}
-ANSIBLE_PLAYBOOK="$LOCAL_PATH/ansible/$ANSIBLE_PLAYBOOK_FILE"
+ANSIBLE_PLAYBOOK="$LOCAL_PATH/../../infra-configuration/ansible/$ANSIBLE_PLAYBOOK_FILE"
 
 BATCH_SIZE=${BATCH_SIZE-"10"}
 
@@ -44,16 +44,6 @@ split -l $BATCH_SIZE $ANSIBLE_INVENTORY ".batch/${ROLE}-${ORACLE_REGION}-"
 
 FAILED_COUNT=0
 ANSIBLE_FAILURES=0
-echo 'aaaa'
-ls ../infra-configuration/ansible 
-echo 'bbbb'
-ls $LOCAL_PATH/..
-echo 'cccc'
-ls ansible
-echo 'dddd'
-ls ../ansible
-echo 'eeee'
-ls $LOCAL_PATH/../ansible
 
 for BATCH_INVENTORY in .batch/${ROLE}-${ORACLE_REGION}-*; do
     echo "[tag_shard_role_$ROLE]" > ./batch.inventory
