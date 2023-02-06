@@ -1,0 +1,39 @@
+pipeline {
+    agent any
+    options {
+        ansiColor('xterm')
+        timestamps()
+    }
+    stages {
+        stage ("setup") {
+            steps {
+                script {
+                    // load utility function
+                    def rootDir = pwd()
+                    utils = load "${rootDir}/jenkins/groovy/Utils.groovy"
+                    // checkout repos
+                    utils.SetupRepos(env.VIDEO_INFRA_BRANCH)
+                    utils.SetupOCI()
+                }
+            }
+        } 
+        stage ("patch a batch of nodes") {
+            steps {
+                script {
+                    dir("infra-configuration") {
+                        withCredentials([
+                            string(credentialsId: 'jenkins-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
+                            string(credentialsId: 'jenkins-aws-id', variable: 'AWS_ACCESS_KEY_ID')
+                        ]) {
+                            sshagent (credentials: ['ssh-ubuntu']) {
+                                sh(
+                                    script: "scripts/patch-nodes.sh ubuntu"
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
