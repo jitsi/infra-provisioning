@@ -2,7 +2,7 @@
     name: 'configure'
     description: 'jobs that reconfigure resources in place'
     view-type: list
-    regex: '(^configure|^reconfigure|^set)-.*'
+    regex: '(^configure|^reconfigure|^set|^patch)-.*'
 
 - project:
     name: 'configure-view'
