@@ -57,6 +57,7 @@ resource "oci_core_instance" "oci-instance" {
     display_name = var.display_name
 
     create_vnic_details {
+        assign_public_ip = "false"
         subnet_id = var.subnet_ocid
         nsg_ids = [
             var.security_group_ocid]
@@ -83,7 +84,7 @@ resource "oci_core_instance" "oci-instance" {
     provisioner "file" {
         connection {
             type        = "ssh"
-            host        = oci_core_instance.oci-instance.public_ip
+            host        = oci_core_instance.oci-instance.private_ip
             user        = var.user
             private_key = file(var.user_private_key_path)
         }
@@ -102,7 +103,7 @@ resource "oci_core_instance" "oci-instance" {
     provisioner "remote-exec" {
         connection {
             type        = "ssh"
-            host        = oci_core_instance.oci-instance.public_ip
+            host        = oci_core_instance.oci-instance.private_ip
             user        = var.user
             private_key = file(var.user_private_key_path)
         }
