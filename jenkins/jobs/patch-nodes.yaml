@@ -10,14 +10,19 @@
           description: 'Playbook file to run against the nodes.'
           trim: true
       - string:
+          name: ANSIBLE_ROLES
+          default: sshusers
+          description: 'Space delimited list of ansible roles to apply to the node (only applicable if using the default ANSIBLE_PLAYBOOK_FILE). Defaults to update ssh users.'
+          trim: true
+      - string:
           name: ROLE
           default: ssh
-          description: 'Role of the nodes that will be patched.'
+          description: 'Role tag of the nodes that will be patched. Defaults to update jumpboxes.'
           trim: true
       - string:
           name: ORACLE_REGION
           default: all
-          description: 'Region to run the batch against.'
+          description: 'Region to apply the batch to. Defaults to all regions.'
           trim: true
       - string:
           name: BATCH_SIZE
