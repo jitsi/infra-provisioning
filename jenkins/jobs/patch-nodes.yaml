@@ -20,7 +20,7 @@
           trim: true
       - string:
           name: ANSIBLE_EXTRA_VARS
-          description: 'Arbitrary extra vars to pass to ansible.'
+          description: 'Arbitrary extra vars to pass to ansible command. Can be key=value or in json.'
           trim: true
       - string:
           name: ROLE
