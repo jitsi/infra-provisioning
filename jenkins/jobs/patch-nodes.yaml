@@ -1,7 +1,7 @@
 - job:
     name: patch-nodes
     display-name: batch patch nodes
-    description: 'Patch all nodes with a playbook based on their ROLE, in batches.'
+    description: 'Patch all nodes with a playbook based on ROLE and other filters, in batches.'
     concurrent: true
     parameters:
       - string:
@@ -12,7 +12,7 @@
       - string:
           name: ANSIBLE_ROLES
           default: sshusers
-          description: 'Space delimited list of ansible roles to apply to the node (only applicable if using the default ANSIBLE_PLAYBOOK_FILE). Defaults to update ssh users.'
+          description: 'Space-delimited list of ansible roles to apply to the node (only applicable if using the default ANSIBLE_PLAYBOOK_FILE). Defaults to update ssh users.'
           trim: true
       - string:
           name: ANSIBLE_TAGS
@@ -21,7 +21,7 @@
       - string:
           name: ROLE
           default: ssh
-          description: 'Role tag of the nodes that will be patched. Defaults to update jumpboxes.'
+          description: 'Role tag of the nodes that will be patched. Defaults to update ssh jumpboxes.'
           trim: true
       - string:
           name: ORACLE_REGION
@@ -30,7 +30,7 @@
           trim: true
       - string:
           name: RELEASE_NUMBER
-          description: 'Release number of the nodes.'
+          description: 'Release number of the nodes. Leave blank to not filter on this.'
           trim: true
       - string:
           name: BATCH_SIZE
@@ -40,7 +40,7 @@
       - string:
           name: SKIP_SSH_CONFIRMATION
           default: false
-          description: 'If set to true, skips the step of ssh to the instance to confirm it is up and accessible.  This is best left off when dealing with large batches that may have autoscaled and changed since inventory was built.'
+          description: 'If set to true, skips the step of ssh to the instance to confirm it is up and accessible. This is best left off when dealing with large batches that may have autoscaled and changed since inventory was built.'
           trim: true
       - string:
           name: VIDEO_INFRA_BRANCH
