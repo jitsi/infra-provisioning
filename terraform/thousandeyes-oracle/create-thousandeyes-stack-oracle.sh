@@ -46,9 +46,9 @@ ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 
 [ -z "$DISPLAY_NAME" ] && DISPLAY_NAME="$NAME"
 
-[ -z "$TE_BASE_IMAGE_ID" ] && TE_BASE_IMAGE_ID=$($LOCAL_PATH/../../scripts/oracle_custom_images.py --type JammyBase --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
-if [ -z "$TE_BASE_IMAGE_ID" ]; then
-  echo "No TE_BASE_IMAGE_ID found.  Exiting..."
+[ -z "$TE_IMAGE_ID" ] && TE_IMAGE_ID=$($LOCAL_PATH/../../scripts/oracle_custom_images.py --type JammyBase --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
+if [ -z "$TE_IMAGE_ID" ]; then
+  echo "No TE_IMAGE_ID found.  Exiting..."
   exit 1
 fi
 
@@ -103,7 +103,7 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
   -var="compartment_ocid=$COMPARTMENT_OCID"\
   -var="subnet_ocid=$NAT_SUBNET_OCID"\
   -var="security_group_ocid=$PUBLIC_SECURITY_GROUP_OCID"\
-  -var="image_ocid=$BASE_IMAGE_ID"\
+  -var="image_ocid=$TE_IMAGE_ID"\
   -var "tag_namespace=$TAG_NAMESPACE" \
   -var "infra_configuration_repo=$INFRA_CONFIGURATION_REPO" \
   -var "infra_customizations_repo=$INFRA_CUSTOMIZATIONS_REPO" \
