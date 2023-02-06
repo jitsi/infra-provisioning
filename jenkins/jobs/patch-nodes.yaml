@@ -1,7 +1,7 @@
 - job:
     name: patch-nodes
     display-name: batch patch nodes
-    description: 'Patch all nodes based on their ROLE, in batches.'
+    description: 'Patch all nodes with a playbook based on their ROLE, in batches.'
     concurrent: true
     parameters:
       - string:
@@ -15,6 +15,10 @@
           description: 'Space delimited list of ansible roles to apply to the node (only applicable if using the default ANSIBLE_PLAYBOOK_FILE). Defaults to update ssh users.'
           trim: true
       - string:
+          name: ANSIBLE_TAGS
+          description: 'Ansible tags to apply to the playbook.'
+          trim: true
+      - string:
           name: ROLE
           default: ssh
           description: 'Role tag of the nodes that will be patched. Defaults to update jumpboxes.'
@@ -25,6 +29,10 @@
           description: 'Region to apply the batch to. Defaults to all regions.'
           trim: true
       - string:
+          name: RELEASE_NUMBER
+          description: 'Release number of the nodes.'
+          trim: true
+      - string:
           name: BATCH_SIZE
           default: 10
           description: 'Number of nodes to patch at once.'
@@ -33,9 +41,6 @@
           name: SKIP_SSH_CONFIRMATION
           default: false
           description: 'If set to true, skips the step of ssh to the instance to confirm it is up and accessible.  This is best left off when dealing with large batches that may have autoscaled and changed since inventory was built.'
-          trim: true
-      - string:
-          name: ANSIBLE_TAGS
           trim: true
       - string:
           name: VIDEO_INFRA_BRANCH
