@@ -74,6 +74,8 @@ if [[ $(echo $PACKER_VERSION | cut -d'.' -f1) -ge 1 ]] && [[ $(echo $PACKER_VERS
   packer init $LOCAL_PATH/../build/require.pkr.hcl
 fi
 
+[ -n "$DEBUG_BUILD" ] && PACKER_ONERROR="-on-error=abort"
+
 packer build \
 -var "build_id=$ANSIBLE_BUILD_ID" \
 -var "environment=$ENVIRONMENT" \
@@ -95,5 +97,6 @@ packer build \
 -var "connection_ssh_bastion_host=$CONNECTION_SSH_BASTION_HOST" \
 -var "connection_ssh_private_key_file=$CONNECTION_SSH_PRIVATE_KEY_FILE" \
 -var "tag_namespace=$TAG_NAMESPACE" \
+$PACKER_ONERROR \
 $LOCAL_PATH/../build/build-base-oracle.json
 

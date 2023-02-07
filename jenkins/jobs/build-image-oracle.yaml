@@ -51,6 +51,9 @@
           default: false
           description: "Flag to control whether to force image builds if a matching image exists"
       - string:
+          name: DEBUG_BUILD
+          description: "Set to true to leave instance after build failures"
+      - string:
           name: INFRA_CONFIGURATION_REPO
           default: git@github.com:jitsi/infra-configuration.git
           description: "Repo for configuration code (ansible etc), defaults to 'git@github.com:jitsi/infra-configuration.git'."
