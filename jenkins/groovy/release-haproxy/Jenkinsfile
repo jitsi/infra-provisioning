@@ -5,7 +5,7 @@ def oracle_regions(cloud_list) {
             returnStdout: true,
             script: """#!/bin/bash
                 . clouds/${cloud_list[i]}.sh
-                echo \$ORACLE_REGION | xargs"""
+                echo \$ORACLE_REGION"""
         )
     }
     return oracle_regions
@@ -25,8 +25,8 @@ def tagExistingProxies(stack_environment,cloud_provider,haproxy_release_number,g
 def createHAProxyStack(stack_environment,cloud_provider,cloud_name,oracle_region,haproxy_release_number,gitBranch) {
     def createStack = build job: 'provision-haproxy',parameters: [
         [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: stack_environment],
-        [$class: 'StringParameterValue', name: 'CLOUD_NAME', value: cloud_name],
-        [$class: 'StringParameterValue', name: 'ORACLE_REGION', value: oracle_region],
+        [$class: 'StringParameterValue', name: 'CLOUD_NAME', value: cloud_name.trim()],
+        [$class: 'StringParameterValue', name: 'ORACLE_REGION', value: oracle_region.trim()],
         [$class: 'StringParameterValue', name: 'CLOUD_PROVIDER', value: cloud_provider],
         [$class: 'StringParameterValue', name: 'HAPROXY_RELEASE_NUMBER', value: haproxy_release_number],
         [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: gitBranch],
