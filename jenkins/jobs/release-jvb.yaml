@@ -1,0 +1,73 @@
+- job:
+    name: release-jvb
+    display-name: release JVB (upgrade pools)
+    concurrent: true
+    parameters:
+      - string:
+          name: JVB_VERSION
+          description: "JVB image version for pool"
+          trim: true
+      - string:
+          name: ENVIRONMENT
+          description: "Environment to build in"
+          trim: true
+      - string:
+          name: CLOUDS
+          description: "Clouds to build in"
+          trim: true
+      - string:
+          name: RELEASE_NUMBER
+          description: "Existing release to upgrade JVBs in"
+          trim: true
+      - string:
+          name: RELEASE_BRANCH
+          description: "Release branch for pool"
+          trim: true
+      - string:
+          name: VIDEO_INFRA_BRANCH
+          default: main
+          description: "Controls checkout branch for infra repos, defaults to 'main'."
+          trim: true
+      - string:
+          name: CLOUD_PROVIDER
+          default: oracle
+          description: "Cloud to build JVBs in, defaults to 'oracle'."
+          trim: true
+      - string:
+          name: SHAPE
+          description: "Override JVB shape"
+          trim: true
+      - string:
+          name: OCPUS
+          description: "Override JVB CPU count"
+          trim: true
+      - string:
+          name: MEMORY_IN_GBS
+          description: "Override JVB memory"
+          trim: true
+      - string:
+          name: INFRA_CONFIGURATION_REPO
+          default: git@github.com:jitsi/infra-configuration.git
+          description: "Repo for configuration code (ansible etc), defaults to 'git@github.com:jitsi/infra-configuration.git'."
+          trim: true
+      - string:
+          name: INFRA_CUSTOMIZATIONS_REPO
+          default: git@github.com:jitsi/infra-customizations.git
+          description: "Repo with customized configurations, defaults to 'git@github.com:jitsi/infra-customizations.git'."
+          trim: true
+ 
+    project-type: pipeline
+    sandbox: true
+    pipeline-scm:
+      scm:
+        - git:
+            url: git@github.com:jitsi/infra-provisioning.git
+            credentials-id: "video-infra"
+            branches:
+              - "origin/${VIDEO_INFRA_BRANCH}"
+            browser: githubweb
+            browser-url: https://github.com/jitsi/infra-provisioning
+            submodule:
+              recursive: true
+      script-path: jenkins/groovy/release-jvb/Jenkinsfile
+      lightweight-checkout: true

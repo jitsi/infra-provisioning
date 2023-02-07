@@ -1,3 +1,4 @@
+// upgrade a single JVB pool
 def utils
 pipeline {
   agent any
@@ -7,6 +8,13 @@ pipeline {
       buildDiscarder(logRotator(numToKeepStr: '10', artifactNumToKeepStr: '10'))
   }
   stages {
+    stage ("setup") {
+        steps {
+            echo 'JVB Release Begin'
+            echo "JVB VERSION ${env.JVB_VERSION}"
+            echo "SHARD ${env.SHARD}"
+        }
+    }
     stage('Prepare/Checkout') { // for display purposes
       steps {
         script {
@@ -36,10 +44,10 @@ pipeline {
             ]) {
                 utils.SetupAnsible()
                 utils.SetupSSH()
-                sh '''#!/bin/bash
-                    export USER_PUBLIC_KEY_PATH=~/.ssh/ssh_key.pub
-                    export ORACLE_GIT_BRANCH=$RELEASE_BRANCH
-                    scripts/create-jvb-pool-oracle.sh $SSH_USERNAME'''
+                sh(script: """
+                    export ORACLE_GIT_BRANCH=${env.RELEASE_BRANCH}
+                    scripts/create-or-rotate-custom-jvb-oracle.sh
+                """)
             }
           }
         }
