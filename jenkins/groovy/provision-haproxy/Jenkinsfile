@@ -1,10 +1,7 @@
 def createHAProxyStackAWS() {
     sh(
         script: """#!/bin/bash
-        export ENVIRONMENT=${env.ENVIRONMENT}
-        export CLOUD_NAME=${env.CLOUD_NAME}
         export GIT_BRANCH=${env.RELEASE_BRANCH}
-        export HAPROXY_RELEASE_NUMBER=${env.HAPROXY_RELEASE_NUMBER}
         scripts/create-haproxy-stack.sh ubuntu"""
     )
 }
@@ -12,11 +9,7 @@ def createHAProxyStackOracle() {
     sh(
         script: """#!/bin/bash
         export USER_PUBLIC_KEY_PATH=~/.ssh/ssh_key.pub
-        ssh-keygen -y -f "\$USER_PRIVATE_KEY_PATH" > "\$USER_PUBLIC_KEY_PATH"
-        export ENVIRONMENT=${env.ENVIRONMENT}
-        export ORACLE_REGION=${env.ORACLE_REGION}
         export ORACLE_GIT_BRANCH=${env.RELEASE_BRANCH}
-        export HAPROXY_RELEASE_NUMBER=${env.HAPROXY_RELEASE_NUMBER}
         terraform/haproxy-shards/create-haproxy-stack-oracle.sh ubuntu"""
     )
 }
@@ -61,9 +54,9 @@ pipeline {
                         if (env.CLOUD_PROVIDER == 'oracle') {
                             withCredentials([
                                 string(credentialsId: 'oci-jenkins-terraform-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
-                                string(credentialsId: 'oci-jenkins-terraform-aws-id', variable: 'AWS_ACCESS_KEY_ID'),
-                                sshUserPrivateKey(credentialsId: 'ssh-ubuntu', keyFileVariable: 'USER_PRIVATE_KEY_PATH',usernameVariable: 'SSH_USERNAME')
+                                string(credentialsId: 'oci-jenkins-terraform-aws-id', variable: 'AWS_ACCESS_KEY_ID')
                             ]) {
+                              utils.SetupAnsible()
                               utils.SetupSSH()
                               sshagent (credentials: ['ssh-ubuntu']) {
                                 createHAProxyStackOracle()
