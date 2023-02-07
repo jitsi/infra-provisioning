@@ -5,7 +5,7 @@ def oracle_regions(cloud_list) {
             returnStdout: true,
             script: """#!/bin/bash
                 . clouds/${cloud_list[i]}.sh
-                echo \$ORACLE_REGION"""
+                echo \$ORACLE_REGION | xargs"""
         )
     }
     return oracle_regions
