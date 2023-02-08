@@ -21,12 +21,18 @@ pipeline {
                             string(credentialsId: 'ansible-vault-password', variable: 'ANSIBLE_VAULT_PASSWORD_PATH')
                         ]) {
                             utils.SetupAnsible()
-                            sh(
+                            def torture_user = sh(
                                 script: """#!/bin/bash
                                 ENCRYPTED_CREDENTIALS_FILE=ansible/secrets/torture.yml
-                                export TORTURE_GITHUB_USER=\$(ansible-vault view \$ENCRYPTED_CREDENTIALS_FILE --vault-password \$VAULT_PASSWORD_FILE | yq eval ".torture_github_user" -)
-                                export TORTURE_GITHUB_TOKEN=\$(ansible-vault view \$ENCRYPTED_CREDENTIALS_FILE --vault-password \$VAULT_PASSWORD_FILE | yq eval ".torture_github_token" -)"""
+                                echo \$(ansible-vault view \$ENCRYPTED_CREDENTIALS_FILE --vault-password \$VAULT_PASSWORD_FILE | yq eval ".torture_github_user" -)"""
                             )
+                            echo torture_user
+                            def torture_secret = sh(
+                                script: """#!/bin/bash
+                                ENCRYPTED_CREDENTIALS_FILE=ansible/secrets/torture.yml
+                                echo \$(ansible-vault view \$ENCRYPTED_CREDENTIALS_FILE --vault-password \$VAULT_PASSWORD_FILE | yq eval ".torture_github_token" -)"""
+                            )
+                            echo torture_secret
                         }
                     }
                 }
@@ -43,7 +49,7 @@ pipeline {
                         ]) {
                             sshagent (credentials: ['ssh-ubuntu']) {
                                 sh(
-                                    script: "scripts/synthetic-longlived-test.sh"
+                                    script: "TORTURE_GITHUB_USER=${torture_user} TORTURE_GITHUB_TOKEN=${torture_secret} scripts/synthetic-longlived-test.sh"
                                 )
                             }
                         }
