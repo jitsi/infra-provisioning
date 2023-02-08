@@ -19,20 +19,23 @@ pipeline {
                     dir("infra-configuration") {
                         withCredentials([
                             string(credentialsId: 'ansible-vault-password', variable: 'ANSIBLE_VAULT_PASSWORD_PATH')
+                            sshUserPrivateKey(credentialsId: 'ssh-ubuntu', keyFileVariable: 'CONNECTION_SSH_PRIVATE_KEY_FILE', usernameVariable: 'SSH_USERNAME')
                         ]) {
                             utils.SetupAnsible()
-                            def torture_user = sh(
-                                script: """#!/bin/bash
-                                ENCRYPTED_CREDENTIALS_FILE=ansible/secrets/torture.yml
-                                echo \$(ansible-vault view \$ENCRYPTED_CREDENTIALS_FILE --vault-password \$ANSIBLE_VAULT_PASSWORD_PATH | yq eval ".torture_github_user" -)"""
-                            )
-                            echo torture_user
-                            def torture_secret = sh(
-                                script: """#!/bin/bash
-                                ENCRYPTED_CREDENTIALS_FILE=ansible/secrets/torture.yml
-                                echo \$(ansible-vault view \$ENCRYPTED_CREDENTIALS_FILE --vault-password \$ANSIBLE_VAULT_PASSWORD_PATH | yq eval ".torture_github_token" -)"""
-                            )
-                            echo torture_secret
+                            sshagent (credentials: ['ssh-ubuntu']) {
+                                def torture_user = sh(
+                                    script: """#!/bin/bash
+                                    ENCRYPTED_CREDENTIALS_FILE=ansible/secrets/torture.yml
+                                    echo \$(ansible-vault view \$ENCRYPTED_CREDENTIALS_FILE --vault-password \$ANSIBLE_VAULT_PASSWORD_PATH | yq eval ".torture_github_user" -)"""
+                                )
+                                echo torture_user
+                                def torture_secret = sh(
+                                    script: """#!/bin/bash
+                                    ENCRYPTED_CREDENTIALS_FILE=ansible/secrets/torture.yml
+                                    echo \$(ansible-vault view \$ENCRYPTED_CREDENTIALS_FILE --vault-password \$ANSIBLE_VAULT_PASSWORD_PATH | yq eval ".torture_github_token" -)"""
+                                )
+                                echo torture_secret
+                            }
                         }
                     }
                 }
@@ -46,6 +49,7 @@ pipeline {
                         withCredentials([
                             string(credentialsId: 'jenkins-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
                             string(credentialsId: 'jenkins-aws-id', variable: 'AWS_ACCESS_KEY_ID')
+                            sshUserPrivateKey(credentialsId: 'ssh-ubuntu', keyFileVariable: 'CONNECTION_SSH_PRIVATE_KEY_FILE', usernameVariable: 'SSH_USERNAME')
                         ]) {
                             sshagent (credentials: ['ssh-ubuntu']) {
                                 sh(
