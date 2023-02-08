@@ -37,7 +37,7 @@ if [ -z "$TORTURE_GITHUB_TOKEN" ]; then
   exit 2
 fi
 
-[ -z "$WAVEFRONT_PROXY_URL" ]; then
+if [ -z "$WAVEFRONT_PROXY_URL" ]; then
   echo "## No WAVEFRONT_PROXY_URL found. Exiting..."
   exit 2
 fi
