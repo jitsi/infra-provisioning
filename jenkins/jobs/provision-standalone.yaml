@@ -47,6 +47,42 @@
           description: "Oracle base image to use, defaults to searching for latest JammyBase"
           trim: true
       - string:
+          name: ANSIBLE_TAGS
+          description: "Limit ansible run to roles matching tags in list, should include at least 'provision', defaults to all"
+          trim: true
+      - string:
+          name: TELEGRAF_ENABLED
+          description: "Enables telegraf reporting to wavefront"
+          trim: true
+      - string:
+          name: JITSI_MEET_VERSION
+          description: "Jitsi Meet version, defaults to latest"
+          trim: true
+      - string:
+          name: JICOFO_VERSION
+          description: "Jicofo version, defaults to latest"
+          trim: true
+      - string:
+          name: JVB_VERSION
+          description: "JVB version, defaults to latest"
+          trim: true
+      - string:
+          name: DISK_SIZE
+          description: "Overrides size of disk on instance"
+          trim: true
+      - string:
+          name: SHAPE
+          description: "Overrides OCI shape of instance"
+          trim: true
+      - string:
+          name: OCPUS
+          description: "Overrides OCI CPU count"
+          trim: true
+      - string:
+          name: MEMORY_IN_GBS
+          description: "Overrides OCI Memory size"
+          trim: true
+      - string:
           name: INFRA_CONFIGURATION_REPO
           default: git@github.com:jitsi/infra-configuration.git
           description: "Repo for configuration code (ansible etc), defaults to 'git@github.com:jitsi/infra-configuration.git'."
