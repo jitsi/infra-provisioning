@@ -1,0 +1,39 @@
+def utils
+pipeline {
+    agent any
+     stages {
+        stage ("setup") {
+            steps {
+                script {
+                    // load utility function
+                    def rootDir = pwd()
+                    utils = load "${rootDir}/jenkins/groovy/Utils.groovy"
+                    // checkout repos
+                    utils.SetupRepos(env.VIDEO_INFRA_BRANCH)
+                    utils.SetupAnsible()
+                }
+            }
+        }  
+        stage ("run longlived conference test") {
+            steps {
+                script {
+                    dir("infra-provisioning") {
+                        withCredentials([
+                            string(credentialsId: 'torture_github_token', variable: 'TORTURE_GITHUB_TOKEN'),
+                            string(credentialsId: 'torture_github_user', variable: 'TORTURE_GITHUB_USER'),
+                        ]) {
+                            sh(
+                                script: "scripts/synthetic-longlived-test.sh"
+                            )
+                        }
+                    }
+                }
+            }
+        }
+     }
+     post {
+        always {
+            cleanWs()
+        }
+    }
+}

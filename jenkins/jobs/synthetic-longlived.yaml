@@ -1,0 +1,77 @@
+- job:
+    name: synthetic-longlived
+    display-name: synthetic conference test
+    description: >
+      Tests that conference connections can stay up for a duration to shards and
+      bridges. Requires a selenium grid to launch tests from. Publishes results
+      to a Wavefront proxy and to Cloudwatch.
+    concurrent: true
+    parameters:
+      - string:
+          name: BASE_URL
+          description: "Base URL for the Jitsi deployment, e.g., https://meet.jit.si/"
+          trim: true
+      - string:
+          name: SELENIUM_HUB_URL
+          description: "URL for the Selenium hub."
+          trim: true
+      - string:
+          name: WAVEFRONT_PROXY_URL
+          default: wavefront-proxy.example.com:2878
+          description: "URL to upload metrics to wavefront."
+          trim: true
+      - string:
+          name: TEST_DURATION_MINUTES
+          default: 5
+          description: "Duration to run the test, in minutes."
+          trim: true
+      - string:
+          name: TORTURE_TEST_BRANCH
+          default: master
+          description: "Branch to use from torture test."
+          trim: true
+      - string:
+          name: TORTURE_TEST_REPO
+          default: git@github.com:jitsi/jitsi-meet-torture.git
+          description: "Repo for torture test code."
+          trim: true
+      - string:
+          name: CLOUDWATCH_REGION
+          default: us-west-2
+          description: "Region that cloudwatch is running in."
+          trim: true
+      - string:
+          name: ENVIRONMENT
+          description: "Environment to run the synthetic longlived test in."
+          trim: true
+      - string:
+          name: VIDEO_INFRA_BRANCH
+          default: main
+          description: "Controls checkout branch for infra repos, defaults to 'main'."
+          trim: true
+      - string:
+          name: INFRA_CONFIGURATION_REPO
+          default: git@github.com:jitsi/infra-configuration.git
+          description: "Repo for configuration code (ansible etc), defaults to 'git@github.com:jitsi/infra-configuration.git'."
+          trim: true
+      - string:
+          name: INFRA_CUSTOMIZATIONS_REPO
+          default: git@github.com:jitsi/infra-customizations.git
+          description: "Repo with customized configurations, defaults to 'git@github.com:jitsi/infra-customizations.git'."
+          trim: true
+ 
+    project-type: pipeline
+    sandbox: true
+    pipeline-scm:
+      scm:
+        - git:
+            url: git@github.com:jitsi/infra-provisioning.git
+            credentials-id: "video-infra"
+            branches:
+              - "origin/${VIDEO_INFRA_BRANCH}"
+            browser: githubweb
+            browser-url: https://github.com/jitsi/infra-provisioning
+            submodule:
+              recursive: true
+      script-path: jenkins/groovy/synthetic-longlived/Jenkinsfile
+      lightweight-checkout: true
