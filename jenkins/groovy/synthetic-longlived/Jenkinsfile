@@ -1,4 +1,6 @@
 def utils
+def torture_user
+def torture_secret
 pipeline {
     agent any
      stages {
@@ -21,17 +23,19 @@ pipeline {
                             string(credentialsId: 'ansible-vault-password', variable: 'ANSIBLE_VAULT_PASSWORD_PATH')
                         ]) {
                             utils.SetupAnsible()
-                            def torture_user = sh(
+                            torture_user = sh(
+                                returnStdout: true,
                                 script: """#!/bin/bash
                                 ENCRYPTED_CREDENTIALS_FILE=ansible/secrets/torture.yml
                                 echo \$(ansible-vault view \$ENCRYPTED_CREDENTIALS_FILE --vault-password .vault-password.txt | yq eval ".torture_github_user" -)"""
-                            )
+                            ).trim()
                             echo torture_user
-                            def torture_secret = sh(
+                            torture_secret = sh(
+                                returnStdout: true,
                                 script: """#!/bin/bash
                                 ENCRYPTED_CREDENTIALS_FILE=ansible/secrets/torture.yml
                                 echo \$(ansible-vault view \$ENCRYPTED_CREDENTIALS_FILE --vault-password .vault-password.txt | yq eval ".torture_github_token" -)"""
-                            )
+                            ).trim()
                             echo torture_secret
                         }
                     }
