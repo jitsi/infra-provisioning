@@ -24,8 +24,8 @@ pipeline {
                             sh(
                                 script: """#!/bin/bash
                                 ENCRYPTED_CREDENTIALS_FILE=ansible/secrets/torture.yml
-                                export TORTURE_GITHUB_USER=$(ansible-vault view $ENCRYPTED_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".torture_github_user" -)
-                                export TORTURE_GITHUB_TOKEN=$(ansible-vault view $ENCRYPTED_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".torture_github_token" -)"""
+                                export TORTURE_GITHUB_USER=\$(ansible-vault view \$ENCRYPTED_CREDENTIALS_FILE --vault-password \$VAULT_PASSWORD_FILE | yq eval ".torture_github_user" -)
+                                export TORTURE_GITHUB_TOKEN=\$(ansible-vault view \$ENCRYPTED_CREDENTIALS_FILE --vault-password \$VAULT_PASSWORD_FILE | yq eval ".torture_github_token" -)"""
                             )
                         }
                     }
