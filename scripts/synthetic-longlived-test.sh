@@ -46,8 +46,6 @@ fi
 [ -z "$CLOUDWATCH_DIMENSIONS" ] && CLOUDWATCH_DIMENSIONS="Environment=${ENVIRONMENT}"
 [ -z "$CLOUDWATCH_REGION" ] && CLOUDWATCH_REGION="us-west-2"
   
-LOCAL_PATH=$(realpath $(dirname "${BASH_SOURCE[0]}"))
-
 SUCCESS=0
 
 # Extracts the jitsi-meet-web version used from the base.html file on the shard.
