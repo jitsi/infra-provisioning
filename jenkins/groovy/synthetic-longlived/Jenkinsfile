@@ -33,7 +33,6 @@ pipeline {
                                 echo \$(ansible-vault view \$ENCRYPTED_CREDENTIALS_FILE --vault-password .vault-password.txt | yq eval ".torture_github_token" -)"""
                             )
                             echo torture_secret
-                            }
                         }
                     }
                 }
