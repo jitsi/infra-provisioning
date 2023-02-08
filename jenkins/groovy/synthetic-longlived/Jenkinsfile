@@ -41,9 +41,11 @@ pipeline {
                             string(credentialsId: 'jenkins-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
                             string(credentialsId: 'jenkins-aws-id', variable: 'AWS_ACCESS_KEY_ID')
                         ]) {
-                            sh(
-                                script: "scripts/synthetic-longlived-test.sh"
-                            )
+                            sshagent (credentials: ['ssh-ubuntu']) {
+                                sh(
+                                    script: "scripts/synthetic-longlived-test.sh"
+                                )
+                            }
                         }
                     }
                 }
