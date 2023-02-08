@@ -24,13 +24,13 @@ pipeline {
                             def torture_user = sh(
                                 script: """#!/bin/bash
                                 ENCRYPTED_CREDENTIALS_FILE=ansible/secrets/torture.yml
-                                echo \$(ansible-vault view \$ENCRYPTED_CREDENTIALS_FILE --vault-password \$VAULT_PASSWORD_FILE | yq eval ".torture_github_user" -)"""
+                                echo \$(ansible-vault view \$ENCRYPTED_CREDENTIALS_FILE --vault-password \$ANSIBLE_VAULT_PASSWORD_PATH | yq eval ".torture_github_user" -)"""
                             )
                             echo torture_user
                             def torture_secret = sh(
                                 script: """#!/bin/bash
                                 ENCRYPTED_CREDENTIALS_FILE=ansible/secrets/torture.yml
-                                echo \$(ansible-vault view \$ENCRYPTED_CREDENTIALS_FILE --vault-password \$VAULT_PASSWORD_FILE | yq eval ".torture_github_token" -)"""
+                                echo \$(ansible-vault view \$ENCRYPTED_CREDENTIALS_FILE --vault-password \$ANSIBLE_VAULT_PASSWORD_PATH | yq eval ".torture_github_token" -)"""
                             )
                             echo torture_secret
                         }
