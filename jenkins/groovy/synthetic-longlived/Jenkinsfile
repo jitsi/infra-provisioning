@@ -48,13 +48,13 @@ pipeline {
                         withCredentials([
                             string(credentialsId: 'jenkins-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
                             string(credentialsId: 'jenkins-aws-id', variable: 'AWS_ACCESS_KEY_ID'),
-                            string(credentialsId: 'torture-github-user', variable: 'TORTURE_GITHUB_USER'),
-                            string(credentialsId: 'torture-github-token', variable: 'TORTURE_GITHUB_TOKEN'),
                             sshUserPrivateKey(credentialsId: 'ssh-ubuntu', keyFileVariable: 'CONNECTION_SSH_PRIVATE_KEY_FILE', usernameVariable: 'SSH_USERNAME')
                         ]) {
                             sshagent (credentials: ['ssh-ubuntu']) {
                                 sh(
-                                    script: "TORTURE_GITHUB_USER=${torture_user} TORTURE_GITHUB_TOKEN=${torture_secret} scripts/synthetic-longlived-test.sh"
+                                    script: """#!/bin/bash
+                                    set +x
+                                    TORTURE_GITHUB_USER=${torture_user} TORTURE_GITHUB_TOKEN=${torture_secret} scripts/synthetic-longlived-test.sh"""
                                 )
                             }
                         }
