@@ -34,3 +34,4 @@ regions
 sites
 ansible
 .vault-password.txt
+scripts/__pycache__

@@ -39,7 +39,7 @@ fi
 [ -z "$RELEASE_NUMBER" ] && RELEASE_NUMBER="0"
 
 ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
-[ -e "$LOCAL_PATH/../clouds/${ORACLE_CLOUD_NAME}.sh" ] && . $LOCAL_PATH/../all/clouds/"${ORACLE_CLOUD_NAME}".sh
+[ -e "$LOCAL_PATH/../clouds/${ORACLE_CLOUD_NAME}.sh" ] && . $LOCAL_PATH/../clouds/"${ORACLE_CLOUD_NAME}".sh
 
 #if we're not given versions, search for the latest of each type of image
 [ -z "$JVB_VERSION" ] && JVB_VERSION='latest'
