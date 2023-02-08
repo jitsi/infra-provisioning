@@ -34,3 +34,5 @@ regions
 sites
 ansible
 .vault-password.txt
+scripts/__pycache__
+jenkins_jobs.ini

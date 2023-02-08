@@ -1,0 +1,57 @@
+
+def utils
+pipeline {
+    agent any
+    options {
+        timestamps()
+    }
+    stages {
+        // output stage, shows off our input parameters
+        stage ("setup") {
+            steps {
+                script {
+                    // load utility function
+                    def rootDir = pwd()
+                    utils = load "${rootDir}/jenkins/groovy/Utils.groovy"
+                    // checkout repos
+                    utils.SetupRepos(env.VIDEO_INFRA_BRANCH)
+
+                    // setup OCI credentials
+                    utils.SetupOCI()
+                }
+            }
+        }
+        stage ("wavefront proxy provisioning") {
+            steps {
+                script {
+                    echo 'wavefront proxy provision beginning'
+                    dir('infra-provisioning') {
+                        if (env.CLOUD_PROVIDER == 'oracle') {
+                            withCredentials([
+                                string(credentialsId: 'oci-jenkins-terraform-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
+                                string(credentialsId: 'oci-jenkins-terraform-aws-id', variable: 'AWS_ACCESS_KEY_ID'),
+                                sshUserPrivateKey(credentialsId: 'ssh-ubuntu', keyFileVariable: 'USER_PRIVATE_KEY_PATH', usernameVariable: 'SSH_USERNAME')
+                            ]) {
+                                utils.SetupAnsible()
+                                utils.SetupSSH()
+                                sh '''#!/bin/bash
+                                export USER_PUBLIC_KEY_PATH=~/.ssh/ssh_key.pub
+                                export ORACLE_GIT_BRANCH=\"$RELEASE_BRANCH\"
+                                terraform/wavefront-proxy/create-wavefront-proxy-oracle.sh $SSH_USERNAME'''
+                            }
+                        }
+                        if (env.CLOUD_PROVIDER == 'aws') {
+                            withCredentials([
+                                string(credentialsId: 'jenkins-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
+                                string(credentialsId: 'jenkins-aws-id', variable: 'AWS_ACCESS_KEY_ID')
+                            ]) {
+                                sh '''#!/bin/bash
+                                scripts/create-wavefront-proxy-stack.sh'''
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
