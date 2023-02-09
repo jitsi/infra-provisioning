@@ -1,8 +1,8 @@
 - view-template:
     name: 'monitor'
-    description: 'jobs that monitor resources'
+    description: 'jobs that monitor and test resources'
     view-type: list
-    regex: '(monitor)-.*'
+    regex: '(^monitor|^synthetic)-.*'
 
 - project:
     name: 'monitor-view'

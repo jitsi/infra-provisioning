@@ -1,0 +1,95 @@
+def utils
+def torture_user
+def torture_secret
+pipeline {
+    agent any
+    options {
+      ansiColor('xterm')
+      timestamps()
+      buildDiscarder(logRotator(daysToKeepStr: '14'))
+    }
+    stages {
+        stage ("setup") {
+            steps {
+                script {
+                    // load utility function
+                    def rootDir = pwd()
+                    utils = load "${rootDir}/jenkins/groovy/Utils.groovy"
+                    // checkout repos
+                    utils.SetupRepos(env.VIDEO_INFRA_BRANCH)
+                }
+            }
+        }  
+        stage ("load github credentials") {
+            steps {
+                script {
+                    dir("infra-configuration") {
+                        withCredentials([
+                            string(credentialsId: 'ansible-vault-password', variable: 'ANSIBLE_VAULT_PASSWORD_PATH')
+                        ]) {
+                            utils.SetupAnsible()
+                            torture_user = sh(
+                                returnStdout: true,
+                                script: """#!/bin/bash
+                                ENCRYPTED_CREDENTIALS_FILE=ansible/secrets/torture.yml
+                                echo \$(ansible-vault view \$ENCRYPTED_CREDENTIALS_FILE --vault-password .vault-password.txt | yq eval ".torture_github_user" -)"""
+                            ).trim()
+                            torture_secret = sh(
+                                returnStdout: true,
+                                script: """#!/bin/bash
+                                ENCRYPTED_CREDENTIALS_FILE=ansible/secrets/torture.yml
+                                echo \$(ansible-vault view \$ENCRYPTED_CREDENTIALS_FILE --vault-password .vault-password.txt | yq eval ".torture_github_token" -)"""
+                            ).trim()
+                        }
+                    }
+                }
+            }
+        }
+        stage ("clone torture test repo") {
+            steps {
+                script {
+                    dir('jitsi-meet-torture') {
+                        try {
+                            git branch: env.TORTURE_TEST_BRANCH, url: env.TORTURE_TEST_REPO, credentialsId: 'video-infra'
+                        } catch (hudson.AbortException e) {
+                            if (e.toString().contains('Couldn\'t find any revision to build')) {
+                                echo "WARNING: couldn't find branch ${branch} in torture test repo, falling back to master"
+                                git branch: 'master', url: env.TORTURE_TEST_REPO, credentialsId: 'video-infra'
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        stage ("run longlived conference test") {
+            steps {
+                script {
+                    dir("infra-provisioning") {
+                        withCredentials([
+                            string(credentialsId: 'jenkins-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
+                            string(credentialsId: 'jenkins-aws-id', variable: 'AWS_ACCESS_KEY_ID'),
+                            sshUserPrivateKey(credentialsId: 'ssh-ubuntu', keyFileVariable: 'CONNECTION_SSH_PRIVATE_KEY_FILE', usernameVariable: 'SSH_USERNAME')
+                        ]) {
+                            sshagent (credentials: ['ssh-ubuntu']) {
+                                sh(
+                                    script: """#!/bin/bash
+                                    set +x
+                                    TORTURE_GITHUB_USER=${torture_user} TORTURE_GITHUB_TOKEN=${torture_secret} scripts/synthetic-longlived-test.sh"""
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    post {
+        always {
+            junit 'jitsi-meet-torture/target/*/xml/*.xml'
+            archiveArtifacts artifacts: 'jitsi-meet-torture/target/*/xml/*.xml', fingerprint: true
+        }
+        cleanup {
+            cleanWs()
+        }
+    }
+}
