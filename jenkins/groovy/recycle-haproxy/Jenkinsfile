@@ -67,4 +67,11 @@ pipeline {
             }
         }
      }
+    post {
+        always {
+            archiveArtifacts artifacts: 'test-results/**', allowEmptyArchive: false
+            // Clean up afterwards
+            cleanWs()
+        }
+    }
 }
