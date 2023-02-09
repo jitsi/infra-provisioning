@@ -52,8 +52,8 @@ pipeline {
                             git branch: env.TORTURE_TEST_BRANCH, url: env.TORTURE_TEST_REPO, credentialsId: 'video-infra'
                         } catch (hudson.AbortException e) {
                             if (e.toString().contains('Couldn\'t find any revision to build')) {
-                                echo "WARNING: couldn't find branch ${branch} in torture test repo, falling back to main"
-                                git branch: 'main', url: env.TORTURE_TEST_REPO, credentialsId: 'video-infra'
+                                echo "WARNING: couldn't find branch ${branch} in torture test repo, falling back to master"
+                                git branch: 'master', url: env.TORTURE_TEST_REPO, credentialsId: 'video-infra'
                             }
                         }
                     }
