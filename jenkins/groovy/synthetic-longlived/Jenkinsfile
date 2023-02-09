@@ -89,12 +89,12 @@ pipeline {
         always {
             dir('test-results') {
                 sh '''#!/bin/bash
-                for i in *; do 
-                cd \$i;
-                for z in *.zip; do
-                    unzip \$z
-                done
-                cd -
+                for i in *; do
+                    cd \$i;
+                    for z in *.zip; do
+                        unzip \$z
+                    done
+                    cd -
                 done'''
             }
             archiveArtifacts artifacts: 'test-results/**/*', fingerprint: true
