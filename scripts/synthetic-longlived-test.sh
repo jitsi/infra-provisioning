@@ -105,7 +105,7 @@ function doTest {
         -Dwdm.gitHubTokenSecret=$TORTURE_GITHUB_TOKEN
 }
 
-cd jitsi-meet-torture
+cd ../jitsi-meet-torture
 # clean all local branches
 git branch | grep -vx '* master' | xargs -r -n 1 git branch -D || true
 # update

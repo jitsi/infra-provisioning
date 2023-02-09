@@ -15,7 +15,7 @@ pipeline {
                 }
             }
         }  
-        stage ("extract torture test github credentials") {
+        stage ("extract torture test credentials") {
             steps {
                 script {
                     dir("infra-configuration") {
@@ -39,7 +39,22 @@ pipeline {
                     }
                 }
             }
-
+        }
+        stage ("set up torture test repo") {
+            steps {
+                script {
+                    dir('jitsi-meet-torture') {
+                        try {
+                            git branch: env.TORTURE_TEST_BRANCH, url: env.TORTURE_TEST_REPO, credentialsId: 'video-infra'
+                        } catch (hudson.AbortException e) {
+                            if (e.toString().contains('Couldn\'t find any revision to build')) {
+                                echo "WARNING: couldn't find branch ${branch} in torture test repo, falling back to main"
+                                git branch: 'main', url: env.TORTURE_TEST_REPO, credentialsId: 'video-infra'
+                            }
+                        }
+                    }
+                }
+            }
         }
         stage ("run longlived conference test") {
             steps {
