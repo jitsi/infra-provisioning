@@ -95,7 +95,7 @@ pipeline {
                     unzip \$z
                 done
                 cd -
-                done'''     
+                done'''
             }
             archiveArtifacts artifacts: 'test-results/**/*', fingerprint: true
             junit 'test-results/**/target/chrome-2-chrome/*.xml'
