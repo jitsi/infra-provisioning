@@ -15,7 +15,7 @@ pipeline {
                 }
             }
         }  
-        stage ("extract torture test credentials") {
+        stage ("load github credentials") {
             steps {
                 script {
                     dir("infra-configuration") {
@@ -40,7 +40,7 @@ pipeline {
                 }
             }
         }
-        stage ("set up torture test repo") {
+        stage ("clone torture test repo") {
             steps {
                 script {
                     dir('jitsi-meet-torture') {

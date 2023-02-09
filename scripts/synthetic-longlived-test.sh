@@ -78,6 +78,7 @@ function getJitsiMeetTortureTag {
 echo "End checking versions"
 
 function doTest {
+    set -x
     TENANT_URL=$1
     DURATION_MINUTES=$2
 
@@ -89,7 +90,7 @@ function doTest {
         EXTRA_MVN_TARGETS="clean"
     fi
     
-	set +x
+	#set +x
     mvn -U ${EXTRA_MVN_TARGETS} test \
         -Djitsi-meet.instance.url="${TENANT_URL}" \
         -Dlonglived.duration=$DURATION_MINUTES \
