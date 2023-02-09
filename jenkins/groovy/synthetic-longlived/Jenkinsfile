@@ -3,7 +3,11 @@ def torture_user
 def torture_secret
 pipeline {
     agent any
-     stages {
+    options {
+      ansiColor('xterm')
+      timestamps()
+    }
+    stages {
         stage ("setup") {
             steps {
                 script {
