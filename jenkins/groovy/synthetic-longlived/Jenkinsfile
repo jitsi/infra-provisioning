@@ -16,6 +16,9 @@ pipeline {
                     utils = load "${rootDir}/jenkins/groovy/Utils.groovy"
                     // checkout repos
                     utils.SetupRepos(env.VIDEO_INFRA_BRANCH)
+
+                    sh 'rm -rf test-results'
+                    sh 'mkdir test-results'
                 }
             }
         }  
@@ -81,9 +84,23 @@ pipeline {
                 }
             }
         }
-     }
-     post {
+    }
+    post {
         always {
+            dir('test-results') {
+                sh '''#!/bin/bash
+                for i in *; do 
+                cd \$i;
+                for z in *.zip; do
+                    unzip \$z
+                done
+                cd -
+                done'''     
+            }
+            archiveArtifacts artifacts: 'test-results/**/*', fingerprint: true
+            junit 'test-results/**/target/chrome-2-chrome/*.xml'
+        }
+        cleanup {
             cleanWs()
         }
     }
