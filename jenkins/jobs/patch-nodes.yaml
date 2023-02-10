@@ -52,9 +52,9 @@
           description: "Controls checkout branch for infra repos, defaults to 'main'."
           trim: true
       - string:
-          name: ENVIRONMENT
+          name: ENVIRONMENT_LIST
           default:
-          description: "Environment to patch nodes in."
+          description: "Space-delimited list of environments to patch nodes in. The special value of ALL will patch all environments at once."
           trim: true
       - string:
           name: INFRA_CONFIGURATION_REPO
