@@ -53,8 +53,12 @@
           trim: true
       - string:
           name: ENVIRONMENT
+          description: "Environments to patch nodes in. If ENVIRONMENT_LIST is defined, this will be ignored."
+          trim: true
+      - string:
+          name: ENVIRONMENT_LIST
           default:
-          description: "Environment to patch nodes in."
+          description: "Space-delimited list of environments to patch nodes in. The special value of ALL will patch all environments at once. Takes prescedence over ENVIRONMENT."
           trim: true
       - string:
           name: INFRA_CONFIGURATION_REPO
