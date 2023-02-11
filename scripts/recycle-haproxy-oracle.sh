@@ -64,7 +64,16 @@ function scale_up_haproxy_oracle() {
 }
 
 function scale_down_haproxy_oracle() {
-  echo -e "## recycle-haproxy-oracle: halve the size of all haproxy instance pools"
+  echo -e "\n## recycle-haproxy-oracle: get list of IPs of instances to detach"
+  DETACHABLE_IPS=$(ENVIRONMENT=$ENVIRONMENT MINIMUM_POOL_SIZE=2 ROLE=haproxy $LOCAL_PATH/pool.py halve --onlyip)
+
+  echo -e "\n## recycle-haproxy-oracle: shelling into detachable instances at ${DETACHABLE_IPS} and shutting down consul nicely"
+  set -x
+  for IP in $DETACHABLE_IPS; do
+    timeout 10 ssh -n -o StrictHostKeyChecking=no -F $LOCAL_PATH/../config/ssh.config $ANSIBLE_SSH_USER@$IP "sudo service consul stop"
+  done
+
+  echo -e "\n## recycle-haproxy-oracle: halve the size of all haproxy instance pools"
   ENVIRONMENT=$ENVIRONMENT MINIMUM_POOL_SIZE=2 ROLE=haproxy $LOCAL_PATH/pool.py halve --wait
 
   #echo -e "\n## wait 300 seconds so that haproxy.inventory can be accurately rebuilt"
@@ -76,15 +85,6 @@ function scale_down_haproxy_oracle() {
     echo "## ERROR: reload-haproxy.sh failed, exiting..."
     return 1
   fi
-
-  # if [ "$ENVIRONMENT" == "beta-meet-jit-si" ] || [ "$ENVIRONMENT" == "meet-jit-si" ] || [ "$ENVIRONMENT" == "stage-8x8" ] || [ "$ENVIRONMENT" == "prod-8x8" ]; then
-  #   echo "## forcing proxymonitor to rebuild its inventory for the environment"
-  #   ssh -F $LOCAL_PATH/../config/ssh.config $ANSIBLE_SSH_USER@proxymonitor sudo rm /opt/jitsi/jitsi-video-infrastructure/environments/$ENVIRONMENT/haproxy.inventory
-  #   if [ $? -gt 0 ]; then
-  #     echo "##WARNING: failed to force rebuild of proxymonitor inventory"
-  #     return 1
-  #   fi
-  # fi
 }
 
 function sanity_check() {
