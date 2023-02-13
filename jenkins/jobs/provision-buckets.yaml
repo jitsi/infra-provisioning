@@ -23,6 +23,11 @@
           default: git@github.com:jitsi/infra-customizations.git
           description: "Repo with customized configurations, defaults to 'git@github.com:jitsi/infra-customizations.git'."
           trim: true
+      - string:
+          name: INFRA_CONFIGURATION_REPO
+          default: git@github.com:jitsi/infra-configuration.git
+          description: "Repo with configurations, defaults to 'git@github.com:jitsi/infra-configuration.git'."
+          trim: true
  
     project-type: pipeline
     sandbox: true
