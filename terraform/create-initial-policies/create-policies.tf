@@ -22,6 +22,7 @@ resource "oci_identity_policy" "policy" {
     "Allow dynamic-group ${var.dynamic_group_name} to manage objects in compartment ${var.compartment_name} where target.bucket.name='tf-state-${var.compartment_name}'",
     "Allow dynamic-group ${var.dynamic_group_name} to manage objects in compartment ${var.compartment_name} where target.bucket.name='jvb-images-${var.compartment_name}'",
     "Allow dynamic-group ${var.dynamic_group_name} to manage objects in compartment ${var.compartment_name} where target.bucket.name='iperf-logs-${var.compartment_name}'",
+    "Allow dynamic-group ${var.dynamic_group_name} to manage objects in compartment ${var.compartment_name} where target.bucket.name='stats-${var.compartment_name}'",
     "Allow dynamic-group ${var.dynamic_group_name} to use tag-namespace in compartment ${var.compartment_name}",
     "Allow dynamic-group ${var.dynamic_group_name} to manage private-ips in compartment ${var.compartment_name}",
     "Allow dynamic-group ${var.dynamic_group_name} to manage public-ips in compartment ${var.compartment_name}",
