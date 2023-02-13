@@ -452,7 +452,7 @@ resource "oci_monitoring_alarm" "proxy_5xx_alarm_email" {
     namespace = "oci_lbaas"
     query = "HttpResponses5xx[1m]{backendSetName = \"HAProxyLBBS\", resourceId = \"${oci_load_balancer.oci_load_balancer.id}\"}.sum() > 10"
 
-    severity = var.alarm_severity
+    severity = "WARNING"
     depends_on = [
       null_resource.cloud_init_output
     ]
