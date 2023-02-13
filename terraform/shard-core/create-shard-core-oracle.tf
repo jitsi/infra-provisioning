@@ -438,7 +438,7 @@ resource "oci_monitoring_alarm" "shard_health_alarm_any" {
     is_enabled = var.alarm_is_enabled
     metric_compartment_id = var.compartment_ocid
     namespace = "oci_healthchecks"
-    query = "HTTP.isHealthy[1m]{resourceId = \"${oci_health_checks_http_monitor.shard_http_health.id}\"}.min() < 1"
+    query = "HTTP.isHealthy[1m]{resourceId = \"${oci_health_checks_http_monitor.shard_http_health.id}\", errorMessage !~ \"*context deadline exceeded*\"}.min() < 1"
     severity = var.alarm_any_severity
     depends_on = [
       oci_health_checks_http_monitor.shard_http_health
