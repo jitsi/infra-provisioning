@@ -68,7 +68,6 @@ function scale_down_haproxy_oracle() {
   DETACHABLE_IPS=$(ENVIRONMENT=$ENVIRONMENT MINIMUM_POOL_SIZE=2 ROLE=haproxy $LOCAL_PATH/pool.py halve --onlyip)
 
   echo -e "\n## recycle-haproxy-oracle: shelling into detachable instances at ${DETACHABLE_IPS} and shutting down consul nicely"
-  set -x
   for IP in $DETACHABLE_IPS; do
     timeout 10 ssh -n -o StrictHostKeyChecking=no -F $LOCAL_PATH/../config/ssh.config $ANSIBLE_SSH_USER@$IP "sudo service consul stop"
   done
