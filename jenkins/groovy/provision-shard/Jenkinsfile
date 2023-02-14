@@ -207,6 +207,25 @@ pipeline {
                 }
             }
         }
+        stage ("Make shard numbers") {
+            when {
+                allOf{
+                   expression {env.CLOUD_PROVIDER == 'oracle'}
+                   expression {skipShardJVBs == 'false'}
+                }
+            }
+            steps {
+                script {
+                    dir('infra-provisioning') {
+                        if (!env.SHARD_NUMBERS) {
+                            shard_numbers=generateShardNumbers(env.ENVIRONMENT, env.SHARD_COUNT)
+                        } else {
+                            shard_numbers=env.SHARD_NUMBERS
+                        }
+                    }
+                }
+            }
+        }
         stage ("Make shard properties Oracle") {
             when {
                 allOf{
@@ -241,11 +260,6 @@ pipeline {
                     }
                     dir('infra-provisioning') {
                         shardPropertiesOracle = makeShardProperties(env.CLOUD_NAME,env.ENVIRONMENT,usedInstancePoolSizeE_4,usedInstancePoolSizeE_3,usedInstancePoolSize2_4,usedInstancePoolSize1_4)
-                        if (!env.SHARD_NUMBERS) {
-                            shard_numbers=generateShardNumbers(env.ENVIRONMENT, env.SHARD_COUNT)
-                        } else {
-                            shard_numbers=env.SHARD_NUMBERS
-                        }
                     }
                 }
             }
