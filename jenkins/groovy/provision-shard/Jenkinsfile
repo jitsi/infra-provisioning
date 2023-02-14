@@ -7,7 +7,9 @@ def generateShardNumbers(hcv_environment, shard_count) {
         def generatedShardNumbers = sh(
             returnStdout: true,
             script: """#!/bin/bash
-                ENVIRONMENT="${hcv_environment}" COUNT=${shard_count} scripts/shard.sh new ubuntu"""
+                export ENVIRONMENT="${hcv_environment}"
+                export COUNT=${shard_count}
+                scripts/shard.sh new ubuntu"""
         ).trim()
         return generatedShardNumbers
 }
