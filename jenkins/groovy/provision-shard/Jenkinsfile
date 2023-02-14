@@ -6,7 +6,7 @@ def scale_to_size_per_shard = [:]
 def generateShardNumbers(hcv_environment, shard_count) {
         def generatedShardNumbers = sh(
             returnStdout: true,
-            scripts: """#!/bin/bash
+            script: """#!/bin/bash
                 ENVIRONMENT="${hcv_environment}" COUNT=${shard_count} scripts/shard.sh new ubuntu"""
         ).trim()
         return generatedShardNumbers
