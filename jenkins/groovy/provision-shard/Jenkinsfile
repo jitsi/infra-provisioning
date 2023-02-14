@@ -211,7 +211,6 @@ pipeline {
             when {
                 allOf{
                    expression {env.CLOUD_PROVIDER == 'oracle'}
-                   expression {skipShardJVBs == 'false'}
                 }
             }
             steps {
