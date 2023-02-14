@@ -14,9 +14,9 @@ def generateShardNumbers(hcv_environment, shard_count) {
             scripts: """#!/bin/bash
                 ENVIRONMENT="${hcv_environment}" COUNT=${shard_count} scripts/shard.sh new ubuntu"""
         ).trim()
+        return generatedShardNumbers
     }
   }
-  return generatedShardNumbers
 }
 
 def makeShardProperties(cloud_name,hcv_environment,default_instance_pool_size_e_4,default_instance_pool_size_e_3,default_instance_pool_size_2_4,default_instance_pool_size_1_4) {
