@@ -221,7 +221,7 @@ pipeline {
                                     if (!shard_count) {
                                         shard_count = 1
                                     }
-                                    shard_numbers=generateShardNumbers(env.ENVIRONMENT, env.SHARD_COUNT)
+                                    shard_numbers=generateShardNumbers(env.ENVIRONMENT, shard_count)
                                 } else {
                                     shard_numbers=env.SHARD_NUMBERS
                                 }
