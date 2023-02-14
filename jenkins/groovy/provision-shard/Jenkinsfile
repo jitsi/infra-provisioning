@@ -217,6 +217,10 @@ pipeline {
                                 string(credentialsId: 'jenkins-aws-id', variable: 'AWS_ACCESS_KEY_ID')
                             ]) {
                                 if (!env.SHARD_NUMBERS) {
+                                    def shard_count=env.SHARD_COUNT
+                                    if (!shard_count) {
+                                        shard_count = 1
+                                    }
                                     shard_numbers=generateShardNumbers(env.ENVIRONMENT, env.SHARD_COUNT)
                                 } else {
                                     shard_numbers=env.SHARD_NUMBERS
