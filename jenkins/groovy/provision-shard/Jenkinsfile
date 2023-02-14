@@ -3,6 +3,22 @@ def usedInstancePoolSize2_4
 def usedInstancePoolSize1_4
 def scale_to_size_per_shard = [:]
 
+def generateShardNumbers(hcv_environment, shard_count) {
+  sshagent(credentials: ['ssh-ubuntu']) {
+    withCredentials([
+        string(credentialsId: 'jenkins-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
+        string(credentialsId: 'jenkins-aws-id', variable: 'AWS_ACCESS_KEY_ID')
+    ]) {
+        def generatedShardNumbers = sh(
+            returnStdout: true,
+            scripts: """#!/bin/bash
+                ENVIRONMENT="${hcv_environment}" COUNT=${shard_count} scripts/shard.sh new ubuntu"""
+        ).trim()
+    }
+  }
+  return generatedShardNumbers
+}
+
 def makeShardProperties(cloud_name,hcv_environment,default_instance_pool_size_e_4,default_instance_pool_size_e_3,default_instance_pool_size_2_4,default_instance_pool_size_1_4) {
 
     def makeShardProperties = sh(
@@ -88,7 +104,7 @@ echo \$USE_RELEASE_BACKENDS"""
     return ret;
 }
 
-def newShards(hcv_environment,cloud_name,core_provider,workspace,release_branch,release_number) {
+def newShards(hcv_environment,cloud_name,core_provider,workspace,release_branch,release_number,shard_numbers) {
 
     def replyShards = sh(
         script: """#!/bin/bash
@@ -102,6 +118,7 @@ def newShards(hcv_environment,cloud_name,core_provider,workspace,release_branch,
          export RELEASE_NUMBER=${release_number}
          export SHARD_CREATE_OUTPUT_FILE=${workspace}/test-results/shard_create_output.txt
          export NEW_SHARDS_FILE=${workspace}/test-results/new_shards.properties
+         export SHARD_NUMBERS="${shard_numbers}"
          scripts/create-and-wait-shards.sh ubuntu"""
     );
 
@@ -148,7 +165,7 @@ def reconfigureEnvironment(hcv_environment) {
 
 def skipShardJVBs
 def utils
-
+def shard_numbers
 pipeline {
     agent any
     options {
@@ -224,6 +241,11 @@ pipeline {
                     }
                     dir('infra-provisioning') {
                         shardPropertiesOracle = makeShardProperties(env.CLOUD_NAME,env.ENVIRONMENT,usedInstancePoolSizeE_4,usedInstancePoolSizeE_3,usedInstancePoolSize2_4,usedInstancePoolSize1_4)
+                        if (!env.SHARD_NUMBERS) {
+                            shard_numbers=generateShardNumbers(env.ENVIRONMENT, env.SHARD_COUNT)
+                        } else {
+                            shard_numbers=env.SHARD_NUMBERS
+                        }
                     }
                 }
             }
@@ -238,13 +260,15 @@ pipeline {
             steps {
                 script {
                     dir('infra-provisioning') {
+                      sshagent(credentials: ['ssh-ubuntu']) {
                         withCredentials([
                             string(credentialsId: 'jenkins-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
                             string(credentialsId: 'jenkins-aws-id', variable: 'AWS_ACCESS_KEY_ID'),
                             sshUserPrivateKey(credentialsId: 'ssh-ubuntu', keyFileVariable: 'USER_PRIVATE_KEY_PATH',usernameVariable: 'SSH_USERNAME')
                         ]) {
-                            newShards(env.ENVIRONMENT,env.CLOUD_NAME,env.CORE_CLOUD_PROVIDER,env.WORKSPACE,env.RELEASE_BRANCH,env.RELEASE_NUMBER)
+                            newShards(env.ENVIRONMENT,env.CLOUD_NAME,env.CORE_CLOUD_PROVIDER,env.WORKSPACE,env.RELEASE_BRANCH,env.RELEASE_NUMBER,env.SHARD_NUMBERS)
                         }
+                      }
                     }
                 }
             }
@@ -257,15 +281,17 @@ pipeline {
             }
             steps {
                 dir('infra-provisioning') {
+                  sshagent(credentials: ['ssh-ubuntu']) {
                     withCredentials([
                         string(credentialsId: 'oci-jenkins-terraform-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
                         string(credentialsId: 'oci-jenkins-terraform-aws-id', variable: 'AWS_ACCESS_KEY_ID'),
                         sshUserPrivateKey(credentialsId: 'ssh-ubuntu', keyFileVariable: 'USER_PRIVATE_KEY_PATH',usernameVariable: 'SSH_USERNAME')
                     ]) {
                         script {
-                            newShards(env.ENVIRONMENT,env.CLOUD_NAME,env.CORE_CLOUD_PROVIDER,env.WORKSPACE,env.RELEASE_BRANCH,env.RELEASE_NUMBER)
+                            newShards(env.ENVIRONMENT,env.CLOUD_NAME,env.CORE_CLOUD_PROVIDER,env.WORKSPACE,env.RELEASE_BRANCH,env.RELEASE_NUMBER,shard_numbers)
                         }
                     }
+                  }
                 }
             }
         }
