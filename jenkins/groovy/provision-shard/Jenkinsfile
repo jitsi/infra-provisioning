@@ -4,19 +4,12 @@ def usedInstancePoolSize1_4
 def scale_to_size_per_shard = [:]
 
 def generateShardNumbers(hcv_environment, shard_count) {
-  sshagent(credentials: ['ssh-ubuntu']) {
-    withCredentials([
-        string(credentialsId: 'jenkins-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
-        string(credentialsId: 'jenkins-aws-id', variable: 'AWS_ACCESS_KEY_ID')
-    ]) {
         def generatedShardNumbers = sh(
             returnStdout: true,
             scripts: """#!/bin/bash
                 ENVIRONMENT="${hcv_environment}" COUNT=${shard_count} scripts/shard.sh new ubuntu"""
         ).trim()
         return generatedShardNumbers
-    }
-  }
 }
 
 def makeShardProperties(cloud_name,hcv_environment,default_instance_pool_size_e_4,default_instance_pool_size_e_3,default_instance_pool_size_2_4,default_instance_pool_size_1_4) {
@@ -216,10 +209,17 @@ pipeline {
             steps {
                 script {
                     dir('infra-provisioning') {
-                        if (!env.SHARD_NUMBERS) {
-                            shard_numbers=generateShardNumbers(env.ENVIRONMENT, env.SHARD_COUNT)
-                        } else {
-                            shard_numbers=env.SHARD_NUMBERS
+                        sshagent(credentials: ['ssh-ubuntu']) {
+                            withCredentials([
+                                string(credentialsId: 'jenkins-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
+                                string(credentialsId: 'jenkins-aws-id', variable: 'AWS_ACCESS_KEY_ID')
+                            ]) {
+                                if (!env.SHARD_NUMBERS) {
+                                    shard_numbers=generateShardNumbers(env.ENVIRONMENT, env.SHARD_COUNT)
+                                } else {
+                                    shard_numbers=env.SHARD_NUMBERS
+                                }
+                            }
                         }
                     }
                 }
