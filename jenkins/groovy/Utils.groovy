@@ -61,7 +61,7 @@ def CheckSkipBuild(image_type, environment, force_build) {
 }
 
 def SetupRepos(branch) {
-    sshagent (credentials: ['video-infra']) {
+  sshagent (credentials: ['video-infra']) {
       def scmUrl = scm.getUserRemoteConfigs()[0].getUrl()
       dir('infra-provisioning') {
         retry(count: 3) {
@@ -99,7 +99,7 @@ def SetupRepos(branch) {
         sh 'cp -a infra-customization/* infra-configuration'
       }
       sh 'cp -a infra-customization/* infra-provisioning'
-    }
+  }
 }
 
 def CreateImageOracle(image_type) {
