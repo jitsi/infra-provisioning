@@ -64,22 +64,27 @@ def SetupRepos(branch) {
   sshagent (credentials: ['video-infra']) {
       def scmUrl = scm.getUserRemoteConfigs()[0].getUrl()
       dir('infra-provisioning') {
+        retry(count: 3) {
           git branch: branch, url: scmUrl, credentialsId: 'video-infra'
+        }
       }
       if (env.INFRA_CONFIGURATION_REPO) {
         dir('infra-configuration') {
-            try {
-                checkout([$class: 'GitSCM', branches: [[name: "origin/${branch}"]], extensions: [[$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: false, recursiveSubmodules: true, reference: '', trackingSubmodules: false]], userRemoteConfigs: [[credentialsId: 'video-infra', url: env.INFRA_CONFIGURATION_REPO]]])
-            } catch (hudson.AbortException e) {
-                if (e.toString().contains('Couldn\'t find any revision to build')) {
-                    echo "WARNING: couldn't find branch ${branch} in infra-configuration repo, falling back to main"
-                    checkout([$class: 'GitSCM', branches: [[name: "origin/main"]], extensions: [[$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: false, recursiveSubmodules: true, reference: '', trackingSubmodules: false]], userRemoteConfigs: [[credentialsId: 'video-infra', url: env.INFRA_CONFIGURATION_REPO]]])
+            retry(count: 3) {
+                try {
+                    checkout([$class: 'GitSCM', branches: [[name: "origin/${branch}"]], extensions: [[$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: false, recursiveSubmodules: true, reference: '', trackingSubmodules: false]], userRemoteConfigs: [[credentialsId: 'video-infra', url: env.INFRA_CONFIGURATION_REPO]]])
+                } catch (hudson.AbortException e) {
+                    if (e.toString().contains('Couldn\'t find any revision to build')) {
+                        echo "WARNING: couldn't find branch ${branch} in infra-configuration repo, falling back to main"
+                        checkout([$class: 'GitSCM', branches: [[name: "origin/main"]], extensions: [[$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: false, recursiveSubmodules: true, reference: '', trackingSubmodules: false]], userRemoteConfigs: [[credentialsId: 'video-infra', url: env.INFRA_CONFIGURATION_REPO]]])
+                    }
                 }
+                SetupAnsible()
             }
-            SetupAnsible()
         }
       }
       dir('infra-customization') {
+        retry(count: 3) {
           try {
             git branch: branch, url: env.INFRA_CUSTOMIZATIONS_REPO, credentialsId: 'video-infra'
           } catch (hudson.AbortException e) {
@@ -88,6 +93,7 @@ def SetupRepos(branch) {
                 git branch: 'main', url: env.INFRA_CUSTOMIZATIONS_REPO, credentialsId: 'video-infra'
             }
           }
+        }
       }
       if (env.INFRA_CONFIGURATION_REPO) {
         sh 'cp -a infra-customization/* infra-configuration'
