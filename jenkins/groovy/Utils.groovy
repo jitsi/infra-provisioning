@@ -60,8 +60,9 @@ def CheckSkipBuild(image_type, environment, force_build) {
     return (checkOutput == 'skip');
 }
 
-def SetupRepos(branch) {
-  sshagent (credentials: ['video-infra']) {
+def SetupRepos(branch, retries=3) {
+  try {
+    sshagent (credentials: ['video-infra']) {
       def scmUrl = scm.getUserRemoteConfigs()[0].getUrl()
       dir('infra-provisioning') {
           git branch: branch, url: scmUrl, credentialsId: 'video-infra'
@@ -93,6 +94,16 @@ def SetupRepos(branch) {
         sh 'cp -a infra-customization/* infra-configuration'
       }
       sh 'cp -a infra-customization/* infra-provisioning'
+    }
+  } catch (hudson.AbortException e) {
+    if (e.toString().contains('fatal: early EOF')) {
+        if (retries > 1) {
+            echo "WARNING: git failure, retrying all checkouts"
+            SetupRepos(branch, retries-1)
+        } else {
+            echo "ERROR: too many git failure retries, giving up git checkout"
+        }
+    }
   }
 }
 
