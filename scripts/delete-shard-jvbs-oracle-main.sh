@@ -30,6 +30,7 @@ echo "deleting shards: $SHARDS"
 
 for x in $SHARDS; do
   AWS_SHARD_DELETE_SUCCESS=0
+  SHARD_DELETE_SUCCESS=0
   SHARD_CORE_CLOUD_PROVIDER=$(SHARD=$x ENVIRONMENT=$HCV_ENVIRONMENT $LOCAL_PATH/shard.sh core_provider $SSH_USER)
 
   if [ "$SHARD_CORE_CLOUD_PROVIDER" == "aws" ]; then
