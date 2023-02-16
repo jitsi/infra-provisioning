@@ -77,6 +77,8 @@ def SetupRepos(branch) {
                     if (e.toString().contains('Couldn\'t find any revision to build')) {
                         echo "WARNING: couldn't find branch ${branch} in infra-configuration repo, falling back to main"
                         checkout([$class: 'GitSCM', branches: [[name: "origin/main"]], extensions: [[$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: false, recursiveSubmodules: true, reference: '', trackingSubmodules: false]], userRemoteConfigs: [[credentialsId: 'video-infra', url: env.INFRA_CONFIGURATION_REPO]]])
+                    } else {
+                        throw e
                     }
                 }
                 SetupAnsible()
@@ -91,6 +93,8 @@ def SetupRepos(branch) {
             if (e.toString().contains('Couldn\'t find any revision to build')) {
                 echo "WARNING: couldn't find branch ${branch} in infra-customization repo, falling back to main"
                 git branch: 'main', url: env.INFRA_CUSTOMIZATIONS_REPO, credentialsId: 'video-infra'
+            } else {
+                throw e
             }
           }
         }
