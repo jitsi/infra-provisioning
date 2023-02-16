@@ -10,6 +10,11 @@
           description: 'Playbook file to run against the nodes.'
           trim: true
       - string:
+          name: ANSIBLE_TAGS
+          default: setup,ssh,sshmfa
+          description: 'Ansible tags, leave blank for all'
+          trim: true
+      - string:
           name: BATCH_SIZE
           default: 20
           description: "Number of instances to patch at one time."
