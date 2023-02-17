@@ -35,6 +35,10 @@
           description: "Prosody Version"
           trim: true
       - string:
+          name: PROSODY_APT_FLAG
+          description: "Prosody apt flag, set to 'false' for URL"
+          trim: true
+      - string:
           name: JVB_VERSION
           description: "Videobridge Version"
           trim: true
