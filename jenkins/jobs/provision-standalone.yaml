@@ -91,7 +91,7 @@
           description: "Version to use from URL, defaults to '0.11.14'"
           trim: true
       - string:
-          name: PROSODY_PACKAGE_VERSION
+          name: PROSODY_VERSION
           description: "Version to use from apt, defaults to latest in apt"
           trim: true
       - string:
