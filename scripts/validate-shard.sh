@@ -95,11 +95,12 @@ function getJitsiMeetTortureTag() {
   [ -z "$BUILD_NUM" ] && echo "master";
 }
 
-if [ -z $TORTURE_BRANCH ]; then
-  TORTURE_BRANCH=$(getJitsiMeetTortureTag $SHARD_IP)
-fi
-
-[ -z $TORTURE_BRANCH ] && TORTURE_BRANCH="master"
+#if [ -z $TORTURE_BRANCH ]; then
+#  TORTURE_BRANCH=$(getJitsiMeetTortureTag $SHARD_IP)
+#fi
+#
+#[ -z $TORTURE_BRANCH ] && TORTURE_BRANCH="master"
+TORTURE_BRANCH="validate-fixes"
 
 [ -z "$TORTURE_PATH" ] && TORTURE_PATH="../test-results/$TEST_ID"
 
