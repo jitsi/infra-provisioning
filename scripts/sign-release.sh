@@ -40,7 +40,7 @@ fi
 #KEYID=$(getent passwd $USER | cut -f 5 -d : | cut -f 1 -d ,)
 [ -z "$KEYID" ] && KEYID="SIP Communicator"
 PASSPHRASE=$(cat "$GNUPGHOME/passphrase")
-
+export GPG_TTY=$(tty)
 # These should fail if for some reason the directory isn't owned by us
 chown "$USER" "$GNUPGHOME"
 chmod 0700 "$GNUPGHOME"
