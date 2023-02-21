@@ -34,6 +34,7 @@ pipeline {
                         ]) {
                           sshagent(credentials: ['ssh-jenkins-ci']) {
                             sh '''#!/bin/bash
+                                set -x
                                 sudo cp $S3_PASSWORD_PATH /etc/.passwd-s3fs
                                 sudo chown 600 /etc/.passwd-s3fs
                                 mkdir -p /home/jenkins/jitsi/gnupg-jitsi
