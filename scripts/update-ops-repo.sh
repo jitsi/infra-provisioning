@@ -20,7 +20,7 @@ LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 [ -z "$REPO_PATH" ] && REPO_PATH="$OPS_REPO_MOUNT_PATH/repo/debian"
 [ -z "$REPO_CONF" ] && REPO_CONF="$OPS_REPO_MOUNT_PATH/jitsi-debian-pkg.conf"
 
-sudo /usr/bin/s3fs "$OPS_REPO_MOUNT_PATH" -o "bucket=$OPS_REPO_BUCKET" -o "passwd_file=$S3FS_PASSWORD_PATH" -o "url=https://$ORACLE_S3_NAMESPACE.compat.objectstorage.$ORACLE_REGION.oraclecloud.com" -o nomultipart -o use_path_request_style -o "endpoint=$ORACLE_REGION" -o allow_other -o umask=000
+sudo /usr/bin/s3fs "$OPS_REPO_MOUNT_PATH" -o "bucket=$OPS_REPO_BUCKET" -o "passwd_file=$S3FS_PASSWORD_PATH" -o "url=https://$ORACLE_S3_NAMESPACE.compat.objectstorage.$ORACLE_REGION.oraclecloud.com" -o nomultipart -o use_path_request_style -o "endpoint=$ORACLE_REGION" -o allow_other -o umask=000 -o dbglevel=info -f -o curldbg
 
 if [ $? -gt 0 ]; then
     echo "Failed to mount bucket, skipping further steps."
