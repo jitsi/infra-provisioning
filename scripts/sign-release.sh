@@ -40,8 +40,8 @@ fi
 # This is just a default value
 #KEYID=$(getent passwd $USER | cut -f 5 -d : | cut -f 1 -d ,)
 [ -z "$KEYID" ] && KEYID="SIP Communicator"
+[ -z "$GPG_TTY" ] && GPG_TTY=$(tty)
 PASSPHRASE=$(cat "$GNUPGHOME/passphrase")
-export GPG_TTY=$(tty)
 # These should fail if for some reason the directory isn't owned by us
 chown "$USER" "$GNUPGHOME"
 chmod 0700 "$GNUPGHOME"
@@ -49,5 +49,5 @@ chmod 0700 "$GNUPGHOME"
 gpg --help 1>/dev/null 2>&1 || true
 
 rm -f Release.gpg.tmp
-echo "$PASSPHRASE" | gpg --no-tty --batch --passphrase-fd=0 --default-key "$KEYID" --detach-sign -o Release.gpg.tmp "$1"
+echo "$PASSPHRASE" | gpg --no-tty --batch --pinentry-mode loopback --passphrase-fd=0 --default-key "$KEYID" --detach-sign -o Release.gpg.tmp "$1"
 mv Release.gpg.tmp Release.gpg
