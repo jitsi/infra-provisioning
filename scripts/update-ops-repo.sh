@@ -33,6 +33,7 @@ else
     if [ -z "$FILES_TO_COPY" ]; then
         echo "No FILES_TO_COPY set, not copying any new files"
     else
+        grep -q "$UPSTREAM_CI_SERVER" ~/.ssh/known_hosts || ssh-keyscan -H $UPSTREAM_CI_SERVER >> ~/.ssh/known_hosts
         scp $UPSTREAM_CI_USER@$UPSTREAM_CI_SERVER:$FILES_TO_COPY $REPO_PATH/mini-dinstall/incoming
         ls -l $REPO_PATH/mini-dinstall/incoming
     fi
