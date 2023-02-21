@@ -28,11 +28,15 @@ pipeline {
                     dir('infra-provisioning') {
                       lock("ops-repo") {
                         withCredentials([
-                            string(credentialsId: 'ops-repo-jenkins8x8-s3fs', variable: 'S3_FS_AUTH'),
+                            file(credentialsId: 'ops-repo-s3fs', variable: 'S3_PASSWORD_PATH'),
                             file(credentialsId: 'ops-repo-secring', variable: 'OPS_REPO_SECRING_PATH')
                         ]) {
                           sshagent(credentials: ['ssh-jenkins-ci'])
-                            sh 'scripts/update-ops-repo.sh'
+                            sh '''#!/bin/bash
+                                sudo mv $S3_PASSWORD_PATH /etc/.passwd-s3fs
+                                sudo chown 600 /etc/.passwd-s3fs
+                                scripts/update-ops-repo.sh
+                                exit $?'''
                         }
                       }
                     }
