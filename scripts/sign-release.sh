@@ -26,6 +26,7 @@
 # $ GNUPGHOME=/src/debian/mini-dinstall/s3kr1t gnupg --gen-key
 
 set -e
+set -x
 
 # User variables
 # MAKE SURE TO MAKE THIS DIRECTORY 0700!
