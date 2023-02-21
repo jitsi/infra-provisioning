@@ -1,0 +1,43 @@
+def utils
+pipeline {
+    agent any
+    options {
+        timestamps()
+        ansiColor('xterm')
+    }
+    stages {
+        // output stage, shows off our input parameters
+        stage ("setup") {
+            steps {
+                script {
+                    // load utility function
+                    def rootDir = pwd()
+                    utils = load "${rootDir}/jenkins/groovy/Utils.groovy"
+                    // checkout repos
+                    utils.SetupRepos(env.VIDEO_INFRA_BRANCH)
+
+                    // setup OCI credentials
+                    utils.SetupOCI()
+                }
+            }
+        }
+        stage ("ops repo processing") {
+            steps {
+                script {
+                    echo 'ops repo rebuild'
+                    dir('infra-provisioning') {
+                      lock("ops-repo") {
+                        withCredentials([
+                            string(credentialsId: 'ops-repo-jenkins8x8-s3fs', variable: 'S3_FS_AUTH'),
+                            file(credentialsId: 'ops-repo-secring', variable: 'OPS_REPO_SECRING_PATH')
+                        ]) {
+                          sshagent(credentials: ['ssh-jenkins-ci'])
+                            sh 'scripts/update-ops-repo.sh'
+                        }
+                      }
+                    }
+                }
+            }
+        }
+    }
+}

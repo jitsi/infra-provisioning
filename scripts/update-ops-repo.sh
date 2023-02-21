@@ -20,4 +20,13 @@ LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
 sudo /usr/bin/s3fs "$OPS_REPO_MOUNT_PATH" -o "bucket=$OPS_REPO_BUCKET" -o "passwd_file=$S3FS_PASSWORD_PATH" -o "url=https://$ORACLE_S3_NAMESPACE.compat.objectstorage.$ORACLE_REGION.oraclecloud.com" -o nomultipart -o use_path_request_style -o "endpoint=$ORACLE_REGION" -o allow_other -o umask=000
 
+if [ -z "$UPSTREAM_CI_SERVER" ]; then
+    echo "No upstream CI server specified, not copying any new files"
+else
+    scp $UPSTREAM_CI_USER@$UPSTREAM_CI_SERVER:$FILES_TO_COPY $REPO_PATH/mini-dinstall/incoming
+    ls -l $REPO_DIR/mini-dinstall/incoming
+fi
+
 mini-dinstall -b -c $REPO_CONF $REPO_PATH
+
+exit $?

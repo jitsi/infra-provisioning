@@ -4,17 +4,8 @@
     concurrent: true
     parameters:
       - string:
-          name: JITSI_MEET_META_VERSION
-          description: "Meta package version"
-          trim: true
-      - string:
-          name: FORCE_BUILD_IMAGE
-          description: "Flag to control whether images are force-built"
-          trim: true
-      - string:
-          name: ENVIRONMENT
-          description: "Environment to build in, defaults to 'beta-meet-jit-si'"
-          default: beta-meet-jit-si
+          name: FILES_TO_COPY
+          description: "Paths to copy"
           trim: true
       - string:
           name: VIDEO_INFRA_BRANCH
