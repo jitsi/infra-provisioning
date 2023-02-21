@@ -3,7 +3,7 @@
 # e.g. scripts
 LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
-[ -e "$LOCAL_PATH/../clouds/oracle.sh" ] && . $LOCAL_PATH/../clouds/oracle.sh
+[ -e "$LOCAL_PATH/../clouds/all.sh" ] && . $LOCAL_PATH/../clouds/all.sh
 
 # pull in oracle namespace
 [ -e "$LOCAL_PATH/../clouds/oracle.sh" ] && . $LOCAL_PATH/../clouds/oracle.sh
