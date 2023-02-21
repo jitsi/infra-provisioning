@@ -30,8 +30,12 @@ fi
 if [ -z "$UPSTREAM_CI_SERVER" ]; then
     echo "No upstream CI server specified, not copying any new files"
 else
-    scp $UPSTREAM_CI_USER@$UPSTREAM_CI_SERVER:$FILES_TO_COPY $REPO_PATH/mini-dinstall/incoming
-    ls -l $REPO_PATH/mini-dinstall/incoming
+    if [ -z "$FILES_TO_COPY" ]; then
+        echo "No FILES_TO_COPY set, not copying any new files"
+    else
+        scp $UPSTREAM_CI_USER@$UPSTREAM_CI_SERVER:$FILES_TO_COPY $REPO_PATH/mini-dinstall/incoming
+        ls -l $REPO_PATH/mini-dinstall/incoming
+    fi
 fi
 
 mini-dinstall -b -c $REPO_CONF $REPO_PATH
