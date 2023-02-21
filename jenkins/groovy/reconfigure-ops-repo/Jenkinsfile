@@ -29,12 +29,17 @@ pipeline {
                       lock("ops-repo") {
                         withCredentials([
                             file(credentialsId: 'ops-repo-s3fs', variable: 'S3_PASSWORD_PATH'),
-                            file(credentialsId: 'ops-repo-secring', variable: 'OPS_REPO_SECRING_PATH')
+                            file(credentialsId: 'ops-repo-secring', variable: 'OPS_REPO_SECRING_PATH'),
+                            file(credentialsId: 'ops-repo-pubring', variable: 'OPS_REPO_PUBRING_PATH')
                         ]) {
                           sshagent(credentials: ['ssh-jenkins-ci'])
                             sh '''#!/bin/bash
-                                sudo mv $S3_PASSWORD_PATH /etc/.passwd-s3fs
+                                sudo cp $S3_PASSWORD_PATH /etc/.passwd-s3fs
                                 sudo chown 600 /etc/.passwd-s3fs
+                                mkdir -p /home/jenkins/jitsi/gnupg-jitsi
+                                chmod 0700 /home/jenkins/jitsi/gnupg-jitsi
+                                cp $OPS_REPO_SECRING_PATH /home/jenkins/jitsi/gnupg-jitsi/secring.gpg
+                                cp $OPS_REPO_PUBRING_PATH /home/jenkins/jitsi/gnupg-jitsi/pubring.gpg
                                 scripts/update-ops-repo.sh
                                 exit $?'''
                         }

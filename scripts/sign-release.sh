@@ -29,7 +29,7 @@ set -e
 
 # User variables
 # MAKE SURE TO MAKE THIS DIRECTORY 0700!
-[ -z "$GNUPGHOME" ] && export GNUPGHOME="/var/lib/jenkins/jitsi/gnupg-jitsi"
+[ -z "$GNUPGHOME" ] && export GNUPGHOME="/home/jenkins/jitsi/gnupg-jitsi"
 if [ ! -d "$GNUPGHOME" ]; then
     mkdir -p "$GNUPGHOME"
 fi
