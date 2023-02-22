@@ -155,20 +155,6 @@ resource "oci_load_balancer_certificate" "main_certificate" {
     }
 }
 
-resource "oci_load_balancer_certificate" "signal_api_certificate" {
-    #Required
-    certificate_name = var.signal_api_certificate_certificate_name
-    load_balancer_id = oci_load_balancer.oci_load_balancer.id
-
-    ca_certificate = var.signal_api_certificate_ca_certificate
-    private_key = var.signal_api_certificate_private_key
-    public_certificate = var.signal_api_certificate_public_certificate
-
-    lifecycle {
-        create_before_destroy = true
-    }
-}
-
 resource "oci_load_balancer_listener" "redirect_listener" {
   load_balancer_id = oci_load_balancer.oci_load_balancer.id
   name = "RepoHTTPListener"
