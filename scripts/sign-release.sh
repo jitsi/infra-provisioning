@@ -40,7 +40,6 @@ fi
 # This is just a default value
 #KEYID=$(getent passwd $USER | cut -f 5 -d : | cut -f 1 -d ,)
 [ -z "$KEYID" ] && KEYID="SIP Communicator"
-[ -z "$GPG_TTY" ] && GPG_TTY=$(tty)
 PASSPHRASE=$(cat "$GNUPGHOME/passphrase")
 # These should fail if for some reason the directory isn't owned by us
 chown "$USER" "$GNUPGHOME"
