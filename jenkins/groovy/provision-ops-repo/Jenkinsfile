@@ -1,0 +1,79 @@
+def createOpsRepoAWS() {
+    sh(
+        script: """#!/bin/bash
+        export GIT_BRANCH=${env.RELEASE_BRANCH}
+        scripts/create-ops-repo-stack.sh ubuntu"""
+    )
+}
+def createOpsRepoOracle() {
+    sh(
+        script: """#!/bin/bash
+        export USER_PUBLIC_KEY_PATH=~/.ssh/ssh_key.pub
+        export ORACLE_GIT_BRANCH=${env.RELEASE_BRANCH}
+        terraform/ops-repo/create-ops-repo-oracle.sh ubuntu"""
+    )
+}
+
+def utils
+pipeline {
+    agent any
+    options {
+        ansiColor('xterm')
+        timestamps()
+        buildDiscarder(logRotator(numToKeepStr: '10', artifactNumToKeepStr: '10'))
+    }
+    stages {
+        stage('Prepare/Checkout') { // for display purposes
+            steps {
+                script {
+                    // load utility function
+                    def rootDir = pwd()
+                    utils = load "${rootDir}/jenkins/groovy/Utils.groovy"
+                    // checkout repos
+                    utils.SetupRepos(env.VIDEO_INFRA_BRANCH)
+
+                    // setup OCI credentials
+                    utils.SetupOCI()
+
+                    sh 'mkdir -p test-results'
+                }
+            }
+        }
+        stage("Ops Repo Creation") {
+            steps {
+                script {
+                    dir("infra-provisioning") {
+                        if (env.CLOUD_PROVIDER == 'aws') {
+                            withCredentials([
+                                string(credentialsId: 'oci-jenkins-terraform-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
+                                string(credentialsId: 'oci-jenkins-terraform-aws-id', variable: 'AWS_ACCESS_KEY_ID')
+                            ]) {
+                                createOpsRepoAWS()
+                            }
+                        }
+                        if (env.CLOUD_PROVIDER == 'oracle') {
+                            withCredentials([
+                                string(credentialsId: 'oci-jenkins-terraform-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
+                                string(credentialsId: 'oci-jenkins-terraform-aws-id', variable: 'AWS_ACCESS_KEY_ID'),
+                                sshUserPrivateKey(credentialsId: 'ssh-ubuntu', keyFileVariable: 'USER_PRIVATE_KEY_PATH',usernameVariable: 'SSH_USERNAME')
+                            ]) {
+                              utils.SetupAnsible()
+                              utils.SetupSSH()
+                              sshagent (credentials: ['ssh-ubuntu']) {
+                                createOpsRepoOracle()
+                              }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    post {
+        always {
+            archiveArtifacts artifacts: 'test-results/**', allowEmptyArchive: true
+            // Clean up afterwards
+            cleanWs()
+        }
+    }
+}
