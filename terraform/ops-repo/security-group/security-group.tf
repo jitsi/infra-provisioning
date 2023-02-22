@@ -70,3 +70,18 @@ resource "oci_core_network_security_group_security_rule" "nsg_rule_ingress_http"
     }
   }
 }
+
+resource "oci_core_network_security_group_security_rule" "nsg_rule_ingress_stats" {
+  network_security_group_id = oci_core_network_security_group.security_group.id
+  direction = "INGRESS"
+  protocol = "6"
+  source = data.oci_core_vcns.vcns.virtual_networks[0].cidr_block
+  stateless = false
+
+  tcp_options {
+    destination_port_range {
+      max = 888
+      min = 888
+    }
+  }
+}
