@@ -124,7 +124,12 @@ elif [ "$VERSIONING_ACTION" == "DELETE_RELEASE" ]; then
     echo "## WARNING versioning manager did not find release $VERSIONING_RELEASE with response:\n$response"
   else
     echo "## ERROR deleting release $VERSIONING_RELEASE with status code $httpCode and response:\n$response"
-    exit 1
+    if [[ "$FORCE_DELETE" != "true" ]]; then
+      exit 1
+    else
+      echo "FORCE_DELETE on, exiting cleanly despite versioning manager service errors above"
+      exit 0
+    fi
   fi
 
 elif [ "$VERSIONING_ACTION" == "SET_RELEASE_GA" ]; then

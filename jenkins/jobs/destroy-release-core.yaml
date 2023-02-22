@@ -22,6 +22,11 @@
           description: "force unpin all tenants using this release in the versioning-manager service"
           trim: true
       - string:
+          name: FORCE_DELETE
+          default: 'false'
+          description: "force delete this release even if the versioning-manager service has errors"
+          trim: true
+      - string:
           name: INFRA_CONFIGURATION_REPO
           default: git@github.com:jitsi/infra-configuration.git
           description: "Repo for configuration code (ansible etc), defaults to 'git@github.com:jitsi/infra-configuration.git'."
