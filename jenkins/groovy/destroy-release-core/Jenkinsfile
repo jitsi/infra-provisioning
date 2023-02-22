@@ -67,12 +67,13 @@ def deleteShard(hcv_environment,shard_name) {
     return deleteShard
 }
 
-def versioningManagerDeleteRelease(hvc_environment, release_number, force_unpin) {
+def versioningManagerDeleteRelease(hvc_environment, release_number, force_unpin, force_delete) {
     sh(
         script: """#!/bin/bash
 export VERSIONING_ACTION=DELETE_RELEASE
 export VERSIONING_RELEASE="${release_number}"
 export VERSIONING_FORCE_UNPIN="${force_unpin}"
+export FORCE_DELETE="${force_delete}"
 scripts/versioning-manager.sh
 """
     )
@@ -123,7 +124,7 @@ pipeline {
                     file(credentialsId: 'asap-jwt-key-prod', variable: 'ASAP_JWT_KEY_PROD')
                 ]) {
                     dir('infra-provisioning') {
-                        versioningManagerDeleteRelease(env.ENVIRONMENT, env.RELEASE_NUMBER, env.FORCE_UNPIN)
+                        versioningManagerDeleteRelease(env.ENVIRONMENT, env.RELEASE_NUMBER, env.FORCE_UNPIN, env.FORCE_DELETE)
                     }
                 }
             }
