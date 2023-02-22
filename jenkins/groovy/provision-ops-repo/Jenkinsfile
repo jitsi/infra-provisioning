@@ -39,7 +39,7 @@ pipeline {
                 }
             }
         }
-        stage ("HAProxy Stack Creation") {
+        stage("Ops Repo Creation") {
             steps {
                 script {
                     dir("infra-provisioning") {
