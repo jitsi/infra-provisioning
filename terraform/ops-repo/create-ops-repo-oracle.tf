@@ -108,7 +108,7 @@ resource "oci_load_balancer_backend_set" "oci_load_balancer_bs" {
   health_checker {
     protocol = "HTTP"
     url_path = "/"
-    port = 80
+    port = 888
     retries = 3
   }
 }
