@@ -135,7 +135,13 @@ def CreateImageOracle(image_type) {
             image_script = 'build-jammy-base-oracle.sh'
         break;
         default:
-            echo "No known image type ${env.IMAGE_TYPE}"
+            def build_script_part_lower = env.IMAGE_TYPE.toLowerCase()
+            def build_script_name = "build-${build_script_part_lower}-oracle.sh"
+            if (fileExists("scripts/$build_script_name")) {
+                image_script = build_script_name;
+            } else {
+                echo "No known image type ${env.IMAGE_TYPE}"
+            }
         break;
     }
 

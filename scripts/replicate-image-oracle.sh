@@ -79,25 +79,9 @@ JavaJibri)
     [ "$SERVICE_VERSION" == "latest" ] || echo $SERVICE_VERSION | grep -q -- -1$ || SERVICE_VERSION="${SERVICE_VERSION}-1"
   fi
   ;;
-SeleniumGrid)
-  IMAGE_NAME_PREFIX="BuildSeleniumGrid"
-  SERVICE_VERSION="latest"
-  ;;
-Base)
-  IMAGE_NAME_PREFIX="BuildBase"
-  SERVICE_VERSION="latest"
-  ;;
-FocalBase)
-  IMAGE_NAME_PREFIX="BuildFocalBase"
-  SERVICE_VERSION="latest"
-  ;;
-JammyBase)
-  IMAGE_NAME_PREFIX="BuildJammyBase"
-  SERVICE_VERSION="latest"
-  ;;
 *)
-  echo "Unsupported IMAGE_TYPE. Exiting..."
-  exit 11
+  IMAGE_NAME_PREFIX="Build$IMAGE_TYPE"
+  SERVICE_VERSION="latest"
   ;;
 esac
 
