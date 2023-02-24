@@ -257,7 +257,7 @@ resource "null_resource" "verify_cloud_init" {
   }
   
   provisioner "file" {
-    source      = "script.sh"
+    source      = "cloud-init-check.sh"
     destination = "/home/ubuntu/cloud-init-check.sh"
   }
 
