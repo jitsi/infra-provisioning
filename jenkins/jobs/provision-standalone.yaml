@@ -47,6 +47,10 @@
           description: "Oracle base image to use, defaults to searching for latest JammyBase"
           trim: true
       - string:
+          name: BASE_IMAGE_TYPE
+          description: "Base image type to use, defaults to $STANDALONE_BASE_IMAGE_TYPE or falls back to JammyBase"
+          trim: true
+      - string:
           name: ANSIBLE_TAGS
           description: "Limit ansible run to roles matching tags in list, should include at least 'provision', defaults to all"
           trim: true
