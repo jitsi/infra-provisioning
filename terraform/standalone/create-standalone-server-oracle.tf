@@ -252,6 +252,7 @@ resource "null_resource" "verify_cloud_init" {
     bastion_user = var.user
     bastion_private_key = file(var.user_private_key_path)
 
+    script_path = "/home/ubuntu/terraform-temp/script_%RAND%.sh"
     timeout = "10m"
   }
 
