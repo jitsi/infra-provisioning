@@ -252,17 +252,27 @@ resource "null_resource" "verify_cloud_init" {
     bastion_user = var.user
     bastion_private_key = file(var.user_private_key_path)
 
-    script_path = "/home/ubuntu/terraform-temp/script_%RAND%.sh"
+    script_path = "/home/${var.user}/script_%RAND%.sh"
     timeout = "10m"
   }
   
-  provisioner "file" {
-    source      = "cloud-init-check.sh"
-    destination = "/home/ubuntu/cloud-init-check.sh"
-  }
-
   provisioner "remote-exec" {
-    script = "/home/ubuntu/cloud-init-check.sh"
+    inline = [
+      "cloud-init status --wait"
+    ]
+    connection {
+      type = "ssh"
+      host = local.private_ip
+      user = var.user
+      private_key = file(var.user_private_key_path)
+
+      bastion_host = var.bastion_host
+      bastion_user = var.user
+      bastion_private_key = file(var.user_private_key_path)
+
+      script_path = "/home/${var.user}/script_%RAND%.sh"
+      timeout = "10m"
+    }
   }
 }
 
