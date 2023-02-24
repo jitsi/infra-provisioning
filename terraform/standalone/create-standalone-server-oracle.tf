@@ -255,22 +255,25 @@ resource "null_resource" "verify_cloud_init" {
     script_path = "/home/ubuntu/terraform-temp/script_%RAND%.sh"
     timeout = "10m"
   }
+  
+  provisioner "file" {
+    source      = "script.sh"
+    destination = "/home/ubuntu/cloud-init-check.sh"
+  }
 
   provisioner "remote-exec" {
-    inline = [
-      "cloud-init status --wait"
-    ]
+    script = "/home/ubuntu/cloud-init-check.sh"
   }
 }
 
-# resource "null_resource" "cloud_init_output" {
-#   count = 1
-#   depends_on = [null_resource.verify_cloud_init]
+resource "null_resource" "cloud_init_output" {
+  count = 1
+  depends_on = [null_resource.verify_cloud_init]
 
-#   provisioner "local-exec" {
-#     command = "ssh -i \"${var.user_private_key_path}\" -o StrictHostKeyChecking=no -J ${var.user}@${var.bastion_host} ${var.user}@${local.private_ip} 'echo hostname: $HOSTNAME, privateIp: ${local.private_ip} - $(cloud-init status)' >> ${var.postinstall_status_file}"
-#   }
-# }
+  provisioner "local-exec" {
+    command = "ssh -i \"${var.user_private_key_path}\" -o StrictHostKeyChecking=no -J ${var.user}@${var.bastion_host} ${var.user}@${local.private_ip} 'echo hostname: $HOSTNAME, privateIp: ${local.private_ip} - $(cloud-init status)' >> ${var.postinstall_status_file}"
+  }
+}
 
 output "private_ip" {
   value = local.private_ip
