@@ -116,6 +116,7 @@ resource "oci_core_instance" "oci-instance" {
             bastion_host = var.bastion_host
             bastion_user = var.user
             bastion_private_key = file(var.user_private_key_path)
+            script_path = "/home/${var.user}/script_%RAND%.sh"
 
         }
 

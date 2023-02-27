@@ -165,6 +165,7 @@ resource "oci_core_instance" "oci-instance" {
             host        = oci_core_instance.oci-instance.public_ip
             user        = var.user
             private_key = file(var.user_private_key_path)
+            script_path = "/home/${var.user}/script_%RAND%.sh"
         }
 
         inline = [
@@ -173,7 +174,9 @@ resource "oci_core_instance" "oci-instance" {
             "sudo /usr/local/bin/configure-firezone-local-oracle.sh"
         ]
     }
-
+    triggers = {
+      always_run = "${timestamp()}"
+    }
 }
 
 resource "oci_dns_rrset" "firezone_dns" {
