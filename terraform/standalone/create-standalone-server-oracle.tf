@@ -241,20 +241,6 @@ resource "oci_dns_rrset" "instance_dns_record" {
 resource "null_resource" "verify_cloud_init" {
   count = 1
   depends_on = [oci_core_instance.instance]
-
-  connection {
-    type = "ssh"
-    host = local.private_ip
-    user = var.user
-    private_key = file(var.user_private_key_path)
-
-    bastion_host = var.bastion_host
-    bastion_user = var.user
-    bastion_private_key = file(var.user_private_key_path)
-
-    script_path = "/home/${var.user}/script_%RAND%.sh"
-    timeout = "10m"
-  }
   
   provisioner "remote-exec" {
     inline = [
