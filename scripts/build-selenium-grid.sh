@@ -42,7 +42,10 @@ if [[ "$TARGET_ARCHITECTURE" == "arm64" ]] || [[ "$TARGET_ARCHITECTURE" == "aarc
   TARGET_ARCHITECTURE="arm64"
 fi
 
-[ -z $BASE_IMAGE_ID ] && BASE_IMAGE_ID=$($LOCAL_PATH/ami.py --type JammyBase --batch --region="$EC2_REGION" --architecture="$TARGET_ARCHITECTURE")
+[ -z "$BASE_IMAGE_TYPE" ] && BASE_IMAGE_TYPE="$SELENIUM_GRID_BASE_IMAGE_TYPE"
+[ -z "$BASE_IMAGE_TYPE" ] && BASE_IMAGE_TYPE="JammyBase"
+
+[ -z $BASE_IMAGE_ID ] && BASE_IMAGE_ID=$($LOCAL_PATH/ami.py --type $BASE_IMAGE_TYPE --batch --region="$EC2_REGION" --architecture="$TARGET_ARCHITECTURE")
 [ -z $BASE_IMAGE_ID ] && BASE_IMAGE_ID=$DEFAULT_EC2_IMAGE_ID
 
 if [ -z $BASE_IMAGE_ID ]; then

@@ -19,6 +19,7 @@ LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 [ -z "$UNIQUE_ID" ] && UNIQUE_ID="standalone"
 [ -z "$NAME" ] && NAME="$ENVIRONMENT-$ORACLE_REGION-$UNIQUE_ID"
 
+[ -e "$LOCAL_PATH/../../clouds/all.sh" ] && . $LOCAL_PATH/../../clouds/all.sh
 [ -e "$LOCAL_PATH/../../clouds/oracle.sh" ] && . $LOCAL_PATH/../../clouds/oracle.sh
 
 if [ -z "$ORACLE_REGION" ]; then

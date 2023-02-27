@@ -22,6 +22,7 @@ LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 [ -z $ANSIBLE_BUILD_ID ] && ANSIBLE_BUILD_ID="standalone"
 
 #pull in cloud-specific variables, e.g. tenancy
+[ -e "$LOCAL_PATH/../clouds/all.sh" ] && . $LOCAL_PATH/../clouds/all.sh
 [ -e "$LOCAL_PATH/../clouds/oracle.sh" ] && . $LOCAL_PATH/../clouds/oracle.sh
 
 if [ -z "$ORACLE_REGION" ]; then
@@ -38,7 +39,10 @@ ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 [ -z "$OCPUS" ] && OCPUS="4"
 [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS="16"
 
-[ -z "$BASE_IMAGE_ID" ] && BASE_IMAGE_ID=$($LOCAL_PATH/oracle_custom_images.py --type JammyBase --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
+[ -z "$BASE_IMAGE_TYPE" ] && BASE_IMAGE_TYPE="$SIGNAL_BASE_IMAGE_TYPE"
+[ -z "$BASE_IMAGE_TYPE" ] && BASE_IMAGE_TYPE="JammyBase"
+
+[ -z "$BASE_IMAGE_ID" ] && BASE_IMAGE_ID=$($LOCAL_PATH/oracle_custom_images.py --type $BASE_IMAGE_TYPE --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
 
 if [ -z "$JICOFO_VERSION" ]; then
     JICOFO_VERSION='latest'
