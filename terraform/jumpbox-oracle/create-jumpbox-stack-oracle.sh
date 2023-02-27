@@ -27,6 +27,7 @@ fi
 LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
 #pull in cloud-specific variables, e.g. tenancy
+[ -e "$LOCAL_PATH/../../clouds/all.sh" ] && . $LOCAL_PATH/../../clouds/all.sh
 [ -e "$LOCAL_PATH/../../clouds/oracle.sh" ] && . $LOCAL_PATH/../../clouds/oracle.sh
 
 if [ -z "$ORACLE_REGION" ]; then
@@ -46,7 +47,10 @@ ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 
 [ -z "$DISPLAY_NAME" ] && DISPLAY_NAME="$JUMPBOX_NAME"
 
-[ -z "$JUMPBOX_BASE_IMAGE_ID" ] && JUMPBOX_BASE_IMAGE_ID=$($LOCAL_PATH/../../scripts/oracle_custom_images.py --type JammyBase --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
+[ -z "$BASE_IMAGE_TYPE" ] && BASE_IMAGE_TYPE="$SSH_BASE_IMAGE_TYPE"
+[ -z "$BASE_IMAGE_TYPE" ] && BASE_IMAGE_TYPE="JammyBase"
+
+[ -z "$JUMPBOX_BASE_IMAGE_ID" ] && JUMPBOX_BASE_IMAGE_ID=$($LOCAL_PATH/../../scripts/oracle_custom_images.py --type $BASE_IMAGE_TYPE --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
 if [ -z "$JUMPBOX_BASE_IMAGE_ID" ]; then
   echo "No JUMPBOX_BASE_IMAGE_ID found.  Exiting..."
   exit 1

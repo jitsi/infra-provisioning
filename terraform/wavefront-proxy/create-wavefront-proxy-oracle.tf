@@ -245,23 +245,26 @@ resource "null_resource" "verify_cloud_init" {
   count = var.instance_pool_size
   depends_on = [data.oci_core_instance.oci_instance_datasources]
 
-  connection {
-    type = "ssh"
-    host = element(local.private_ips, count.index)
-    user = var.user
-    private_key = file(var.user_private_key_path)
-
-    bastion_host = var.bastion_host
-    bastion_user = var.user
-    bastion_private_key = file(var.user_private_key_path)
-
-    timeout = "10m"
-  }
-
   provisioner "remote-exec" {
     inline = [
       "cloud-init status --wait"
     ]
+    connection {
+      type = "ssh"
+      host = element(local.private_ips, count.index)
+      user = var.user
+      private_key = file(var.user_private_key_path)
+
+      bastion_host = var.bastion_host
+      bastion_user = var.user
+      bastion_private_key = file(var.user_private_key_path)
+      script_path = "/home/${var.user}/script_%RAND%.sh"
+
+      timeout = "10m"
+    }
+  }
+  triggers = {
+    always_run = "${timestamp()}"
   }
 }
 
@@ -271,6 +274,9 @@ resource "null_resource" "cloud_init_output" {
 
   provisioner "local-exec" {
     command = "ssh -o StrictHostKeyChecking=no -J ${var.user}@${var.bastion_host} ${var.user}@${element(local.private_ips, count.index)} 'echo hostname: $HOSTNAME, privateIp: ${element(local.private_ips, count.index)} - $(cloud-init status)' >> ${var.wavefront_proxy_postinstall_status_file}"
+  }
+  triggers = {
+    always_run = "${timestamp()}"
   }
 }
 

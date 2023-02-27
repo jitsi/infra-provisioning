@@ -402,33 +402,33 @@ resource "oci_dns_rrset" "haproxy_dns_record" {
   }
 }
 
-# resource "null_resource" "verify_cloud_init" {
-#   count = var.instance_pool_size
-#   depends_on = [data.oci_core_instance.oci_instance_datasources]
+resource "null_resource" "verify_cloud_init" {
+  count = var.instance_pool_size
+  depends_on = [data.oci_core_instance.oci_instance_datasources]
 
-#   connection {
-#     type = "ssh"
-#     host = element(local.private_ips, count.index)
-#     user = var.user
-#     private_key = file(var.user_private_key_path)
+  provisioner "remote-exec" {
+    inline = [
+      "cloud-init status --wait"
+    ]
+    connection {
+      type = "ssh"
+      host = element(local.private_ips, count.index)
+      user = var.user
+      private_key = file(var.user_private_key_path)
 
-#     bastion_host = var.bastion_host
-#     bastion_user = var.user
-#     bastion_private_key = file(var.user_private_key_path)
+      bastion_host = var.bastion_host
+      bastion_user = var.user
+      bastion_private_key = file(var.user_private_key_path)
+      script_path = "/home/${var.user}/script_%RAND%.sh"
 
-#     timeout = "5m"
-#   }
+      timeout = "5m"
+    }
+  }
+  triggers = {
+    always_run = "${timestamp()}"
+  }
 
-#   provisioner "remote-exec" {
-#     inline = [
-#       "cloud-init status --wait"
-#     ]
-#   }
-#   triggers = {
-#     always_run = "${timestamp()}"
-#   }
-
-# }
+}
 
 resource "null_resource" "cloud_init_output" {
   count = var.instance_pool_size
