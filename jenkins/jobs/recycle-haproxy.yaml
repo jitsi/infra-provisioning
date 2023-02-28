@@ -19,7 +19,7 @@
           trim: true
       - string:
           name: SCALE_UP_ONLY
-          description: "Set to true to only perform scale-up operation, skipping scale-down."
+          description: "Set to true to only perform scale-up operation, skipping scale-down"
           trim: true
       - string:
           name: SCALE_DOWN_ONLY
