@@ -18,6 +18,14 @@
           description: "Cloud provider where haproxy resides"
           trim: true
       - string:
+          name: SCALE_UP_ONLY
+          description: "Set to true to only perform scale-up operation, skipping scale-down"
+          trim: true
+      - string:
+          name: SCALE_DOWN_ONLY
+          description: "Set to true to only perform scale-down operation, skipping scale-up"
+          trim: true
+      - string:
           name: INFRA_CONFIGURATION_REPO
           default: git@github.com:jitsi/infra-configuration.git
           description: "Repo for configuration code (ansible etc), defaults to 'git@github.com:jitsi/infra-configuration.git'."
