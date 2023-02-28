@@ -1734,6 +1734,16 @@ def get_oracle_image_list_by_search(type,version=False,regions=False,config=Fals
                 else:
                     image_production = False
 
+                if 'BaseImageType' in tags:
+                    base_type = tags['BaseImageType']
+                else:
+                    base_type = ''
+
+                if 'BaseImageOCID' in tags:
+                    base_ocid = tags['BaseImageOCID']
+                else:
+                    base_ocid = ''
+
                 image = {
                     'image_ts':i.time_created,
                     'image_epoch_ts':ts,
@@ -1742,6 +1752,8 @@ def get_oracle_image_list_by_search(type,version=False,regions=False,config=Fals
                     'image_version':version,
                     'image_id': i.identifier,
                     'image_build': build_id,
+                    'image_base_type': base_type,
+                    'image_base_ocid': base_ocid,
                     'image_environment_type':image_environment_type,
                     'image_status':i.lifecycle_state.upper(),
                     'image_region': region,
