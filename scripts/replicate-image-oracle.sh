@@ -314,6 +314,8 @@ for REGION in "${IMPORT_ORACLE_REGIONS[@]}"; do
       "jitsi": {
       "Name": "'${IMAGE_NAME}'",
       "build_id": "'${IMAGE_BUILD}'",
+      "BaseImageType": "'${IMAGE_BASE_TYPE}'",
+      "BaseImageOCID": "'${IMAGE_BASE_OCID}'",
       "TS": "'${IMAGE_TIMESTAMP}'",
       "Type": "'${IMAGE_TYPE}'",
       "environment_type": "'${IMAGE_ENVIRONMENT_TYPE}'"
