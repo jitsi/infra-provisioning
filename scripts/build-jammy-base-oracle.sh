@@ -45,6 +45,7 @@ ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 
 # TODO query available standard images with ubuntu 22.04
 [ -z "$BARE_IMAGE_ID" ] && BARE_IMAGE_ID=$DEFAULT_JAMMY_IMAGE_ID
+[ -z "$BASE_IMAGE_TYPE" ] && BASE_IMAGE_TYPE="JammyBare"
 
 EXISTING_IMAGE_OCID=$($LOCAL_PATH/oracle_custom_images.py --type JammyBase --version "latest" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
 if [ ! -z "$EXISTING_IMAGE_OCID" ]; then
@@ -79,6 +80,7 @@ packer build \
 -var "environment=$ENVIRONMENT" \
 -var "ansible_ssh_user=ubuntu" \
 -var "ansible_build_path=$ANSIBLE_BUILD_PATH" \
+-var "base_image_type=$BASE_IMAGE_TYPE" \
 -var "base_image_ocid=$BARE_IMAGE_ID" \
 -var "region=$ORACLE_REGION" \
 -var "availability_domain=$AVAILABILITY_DOMAIN" \
