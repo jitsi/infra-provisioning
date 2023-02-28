@@ -6,6 +6,7 @@
     "ansible_ssh_user": "ubuntu",
     "ansible_build_path": "../../infra-configuration/ansible",
     "ansible_extra_vars": "",
+    "base_image_type": "",
     "base_image_ocid": "",
     "region": "",
     "type":"Base",
@@ -47,6 +48,8 @@
         "{{user `tag_namespace`}}": {
           "Name": "{{user `base_image_name`}}",
           "build_id": "{{user `build_id`}}",
+          "BaseImageType": "{{user `base_image_type`}}",
+          "BaseImageOCID": "{{user `base_image_ocid`}}",
           "TS": "{{timestamp}}",
           "Type": "{{user `type`}}",
           "environment_type": "dev"
