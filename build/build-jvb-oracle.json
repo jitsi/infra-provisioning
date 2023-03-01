@@ -48,7 +48,7 @@
           "Name": "{{user `jvb_image_name`}}",
           "build_id": "{{user `build_id`}}",
           "Version": "{{user `jitsi_videobridge_deb_pkg_version`}}",
-          "BaseImageType": "{{user `base_image_type`}}",
+          "BaseImageType": "BaseType-{{user `base_image_type`}}",
           "BaseImageOCID": "{{user `base_image_ocid`}}",
           "TS": "{{timestamp}}",
           "MetaVersion": "{{user `jitsi_meet_meta_version`}}",

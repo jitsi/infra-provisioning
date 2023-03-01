@@ -55,7 +55,7 @@
         "{{user `tag_namespace`}}": {
           "Name": "{{user `signal_image_name`}}",
           "build_id": "{{user `build_id`}}",
-          "BaseImageType": "{{user `base_image_type`}}",
+          "BaseImageType": "BaseType-{{user `base_image_type`}}",
           "BaseImageOCID": "{{user `base_image_ocid`}}",
           "Version": "{{user `jicofo_version`}}-{{user `jitsi_meet_version`}}-{{user `prosody_version`}}",
           "TS": "{{timestamp}}",
