@@ -96,8 +96,10 @@ if [[ "$ALARM_INITIAL_ENABLED" == "false" ]]; then
   ALARM_PAGERDUTY_ENABLED="false"
 fi
 
-# ensure no output for ansible vault contents
+# ensure no output for ansible vault contents and fail if ansible-vault fails
 set +x
+set -e
+set -o pipefail
 CA_CERTIFICATE=$(ansible-vault view $ENCRYPTED_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${CA_CERTIFICATE_VARIABLE}" -)
 PUBLIC_CERTIFICATE=$(ansible-vault view $ENCRYPTED_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${PUBLIC_CERTIFICATE_VARIABLE}" -)
 PRIVATE_KEY=$(ansible-vault view $ENCRYPTED_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${PRIVATE_KEY_VARIABLE}" -)
@@ -115,6 +117,8 @@ else
   PUBLIC_CERTIFICATE=$(ansible-vault view $ENCRYPTED_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${SIGNAL_API_PUBLIC_CERTIFICATE_VARIABLE}" -)
   PRIVATE_KEY=$(ansible-vault view $ENCRYPTED_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${SIGNAL_API_PRIVATE_KEY_VARIABLE}" -)
 fi
+set +e
+set +o pipefail
 
 # export signal API private key to variable instead of outputting on command line
 export TF_VAR_signal_api_certificate_public_certificate="$PUBLIC_CERTIFICATE"

@@ -69,11 +69,15 @@ fi
 [ -z "$CONSUL_PUBLIC_CERTIFICATE_VARIABLE" ] && CONSUL_PUBLIC_CERTIFICATE_VARIABLE="jitsi_net_ssl_certificate"
 [ -z "$CONSUL_PRIVATE_KEY_VARIABLE" ] && CONSUL_PRIVATE_KEY_VARIABLE="jitsi_net_ssl_key_name"
 
-# ensure no output for ansible vault contents
+# ensure no output for ansible vault contents and fail if ansible-vault fails
 set +x
+set -e
+set -o pipefail
 CA_CERTIFICATE=$(ansible-vault view $ENCRYPTED_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${CONSUL_CA_CERTIFICATE_VARIABLE}" -)
 PUBLIC_CERTIFICATE=$(ansible-vault view $ENCRYPTED_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${CONSUL_PUBLIC_CERTIFICATE_VARIABLE}" -)
 PRIVATE_KEY=$(ansible-vault view $ENCRYPTED_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${CONSUL_PRIVATE_KEY_VARIABLE}" -)
+set +e
+set +o pipefail
 
 # export private key to variable instead of outputting on command line
 export TF_VAR_certificate_public_certificate="$PUBLIC_CERTIFICATE"
