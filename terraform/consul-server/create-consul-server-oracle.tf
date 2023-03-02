@@ -556,120 +556,120 @@ resource "oci_dns_rrset" "consul_dns_rrset_c" {
    }
 }
 
-resource "null_resource" "verify_cloud_init_a" {
-  count = var.instance_pool_size
-  depends_on = [data.oci_core_instance.oci_instance_datasources_a]
-
-  provisioner "remote-exec" {
-    inline = [
-      "cloud-init status --wait"
-    ]
-    connection {
-      type = "ssh"
-      host = element(local.private_ips_a, count.index)
-      user = var.user
-      private_key = file(var.user_private_key_path)
-
-      bastion_host = var.bastion_host
-      bastion_user = var.user
-      bastion_private_key = file(var.user_private_key_path)
-      script_path = "/home/${var.user}/script_%RAND%.sh"
-
-      timeout = "10m"
-    }
-  }
-  triggers = {
-    always_run = "${timestamp()}"
-  }
-}
-
-resource "null_resource" "cloud_init_output_a" {
-  count = var.instance_pool_size
-  depends_on = [null_resource.verify_cloud_init_a]
-
-  provisioner "local-exec" {
-    command = "ssh -o StrictHostKeyChecking=no -J ${var.user}@${var.bastion_host} ${var.user}@${element(local.private_ips_a, count.index)} 'echo hostname: $HOSTNAME, privateIp: ${element(local.private_ips_a, count.index)} - $(cloud-init status)' >> ${var.postinstall_status_file}"
-  }
-  triggers = {
-    always_run = "${timestamp()}"
-  }
-}
-resource "null_resource" "verify_cloud_init_b" {
-  count = var.instance_pool_size
-  depends_on = [data.oci_core_instance.oci_instance_datasources_b]
-
-  provisioner "remote-exec" {
-    inline = [
-      "cloud-init status --wait"
-    ]
-    connection {
-      type = "ssh"
-      host = element(local.private_ips_b, count.index)
-      user = var.user
-      private_key = file(var.user_private_key_path)
-
-      bastion_host = var.bastion_host
-      bastion_user = var.user
-      bastion_private_key = file(var.user_private_key_path)
-      script_path = "/home/${var.user}/script_%RAND%.sh"
-
-      timeout = "10m"
-    }
-  }
-  triggers = {
-    always_run = "${timestamp()}"
-  }
-}
-
-resource "null_resource" "cloud_init_output_b" {
-  count = var.instance_pool_size
-  depends_on = [null_resource.verify_cloud_init_b]
-
-  provisioner "local-exec" {
-    command = "ssh -o StrictHostKeyChecking=no -J ${var.user}@${var.bastion_host} ${var.user}@${element(local.private_ips_b, count.index)} 'echo hostname: $HOSTNAME, privateIp: ${element(local.private_ips_b, count.index)} - $(cloud-init status)' >> ${var.postinstall_status_file}"
-  }
-  triggers = {
-    always_run = "${timestamp()}"
-  }
-}
-resource "null_resource" "verify_cloud_init_c" {
-  count = var.instance_pool_size
-  depends_on = [data.oci_core_instance.oci_instance_datasources_c]
-
-  provisioner "remote-exec" {
-    inline = [
-      "cloud-init status --wait"
-    ]
-    connection {
-      type = "ssh"
-      host = element(local.private_ips_c, count.index)
-      user = var.user
-      private_key = file(var.user_private_key_path)
-
-      bastion_host = var.bastion_host
-      bastion_user = var.user
-      bastion_private_key = file(var.user_private_key_path)
-      script_path = "/home/${var.user}/script_%RAND%.sh"
-
-      timeout = "10m"
-    }
-  }
-  triggers = {
-    always_run = "${timestamp()}"
-  }
-}
-
-resource "null_resource" "cloud_init_output_c" {
-  count = var.instance_pool_size
-  depends_on = [null_resource.verify_cloud_init_c]
-
-  provisioner "local-exec" {
-    command = "ssh -o StrictHostKeyChecking=no -J ${var.user}@${var.bastion_host} ${var.user}@${element(local.private_ips_c, count.index)} 'echo hostname: $HOSTNAME, privateIp: ${element(local.private_ips_c, count.index)} - $(cloud-init status)' >> ${var.postinstall_status_file}"
-  }
-  triggers = {
-    always_run = "${timestamp()}"
-  }
-}
+# resource "null_resource" "verify_cloud_init_a" {
+#   count = var.instance_pool_size
+#   depends_on = [data.oci_core_instance.oci_instance_datasources_a]
+# 
+#   provisioner "remote-exec" {
+#     inline = [
+#       "cloud-init status --wait"
+#     ]
+#     connection {
+#       type = "ssh"
+#       host = element(local.private_ips_a, count.index)
+#       user = var.user
+#       private_key = file(var.user_private_key_path)
+# 
+#       bastion_host = var.bastion_host
+#       bastion_user = var.user
+#       bastion_private_key = file(var.user_private_key_path)
+#       script_path = "/home/${var.user}/script_%RAND%.sh"
+# 
+#       timeout = "10m"
+#     }
+#   }
+#   triggers = {
+#     always_run = "${timestamp()}"
+#   }
+# }
+# 
+# resource "null_resource" "cloud_init_output_a" {
+#   count = var.instance_pool_size
+#   depends_on = [null_resource.verify_cloud_init_a]
+# 
+#   provisioner "local-exec" {
+#     command = "ssh -o StrictHostKeyChecking=no -J ${var.user}@${var.bastion_host} ${var.user}@${element(local.private_ips_a, count.index)} 'echo hostname: $HOSTNAME, privateIp: ${element(local.private_ips_a, count.index)} - $(cloud-init status)' >> ${var.postinstall_status_file}"
+#   }
+#   triggers = {
+#     always_run = "${timestamp()}"
+#   }
+# }
+# resource "null_resource" "verify_cloud_init_b" {
+#   count = var.instance_pool_size
+#   depends_on = [data.oci_core_instance.oci_instance_datasources_b]
+# 
+#   provisioner "remote-exec" {
+#     inline = [
+#       "cloud-init status --wait"
+#     ]
+#     connection {
+#       type = "ssh"
+#       host = element(local.private_ips_b, count.index)
+#       user = var.user
+#       private_key = file(var.user_private_key_path)
+# 
+#       bastion_host = var.bastion_host
+#       bastion_user = var.user
+#       bastion_private_key = file(var.user_private_key_path)
+#       script_path = "/home/${var.user}/script_%RAND%.sh"
+# 
+#       timeout = "10m"
+#     }
+#   }
+#   triggers = {
+#     always_run = "${timestamp()}"
+#   }
+# }
+# 
+# resource "null_resource" "cloud_init_output_b" {
+#   count = var.instance_pool_size
+#   depends_on = [null_resource.verify_cloud_init_b]
+# 
+#   provisioner "local-exec" {
+#     command = "ssh -o StrictHostKeyChecking=no -J ${var.user}@${var.bastion_host} ${var.user}@${element(local.private_ips_b, count.index)} 'echo hostname: $HOSTNAME, privateIp: ${element(local.private_ips_b, count.index)} - $(cloud-init status)' >> ${var.postinstall_status_file}"
+#   }
+#   triggers = {
+#     always_run = "${timestamp()}"
+#   }
+# }
+# resource "null_resource" "verify_cloud_init_c" {
+#   count = var.instance_pool_size
+#   depends_on = [data.oci_core_instance.oci_instance_datasources_c]
+# 
+#   provisioner "remote-exec" {
+#     inline = [
+#       "cloud-init status --wait"
+#     ]
+#     connection {
+#       type = "ssh"
+#       host = element(local.private_ips_c, count.index)
+#       user = var.user
+#       private_key = file(var.user_private_key_path)
+# 
+#       bastion_host = var.bastion_host
+#       bastion_user = var.user
+#       bastion_private_key = file(var.user_private_key_path)
+#       script_path = "/home/${var.user}/script_%RAND%.sh"
+# 
+#       timeout = "10m"
+#     }
+#   }
+#   triggers = {
+#     always_run = "${timestamp()}"
+#   }
+# }
+# 
+# resource "null_resource" "cloud_init_output_c" {
+#   count = var.instance_pool_size
+#   depends_on = [null_resource.verify_cloud_init_c]
+# 
+#   provisioner "local-exec" {
+#     command = "ssh -o StrictHostKeyChecking=no -J ${var.user}@${var.bastion_host} ${var.user}@${element(local.private_ips_c, count.index)} 'echo hostname: $HOSTNAME, privateIp: ${element(local.private_ips_c, count.index)} - $(cloud-init status)' >> ${var.postinstall_status_file}"
+#   }
+#   triggers = {
+#     always_run = "${timestamp()}"
+#   }
+# }
 
 output "private_ips_a" {
   value = local.private_ips_a
