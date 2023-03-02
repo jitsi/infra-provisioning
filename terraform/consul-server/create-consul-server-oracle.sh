@@ -12,7 +12,7 @@ fi
 
 [ -e ./sites/$ENVIRONMENT/stack-env.sh ] && . ./sites/$ENVIRONMENT/stack-env.sh
 
-LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
+LOCAL_PATH=$(realpath $(dirname "${BASH_SOURCE[0]}"))
 
 [ -z "$ROLE" ] && ROLE="consul"
 [ -z "$NAME" ] && NAME="$ENVIRONMENT-$ORACLE_REGION-$ROLE"
@@ -54,7 +54,12 @@ fi
 [ -z "$ENCRYPTED_CREDENTIALS_FILE" ] && ENCRYPTED_CREDENTIALS_FILE="$LOCAL_PATH/../../ansible/secrets/ssl-certificates.yml"
 [ -z "$VAULT_PASSWORD_FILE" ] && VAULT_PASSWORD_FILE="$LOCAL_PATH/../../.vault-password.txt"
 
-[ -z "$CONSUL_CERTIFICATE_NAME" ] && CONSUL_CERTIFICATE_NAME="star_jitsi_net-2023-08-19"
+if [ -z "$SSL_CERTIFICATE_ID" ]; then
+  echo "No SSL_CERTIFICATE_ID found. Exiting..."
+  exit 208
+fi
+
+[ -z "$CONSUL_CERTIFICATE_NAME" ] && CONSUL_CERTIFICATE_NAME=$SSL_CERTIFICATE_ID
 [ -z "$CONSUL_CA_CERTIFICATE_VARIABLE" ] && CONSUL_CA_CERTIFICATE_VARIABLE="jitsi_net_ssl_extras"
 [ -z "$CONSUL_PUBLIC_CERTIFICATE_VARIABLE" ] && CONSUL_PUBLIC_CERTIFICATE_VARIABLE="jitsi_net_ssl_certificate"
 [ -z "$CONSUL_PRIVATE_KEY_VARIABLE" ] && CONSUL_PRIVATE_KEY_VARIABLE="jitsi_net_ssl_key_name"
