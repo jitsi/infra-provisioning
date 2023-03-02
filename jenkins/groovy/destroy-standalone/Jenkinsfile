@@ -1,7 +1,11 @@
 
 def utils
-pipeline {				//indicate the job is written in Declarative Pipeline
-    agent any				//agent specifies where the pipeline will execute. 
+pipeline {
+    agent any
+    options {
+        ansiColor('xterm')
+        timestamps()
+    }
     stages {
         stage ("setup") {
             steps {
@@ -19,8 +23,7 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                 }
             }
         }
-        // delete the instance
-        stage("delete standalone") {
+        stage("delete standalone instance") {
             steps {
                 script {
                     dir("infra-provisioning") {

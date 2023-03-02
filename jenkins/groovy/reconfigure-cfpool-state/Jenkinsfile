@@ -1,5 +1,9 @@
 pipeline {				//indicate the job is written in Declarative Pipeline
     agent any				//agent specifies where the pipeline will execute. 
+    options {
+        ansiColor('xterm')
+        timestamps()
+    }
     stages {
         // output stage, shows off our input parameters
         stage ("pool state") {
