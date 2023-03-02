@@ -51,9 +51,6 @@ if [ -z "$DNS_ZONE_NAME" ]; then
   exit 205
 fi
 
-ls -al $LOCAL_PATH/../..
-ls -al $LOCAL_PATH/../../..
-
 [ -z "$ENCRYPTED_CREDENTIALS_FILE" ] && ENCRYPTED_CREDENTIALS_FILE="$LOCAL_PATH/../../ansible/secrets/ssl-certificates.yml"
 [ -z "$VAULT_PASSWORD_FILE" ] && VAULT_PASSWORD_FILE="$LOCAL_PATH/../../.vault-password.txt"
 
