@@ -1,4 +1,3 @@
-
 def rotateConsul(oracle_region) {
     sh(
         script: '''#!/bin/bash
@@ -7,18 +6,18 @@ def rotateConsul(oracle_region) {
         scripts/rotate-consul-oracle.sh $SSH_USERNAME'''
     )
 }
+
 def utils
 pipeline {
     agent any
     options {
+        ansiColor('xterm')
         timestamps()
     }
     stages {
         // output stage, shows off our input parameters
         stage ("setup") {
             steps {
-                echo 'Jibri Release'
-                echo "JIBRI VERSION ${env.JIBRI_VERSION}"
                 script {
                     // load utility function
                     def rootDir = pwd()
