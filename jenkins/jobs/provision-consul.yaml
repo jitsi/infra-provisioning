@@ -1,6 +1,7 @@
 - job:
     name: provision-consul
     display-name: provision consul
+    description: 'Provision a consul cluster for a new environment/region. If you want to update an existing cluster use "rotate consul".'
     concurrent: true
     parameters:
       - string:
