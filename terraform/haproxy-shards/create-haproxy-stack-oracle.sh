@@ -52,6 +52,11 @@ fi
 [ -z "$ENCRYPTED_CREDENTIALS_FILE" ] && ENCRYPTED_CREDENTIALS_FILE="$LOCAL_PATH/../../ansible/secrets/ssl-certificates.yml"
 [ -z "$VAULT_PASSWORD_FILE" ] && VAULT_PASSWORD_FILE="$LOCAL_PATH/../../.vault-password.txt"
 
+if [ ! -f "$VAULT_PASSWORD_FILE" ]; then
+    echo "No VAULT_PASSWORD_FILE found. Exiting..."
+  exit 211
+fi
+
 # assume regional hostnames will be appended like tokyo-stage.8x8.vc
 [ -z "$REGION_HOSTNAME_SEPARATOR" ] && REGION_HOSTNAME_SEPARATOR="-"
 

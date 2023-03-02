@@ -54,6 +54,11 @@ fi
 [ -z "$ENCRYPTED_CREDENTIALS_FILE" ] && ENCRYPTED_CREDENTIALS_FILE="$LOCAL_PATH/../../ansible/secrets/ssl-certificates.yml"
 [ -z "$VAULT_PASSWORD_FILE" ] && VAULT_PASSWORD_FILE="$LOCAL_PATH/../../.vault-password.txt"
 
+if [ ! -f "$VAULT_PASSWORD_FILE" ]; then
+    echo "No VAULT_PASSWORD_FILE found. Exiting..."
+  exit 211
+fi
+
 if [ -z "$SSL_CERTIFICATE_ID" ]; then
   echo "No SSL_CERTIFICATE_ID found. Exiting..."
   exit 208

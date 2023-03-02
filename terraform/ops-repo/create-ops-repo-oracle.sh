@@ -51,6 +51,11 @@ fi
 [ -z "$ENCRYPTED_CREDENTIALS_FILE" ] && ENCRYPTED_CREDENTIALS_FILE="$LOCAL_PATH/../../ansible/secrets/ssl-certificates.yml"
 [ -z "$VAULT_PASSWORD_FILE" ] && VAULT_PASSWORD_FILE="$LOCAL_PATH/../../.vault-password.txt"
 
+if [ ! -f "$VAULT_PASSWORD_FILE" ]; then
+    echo "No VAULT_PASSWORD_FILE found. Exiting..."
+  exit 211
+fi
+
 [ -z "$CERTIFICATE_NAME" ] && CERTIFICATE_NAME="star_jitsi_net-2023-08-19"
 [ -z "$CA_CERTIFICATE_VARIABLE" ] && CA_CERTIFICATE_VARIABLE="jitsi_net_ssl_extras"
 [ -z "$PUBLIC_CERTIFICATE_VARIABLE" ] && PUBLIC_CERTIFICATE_VARIABLE="jitsi_net_ssl_certificate"
