@@ -11,12 +11,8 @@ variable "tag_namespace" {
 variable "notification_topic_description" {
     default = "Health notifications"
 }
-variable "pagerduty_endpoint" {
-    default = "https://events.pagerduty.com/integration/fbcba81e3dc14204d0512afa9298be34/enqueue"
-}
-variable "email" {
-    default = "meetings-ops@8x8.com"
-}
+variable "pagerduty_endpoint" {}
+variable "email" {}
 
 locals {
   topic_name = "${var.environment}-PagerDutyTopic"
