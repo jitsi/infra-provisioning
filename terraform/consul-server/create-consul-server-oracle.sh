@@ -117,6 +117,9 @@ if [ ! -f "$USER_PRIVATE_KEY_PATH" ]; then
   exit 221
 fi
 
+DEBUG_KEY_PATH=$USER_PRIVATE_KEY_PATH
+echo $DEBUG_KEY_PATH
+
 [ -z "$POSTINSTALL_STATUS_FILE" ] && POSTINSTALL_STATUS_FILE="/tmp/postinstall_status.txt"
 
 [ -z "$BASTION_HOST" ] && BASTION_HOST="$CONNECTION_SSH_BASTION_HOST"
@@ -155,6 +158,8 @@ if [[ "$TERRAFORM_MAJOR_VERSION" == "v1" ]]; then
 else
   TF_POST_PARAMS="$LOCAL_PATH"
 fi
+
+exit 0
 
 # The —reconfigure option disregards any existing configuration, preventing migration of any existing state
 terraform $TF_GLOBALS_CHDIR init \
