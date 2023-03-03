@@ -107,6 +107,16 @@ fi
 
 [ -z "$USER_PRIVATE_KEY_PATH" ] && USER_PRIVATE_KEY_PATH="~/.ssh/id_ed25519"
 
+if [ ! -f "$USER_PUBLIC_KEY_PATH" ]; then
+    echo "USER_PUBLIC_KEY_PATH file missing, exiting."
+  exit 220
+fi
+
+if [ ! -f "$USER_PRIVATE_KEY_PATH" ]; then
+    echo "USER_PRIVATE_KEY_PATH file missing, exiting."
+  exit 221
+fi
+
 [ -z "$POSTINSTALL_STATUS_FILE" ] && POSTINSTALL_STATUS_FILE="/tmp/postinstall_status.txt"
 
 [ -z "$BASTION_HOST" ] && BASTION_HOST="$CONNECTION_SSH_BASTION_HOST"
@@ -136,7 +146,6 @@ fi
 
 VCN_NAME_ROOT="$ORACLE_REGION-$ENVIRONMENT"
 VCN_NAME="$VCN_NAME_ROOT-vcn"
-
 
 TERRAFORM_MAJOR_VERSION=$(terraform -v | head -1  | awk '{print $2}' | cut -d'.' -f1)
 TF_GLOBALS_CHDIR=
