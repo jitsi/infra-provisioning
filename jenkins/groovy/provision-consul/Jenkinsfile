@@ -36,7 +36,8 @@ pipeline {
                             sh '''#!/bin/bash
                             export USER_PUBLIC_KEY_PATH=~/.ssh/ssh_key.pub
                             export ORACLE_GIT_BRANCH=\"$RELEASE_BRANCH\"
-                            terraform/consul-server/create-consul-server-oracle.sh $SSH_USERNAME'''
+                            ls ~/.ssh
+                            #terraform/consul-server/create-consul-server-oracle.sh $SSH_USERNAME'''
                         }
                         withCredentials([
                             string(credentialsId: 'jenkins-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
@@ -52,7 +53,7 @@ pipeline {
                             export UNIQUE_ID="\${RESOURCE_NAME_ROOT}"
                             export CNAME_TARGET="\${DNS_NAME}"
                             export CNAME_VALUE="\${RESOURCE_NAME_ROOT}"
-                            scripts/create-oracle-cname-stack.sh'''
+                            #scripts/create-oracle-cname-stack.sh'''
                         }
                     }
                 }
