@@ -22,7 +22,6 @@ ssh -F $LOCAL_PATH/../config/ssh.config $SSH_USER@$INSTANCE_PRIMARY_PRIVATE_IP "
 RET=$?
 if [[ $RET -gt 0 ]]; then
     echo "## ERROR stopping consul on $INSTANCE_PRIMARY_PRIVATE_IP with code $RET"
-    #exit $RET
 fi
 
 echo "## rotate-consul-pre-detach shutting down consul service on $INSTANCE_PRIMARY_PRIVATE_IP with user $SSH_USER"
@@ -30,7 +29,4 @@ ssh -F $LOCAL_PATH/../config/ssh.config $SSH_USER@$INSTANCE_PRIMARY_PRIVATE_IP "
 RET=$?
 if [[ $RET -gt 0 ]]; then
     echo "## ERROR stopping consul on $INSTANCE_PRIMARY_PRIVATE_IP with code $RET"
-    #exit $RET
 fi
-
-exit 0
