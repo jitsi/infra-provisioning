@@ -156,8 +156,6 @@ else
   TF_POST_PARAMS="$LOCAL_PATH"
 fi
 
-exit 0
-
 # The —reconfigure option disregards any existing configuration, preventing migration of any existing state
 terraform $TF_GLOBALS_CHDIR init \
   -backend-config="bucket=$S3_STATE_BUCKET" \
