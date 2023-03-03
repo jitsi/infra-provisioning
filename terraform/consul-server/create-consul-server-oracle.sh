@@ -108,12 +108,12 @@ fi
 [ -z "$USER_PRIVATE_KEY_PATH" ] && USER_PRIVATE_KEY_PATH="~/.ssh/id_ed25519"
 
 if [ ! -f "$USER_PUBLIC_KEY_PATH" ]; then
-    echo "USER_PUBLIC_KEY_PATH file missing, exiting."
+    echo "USER_PUBLIC_KEY_PATH file missing at $USER_PUBLIC_KEY_PATH, exiting."
   exit 220
 fi
 
 if [ ! -f "$USER_PRIVATE_KEY_PATH" ]; then
-    echo "USER_PRIVATE_KEY_PATH file missing, exiting."
+    echo "USER_PRIVATE_KEY_PATH file missing at $USER_PRIVATE_KEY_PATH, exiting."
   exit 221
 fi
 
