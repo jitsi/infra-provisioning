@@ -582,17 +582,17 @@ resource "null_resource" "verify_cloud_init_a" {
     always_run = "${timestamp()}"
   }
 }
-# resource "null_resource" "cloud_init_output_a" {
-#   count = var.instance_pool_size
-#   depends_on = [null_resource.verify_cloud_init_a]
-#
-#   provisioner "local-exec" {
-#     command = "ssh -o StrictHostKeyChecking=no -J ${var.user}@${var.bastion_host} ${var.user}@${element(local.private_ips_a, count.index)} 'echo hostname: $HOSTNAME, privateIp: ${element(local.private_ips_a, count.index)} - $(cloud-init status)' >> ${var.postinstall_status_file}"
-#   }
-#   triggers = {
-#     always_run = "${timestamp()}"
-#   }
-# }
+resource "null_resource" "cloud_init_output_a" {
+  count = var.instance_pool_size
+  depends_on = [null_resource.verify_cloud_init_a]
+
+  provisioner "local-exec" {
+    command = "ssh -o StrictHostKeyChecking=no -J ${var.user}@${var.bastion_host} ${var.user}@${element(local.private_ips_a, count.index)} 'echo hostname: $HOSTNAME, privateIp: ${element(local.private_ips_a, count.index)} - $(cloud-init status)' >> ${var.postinstall_status_file}"
+  }
+  triggers = {
+    always_run = "${timestamp()}"
+  }
+}
 
 resource "null_resource" "verify_cloud_init_b" {
   count = var.instance_pool_size
@@ -620,17 +620,17 @@ resource "null_resource" "verify_cloud_init_b" {
     always_run = "${timestamp()}"
   }
 }
-# resource "null_resource" "cloud_init_output_b" {
-#   count = var.instance_pool_size
-#   depends_on = [null_resource.verify_cloud_init_b]
-#
-#   provisioner "local-exec" {
-#     command = "ssh -o StrictHostKeyChecking=no -J ${var.user}@${var.bastion_host} ${var.user}@${element(local.private_ips_b, count.index)} 'echo hostname: $HOSTNAME, privateIp: ${element(local.private_ips_b, count.index)} - $(cloud-init status)' >> ${var.postinstall_status_file}"
-#   }
-#   triggers = {
-#     always_run = "${timestamp()}"
-#   }
-# }
+resource "null_resource" "cloud_init_output_b" {
+  count = var.instance_pool_size
+  depends_on = [null_resource.verify_cloud_init_b]
+
+  provisioner "local-exec" {
+    command = "ssh -o StrictHostKeyChecking=no -J ${var.user}@${var.bastion_host} ${var.user}@${element(local.private_ips_b, count.index)} 'echo hostname: $HOSTNAME, privateIp: ${element(local.private_ips_b, count.index)} - $(cloud-init status)' >> ${var.postinstall_status_file}"
+  }
+  triggers = {
+    always_run = "${timestamp()}"
+  }
+}
 
 resource "null_resource" "verify_cloud_init_c" {
   count = var.instance_pool_size
@@ -658,17 +658,17 @@ resource "null_resource" "verify_cloud_init_c" {
     always_run = "${timestamp()}"
   }
 }
-# resource "null_resource" "cloud_init_output_c" {
-#   count = var.instance_pool_size
-#   depends_on = [null_resource.verify_cloud_init_c]
-#
-#   provisioner "local-exec" {
-#     command = "ssh -o StrictHostKeyChecking=no -J ${var.user}@${var.bastion_host} ${var.user}@${element(local.private_ips_c, count.index)} 'echo hostname: $HOSTNAME, privateIp: ${element(local.private_ips_c, count.index)} - $(cloud-init status)' >> ${var.postinstall_status_file}"
-#   }
-#   triggers = {
-#     always_run = "${timestamp()}"
-#   }
-# }
+resource "null_resource" "cloud_init_output_c" {
+  count = var.instance_pool_size
+  depends_on = [null_resource.verify_cloud_init_c]
+
+  provisioner "local-exec" {
+    command = "ssh -o StrictHostKeyChecking=no -J ${var.user}@${var.bastion_host} ${var.user}@${element(local.private_ips_c, count.index)} 'echo hostname: $HOSTNAME, privateIp: ${element(local.private_ips_c, count.index)} - $(cloud-init status)' >> ${var.postinstall_status_file}"
+  }
+  triggers = {
+    always_run = "${timestamp()}"
+  }
+}
 
 output "private_ips_a" {
   value = local.private_ips_a

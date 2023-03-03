@@ -33,10 +33,12 @@ pipeline {
                         ]) {
                             utils.SetupAnsible()
                             utils.SetupSSH()
-                            sh '''#!/bin/bash
-                            export USER_PUBLIC_KEY_PATH=~/.ssh/ssh_key.pub
-                            export ORACLE_GIT_BRANCH=\"$RELEASE_BRANCH\"
-                            terraform/consul-server/create-consul-server-oracle.sh $SSH_USERNAME'''
+                            sshagent (credentials: ['ssh-ubuntu']) {
+                                sh '''#!/bin/bash
+                                export USER_PUBLIC_KEY_PATH=~/.ssh/ssh_key.pub
+                                export ORACLE_GIT_BRANCH=\"$RELEASE_BRANCH\"
+                                terraform/consul-server/create-consul-server-oracle.sh $SSH_USERNAME'''
+                            }
                         }
                         withCredentials([
                             string(credentialsId: 'jenkins-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
