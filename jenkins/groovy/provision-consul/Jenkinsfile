@@ -36,6 +36,8 @@ pipeline {
                             sh '''#!/bin/bash
                             export USER_PUBLIC_KEY_PATH=~/.ssh/ssh_key.pub
                             export ORACLE_GIT_BRANCH=\"$RELEASE_BRANCH\"
+                            echo meow
+                            echo $USER_PRIVATE_KEY_PATH
                             ls ~/.ssh
                             #terraform/consul-server/create-consul-server-oracle.sh $SSH_USERNAME'''
                         }
