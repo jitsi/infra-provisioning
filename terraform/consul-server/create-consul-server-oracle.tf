@@ -582,7 +582,6 @@ resource "null_resource" "verify_cloud_init_a" {
     always_run = "${timestamp()}"
   }
 }
-
 resource "null_resource" "cloud_init_output_a" {
   count = var.instance_pool_size
   depends_on = [null_resource.verify_cloud_init_a]
@@ -594,6 +593,7 @@ resource "null_resource" "cloud_init_output_a" {
     always_run = "${timestamp()}"
   }
 }
+
 resource "null_resource" "verify_cloud_init_b" {
   count = var.instance_pool_size
   depends_on = [data.oci_core_instance.oci_instance_datasources_b]
@@ -620,7 +620,6 @@ resource "null_resource" "verify_cloud_init_b" {
     always_run = "${timestamp()}"
   }
 }
-
 resource "null_resource" "cloud_init_output_b" {
   count = var.instance_pool_size
   depends_on = [null_resource.verify_cloud_init_b]
@@ -632,6 +631,7 @@ resource "null_resource" "cloud_init_output_b" {
     always_run = "${timestamp()}"
   }
 }
+
 resource "null_resource" "verify_cloud_init_c" {
   count = var.instance_pool_size
   depends_on = [data.oci_core_instance.oci_instance_datasources_c]
@@ -658,7 +658,6 @@ resource "null_resource" "verify_cloud_init_c" {
     always_run = "${timestamp()}"
   }
 }
-
 resource "null_resource" "cloud_init_output_c" {
   count = var.instance_pool_size
   depends_on = [null_resource.verify_cloud_init_c]

@@ -15,7 +15,6 @@ pipeline {
         timestamps()
     }
     stages {
-        // output stage, shows off our input parameters
         stage ("setup") {
             steps {
                 script {
@@ -40,10 +39,11 @@ pipeline {
                             string(credentialsId: 'oci-jenkins-terraform-aws-id', variable: 'AWS_ACCESS_KEY_ID'),
                             sshUserPrivateKey(credentialsId: 'ssh-ubuntu', keyFileVariable: 'USER_PRIVATE_KEY_PATH', usernameVariable: 'SSH_USERNAME')
                         ]) {
-                          sshagent (credentials: ['ssh-ubuntu']) {
+                            utils.SetupAnsible()
                             utils.SetupSSH()
-                            rotateConsul(env.ORACLE_REGION)
-                          }
+                            sshagent (credentials: ['ssh-ubuntu']) {
+                                rotateConsul(env.ORACLE_REGION)
+                            }
                         }
                     }
                 }

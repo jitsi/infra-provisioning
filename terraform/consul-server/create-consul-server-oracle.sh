@@ -12,7 +12,7 @@ fi
 
 [ -e ./sites/$ENVIRONMENT/stack-env.sh ] && . ./sites/$ENVIRONMENT/stack-env.sh
 
-LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
+LOCAL_PATH=$(realpath $(dirname "${BASH_SOURCE[0]}"))
 
 [ -z "$ROLE" ] && ROLE="consul"
 [ -z "$NAME" ] && NAME="$ENVIRONMENT-$ORACLE_REGION-$ROLE"
@@ -54,16 +54,30 @@ fi
 [ -z "$ENCRYPTED_CREDENTIALS_FILE" ] && ENCRYPTED_CREDENTIALS_FILE="$LOCAL_PATH/../../ansible/secrets/ssl-certificates.yml"
 [ -z "$VAULT_PASSWORD_FILE" ] && VAULT_PASSWORD_FILE="$LOCAL_PATH/../../.vault-password.txt"
 
-[ -z "$CONSUL_CERTIFICATE_NAME" ] && CONSUL_CERTIFICATE_NAME="star_jitsi_net-2023-08-19"
+if [ ! -f "$VAULT_PASSWORD_FILE" ]; then
+    echo "No VAULT_PASSWORD_FILE found. Exiting..."
+  exit 211
+fi
+
+if [ -z "$SSL_CERTIFICATE_ID" ]; then
+  echo "No SSL_CERTIFICATE_ID found. Exiting..."
+  exit 208
+fi
+
+[ -z "$CONSUL_CERTIFICATE_NAME" ] && CONSUL_CERTIFICATE_NAME=$SSL_CERTIFICATE_ID
 [ -z "$CONSUL_CA_CERTIFICATE_VARIABLE" ] && CONSUL_CA_CERTIFICATE_VARIABLE="jitsi_net_ssl_extras"
 [ -z "$CONSUL_PUBLIC_CERTIFICATE_VARIABLE" ] && CONSUL_PUBLIC_CERTIFICATE_VARIABLE="jitsi_net_ssl_certificate"
 [ -z "$CONSUL_PRIVATE_KEY_VARIABLE" ] && CONSUL_PRIVATE_KEY_VARIABLE="jitsi_net_ssl_key_name"
 
-# ensure no output for ansible vault contents
+# ensure no output for ansible vault contents and fail if ansible-vault fails
 set +x
+set -e
+set -o pipefail
 CA_CERTIFICATE=$(ansible-vault view $ENCRYPTED_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${CONSUL_CA_CERTIFICATE_VARIABLE}" -)
 PUBLIC_CERTIFICATE=$(ansible-vault view $ENCRYPTED_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${CONSUL_PUBLIC_CERTIFICATE_VARIABLE}" -)
 PRIVATE_KEY=$(ansible-vault view $ENCRYPTED_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${CONSUL_PRIVATE_KEY_VARIABLE}" -)
+set +e
+set +o pipefail
 
 # export private key to variable instead of outputting on command line
 export TF_VAR_certificate_public_certificate="$PUBLIC_CERTIFICATE"
@@ -92,6 +106,16 @@ fi
 [ -z "$USER_PUBLIC_KEY_PATH" ] && USER_PUBLIC_KEY_PATH="~/.ssh/id_ed25519.pub"
 
 [ -z "$USER_PRIVATE_KEY_PATH" ] && USER_PRIVATE_KEY_PATH="~/.ssh/id_ed25519"
+
+if [ ! -f "$USER_PUBLIC_KEY_PATH" ]; then
+    echo "USER_PUBLIC_KEY_PATH file missing at $USER_PUBLIC_KEY_PATH, exiting."
+  exit 220
+fi
+
+if [ ! -f "$USER_PRIVATE_KEY_PATH" ]; then
+    echo "USER_PRIVATE_KEY_PATH file missing at $USER_PRIVATE_KEY_PATH, exiting."
+  exit 221
+fi
 
 [ -z "$POSTINSTALL_STATUS_FILE" ] && POSTINSTALL_STATUS_FILE="/tmp/postinstall_status.txt"
 
@@ -122,7 +146,6 @@ fi
 
 VCN_NAME_ROOT="$ORACLE_REGION-$ENVIRONMENT"
 VCN_NAME="$VCN_NAME_ROOT-vcn"
-
 
 TERRAFORM_MAJOR_VERSION=$(terraform -v | head -1  | awk '{print $2}' | cut -d'.' -f1)
 TF_GLOBALS_CHDIR=

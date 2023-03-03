@@ -51,13 +51,20 @@ fi
 [ -z "$ENCRYPTED_CREDENTIALS_FILE" ] && ENCRYPTED_CREDENTIALS_FILE="$LOCAL_PATH/../../ansible/secrets/ssl-certificates.yml"
 [ -z "$VAULT_PASSWORD_FILE" ] && VAULT_PASSWORD_FILE="$LOCAL_PATH/../../.vault-password.txt"
 
+if [ ! -f "$VAULT_PASSWORD_FILE" ]; then
+    echo "No VAULT_PASSWORD_FILE found. Exiting..."
+  exit 211
+fi
+
 [ -z "$CERTIFICATE_NAME" ] && CERTIFICATE_NAME="star_jitsi_net-2023-08-19"
 [ -z "$CA_CERTIFICATE_VARIABLE" ] && CA_CERTIFICATE_VARIABLE="jitsi_net_ssl_extras"
 [ -z "$PUBLIC_CERTIFICATE_VARIABLE" ] && PUBLIC_CERTIFICATE_VARIABLE="jitsi_net_ssl_certificate"
 [ -z "$PRIVATE_KEY_VARIABLE" ] && PRIVATE_KEY_VARIABLE="jitsi_net_ssl_key_name"
 
-# ensure no output for ansible vault contents
+# ensure no output for ansible vault contents and fail if ansible-vault fails
 set +x
+set -e
+set -o pipefail
 CA_CERTIFICATE=$(ansible-vault view $ENCRYPTED_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${CA_CERTIFICATE_VARIABLE}" -)
 PUBLIC_CERTIFICATE=$(ansible-vault view $ENCRYPTED_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${PUBLIC_CERTIFICATE_VARIABLE}" -)
 PRIVATE_KEY=$(ansible-vault view $ENCRYPTED_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${PRIVATE_KEY_VARIABLE}" -)
@@ -75,6 +82,8 @@ else
   PUBLIC_CERTIFICATE=$(ansible-vault view $ENCRYPTED_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${SIGNAL_API_PUBLIC_CERTIFICATE_VARIABLE}" -)
   PRIVATE_KEY=$(ansible-vault view $ENCRYPTED_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${SIGNAL_API_PRIVATE_KEY_VARIABLE}" -)
 fi
+set +e
+set +o pipefail
 
 # export signal API private key to variable instead of outputting on command line
 export TF_VAR_signal_api_certificate_public_certificate="$PUBLIC_CERTIFICATE"

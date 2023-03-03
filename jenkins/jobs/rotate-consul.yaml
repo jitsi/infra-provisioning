@@ -1,6 +1,7 @@
 - job:
     name: rotate-consul
     display-name: rotate consul
+    description: 'Gracefully replace consul cluster in an environment/region with a new cluster.'      
     concurrent: true
     parameters:
       - string:
