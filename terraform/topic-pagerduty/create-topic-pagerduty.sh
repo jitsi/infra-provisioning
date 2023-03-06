@@ -74,5 +74,5 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
   -var="environment_type=$ENVIRONMENT_TYPE" \
   -var="tag_namespace=$TAG_NAMESPACE" \
   -var="pagerduty_endpoint=$ORACLE_PAGERDUTY_ENDPOINT" \
-  -var="email=$NOTIFCATION_EMAIL" \
+  -var="email=$NOTIFICATION_EMAIL" \
   $ACTION_POST_PARAMS $TF_POST_PARAMS
