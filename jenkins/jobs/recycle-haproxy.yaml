@@ -1,6 +1,7 @@
 - job:
     name: recycle-haproxy
     display-name: recycle haproxy
+    description: 'Gracefully replaces all haproxies in an environment with new instances. Only use for OS updates, major haproxy verison updates, etc.'
     concurrent: true
     parameters:
       - string:

@@ -24,7 +24,7 @@
       - string:
           name: FORCE_DELETE
           default: 'false'
-          description: "force delete this release even if the versioning-manager service has errors"
+          description: "force delete this release even if the versioning-manager service has errors. if true, also sets FORCE_UNPIN to true."
           trim: true
       - string:
           name: INFRA_CONFIGURATION_REPO

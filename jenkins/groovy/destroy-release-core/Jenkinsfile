@@ -68,6 +68,9 @@ def deleteShard(hcv_environment,shard_name) {
 }
 
 def versioningManagerDeleteRelease(hvc_environment, release_number, force_unpin, force_delete) {
+    if (force_delete) {
+        force_unpin = 'true'
+    }
     sh(
         script: """#!/bin/bash
 export VERSIONING_ACTION=DELETE_RELEASE
