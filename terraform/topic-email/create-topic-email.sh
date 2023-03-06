@@ -14,10 +14,16 @@ if [ -z $ENVIRONMENT ]; then
   exit 201
 fi
 
+[ -e "$LOCAL_PATH/../clouds/all.sh" ] && . $LOCAL_PATH/../clouds/all.sh
 [ -e "$LOCAL_PATH/../../clouds/oracle.sh" ] && . $LOCAL_PATH/../../clouds/oracle.sh
 
 if [ -z "$ORACLE_REGION" ]; then
   echo "No ORACLE_REGION found. Exiting..."
+  exit 202
+fi
+
+if [ -z "$NOTIFICATION_EMAIL" ]; then
+  echo "No NOTIFICATION_EMAIL found. Exiting..."
   exit 203
 fi
 
@@ -62,4 +68,5 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
   -var="compartment_ocid=$COMPARTMENT_OCID" \
   -var="environment_type=$ENVIRONMENT_TYPE" \
   -var="tag_namespace=$TAG_NAMESPACE" \
+  -var="email=$NOTIFICATION_EMAIL" \
   $ACTION_POST_PARAMS $TF_POST_PARAMS

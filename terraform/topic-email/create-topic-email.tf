@@ -11,9 +11,7 @@ variable "tag_namespace" {
 variable "notification_topic_description" {
     default = "Email notifications"
 }
-variable "email" {
-    default = "meetings-ops@8x8.com"
-}
+variable "email" {}
 
 locals {
   topic_name = "${var.environment}-topic"
