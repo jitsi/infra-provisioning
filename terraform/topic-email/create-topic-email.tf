@@ -12,7 +12,6 @@ variable "notification_topic_description" {
     default = "Email notifications"
 }
 variable "email" {}
-}
 
 locals {
   topic_name = "${var.environment}-topic"
