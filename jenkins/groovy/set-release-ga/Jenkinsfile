@@ -99,7 +99,7 @@ pipeline {
             steps {
                 script {
                     echo 'setting release live'
-                    lock('haproxy-state') {
+                    lock("haproxy-state-${env.ENVIRONMENT}") {
                         dir("infra-provisioning") {
                             withCredentials([
                                 file(credentialsId: 'oci-jenkins-config', variable: 'OCI_CLI_CONFIG_FILE'),
