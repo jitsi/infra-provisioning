@@ -21,10 +21,6 @@
           description: "State to set pool, either 'ready' or 'drain'"
           trim: true
       - string:
-          name: POOL_STATE
-          description: "State to set pool, either 'ready' or 'drain'"
-          trim: true
-      - string:
           name: SHED_VALUE
           description: "Set instead of POOL_STATE if partial drain is required, 0 is fully ready, 100 is fully drained"
           trim: true
