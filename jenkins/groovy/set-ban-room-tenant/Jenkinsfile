@@ -1,0 +1,54 @@
+def banRoomOrTenant(environment) {
+    def setReleaseResult = sh(
+        returnStatus: true,
+        script: """#!/bin/bash
+ENVIRONMENT=${environment} scripts/set-ban-room-tenant.sh ubuntu
+"""
+    )
+    if (setReleaseResult != 0) {
+        return 'false';
+    }
+    return 'true';
+}
+
+pipeline {
+    agent any
+    options {
+        ansiColor('xterm')
+        timestamps()
+    }
+    stages {
+        stage ("setup") {
+            steps {
+                script {
+                    // load utility function
+                    def rootDir = pwd()
+                    utils = load "${rootDir}/jenkins/groovy/Utils.groovy"
+                    // checkout repos
+                    utils.SetupRepos(env.VIDEO_INFRA_BRANCH)
+                }
+            }
+        }
+        stage ("set ban in consul") {
+            steps {
+                script {
+                    echo 'setting bans'
+                    dir("infra-provisioning") {
+                        sshagent (credentials: ['ssh-ubuntu']) {
+                            updateSucceeded = banRoomOrTenant(env.ENVIRONMENT)
+                        }
+                    }
+                    echo updateSucceeded
+                    if (updateSucceeded == 'false') {
+                        error('Ban operation failed')
+                    }
+                }
+            }
+        }
+    }
+    post {
+        always {
+            cleanWs()
+        }
+    }
+}
