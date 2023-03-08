@@ -28,7 +28,11 @@ fi
 LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 [ -e $LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh ] && . $LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh
 
+[ -e "$LOCAL_PATH/../clouds/all.sh" ] && . "$LOCAL_PATH/../clouds/all.sh"
+[ -e "$LOCAL_PATH/../clouds/oracle.sh" ] && . "$LOCAL_PATH/../clouds/oracle.sh"
+
 BAN_VALUE="ban"
+CONSUL_HOST="consul-local.$TOP_LEVEL_DNS_ZONE_NAME"
 
 [ -z "$CONSUL_INCLUDE_AWS" ] && CONSUL_INCLUDE_AWS="false"
 [ -z "$CONSUL_INCLUDE_OCI" ] && CONSUL_INCLUDE_OCI="true"
@@ -38,8 +42,8 @@ if [[ "$CONSUL_INCLUDE_AWS" == "true" ]]; then
     PORT=$(python -c 'import socket; s=socket.socket(); s.bind(("", 0)); print(s.getsockname()[1]); s.close()')
     [ -z "$AWS_LOCAL_DATACENTER" ] && AWS_LOCAL_DATACENTER="us-east-1-peer1"
     [ -z "$AWS_CONSUL_ENV" ] && AWS_CONSUL_ENV="prod"
-    ssh -fNT -L127.0.0.1:$PORT:consul-$AWS_CONSUL_ENV-$AWS_LOCAL_DATACENTER.jitsi.net:443 $ANSIBLE_SSH_USER@$AWS_LOCAL_DATACENTER-ssh.infra.jitsi.net
-    CONSUL_URL="https://consul-local.jitsi.net:$PORT"
+    ssh -o StrictHostKeyChecking=no -fNT -L127.0.0.1:$PORT:consul-$AWS_CONSUL_ENV-$AWS_LOCAL_DATACENTER.$TOP_LEVEL_DNS_ZONE_NAME:443 $ANSIBLE_SSH_USER@$AWS_LOCAL_DATACENTER-ssh.infra.jitsi.net
+    CONSUL_URL="https://$CONSUL_HOST:$PORT"
 fi
 
 if [[ "$CONSUL_INCLUDE_OCI" == "true" ]]; then
@@ -47,8 +51,8 @@ if [[ "$CONSUL_INCLUDE_OCI" == "true" ]]; then
     PORT_OCI="$(python -c 'import socket; s=socket.socket(); s.bind(("", 0)); print(s.getsockname()[1]); s.close()')"
     OCI_LOCAL_REGION="us-phoenix-1"
     OCI_LOCAL_DATACENTER="$ENVIRONMENT-$OCI_LOCAL_REGION"
-    ssh -fNT -L127.0.0.1:$PORT_OCI:$OCI_LOCAL_DATACENTER-consul.jitsi.net:443 $ANSIBLE_SSH_USER@$OCI_LOCAL_REGION-$ENVIRONMENT-ssh.oracle.infra.jitsi.net
-    OCI_CONSUL_URL="https://consul-local.jitsi.net:$PORT_OCI"
+    ssh -o StrictHostKeyChecking=no -fNT -L127.0.0.1:$PORT_OCI:$OCI_LOCAL_DATACENTER-consul.$TOP_LEVEL_DNS_ZONE_NAME:443 $ANSIBLE_SSH_USER@$OCI_LOCAL_REGION-$ENVIRONMENT-ssh.oracle.infra.jitsi.net
+    OCI_CONSUL_URL="https://$CONSUL_HOST:$PORT_OCI"
 fi
 
 if [ -z "$DATACENTER" ] && [ ! -z "$REGION" ]; then
@@ -70,7 +74,7 @@ function loopDataCenters {
     DC_RET=0
     for DC in $DC_LIST; do
         KV_URL="$URL/v1/kv/$KV?dc=$DC"
-        RESPONSE=$(curl $CURL_PARAM -X $METHOD $KV_URL)
+        RESPONSE=$(curl --resolve $CONSUL_HOST:$PORT_OCI:127.0.0.1 --resolve $CONSUL_HOST:$PORT:127.0.0.1 $CURL_PARAM -X $METHOD $KV_URL)
         if [ $? -gt 0 ]; then
             echo "Failed setting release in $DC"
             echo "RESPONSE: $RESPONSE"
@@ -106,7 +110,7 @@ if [ -z "$DATACENTERS" ]; then
 
     if [[ "$CONSUL_INCLUDE_AWS" == "true" ]]; then
         echo "## get AWS datacenters from consul"
-        AWS_DATACENTERS=$(curl -G $CONSUL_URL/v1/catalog/datacenters 2>/tmp/dclist)
+        AWS_DATACENTERS=$(curl --resolve $CONSUL_HOST:$PORT:127.0.0.1 -G $CONSUL_URL/v1/catalog/datacenters 2>/tmp/dclist)
         if [[ $? -gt 0 ]]; then
             AWS_DATACENTERS='[]'
         fi
@@ -115,7 +119,7 @@ if [ -z "$DATACENTERS" ]; then
     fi
     if [[ "$CONSUL_INCLUDE_OCI" == "true" ]]; then
         echo "## get OCI datacenters from consul"
-        OCI_DATACENTERS=$(curl -G $OCI_CONSUL_URL/v1/catalog/datacenters 2>>/tmp/dclist)
+        OCI_DATACENTERS=$(curl --resolve $CONSUL_HOST:$PORT_OCI:127.0.0.1 -G $OCI_CONSUL_URL/v1/catalog/datacenters 2>>/tmp/dclist)
         if [[ $? -gt 0 ]]; then
             OCI_DATACENTERS='[]'
         fi

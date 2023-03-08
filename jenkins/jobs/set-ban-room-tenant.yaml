@@ -1,7 +1,7 @@
 - job:
-    name: set-release-ga
-    display-name: set release GA
-    description: 'Mark a release as GA, i.e., the default release that new traffic goes to.'
+    name: set-ban-room-tenant
+    display-name: set ban room tenant
+    description: 'Ban or unban a room or tenant in an environment'
     concurrent: true
     parameters:
       - string:
