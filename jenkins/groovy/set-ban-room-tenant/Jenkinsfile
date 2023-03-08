@@ -39,6 +39,9 @@ pipeline {
                         }
                     }
                     echo updateSucceeded
+                    if (updateSucceeded == 'false') {
+                        error('Ban operation failed')
+                    }
                 }
             }
         }
