@@ -35,6 +35,7 @@ pipeline {
                 file(credentialsId: 'asap-jwt-key-prod', variable: 'ASAP_JWT_KEY_PROD')
             ]) {
                 utils.SetupAnsible()
+                utils.SetupSSH()
                 sh '''#!/bin/bash
                     export USER_PUBLIC_KEY_PATH=~/.ssh/ssh_key.pub
                     export ORACLE_GIT_BRANCH=$RELEASE_BRANCH
