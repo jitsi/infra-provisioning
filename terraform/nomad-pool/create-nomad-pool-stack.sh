@@ -237,4 +237,4 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
   -var="certificate_certificate_name=$NOMAD_CERTIFICATE_NAME" \
   -var "infra_configuration_repo=$INFRA_CONFIGURATION_REPO" \
   -var "infra_customizations_repo=$INFRA_CUSTOMIZATIONS_REPO" \
-  $ACTIONS_POST_PARAMS $TF_POST_PARAMS
+  $ACTION_POST_PARAMS $TF_POST_PARAMS
