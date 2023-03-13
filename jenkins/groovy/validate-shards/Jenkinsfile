@@ -27,6 +27,9 @@ pipeline {
       steps {
         lock('validate-grid') {
           sshagent (credentials: ['ssh-ubuntu']) {
+            dir('infra-configuration') {
+              sh 'scripts/configure-jitsi-repo.sh'
+            }
             dir('infra-provisioning') {
               sh """#!/bin/bash
               export ANSIBLE_FORCE_COLOR=True
