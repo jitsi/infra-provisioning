@@ -201,6 +201,10 @@ if [[ "$ACTION" == "import" ]]; then
   ACTION_POST_PARAMS="$1 $2"
 fi
 
+pwd
+
+ls -la
+
 terraform $TF_GLOBALS_CHDIR $ACTION \
   -var="environment=$ENVIRONMENT" \
   -var="name=$NAME" \
