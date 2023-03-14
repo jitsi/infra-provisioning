@@ -3,6 +3,9 @@ variable "vcn_name" {}
 variable "oracle_region" {}
 variable "tenancy_ocid" {}
 variable "compartment_ocid" {}
+variable "ephemeral_ingress_cidr" {
+  default = "10.0.0.0/8"
+}
 
 provider "oci" {
   region = var.oracle_region
@@ -90,7 +93,7 @@ resource "oci_core_network_security_group_security_rule" "nsg_rule_ingress_nomad
   network_security_group_id = oci_core_network_security_group.security_group.id
   direction = "INGRESS"
   protocol = "6"
-  source = "10.0.0.0/8"
+  source = var.ephemeral_ingress_cidr
   stateless = false
 
   tcp_options {
@@ -101,6 +104,20 @@ resource "oci_core_network_security_group_security_rule" "nsg_rule_ingress_nomad
   }
 }
 
+resource "oci_core_network_security_group_security_rule" "nsg_rule_ingress_nomad_ephemeral_udp" {
+  network_security_group_id = oci_core_network_security_group.security_group.id
+  direction = "INGRESS"
+  protocol = "17"
+  source = var.ephemeral_ingress_cidr
+  stateless = false
+
+  tcp_options {
+    destination_port_range {
+      min = 20000
+      max = 32000
+    }
+  }
+}
 
 resource "oci_core_network_security_group_security_rule" "nsg_rule_ingress_consul_serf_tcp" {
   network_security_group_id = oci_core_network_security_group.security_group.id

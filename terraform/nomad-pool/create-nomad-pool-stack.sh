@@ -54,8 +54,10 @@ fi
 
 if [[ "$POOL_PUBLIC" == "true" ]]; then
   POOL_SUBNET_OCID="$PUBLIC_SUBNET_OCID"
+  EPHEMERAL_INGRESS_CIDR="0.0.0.0/0"
 else
   POOL_SUBNET_OCID="$NAT_SUBNET_OCID"
+  EPHEMERAL_INGRESS_CIDR="10.0.0.0/8"
 fi
 
 [ -z "$ENCRYPTED_CREDENTIALS_FILE" ] && ENCRYPTED_CREDENTIALS_FILE="$LOCAL_PATH/../../ansible/secrets/ssl-certificates.yml"
@@ -167,6 +169,7 @@ if [ -z "$NOMAD_SECURITY_GROUP_ID" ]; then
     -var="compartment_ocid=$COMPARTMENT_OCID" \
     -var="vcn_name=$VCN_NAME" \
     -var="resource_name_root=$RESOURCE_NAME_ROOT" \
+    -var="ephemeral_ingress_cidr=$EPHEMERAL_INGRESS_CIDR" \
     -auto-approve $TF_POST_PARAMS_SG
 
   oci os object get --bucket-name $S3_STATE_BUCKET --name $S3_STATE_KEY_NOMAD_SG --region $ORACLE_REGION --file $LOCAL_NOMAD_SG_KEY
