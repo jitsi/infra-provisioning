@@ -109,9 +109,13 @@ fi
 
 # ensure no output for ansible vault contents
 set +x
+set -e
+set -o pipefail
 CA_CERTIFICATE=$(ansible-vault view $ENCRYPTED_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${NOMAD_CA_CERTIFICATE_VARIABLE}" -)
 PUBLIC_CERTIFICATE=$(ansible-vault view $ENCRYPTED_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${NOMAD_PUBLIC_CERTIFICATE_VARIABLE}" -)
 PRIVATE_KEY=$(ansible-vault view $ENCRYPTED_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${NOMAD_PRIVATE_KEY_VARIABLE}" -)
+set +e
+set +o pipefail
 
 # export private key to variable instead of outputting on command line
 export TF_VAR_certificate_public_certificate="$PUBLIC_CERTIFICATE"
