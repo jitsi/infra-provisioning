@@ -6,6 +6,7 @@ variable "security_group_ocid" {}
 variable "user" {}
 variable "user_private_key_path" {}
 variable "user_public_key_path" {}
+variable "bastion_host" {}
 variable "image_ocid" {}
 variable "oracle_region" {}
 variable "environment" {}
@@ -60,8 +61,8 @@ resource "oci_core_network_security_group" "instance_security_group" {
   display_name = "${var.display_name}-SecurityGroup"
 }
 
-resource "oci_core_network_security_group_security_rule" "consul_nsg_rule_egress" {
-  network_security_group_id = oci_core_network_security_group.consul_security_group.id
+resource "oci_core_network_security_group_security_rule" "firezone_nsg_rule_egress" {
+  network_security_group_id = oci_core_network_security_group.instance_security_group.id
   direction = "EGRESS"
   destination = "0.0.0.0/0"
   protocol = "all"
@@ -148,9 +149,13 @@ resource "oci_core_instance" "oci-instance" {
     provisioner "file" {
         connection {
             type        = "ssh"
-            host        = oci_core_instance.oci-instance.public_ip
+            host        = oci_core_instance.oci-instance.private_ip
             user        = var.user
             private_key = file(var.user_private_key_path)
+
+            bastion_host = var.bastion_host
+            bastion_user = var.user
+            bastion_private_key = file(var.user_private_key_path)
         }
 
         content = join("",[
@@ -163,24 +168,26 @@ resource "oci_core_instance" "oci-instance" {
         destination = "/tmp/configure-firezone-local-oracle.sh"
     }
 
-
     provisioner "remote-exec" {
         connection {
             type        = "ssh"
-            host        = oci_core_instance.oci-instance.public_ip
+            host        = oci_core_instance.oci-instance.private_ip
             user        = var.user
             private_key = file(var.user_private_key_path)
+            
+            bastion_host = var.bastion_host
+            bastion_user = var.user
+            bastion_private_key = file(var.user_private_key_path)
+
             script_path = "/home/${var.user}/script_%RAND%.sh"
         }
 
         inline = [
+            "cloud-init status --wait",
             "sudo cp /tmp/configure-firezone-local-oracle.sh /usr/local/bin/configure-firezone-local-oracle.sh",
             "sudo chmod +x /usr/local/bin/configure-firezone-local-oracle.sh",
             "sudo /usr/local/bin/configure-firezone-local-oracle.sh"
         ]
-    }
-    triggers = {
-      always_run = "${timestamp()}"
     }
 }
 

@@ -11,7 +11,7 @@ fi
 
 [ -e $LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh ] && . $LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh
 
-[ -z "$ORACLE_GIT_BRANCH" ] && ORACLE_GIT_BRANCH="main"
+[ -z "$ORACLE_GIT_BRANCH" ] && ORACLE_GIT_BRANCH="main"  # PROBLEM?
 
 [ -e "$LOCAL_PATH/../../clouds/all.sh" ] && . $LOCAL_PATH/../../clouds/all.sh
 [ -e "$LOCAL_PATH/../../clouds/oracle.sh" ] && . $LOCAL_PATH/../../clouds/oracle.sh
@@ -38,9 +38,12 @@ fi
 
 [ -z "$DISPLAY_NAME" ] && DISPLAY_NAME="$FIREZONE_NAME"
 
-[ -z "$FIREZONE_BASE_IMAGE_ID" ] && FIREZONE_BASE_IMAGE_ID=$($LOCAL_PATH/oracle_custom_images.py --type FocalBase --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
-if [ -z "$FIREZONE_BASE_IMAGE_ID" ]; then
-  echo "## no FIREZONE_BASE_IMAGE_ID found, exiting..."
+[ -z "$BASE_IMAGE_TYPE" ] && BASE_IMAGE_TYPE="$FIREZONE_BASE_IMAGE_TYPE"
+[ -z "$BASE_IMAGE_TYPE" ] && BASE_IMAGE_TYPE="JammyBase"
+
+[ -z "$IMAGE_OCID" ] && IMAGE_OCID=$($LOCAL_PATH/../../scripts/oracle_custom_images.py --type $BASE_IMAGE_TYPE --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
+if [ -z "$IMAGE_OCID" ]; then
+  echo "## no IMAGE_OCID found.  Exiting..."
   exit 1
 fi
 
@@ -66,6 +69,8 @@ fi
 [ -z "$USER_PUBLIC_KEY_PATH" ] && USER_PUBLIC_KEY_PATH="~/.ssh/id_ed25519.pub"
 
 [ -z "$USER_PRIVATE_KEY_PATH" ] && USER_PRIVATE_KEY_PATH="~/.ssh/id_ed25519"
+
+[ -z "$BASTION_HOST" ] && BASTION_HOST="$CONNECTION_SSH_BASTION_HOST"
 
 [ -z "$S3_PROFILE" ] && S3_PROFILE="oracle"
 [ -z "$S3_STATE_BUCKET" ] && S3_STATE_BUCKET="tf-state-$ENVIRONMENT"
@@ -103,30 +108,31 @@ VCN_NAME_ROOT="$ORACLE_REGION-$ENVIRONMENT"
 VCN_NAME="$VCN_NAME_ROOT-vcn"
 
 terraform $TF_GLOBALS_CHDIR $ACTION \
-  -var="availability_domain=$AVAILABILITY_DOMAIN"\
-  -var="environment=$ENVIRONMENT"\
-  -var="environment_type=$ENVIRONMENT_TYPE"\
-  -var="name=$FIREZONE_NAME"\
-  -var="display_name=$DISPLAY_NAME"\
-  -var="oracle_region=$ORACLE_REGION"\
-  -var="shape=$SHAPE"\
-  -var="ocpus=$OCPUS"\
-  -var="memory_in_gbs=$MEMORY_IN_GBS"\
-  -var="git_branch=$ORACLE_GIT_BRANCH"\
-  -var="user=$SSH_USER"\
+  -var="availability_domain=$AVAILABILITY_DOMAIN" \
+  -var="environment=$ENVIRONMENT" \
+  -var="environment_type=$ENVIRONMENT_TYPE" \
+  -var="name=$FIREZONE_NAME" \
+  -var="display_name=$DISPLAY_NAME" \
+  -var="oracle_region=$ORACLE_REGION" \
+  -var="shape=$SHAPE" \
+  -var="ocpus=$OCPUS" \
+  -var="memory_in_gbs=$MEMORY_IN_GBS" \
+  -var="git_branch=$ORACLE_GIT_BRANCH" \
+  -var="user=$SSH_USER" \
   -var="user_private_key_path=$USER_PRIVATE_KEY_PATH" \
   -var="user_public_key_path=$USER_PUBLIC_KEY_PATH" \
+  -var="bastion_host=$BASTION_HOST" \
   -var="dns_name=$DNS_NAME" \
   -var="dns_zone_name=$DNS_ZONE_NAME" \
   -var="dns_compartment_ocid=$TENANCY_OCID" \
-  -var="user_public_key_path=$USER_PUBLIC_KEY_PATH"\
-  -var="user_private_key_path=$USER_PRIVATE_KEY_PATH"\
-  -var="tenancy_ocid=$TENANCY_OCID"\
-  -var="compartment_ocid=$COMPARTMENT_OCID"\
-  -var="vcn_name=$VCN_NAME"\
-  -var="subnet_ocid=$PUBLIC_SUBNET_OCID"\
-  -var="security_group_ocid=$PUBLIC_SECURITY_GROUP_OCID"\
-  -var="image_ocid=$FIREZONE_BASE_IMAGE_ID"\
+  -var="user_public_key_path=$USER_PUBLIC_KEY_PATH" \
+  -var="user_private_key_path=$USER_PRIVATE_KEY_PATH" \
+  -var="tenancy_ocid=$TENANCY_OCID" \
+  -var="compartment_ocid=$COMPARTMENT_OCID" \
+  -var="vcn_name=$VCN_NAME" \
+  -var="subnet_ocid=$PUBLIC_SUBNET_OCID" \
+  -var="security_group_ocid=$PUBLIC_SECURITY_GROUP_OCID" \
+  -var="image_ocid=$IMAGE_OCID" \
   -var "tag_namespace=$TAG_NAMESPACE" \
   -var "infra_configuration_repo=$INFRA_CONFIGURATION_REPO" \
   -var "infra_customizations_repo=$INFRA_CUSTOMIZATIONS_REPO" \
