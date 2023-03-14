@@ -11,7 +11,7 @@ if [ -z "$ENVIRONMENT" ]; then
   exit 1
 fi
 
-[ -e ./sites/$ENVIRONMENT/stack-env.sh ] && . ./sites/$ENVIRONMENT/stack-env.sh
+[ -e $LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh ] && . $LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh
 
 if [ -z "$ORACLE_REGION" ]; then
   echo "## no ORACLE_REGION found, exiting..."
@@ -69,7 +69,7 @@ for PEER_ENVIRONMENT in $OPS_ENVIRONMENTS; do
     if [ "$ENVIRONMENT" == "$PEER_ENVIRONMENT" ]; then
       continue
     fi
-    . ./sites/$PEER_ENVIRONMENT/stack-env.sh 
+    . $LOCAL_PATH/../sites/$PEER_ENVIRONMENT/stack-env.sh 
     PEER_COMPARTMENT_OCID="$COMPARTMENT_OCID"
     OPS_DRG_PEER_REGIONS="$DRG_PEER_REGIONS"
     for R in $OPS_DRG_PEER_REGIONS; do
