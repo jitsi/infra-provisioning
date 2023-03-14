@@ -79,7 +79,7 @@ fi
 
 [ -z "$USER_PRIVATE_KEY_PATH" ] && USER_PRIVATE_KEY_PATH="~/.ssh/id_ed25519"
 
-[ -z "$POSTINSTALL_STATUS_FILE" ] && POSTINSTALL_STATUS_FILE="$LOCAL_PATH/../../../test-results/nomad_postinstall_status.txt"
+[ -z "$POSTINSTALL_STATUS_FILE" ] && POSTINSTALL_STATUS_FILE="$(realpath $LOCAL_PATH/../../..)/test-results/nomad_postinstall_status.txt"
 
 [ -z "$BASTION_HOST" ] && BASTION_HOST="$CONNECTION_SSH_BASTION_HOST"
 
@@ -200,10 +200,6 @@ fi
 if [[ "$ACTION" == "import" ]]; then
   ACTION_POST_PARAMS="$1 $2"
 fi
-
-pwd
-
-ls -la $LOCAL_PATH/../../..
 
 terraform $TF_GLOBALS_CHDIR $ACTION \
   -var="environment=$ENVIRONMENT" \
