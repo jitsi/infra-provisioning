@@ -203,7 +203,7 @@ fi
 
 pwd
 
-ls -la
+ls -la $LOCAL_PATH/../../..
 
 terraform $TF_GLOBALS_CHDIR $ACTION \
   -var="environment=$ENVIRONMENT" \
