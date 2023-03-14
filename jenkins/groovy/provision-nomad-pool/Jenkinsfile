@@ -18,6 +18,8 @@ pipeline {
 
                     // setup OCI credentials
                     utils.SetupOCI()
+
+                    sh 'mkdir -p test-results'
                 }
             }
         }
