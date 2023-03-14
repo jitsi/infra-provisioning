@@ -7,5 +7,3 @@ export HOST_ROLE="vpn"
 . /usr/local/bin/oracle_cache.sh
 export MY_HOSTNAME="${ORACLE_REGION}-${ENVIRONMENT}-${HOST_ROLE}.oracle.infra.jitsi.net"
 export ANSIBLE_VARS="hcv_environment=$ENVIRONMENT cloud_name=$CLOUD_NAME cloud_provider=oracle oracle_region=$ORACLE_REGION dns_name=$MY_HOSTNAME"
-
-## generate config file that sets up ssl certificates from firezone_ssl_certificates
