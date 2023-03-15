@@ -4,6 +4,7 @@ pipeline {
   options {
     timestamps()
     ansiColor('xterm')
+    buildDiscarder(logRotator(numToKeepStr: '50', artifactNumToKeepStr: '50'))
   }
   stages {
     stage('Prepare/Checkout') { // for display purposes
