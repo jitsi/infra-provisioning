@@ -32,6 +32,7 @@ pipeline {
     options {
         timestamps()
         ansiColor('xterm')
+        buildDiscarder(logRotator(numToKeepStr: '10', artifactNumToKeepStr: '50'))
     }
     stages {
         // output stage, shows off our input parameters

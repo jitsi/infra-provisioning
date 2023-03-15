@@ -40,6 +40,7 @@ pipeline {				//indicate the job is written in Declarative Pipeline
     options {
         ansiColor('xterm')
         timestamps()
+        buildDiscarder(logRotator(numToKeepStr: '10', artifactNumToKeepStr: '10'))
     }
     stages {
         stage('Prepare/Checkout') { // for display purposes
