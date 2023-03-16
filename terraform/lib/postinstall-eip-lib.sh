@@ -21,8 +21,12 @@ function switch_to_secondary_vnic() {
     return $status_code
   fi
 
+  echo "Detect secondary NIC"
+  SECONDARY_VNIC_DEVICE="$(ip addr | egrep '^3:' | awk '{print $2}')"
+  SECONDARY_VNIC_DEVICE="${SECONDARY_VNIC_DEVICE::-1}"
+
   echo "Add rule for seconday NIC "
-  export SECONDARY_PRIVATE_IP=$(ip route show | grep ens4 | awk '{print $1}')
+  export SECONDARY_PRIVATE_IP=$(ip route show | grep $SECONDARY_VNIC_DEVICE | awk '{print $1}')
   sudo ip rule add to $SECONDARY_PRIVATE_IP table ort1 || status_code=1
 
   if [ $status_code -gt 0 ]; then
@@ -47,7 +51,7 @@ function switch_to_secondary_vnic() {
     return $status_code
   fi
 
-  export NIC2_ROUTE="default via "$(ip route show | grep ens4 | awk '{ print substr($1,1,index($1,"/")-2)1 " " $2 " " $3}')
+  export NIC2_ROUTE="default via "$(ip route show | grep $SECONDARY_VNIC_DEVICE | awk '{ print substr($1,1,index($1,"/")-2)1 " " $2 " " $3}')
   sudo ip route add $NIC2_ROUTE || status_code=1
   return $status_code
 }
