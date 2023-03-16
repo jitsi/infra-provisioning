@@ -25,7 +25,7 @@ function switch_to_secondary_vnic() {
   SECONDARY_VNIC_DEVICE="$(ip addr | egrep '^3:' | awk '{print $2}')"
   SECONDARY_VNIC_DEVICE="${SECONDARY_VNIC_DEVICE::-1}"
 
-  echo "Add rule for seconday NIC "
+  echo "Add rule for secondary NIC "
   export SECONDARY_PRIVATE_IP=$(ip route show | grep $SECONDARY_VNIC_DEVICE | awk '{print $1}')
   sudo ip rule add to $SECONDARY_PRIVATE_IP table ort1 || status_code=1
 
