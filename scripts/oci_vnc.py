@@ -94,7 +94,7 @@ def print_security_lists(ctx: click.Context):
         for seclist in ctx.obj['SECURITY_LISTS'][region]:
             pprint.pprint(seclist)
 
-def build_ingress_security_rule(description: str, source: str, source_type: str, protocol: str, dest_port: int, source_port: int) -> oci.core.models.IngressSecurityRule:
+def build_ingress_security_rule(description: str, source: str, source_type: str, protocol: str, dest_port: int, source_port: int, stateless: bool) -> oci.core.models.IngressSecurityRule:
     '''builds a simple ingress security rule'''
     if dest_port:
         dest_port_range = oci.core.models.PortRange(
@@ -118,7 +118,7 @@ def build_ingress_security_rule(description: str, source: str, source_type: str,
             protocol="6",
             source=source,
             source_type=source_type,
-            is_stateless=True,
+            is_stateless=stateless,
             tcp_options=oci.core.models.TcpOptions(
                 destination_port_range=dest_port_range,
                 source_port_range=source_port_range
@@ -130,7 +130,7 @@ def build_ingress_security_rule(description: str, source: str, source_type: str,
             protocol="17",
             source=source,
             source_type=source_type,
-            is_stateless=True,
+            is_stateless=stateless,
             tcp_options=oci.core.models.UdpOptions(
                 destination_port_range=dest_port_range,
                 source_port_range=source_port_range
@@ -199,8 +199,9 @@ def list_seclist_cmd(ctx: click.Context, filter: str):
 @click.option('--source', required=True, help="source of traffic")
 @click.option('--source_type', default="CIDR_BLOCK", help="type of source")
 @click.option('--source_port', default=None, help="port the traffic is coming from, defaults to all")
+@click.option('--stateless', is_flag=True, help="is the protocol in use stateless")
 @click.pass_context
-def add_seclist_rule_cmd(ctx: click.Context, filter: str, description: str, source: str, source_type: str, protocol: str, dest_port: int, source_port: int):
+def add_seclist_rule_cmd(ctx: click.Context, filter: str, description: str, source: str, source_type: str, protocol: str, dest_port: int, source_port: int, stateless: bool):
     if ctx.obj['DEBUG']:
         click.echo("## DEBUG: loading security lists")
     if filter:
@@ -216,7 +217,7 @@ def add_seclist_rule_cmd(ctx: click.Context, filter: str, description: str, sour
         source_port = int(source_port)
 
     load_security_lists(ctx)
-    ingress_security_rule = build_ingress_security_rule(description, source, source_type, protocol, dest_port, source_port)
+    ingress_security_rule = build_ingress_security_rule(description, source, source_type, protocol, dest_port, source_port, stateless)
     add_ingress_rule_to_security_lists(ctx, ingress_security_rule)
 
 if __name__ == '__main__':
