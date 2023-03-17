@@ -33,6 +33,8 @@ def image_data_from_image_obj(image, tag_namespace):
     return {'image_ts': image.time_created,
             'image_epoch_ts':image_tags.get('TS'),
             'image_type':image_tags.get('Type'),
+            'image_base_type': image_tags.get('BaseImageType'),
+            'image_base_ocid': image_tags.get('BaseImageOCID'),
             'image_version':image_tags.get('Version'),
             'image_build':image_tags.get('build_id'),
             'image_environment_type':image_tags.get('environment_type'),

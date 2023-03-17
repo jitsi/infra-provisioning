@@ -99,6 +99,7 @@ packer build \
 -var "jitsi_videobridge_deb_pkg_version=$JVB_VERSION" \
 -var "jitsi_meet_meta_version=$JITSI_MEET_META_VERSION" \
 -var "ansible_ssh_user=$ANSIBLE_SSH_USER" \
+-var "base_image_type=$BASE_IMAGE_TYPE" \
 -var "base_image_ocid=$BASE_IMAGE_ID" \
 -var "region=$ORACLE_REGION" \
 -var "availability_domain=$AVAILABILITY_DOMAIN" \

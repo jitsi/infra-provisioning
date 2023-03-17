@@ -153,6 +153,8 @@ IMAGE_TIMESTAMP=$(echo "$IMAGE_DETAILS" | jq -r .\"'image_epoch_ts'\")
 IMAGE_TYPE=$(echo "$IMAGE_DETAILS" | jq -r .\"'image_type'\")
 IMAGE_VERSION=$(echo "$IMAGE_DETAILS" | jq -r .\"'image_version'\")
 IMAGE_BUILD=$(echo "$IMAGE_DETAILS" | jq -r .\"'image_build'\")
+IMAGE_BASE_TYPE=$(echo "$IMAGE_DETAILS" | jq -r .\"'image_base_type'\")
+IMAGE_BASE_OCID=$(echo "$IMAGE_DETAILS" | jq -r .\"'image_base_ocid'\")
 IMAGE_ENVIRONMENT_TYPE=$(echo "$IMAGE_DETAILS" | jq -r .\"'image_environment_type'\")
 IMAGE_META_VERSION=$(echo "$IMAGE_DETAILS" | jq -r .\"'image_meta_version'\")
 IMAGE_COMPARTMENT=$(echo "$IMAGE_DETAILS" | jq -r .\"'image_compartment_id'\")
@@ -286,6 +288,8 @@ for REGION in "${IMPORT_ORACLE_REGIONS[@]}"; do
       "Name": "'${IMAGE_NAME}'",
       "build_id": "'${IMAGE_BUILD}'",
       "Version": "'${IMAGE_VERSION}'",
+      "BaseImageType": "'${IMAGE_BASE_TYPE}'",
+      "BaseImageOCID": "'${IMAGE_BASE_OCID}'",
       "TS": "'${IMAGE_TIMESTAMP}'",
       "MetaVersion": "'${IMAGE_META_VERSION}'",
       "Type": "'${IMAGE_TYPE}'",
@@ -310,6 +314,8 @@ for REGION in "${IMPORT_ORACLE_REGIONS[@]}"; do
       "jitsi": {
       "Name": "'${IMAGE_NAME}'",
       "build_id": "'${IMAGE_BUILD}'",
+      "BaseImageType": "'${IMAGE_BASE_TYPE}'",
+      "BaseImageOCID": "'${IMAGE_BASE_OCID}'",
       "TS": "'${IMAGE_TIMESTAMP}'",
       "Type": "'${IMAGE_TYPE}'",
       "environment_type": "'${IMAGE_ENVIRONMENT_TYPE}'"

@@ -4,6 +4,7 @@
     "environment": "",
     "ansible_build_path": "../../infra-configuration/ansible",
     "ansible_ssh_user": "",
+    "base_image_type": "",
     "base_image_ocid": "",
     "region": "",
     "availability_domain": "",
@@ -47,6 +48,8 @@
         "{{user `tag_namespace`}}": {
           "Name": "{{user `jigasi_image_name`}}",
           "build_id": "{{user `build_id`}}",
+          "BaseImageType": "BaseType-{{user `base_image_type`}}",
+          "BaseImageOCID": "{{user `base_image_ocid`}}",
           "Version": "{{user `jigasi_deb_pkg_version`}}",
           "TS": "{{timestamp}}",
           "Type": "Jigasi",

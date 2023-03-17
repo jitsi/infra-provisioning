@@ -208,3 +208,17 @@ resource "oci_identity_tag" "unique_id" {
   name             = "unique_id"
   tag_namespace_id = oci_identity_tag_namespace.eghtjitsi.id
 }
+
+resource "oci_identity_tag" "BaseImageType" {
+  #Required
+  description      = "Base Image Type used to build image"
+  name             = "BaseImageType"
+  tag_namespace_id = oci_identity_tag_namespace.eghtjitsi.id
+}
+
+resource "oci_identity_tag" "BaseImageOCID" {
+  #Required
+  description      = "Base Image OCID used to build image"
+  name             = "BaseImageOCID"
+  tag_namespace_id = oci_identity_tag_namespace.eghtjitsi.id
+}
