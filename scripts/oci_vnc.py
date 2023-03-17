@@ -3,6 +3,7 @@
 
 import sys
 import pprint
+import copy
 import click
 import oci
 import hcvlib
@@ -159,7 +160,6 @@ def add_ingress_rule_to_security_lists(ctx: click.Context, new_ingress_rule: oci
             continue
         for seclist in ctx.obj['SECURITY_LISTS'][region]:
             click.echo(f"## updating {region} security list {seclist.display_name}")
-            import copy
             new_ingress_security_rules = copy.deepcopy(seclist.ingress_security_rules)
             new_ingress_security_rules.append(new_ingress_rule)
             response = ctx.obj['OCI_VN_CLIENT'][region].update_security_list(
@@ -289,12 +289,14 @@ def list_seclist_cmd(ctx: click.Context, seclist_filter: str):
 @click.option('--stateless', is_flag=True, help="is the protocol in use stateless")
 @click.pass_context
 def add_seclist_ingress_rule_cmd(ctx: click.Context, seclist_filter: str, description: str, source: str, source_type: str, protocol: str, dest_port: int, source_port: int, stateless: bool):
+    '''add ingress rule to security list'''
     if ctx.obj['DEBUG']:
         click.echo("## starting add_seclist_ingress_rule")
-
     if seclist_filter:
-        dest_port = int(dest_port)
+        ctx.obj['SECLIST_FILTER'] = seclist_filter
 
+    if dest_port:
+        dest_port = int(dest_port)
     if source_port:
         source_port = int(source_port)
 
