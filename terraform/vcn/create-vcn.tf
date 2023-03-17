@@ -93,74 +93,6 @@ resource "oci_core_route_table" "route_table" {
 
 // ============ SECURITY LISTS ============
 
-resource "oci_core_security_list" "public_security_list" {
-    compartment_id = var.compartment_ocid
-    vcn_id         = oci_core_vcn.vcn.id
-    display_name   = "${var.resource_name_root}-PublicSecurityList"
-
-    // allow outbound traffic on all ports
-    egress_security_rules {
-        destination = "0.0.0.0/0"
-        protocol    = "all"
-    }
-
-    egress_security_rules {
-        destination = lookup(data.oci_core_services.all_services.services[0], "cidr_block")
-        destination_type = "SERVICE_CIDR_BLOCK"
-        protocol    = "all"
-    }
-
-    // allow inbound ssh traffic from all ports
-    ingress_security_rules {
-        protocol  = "6"         // tcp
-        source    = "0.0.0.0/0"
-        stateless = false
-
-        tcp_options {
-            // These values correspond to the destination port range.
-            min = 22
-            max = 22
-        }
-    }
-
-    // allow inbound ssh traffic from ops networks
-    dynamic "ingress_security_rules" {
-      for_each = toset(var.ops_peer_cidrs)
-      content {
-        protocol  = "6"         // tcp
-        source    = ingress_security_rules.value
-        stateless = false
-        tcp_options {
-            min = 22
-            max = 22
-        }
-      }
-    }
-
-    // allow inbound icmp traffic of a specific type
-    ingress_security_rules {
-        protocol    = 1
-        source      = "0.0.0.0/0"
-        stateless   = false
-
-        icmp_options {
-          type = 3
-          code = 4
-        }
-    }
-
-    // allow inbound icmp traffic for destination unreachable
-    ingress_security_rules {
-        protocol    = 1
-        source      = var.vcn_cidr
-        stateless   = false
-
-        icmp_options {
-            type = 3
-        }
-    }
-}
-
 resource "oci_core_security_list" "private_security_list" {
     compartment_id = var.compartment_ocid
     vcn_id         = oci_core_vcn.vcn.id
@@ -320,13 +252,13 @@ resource "oci_core_network_security_group_security_rule" "jvb_network_security_g
 // ============ SUBNETS ============
 
 resource "oci_core_subnet" "public_subnet" {
-  depends_on          = [oci_core_network_security_group.public_network_security_group, oci_core_security_list.public_security_list]
+  depends_on          = [oci_core_network_security_group.public_network_security_group, oci_core_security_list.private_security_list]
   cidr_block          = var.public_subnet_cidr
   display_name        = "${var.resource_name_root}-PublicSubnet1"
   dns_label           = "pubsubnet1"
   compartment_id      = var.compartment_ocid
   vcn_id              = oci_core_vcn.vcn.id
-  security_list_ids   = ["${oci_core_security_list.public_security_list.id}"]
+  security_list_ids   = ["${oci_core_security_list.private_security_list.id}"]
   route_table_id      = oci_core_route_table.route_table.id
 }
 
