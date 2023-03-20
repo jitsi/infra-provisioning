@@ -44,7 +44,7 @@ if [ -z "$COMPARTMENT_OCID" ]; then
   exit 1
 fi
 
-set -x
+#set -x
 CIDRS="10.0.0.0/8"
 OPS_COMPARTMENT_OCID="$COMPARTMENT_OCID"
 
