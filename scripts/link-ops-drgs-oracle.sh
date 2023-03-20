@@ -28,9 +28,6 @@ else
     echo -e "## connecting $ENVIRONMENT in $ORACLE_REGION to OPS_ENVIRONMENTS:\n$OPS_ENVIRONMENTS"
 fi
 
-# load oracle variables
-. $LOCAL_PATH/../clouds/all.sh
-
 ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 [ -e "$LOCAL_PATH/../clouds/${ORACLE_CLOUD_NAME}.sh" ] && . $LOCAL_PATH/../clouds/${ORACLE_CLOUD_NAME}.sh
 
