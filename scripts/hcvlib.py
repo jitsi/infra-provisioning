@@ -14,7 +14,6 @@ from bs4 import BeautifulSoup
 import urllib.request, urllib.error, urllib.parse
 import re
 import yaml
-import pdb
 
 import oci
 
@@ -53,7 +52,7 @@ def oracle_region_map(ansible_var_name=None):
     global ORACLE_REGION_MAP
     ansible_var_name='oracle_to_aws_region_map'
     with open(REGIONS_FILE_PATH, 'r') as f:
-        doc = yaml.load(f,Loader=yaml.BaseLoader)
+        doc = yaml.safe_load(f)
 
     ORACLE_REGION_MAP=doc[ansible_var_name]
 
@@ -77,17 +76,25 @@ def oracle_regions_by_aws():
     return map
 
 def oracle_regions_by_environment(environment: str):
-    ansible_var_name='consul_wan_regions_oracle'
-    env_regions_file_path=os.path.dirname(os.path.realpath(__file__)) + "/../sites/" + environment + "/vars.yml"
-    with open(env_regions_file_path, 'r') as f:
-        doc = yaml.load(f, Loader=yaml.BaseLoader)
-    region_aliases = doc[ansible_var_name]
+    try:
+        # first we try stack-env, which will contain all regions
+        f = open(f'sites/{environment}/stack-env.sh', 'r')
+        for line in f:
+            if 'DRG_PEER_REGIONS' in line:
+                region_aliases = line.split('=')[1].strip('"\n').split()
+    except:
+        # use ansible config as a fallback, which may be incomplete
+        ansible_var_name='consul_wan_regions_oracle'
+        env_regions_file_path=os.path.dirname(os.path.realpath(__file__)) + "/../sites/" + environment + "/vars.yml"
+        with open(env_regions_file_path, 'r') as f:
+            doc = yaml.safe_load(f)
+        region_aliases = doc[ansible_var_name]
     return region_aliases
 
 def load_region_aliases():
     ansible_var_name='region_aliases'
     with open(REGIONS_FILE_PATH, 'r') as f:
-        doc = yaml.load(f,Loader=yaml.BaseLoader)
+        doc = yaml.safe_load(f)
 
     region_aliases = doc[ansible_var_name]
     return region_aliases
