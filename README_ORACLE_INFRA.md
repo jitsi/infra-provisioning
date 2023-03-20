@@ -109,16 +109,17 @@ For existing compartments, the policies should be manually added
 Usually only needed for 8x8 specific compartments (e.g. prod-8x8), but please check with the backend team
 * https://jenkins.jitsi.net/job/provision-service-users-policies-oracle/
 
-#### Mesh regions in the compartment to each other
-* Create a DRG and add a route, run `ORACLE_REGION=<region> ../all/bin/create-drg-oracle.sh`
-* Per new region, run `ORACLE_REGION=<region> ../all/bin/link-drgs-oracle.sh`
+#### Set up networking for the regions in the compartment
+* Create a DRG for each region and add a route, run `ORACLE_REGION=<region> ENVIRONMENT=<compartment> scripts/create-drg-oracle.sh`
+* For each region running shards and/or jvbs, run `ORACLE_REGION=<region> ENVIRONMENT=<compartment> scripts/link-drgs-oracle.sh`
+* Build the ops network to all regions across the environment: `OPS_ENVIRONMENT=<ops-compartment> ORACLE_REGION=<ops-region> TARGET_ENVIRONMENTS=<target-compartment> scripts/link-ops-drgs-oracle.sh`
 
 #### Create a Consul cluster for the environment/region
 Consul is used as a source of truth for service discovery and configuration
 information across our system. In OCI, there is a consul cluster per region per
 environment. Clusters typically contain 3 servers. Each server is in its own OCI
 instance pool in order to spread them across availability domains within the
-region.
+region. These are not currently needed in coturn-only regions.
 
 Services that consul tracks (as of July 2022):
 * consul
