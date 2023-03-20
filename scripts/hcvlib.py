@@ -76,6 +76,14 @@ def oracle_regions_by_aws():
 
     return map
 
+def oracle_regions_by_environment(environment: str):
+    ansible_var_name='consul_wan_regions_oracle'
+    env_regions_file_path=os.path.dirname(os.path.realpath(__file__)) + "/../sites/" + environment + "/vars.yml"
+    with open(env_regions_file_path, 'r') as f:
+        doc = yaml.load(f, Loader=yaml.BaseLoader)
+    region_aliases = doc[ansible_var_name]
+    return region_aliases
+
 def load_region_aliases():
     ansible_var_name='region_aliases'
     with open(REGIONS_FILE_PATH, 'r') as f:
