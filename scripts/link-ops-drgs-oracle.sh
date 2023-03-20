@@ -1,21 +1,29 @@
 #!/bin/bash
 
-# usage: ENVIRONMENT=env ORACLE_REGION=us-phoenix-1 scripts/link-ops-drgs-oracle.sh
+# usage: ENVIRONMENT=<ops environment to link from> OPS_ENVIRONMENTS=<environments to link to> ORACLE_REGION=us-phoenix-1 scripts/link-ops-drgs-oracle.sh
 
 LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
 echo "## link-ops-drgs-oracle.sh: beginning"
 
-if [ -z "$ENVIRONMENT" ]; then
-  echo "## no ENVIRONMENT found, exiting..."
+# environment to link FROM
+if [ -z "$OPS_ENVIRONMENT" ]; then
+  echo "## no OPS_ENVIRONMENT found, exiting..."
   exit 1
 fi
 
-[ -e $LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh ] && . $LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh
-
+# region of the OPS_ENVIRONMENT network to link FROM
 if [ -z "$ORACLE_REGION" ]; then
   echo "## no ORACLE_REGION found, exiting..."
   exit 1
+fi
+
+ENVIRONMENT=$OPS_ENVIRONMENT
+[ -e $LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh ] && . $LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh
+
+# custom environments to link TO
+if [ -n "$TARGET_ENVIRONMENTS" ]; then
+    OPS_ENVIRONMENTS=$TARGET_ENVIRONMENTS
 fi
 
 if [ -z "$OPS_ENVIRONMENTS" ]; then
@@ -36,7 +44,7 @@ if [ -z "$COMPARTMENT_OCID" ]; then
   exit 1
 fi
 
-set -x
+#set -x
 CIDRS="10.0.0.0/8"
 OPS_COMPARTMENT_OCID="$COMPARTMENT_OCID"
 
