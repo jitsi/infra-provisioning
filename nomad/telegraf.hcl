@@ -144,7 +144,7 @@ job "[JOB_NAME]" {
   [inputs.prometheus.consul]
     enabled = true
     agent = "{{ scratch.Get "consul_server" }}:8500"
-    query_interval = "5m"
+    query_interval = "1m"
     [[inputs.prometheus.consul.query]]
       name = "jicofo"
       tag = "ip-{{ env "NOMAD_IP_telegraf_statsd" }}"
