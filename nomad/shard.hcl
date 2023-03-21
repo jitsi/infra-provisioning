@@ -29,27 +29,27 @@ variable "release_number" {
 
 variable jicofo_auth_password {
     type = string
-    default = "a22c95b9608771167b8f8725237650c0"
+    default = "replaceme_jicofo"
 }
 
 variable jvb_auth_password {
     type = string
-    default = "4a8ce6550273e2da15ec7cb9050363bd"
+    default = "replaceme_jvb"
 }
 
 variable jigasi_xmpp_password {
     type = string
-    default = "b68d792c112fa055da6c94fa72b0854b"
+    default = "replaceme_jigasi"
 }
 
 variable jibri_recorder_password {
     type = string
-    default = "4b17aa43337e4b372b79184d9685c48c"
+    default = "replaceme_recorder"
 }
 
 variable jibri_xmpp_password {
     type = string
-    default = "9a27d152ddb7a85574dd4a4a301a77f"
+    default = "replaceme_jibri"
 }
 
 variable enable_auto_owner {

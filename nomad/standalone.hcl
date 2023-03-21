@@ -49,11 +49,11 @@ job "[JOB_NAME]" {
       env {
         XMPP_DOMAIN = "${var.domain}"
         PUBLIC_URL="https://${var.domain}/"
-        JICOFO_AUTH_PASSWORD = "a22c95b9608771167b8f8725237650c0"
-        JVB_AUTH_PASSWORD = "4a8ce6550273e2da15ec7cb9050363bd"
-        JIGASI_XMPP_PASSWORD = "b68d792c112fa055da6c94fa72b0854b"
-        JIBRI_RECORDER_PASSWORD = "4b17aa43337e4b372b79184d9685c48c"
-        JIBRI_XMPP_PASSWORD = "9a27d152ddb7a85574dd4a4a301a77f"
+        JICOFO_AUTH_PASSWORD = "replaceme_jicofo"
+        JVB_AUTH_PASSWORD = "replaceme_jvb"
+        JIGASI_XMPP_PASSWORD = "replaceme_jigasi"
+        JIBRI_RECORDER_PASSWORD = "replaceme_recorder"
+        JIBRI_XMPP_PASSWORD = "replaceme_jibri"
         # Internal XMPP domain for authenticated services
         XMPP_AUTH_DOMAIN = "auth.${var.domain}"
         # XMPP domain for the MUC
@@ -554,11 +554,11 @@ EOF
       env {
         XMPP_DOMAIN = "${var.domain}"
         PUBLIC_URL="https://${var.domain}/"
-        JICOFO_AUTH_PASSWORD = "a22c95b9608771167b8f8725237650c0"
-        JVB_AUTH_PASSWORD = "4a8ce6550273e2da15ec7cb9050363bd"
-        JIGASI_XMPP_PASSWORD = "b68d792c112fa055da6c94fa72b0854b"
-        JIBRI_RECORDER_PASSWORD = "4b17aa43337e4b372b79184d9685c48c"
-        JIBRI_XMPP_PASSWORD = "9a27d152ddb7a85574dd4a4a301a77f"
+        JICOFO_AUTH_PASSWORD = "replaceme_jicofo"
+        JVB_AUTH_PASSWORD = "replaceme_jvb"
+        JIGASI_XMPP_PASSWORD = "replaceme_jigasi"
+        JIBRI_RECORDER_PASSWORD = "replaceme_recorder"
+        JIBRI_XMPP_PASSWORD = "replaceme_jibri"
         # Internal XMPP domain for authenticated services
         XMPP_AUTH_DOMAIN = "auth.${var.domain}"
         # XMPP domain for the MUC
@@ -979,11 +979,11 @@ EOF
       env {
         XMPP_DOMAIN = "${var.domain}"
         PUBLIC_URL="https://${var.domain}/"
-        JICOFO_AUTH_PASSWORD = "a22c95b9608771167b8f8725237650c0"
-        JVB_AUTH_PASSWORD = "4a8ce6550273e2da15ec7cb9050363bd"
-        JIGASI_XMPP_PASSWORD = "b68d792c112fa055da6c94fa72b0854b"
-        JIBRI_RECORDER_PASSWORD = "4b17aa43337e4b372b79184d9685c48c"
-        JIBRI_XMPP_PASSWORD = "9a27d152ddb7a85574dd4a4a301a77f"
+        JICOFO_AUTH_PASSWORD = "replaceme_jicofo"
+        JVB_AUTH_PASSWORD = "replaceme_jvb"
+        JIGASI_XMPP_PASSWORD = "replaceme_jigasi"
+        JIBRI_RECORDER_PASSWORD = "replaceme_recorder"
+        JIBRI_XMPP_PASSWORD = "replaceme_jibri"
         # Internal XMPP domain for authenticated services
         XMPP_AUTH_DOMAIN = "auth.${var.domain}"
         # XMPP domain for the MUC
@@ -1403,11 +1403,11 @@ EOF
       env {
         XMPP_DOMAIN = "${var.domain}"
         PUBLIC_URL="https://${var.domain}/"
-        JICOFO_AUTH_PASSWORD = "a22c95b9608771167b8f8725237650c0"
-        JVB_AUTH_PASSWORD = "4a8ce6550273e2da15ec7cb9050363bd"
-        JIGASI_XMPP_PASSWORD = "b68d792c112fa055da6c94fa72b0854b"
-        JIBRI_RECORDER_PASSWORD = "4b17aa43337e4b372b79184d9685c48c"
-        JIBRI_XMPP_PASSWORD = "9a27d152ddb7a85574dd4a4a301a77f"
+        JICOFO_AUTH_PASSWORD = "replaceme_jicofo"
+        JVB_AUTH_PASSWORD = "replaceme_jvb"
+        JIGASI_XMPP_PASSWORD = "replaceme_jigasi"
+        JIBRI_RECORDER_PASSWORD = "replaceme_recorder"
+        JIBRI_XMPP_PASSWORD = "replaceme_jibri"
         # Internal XMPP domain for authenticated services
         XMPP_AUTH_DOMAIN = "auth.${var.domain}"
         # XMPP domain for the MUC
