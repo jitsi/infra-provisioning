@@ -2,11 +2,6 @@ variable "dc" {
   type = string
 }
 
-variable "loki_hostname" {
-    type = string
-    default = "loki.example.com"
-}
-
 job "loki" {
   datacenters = [var.dc]
   type        = "service"
@@ -124,9 +119,6 @@ EOH
             ignore_warnings = false
           }
         }
-        tags = [
-          "urlprefix-${var.loki_hostname}/",
-        ]
       }
     }
   }
