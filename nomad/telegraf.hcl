@@ -60,7 +60,6 @@ job "[JOB_NAME]" {
         image        = "telegraf:latest"
         ports = ["telegraf-statsd"]
         volumes = ["/:/hostfs", "local/telegraf.conf:/etc/telegraf/telegraf.conf", "/var/run/docker.sock:/var/run/docker.sock"]
-        hostname = "${attr.unique.hostname}"
       }
       env {
 	    HOST_ETC = "/hostfs/etc"
@@ -84,6 +83,7 @@ job "[JOB_NAME]" {
   precision = ""
   debug = true
   quiet = false
+  hostname = "{{ env "attr.unique.hostname" }}"
   omit_hostname = false
 
 [[inputs.nomad]]
@@ -136,18 +136,31 @@ job "[JOB_NAME]" {
   percentile_limit = 1000
   datadog_extensions = true
 
+{{ range $index, $service := service "signal"}}
+{{if eq .ServiceMeta.nginx_status_ip (env "attr.unique.network.ip-address") }}
+[[inputs.nginx]]
+{{ with .ServiceMeta }}
+  urls = ["http://{{ .nginx_status_ip }}:{{ .nginx_status_port }}/nginx_status"]
+  [inputs.nginx.tags]
+    shard = "{{ .shard }}"
+    release_number = "{{ .release_number }}"
+    shard-role = "core"
+    role = "core"
+{{ end }}
+{{ end }}
+{{ end }}
+
 [[inputs.prometheus]]
 {{ range service "consul" }}
 {{ scratch.Set "consul_server" .Address }}
 {{ end }}
-    # urls = ["http://{{ env "NOMAD_IP_jicofo_http" }}:{{ env "NOMAD_HOST_PORT_jicofo_http" }}/metrics","http://{{ env "NOMAD_IP_prosody_http" }}:{{ env "NOMAD_HOST_PORT_prosody_http" }}/metrics","http://{{ env "NOMAD_IP_signal_sidecar_http" }}:{{ env "NOMAD_HOST_PORT_signal_sidecar_http" }}/metrics"]
   [inputs.prometheus.consul]
     enabled = true
     agent = "{{ scratch.Get "consul_server" }}:8500"
     query_interval = "1m"
     [[inputs.prometheus.consul.query]]
       name = "jicofo"
-      tag = "ip-{{ env "NOMAD_IP_telegraf_statsd" }}"
+      tag = "ip-{{ env "attr.unique.network.ip-address" }}"
       url = 'http://{{"{{"}}if ne .ServiceAddress ""}}{{"{{"}}.ServiceAddress}}{{"{{"}}else}}{{"{{"}}.Address}}{{"{{"}}end}}:{{"{{"}}.ServicePort}}/{{"{{"}}with .ServiceMeta.metrics_path}}{{"{{"}}.}}{{"{{"}}else}}metrics{{"{{"}}end}}'
       [inputs.prometheus.consul.query.tags]
         host = "{{"{{"}}.Node}}"
@@ -157,7 +170,7 @@ job "[JOB_NAME]" {
         role = "core"
     [[inputs.prometheus.consul.query]]
       name = "prosody-http"
-      tag = "ip-{{ env "NOMAD_IP_telegraf_statsd" }}"
+      tag = "ip-{{ env "attr.unique.network.ip-address" }}"
       url = 'http://{{"{{"}}if ne .ServiceAddress ""}}{{"{{"}}.ServiceAddress}}{{"{{"}}else}}{{"{{"}}.Address}}{{"{{"}}end}}:{{"{{"}}.ServicePort}}/{{"{{"}}with .ServiceMeta.metrics_path}}{{"{{"}}.}}{{"{{"}}else}}metrics{{"{{"}}end}}'
       [inputs.prometheus.consul.query.tags]
         host = "{{"{{"}}.Node}}"
@@ -165,6 +178,18 @@ job "[JOB_NAME]" {
         release_number = "{{"{{"}}with .ServiceMeta.release_number}}{{"{{"}}.}}{{"{{"}}else}}0{{"{{"}}end}}"
         shard-role = "core"
         role = "core"
+        prosody-type = "prosody"
+    [[inputs.prometheus.consul.query]]
+      name = "prosody-jvb-http"
+      tag = "ip-{{ env "attr.unique.network.ip-address" }}"
+      url = 'http://{{"{{"}}if ne .ServiceAddress ""}}{{"{{"}}.ServiceAddress}}{{"{{"}}else}}{{"{{"}}.Address}}{{"{{"}}end}}:{{"{{"}}.ServicePort}}/{{"{{"}}with .ServiceMeta.metrics_path}}{{"{{"}}.}}{{"{{"}}else}}metrics{{"{{"}}end}}'
+      [inputs.prometheus.consul.query.tags]
+        host = "{{"{{"}}.Node}}"
+        shard = "{{"{{"}}with .ServiceMeta.shard}}{{"{{"}}.}}{{"{{"}}else}}shard{{"{{"}}end}}"
+        release_number = "{{"{{"}}with .ServiceMeta.release_number}}{{"{{"}}.}}{{"{{"}}else}}0{{"{{"}}end}}"
+        shard-role = "core"
+        role = "core"
+        prosody-type = "prosody-jvb"
     [[inputs.prometheus.consul.query]]
       name = "signal-sidecar"
       tag = "ip-{{ env "NOMAD_IP_telegraf_statsd" }}"
