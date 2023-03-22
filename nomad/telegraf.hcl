@@ -136,8 +136,19 @@ job "[JOB_NAME]" {
   percentile_limit = 1000
   datadog_extensions = true
 
+{{ range $index, $service := service "signal"}}
+{{if eq .ServiceMeta.nginx_status_ip (env "attr.unique.network.ip-address") }}
 [[inputs.nginx]]
-  urls = [{{ range $index, $service := service "signal"}}{{if eq .ServiceMeta.nginx_status_ip (env "attr.unique.network.ip-address") }}{{if ne $index 0}},{{end}}{{ with .ServiceMeta}}"http://{{ .nginx_status_ip }}:{{ .nginx_status_port }}/nginx_status"{{ end }}{{ end }}{{ end }}]
+{{ with .ServiceMeta }}
+  urls = ["http://{{ .nginx_status_ip }}:{{ .nginx_status_port }}/nginx_status"]
+  [inputs.nginx.tags]
+    shard = "{{ .shard }}"
+    release_number = "{{ .release_number }}"
+    shard-role = "core"
+    role = "core"
+{{ end }}
+{{ end }}
+{{ end }}
 
 [[inputs.prometheus]]
 {{ range service "consul" }}
