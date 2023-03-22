@@ -73,13 +73,17 @@ job "vector" {
             playground = true
           [sources.logs]
             type = "docker_logs"
+          [transforms.message_to_json]
+            type = "remap"
+            inputs = ["logs"]
+            source = ".message = parse_json!(.message)"
           [sinks.out]
             type = "console"
-            inputs = [ "logs" ]
+            inputs = [ "message_to_json" ]
             encoding.codec = "json"
           [sinks.loki]
             type = "loki"
-            inputs = ["logs"]
+            inputs = ["message_to_json"]
             endpoint = "http://[[ range service "loki" ]][[ .Address ]]:[[ .Port ]][[ end ]]"
             encoding.codec = "json"
             healthcheck.enabled = true

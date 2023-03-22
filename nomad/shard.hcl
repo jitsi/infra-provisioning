@@ -98,6 +98,9 @@ job "[JOB_NAME]" {
       port "https" {
         to = 443
       }
+      port "nginx-status" {
+        to = 888
+      }
       port "prosody-http" {
         to = 5280
       }
@@ -126,6 +129,8 @@ job "[JOB_NAME]" {
         release_number = "${var.release_number}"
         environment = "${meta.environment}"
         prosody_http_ip = "${NOMAD_IP_prosody_http}"
+        nginx_status_ip = "${NOMAD_IP_nginx_status}"
+        nginx_status_port = "${NOMAD_HOST_PORT_nginx_status}"
         prosody_client_ip = "${NOMAD_IP_prosody_client}"
         prosody_http_port = "${NOMAD_HOST_PORT_prosody_http}"
         prosody_client_port = "${NOMAD_HOST_PORT_prosody_client}"
@@ -138,8 +143,8 @@ job "[JOB_NAME]" {
       check {
         name     = "health"
         type     = "http"
-        path     = "/"
-        port     = "http"
+        path     = "/nginx_status"
+        port     = "nginx-status"
         interval = "10s"
         timeout  = "2s"
       }
@@ -271,7 +276,8 @@ EOF
       driver = "docker"
       config {
         image        = "jitsi/web:${var.tag}"
-        ports = ["http","https"]
+        ports = ["http","https","nginx-status"]
+        volumes = ["local/nginx-status.conf:/config/nginx/site-confs/status.conf"]
       }
 
       env {
@@ -292,6 +298,19 @@ EOF
         XMPP_GUEST_DOMAIN = "guest.${var.domain}"
         # XMPP domain for the jibri recorder
         XMPP_RECORDER_DOMAIN = "recorder.${var.domain}"
+      }
+      template {
+        data = <<EOF
+server {
+    listen 888 default_server;
+    server_name  localhost;
+    location /nginx_status {
+        stub_status on;
+        access_log off;
+    }
+}
+EOF
+        destination = "local/nginx-status.conf"
       }
 
       template {

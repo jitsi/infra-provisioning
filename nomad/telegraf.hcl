@@ -60,7 +60,6 @@ job "[JOB_NAME]" {
         image        = "telegraf:latest"
         ports = ["telegraf-statsd"]
         volumes = ["/:/hostfs", "local/telegraf.conf:/etc/telegraf/telegraf.conf", "/var/run/docker.sock:/var/run/docker.sock"]
-        hostname = "${attr.unique.hostname}"
       }
       env {
 	    HOST_ETC = "/hostfs/etc"
@@ -84,6 +83,7 @@ job "[JOB_NAME]" {
   precision = ""
   debug = true
   quiet = false
+  hostname = "{{ env "attr.unique.hostname" }}"
   omit_hostname = false
 
 [[inputs.nomad]]
@@ -135,6 +135,9 @@ job "[JOB_NAME]" {
   allowed_pending_messages = 10000
   percentile_limit = 1000
   datadog_extensions = true
+
+[[inputs.nginx]]
+  urls = [{{ range $index, $service := service "signal"}}{{if eq .ServiceMeta.nginx_status_ip (env "attr.unique.network.ip-address") }}{{if ne $index 0}},{{end}}{{ with .ServiceMeta}}"http://{{ .nginx_status_ip }}:{{ .nginx_status_port }}/nginx_status"{{ end }}{{ end }}{{ end }}]
 
 [[inputs.prometheus]]
 {{ range service "consul" }}
