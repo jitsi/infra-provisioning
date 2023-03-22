@@ -113,6 +113,7 @@ job "[JOB_NAME]" {
       port "prosody-jvb-client" {
       }
       port "prosody-jvb-http" {
+        to = 5280
       }
       port "jicofo-http" {
         to = 8888
@@ -179,6 +180,27 @@ job "[JOB_NAME]" {
         type     = "http"
         path     = "/http-bind"
         port     = "prosody-http"
+        interval = "10s"
+        timeout  = "2s"
+      }
+    }
+
+    service {
+      name = "prosody-jvb-http"
+      tags = ["${var.shard}","ip-${NOMAD_IP_prosody_jvb_http}"]
+      port = "prosody-jvb-http"
+      meta {
+        domain = "${var.domain}"
+        shard = "${var.shard}"
+        release_number = "${var.release_number}"
+        environment = "${meta.environment}"
+      }
+
+      check {
+        name     = "health"
+        type     = "http"
+        path     = "/http-bind"
+        port     = "prosody-jvb-http"
         interval = "10s"
         timeout  = "2s"
       }
@@ -1187,7 +1209,8 @@ EOF
 
       config {
         image        = "jitsi/prosody:${var.tag}"
-        ports = ["prosody-jvb-client"]
+        ports = ["prosody-jvb-client","prosody-jvb-http"]
+        volumes = ["local/prosody-plugins-custom:/prosody-plugins-custom"]
       }
 
       env {
@@ -1209,12 +1232,54 @@ EOF
         # XMPP domain for the jibri recorder
         XMPP_RECORDER_DOMAIN = "recorder.${var.domain}"
       }
+      artifact {
+        source      = "https://hg.prosody.im/prosody-modules/raw-file/tip/mod_measure_stanza_counts/mod_measure_stanza_counts.lua"
+        destination = "local/prosody-plugins-custom"
+      }
+      artifact {
+        source      = "https://hg.prosody.im/prosody-modules/raw-file/tip/mod_debug_traceback/mod_debug_traceback.lua"
+        destination = "local/prosody-plugins-custom"
+      }
+      artifact {
+        source      = "https://hg.prosody.im/prosody-modules/raw-file/tip/mod_secure_interfaces/mod_secure_interfaces.lua"
+        destination = "local/prosody-plugins-custom"
+      }
+      artifact {
+        source      = "https://hg.prosody.im/prosody-modules/raw-file/tip/mod_firewall/mod_firewall.lua"
+        destination = "local/prosody-plugins-custom/mod_firewall"
+      }
+      artifact {
+        source      = "https://hg.prosody.im/prosody-modules/raw-file/tip/mod_firewall/definitions.lib.lua"
+        destination = "local/prosody-plugins-custom/mod_firewall"
+      }
+      artifact {
+        source      = "https://hg.prosody.im/prosody-modules/raw-file/tip/mod_firewall/actions.lib.lua"
+        destination = "local/prosody-plugins-custom/mod_firewall"
+      }
+      artifact {
+        source      = "https://hg.prosody.im/prosody-modules/raw-file/tip/mod_firewall/marks.lib.lua"
+        destination = "local/prosody-plugins-custom/mod_firewall"
+      }
+      artifact {
+        source      = "https://hg.prosody.im/prosody-modules/raw-file/tip/mod_firewall/conditions.lib.lua"
+        destination = "local/prosody-plugins-custom/mod_firewall"
+      }
+      artifact {
+        source      = "https://hg.prosody.im/prosody-modules/raw-file/tip/mod_firewall/test.lib.lua"
+        destination = "local/prosody-plugins-custom/mod_firewall"
+      }
+      artifact {
+        source      = "https://hg.prosody.im/prosody-modules/raw-file/tip/mod_log_ringbuffer/mod_log_ringbuffer.lua"
+        destination = "local/prosody-plugins-custom"
+      }
 
       template {
         data = <<EOF
 #
 # Basic configuration options
 #
+GLOBAL_CONFIG="statistics = \"internal\"\nstatistics_interval = \"manual\"\nopenmetrics_allow_cidr = \"0.0.0.0/0\""
+GLOBAL_MODULES="http_openmetrics,measure_stanza_counts,log_ringbuffer,firewall,log_ringbuffer"
 
 # Directory where all configuration will be stored
 CONFIG=~/.jitsi-meet-cfg
