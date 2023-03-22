@@ -121,7 +121,7 @@ job "[JOB_NAME]" {
 
     service {
       name = "signal"
-      tags = ["${var.domain}","${var.shard}","urlprefix-${var.domain}/"]
+      tags = ["${var.domain}","shard-${var.shard}","release-${var.release_number}","urlprefix-${var.domain}/"]
 
       meta {
         domain = "${var.domain}"
