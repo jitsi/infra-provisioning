@@ -60,6 +60,7 @@ Add the following:
 #### Networking
 * Create VCN with a new CIRD block: https://jenkins.jitsi.net/job/provision-vcn-oracle/
 * Add new regions to `stack-env.sh` in `DRG_PEER_REGIONS`, `RELEASE_CLOUDS`, and `CS_HISTORY_ORACLE_REGIONS`
+* Add new regions to `vars.yaml` in `consul_wan_regions_oracle`
 
 #### Add jitsi-video-infrastructure Branch Configs For The New Oracle Region
 * Region: `/environments/all/regions/<oracle_region>-oracle.sh` and `./environments/all/regions/<aws-region>`
@@ -109,7 +110,7 @@ For existing compartments, the policies should be manually added
 Usually only needed for 8x8 specific compartments (e.g. prod-8x8), but please check with the backend team
 * https://jenkins.jitsi.net/job/provision-service-users-policies-oracle/
 
-#### Set up networking for the regions in the compartment
+#### Set up network peering for the regions in the compartment
 * Create a DRG for each region and add a route, run `ORACLE_REGION=<region> ENVIRONMENT=<compartment> scripts/create-drg-oracle.sh`
 * For each region running shards and/or jvbs, run `ORACLE_REGION=<region> ENVIRONMENT=<compartment> scripts/link-drgs-oracle.sh`
 * Build the ops network to all regions across the environment: `OPS_ENVIRONMENT=<ops-compartment> ORACLE_REGION=<ops-region> TARGET_ENVIRONMENTS=<target-compartment> scripts/link-ops-drgs-oracle.sh`

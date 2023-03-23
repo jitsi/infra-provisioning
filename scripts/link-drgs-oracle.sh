@@ -50,18 +50,18 @@ drg_ocid=$(echo "$drg_details" | jq -r ".data[] | select(.\"display-name\"==\"${
 EXISTING_PEERING_CONNECTIONS=$(oci network remote-peering-connection list --region $ORACLE_REGION --compartment-id $COMPARTMENT_OCID --drg-id "${drg_ocid}")
 
 ## Build list of existing peered regions
-EXISTING_PEER_REGIONS=$(echo "$EXISTING_PEERING_CONNECTIONS" | jq -r '.data[]|select(."peering-status" == "PEERED")|."peer-region-name"')
+EXISTING_PEER_NAMES=$(echo "$EXISTING_PEERING_CONNECTIONS" | jq -r '.data[]|select(."peering-status" == "PEERED")|."display-name"')
 LOCAL_CLOUD="$ENVIRONMENT-$ORACLE_REGION"
 
-set -x
+#set -x
 
 for R in $DRG_PEER_REGIONS; do
     if [[ "$R" == "$ORACLE_REGION" ]]; then
         echo "Skipping peer check for local region $R"
     else
         SKIP_EXISTING=false
-        for ER in $EXISTING_PEER_REGIONS; do
-            if [[ "$R" == "$ER" ]]; then
+        for EN in $EXISTING_PEER_NAMES; do
+            if [[ "$ENVIRONMENT-$R" == "$EN" ]]; then
                 SKIP_EXISTING=true
             fi
         done
