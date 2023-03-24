@@ -1281,6 +1281,7 @@ EOF
 GLOBAL_CONFIG="statistics = \"internal\"\nstatistics_interval = \"manual\"\nopenmetrics_allow_cidr = \"0.0.0.0/0\""
 GLOBAL_MODULES="http_openmetrics,measure_stanza_counts,log_ringbuffer,firewall,log_ringbuffer"
 
+FOO=bar2
 # Directory where all configuration will be stored
 CONFIG=~/.jitsi-meet-cfg
 
@@ -1685,6 +1686,7 @@ EOF
         JICOFO_ENABLE_REST="1"
         JICOFO_ENABLE_BRIDGE_HEALTH_CHECKS="1"
         JICOFO_HEALTH_CHECKS_USE_PRESENCE="1"
+        JIGASI_SIP_URI="sip.example.com"
         ENABLE_AUTO_OWNER="${var.enable_auto_owner}"
         OCTO_BRIDGE_SELECTION_STRATEGY="RegionBasedBridgeSelectionStrategy"
         // BRIDGE_STRESS_THRESHOLD=""
