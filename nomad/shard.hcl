@@ -137,6 +137,7 @@ job "[JOB_NAME]" {
         prosody_client_port = "${NOMAD_HOST_PORT_prosody_client}"
         prosody_jvb_client_port = "${NOMAD_HOST_PORT_prosody_jvb_client}"
         signal_sidecar_agent_port = "${NOMAD_HOST_PORT_signal_sidecar_agent}"
+        signal_version = "${var.tag}"
       }
 
       port = "http"
