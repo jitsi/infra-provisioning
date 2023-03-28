@@ -1,6 +1,9 @@
 #!/bin/bash
 
-# create symlinks for local script development from infra-provisioning
+# creates symlinks for local script development from infra-provisioning
+#
+# assumes that infra-provisioning, infra-configuration, and a customization
+# repo named $CUSTOMIZATION_DIRNAME exist as directories in the same directory
 
 if [ -z "$CUSTOMIZATION_DIRNAME" ];then
     echo "## no CUSTOMIZATION_DIRNAME found, exiting..."
