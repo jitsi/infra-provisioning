@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -x
+
 if [ -z "$ENVIRONMENT" ]; then
     echo "No ENVIRONMENT set, exiting"
     exit 2
@@ -9,12 +11,14 @@ LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
 [ -e "$LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh" ] && . "$LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh"
 
-if [ -z "$ORACLE_REGION" ]; then
-    echo "No ORACLE_REGION set, exiting"
-    exit 2
-fi
+[ -z "$REGIONS" ] && REGIONS="$DRG_PEER_REGIONS"
 
 NOMAD_JOB_PATH="$LOCAL_PATH/../nomad"
-NOMAD_DC="$ENVIRONMENT-$ORACLE_REGION"
+NOMAD_DC="[]"
+for ORACLE_REGION in $REGIONS; do
+    NOMAD_DC="$( echo "$NOMAD_DC" "[\"$ENVIRONMENT-$ORACLE_REGION\"]" | jq -c -s '.|add')"
+done
 
-sed -e "s/\[JOB_NAME\]/$DOMAIN/" "$NOMAD_JOB_PATH/fabio.hcl" | nomad job run -var="dc=$NOMAD_DC" -
+export NOMAD_VAR_dc="$NOMAD_DC"
+
+sed -e "s/\[JOB_NAME\]/$JOB_NAME/" "$NOMAD_JOB_PATH/fabio.hcl" | nomad job run -

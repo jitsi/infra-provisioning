@@ -6,10 +6,6 @@ variable "dc" {
   type = string
 }
 
-variable "octo_region" {
-    type=string
-}
-
 variable cloud_provider {
     type = string
     default = "oracle"
@@ -29,7 +25,6 @@ job "[JOB_NAME]" {
 
   meta {
     environment = "${var.environment}"
-    octo_region = "${var.octo_region}"
     cloud_provider = "${var.cloud_provider}"
     wavefront_proxy_server = "${var.wavefront_proxy_server}"
   }
@@ -210,7 +205,7 @@ job "[JOB_NAME]" {
 
 [global_tags]
   environment = "{{ env "NOMAD_META_environment" }}"
-  region = "{{ env "NOMAD_META_octo_region" }}"
+  region = "{{ env "NOMAD_META_cloud_region" }}"
   cloud = "{{  env "NOMAD_META_cloud_provider" }}"
   cloud_provider = "{{ env "NOMAD_META_cloud_provider" }}"
 
