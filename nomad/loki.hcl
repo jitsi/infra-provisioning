@@ -2,7 +2,7 @@ variable "dc" {
   type = string
 }
 
-job "loki" {
+job "[JOB_NAME]" {
   datacenters = [var.dc]
   type        = "service"
   update {
