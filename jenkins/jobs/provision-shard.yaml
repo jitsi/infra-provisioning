@@ -50,8 +50,8 @@
           description: "When true, skip automatic 'ready' shard state even in environments where backendReleases are enabled.  By default, will set to 'ready' new shards in environments where backend releases are enabled"
           trim: true
       - string:
-          name: VISITORS_ENABLED
-          description: "Visitor flag"
+          name: VISITORS_FACTOR
+          description: "Visitor factor flag"
           trim: true
       - string:
           name: INSTANCE_SHAPE_OCPUS

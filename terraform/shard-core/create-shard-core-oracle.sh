@@ -22,7 +22,7 @@ LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
 [ -z "$RELEASE_NUMBER" ] && RELEASE_NUMBER=0
 
-[ -z "$VISITORS_ENABLED" ] && VISITORS_ENABLED="false"
+[ -z "$VISITORS_FACTOR" ] && VISITORS_FACTOR=1
 
 #Default shard base name to environment name
 [ -z "$SHARD_BASE" ] && SHARD_BASE=$ENVIRONMENT
@@ -49,9 +49,9 @@ CLOUD_NAME="$ENVIRONMENT-$ORACLE_REGION"
 [ -z "$DISK_IN_GBS" ] && DISK_IN_GBS="50"
 [ -z "$VISITORS_COUNT" ] && VISITORS_COUNT="0"
 
-if [[ "$VISITORS_ENABLED" == "true" ]]; then
-  MEMORY_IN_GBS=$((2*MEMORY_IN_GBS));
-  INSTANCE_SHAPE_OCPUS=$((2*INSTANCE_SHAPE_OCPUS));
+if [[ $VISITORS_FACTOR -gt 1 ]]; then
+  MEMORY_IN_GBS=$((VISITORS_FACTOR*MEMORY_IN_GBS));
+  INSTANCE_SHAPE_OCPUS=$((VISITORS_FACTOR*INSTANCE_SHAPE_OCPUS));
   VISITORS_COUNT="$INSTANCE_SHAPE_OCPUS"
 fi
 
@@ -183,8 +183,6 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
   -var="ingress_nsg_cidr=$INGRESS_NSG_CIDR" \
   -var "infra_configuration_repo=$INFRA_CONFIGURATION_REPO" \
   -var "infra_customizations_repo=$INFRA_CUSTOMIZATIONS_REPO" \
-  -var="visitors_enabled=$VISITORS_ENABLED" \
-  -var="visitors_count=$VISITORS_COUNT" \
   $ACTION_POST_PARAMS $TF_POST_PARAMS
 
 RET=$?
