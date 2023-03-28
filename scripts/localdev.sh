@@ -1,7 +1,6 @@
 #!/bin/bash
-#
+
 # create symlinks for local script development from infra-provisioning
-# 
 
 if [ -z "$CUSTOMIZATION_DIRNAME" ];then
     echo "## no CUSTOMIZATION_DIRNAME found, exiting..."
@@ -32,9 +31,4 @@ ln -s ../${CUSTOMIZATION_DIRNAME}/sites
 cd ../../${CUSTOMIZATION_DIRNAME}/ansible
 ln -s ../config
 ln -s ../sites
-
-
-
-
-
 
