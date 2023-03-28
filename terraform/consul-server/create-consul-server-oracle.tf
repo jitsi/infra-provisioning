@@ -197,6 +197,38 @@ resource "oci_core_network_security_group_security_rule" "consul_nsg_rule_ingres
     }
   }
 }
+
+resource "oci_core_network_security_group_security_rule" "nsg_rule_ingress_nomad_tcp" {
+  network_security_group_id = oci_core_network_security_group.consul_security_group.id
+  direction = "INGRESS"
+  protocol = "6"
+  source = "10.0.0.0/8"
+  stateless = false
+
+  tcp_options {
+    destination_port_range {
+      min = 4646
+      max = 4648
+    }
+  }
+}
+
+resource "oci_core_network_security_group_security_rule" "nsg_rule_ingress_nomad_udp" {
+  network_security_group_id = oci_core_network_security_group.consul_security_group.id
+  direction = "INGRESS"
+  protocol = "17"
+  source = "10.0.0.0/8"
+  stateless = false
+
+  udp_options {
+    destination_port_range {
+      min = 4648
+      max = 4648
+    }
+  }
+}
+
+
 resource "oci_core_network_security_group_security_rule" "consul_nsg_rule_ingress_consul_dns_udp" {
   network_security_group_id = oci_core_network_security_group.consul_security_group.id
   direction = "INGRESS"
