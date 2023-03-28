@@ -205,7 +205,7 @@ job "[JOB_NAME]" {
 
 [global_tags]
   environment = "{{ env "NOMAD_META_environment" }}"
-  region = "{{ env "NOMAD_META_cloud_region" }}"
+  region = "{{ env "meta.cloud_region" }}"
   cloud = "{{  env "NOMAD_META_cloud_provider" }}"
   cloud_provider = "{{ env "NOMAD_META_cloud_provider" }}"
 
