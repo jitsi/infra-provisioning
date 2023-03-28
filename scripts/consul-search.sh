@@ -115,13 +115,22 @@ if [ ! -z "$DATACENTERS" ]; then
                 if [ ! -z "$SERVICES" ]; then
                     echo "$SERVICES" | jq '.' > /dev/null
                     if [ $? -eq 0 ]; then
-                        ADDRESSES=$(echo $SERVICES | jq -r ".|map(.Address)|.[]")
-                        RELEASES=$(echo $SERVICES | jq -r ".|map(.ServiceMeta.release_number)|unique|.[]")
-                        SHARDS=$(echo $SERVICES | jq -r ".|map(.ServiceMeta.shard)|unique|.[]")
+                        ADDRESSES="$(echo $SERVICES | jq -r ".|map(.Address)|.[]")"
+                        RELEASES="$(echo $SERVICES | jq -r ".|map(.ServiceMeta.release_number)|unique|.[]")"
+                        SHARDS="$(echo $SERVICES | jq -r ".|map(.ServiceMeta.shard)|unique|.[]")"
                         ALL_SHARDS="$SHARDS $ALL_SHARDS"
                         ALL_RELEASES="$RELEASES $ALL_RELEASES"
                         ALL_ADDRESSES="$ADDRESSES $ALL_ADDRESSES"
-                        [ ! -z "$SHARDS" ] && ALL_CORE_PROVIDERS="oracle $ALL_CORE_PROVIDERS"
+                        if [ ! -z "$SHARDS" ]; then
+                            for S in $SHARDS; do
+                                ALLOCATION="$(echo "$SERVICES" | jq -r ".|map(select(.ServiceMeta.shard==\"$S\"))|.[].ServiceMeta.nomad_allocation")"
+                                if [[ "$ALLOCATION" != "null" ]]; then
+                                    ALL_CORE_PROVIDERS="nomad $ALL_CORE_PROVIDERS"
+                                else
+                                    ALL_CORE_PROVIDERS="oracle $ALL_CORE_PROVIDERS"
+                                fi
+                            done
+                        fi
                     fi
                 fi
             fi
