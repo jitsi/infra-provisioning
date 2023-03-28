@@ -122,13 +122,14 @@ job "[JOB_NAME]" {
 
     service {
       name = "signal"
-      tags = ["${var.domain}","shard-${var.shard}","release-${var.release_number}","urlprefix-${var.domain}/"]
+      tags = ["${var.domain}","shard-${var.shard}","release-${var.release_number}","urlprefix-${var.domain}/${var.shard}/"]
 
       meta {
         domain = "${var.domain}"
         shard = "${var.shard}"
         release_number = "${var.release_number}"
         environment = "${meta.environment}"
+        http_backend_port = "${NOMAD_HOST_PORT_http}"
         prosody_http_ip = "${NOMAD_IP_prosody_http}"
         nginx_status_ip = "${NOMAD_IP_nginx_status}"
         nginx_status_port = "${NOMAD_HOST_PORT_nginx_status}"
@@ -155,7 +156,7 @@ job "[JOB_NAME]" {
 
     service {
       name = "jicofo"
-      tags = ["${var.shard}", "${var.environment}","ip-${NOMAD_IP_jicofo_http}"]
+      tags = ["${var.shard}", "${var.environment}","ip-${attr.unique.network.ip-address}"]
       port = "jicofo-http"
 
       meta {
@@ -168,7 +169,7 @@ job "[JOB_NAME]" {
 
     service {
       name = "prosody-http"
-      tags = ["${var.shard}","ip-${NOMAD_IP_prosody_http}"]
+      tags = ["${var.shard}","ip-${attr.unique.network.ip-address}"]
       port = "prosody-http"
       meta {
         domain = "${var.domain}"
@@ -189,7 +190,7 @@ job "[JOB_NAME]" {
 
     service {
       name = "prosody-jvb-http"
-      tags = ["${var.shard}","ip-${NOMAD_IP_prosody_jvb_http}"]
+      tags = ["${var.shard}","ip-${attr.unique.network.ip-address}"]
       port = "prosody-jvb-http"
       meta {
         domain = "${var.domain}"
@@ -210,7 +211,7 @@ job "[JOB_NAME]" {
 
     service {
       name = "signal-sidecar"
-      tags = ["${var.shard}","ip-${NOMAD_IP_signal_sidecar_http}"]
+      tags = ["${var.shard}","ip-${attr.unique.network.ip-address}"]
       port = "signal-sidecar-http"
       meta {
         domain = "${var.domain}"

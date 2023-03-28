@@ -25,8 +25,7 @@ NOMAD_DC="$ENVIRONMENT-$ORACLE_REGION"
 WAVEFRONT_PROXY_VARIABLE="wavefront_proxy_host_by_cloud.$ENVIRONMENT-$ORACLE_REGION"
 export NOMAD_VAR_wavefront_proxy_server="$(cat $CONFIG_VARS_FILE | yq eval .${WAVEFRONT_PROXY_VARIABLE} -)"
 export NOMAD_VAR_environment="$ENVIRONMENT"
-export NOMAD_VAR_octo_region="$ORACLE_REGION"
 
-JOB_NAME="telegraf-$ENVIRONMENT"
+JOB_NAME="telegraf-$ORACLE_REGION"
 
 sed -e "s/\[JOB_NAME\]/$JOB_NAME/" "$NOMAD_JOB_PATH/telegraf.hcl" | nomad job run -var="dc=$NOMAD_DC" -

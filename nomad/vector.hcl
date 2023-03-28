@@ -1,9 +1,9 @@
 variable "dc" {
-  type = string
+  type = list(string)
 }
 
 job "vector" {
-  datacenters = ["${var.dc}"]
+  datacenters = var.dc
   # system job, runs on all nodes
   type = "system"
   update {
