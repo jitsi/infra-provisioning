@@ -66,12 +66,6 @@ variable "alarm_any_body" {
 variable "alarm_repeat_notification_duration" {
   default = ""
 }
-variable "visitors_enabled" {
-  default = "false"
-}
-variable "visitors_count" {
-  default = "0"
-}
 
 variable "alarm_severity" {
   default = "CRITICAL"
@@ -100,10 +94,6 @@ locals {
     "${var.tag_namespace}.role" = var.role
     "${var.tag_namespace}.shard-role" = var.role
     "${var.tag_namespace}.Name" = var.name
-  }
-  freeform_tags = {
-    "visitors_enabled" = var.visitors_enabled
-    "visitors_count" = var.visitors_count
   }
 }
 
@@ -314,7 +304,6 @@ resource "oci_core_instance" "instance" {
     }
 
     defined_tags = local.common_tags
-    freeform_tags = local.freeform_tags
 
     display_name = var.instance_display_name
 
