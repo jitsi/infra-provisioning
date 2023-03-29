@@ -304,7 +304,7 @@ EOF
       config {
         image        = "jitsi/web:${var.tag}"
         ports = ["http","https","nginx-status"]
-        volumes = ["local/nginx-status.conf:/config/nginx/site-confs/status.conf"]
+        volumes = ["local/nginx.conf:/defaults/nginx.conf","local/nginx-status.conf:/config/nginx/site-confs/status.conf"]
       }
 
       env {
@@ -325,7 +325,118 @@ EOF
         XMPP_GUEST_DOMAIN = "guest.${var.domain}"
         # XMPP domain for the jibri recorder
         XMPP_RECORDER_DOMAIN = "recorder.${var.domain}"
+        DEPLOYMENTINFO_ENVIRONMENT = "${var.environment}"
+        DEPLOYMENTINFO_SHARD = "${var.shard}"
+        DEPLOYMENTINFO_REGION = "${var.octo_region}"
+        DEPLOYMENTINFO_USERREGION = "<!--# echo var=\"user_region\" default=\"\" -->"
+        ENABLE_SIMULCAST = "true"
+        WEBSOCKET_KEEPALIVE_URL = "https://${var.domain}/_unlock"
       }
+      template {
+        destination = "local/nginx.conf"
+        # overriding the delimiters to [[ ]] to avoid conflicts with tpl's native templating, which also uses {{ }}
+        left_delimiter = "[["
+        right_delimiter = "]]"
+
+  data = <<EOF
+user www-data;
+worker_processes {{ .Env.NGINX_WORKER_PROCESSES | default "4" }};
+pid /run/nginx.pid;
+include /etc/nginx/modules-enabled/*.conf;
+
+events {
+	worker_connections {{ .Env.NGINX_WORKER_CONNECTIONS | default "768" }};
+	# multi_accept on;
+}
+
+http {
+
+	##
+	# Basic Settings
+	##
+
+	sendfile on;
+	tcp_nopush on;
+	tcp_nodelay on;
+	keepalive_timeout 65;
+	types_hash_max_size 2048;
+	server_tokens off;
+
+	# server_names_hash_bucket_size 64;
+	# server_name_in_redirect off;
+
+	client_max_body_size 0;
+
+	{{ if .Env.NGINX_RESOLVER }}
+	resolver {{ .Env.NGINX_RESOLVER }};
+	{{ end -}}
+
+ 	include /etc/nginx/mime.types;
+	types {
+		# add support for wasm MIME type, that is required by specification and it is not part of default mime.types file
+		application/wasm wasm;
+		# add support for the wav MIME type that is requried to playback wav files in Firefox.
+		audio/wav        wav;
+	}
+	default_type application/octet-stream;
+
+	##
+	# Logging Settings
+	##
+
+	access_log /dev/stdout;
+	error_log /dev/stderr;
+
+	##
+	# Gzip Settings
+	##
+
+	gzip on;
+	gzip_types text/plain text/css application/javascript application/json;
+	gzip_vary on;
+	gzip_min_length 860;
+
+	##
+	# Connection header for WebSocket reverse proxy
+	##
+	map $http_upgrade $connection_upgrade {
+		default upgrade;
+		''      close;
+	}
+
+  map $http_x_proxy_region $user_region {
+      default '';
+      us-west-2 us-west-2;
+      us-east-1 us-east-1;
+      us-east-2 us-east-2;
+      us-west-1 us-west-1;
+      ca-central-1 ca-central-1;
+      eu-central-1 eu-central-1;
+      eu-west-1 eu-west-1;
+      eu-west-2 eu-west-2;
+      eu-west-3 eu-west-3;
+      eu-north-1 eu-north-1;
+      me-south-1 me-south-1;
+      ap-east-1 ap-east-1;
+      ap-south-1 ap-south-1;
+      ap-northeast-2 ap-northeast-2;
+      ap-northeast-1 ap-northeast-1;
+      ap-southeast-1 ap-southeast-1;
+      ap-southeast-2 ap-southeast-2;
+      sa-east-1 sa-east-1;
+  }
+
+	##
+	# Virtual Host Configs
+	##
+	include /config/nginx/site-confs/*;
+}
+
+daemon off;
+
+EOF
+    }
+
       template {
         data = <<EOF
 server {
