@@ -85,6 +85,11 @@ function shard_ip {
     [ -z "$IP_TYPE" ] && IP_TYPE="external"
 
     local PROVIDER=$(core_provider $1)
+    if [[ "$PROVIDER" == "nomad" ]]; then
+        # nomad shards aren't ansible-able to don't do anything
+        echo ''
+    fi
+
     if [[ "$PROVIDER" == "oracle" ]]; then
         [ -z "$DNS_ZONE_NAME" ] && DNS_ZONE_NAME="$DEFAULT_DNS_ZONE_NAME"
         if [[ "$IP_TYPE" == "internal" ]]; then
