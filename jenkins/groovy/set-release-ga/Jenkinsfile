@@ -41,13 +41,14 @@ ENVIRONMENT=${environment} scripts/versioning-manager.sh
 def addGAPoolsToScheduler(environment, release_number) {
     sh(
         script: """#!/bin/bash
+set -x
 . clouds/all.sh
 if [ -z "\$ORACLE_REGIONS" ]; then
     echo "## addLiveLocalPoolsToScheduler failed to load ORACLE_REGIONS"
 else
     for REGION in \$ORACLE_REGIONS; do
         echo "A"
-        DEBUG=true JVB_GROUPS="\$(ALL_RELEASES=true ORACLE_REGION=\${REGION} scripts/custom-autoscaler-list-groups.sh)"
+        JVB_GROUPS="\$(DEBUG=true ALL_RELEASES=true ORACLE_REGION=\${REGION} scripts/custom-autoscaler-list-groups.sh)"
         echo "B"
         if [[ \${#JVB_GROUPS} != 0 ]]; then
             echo "## found jvb scaling groups for \${REGION}: \${JVB_GROUPS}"
