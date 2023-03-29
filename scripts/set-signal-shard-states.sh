@@ -16,7 +16,7 @@ fi
 [ -e ./sites/$ENVIRONMENT/stack-env.sh ] && . ./sites/$ENVIRONMENT/stack-env.sh
 
 #load region defaults
-[ -e $LOCAL_PATH/../regions/all.sh ] && . $LOCAL_PATH/../regions/all.sh
+[ -e $LOCAL_PATH/../clouds/all.sh ] && . $LOCAL_PATH/../clouds/all.sh
 
 if [  -z "$1" ]
 then
@@ -34,6 +34,38 @@ fi
 
 RET=0
 
+[ -z "$CONSUL_SHARD_STATES" ] && CONSUL_SHARD_STATES="true"
+
+function consul_shard_state() {
+    S=$1
+    STATE=$2
+    SHARD_REGION=$($LOCAL_PATH/shard.py --shard_region --shard $S --environment $ENVIRONMENT)
+
+    CONSUL_URL="https://$ENVIRONMENT-$SHARD_REGION-consul.$TOP_LEVEL_DNS_ZONE_NAME/v1/kv/shard-states/$ENVIRONMENT/$SHARD"
+    curl -X PUT -d "$STATE" $CONSUL_URL
+    return $?
+}
+
+if [[ "$CONSUL_SHARD_STATES" == "true" ]]; then
+    for SHARD in $SHARDS_READY; do
+        consul_shard_state $SHARD 'ready'
+        SRET=$?
+        if [[ $SRET -gt 0 ]]; then
+            RET=$SRET
+        fi
+    done
+    for SHARD in $SHARDS_DRAIN; do
+        consul_shard_state $SHARD 'drain'
+        SRET=$?
+        if [[ $SRET -gt 0 ]]; then
+            RET=$SRET
+        fi
+    done
+    if [[ "$CONSUL_SHARD_STATES_ONLY" == "true" ]]; then
+        exit $RET
+    fi
+fi
+
 ## set file on shard to drain [new]
 SHARD_READY_IPS=""
 for SHARD in $SHARDS_READY; do
@@ -41,7 +73,12 @@ for SHARD in $SHARDS_READY; do
     SHARD_IP=$($LOCAL_PATH/node.py --environment $ENVIRONMENT --shard $SHARD --role core --oracle --region $SHARD_REGION --batch)
     if [ -z "$SHARD_IP" ]; then
         echo "No SHARD_IP found from $SHARD, skipping"
-        RET=2
+        SHARD_CORE_PROVIDER="$($LOCAL_PATH/shard.sh core_provider $ANSIBLE_SSH_USER)"
+        if [[ "$SHARD_CORE_PROVIDER" == "nomad" ]]; then
+            echo "$SHARD is a nomad shard, not expected to have SHARD_IP"
+        else
+            RET=2
+        fi
     else
         SHARD_READY_IPS="$SHARD_IP,$SHARD_READY_IPS"
     fi
@@ -53,7 +90,12 @@ for SHARD in $SHARDS_DRAIN; do
     SHARD_IP=$($LOCAL_PATH/node.py --environment $ENVIRONMENT --shard $SHARD --role core --oracle --region $SHARD_REGION --batch)
     if [ -z "$SHARD_IP" ]; then
         echo "No SHARD_IP found from $SHARD, skipping"
-        RET=2
+        SHARD_CORE_PROVIDER="$($LOCAL_PATH/shard.sh core_provider $ANSIBLE_SSH_USER)"
+        if [[ "$SHARD_CORE_PROVIDER" == "nomad" ]]; then
+            echo "$SHARD is a nomad shard, not expected to have SHARD_IP"
+        else
+            RET=2
+        fi
     else
         SHARD_DRAIN_IPS="$SHARD_IP,$SHARD_DRAIN_IPS"
     fi

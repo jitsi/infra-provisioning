@@ -19,22 +19,38 @@ LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
 [ -z "$AWS_LOCAL_DATACENTER" ] && AWS_LOCAL_DATACENTER="us-east-1-peer1"
 [ -z "$AWS_CONSUL_ENV" ] && AWS_CONSUL_ENV="prod"
-
-CONSUL_HOST="consul-local.$TOP_LEVEL_DNS_ZONE_NAME"
-
-if [[ "$CONSUL_INCLUDE_AWS" == "true" ]]; then
-    PORT=$(python -c 'import socket; s=socket.socket(); s.bind(("", 0)); print(s.getsockname()[1]); s.close()')
-    ssh -o StrictHostKeyChecking=no -fNT -L127.0.0.1:$PORT:consul-$AWS_CONSUL_ENV-$AWS_LOCAL_DATACENTER.$TOP_LEVEL_DNS_ZONE_NAME:443 $ANSIBLE_SSH_USER@$AWS_LOCAL_DATACENTER-ssh.$INFRA_DNS_ZONE_NAME
-    CONSUL_URL="https://$CONSUL_HOST:$PORT"
-fi
+[ -z "$CONSUL_VIA_SSH" ] && CONSUL_VIA_SSH="true"
 
 OCI_LOCAL_REGION="us-phoenix-1"
 OCI_LOCAL_DATACENTER="$ENVIRONMENT-$OCI_LOCAL_REGION"
 
-if [[ "$CONSUL_INCLUDE_OCI" == "true" ]]; then
-    PORT_OCI=$(python -c 'import socket; s=socket.socket(); s.bind(("", 0)); print(s.getsockname()[1]); s.close()')
-    ssh -o StrictHostKeyChecking=no -fNT -L127.0.0.1:$PORT_OCI:$OCI_LOCAL_DATACENTER-consul.$TOP_LEVEL_DNS_ZONE_NAME:443 $ANSIBLE_SSH_USER@$OCI_LOCAL_REGION-$ENVIRONMENT-ssh.$DEFAULT_DNS_ZONE_NAME
-    OCI_CONSUL_URL="https://$CONSUL_HOST:$PORT_OCI"
+CONSUL_AWS_HOST="consul-$AWS_CONSUL_ENV-$AWS_LOCAL_DATACENTER.$TOP_LEVEL_DNS_ZONE_NAME"
+CONSUL_OCI_HOST="$OCI_LOCAL_DATACENTER-consul.$TOP_LEVEL_DNS_ZONE_NAME"
+
+if [[ "$CONSUL_VIA_SSH" == "true" ]]; then
+    CONSUL_HOST="consul-local.$TOP_LEVEL_DNS_ZONE_NAME"
+
+    if [[ "$CONSUL_INCLUDE_AWS" == "true" ]]; then
+        PORT=$(python -c 'import socket; s=socket.socket(); s.bind(("", 0)); print(s.getsockname()[1]); s.close()')
+        ssh -o StrictHostKeyChecking=no -fNT -L127.0.0.1:$PORT:$CONSUL_AWS_HOST:443 $ANSIBLE_SSH_USER@$AWS_LOCAL_DATACENTER-ssh.$INFRA_DNS_ZONE_NAME
+        CONSUL_URL="https://$CONSUL_HOST:$PORT"
+        AWS_CURL_OPTS=" --resolve $CONSUL_HOST:$PORT:127.0.0.1"
+    fi
+
+    if [[ "$CONSUL_INCLUDE_OCI" == "true" ]]; then
+        PORT_OCI=$(python -c 'import socket; s=socket.socket(); s.bind(("", 0)); print(s.getsockname()[1]); s.close()')
+        ssh -o StrictHostKeyChecking=no -fNT -L127.0.0.1:$PORT_OCI:$CONSUL_OCI_HOST:443 $ANSIBLE_SSH_USER@$OCI_LOCAL_REGION-$ENVIRONMENT-ssh.$DEFAULT_DNS_ZONE_NAME
+        OCI_CONSUL_URL="https://$CONSUL_HOST:$PORT_OCI"
+        OCI_CURL_OPTS=" --resolve $CONSUL_HOST:$PORT_OCI:127.0.0.1"
+    fi
+else
+    CONSUL_HOST="$AWS_LOCAL_DATACENTER-consul.$TOP_LEVEL_DNS_ZONE_NAME"
+    if [[ "$CONSUL_INCLUDE_AWS" == "true" ]]; then
+        CONSUL_URL="https://$CONSUL_AWS_HOST"
+    fi
+    if [[ "$CONSUL_INCLUDE_OCI" == "true" ]]; then
+        OCI_CONSUL_URL="https://$CONSUL_OCI_HOST"
+    fi
 fi
 
 FILTER_DATA="filter=ServiceMeta.environment == \"$ENVIRONMENT\""
@@ -59,7 +75,7 @@ fi
 if [ -z "$DATACENTERS" ]; then
     DATACENTERS='[]'
     if [[ "$CONSUL_INCLUDE_AWS" == "true" ]]; then
-        AWS_DATACENTERS=$(curl --resolve $CONSUL_HOST:$PORT:127.0.0.1 -G $CONSUL_URL/v1/catalog/datacenters 2>/tmp/dclist)
+        AWS_DATACENTERS=$(curl $AWS_CURL_OPTS -G $CONSUL_URL/v1/catalog/datacenters 2>/tmp/dclist)
         if [[ $? -gt 0 ]]; then
             AWS_DATACENTERS='[]'
         fi
@@ -67,7 +83,7 @@ if [ -z "$DATACENTERS" ]; then
         AWS_DATACENTERS='[]'
     fi    
     if [[ "$CONSUL_INCLUDE_OCI" == "true" ]]; then
-        OCI_DATACENTERS=$(curl --resolve $CONSUL_HOST:$PORT_OCI:127.0.0.1 -G $OCI_CONSUL_URL/v1/catalog/datacenters 2>>/tmp/dclist)
+        OCI_DATACENTERS=$(curl $OCI_CURL_OPTS -G $OCI_CONSUL_URL/v1/catalog/datacenters 2>>/tmp/dclist)
         if [[ $? -gt 0 ]]; then
             OCI_DATACENTERS='[]'
         fi
@@ -91,7 +107,7 @@ if [ ! -z "$DATACENTERS" ]; then
     if [[ "$CONSUL_INCLUDE_AWS" == "true" ]]; then
         for DC in $AWS_DATACENTERS; do
             # TO FIX: this doesn't distinguish whether the raft members are in active/left/failed states
-            SERVICES=$(curl --resolve $CONSUL_HOST:$PORT:127.0.0.1 -G $CONSUL_URL/v1/catalog/service/${SERVICE}?dc=$DC --data-urlencode "$FILTER_DATA" 2>/tmp/servicecataloglist)
+            SERVICES=$(curl $AWS_CURL_OPTS -G $CONSUL_URL/v1/catalog/service/${SERVICE}?dc=$DC --data-urlencode "$FILTER_DATA" 2>/tmp/servicecataloglist)
             if [ $? -eq 0 ]; then
     #            echo $SERVICES
                 [ "$SERVICES" == "null" ] && SERVICES=""
@@ -108,7 +124,7 @@ if [ ! -z "$DATACENTERS" ]; then
     if [[ "$CONSUL_INCLUDE_OCI" == "true" ]]; then
         for DC in $OCI_DATACENTERS; do
             # TO FIX: this doesn't distinguish whether the raft members are in active/left/failed states
-            SERVICES=$(curl --resolve $CONSUL_HOST:$PORT_OCI:127.0.0.1 -G $OCI_CONSUL_URL/v1/catalog/service/${SERVICE}?dc=$DC --data-urlencode "$FILTER_DATA" 2>>/tmp/servicecataloglist)
+            SERVICES=$(curl $OCI_CURL_OPTS -G $OCI_CONSUL_URL/v1/catalog/service/${SERVICE}?dc=$DC --data-urlencode "$FILTER_DATA" 2>>/tmp/servicecataloglist)
             if [ $? -eq 0 ]; then
     #            echo $SERVICES
                 [ "$SERVICES" == "null" ] && SERVICES=""
@@ -146,26 +162,32 @@ if [ ! -z "$DATACENTERS" ]; then
     [ "$DISPLAY" == "addresses" ] && echo $ALL_ADDRESSES
     [ "$DISPLAY" == "core_providers" ] && echo $ALL_CORE_PROVIDERS
 else
-    if [[ "$CONSUL_INCLUDE_AWS" == "true" ]]; then
-        SSH_PID=$(ps auxww | grep "ssh \-fNT -L127.0.0.1:$PORT" | awk '{print $2}')
-        kill $SSH_PID
+    if [[ "$CONSUL_VIA_SSH" == "true" ]]; then
+        if [[ "$CONSUL_INCLUDE_AWS" == "true" ]]; then
+            SSH_PID=$(ps auxww | grep "ssh \-fNT -L127.0.0.1:$PORT" | awk '{print $2}')
+            kill $SSH_PID
+        fi
     fi
 
-    if [[ "$CONSUL_INCLUDE_OCI" == "true" ]]; then
-        SSH_OCI_PID=$(ps auxww | grep "ssh \-fNT -L127.0.0.1:$PORT_OCI" | awk '{print $2}')
-        kill $SSH_OCI_PID
+    if [[ "$CONSUL_VIA_SSH" == "true" ]]; then
+        if [[ "$CONSUL_INCLUDE_OCI" == "true" ]]; then
+            SSH_OCI_PID=$(ps auxww | grep "ssh \-fNT -L127.0.0.1:$PORT_OCI" | awk '{print $2}')
+            kill $SSH_OCI_PID
+        fi
     fi
 
     echo "NO DATACENTERS FOUND OR PROVIDED, EXITING"
     exit 1
 fi
 
-if [[ "$CONSUL_INCLUDE_AWS" == "true" ]]; then
-    SSH_PID=$(ps auxww | grep "ssh \-o StrictHostKeyChecking=no \-fNT -L127.0.0.1:$PORT" | awk '{print $2}')
-    kill $SSH_PID
-fi
+if [[ "$CONSUL_VIA_SSH" == "true" ]]; then
+    if [[ "$CONSUL_INCLUDE_AWS" == "true" ]]; then
+        SSH_PID=$(ps auxww | grep "ssh \-o StrictHostKeyChecking=no \-fNT -L127.0.0.1:$PORT" | awk '{print $2}')
+        kill $SSH_PID
+    fi
 
-if [[ "$CONSUL_INCLUDE_OCI" == "true" ]]; then
-    SSH_OCI_PID=$(ps auxww | grep "ssh \-o StrictHostKeyChecking=no \-fNT -L127.0.0.1:$PORT_OCI" | awk '{print $2}')
-    kill $SSH_OCI_PID
+    if [[ "$CONSUL_INCLUDE_OCI" == "true" ]]; then
+        SSH_OCI_PID=$(ps auxww | grep "ssh \-o StrictHostKeyChecking=no \-fNT -L127.0.0.1:$PORT_OCI" | awk '{print $2}')
+        kill $SSH_OCI_PID
+    fi
 fi
