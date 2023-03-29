@@ -272,31 +272,33 @@ job "[JOB_NAME]" {
     task "signal-sidecar" {
       driver = "docker"
       config {
-        image        = "aaronkvanmeerten/signal-sidecar:latest"
+        image        = "jitsi/signal-sidecar:latest"
         ports = ["signal-sidecar-agent","signal-sidecar-http"]
-        volumes = ["local/jitsi:/etc/jitsi" ]
       }
 
+      env {
+        CENSUS_POLL = true
+        CONSUL_SECURE = false
+        CONSUL_PORT=8500
+        CONSUL_STATUS = true
+        CONSUL_REPORTS = true
+        CONSUL_STATUS_KEY = "shard-states/${var.environment}/${var.shard}"
+        CONSUL_REPORT_KEY = "signal-report/${var.environment}/${var.shard}"
+      }
       template {
-        data = <<EOF
-        HTTP_PORT={{ env "NOMAD_HOST_PORT_signal_sidecar_http" }}
-        TCP_PORT={{ env "NOMAD_HOST_PORT_signal_sidecar_agent" }}
-        CENSUS_POLL=true
-        CENSUS_HOST={{ env "NOMAD_META_domain" }}
-        JICOFO_ORIG=http://{{ env "NOMAD_IP_jicofo_http" }}:{{ env "NOMAD_HOST_PORT_jicofo_http" }}
-        PROSODY_ORIG=http://{{ env "NOMAD_IP_prosody_http" }}:{{ env "NOMAD_HOST_PORT_prosody_http" }}
+          data = <<EOF
+CONSUL_HOST={{ env "attr.unique.network.ip-address" }}
+HTTP_PORT={{ env "NOMAD_HOST_PORT_signal_sidecar_http" }}
+TCP_PORT={{ env "NOMAD_HOST_PORT_signal_sidecar_agent" }}
+CENSUS_HOST={{ env "NOMAD_META_domain" }}
+JICOFO_ORIG=http://{{ env "NOMAD_IP_jicofo_http" }}:{{ env "NOMAD_HOST_PORT_jicofo_http" }}
+PROSODY_ORIG=http://{{ env "NOMAD_IP_prosody_http" }}:{{ env "NOMAD_HOST_PORT_prosody_http" }}
 EOF
 
         destination = "local/signal-sidecar.env"
         env = true
       }
-      template {
-        data = "{{key \"shard-states/${var.environment}/${var.shard}\" }}"
-        destination = "local/jitsi/shard-status"
-        change_mode = "noop"
-      }
     }
-
     task "web" {
       driver = "docker"
       config {
