@@ -43,7 +43,7 @@ def addGAPoolsToScheduler(environment, release_number) {
         script: """#!/bin/bash
 . clouds/all.sh
 if [ -z "\$ORACLE_REGIONS" ]; then
-    echo "## addLiveLocalPoolsToScheduler failed to load ORACLE_REGIONS
+    echo "## addLiveLocalPoolsToScheduler failed to load ORACLE_REGIONS"
     exit 1
 fi
 for REGION in \$ORACLE_REGIONS; do
