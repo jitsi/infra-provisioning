@@ -6,6 +6,7 @@ variable "security_group_ocid" {}
 variable "user" {}
 variable "user_private_key_path" {}
 variable "user_public_key_path" {}
+variable "bastion_host" {}
 variable "image_ocid" {}
 variable "oracle_region" {}
 variable "environment" {}
@@ -15,18 +16,17 @@ variable "shape" {}
 variable "availability_domain" {}
 variable "git_branch" {}
 variable "name" {}
-variable "domain" {}
 variable "tag_namespace" {}
 variable "ocpus" {}
 variable "memory_in_gbs" {}
 variable "dns_compartment_ocid" {}
 variable "dns_name" {}
 variable "dns_zone_name" {}
-variable "user_data_lib_path" {
-  default = "terraform/lib"
-}
 variable "user_data_file" {
     default = "terraform/firezone/configure-firezone-local-oracle.sh"
+}
+variable "user_data_lib_path" {
+  default = "terraform/lib"
 }
 variable "infra_configuration_repo" {}
 variable "infra_customizations_repo" {}
@@ -59,6 +59,13 @@ resource "oci_core_network_security_group" "instance_security_group" {
   compartment_id = var.compartment_ocid
   vcn_id = data.oci_core_vcns.vcns.virtual_networks[0].id
   display_name = "${var.display_name}-SecurityGroup"
+}
+
+resource "oci_core_network_security_group_security_rule" "firezone_nsg_rule_egress" {
+  network_security_group_id = oci_core_network_security_group.instance_security_group.id
+  direction = "EGRESS"
+  destination = "0.0.0.0/0"
+  protocol = "all"
 }
 
 resource "oci_core_network_security_group_security_rule" "instance_nsg_rule_ingress_tcp_http" {
@@ -131,7 +138,6 @@ resource "oci_core_instance" "oci-instance" {
         "${var.tag_namespace}.environment" = var.environment
         "${var.tag_namespace}.environment_type" = var.environment_type
         "${var.tag_namespace}.git_branch" = var.git_branch
-        "${var.tag_namespace}.domain" = var.domain
         "${var.tag_namespace}.shard-role" = "vpn"
         "${var.tag_namespace}.Name" = var.name
      }
@@ -143,9 +149,13 @@ resource "oci_core_instance" "oci-instance" {
     provisioner "file" {
         connection {
             type        = "ssh"
-            host        = oci_core_instance.oci-instance.public_ip
+            host        = oci_core_instance.oci-instance.private_ip
             user        = var.user
             private_key = file(var.user_private_key_path)
+
+            bastion_host = var.bastion_host
+            bastion_user = var.user
+            bastion_private_key = file(var.user_private_key_path)
         }
 
         content = join("",[
@@ -158,24 +168,26 @@ resource "oci_core_instance" "oci-instance" {
         destination = "/tmp/configure-firezone-local-oracle.sh"
     }
 
-
     provisioner "remote-exec" {
         connection {
             type        = "ssh"
-            host        = oci_core_instance.oci-instance.public_ip
+            host        = oci_core_instance.oci-instance.private_ip
             user        = var.user
             private_key = file(var.user_private_key_path)
+            
+            bastion_host = var.bastion_host
+            bastion_user = var.user
+            bastion_private_key = file(var.user_private_key_path)
+
             script_path = "/home/${var.user}/script_%RAND%.sh"
         }
 
         inline = [
+            "cloud-init status --wait",
             "sudo cp /tmp/configure-firezone-local-oracle.sh /usr/local/bin/configure-firezone-local-oracle.sh",
             "sudo chmod +x /usr/local/bin/configure-firezone-local-oracle.sh",
             "sudo /usr/local/bin/configure-firezone-local-oracle.sh"
         ]
-    }
-    triggers = {
-      always_run = "${timestamp()}"
     }
 }
 
