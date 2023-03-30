@@ -36,6 +36,7 @@ Signal)
   IMAGE_NAME_PREFIX="BuildSignal"
 
   #if we're not given versions, search for the latest image
+  [ -z "$SIGNAL_VERSION" ] && SIGNAL_VERSION="$JICOFO_VERSION-$JITSI_MEET_VERSION-$PROSODY_VERSION"
   SERVICE_VERSION="$SIGNAL_VERSION"
   if [ -z "$SERVICE_VERSION" ]; then
     SERVICE_VERSION='latest'
