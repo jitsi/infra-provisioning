@@ -46,6 +46,9 @@ if [ -z "$ORACLE_REGION" ]; then
   if [[ "$SHARD_CORE_CLOUD_PROVIDER" == "oracle" ]]; then
     ORACLE_REGION=$($LOCAL_PATH/shard.py  --shard_region --environment=$ENVIRONMENT --shard=$SHARD)
   fi
+  if [[ "$SHARD_CORE_CLOUD_PROVIDER" == "nomad" ]]; then
+    ORACLE_REGION=$($LOCAL_PATH/shard.py  --shard_region --environment=$ENVIRONMENT --shard=$SHARD)
+  fi
 fi
 
 if [ -z "$ORACLE_REGION" ]; then
