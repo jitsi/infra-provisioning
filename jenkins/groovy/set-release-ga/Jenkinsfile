@@ -41,26 +41,22 @@ ENVIRONMENT=${environment} scripts/versioning-manager.sh
 def addGAPoolsToScheduler(environment, release_number) {
     sh(
         script: """#!/bin/bash
-set -x
 . clouds/all.sh
 if [ -z "\$ORACLE_REGIONS" ]; then
     echo "## addLiveLocalPoolsToScheduler failed to load ORACLE_REGIONS"
 else
     for REGION in \$ORACLE_REGIONS; do
-        echo "A"
         JVB_GROUPS="\$(DEBUG=true ALL_RELEASES=true ORACLE_REGION=\${REGION} scripts/custom-autoscaler-list-groups.sh)"
-        echo "B"
         if [[ \${#JVB_GROUPS} != 0 ]]; then
             echo "## found jvb scaling groups for \${REGION}: \${JVB_GROUPS}"
         fi
-        echo "C"
         for GROUP in \$JVB_GROUPS; do
             if [[ "\$GROUP" =~ "JVB" ]] && [[ "\$GROUP" =~ "${release_number}" ]] && ([[ "\$GROUP" =~ "-local-" ]] || [[ "\$GROUP" =~ "-global-" ]]); then
                 echo "## adding to scheduler: \${GROUP}"
-                DEBUG=true ENABLE_SCHEDULER=true ORACLE_REGION=\${REGION} GROUP_NAME=\${GROUP} TYPE=JVB scripts/custom-autoscaler-update-scaling-activities.sh
+                ENABLE_SCHEDULER=true ORACLE_REGION=\${REGION} GROUP_NAME=\${GROUP} TYPE=JVB scripts/custom-autoscaler-update-scaling-activities.sh
             else
                 echo "## removing from scheduler: \${GROUP}"
-                DEBUG=true ENABLE_SCHEDULER=false ORACLE_REGION=\${REGION} GROUP_NAME=\${GROUP} TYPE=JVB scripts/custom-autoscaler-update-scaling-activities.sh
+                ENABLE_SCHEDULER=false ORACLE_REGION=\${REGION} GROUP_NAME=\${GROUP} TYPE=JVB scripts/custom-autoscaler-update-scaling-activities.sh
             fi
         done
     done
