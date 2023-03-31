@@ -95,7 +95,8 @@ fi
 # we use the meta version to construct the tag to use for jitsi-meet-torture
 function getJitsiMeetTortureTag() {
   SERVER_IP=$1
-  BASE_HTML=$(curl --silent --insecure https://${SERVER_IP}/base.html)
+  SERVER_DIR=$2
+  BASE_HTML=$(curl --silent --insecure https://${SERVER_IP}${SERVER_DIR}/base.html)
   WEB_FULL_VER=$(echo $BASE_HTML | sed 's|.*web-cdn.jitsi.net/||' | sed 's|/".*||')
   WEB_VER=$(echo $WEB_FULL_VER | sed 's|.*_|| ' | sed 's|\..*||')
 
@@ -116,7 +117,7 @@ function getJitsiMeetTortureTag() {
 }
 
 if [ -z $TORTURE_BRANCH ]; then
-  TORTURE_BRANCH=$(getJitsiMeetTortureTag $SHARD_IP)
+  TORTURE_BRANCH=$(getJitsiMeetTortureTag $SHARD_IP $TEST_SUBDIR)
 fi
 
 [ -z $TORTURE_BRANCH ] && TORTURE_BRANCH="master"
