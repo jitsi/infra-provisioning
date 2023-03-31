@@ -22,6 +22,8 @@ if [ -z "$SHARD" ]; then
     exit 2
 fi
 
+[ -z "$NOMAD_POOL_TYPE" ] && NOMAD_POOL_TYPE="general"
+
 [ -z "$DOCKER_TAG" ] && DOCKER_TAG="unstable-$(date +%Y-%m-%d)"
 
 NOMAD_JOB_PATH="$LOCAL_PATH/../nomad"
@@ -57,5 +59,6 @@ export NOMAD_VAR_octo_region="$ORACLE_REGION"
 # [ -n "$SHARD_STATE" ] && export NOMAD_VAR_shard_state="$SHARD_STATE"
 export NOMAD_VAR_release_number="$RELEASE_NUMBER"
 export NOMAD_VAR_tag="$DOCKER_TAG"
+export NOMAD_VAR_pool_type="$NOMAD_POOL_TYPE"
 
 sed -e "s/\[JOB_NAME\]/$SHARD/" "$NOMAD_JOB_PATH/shard.hcl" | nomad job run -var="dc=$NOMAD_DC" -

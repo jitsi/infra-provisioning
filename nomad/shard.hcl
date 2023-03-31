@@ -27,6 +27,11 @@ variable "release_number" {
   default = "0"
 }
 
+variable "pool_type" {
+  type = string
+  default = "general"
+}
+
 variable jicofo_auth_password {
     type = string
     default = "replaceme_jicofo"
@@ -88,7 +93,7 @@ job "[JOB_NAME]" {
 
     constraint {
       attribute  = "${meta.pool_type}"
-      value     = "general"
+      value     = "${var.pool_type}"
     }
 
     network {
@@ -211,7 +216,7 @@ job "[JOB_NAME]" {
 
     service {
       name = "signal-sidecar"
-      tags = ["${var.shard}","ip-${attr.unique.network.ip-address}"]
+      tags = ["${var.shard}","ip-${attr.unique.network.ip-address}","urlprefix-/${var.shard}/about/health strip=/${var.shard}"]
       port = "signal-sidecar-http"
       meta {
         domain = "${var.domain}"
