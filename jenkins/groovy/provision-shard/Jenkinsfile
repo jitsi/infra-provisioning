@@ -293,10 +293,11 @@ pipeline {
                 }
             }
         }
-        stage ("Create Oracle shards") {
+        stage ("Create Oracle / nomad shards") {
             when {
-                allOf{
-                   expression {env.CORE_CLOUD_PROVIDER == 'oracle'}
+                anyOf{
+                   expression {env.CORE_CLOUD_PROVIDER == 'oracle'};
+                   expression {env.CORE_CLOUD_PROVIDER == 'nomad'}
                 }
             }
             steps {
