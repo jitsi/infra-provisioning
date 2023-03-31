@@ -42,6 +42,9 @@ if [ $? -eq 0 ]; then
       elif [[ "$CORE_CLOUD_PROVIDER" == "oracle" ]]; then
           SHARD_NUMBER=$x $LOCAL_PATH/create-shard-oracle.sh $ANSIBLE_SSH_USER
           RET=$?
+      elif [[ "$CORE_CLOUD_PROVIDER" == "nomad" ]]; then
+          SHARD_NUMBER=$x $LOCAL_PATH/create-shard-nomad.sh $ANSIBLE_SSH_USER
+          RET=$?
       else
           echo "Not a supported CORE_CLOUD_PROVIDER: $CORE_CLOUD_PROVIDER"
           RET=3
