@@ -53,8 +53,11 @@ else
     fi
 fi
 
-FILTER_DATA="filter=ServiceMeta.environment == \"$ENVIRONMENT\""
+[ -z "$FILTER_ENVIRONMENT" ] && FILTER_ENVIRONMENT="true";
 
+if [ "$FILTER_ENVIRONMENT" == "true" ]; then
+    FILTER_DATA="filter=ServiceMeta.environment == \"$ENVIRONMENT\""
+fi
 [ -z "$RELEASE_INVERSE" ] && RELEASE_INVERSE="false"
 
 RELEASE_OPERATOR="=="
@@ -134,9 +137,11 @@ if [ ! -z "$DATACENTERS" ]; then
                         ADDRESSES="$(echo $SERVICES | jq -r ".|map(.Address)|.[]")"
                         RELEASES="$(echo $SERVICES | jq -r ".|map(.ServiceMeta.release_number)|unique|.[]")"
                         SHARDS="$(echo $SERVICES | jq -r ".|map(.ServiceMeta.shard)|unique|.[]")"
+                        SERVICE_META="$(echo $SERVICES | jq -r ".|map(.ServiceMeta)")"
                         ALL_SHARDS="$SHARDS $ALL_SHARDS"
                         ALL_RELEASES="$RELEASES $ALL_RELEASES"
                         ALL_ADDRESSES="$ADDRESSES $ALL_ADDRESSES"
+                        ALL_SERVICE_META="$(echo "$ALL_SERVICE_META" "$SERVICE_META" | jq -c -s '.|add')"
                         if [ ! -z "$SHARDS" ]; then
                             for S in $SHARDS; do
                                 ALLOCATION="$(echo "$SERVICES" | jq -r ".|map(select(.ServiceMeta.shard==\"$S\"))|.[].ServiceMeta.nomad_allocation")"
@@ -161,6 +166,7 @@ if [ ! -z "$DATACENTERS" ]; then
     [ "$DISPLAY" == "shards" ] && echo $ALL_SHARDS
     [ "$DISPLAY" == "addresses" ] && echo $ALL_ADDRESSES
     [ "$DISPLAY" == "core_providers" ] && echo $ALL_CORE_PROVIDERS
+    [ "$DISPLAY" == "service_meta" ] && echo $ALL_SERVICE_META
 else
     if [[ "$CONSUL_VIA_SSH" == "true" ]]; then
         if [[ "$CONSUL_INCLUDE_AWS" == "true" ]]; then

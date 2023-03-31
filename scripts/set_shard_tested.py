@@ -27,6 +27,9 @@ SHARD_HAPROXY_ROLE="haproxy"
 width = 25
 
 region = shard_region_from_name(SHARD)
+
+update_consul_kv(ENVIRONMENT, region, SHARD, STATE, BUILD_NUMBER)
+
 if region in ORACLE_REGION_MAP:
   # do it the oracle way
   shard_instances = get_oracle_instances_by_role(['core'],environment_name=ENVIRONMENT,shard_name=SHARD,regions=[region])

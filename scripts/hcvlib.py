@@ -14,6 +14,7 @@ from bs4 import BeautifulSoup
 import urllib.request, urllib.error, urllib.parse
 import re
 import yaml
+import time
 
 import oci
 
@@ -2473,6 +2474,23 @@ def pull_network_stack_outputs(region, regionalias, stackprefix):
 
 
     return output
+
+def update_consul_kv(environment, region, shard, test_state, test_build_number):
+    with open(REGIONS_FILE_PATH, 'r') as f:
+        doc = yaml.safe_load(f)
+        dns_zone = doc['dns_zone_name']
+
+    consul_host='{}-{}-consul.{}'.format(environment,region,dns_zone)
+    kv_path='v1/kv/shard-test/{}/{}'.format(environment,shard)
+    url='https://{}/{}'.format(consul_host,kv_path)
+    ts=time.time()
+    payload={'status': test_state, 'build_number': test_build_number, 'ts': ts}
+    try:
+        reply = requests.put(url, json=payload)
+    except Exception as e:
+        print(e)
+
+    return reply
 
 # def pull_bash_network_stack(az_letter):
 #     output = {}
