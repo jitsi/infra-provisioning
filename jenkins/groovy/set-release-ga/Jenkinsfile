@@ -152,7 +152,14 @@ pipeline {
             steps {
                 script {
                     dir("infra-provisioning") {
-                        addGAPoolsToScheduler(env.ENVIRONMENT, env.RELEASE_NUMBER)
+                        withCredentials([
+                            string(credentialsId: 'asap-jwt-kid-dev', variable: 'ASAP_JWT_KID_DEV'),
+                            string(credentialsId: 'asap-jwt-kid-prod', variable: 'ASAP_JWT_KID_PROD'),
+                            file(credentialsId: 'asap-jwt-key-dev', variable: 'ASAP_JWT_KEY_DEV'),
+                            file(credentialsId: 'asap-jwt-key-prod', variable: 'ASAP_JWT_KEY_PROD')
+                        ]) {
+                            addGAPoolsToScheduler(env.ENVIRONMENT, env.RELEASE_NUMBER)
+                        }
                     }
                 }
             }
