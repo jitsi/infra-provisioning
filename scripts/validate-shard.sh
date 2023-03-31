@@ -25,7 +25,10 @@ fi
 [ -e ./sites/$ENVIRONMENT/stack-env.sh ] && . ./sites/$ENVIRONMENT/stack-env.sh
 
 #load cloud defaults
-[ -e $LOCAL_PATH/../regions/all.sh ] && . $LOCAL_PATH/../regions/all.sh
+[ -e $LOCAL_PATH/../clouds/all.sh ] && . $LOCAL_PATH/../clouds/all.sh
+
+# load oracle cloud defaults
+[ -e $LOCAL_PATH/../clouds/oracle.sh ] && . $LOCAL_PATH/../clouds/oracle.sh
 
 #default cloud if not set
 [ -z $CLOUD_NAME ] && CLOUD_NAME=$DEFAULT_CLOUD
@@ -54,10 +57,27 @@ CMD_SHARD_NUMBER=$(echo $0 | cut -d'-' -f3 | cut -d'.' -f1)
 [ -z $BUILD_NUMBER ] && BUILD_NUMBER='N/A'
 
 SHARD_IP=$(IP_TYPE="external" SHARD="$SHARD" $LOCAL_PATH/shard.sh shard_ip $ANSIBLE_SSH_USER)
+TEST_SUBDIR=''
 
 if [ -z $SHARD_IP ]; then
-    echo "No shard IP found, failing to run tests."
-    exit 1
+    SHARD_CORE_PROVIDER="$(SHARD=$SHARD ENVIRONMENT=$ENVIRONMENT $LOCAL_PATH/shard.sh core_provider $ANSIBLE_SSH_USER)"
+    if [[ "$SHARD_CORE_PROVIDER" == "nomad" ]]; then
+      if [ -z "$ORACLE_REGION" ]; then
+        # Extract EC2_REGION from the shard name and use it to get the ORACLE_REGION
+        ORACLE_REGION=$($LOCAL_PATH/shard.py --shard_region --environment=$ENVIRONMENT --shard=$SHARD)
+      fi
+      [ -z "$NOMAD_LB_HOSTNAME" ] && NOMAD_LB_HOSTNAME="$ENVIRONMENT-$ORACLE_REGION-nomad-pool-general.$ORACLE_DNS_ZONE_NAME"
+
+      SHARD_IP=$(dig +short "$NOMAD_LB_HOSTNAME")
+      if [ -z $SHARD_IP ]; then
+        echo "No nomad LB IP found, failing to run tests."
+        exit 1
+      fi
+      TEST_SUBDIR="/$SHARD"
+    else
+      echo "No shard IP found, failing to run tests."
+      exit 1
+    fi
 fi
 
 #https://web-cdn.jitsi.net/meet8x8com_4570.1272/
@@ -131,6 +151,7 @@ cd $ANSIBLE_BUILD_PATH
 ansible-playbook --verbose ansible/torturetest-shard-locally.yml \
 -i 'somehost,' \
 --extra-vars "hcv_environment=$ENVIRONMENT hcv_domain=$TEST_DOMAIN prosody_domain_name=$TEST_DOMAIN shard_name=$SHARD shard_ip_address=$SHARD_IP torture_longtest_duration=$TEST_DURATION ec2_torture_instance_count=$TORTURE_COUNT torture_longtest_only=$TORTURE_LONG" \
+-e "test_subdir=$TEST_SUBDIR" \
 -e "jitsi_torture_git_branch="$TORTURE_BRANCH"" \
 -e "test_id=$TEST_ID" \
 -e "ansible_ssh_user=$ANSIBLE_SSH_USER" \
