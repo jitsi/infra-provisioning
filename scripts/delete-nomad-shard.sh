@@ -1,13 +1,25 @@
 #!/bin/bash
 
+set -x
+
 if [ -z "$ENVIRONMENT" ]; then
     echo "No ENVIRONMENT set, exiting"
+    exit 2
+fi
+
+if [ -z "$SHARD" ]; then
+    echo "No SHARD set, exiting"
     exit 2
 fi
 
 LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
 [ -e "$LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh" ] && . "$LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh"
+
+if [ -z "$ORACLE_REGION" ]; then
+  # Extract EC2_REGION from the shard name and use it to get the ORACLE_REGION
+  ORACLE_REGION=$($LOCAL_PATH/shard.py --shard_region --environment=$ENVIRONMENT --shard=$SHARD)
+fi
 
 if [ -z "$ORACLE_REGION" ]; then
     echo "No ORACLE_REGION set, exiting"
@@ -32,13 +44,5 @@ if [ -z "$NOMAD_ADDR" ]; then
     exit 5
 fi
 
-[ -z "$DOCKER_TAG" ] && DOCKER_TAG="unstable-$(date +%Y-%m-%d)"
-
-NOMAD_JOB_PATH="$LOCAL_PATH/../nomad"
-NOMAD_DC="$ENVIRONMENT-$ORACLE_REGION"
-
-
-export NOMAD_VAR_domain="$DOMAIN"
-export NOMAD_VAR_tag="$DOCKER_TAG"
-
-sed -e "s/\[JOB_NAME\]/$DOMAIN/" "$NOMAD_JOB_PATH/standalone.hcl" | nomad job run -var="dc=$NOMAD_DC" -
+nomad job stop $SHARD
+exit $?

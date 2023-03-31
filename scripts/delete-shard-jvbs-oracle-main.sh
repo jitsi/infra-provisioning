@@ -45,7 +45,8 @@ for x in $SHARDS; do
   if [ "$SHARD_CORE_CLOUD_PROVIDER" == "nomad" ]; then
     echo "Skipping nomad delete, not yet supported"
     SHARD_CLOUD_PROVIDER="oracle"
-#    SHARD=$x $LOCAL_PATH/../terraform/shard-core/destroy-shard-core-oracle.sh $SSH_USER || SHARD_DELETE_SUCCESS=1
+    SHARD=$x $LOCAL_PATH/../terraform/shard-nomad/destroy-shard-nomad-oracle.sh $SSH_USER || SHARD_DELETE_SUCCESS=1
+    SHARD=$x $LOCAL_PATH/delete-nomad-shard.sh || SHARD_DELETE_SUCCESS=1
   fi
 
   if [ "$SHARD_CLOUD_PROVIDER" == 'oracle' ]; then
