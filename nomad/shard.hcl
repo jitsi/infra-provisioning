@@ -311,7 +311,7 @@ EOF
       config {
         image        = "jitsi/web:${var.tag}"
         ports = ["http","https","nginx-status"]
-        volumes = ["local/nginx.conf:/defaults/nginx.conf","local/nginx-status.conf:/config/nginx/site-confs/status.conf"]
+        volumes = ["local/base.html:/usr/share/jitsi-meet/base.html","local/nginx.conf:/defaults/nginx.conf","local/nginx-status.conf:/config/nginx/site-confs/status.conf"]
       }
 
       env {
@@ -338,6 +338,12 @@ EOF
         DEPLOYMENTINFO_USERREGION = "<!--# echo var=\"user_region\" default=\"\" -->"
         ENABLE_SIMULCAST = "true"
         WEBSOCKET_KEEPALIVE_URL = "https://${var.domain}/_unlock"
+      }
+      template {
+        destination = "local/base.html"
+  data = <<EOF
+
+EOF
       }
       template {
         destination = "local/nginx.conf"
