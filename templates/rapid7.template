@@ -68,11 +68,6 @@ Parameters:
     Type: String
     Description:
       The name of the service owner
-  TagService:
-    Type: String
-    Default: jitsi-baron-haproxy
-    Description:
-      The name of the associated service
   KeyName:
     Type: String
     Description: SSH key name
