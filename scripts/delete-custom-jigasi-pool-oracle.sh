@@ -1,18 +1,13 @@
 #!/bin/bash
 set -x #echo on
 
-#IF THE CURRENT DIRECTORY HAS stack-env.sh THEN INCLUDE IT
-[ -e ./stack-env.sh ] && . ./stack-env.sh
-
-# e.g. $LOCAL_PATH/destroy-jvb-stack
-LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
-
 if [ -z "$ENVIRONMENT" ]; then
   echo "No ENVIRONMENT found.  Exiting..."
   exit 201
 fi
 
-[ -e ./sites/$ENVIRONMENT/stack-env.sh ] && . ./sites/$ENVIRONMENT/stack-env.sh
+LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
+[ -e $LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh ] && . $LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh
 
 if [ -z "$AUTOSCALER_URL" ]; then
   echo "No AUTOSCALER_URL provided or found. Exiting.. "
