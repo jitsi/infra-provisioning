@@ -286,6 +286,7 @@ pipeline {
                             string(credentialsId: 'jenkins-aws-id', variable: 'AWS_ACCESS_KEY_ID'),
                             sshUserPrivateKey(credentialsId: 'ssh-ubuntu', keyFileVariable: 'USER_PRIVATE_KEY_PATH',usernameVariable: 'SSH_USERNAME')
                         ]) {
+                            utils.SetupAnsible()
                             newShards(env.ENVIRONMENT,env.CLOUD_NAME,env.CORE_CLOUD_PROVIDER,env.WORKSPACE,env.RELEASE_BRANCH,env.RELEASE_NUMBER,env.SHARD_NUMBERS)
                         }
                       }
@@ -309,6 +310,7 @@ pipeline {
                         sshUserPrivateKey(credentialsId: 'ssh-ubuntu', keyFileVariable: 'USER_PRIVATE_KEY_PATH',usernameVariable: 'SSH_USERNAME')
                     ]) {
                         script {
+                            utils.SetupAnsible()
                             newShards(env.ENVIRONMENT,env.CLOUD_NAME,env.CORE_CLOUD_PROVIDER,env.WORKSPACE,env.RELEASE_BRANCH,env.RELEASE_NUMBER,shard_numbers)
                         }
                     }
