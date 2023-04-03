@@ -21,6 +21,7 @@ LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
 [ -z "$POOL_PUBLIC" ] && POOL_PUBLIC="false"
 
+[ -e "$LOCAL_PATH/../../clouds/all.sh" ] && . $LOCAL_PATH/../../clouds/all.sh
 [ -e "$LOCAL_PATH/../../clouds/oracle.sh" ] && . $LOCAL_PATH/../../clouds/oracle.sh
 
 if [ -z "$ORACLE_REGION" ]; then
@@ -68,6 +69,11 @@ fi
 [ -z "$NOMAD_PUBLIC_CERTIFICATE_VARIABLE" ] && NOMAD_PUBLIC_CERTIFICATE_VARIABLE="jitsi_net_ssl_certificate"
 [ -z "$NOMAD_PRIVATE_KEY_VARIABLE" ] && NOMAD_PRIVATE_KEY_VARIABLE="jitsi_net_ssl_key_name"
 
+[ -z "$NOMAD_ALT_CERTIFICATE_NAME" ] && NOMAD_ALT_CERTIFICATE_NAME="$CERTIFICATE_NAME"
+[ -z "$NOMAD_ALT_CA_CERTIFICATE_VARIABLE" ] && NOMAD_ALT_CA_CERTIFICATE_VARIABLE="$CA_CERTIFICATE_VARIABLE"
+[ -z "$NOMAD_ALT_PUBLIC_CERTIFICATE_VARIABLE" ] && NOMAD_ALT_PUBLIC_CERTIFICATE_VARIABLE="$PUBLIC_CERTIFICATE_VARIABLE"
+[ -z "$NOMAD_ALT_PRIVATE_KEY_VARIABLE" ] && NOMAD_ALT_PRIVATE_KEY_VARIABLE="$PRIVATE_KEY_VARIABLE"
+
 # run as user
 if [ -z "$1" ]; then
   SSH_USER=$(whoami)
@@ -114,6 +120,9 @@ set -o pipefail
 CA_CERTIFICATE=$(ansible-vault view $ENCRYPTED_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${NOMAD_CA_CERTIFICATE_VARIABLE}" -)
 PUBLIC_CERTIFICATE=$(ansible-vault view $ENCRYPTED_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${NOMAD_PUBLIC_CERTIFICATE_VARIABLE}" -)
 PRIVATE_KEY=$(ansible-vault view $ENCRYPTED_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${NOMAD_PRIVATE_KEY_VARIABLE}" -)
+ALT_CA_CERTIFICATE=$(ansible-vault view $ENCRYPTED_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${NOMAD_ALT_CA_CERTIFICATE_VARIABLE}" -)
+ALT_PUBLIC_CERTIFICATE=$(ansible-vault view $ENCRYPTED_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${NOMAD_ALT_PUBLIC_CERTIFICATE_VARIABLE}" -)
+ALT_PRIVATE_KEY=$(ansible-vault view $ENCRYPTED_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${NOMAD_ALT_PRIVATE_KEY_VARIABLE}" -)
 set +e
 set +o pipefail
 
@@ -121,10 +130,16 @@ set +o pipefail
 export TF_VAR_certificate_public_certificate="$PUBLIC_CERTIFICATE"
 export TF_VAR_certificate_private_key="$PRIVATE_KEY"
 export TF_VAR_certificate_ca_certificate="$CA_CERTIFICATE"
+export TF_VAR_alt_certificate_public_certificate="$ALT_PUBLIC_CERTIFICATE"
+export TF_VAR_alt_certificate_private_key="$ALT_PRIVATE_KEY"
+export TF_VAR_alt_certificate_ca_certificate="$ALT_CA_CERTIFICATE"
 set -x
 
 
 [ -z "$DNS_NAME" ] && DNS_NAME="$RESOURCE_NAME_ROOT.$DNS_ZONE_NAME"
+
+[ -z "$NOMAD_LB_HOSTNAMES" ] && NOMAD_LB_HOSTNAMES="[\"$RESOURCE_NAME_ROOT.$TOP_LEVEL_DNS_ZONE_NAME\"]"
+[ -z "$NOMAD_ALT_HOSTNAMES" ] && NOMAD_ALT_HOSTNAMES="[\"$DOMAIN\"]"
 
 [ -z "$LOAD_BALANCER_SHAPE" ] && LOAD_BALANCER_SHAPE="flexible"
 
@@ -241,7 +256,10 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
   -var="dns_name=$DNS_NAME" \
   -var="dns_zone_name=$DNS_ZONE_NAME" \
   -var="dns_compartment_ocid=$TENANCY_OCID" \
+  -var="lb_hostnames=$NOMAD_LB_HOSTNAMES"\
+  -var="alt_hostnames=$NOMAD_ALT_HOSTNAMES"\
   -var="certificate_certificate_name=$NOMAD_CERTIFICATE_NAME" \
+  -var="alt_certificate_certificate_name=$NOMAD_ALT_CERTIFICATE_NAME" \
   -var "infra_configuration_repo=$INFRA_CONFIGURATION_REPO" \
   -var "infra_customizations_repo=$INFRA_CUSTOMIZATIONS_REPO" \
   $ACTION_POST_PARAMS $TF_POST_PARAMS

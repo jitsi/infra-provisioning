@@ -12,12 +12,7 @@ LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
 [ -z "$VAULT_PASSWORD_FILE" ] && VAULT_PASSWORD_FILE="$LOCAL_PATH/../.vault-password.txt"
 
-if [ -z "$ORACLE_REGION" ]; then
-    echo "No ORACLE_REGION set, exiting"
-    exit 2
-fi
-
-[ -z "$LOCAL_REGION" ] && LOCAL_REGION="$ORACLE_REGION"
+[ -z "$LOCAL_REGION" ] && LOCAL_REGION="us-phoenix-1"
 
 if [ -z "$NOMAD_ADDR" ]; then
     NOMAD_IPS="$(DATACENTER="$ENVIRONMENT-$LOCAL_REGION" OCI_DATACENTERS="$ENVIRONMENT-$LOCAL_REGION" ENVIRONMENT="$ENVIRONMENT" FILTER_ENVIRONMENT="false" SHARD='' RELEASE_NUMBER='' SERVICE="nomad-servers" DISPLAY="addresses" $LOCAL_PATH/consul-search.sh ubuntu)"
@@ -35,8 +30,14 @@ if [ -z "$NOMAD_ADDR" ]; then
     exit 5
 fi
 
+[ -z "$REGIONS" ] && REGIONS="$DRG_PEER_REGIONS"
+
 NOMAD_JOB_PATH="$LOCAL_PATH/../nomad"
-NOMAD_DC="$ENVIRONMENT-$ORACLE_REGION"
+
+NOMAD_DC="[]"
+for ORACLE_REGION in $REGIONS; do
+    NOMAD_DC="$( echo "$NOMAD_DC" "[\"$ENVIRONMENT-$ORACLE_REGION\"]" | jq -c -s '.|add')"
+done
 
 [ -z "$ENVIRONMENT_VARS_FILE" ] && ENVIRONMENT_VARS_FILE="$LOCAL_PATH/../sites/$ENVIRONMENT/vars.yml"
 
@@ -61,6 +62,7 @@ export NOMAD_VAR_environment="$ENVIRONMENT"
 export NOMAD_VAR_domain="$DOMAIN"
 export NOMAD_VAR_octo_region="$ORACLE_REGION"
 
-JOB_NAME="colibri-proxy-$ENVIRONMENT"
+JOB_NAME="colibri-proxy"
+export NOMAD_VAR_dc="$NOMAD_DC"
 
-sed -e "s/\[JOB_NAME\]/$JOB_NAME/" "$NOMAD_JOB_PATH/colibri-proxy.hcl" | nomad job run -var="dc=$NOMAD_DC" -
+sed -e "s/\[JOB_NAME\]/$JOB_NAME/" "$NOMAD_JOB_PATH/colibri-proxy.hcl" | nomad job run -

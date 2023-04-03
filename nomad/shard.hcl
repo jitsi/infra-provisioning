@@ -67,6 +67,22 @@ variable cloud_provider {
     default = "oracle"
 }
 
+variable jwt_asap_keyserver {
+    type = string
+}
+
+variable jwt_accepted_issuers {
+    type = string
+}
+
+variable jwt_accepted_audiences {
+    type = string
+}
+
+variable turnrelay_host {
+  type = string
+}
+
 job "[JOB_NAME]" {
   region = "global"
   datacenters = [var.dc]
@@ -127,7 +143,7 @@ job "[JOB_NAME]" {
 
     service {
       name = "signal"
-      tags = ["${var.domain}","shard-${var.shard}","release-${var.release_number}","urlprefix-/${var.shard}/ strip=/${var.shard}"]
+      tags = ["${var.domain}","shard-${var.shard}","release-${var.release_number}","urlprefix-/${var.shard}/"]
 
       meta {
         domain = "${var.domain}"
@@ -874,6 +890,17 @@ EOF
         ENABLE_RECORDING="1"
         ENABLE_OCTO="1"
         ENABLE_JVB_XMPP_SERVER="1"
+        ENABLE_LOBBY="1"
+        ENABLE_AV_MODERATION="1"
+        ENABLE_BREAKOUT_ROOMS="1"
+        ENABLE_AUTH="1"
+        AUTH_TYPE="jwt"
+        JWT_ALLOW_EMPTY="1"
+        JWT_ACCEPTED_ISSUERS="${var.jwt_accepted_issuers}"
+        JWT_ACCEPTED_AUDIENCES="${var.jwt_accepted_audiences}"
+        JWT_ASAP_KEYSERVER="${var.jwt_asap_keyserver}"
+        JWT_APP_ID="jitsi"
+        MAX_PARTICIPANTS=500
         XMPP_DOMAIN = "${var.domain}"
         PUBLIC_URL="https://${var.domain}/"
         JICOFO_AUTH_PASSWORD = "${var.jicofo_auth_password}"
@@ -941,8 +968,8 @@ EOF
 #
 # Basic configuration options
 #
-GLOBAL_CONFIG="statistics = \"internal\"\nstatistics_interval = \"manual\"\nopenmetrics_allow_cidr = \"0.0.0.0/0\""
-GLOBAL_MODULES="http_openmetrics,measure_stanza_counts,log_ringbuffer,firewall,muc_census,log_ringbuffer"
+GLOBAL_CONFIG="statistics = \"internal\"\nstatistics_interval = \"manual\"\nopenmetrics_allow_cidr = \"0.0.0.0/0\"\nexternal_services = {\n{type=\"stun\",host=\"${var.turnrelay_host}\",port=\"443\"},\n{type=\"turn\",host=\"${var.turnrelay_host}\",port=\"443\",transport=\"udp\"},\n{type=\"turns\",host=\"${var.turnrelay_host}\",port=\"443\",transport=\"tcp\"}\n}\n"
+GLOBAL_MODULES="http_openmetrics,measure_stanza_counts,log_ringbuffer,firewall,muc_census,log_ringbuffer,external_services"
 # Directory where all configuration will be stored
 CONFIG=~/.jitsi-meet-cfg
 
@@ -1813,6 +1840,7 @@ EOF
         ENABLE_RECORDING="1"
         ENABLE_OCTO="1"
         JICOFO_ENABLE_REST="1"
+        AUTH_TYPE="jwt"
         JICOFO_ENABLE_BRIDGE_HEALTH_CHECKS="1"
         JICOFO_HEALTH_CHECKS_USE_PRESENCE="1"
         JIGASI_SIP_URI="sip.example.com"
