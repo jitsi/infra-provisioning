@@ -53,6 +53,7 @@ variable "alt_hostnames" {
 }
 
 variable "dns_name" {}
+variable "private_dns_name" {}
 variable "dns_zone_name" {}
 variable "dns_compartment_ocid" {}
 
@@ -181,7 +182,35 @@ resource "oci_core_network_security_group_security_rule" "consul_nsg_rule_ingres
   }
 }
 
-resource "oci_load_balancer" "oci_load_balancer" {
+resource "oci_core_network_security_group" "nomad_private_lb_security_group" {
+  compartment_id = var.compartment_ocid
+  vcn_id = data.oci_core_vcns.vcns.virtual_networks[0].id
+  display_name = "${var.resource_name_root}-PrivateLBSecurityGroup"
+}
+
+resource "oci_core_network_security_group_security_rule" "consul_nsg_rule_private_egress" {
+  network_security_group_id = oci_core_network_security_group.nomad_private_lb_security_group.id
+  direction = "EGRESS"
+  destination = "0.0.0.0/0"
+  protocol = "all"
+}
+
+resource "oci_core_network_security_group_security_rule" "consul_nsg_rule_private_ingress" {
+  network_security_group_id = oci_core_network_security_group.nomad_private_lb_security_group.id
+  direction = "INGRESS"
+  protocol = "6"
+  source = "10.0.0.0/8"
+  stateless = false
+
+  tcp_options {
+    destination_port_range {
+      max = 443
+      min = 443
+    }
+  }
+}
+
+resource "oci_load_balancer" "public_oci_load_balancer" {
   compartment_id = var.compartment_ocid
   display_name = "${var.resource_name_root}-LoadBalancer"
   shape = var.load_balancer_shape
@@ -197,9 +226,25 @@ resource "oci_load_balancer" "oci_load_balancer" {
   network_security_group_ids = [oci_core_network_security_group.nomad_lb_security_group.id]
 }
 
-resource "oci_load_balancer_backend_set" "oci_load_balancer_bs" {
-  load_balancer_id = oci_load_balancer.oci_load_balancer.id
-  name = "NomadLBBS"
+resource "oci_load_balancer" "private_oci_load_balancer" {
+  compartment_id = var.compartment_ocid
+  display_name = "${var.resource_name_root}-PrivateLoadBalancer"
+  shape = var.load_balancer_shape
+  subnet_ids = [var.pool_subnet_ocid]
+
+    shape_details {
+        maximum_bandwidth_in_mbps = var.load_balancer_shape_details_maximum_bandwidth_in_mbps
+        minimum_bandwidth_in_mbps = var.load_balancer_shape_details_minimum_bandwidth_in_mbps
+    }
+
+  defined_tags = local.common_tags
+  is_private = true
+  network_security_group_ids = [oci_core_network_security_group.nomad_private_lb_security_group.id]
+}
+
+resource "oci_load_balancer_backend_set" "oci_load_balancer_public_bs" {
+  load_balancer_id = oci_load_balancer.public_oci_load_balancer.id
+  name = "NomadPublicBS"
   policy = "ROUND_ROBIN"
   health_checker {
     protocol = "HTTP"
@@ -209,11 +254,23 @@ resource "oci_load_balancer_backend_set" "oci_load_balancer_bs" {
   }
 }
 
+resource "oci_load_balancer_backend_set" "oci_load_balancer_private_bs" {
+  load_balancer_id = oci_load_balancer.private_oci_load_balancer.id
+  name = "NomadPrivateBS"
+  policy = "ROUND_ROBIN"
+  health_checker {
+    protocol = "HTTP"
+    port = 9996
+    retries = 3
+    url_path = "/health"
+  }
+}
+
 resource "oci_load_balancer_hostname" "lb_hostnames" {
     #Required
     for_each = toset(var.lb_hostnames)
     hostname = each.key
-    load_balancer_id = oci_load_balancer.oci_load_balancer.id
+    load_balancer_id = oci_load_balancer.public_oci_load_balancer.id
     name = each.key
 
     #Optional
@@ -226,7 +283,7 @@ resource "oci_load_balancer_hostname" "alt_hostnames" {
     #Required
     for_each = toset(var.alt_hostnames)
     hostname = each.key
-    load_balancer_id = oci_load_balancer.oci_load_balancer.id
+    load_balancer_id = oci_load_balancer.public_oci_load_balancer.id
     name = each.key
 
     #Optional
@@ -238,7 +295,22 @@ resource "oci_load_balancer_hostname" "alt_hostnames" {
 resource "oci_load_balancer_certificate" "main_certificate" {
     #Required
     certificate_name = var.certificate_certificate_name
-    load_balancer_id = oci_load_balancer.oci_load_balancer.id
+    load_balancer_id = oci_load_balancer.public_oci_load_balancer.id
+
+    ca_certificate = var.certificate_ca_certificate
+    private_key = var.certificate_private_key
+    public_certificate = var.certificate_public_certificate
+
+    lifecycle {
+        create_before_destroy = true
+    }
+}
+
+
+resource "oci_load_balancer_certificate" "private_certificate" {
+    #Required
+    certificate_name = var.certificate_certificate_name
+    load_balancer_id = oci_load_balancer.private_oci_load_balancer.id
 
     ca_certificate = var.certificate_ca_certificate
     private_key = var.certificate_private_key
@@ -252,7 +324,7 @@ resource "oci_load_balancer_certificate" "main_certificate" {
 resource "oci_load_balancer_certificate" "alt_certificate" {
     #Required
     certificate_name = var.alt_certificate_certificate_name
-    load_balancer_id = oci_load_balancer.oci_load_balancer.id
+    load_balancer_id = oci_load_balancer.public_oci_load_balancer.id
 
     ca_certificate = var.alt_certificate_ca_certificate
     private_key = var.alt_certificate_private_key
@@ -264,10 +336,10 @@ resource "oci_load_balancer_certificate" "alt_certificate" {
 }
 
 resource "oci_load_balancer_listener" "main_listener" {
-  load_balancer_id = oci_load_balancer.oci_load_balancer.id
+  load_balancer_id = oci_load_balancer.public_oci_load_balancer.id
   name = "NomadProxyListener"
   port = 443
-  default_backend_set_name = oci_load_balancer_backend_set.oci_load_balancer_bs.name
+  default_backend_set_name = oci_load_balancer_backend_set.oci_load_balancer_public_bs.name
   protocol = "HTTP"
   hostname_names = [ for k,v in oci_load_balancer_hostname.lb_hostnames : v.name ]
 
@@ -280,16 +352,30 @@ resource "oci_load_balancer_listener" "main_listener" {
 
 
 resource "oci_load_balancer_listener" "alt_listener" {
-  load_balancer_id = oci_load_balancer.oci_load_balancer.id
+  load_balancer_id = oci_load_balancer.public_oci_load_balancer.id
   name = "NomadAltListener"
   port = 443
-  default_backend_set_name = oci_load_balancer_backend_set.oci_load_balancer_bs.name
+  default_backend_set_name = oci_load_balancer_backend_set.oci_load_balancer_public_bs.name
   protocol = "HTTP"
   hostname_names = [ for k,v in oci_load_balancer_hostname.alt_hostnames : v.name ]
 
   ssl_configuration {
       #Optional
       certificate_name = oci_load_balancer_certificate.alt_certificate.certificate_name
+      verify_peer_certificate = false
+  }
+}
+
+resource "oci_load_balancer_listener" "private_listener" {
+  load_balancer_id = oci_load_balancer.private_oci_load_balancer.id
+  name = "NomadPrivateListener"
+  port = 443
+  default_backend_set_name = oci_load_balancer_backend_set.oci_load_balancer_private_bs.name
+  protocol = "HTTP"
+
+  ssl_configuration {
+      #Optional
+      certificate_name = oci_load_balancer_certificate.private_certificate.certificate_name
       verify_peer_certificate = false
   }
 }
@@ -303,9 +389,23 @@ resource "oci_dns_rrset" "pool_dns_record" {
     domain = var.dns_name
     rtype = "A"
     ttl = "60"
-    rdata = oci_load_balancer.oci_load_balancer.ip_address_details[0].ip_address
+    rdata = oci_load_balancer.public_oci_load_balancer.ip_address_details[0].ip_address
    }
 }
+
+resource "oci_dns_rrset" "pool_private_dns_record" {
+  zone_name_or_id = var.dns_zone_name
+  domain = var.private_dns_name
+  rtype = "A"
+  compartment_id = var.dns_compartment_ocid
+  items {
+    domain = var.private_dns_name
+    rtype = "A"
+    ttl = "60"
+    rdata = oci_load_balancer.private_oci_load_balancer.ip_address_details[0].ip_address
+   }
+}
+
 resource "oci_core_instance_pool" "oci_instance_pool" {
   compartment_id = var.compartment_ocid
   instance_configuration_id = oci_core_instance_configuration.oci_instance_configuration.id  
@@ -321,9 +421,16 @@ resource "oci_core_instance_pool" "oci_instance_pool" {
   }
 
   load_balancers {
-    load_balancer_id = oci_load_balancer.oci_load_balancer.id
-    backend_set_name = oci_load_balancer_backend_set.oci_load_balancer_bs.name
+    load_balancer_id = oci_load_balancer.public_oci_load_balancer.id
+    backend_set_name = oci_load_balancer_backend_set.oci_load_balancer_public_bs.name
     port = 9999
+    vnic_selection = "PrimaryVnic"
+  }
+
+  load_balancers {
+    load_balancer_id = oci_load_balancer.private_oci_load_balancer.id
+    backend_set_name = oci_load_balancer_backend_set.oci_load_balancer_private_bs.name
+    port = 9997
     vnic_selection = "PrimaryVnic"
   }
 
@@ -344,7 +451,8 @@ data "oci_core_instance" "oci_instance_datasources" {
 
 locals {
   private_ips = data.oci_core_instance.oci_instance_datasources.*.private_ip
-  lb_ip = oci_load_balancer.oci_load_balancer.ip_address_details[0].ip_address
+  lb_ip = oci_load_balancer.public_oci_load_balancer.ip_address_details[0].ip_address
+  private_lb_ip = oci_load_balancer.private_oci_load_balancer.ip_address_details[0].ip_address
 }
 
 resource "null_resource" "verify_cloud_init" {
@@ -387,6 +495,12 @@ output "private_ips" {
 output "lb_ip" {
   value = local.lb_ip
 }
+output "private_lb_ip" {
+  value = local.private_lb_ip
+}
 output "lb_dns_name" {
   value = var.dns_name
+}
+output "lb_private_dns_name" {
+  value = var.private_dns_name
 }

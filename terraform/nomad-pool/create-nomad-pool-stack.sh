@@ -137,6 +137,7 @@ set -x
 
 
 [ -z "$DNS_NAME" ] && DNS_NAME="$RESOURCE_NAME_ROOT.$DNS_ZONE_NAME"
+[ -z "$PRIVATE_DNS_NAME" ] && PRIVATE_DNS_NAME="$RESOURCE_NAME_ROOT-internal.$DNS_ZONE_NAME"
 
 [ -z "$NOMAD_LB_HOSTNAMES" ] && NOMAD_LB_HOSTNAMES="[\"$RESOURCE_NAME_ROOT.$TOP_LEVEL_DNS_ZONE_NAME\"]"
 [ -z "$NOMAD_ALT_HOSTNAMES" ] && NOMAD_ALT_HOSTNAMES="[\"$DOMAIN\"]"
@@ -254,6 +255,7 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
   -var="vcn_name=$VCN_NAME" \
   -var="load_balancer_shape=$LOAD_BALANCER_SHAPE" \
   -var="dns_name=$DNS_NAME" \
+  -var="private_dns_name=$PRIVATE_DNS_NAME" \
   -var="dns_zone_name=$DNS_ZONE_NAME" \
   -var="dns_compartment_ocid=$TENANCY_OCID" \
   -var="lb_hostnames=$NOMAD_LB_HOSTNAMES"\
