@@ -40,6 +40,18 @@ variable "certificate_certificate_name" {}
 variable "certificate_ca_certificate" {}
 variable "certificate_private_key" {}
 variable "certificate_public_certificate" {}
+variable "alt_certificate_certificate_name" {}
+variable "alt_certificate_ca_certificate" {}
+variable "alt_certificate_private_key" {}
+variable "alt_certificate_public_certificate" {}
+
+variable "lb_hostnames" {
+    type = list(string)
+}
+variable "alt_hostnames" {
+    type = list(string)
+}
+
 variable "dns_name" {}
 variable "dns_zone_name" {}
 variable "dns_compartment_ocid" {}
@@ -197,6 +209,32 @@ resource "oci_load_balancer_backend_set" "oci_load_balancer_bs" {
   }
 }
 
+resource "oci_load_balancer_hostname" "lb_hostnames" {
+    #Required
+    for_each = toset(var.lb_hostnames)
+    hostname = each.key
+    load_balancer_id = oci_load_balancer.oci_load_balancer.id
+    name = each.key
+
+    #Optional
+    lifecycle {
+        create_before_destroy = true
+    }
+}
+
+resource "oci_load_balancer_hostname" "alt_hostnames" {
+    #Required
+    for_each = toset(var.alt_hostnames)
+    hostname = each.key
+    load_balancer_id = oci_load_balancer.oci_load_balancer.id
+    name = each.key
+
+    #Optional
+    lifecycle {
+        create_before_destroy = true
+    }
+}
+
 resource "oci_load_balancer_certificate" "main_certificate" {
     #Required
     certificate_name = var.certificate_certificate_name
@@ -211,15 +249,47 @@ resource "oci_load_balancer_certificate" "main_certificate" {
     }
 }
 
+resource "oci_load_balancer_certificate" "alt_certificate" {
+    #Required
+    certificate_name = var.alt_certificate_certificate_name
+    load_balancer_id = oci_load_balancer.oci_load_balancer.id
+
+    ca_certificate = var.alt_certificate_ca_certificate
+    private_key = var.alt_certificate_private_key
+    public_certificate = var.alt_certificate_public_certificate
+
+    lifecycle {
+        create_before_destroy = true
+    }
+}
+
 resource "oci_load_balancer_listener" "main_listener" {
   load_balancer_id = oci_load_balancer.oci_load_balancer.id
   name = "NomadProxyListener"
   port = 443
   default_backend_set_name = oci_load_balancer_backend_set.oci_load_balancer_bs.name
   protocol = "HTTP"
+  hostname_names = [ for k,v in oci_load_balancer_hostname.lb_hostnames : v.name ]
+
   ssl_configuration {
       #Optional
       certificate_name = oci_load_balancer_certificate.main_certificate.certificate_name
+      verify_peer_certificate = false
+  }
+}
+
+
+resource "oci_load_balancer_listener" "alt_listener" {
+  load_balancer_id = oci_load_balancer.oci_load_balancer.id
+  name = "NomadAltListener"
+  port = 443
+  default_backend_set_name = oci_load_balancer_backend_set.oci_load_balancer_bs.name
+  protocol = "HTTP"
+  hostname_names = [ for k,v in oci_load_balancer_hostname.alt_hostnames : v.name ]
+
+  ssl_configuration {
+      #Optional
+      certificate_name = oci_load_balancer_certificate.alt_certificate.certificate_name
       verify_peer_certificate = false
   }
 }

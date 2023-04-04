@@ -7,7 +7,7 @@ variable "domain" {
 }
 
 variable "dc" {
-  type = string
+  type = list(string)
 }
 
 variable colibri_proxy_second_octet_regexp {
@@ -27,9 +27,14 @@ variable colibri_proxy_fourth_octet_regexp {
 
 job "[JOB_NAME]" {
   region = "global"
-  datacenters = [var.dc]
+  datacenters = var.dc
 
   type        = "service"
+
+  spread {
+    attribute = "${node.datacenter}"
+    weight    = 100
+  }
 
   meta {
     domain = "${var.domain}"
@@ -43,7 +48,7 @@ job "[JOB_NAME]" {
   }
 
   group "colibri-proxy" {
-    count = 1
+    count = length(var.dc)
 
     constraint {
       attribute  = "${meta.pool_type}"

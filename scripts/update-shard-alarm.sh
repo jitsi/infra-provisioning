@@ -31,6 +31,10 @@ SHARD_PROVIDER=$($LOCAL_PATH/shard.sh core_provider $ANSIBLE_SSH_USER)
 
 SHARD_REGION=$(SHARD="$SHARD" $LOCAL_PATH/shard.sh shard_region $ANSIBLE_SSH_USER)
 
+# in case of nomad shards, oracle alarms are created so treat them like oracle shards
+if [[ "$SHARD_PROVIDER" == "nomad" ]]; then
+    SHARD_PROVIDER="oracle"
+fi
 
 case "$SHARD_PROVIDER" in
     'aws')
@@ -72,12 +76,17 @@ case "$SHARD_PROVIDER" in
         fi
 
         ANY_RET=0
+        EMAIL_RET=0
         . $LOCAL_PATH/../regions/$SHARD_REGION-oracle.sh
         ALARM_NAME="$SHARD-HealthAlarm"
         EMAIL_ALARM=$(oci monitoring alarm list --compartment-id $COMPARTMENT_OCID --region $SHARD_REGION --display-name "$ALARM_NAME" | jq -r ".data[]|select(.\"display-name\"==\"$ALARM_NAME\")|.id")
         if [[ ! -z "$EMAIL_ALARM" ]] && [[ "$EMAIL_ALARM" != "null" ]]; then
-            oci monitoring alarm update --is-enabled $ALARM_ENABLED_FLAG --alarm-id $EMAIL_ALARM --region $SHARD_REGION 
-            EMAIL_RET=$?
+            for ALARM_ID in $EMAIL_ALARM; do
+                oci monitoring alarm update --is-enabled $ALARM_ENABLED_FLAG --alarm-id $ALARM_ID --region $SHARD_REGION
+                if [[ $? -gt 0 ]]; then
+                    EMAIL_RET=2
+                fi
+            done
         else
             echo "No full failure alarm found for $SHARD in $SHARD_REGION compartment $COMPARTMENT_OCID"
             EMAIL_RET=5
@@ -86,8 +95,12 @@ case "$SHARD_PROVIDER" in
         ALARM_NAME="$SHARD-HealthAnyAlarm"
         ANY_ALARM=$(oci monitoring alarm list --compartment-id $COMPARTMENT_OCID --region $SHARD_REGION --display-name "$ALARM_NAME" | jq -r ".data[]|select(.\"display-name\"==\"$ALARM_NAME\")|.id")
         if [[ ! -z "$ANY_ALARM" ]] && [[ "$ANY_ALARM" != "null" ]]; then
-            oci monitoring alarm update --is-enabled $ALARM_ENABLED_FLAG --alarm-id $ANY_ALARM --region $SHARD_REGION 
-            ANY_RET=$?
+            for ALARM_ID in $ANY_ALARM; do
+                oci monitoring alarm update --is-enabled $ALARM_ENABLED_FLAG --alarm-id $ALARM_ID --region $SHARD_REGION
+                if [[ $? -gt 0 ]]; then
+                    ANY_RET=2
+                fi
+            done
         else
             echo "No any failure alarm found for $SHARD in $SHARD_REGION compartment $COMPARTMENT_OCID"
             ANY_RET=5
