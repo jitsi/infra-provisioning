@@ -141,4 +141,7 @@ for ORACLE_REGION in $ORACLE_REGIONS; do
 
   BUCKET_NAME="stats-$ENVIRONMENT"
   create_bucket_if_not_present $BUCKET_NAME $ORACLE_REGION $COMPARTMENT_OCID false Disabled
+
+  BUCKET_NAME="loki-$ENVIRONMENT"
+  create_bucket_if_not_present $BUCKET_NAME $ORACLE_REGION $COMPARTMENT_OCID false Disabled
 done

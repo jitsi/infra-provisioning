@@ -12,6 +12,7 @@ job "[JOB_NAME]" {
     healthy_deadline  = "3m"
     progress_deadline = "5m"
   }
+
   group "loki" {
     count = 1
     restart {
