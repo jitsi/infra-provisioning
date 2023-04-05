@@ -11,12 +11,14 @@ LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
 [ -e "$LOCAL_PATH/../clouds/all.sh" ] && . "$LOCAL_PATH/../clouds/all.sh"
 
-if [ -z "$ORACLE_REGION" ]; then
-    echo "No ORACLE_REGION set, exiting"
-    exit 2
-fi
+[ -z "$REGIONS" ] && REGIONS="$DRG_PEER_REGIONS"
 
-[ -z "$LOCAL_REGION" ] && LOCAL_REGION="$ORACLE_REGION"
+NOMAD_DC="[]"
+for ORACLE_REGION in $REGIONS; do
+    NOMAD_DC="$( echo "$NOMAD_DC" "[\"$ENVIRONMENT-$ORACLE_REGION\"]" | jq -c -s '.|add')"
+done
+
+[ -z "$LOCAL_REGION" ] && LOCAL_REGION="us-phoenix-1"
 
 if [ -z "$NOMAD_ADDR" ]; then
     NOMAD_IPS="$(DATACENTER="$ENVIRONMENT-$LOCAL_REGION" OCI_DATACENTERS="$ENVIRONMENT-$LOCAL_REGION" ENVIRONMENT="$ENVIRONMENT" FILTER_ENVIRONMENT="false" SHARD='' RELEASE_NUMBER='' SERVICE="nomad-servers" DISPLAY="addresses" $LOCAL_PATH/consul-search.sh ubuntu)"
@@ -35,7 +37,7 @@ if [ -z "$NOMAD_ADDR" ]; then
 fi
 
 NOMAD_JOB_PATH="$LOCAL_PATH/../nomad"
-NOMAD_DC="$ENVIRONMENT-$ORACLE_REGION"
-JOB_NAME="loki-$ORACLE_REGION"
+JOB_NAME="loki"
+export NOMAD_VAR_dc="$NOMAD_DC"
 
-sed -e "s/\[JOB_NAME\]/$JOB_NAME/" "$NOMAD_JOB_PATH/loki.hcl" | nomad job run -var="dc=$NOMAD_DC" -
+sed -e "s/\[JOB_NAME\]/$JOB_NAME/" "$NOMAD_JOB_PATH/loki.hcl" | nomad job run -
