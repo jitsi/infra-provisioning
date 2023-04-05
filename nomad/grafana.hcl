@@ -73,7 +73,7 @@ job "grafana" {
 
       service {
         name = "grafana"
-        tags = ["urlprefix-${var.grafana_hostname}/"]
+        tags = ["int-urlprefix-${var.grafana_hostname}/"]
         port = "grafana_http"
         check {
           name     = "alive"
