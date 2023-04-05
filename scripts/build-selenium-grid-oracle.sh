@@ -81,7 +81,7 @@ DEPLOY_TAGS=${ANSIBLE_TAGS-"all"}
 # clean custom selenium grid images if limit is exceeded (may fail, but that's OK)
 for CLEAN_ORACLE_REGION in $ORACLE_IMAGE_REGIONS; do 
   echo "Cleaning images in $CLEAN_ORACLE_REGION"
-  $LOCAL_PATH/bin/oracle_custom_images.py --clean $ORACLE_CUSTOM_IMAGE_LIMIT --delete --region=$CLEAN_ORACLE_REGION --type=SeleniumGrid --compartment_id=$TENANCY_OCID;
+  $LOCAL_PATH/oracle_custom_images.py --clean $ORACLE_CUSTOM_IMAGE_LIMIT --delete --region=$CLEAN_ORACLE_REGION --type=SeleniumGrid --compartment_id=$TENANCY_OCID;
 done
 
 # packer runs ansible using as hostname the 'default' string
