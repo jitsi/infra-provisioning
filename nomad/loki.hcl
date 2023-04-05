@@ -1,9 +1,9 @@
 variable "dc" {
-  type = list(string)
+  type = string
 }
 
 job "[JOB_NAME]" {
-  datacenters = var.dc
+  datacenters = [var.dc]
   type        = "service"
   update {
     max_parallel      = 1
@@ -12,13 +12,9 @@ job "[JOB_NAME]" {
     healthy_deadline  = "3m"
     progress_deadline = "5m"
   }
-  spread {
-    attribute = "${node.datacenter}"
-    weight    = 100
-  }
 
   group "loki" {
-    count = length(var.dc)
+    count = 1
     restart {
       attempts = 3
       interval = "5m"
