@@ -57,11 +57,11 @@ job "grafana" {
       driver = "docker"
 
       config {
-        image = "grafana/grafana:master"
+        image = "grafana/grafana-oss"
         force_pull = false
         ports = ["grafana_http"]
         volumes = [ 
-	    // "local/grafana/varlib:/var/lib/grafana",
+	        "/opt/nomad/loki/grafana/varlib:/var/lib/grafana"
         // "local/grafana/conf:/etc/grafana"
     	]
       }
@@ -69,6 +69,11 @@ job "grafana" {
       resources {
         cpu    = 1200 # 500 MHz
         memory = 300 # 256MB
+      }
+
+      env {
+        GF_SERVER_DOMAIN = "${var.grafana_hostname}"
+        GF_SERVER_ROOT_URL = "https://${var.grafana_hostname}/"
       }
 
       service {
