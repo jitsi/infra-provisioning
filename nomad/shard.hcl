@@ -172,6 +172,7 @@ job "[JOB_NAME]" {
       meta {
         domain = "${var.domain}"
         shard = "${var.shard}"
+        shard_id = "${var.shard_id}"
         release_number = "${var.release_number}"
         environment = "${meta.environment}"
         http_backend_port = "${NOMAD_HOST_PORT_http}"
