@@ -11,6 +11,9 @@ if [ -z "$ENVIRONMENT" ]; then
   exit 202
 fi
 
+# e.g. terraform/wavefront-proxy
+LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
+
 [ -e ./sites/$ENVIRONMENT/stack-env.sh ] && . ./sites/$ENVIRONMENT/stack-env.sh
 
 CLOUD_PROVIDER="oracle"

@@ -45,6 +45,7 @@ pipeline {
                 utils.SetupAnsible()
                 utils.SetupSSH()
                 sh(script: """
+                    export USER_PUBLIC_KEY_PATH="\$(realpath ~/.ssh/ssh_key.pub)"
                     export ORACLE_GIT_BRANCH=${env.RELEASE_BRANCH}
                     scripts/create-or-rotate-custom-jvb-oracle.sh
                 """)
