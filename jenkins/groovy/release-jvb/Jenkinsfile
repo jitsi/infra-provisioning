@@ -20,6 +20,23 @@ def cloud_pools(shard_environment, cloud) {
     return shards
 }
 
+def checkSkipShardJVBs(hcv_environment) {
+    def ret = 'false';
+
+    def skipShardJVBs = sh(
+       returnStdout: true,
+       script: """#!/bin/bash
+. ./sites/${hcv_environment}/stack-env.sh
+echo \$SKIP_SHARD_JVBS"""
+    ).trim();
+
+    if (skipShardJVBs.length() > 0) {
+        ret = skipShardJVBs;
+    }
+
+    return ret;
+}
+
 // global var to track git branch from env or new tags
 def git_branch
 
@@ -72,6 +89,7 @@ def upgradeJVBPool(shard_environment,cloud_name,cloud_provider,shard,release_num
     return createShard
 }
 
+def skipShardJVBs
 def utils
 pipeline {
   agent any
@@ -101,6 +119,16 @@ pipeline {
           utils.SetupOCI()
         }
       }
+    }
+    stage("load flags") {
+        steps {
+            script {
+                dir("infra-provisioning") {
+                    skipShardJVBs = checkSkipShardJVBs(env.ENVIRONMENT)
+                    echo skipShardJVBs
+                }
+            }
+        }
     }
     stage("build JVB image in Oracle") {
         when {
@@ -145,6 +173,7 @@ pipeline {
                         echo "cloud list ${cloud_list}";
                         def branches = [:]
                         for(i = 0; i < cloud_list.size(); i++) {
+                          if (skipShardJVBs == 'false') {
                             def curr = i
                             def shards = cloud_shards(env.ENVIRONMENT, cloud_list[curr])
                             for(s = 0; s < shards.size(); s++) {
@@ -168,6 +197,7 @@ pipeline {
                                     }
                                 }
                             }
+                          }
                             def pools = cloud_pools(env.ENVIRONMENT, cloud_list[curr])
                             for(p = 0; p < pools.size(); p++) {
                                 def pcurr=p
