@@ -14,7 +14,7 @@ fi
 
 LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
-source $LOCAL_PATH../clouds/all.sh
+source $LOCAL_PATH/../clouds/all.sh
 
 [ -z "$CLOUD_NAME" ] && CLOUD_NAME=$DEFAULT_CLOUD
 
