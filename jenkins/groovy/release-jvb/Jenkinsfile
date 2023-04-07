@@ -173,8 +173,8 @@ pipeline {
                         echo "cloud list ${cloud_list}";
                         def branches = [:]
                         for(i = 0; i < cloud_list.size(); i++) {
+                          def curr = i
                           if (skipShardJVBs == 'false') {
-                            def curr = i
                             def shards = cloud_shards(env.ENVIRONMENT, cloud_list[curr])
                             for(s = 0; s < shards.size(); s++) {
                                 def scurr=s
