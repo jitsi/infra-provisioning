@@ -133,62 +133,69 @@ pipeline {
         steps {
           dir('infra-provisioning') {
             script {
-              sshagent (credentials: ['ssh-ubuntu']) {
-                echo "Upgrade JVB pools in ${env.ENVIRONMENT} clouds ${env.CLOUDS}";
-                def cloud_list = utils.SplitClouds(env.ENVIRONMENT,env.CLOUDS);
-                echo "cloud list ${cloud_list}";
-                def branches = [:]
-                for(i = 0; i < cloud_list.size(); i++) {
-                    def curr = i
-                    def shards = cloud_shards(env.ENVIRONMENT, cloud_list[curr])
-                    for(s = 0; s < shards.size(); s++) {
-                        def scurr=s
-                        if(shards[scurr]) {
-                            echo "pipeline branch ${curr} for shard ${shards[scurr]} cloud ${cloud_list[curr]}";
-                            branches["Build ${shards[scurr]}"] = {
-                                upgradeJVBPool(env.ENVIRONMENT,
-                                    cloud_list[curr],
-                                    env.CLOUD_PROVIDER,
-                                    shards[scurr],
-                                    env.RELEASE_NUMBER,
-                                    env.BUILD_ID,
-                                    git_branch,
-                                    env.JVB_VERSION,
-                                    env.SHAPE,
-                                    env.OCPUS,
-                                    env.MEMORY_IN_GBS,
-                                    env.VIDEO_INFRA_BRANCH
-                                )
+                withCredentials([
+                    string(credentialsId: 'asap-jwt-kid-dev', variable: 'ASAP_JWT_KID_DEV'),
+                    string(credentialsId: 'asap-jwt-kid-prod', variable: 'ASAP_JWT_KID_PROD'),
+                    file(credentialsId: 'asap-jwt-key-dev', variable: 'ASAP_JWT_KEY_DEV'),
+                    file(credentialsId: 'asap-jwt-key-prod', variable: 'ASAP_JWT_KEY_PROD')
+                ]) {
+                    sshagent (credentials: ['ssh-ubuntu']) {
+                        echo "Upgrade JVB pools in ${env.ENVIRONMENT} clouds ${env.CLOUDS}";
+                        def cloud_list = utils.SplitClouds(env.ENVIRONMENT,env.CLOUDS);
+                        echo "cloud list ${cloud_list}";
+                        def branches = [:]
+                        for(i = 0; i < cloud_list.size(); i++) {
+                            def curr = i
+                            def shards = cloud_shards(env.ENVIRONMENT, cloud_list[curr])
+                            for(s = 0; s < shards.size(); s++) {
+                                def scurr=s
+                                if(shards[scurr]) {
+                                    echo "pipeline branch ${curr} for shard ${shards[scurr]} cloud ${cloud_list[curr]}";
+                                    branches["Build ${shards[scurr]}"] = {
+                                        upgradeJVBPool(env.ENVIRONMENT,
+                                            cloud_list[curr],
+                                            env.CLOUD_PROVIDER,
+                                            shards[scurr],
+                                            env.RELEASE_NUMBER,
+                                            env.BUILD_ID,
+                                            git_branch,
+                                            env.JVB_VERSION,
+                                            env.SHAPE,
+                                            env.OCPUS,
+                                            env.MEMORY_IN_GBS,
+                                            env.VIDEO_INFRA_BRANCH
+                                        )
+                                    }
+                                }
+                            }
+                            def pools = cloud_pools(env.ENVIRONMENT, cloud_list[curr])
+                            for(p = 0; p < pools.size(); p++) {
+                                def pcurr=p
+                                if(pools[pcurr]) {
+                                    echo "pipeline branch ${pcurr} for pool ${pools[pcurr]} cloud ${cloud_list[curr]}";
+                                    branches["Build ${pools[pcurr]}"] = {
+                                        upgradeJVBPool(env.ENVIRONMENT,
+                                            cloud_list[curr],
+                                            env.CLOUD_PROVIDER,
+                                            pools[pcurr],
+                                            env.RELEASE_NUMBER,
+                                            env.BUILD_ID,
+                                            git_branch,
+                                            env.JVB_VERSION,
+                                            env.SHAPE,
+                                            env.OCPUS,
+                                            env.MEMORY_IN_GBS,
+                                            env.VIDEO_INFRA_BRANCH
+                                        )
+                                    }
+                                }
                             }
                         }
-                    }
-                    def pools = cloud_pools(env.ENVIRONMENT, cloud_list[curr])
-                    for(p = 0; p < pools.size(); p++) {
-                        def pcurr=p
-                        if(pools[pcurr]) {
-                            echo "pipeline branch ${pcurr} for pool ${pools[pcurr]} cloud ${cloud_list[curr]}";
-                            branches["Build ${pools[pcurr]}"] = {
-                                upgradeJVBPool(env.ENVIRONMENT,
-                                    cloud_list[curr],
-                                    env.CLOUD_PROVIDER,
-                                    pools[pcurr],
-                                    env.RELEASE_NUMBER,
-                                    env.BUILD_ID,
-                                    git_branch,
-                                    env.JVB_VERSION,
-                                    env.SHAPE,
-                                    env.OCPUS,
-                                    env.MEMORY_IN_GBS,
-                                    env.VIDEO_INFRA_BRANCH
-                                )
-                            }
-                        }
+                        // branch out here, run all create shard jobs at once
+                        // only succeed if all branches succeed
+                        parallel branches
                     }
                 }
-                // branch out here, run all create shard jobs at once
-                // only succeed if all branches succeed
-                parallel branches
-              }
             }
           }
         }
