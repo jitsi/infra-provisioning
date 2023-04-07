@@ -2,7 +2,7 @@ def cloud_shards(shard_environment, cloud) {
     shards = sh(
         returnStdout: true,
         script: """
-            cd ./environments/${shard_environment}
+            cd ./sites/${shard_environment}
             export CLOUD_NAME="${cloud}"
             scripts/cloud_shards.sh ubuntu
         """).trim().split(' ');
