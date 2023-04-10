@@ -11,9 +11,9 @@ variable cloud_provider {
     default = "oracle"
 }
 
-variable wavefront_proxy_server {
+variable wavefront_proxy_url {
     type = string
-    default = "localhost"
+    default = "http://localhost:2878"
 }
 
 
@@ -26,7 +26,6 @@ job "[JOB_NAME]" {
   meta {
     environment = "${var.environment}"
     cloud_provider = "${var.cloud_provider}"
-    wavefront_proxy_server = "${var.wavefront_proxy_server}"
   }
 
   // must have linux for network mode
@@ -86,6 +85,10 @@ job "[JOB_NAME]" {
 
 [[inputs.docker]]
   endpoint = "unix:///var/run/docker.sock"
+  perdevice = false
+  total = true
+  tagexclude = ["org.opencontainers.image.revision","engine_host","org.opencontainers.image.version","container_status","container_name","container_id","com.hashicorp.nomad.alloc_id","org.opencontainers.image.title","container_verison", "com.hashicorp.nomad.namespace","server_version","container_image"]
+  namepass = ["docker_container_cpu*","docker_container_mem*","docker_container_net"]
 
 [[inputs.cpu]]
   percpu = false
@@ -197,7 +200,7 @@ job "[JOB_NAME]" {
         role = "core"
 
 [[outputs.wavefront]]
-  url = "http://{{ env "NOMAD_META_wavefront_proxy_server" }}:2878"
+  url = "${var.wavefront_proxy_url}"
   metric_separator = "."
   source_override = ["hostname", "snmp_host", "node_host"]
   convert_paths = true
