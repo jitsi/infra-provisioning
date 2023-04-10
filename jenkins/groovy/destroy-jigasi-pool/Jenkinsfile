@@ -36,10 +36,7 @@ pipeline {
                             file(credentialsId: 'asap-jwt-key-dev', variable: 'ASAP_JWT_KEY_DEV'),
                             file(credentialsId: 'asap-jwt-key-prod', variable: 'ASAP_JWT_KEY_PROD')
                         ]) {
-                          sshagent (credentials: ['ssh-ubuntu']) {
-                            sh '''#!/bin/bash
-                            scripts/delete-custom-jigasi-pool-oracle.sh ubuntu'''
-                          }
+                            sh 'scripts/delete-custom-jigasi-pool-oracle.sh ubuntu'
                         }
                     }
                 }
