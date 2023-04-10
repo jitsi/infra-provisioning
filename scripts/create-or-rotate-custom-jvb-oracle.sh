@@ -187,7 +187,7 @@ elif [ "$getGroupHttpCode" == 200 ]; then
   fi
 
   #Wait as much as it will take to provision the new instances, before scaling down the existing ones
-  sleep 900
+  sleep 480
 
   echo "Will scale down the group $GROUP_NAME and keep only the $PROTECTED_INSTANCES_COUNT protected instances with maximum $EXISTING_MAXIMUM"
   instanceGroupScaleDownResponse=$(curl -s -w "\n %{http_code}" -X PUT \
