@@ -79,7 +79,7 @@ for i in `cat $SIGNAL_INVENTORY_PATH`; do
     echo "OLD CDN VERSION on $i"
     ssh -F "$LOCAL_PATH/../config/ssh.config" $ANSIBLE_SSH_USER@$i "cat $CDN_PATH"
     echo "COPYING NEW CDN VERSION TO $i"
-    scp -F "$LOCAL_PATH/../config/ssh.config" $LIST_FILES_FROM_ROOT_DIR ./welcomePageAdditionalContent.html ./external_api.min.js.map ./external_api.min.js $ANSIBLE_SSH_USER@$i:
+    scp -F "$LOCAL_PATH/../config/ssh.config" $LIST_FILES_FROM_ROOT_DIR ./welcomePageAdditionalContent.html ./external_api.min.js.map ./external_api.min.js ./lib-jitsi-meet.min.js ./lib-jitsi-meet.min.map $ANSIBLE_SSH_USER@$i:
 done
 
 for i in `cat $SIGNAL_INVENTORY_PATH`; do
