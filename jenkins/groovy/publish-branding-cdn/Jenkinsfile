@@ -30,6 +30,7 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                             string(credentialsId: 'jenkins-aws-id', variable: 'AWS_ACCESS_KEY_ID')
                     ]) {
                         dir('infra-provisioning') {
+                            utils.SetupAnsible()
                             sh '''scripts/publish-branding-cdn.sh'''
                         }
                     }
