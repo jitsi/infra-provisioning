@@ -13,29 +13,6 @@ def oldReleasesFromEnvironment(environment, latestRelease) {
     return oldReleases
 }
 
-// get the list of all shards in the environment matching the release number
-def newShardsFromRelease(environment,release) {
-    def shards = sh(
-        returnStdout: true,
-        script: """#!/bin/bash
-            export ENVIRONMENT="${environment}"
-            export RELEASE_NUMBER="${release}"
-            scripts/shard.sh list ubuntu"""
-    );
-    return shards
-}
-// get the inverse of the above, all shards in the environment not matching the release
-def oldShardsFromRelease(environment,release) {
-    def shards = sh(
-        returnStdout: true,
-        script: """#!/bin/bash
-            export ENVIRONMENT="${environment}"
-            export RELEASE_NUMBER="${release}"
-            export RELEASE_INVERSE="true"
-            scripts/shard.sh list ubuntu"""
-    );
-    return shards    
-}
 def utils
 pipeline {				//indicate the job is written in Declarative Pipeline
     agent any				//agent specifies where the pipeline will execute. 
@@ -117,26 +94,6 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                                     [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH]
                                 ]
                                 myRelease = releaseJob.getNumber();
-                                def newShards = newShardsFromRelease(env.ENVIRONMENT,myRelease)
-                                def oldShards = oldShardsFromRelease(env.ENVIRONMENT,myRelease)
-                                build job: 'reconfigure-shard-states',parameters: [
-                                    [$class: 'StringParameterValue', name: 'SHARDS_DRAIN', value: ""],
-                                    [$class: 'StringParameterValue', name: 'SHARDS_READY', value: newShards],
-                                    [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: env.ENVIRONMENT],
-                                    [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH]
-                                ]
-                                build job: 'set-release-ga', parameters: [
-                                    [$class: 'StringParameterValue', name: 'RELEASE_NUMBER', value: myRelease],
-                                    [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: env.ENVIRONMENT],
-                                    [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH]
-
-                                ]
-                                build job: 'reconfigure-shard-states',parameters: [
-                                    [$class: 'StringParameterValue', name: 'SHARDS_DRAIN', value: oldShards],
-                                    [$class: 'StringParameterValue', name: 'SHARDS_READY', value: ""],
-                                    [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: env.ENVIRONMENT],
-                                    [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH]
-                                ]
                             }
                         }
                     }
