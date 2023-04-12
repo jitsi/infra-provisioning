@@ -20,6 +20,8 @@ LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 [ -z "$REPO_PATH" ] && REPO_PATH="$OPS_REPO_MOUNT_PATH/repo/debian"
 [ -z "$REPO_CONF" ] && REPO_CONF="$OPS_REPO_MOUNT_PATH/jitsi-debian-pkg.conf"
 
+INCOMING_PATH="$REPO_PATH/mini-dinstall/incoming"
+
 sudo /usr/bin/s3fs "$OPS_REPO_MOUNT_PATH" -o "bucket=$OPS_REPO_BUCKET" -o "passwd_file=$S3FS_PASSWORD_PATH" -o "url=https://$ORACLE_S3_NAMESPACE.compat.objectstorage.$ORACLE_REGION.oraclecloud.com" -o nomultipart -o use_path_request_style -o "endpoint=$ORACLE_REGION" -o allow_other -o umask=000
 
 if [ $? -gt 0 ]; then
@@ -28,17 +30,20 @@ if [ $? -gt 0 ]; then
 fi
 
 if [ -z "$UPSTREAM_CI_SERVER" ]; then
-    echo "No upstream CI server specified, not copying any new files"
+    echo "No upstream CI server specified, not copying any new files from remote"
 else
     if [ -z "$FILES_TO_COPY" ]; then
-        echo "No FILES_TO_COPY set, not copying any new files"
+        echo "No FILES_TO_COPY set, not copying any new files from remote"
     else
         grep -q "$UPSTREAM_CI_SERVER" ~/.ssh/known_hosts || ssh-keyscan -H $UPSTREAM_CI_SERVER >> ~/.ssh/known_hosts
-        scp $UPSTREAM_CI_USER@$UPSTREAM_CI_SERVER:$FILES_TO_COPY $REPO_PATH/mini-dinstall/incoming
-        ls -l $REPO_PATH/mini-dinstall/incoming
+        scp $UPSTREAM_CI_USER@$UPSTREAM_CI_SERVER:$FILES_TO_COPY $INCOMING_PATH
     fi
 fi
 
-mini-dinstall -b -c $REPO_CONF $REPO_PATH
+if [ -n "$LOCAL_FILES_TO_COPY" ]; then
+    cp $LOCAL_FILES_TO_COPY $INCOMING_PATH
+fi
 
+ls -l $INCOMING_PATH
+mini-dinstall -b -c $REPO_CONF $REPO_PATH
 exit $?
