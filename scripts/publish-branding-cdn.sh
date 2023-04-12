@@ -1,4 +1,4 @@
-#/bin/bash
+#!/bin/bash
 
 # publish_meet_cdn.sh
 
