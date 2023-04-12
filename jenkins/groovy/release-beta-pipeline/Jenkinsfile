@@ -94,6 +94,12 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                                     [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH]
                                 ]
                                 myRelease = releaseJob.getNumber();
+                                build job: 'set-release-ga', parameters: [
+                                    [$class: 'StringParameterValue', name: 'RELEASE_NUMBER', value: myRelease],
+                                    [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: env.ENVIRONMENT],
+                                    [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH]
+
+                                ]
                             }
                         }
                     }
