@@ -1,0 +1,112 @@
+// TODO CHANGE TO FIREZONE
+/////
+/////////
+//////
+
+
+def utils
+pipeline {
+  agent any
+  options {
+      ansiColor('xterm')
+      timestamps()
+      buildDiscarder(logRotator(numToKeepStr: '10', artifactNumToKeepStr: '10'))
+  }
+  stages {
+    stage('Prepare/Checkout') { // for display purposes
+      steps {
+        script {
+          // load utility function
+          def rootDir = pwd()
+          utils = load "${rootDir}/jenkins/groovy/Utils.groovy"
+          // checkout repos
+          utils.SetupRepos(env.VIDEO_INFRA_BRANCH)
+
+          if (env.CLOUD_PROVIDER == 'oracle') {
+            // setup OCI credentials
+            utils.SetupOCI()
+          }
+
+          sh 'rm -rf test-results'
+          sh 'mkdir test-results'
+        }
+      }
+    }
+    stage('Provision') {
+      steps {
+        sshagent (credentials: ['video-infra']) {
+          script {
+            dir('infra-provisioning') {
+                if (env.CLOUD_PROVIDER == 'oracle') {
+                    def skipCreateStep = sh(
+                        returnStdout: true,
+                        script: """#!/bin/bash
+                            if [ -z "\$SKIP_CREATE_STEP_FLAG" ]; then
+                                PUBLIC_IP="\$(dig \$DOMAIN +short | grep -v \$UNIQUE_ID)"
+                                if [[ -z "\$PUBLIC_IP" ]]; then
+                                    # no ip found, so assume we must create the machine
+                                    SKIP_CREATE_STEP_FLAG="false"
+                                else
+                                    IP_COUNT=\$(echo \$PUBLIC_IP | wc -w | awk '{print \$1}')
+                                    if [[ \$IP_COUNT -eq 1 ]]; then
+                                        # single ip found, so assume it exists and should not be recreated
+                                        SKIP_CREATE_STEP_FLAG="true"
+                                    else
+                                        SKIP_CREATE_STEP_FLAG="false"
+                                    fi
+                                fi
+                            fi
+                            echo \$SKIP_CREATE_STEP_FLAG""").trim()
+                    echo "skip create step: ${skipCreateStep}"
+                    if (skipCreateStep == 'false') {
+                        withCredentials([
+                            string(credentialsId: 'oci-jenkins-terraform-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
+                            string(credentialsId: 'oci-jenkins-terraform-aws-id', variable: 'AWS_ACCESS_KEY_ID'),
+                            sshUserPrivateKey(credentialsId: 'ssh-ubuntu', keyFileVariable: 'USER_PRIVATE_KEY_PATH', usernameVariable: 'SSH_USERNAME')
+                        ]) {
+                            utils.SetupSSH()
+                            sh '''#!/bin/bash
+                            set -x
+                            export USER_PUBLIC_KEY_PATH=~/.ssh/ssh_key.pub
+                            export AWS_DEFAULT_REGION=us-west-2
+                            export ANSIBLE_FORCE_COLOR=True
+                            terraform/standalone/create-standalone-server-oracle.sh $SSH_USERNAME'''
+                        }
+                        withCredentials([
+                            string(credentialsId: 'jenkins-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
+                            string(credentialsId: 'jenkins-aws-id', variable: 'AWS_ACCESS_KEY_ID'),
+                        ]) {
+                            sh 'scripts/create-oracle-cname-stack.sh'
+                        }
+                    } else {
+                        echo 'Skipping provision step'
+                    }
+                } else {
+                    sh 'scripts/create-app-standalone-stack.sh'
+                }
+            }
+          }
+        // Run the cloud provisioning
+        }
+      }
+    }
+    stage('Configure') {
+      steps {
+        sshagent (credentials: ['ssh-ubuntu']) {
+          script {
+            dir('infra-configuration') {
+                    withCredentials([
+                        sshUserPrivateKey(credentialsId: 'ssh-ubuntu', keyFileVariable: 'CONNECTION_SSH_PRIVATE_KEY_FILE', usernameVariable: 'SSH_USERNAME')
+                    ]) {
+                        utils.SetupSSH()
+                        sh '''#!/bin/bash
+                        export ANSIBLE_FORCE_COLOR=True
+                        scripts/configure-standalone.sh $SSH_USERNAME'''
+                    }
+            }
+          }
+        }
+      }
+    }
+  }
+}

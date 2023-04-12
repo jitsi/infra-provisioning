@@ -120,8 +120,20 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                                 def newShards = newShardsFromRelease(env.ENVIRONMENT,myRelease)
                                 def oldShards = oldShardsFromRelease(env.ENVIRONMENT,myRelease)
                                 build job: 'reconfigure-shard-states',parameters: [
-                                    [$class: 'StringParameterValue', name: 'SHARDS_DRAIN', value: oldShards],
+                                    [$class: 'StringParameterValue', name: 'SHARDS_DRAIN', value: ""],
                                     [$class: 'StringParameterValue', name: 'SHARDS_READY', value: newShards],
+                                    [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: env.ENVIRONMENT],
+                                    [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH]
+                                ]
+                                build job: 'set-release-ga', parameters: [
+                                    [$class: 'StringParameterValue', name: 'RELEASE_NUMBER', value: myRelease],
+                                    [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: env.ENVIRONMENT],
+                                    [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH]
+
+                                ]
+                                build job: 'reconfigure-shard-states',parameters: [
+                                    [$class: 'StringParameterValue', name: 'SHARDS_DRAIN', value: oldShards],
+                                    [$class: 'StringParameterValue', name: 'SHARDS_READY', value: ""],
                                     [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: env.ENVIRONMENT],
                                     [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH]
                                 ]
