@@ -67,7 +67,7 @@ dpkg -x $DEB_FILENAME .
 aws s3 cp --recursive usr/share/${BRANDING_NAME} s3://$CDN_S3_BUCKET/${VERSION_PREFIX}${BRANDING_COMPLETE_VERSION}/
 s3cmd --recursive modify --add-header="Cache-Control: public, max-age=31536000" s3://$CDN_S3_BUCKET/${VERSION_PREFIX}${BRANDING_COMPLETE_VERSION}/
 s3cmd --recursive modify --add-header="Access-Control-Allow-Origin: *" s3://$CDN_S3_BUCKET/${VERSION_PREFIX}${BRANDING_COMPLETE_VERSION}/
-s3cmd --recursive modify --add-header="Cross-Origin-Resource-Policy: cross-origin" s3://$CDN_S3_BUCKET/$JITSI_MEET_VERSION/
+s3cmd --recursive modify --add-header="Cross-Origin-Resource-Policy: cross-origin" s3://$CDN_S3_BUCKET/${VERSION_PREFIX}${BRANDING_COMPLETE_VERSION}/
 # Default mime type mapping doesn't identify wasm files correctly
 s3cmd --recursive modify --exclude='*' --include='*.wasm' --add-header="Content-Type: application/wasm" s3://$CDN_S3_BUCKET/${VERSION_PREFIX}${BRANDING_COMPLETE_VERSION}/
 
