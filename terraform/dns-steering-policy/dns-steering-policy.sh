@@ -34,15 +34,19 @@ if [ -z "$REGION_LIST" ]; then
   for R in $DRG_PEER_REGIONS; do
     if [[ "$R" != "eu-amsterdam-1" ]]; then
       REGION_IP="$(dig +short $ENVIRONMENT-$R-haproxy.$TARGET_DNS_ZONE_NAME)"
-      if [ -z "$REGION_LIST" ]; then
-        REGION_LIST="[\"$R\""
+      if [[ $? -gt 0 ]] || [ -z "$REGION_IP" ]; then
+        echo "Failed looking up REGION_IP for $ENVIRONMENT-$R-haproxy.$TARGET_DNS_ZONE_NAME, skipping $R"
       else
-        REGION_LIST="$REGION_LIST,\"$R\""
-      fi
-      if [ -z "$IP_MAP" ]; then
-        IP_MAP="{\"$R\":\"$REGION_IP\""
-      else
-        IP_MAP="$IP_MAP,\"$R\":\"$REGION_IP\""
+        if [ -z "$REGION_LIST" ]; then
+          REGION_LIST="[\"$R\""
+        else
+          REGION_LIST="$REGION_LIST,\"$R\""
+        fi
+        if [ -z "$IP_MAP" ]; then
+          IP_MAP="{\"$R\":\"$REGION_IP\""
+        else
+          IP_MAP="$IP_MAP,\"$R\":\"$REGION_IP\""
+        fi
       fi
     fi
   done
@@ -60,6 +64,11 @@ ORACLE_CLOUD_NAME="$STACK_REGION-$ENVIRONMENT-oracle"
 
 [ -z "$FALLBACK_REGION" ] && FALLBACK_REGION="us-ashburn-1"
 FALLBACK_HOST_IP=$(dig +short $ENVIRONMENT-$FALLBACK_REGION-haproxy.$TARGET_DNS_ZONE_NAME)
+
+if [ -z "$FALLBACK_HOST_IP" ]; then
+  echo "No FALLBACK_HOST_IP found for $ENVIRONMENT-$FALLBACK_REGION-haproxy.$TARGET_DNS_ZONE_NAME, exiting..."
+  exit 2
+fi
 
 TERRAFORM_MAJOR_VERSION=$(terraform -v | head -1  | awk '{print $2}' | cut -d'.' -f1)
 TF_GLOBALS_CHDIR=
