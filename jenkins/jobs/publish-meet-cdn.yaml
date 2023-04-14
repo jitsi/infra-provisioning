@@ -1,6 +1,6 @@
 - job:
-    name: publish-branding-cdn
-    display-name: publish branding cdn
+    name: publish-meet-cdn
+    display-name: publish meet cdn
     concurrent: true
     parameters:
       - string:
