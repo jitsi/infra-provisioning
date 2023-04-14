@@ -57,9 +57,10 @@ if [[ "$NOMAD_COTURN_FLAG" == "null" ]]; then
   NOMAD_COTURN_FLAG="$(cat $CONFIG_VARS_FILE | yq eval .${COTURN_NAME_VARIABLE} -)"
 fi
 
-if [[ "$NOMAD_COTURN_FLAG" == "true" ]]; then
-  COTURN_IMAGE_TYPE="JammyBase"
-fi
+# commenting until JammyBase can get secondary vnic script
+# if [[ "$NOMAD_COTURN_FLAG" == "true" ]]; then
+#   COTURN_IMAGE_TYPE="JammyBase"
+# fi
 
 #Look up images based on version, or default to latest
 [ -z "$COTURN_IMAGE_OCID" ] && COTURN_IMAGE_OCID=$($LOCAL_PATH/../../scripts/oracle_custom_images.py --type $COTURN_IMAGE_TYPE --version "latest" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
