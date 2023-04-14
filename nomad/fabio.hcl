@@ -7,6 +7,11 @@ job "fabio" {
   type = "system"
 
   group "fabio" {
+    constraint {
+      attribute  = "${meta.pool_type}"
+      value     = "general"
+    }
+
     network {
       port "ext-lb" {
         static = 9999
