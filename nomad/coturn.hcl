@@ -108,6 +108,7 @@ prometheus
 cert=/etc/ssl/${var.ssl_cert_name}.crt
 pkey=/etc/ssl/${var.ssl_cert_name}.key
 external-ip={{ env "meta.public_ip" }}/{{ env "attr.unique.network.ip-address" }}
+relay-ip={{ env "attr.unique.network.ip-address" }}
 EOH
         destination = "local/coturn.conf"
       }
