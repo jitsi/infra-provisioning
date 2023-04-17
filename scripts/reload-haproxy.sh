@@ -17,13 +17,6 @@ echo "## reload-haproxy: beginning"
 
 LOCAL_PATH=$(realpath $(dirname "${BASH_SOURCE[0]}"))
 
-HAPROXY_ENABLE_CONSUL_TEMPLATE="$(yq '.haproxy_enable_consul_template' < $LOCAL_PATH/../sites/$ENVIRONMENT/vars.yml)"
-
-if [ "$HAPROXY_ENABLE_CONSUL_TEMPLATE" == "true" ]; then
-  echo "## reload-haproxy: no-op because we are using consul-template in $ENVIRONMENT"
-  exit 0
-fi
-
 if [  -z "$1" ]; then
   ANSIBLE_SSH_USER=$(whoami)
   echo "## reload-haproxy: ansible SSH user is not defined. We use current user: $ANSIBLE_SSH_USER"
