@@ -153,8 +153,66 @@ function containsElement () {
   return 1
 }
 
+function shard_name() {
+    [ -z "$SHARD_BASE" ] && SHARD_BASE=$ENVIRONMENT
+
+    NUMBER=$1
+    PROVIDER=$2
+
+    SHARD_NAME=''
+    case $PROVIDER in
+        'oracle'):
+            if [ -z "$ORACLE_REGION" ]; then
+                echo "No ORACLE_REGION set, exiting..."
+                return 1
+            else
+                SHARD_NAME="${SHARD_BASE}-${ORACLE_REGION}-s${NUMBER}"
+            fi
+            ;;
+        'nomad'):
+            if [ -z "$ORACLE_REGION" ]; then
+                echo "No ORACLE_REGION set, exiting..."
+                return 1
+            else
+                SHARD_NAME="${SHARD_BASE}-${ORACLE_REGION}-s${NUMBER}"
+            fi
+            ;;
+        'aws'):
+            [ -z "$REGION_ALIAS" ] && REGION_ALIAS=$EC2_REGION
+            [ -z "$JVB_AZ_LETTER1" ] && JVB_AZ_LETTER1="a"
+            [ -z "$JVB_AZ_LETTER2" ] && JVB_AZ_LETTER2="b"
+            if [ $((SHARD_NUMBER%2)) -eq 0 ]; then
+                #even shard number goes in the 1st AZ (us-east-1a)
+                JVB_AZ="${JVB_AZ_REGION}${JVB_AZ_LETTER1}"
+            else
+                #odd shard number goes in the 2nd AZ (us-east-1b)
+                JVB_AZ="${JVB_AZ_REGION}${JVB_AZ_LETTER2}"
+            fi
+            JVB_AZ_LETTER="${JVB_AZ: -1}"
+
+            if [ -z "$REGION_ALIAS" ]; then
+                echo "No REGION_ALIAS set, exiting..."
+                return 1
+            else
+                SHARD_NAME="${SHARD_BASE}-${REGION_ALIAS}${JVB_AZ_LETTER}-s${NUMBER}"
+            fi
+            ;;
+    esac
+    if [ -n "$SHARD_NAME" ]; then
+        echo $SHARD_NAME
+        return 0
+    fi
+    return 1
+}
 
 case $ACTION in
+    'name')
+        if [ -z "$SHARD_NUMBER" ]; then
+            echo "No SHARD_NUMBER set, exiting..."
+        else
+            shard_name $SHARD_NUMBER $CORE_CLOUD_PROVIDER
+        fi
+        ;;
     'shard_ip')
         if [ -z "$SHARD" ]; then
             echo "No SHARD set, exiting..."

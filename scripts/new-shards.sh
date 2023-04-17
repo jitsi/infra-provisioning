@@ -29,12 +29,23 @@ fi
 
 [ -z "$CORE_CLOUD_PROVIDER" ] && CORE_CLOUD_PROVIDER="aws"
 
+if [ -n "$CLOUD_NAME" ]; then
+  [ -e "$LOCAL_PATH/../clouds/${CLOUD_NAME}.sh" ] && . "$LOCAL_PATH/../clouds/${CLOUD_NAME}.sh"
+fi
+
 #select new shard numbers if not provided
 [ -z $SHARD_NUMBERS ] && SHARD_NUMBERS=$(ENVIRONMENT="$ENVIRONMENT" COUNT=$SHARD_COUNT $LOCAL_PATH/shard.sh new $ANSIBLE_SSH_USER)
 
 FINAL_RET=0
 if [ $? -eq 0 ]; then
+  export CORE_CLOUD_PROVIDER
+  export ORACLE_REGION
+  export REGION_ALIAS
+
   for x in $SHARD_NUMBERS; do
+      export SHARD_NAME=$(ENVIRONMENT="$ENVIRONMENT" SHARD_NUMBER=$x $LOCAL_PATH/shard.sh name $ANSIBLE_SSH_USER)
+      # first mark new shard as drain
+      CONSUL_SHARD_STATES_ONLY="true" SHARDS_DRAIN="$SHARD_NAME" scripts/set-signal-shard-states.sh $ANSIBLE_SSH_USER
       #make a new stack for each new shard
       if [[ "$CORE_CLOUD_PROVIDER" == "aws" ]]; then
           SHARD_NUMBER=$x $LOCAL_PATH/create-app-shard-stack.sh
