@@ -57,6 +57,14 @@ def waitShardHealth(hcv_environment, shardList) {
     )
 }
 
+def markShardDrain(hcv_environment, shardList, consul_only) {
+    sh(
+        script:"""#!/bin/bash
+        export SHARDS_DRAIN="${shardList}"
+        CONSUL_SHARD_STATES_ONLY=${consul_only} scripts/set-signal-shard-states.sh ubuntu"""
+    )
+}
+
 def markShardReady(hcv_environment, shardList, consul_only) {
     sh(
         script:"""#!/bin/bash
@@ -214,6 +222,18 @@ pipeline {
                             }
                         }
                     }
+                }
+            }
+        }
+        stage ("Make sure shard will be in drain in consul") {
+            steps {
+                script {
+                  sshagent (credentials: ['ssh-ubuntu']) {
+                    def shardProps = readProperties file: 'test-results/new_shards.properties'
+                    dir("infra-provisioning") {
+                        markShardDrain(shardProps.HCV_ENVIRONMENT,shardProps.SHARDS,true)
+                    }
+                  }
                 }
             }
         }
