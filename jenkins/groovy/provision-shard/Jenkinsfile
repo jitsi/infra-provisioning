@@ -61,7 +61,7 @@ def markShardReady(hcv_environment, shardList) {
     sh(
         script:"""#!/bin/bash
         export SHARDS_READY="${shardList}"
-        SKIP_NON_SIGNAL_STATE=true scripts/set-haproxy-shard-states.sh ubuntu"""
+        scripts/set-signal-shard-states.sh ubuntu"""
     )
 }
 
@@ -77,23 +77,6 @@ echo \$SKIP_SHARD_JVBS"""
 
     if (skipShardJVBs.length() > 0) {
         ret = skipShardJVBs;
-    }
-
-    return ret;
-}
-
-def checkReleaseBackends(hcv_environment) {
-    def ret = 'false';
-
-    def useReleaseBackends = sh(
-       returnStdout: true,
-       script: """#!/bin/bash
-. ./sites/${hcv_environment}/stack-env.sh
-echo \$USE_RELEASE_BACKENDS"""
-    ).trim();
-
-    if (useReleaseBackends.length() > 0) {
-        ret = useReleaseBackends;
     }
 
     return ret;

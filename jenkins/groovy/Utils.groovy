@@ -220,4 +220,39 @@ def SetupSSH() {
     env.USER_PUBLIC_KEY_PATH='~/.ssh/ssh_key.pub'
 }
 
+def GetEnvironmentVar(hcv_environment,var_name) {
+    def ret = 'false';
+
+    def environmentVal = sh(
+       returnStdout: true,
+       script: """#!/bin/bash
+. ./sites/${hcv_environment}/stack-env.sh
+echo \$${var_name}"""
+    ).trim();
+
+    if (environmentVal.length() > 0) {
+        ret = environmentVal;
+    }
+
+    return ret;
+}
+
+def GetAnsibleVar(hcv_environment,var_name) {
+    def ret = 'false';
+
+    def ansibleVal = sh(
+       returnStdout: true,
+       script: """#!/bin/bash
+LOCAL_PATH=$(dirname "\${BASH_SOURCE[0]}")
+CHECK_VAR="$(yq '.${var_name}' < \$LOCAL_PATH/../sites/${hcv_environment}/vars.yml)"
+echo \$CHECK_VAR"""
+    ).trim();
+
+    if (ansiblevironmentVal.length() > 0) {
+        ret = ansibleVal;
+    }
+
+    return ret;
+}
+
 return this
