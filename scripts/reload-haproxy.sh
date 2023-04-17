@@ -17,7 +17,7 @@ echo "## reload-haproxy: beginning"
 
 LOCAL_PATH=$(realpath $(dirname "${BASH_SOURCE[0]}"))
 
-HAPROXY_ENABLE_CONSUL_TEMPLATE="$(yq '.haproxy_enable_consul_template' < $LOCAL_PATH/..sites/$ENVIRONMENT/vars.yml)"
+HAPROXY_ENABLE_CONSUL_TEMPLATE="$(yq '.haproxy_enable_consul_template' < $LOCAL_PATH/../sites/$ENVIRONMENT/vars.yml)"
 
 if [ "$HAPROXY_ENABLE_CONSUL_TEMPLATE" == "true" ]; then
   echo "## reload-haproxy: no-op because we are using consul-template in $ENVIRONMENT"
