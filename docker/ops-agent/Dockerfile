@@ -28,6 +28,14 @@ RUN wget -O- https://deb.nodesource.com/gpgkey/nodesource.gpg.key | \
 RUN echo "deb [signed-by=/usr/share/keyrings/nodesource-archive-keyring.gpg] https://deb.nodesource.com/node_16.x bullseye main" | \
     tee /etc/apt/sources.list.d/nodesource.list
 RUN apt-get update && apt-get -y install nodejs && rm /etc/apt/sources.list.d/nodesource.list
+RUN wget -O-  https://download.docker.com/linux/debian/gpg | \
+    gpg --dearmor | \
+    tee /usr/share/keyrings/docker-archive-keyring.gpg
+RUN if [ "$TARGETPLATFORM" = "linux/amd64" ]; then ARCHITECTURE="amd64"; elif [ "$TARGETPLATFORM" = "linux/arm64" ]; then ARCHITECTURE="arm64"; else ARCHITECTURE="amd64"; fi \
+    && echo $ARCHITECTURE && echo "deb [signed-by=/usr/share/keyrings/docker-archive-keyring.gpg arch=$ARCHITECTURE] https://download.docker.com/linux/debian bullseye stable" | \
+    tee /etc/apt/sources.list.d/docker.list && apt-get update
+RUN apt-get -y install docker-ce docker-ce-cli containerd.io docker-compose-plugin binfmt-support qemu-user-static
+RUN usermod -a -G docker jenkins
 RUN mkdir -p /opt/jitsi && git clone https://github.com/jitsi/jitsi-autoscaler-sidecar.git /opt/jitsi/jitsi-autoscaler-sidecar \
     && cd /opt/jitsi/jitsi-autoscaler-sidecar && npm install && npm run build
 RUN mkdir -p /opt/jitsi && git clone https://github.com/jitsi/token-generator.git /opt/jitsi/token-generator \
