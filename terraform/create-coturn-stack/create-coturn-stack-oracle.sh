@@ -27,6 +27,11 @@ fi
 #pull in cloud-specific variables, e.g. tenancy
 [ -e "$LOCAL_PATH/../../clouds/oracle.sh" ] && . $LOCAL_PATH/../../clouds/oracle.sh
 
+COTURN_NAME_VARIABLE="coturn_enable_nomad"
+
+[ -z "$CONFIG_VARS_FILE" ] && CONFIG_VARS_FILE="$LOCAL_PATH/../../config/vars.yml"
+[ -z "$ENVIRONMENT_VARS_FILE" ] && ENVIRONMENT_VARS_FILE="$LOCAL_PATH/../../sites/$ENVIRONMENT/vars.yml"
+
 if [ -z "$ORACLE_REGION" ]; then
   echo "No ORACLE_REGION found.  Exiting..."
   exit 203
@@ -45,8 +50,20 @@ ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 [ -z "$SERVICE" ] && SERVICE="$DOMAIN"
 [ -z "$SERVICE" ] && SERVICE="jitsi-coturn"
 
+COTURN_IMAGE_TYPE="coTURN"
+
+NOMAD_COTURN_FLAG="$(cat $ENVIRONMENT_VARS_FILE | yq eval .${COTURN_NAME_VARIABLE} -)"
+if [[ "$NOMAD_COTURN_FLAG" == "null" ]]; then
+  NOMAD_COTURN_FLAG="$(cat $CONFIG_VARS_FILE | yq eval .${COTURN_NAME_VARIABLE} -)"
+fi
+
+# commenting until JammyBase can get secondary vnic script
+# if [[ "$NOMAD_COTURN_FLAG" == "true" ]]; then
+#   COTURN_IMAGE_TYPE="JammyBase"
+# fi
+
 #Look up images based on version, or default to latest
-[ -z "$COTURN_IMAGE_OCID" ] && COTURN_IMAGE_OCID=$($LOCAL_PATH/../../scripts/oracle_custom_images.py --type coTURN --version "latest" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
+[ -z "$COTURN_IMAGE_OCID" ] && COTURN_IMAGE_OCID=$($LOCAL_PATH/../../scripts/oracle_custom_images.py --type $COTURN_IMAGE_TYPE --version "latest" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
 
 #No image was found, probably not built yet?
 if [ -z "$COTURN_IMAGE_OCID" ]; then
