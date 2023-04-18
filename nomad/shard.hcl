@@ -934,6 +934,7 @@ EOF
         ENABLE_AV_MODERATION="1"
         ENABLE_BREAKOUT_ROOMS="1"
         ENABLE_AUTH="1"
+        PROSODY_ENABLE_RATE_LIMITS="1"
         AUTH_TYPE="jwt"
         JWT_ALLOW_EMPTY="1"
         JWT_ACCEPTED_ISSUERS="${var.jwt_accepted_issuers}"
@@ -1012,7 +1013,7 @@ EOF
 # Basic configuration options
 #
 GLOBAL_CONFIG="statistics = \"internal\"\nstatistics_interval = \"manual\"\nopenmetrics_allow_cidr = \"0.0.0.0/0\";\n"
-GLOBAL_MODULES="http_openmetrics,measure_stanza_counts,log_ringbuffer,firewall,muc_census,log_ringbuffer,external_services"
+GLOBAL_MODULES="http_openmetrics,measure_stanza_counts,log_ringbuffer,firewall,muc_census,muc_end_meeting,secure_interfaces,external_services,turncredentials_http"
 XMPP_MODULES=
 XMPP_INTERNAL_MUC_MODULES=
 XMPP_MUC_MODULES="{{ if eq "${var.enable_muc_allowners}" "true" }}muc_allowners{{ end }}"
