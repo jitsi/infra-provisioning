@@ -187,7 +187,7 @@ pipeline {
                     dir("infra-provisioning") {
                         skipShardJVBs = checkSkipShardJVBs(env.ENVIRONMENT)
                         echo skipShardJVBs
-                        useReleaseBackends = checkReleaseBackends(env.ENVIRONMENT)
+                        useReleaseBackends = utils.GetEnvironmentVar(env.ENVIRONMENT, "USE_RELEASE_BACKENDS")
                         echo useReleaseBackends
                         useHAProxyConsulTemplate = utils.GetAnsibleVar(env.ENVIRONMENT, "haproxy_enable_consul_template")
                         echo useHAProxyConsulTemplate

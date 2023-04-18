@@ -1,4 +1,3 @@
-
 def updateConsulPin(environment, tenant, release_number) {
     echo 'updating pin in consul'
     sh(
@@ -66,7 +65,7 @@ pipeline {
             steps {
                 script{ 
                     dir("infra-provisioning") {
-                        versioningManagerURL = GetEnvironmentVar(env.ENVIRONMENT, "VERSIONING_URL")
+                        versioningManagerURL = utils.GetEnvironmentVar(env.ENVIRONMENT, "VERSIONING_URL")
                         if (versioningManagerURL != 'false') {
                             versioningManagerDeployed = 'true'
                         }

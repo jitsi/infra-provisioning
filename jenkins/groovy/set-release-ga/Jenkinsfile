@@ -1,20 +1,3 @@
-def checkReleaseBackends(environment) {
-    def ret = 'false';
-
-    def useReleaseBackends = sh(
-       returnStdout: true,
-       script: """#!/bin/bash
-. ./sites/${environment}/stack-env.sh
-echo \$USE_RELEASE_BACKENDS"""
-    ).trim();
-
-    if (useReleaseBackends.length() > 0) {
-        ret = useReleaseBackends;
-    }
-
-    return ret;
-}
-
 def setReleaseGA(environment) {
     def setReleaseResult = sh(
         returnStatus: true,
@@ -93,7 +76,7 @@ pipeline {
             steps {
                 script {
                     dir("infra-provisioning") {
-                        useReleaseBackends = checkReleaseBackends(env.ENVIRONMENT)
+                        useReleaseBackends = utils.GetEnvironmentVar(env.ENVIRONMENT, "USE_RELEASE_BACKENDS")
                         echo useReleaseBackends
                     }
                 }
