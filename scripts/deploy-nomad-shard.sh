@@ -9,6 +9,7 @@ fi
 LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
 [ -e "$LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh" ] && . "$LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh"
+[ -e "$LOCAL_PATH/../clouds/all.sh" ] && . "$LOCAL_PATH/../clouds/all.sh"
 
 [ -z "$VAULT_PASSWORD_FILE" ] && VAULT_PASSWORD_FILE="$LOCAL_PATH/../.vault-password.txt"
 
@@ -100,6 +101,7 @@ JWT_ACCEPTED_AUDIENCES_VARIABLE="prosody_asap_accepted_audiences"
 TURNRELAY_HOST_VARIABLE="prosody_mod_turncredentials_hosts"
 TURNRELAY_PASSWORD_VARIABLE="coturn_secret"
 ENABLE_MUC_ALLOWNERS_VARIABLE="prosody_muc_allowners"
+BRANDING_NAME_VARIABLE="jitsi_meet_branding_override"
 
 # ensure no output for ansible vault contents and fail if ansible-vault fails
 set +x
@@ -129,6 +131,12 @@ export NOMAD_VAR_jwt_accepted_audiences="$(cat $MAIN_CONFIGURATION_FILE | yq eva
 export ENABLE_MUC_ALLOWNERS="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .${ENABLE_MUC_ALLOWNERS_VARIABLE} -)"
 if [[ "$ENABLE_MUC_ALLOWNERS" != "null" ]]; then
     export NOMAD_VAR_enable_muc_allowners="$ENABLE_MUC_ALLOWNERS"
+fi
+
+BRANDING_NAME="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .${BRANDING_NAME_VARIABLE} -)"
+if [[ "$BRANDING_NAME" != "null" ]]; then
+    export NOMAD_VAR_web_repo="$AWS_ECR_REPO_HOST/jitsi/$BRANDING_NAME"
+    WEB_TAG="$JITSI_MEET_VERSION"
 fi
 
 export NOMAD_VAR_environment="$ENVIRONMENT"

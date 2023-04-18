@@ -107,6 +107,11 @@ variable turnrelay_password {
   default = "password"
 }
 
+variable web_repo {
+  type = string
+  default = "jitsi/web"
+}
+
 job "[JOB_NAME]" {
   region = "global"
   datacenters = [var.dc]
@@ -350,7 +355,7 @@ EOF
     task "web" {
       driver = "docker"
       config {
-        image        = "jitsi/web:${var.web_tag}"
+        image        = "${var.web_repo}:${var.web_tag}"
         ports = ["http","https","nginx-status"]
         volumes = ["local/_unlock:/usr/share/jitsi-meet/_unlock","local/base.html:/usr/share/jitsi-meet/base.html","local/nginx.conf:/defaults/nginx.conf","local/nginx-status.conf:/config/nginx/site-confs/status.conf"]
       }
