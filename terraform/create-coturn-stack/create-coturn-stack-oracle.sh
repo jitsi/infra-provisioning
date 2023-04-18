@@ -57,10 +57,9 @@ if [[ "$NOMAD_COTURN_FLAG" == "null" ]]; then
   NOMAD_COTURN_FLAG="$(cat $CONFIG_VARS_FILE | yq eval .${COTURN_NAME_VARIABLE} -)"
 fi
 
-# commenting until JammyBase can get secondary vnic script
-# if [[ "$NOMAD_COTURN_FLAG" == "true" ]]; then
-#   COTURN_IMAGE_TYPE="JammyBase"
-# fi
+if [[ "$NOMAD_COTURN_FLAG" == "true" ]]; then
+  COTURN_IMAGE_TYPE="JammyBase"
+fi
 
 #Look up images based on version, or default to latest
 [ -z "$COTURN_IMAGE_OCID" ] && COTURN_IMAGE_OCID=$($LOCAL_PATH/../../scripts/oracle_custom_images.py --type $COTURN_IMAGE_TYPE --version "latest" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
@@ -73,7 +72,7 @@ fi
 
 [ -z "$DESIRED_CAPACITY" ] && DESIRED_CAPACITY="2"
 
-[ -z "$ORACLE_GIT_BRANCH" ] && ORACLE_GIT_BRANCH="master"
+[ -z "$ORACLE_GIT_BRANCH" ] && ORACLE_GIT_BRANCH="main"
 
 # e.g. AVAILABILITY_DOMAINS='[  "ObqI:EU-FRANKFURT-1-AD-1", "ObqI:EU-FRANKFURT-1-AD-2", "ObqI:EU-FRANKFURT-1-AD-3" ]'
 [ -z "$AVAILABILITY_DOMAINS" ] && AVAILABILITY_DOMAINS=$(oci iam availability-domain list --region=$ORACLE_REGION | jq .data[].name | jq --slurp .)

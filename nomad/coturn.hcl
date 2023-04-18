@@ -17,9 +17,19 @@ variable "ssl_cert_name" {
     default = "secret_key_file"
 }
 
+variable "coturn_count" {
+    type = number
+    default = 2
+}
+
 job "[JOB_NAME]" {
   datacenters = [var.dc]
   type        = "service"
+  spread {
+    attribute = "${node.unique.id}"
+    weight    = 100
+  }
+
   update {
     max_parallel      = 1
     health_check      = "checks"
@@ -29,7 +39,7 @@ job "[JOB_NAME]" {
   }
 
   group "coturn" {
-    count = 1
+    count = var.coturn_count
     restart {
       attempts = 3
       interval = "5m"
