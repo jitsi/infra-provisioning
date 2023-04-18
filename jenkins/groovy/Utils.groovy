@@ -243,12 +243,11 @@ def GetAnsibleVar(hcv_environment,var_name) {
     def ansibleVal = sh(
        returnStdout: true,
        script: """#!/bin/bash
-LOCAL_PATH="\$(dirname '\${BASH_SOURCE[0]}')"
-CHECK_VAR="\$(yq '.${var_name}' < \$LOCAL_PATH/../sites/${hcv_environment}/vars.yml)"
+CHECK_VAR="\$(yq '.${var_name}' < ./sites/${hcv_environment}/vars.yml)"
 echo \$CHECK_VAR"""
     ).trim();
 
-    if (ansiblevironmentVal.length() > 0) {
+    if (ansibleVal.length() > 0) {
         ret = ansibleVal;
     }
 
