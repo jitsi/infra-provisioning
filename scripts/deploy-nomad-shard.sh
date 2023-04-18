@@ -142,7 +142,7 @@ fi
 export NOMAD_VAR_environment="$ENVIRONMENT"
 export NOMAD_VAR_domain="$DOMAIN"
 export NOMAD_VAR_shard="$SHARD"
-export NOMAD_VAR_shard_id="$SHARD_ID"
+export NOMAD_VAR_shard_id="$(echo $SHARD| rev | cut -d"-" -f1 | rev | tr -d '[:alpha:]')"
 export NOMAD_VAR_octo_region="$ORACLE_REGION"
 # [ -n "$SHARD_STATE" ] && export NOMAD_VAR_shard_state="$SHARD_STATE"
 export NOMAD_VAR_release_number="$RELEASE_NUMBER"

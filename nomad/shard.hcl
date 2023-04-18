@@ -28,6 +28,10 @@ variable "shard" {
   type = string
 }
 
+variable "shard_id" {
+  type = string
+}
+
 variable "octo_region" {
     type=string
 }
