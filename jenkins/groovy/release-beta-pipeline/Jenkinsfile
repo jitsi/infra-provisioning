@@ -94,7 +94,7 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                     }
                 }
               }
-            }
+        }
         }
         stage ("release") {		//an arbitrary stage name
         	environment {
@@ -126,7 +126,7 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                                     [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH]
                                 ]
                                 build job: 'set-release-ga',parameters: [
-                                    [$class: 'StringParameterValue', name: 'RELEASE_NUMBER', value: myRelease],
+                                    [$class: 'StringParameterValue', name: 'RELEASE_NUMBER', value: myRelease.toString()],
                                     [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: env.ENVIRONMENT],
                                     [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH]
                                 ]
