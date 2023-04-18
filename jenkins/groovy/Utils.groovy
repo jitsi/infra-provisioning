@@ -243,7 +243,7 @@ def GetAnsibleVar(hcv_environment,var_name) {
     def ansibleVal = sh(
        returnStdout: true,
        script: """#!/bin/bash
-CHECK_VAR="\$(yq '.${var_name}' < \$./sites/${hcv_environment}/vars.yml)"
+CHECK_VAR="\$(yq '.${var_name}' < ./sites/${hcv_environment}/vars.yml)"
 echo \$CHECK_VAR"""
     ).trim();
 
