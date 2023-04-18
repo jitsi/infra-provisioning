@@ -44,7 +44,7 @@ pipeline {
             steps {
                 script { 
                     dir("infra-provisioning") {
-                        paymentsServiceURL = GetEnvironmentVar(env.ENVIRONMENT, "PAYMENTS_URL")
+                        paymentsServiceURL = utils.GetEnvironmentVar(env.ENVIRONMENT, "PAYMENTS_URL")
                         if (paymentsServiceURL != 'false') {
                             paymentsServiceDeployed = 'true'
                         }
