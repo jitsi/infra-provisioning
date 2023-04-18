@@ -1,37 +1,4 @@
 
-def checkReleaseBackends(environment) {
-    def ret = 'false';
-    def useReleaseBackends = sh(
-       returnStdout: true,
-       script: """#!/bin/bash
-. ./sites/${environment}/stack-env.sh
-echo \$USE_RELEASE_BACKENDS"""
-    ).trim();
-
-    if (useReleaseBackends.length() > 0) {
-        ret = useReleaseBackends;
-    }
-
-    return ret;
-}
-
-def getVersioningManagerURL(environment) {
-    def versioningManagerDeployed = 'false';
-    def ret = 'false';
-    def versioningManagerURL = sh(
-       returnStdout: true,
-       script: """#!/bin/bash
-. ./sites/${environment}/stack-env.sh
-echo \$VERSIONING_URL"""
-    ).trim();
-
-    if (versioningManagerURL.length() > 0) {
-        ret = versioningManagerURL;
-    }
-
-    return ret;
-}
-
 def updateConsulPin(environment, tenant, release_number) {
     echo 'updating pin in consul'
     sh(
@@ -86,7 +53,8 @@ pipeline {
             steps {
                 script {
                     dir("infra-provisioning") {
-                        useReleaseBackends = checkReleaseBackends(env.ENVIRONMENT)
+                        useReleaseBackends = utils.GetEnvironmentVar(env.ENVIRONMENT, "USE_RELEASE_BACKENDS")
+                        echo useReleaseBackends
                         if (useReleaseBackends != 'true') {
                             error 'environment does not support tenant pinning'
                         }
@@ -98,7 +66,7 @@ pipeline {
             steps {
                 script{ 
                     dir("infra-provisioning") {
-                        versioningManagerURL = getVersioningManagerURL(env.ENVIRONMENT)
+                        versioningManagerURL = GetEnvironmentVar(env.ENVIRONMENT, "VERSIONING_URL")
                         if (versioningManagerURL != 'false') {
                             versioningManagerDeployed = 'true'
                         }

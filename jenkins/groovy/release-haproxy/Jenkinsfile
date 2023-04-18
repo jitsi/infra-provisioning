@@ -127,10 +127,7 @@ pipeline {				//indicate the job is written in Declarative Pipeline
         stage ("rotate load balancers") {
             steps {
                 script {
-                    build job: 'reconfigure-haproxy',parameters: [
-                        [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: env.ENVIRONMENT],
-                        [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH]
-                    ]
+                    utils.ReconfigureHAProxy(env.ENVIRONMENT, env.VIDEO_INFRA_BRANCH)
                 }
             }
         }

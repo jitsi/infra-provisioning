@@ -57,11 +57,19 @@ def waitShardHealth(hcv_environment, shardList) {
     )
 }
 
-def markShardReady(hcv_environment, shardList) {
+def markShardDrain(hcv_environment, shardList, consul_only) {
+    sh(
+        script:"""#!/bin/bash
+        export SHARDS_DRAIN="${shardList}"
+        CONSUL_SHARD_STATES_ONLY=${consul_only} scripts/set-signal-shard-states.sh ubuntu"""
+    )
+}
+
+def markShardReady(hcv_environment, shardList, consul_only) {
     sh(
         script:"""#!/bin/bash
         export SHARDS_READY="${shardList}"
-        SKIP_NON_SIGNAL_STATE=true scripts/set-haproxy-shard-states.sh ubuntu"""
+        CONSUL_SHARD_STATES_ONLY=${consul_only} scripts/set-signal-shard-states.sh ubuntu"""
     )
 }
 
@@ -77,23 +85,6 @@ echo \$SKIP_SHARD_JVBS"""
 
     if (skipShardJVBs.length() > 0) {
         ret = skipShardJVBs;
-    }
-
-    return ret;
-}
-
-def checkReleaseBackends(hcv_environment) {
-    def ret = 'false';
-
-    def useReleaseBackends = sh(
-       returnStdout: true,
-       script: """#!/bin/bash
-. ./sites/${hcv_environment}/stack-env.sh
-echo \$USE_RELEASE_BACKENDS"""
-    ).trim();
-
-    if (useReleaseBackends.length() > 0) {
-        ret = useReleaseBackends;
     }
 
     return ret;
@@ -198,6 +189,8 @@ pipeline {
                         echo skipShardJVBs
                         useReleaseBackends = checkReleaseBackends(env.ENVIRONMENT)
                         echo useReleaseBackends
+                        useHAProxyConsulTemplate = utils.GetAnsibleVar(env.ENVIRONMENT, "haproxy_enable_consul_template")
+                        echo useHAProxyConsulTemplate
                     }
                 }
             }
@@ -229,6 +222,18 @@ pipeline {
                             }
                         }
                     }
+                }
+            }
+        }
+        stage ("Make sure shard will be in drain in consul") {
+            steps {
+                script {
+                  sshagent (credentials: ['ssh-ubuntu']) {
+                    def shardProps = readProperties file: 'test-results/new_shards.properties'
+                    dir("infra-provisioning") {
+                        markShardDrain(shardProps.HCV_ENVIRONMENT,shardProps.SHARDS,true)
+                    }
+                  }
                 }
             }
         }
@@ -436,7 +441,7 @@ pipeline {
                   sshagent (credentials: ['ssh-ubuntu']) {
                     def shardProps = readProperties file: 'test-results/new_shards.properties'
                     dir("infra-provisioning") {
-                        markShardReady(shardProps.HCV_ENVIRONMENT,shardProps.SHARDS)
+                        markShardReady(shardProps.HCV_ENVIRONMENT,shardProps.SHARDS,useHAProxyConsulTemplate)
                     }
                   }
                 }
