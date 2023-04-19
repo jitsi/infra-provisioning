@@ -29,15 +29,15 @@ fi
 
 HAPROXY_ENABLE_CONSUL_TEMPLATE="$(yq '.haproxy_enable_consul_template' < $LOCAL_PATH/../sites/$ENVIRONMENT/vars.yml)"
 
-if [ "$HAPROXY_ENABLE_CONSUL_TEMPLATE" == "true" ]; then
-  echo "## set-release-ga: setting new live release in consul"
-  CONSUL_INCLUDE_AWS="$CONSUL_INCLUDE_AWS" CONSUL_INCLUDE_OCI="$CONSUL_INCLUDE_OCI" RELEASE_NUMBER=$RELEASE_NUMBER scripts/consul-set-release-ga.sh $ANSIBLE_SSH_USER
-  RET=$?
-  if [ $RET -gt 0 ]; then
-    echo -e "## set-release-ga: ERROR return code from consul-set-release-ga: $RET"
-    exit 60
-  fi
-else
+echo "## set-release-ga: setting new live release in consul"
+CONSUL_INCLUDE_AWS="$CONSUL_INCLUDE_AWS" CONSUL_INCLUDE_OCI="$CONSUL_INCLUDE_OCI" RELEASE_NUMBER=$RELEASE_NUMBER scripts/consul-set-release-ga.sh $ANSIBLE_SSH_USER
+RET=$?
+if [ $RET -gt 0 ]; then
+  echo -e "## set-release-ga: ERROR return code from consul-set-release-ga: $RET"
+  exit 60
+fi
+
+if [ "$HAPROXY_ENABLE_CONSUL_TEMPLATE" != "true" ]; then
   echo "## set-release-ga: setting new live release in haproxy maps"
   RELEASE_NUMBER=$RELEASE_NUMBER scripts/haproxy-set-release-ga.sh $ANSIBLE_SSH_USER
   RET=$?
