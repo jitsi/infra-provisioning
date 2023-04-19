@@ -41,6 +41,8 @@ function consul_shard_state() {
     STATE=$2
     SHARD_REGION=$($LOCAL_PATH/shard.py --shard_region --shard $S --environment $ENVIRONMENT)
 
+    # improvement: iterate over datacenters and always go to local region
+
     CONSUL_URL="https://$ENVIRONMENT-$SHARD_REGION-consul.$TOP_LEVEL_DNS_ZONE_NAME/v1/kv/shard-states/$ENVIRONMENT/$SHARD"
     curl -X PUT -d "$STATE" $CONSUL_URL
     return $?
