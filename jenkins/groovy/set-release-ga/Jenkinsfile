@@ -101,7 +101,6 @@ pipeline {
         stage ("set release GA in versioning manager") {
             when {
                 expression { useReleaseBackends == 'true' }
-                expression { setReleaseSucceeded == 'true' }
             }
             steps {
                 script {
@@ -119,9 +118,6 @@ pipeline {
             }
         }
         stage ("enable release JVB pools for use with autoscaler") {
-            when {
-                expression { setReleaseSucceeded == 'true' }
-            }
             steps {
                 script {
                     dir("infra-provisioning") {
