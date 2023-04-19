@@ -2,8 +2,11 @@
 
 [ -e ./stack-env.sh ] && . ./stack-env.sh
 
-if [  -z "$1" ]
-then
+echo "## starting consul-set-release-ga.sh"
+
+set -x
+
+if [  -z "$1" ]; then
   ANSIBLE_SSH_USER=$(whoami)
 else
   ANSIBLE_SSH_USER=$1
@@ -30,19 +33,34 @@ KV_KEY="releases/$ENVIRONMENT/live"
 
 [ -z "$CONSUL_INCLUDE_AWS" ] && CONSUL_INCLUDE_AWS="true"
 [ -z "$CONSUL_INCLUDE_OCI" ] && CONSUL_INCLUDE_OCI="true"
+[ -z "$CONSUL_VIA_SSH" ] && CONSUL_VIA_SSH="false"
 
-if [[ "$CONSUL_INCLUDE_AWS" == "true" ]]; then
-    echo "## create ssh connection to AWS consul"
-    PORT=$(python -c 'import socket; s=socket.socket(); s.bind(("", 0)); print(s.getsockname()[1]); s.close()')
-    [ -z "$AWS_LOCAL_DATACENTER" ] && AWS_LOCAL_DATACENTER="us-east-1-peer1"
-    [ -z "$AWS_CONSUL_ENV" ] && AWS_CONSUL_ENV="prod"
-    ssh -fNT -L127.0.0.1:$PORT:consul-$AWS_CONSUL_ENV-$AWS_LOCAL_DATACENTER.jitsi.net:443 $ANSIBLE_SSH_USER@$AWS_LOCAL_DATACENTER-ssh.infra.jitsi.net
-    CONSUL_URL="https://consul-local.jitsi.net:$PORT"
+CONSUL_URL="https://0:8500"
+OCI_CONSUL_URL="$CONSUL_URL"
+
+if [[ "$CONSUL_VIA_SSH" == "true" ]]; then
+    echo "## consul-set-release-ga: setting up ssh tunnels for consul"
+    if [[ "$CONSUL_INCLUDE_AWS" == "true" ]]; then
+        echo "## create ssh connection to AWS consul"
+        PORT=$(python -c 'import socket; s=socket.socket(); s.bind(("", 0)); print(s.getsockname()[1]); s.close()')
+        [ -z "$AWS_LOCAL_DATACENTER" ] && AWS_LOCAL_DATACENTER="us-east-1-peer1"
+        [ -z "$AWS_CONSUL_ENV" ] && AWS_CONSUL_ENV="prod"
+        ssh -fNT -L127.0.0.1:$PORT:consul-$AWS_CONSUL_ENV-$AWS_LOCAL_DATACENTER.jitsi.net:443 $ANSIBLE_SSH_USER@$AWS_LOCAL_DATACENTER-ssh.infra.jitsi.net
+        CONSUL_URL="https://consul-local.jitsi.net:$PORT"
+    fi
+
+    if [[ "$CONSUL_INCLUDE_OCI" == "true" ]]; then
+        echo "## create ssh connection to OCI consul"
+        PORT_OCI=$(python -c 'import socket; s=socket.socket(); s.bind(("", 0)); print(s.getsockname()[1]); s.close()')
+        OCI_LOCAL_REGION="us-phoenix-1"
+        OCI_LOCAL_DATACENTER="$ENVIRONMENT-$OCI_LOCAL_REGION"
+        ssh -fNT -L127.0.0.1:$PORT_OCI:$OCI_LOCAL_DATACENTER-consul.jitsi.net:443 $ANSIBLE_SSH_USER@$OCI_LOCAL_REGION-$ENVIRONMENT-ssh.oracle.infra.jitsi.net
+        OCI_CONSUL_URL="https://consul-local.jitsi.net:$PORT_OCI"
+    fi
 fi
 
-if [[ "$CONSUL_INCLUDE_OCI" == "true" ]]; then
-    OCI_CONSUL_URL="https://0:8500"
-fi
+echo "## consul-set-release-ga: CONSUL_URL: $CONSUL_URL"
+echo "## consul-set-release-ga: OCI_CONSUL_URL: $OCI_CONSUL_URL"
 
 if [ -z "$DATACENTER" ] && [ ! -z "$REGION" ]; then
     DATACENTER="$REGION-peer1"
