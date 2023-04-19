@@ -1,14 +1,9 @@
 def setReleaseGA(environment) {
     def setReleaseResult = sh(
-        returnStatus: true,
         script: """#!/bin/bash
 ENVIRONMENT=${environment} scripts/set-release-ga.sh ubuntu
 """
     )
-    if (setReleaseResult != 0) {
-        return 'false';
-    }
-    return 'true';
 }
 
 def versioningManagerSetGA(environment, release_number) {
@@ -95,12 +90,11 @@ pipeline {
                                 string(credentialsId: 'jenkins-aws-id', variable: 'AWS_ACCESS_KEY_ID')
                             ]) {
                                 sshagent (credentials: ['ssh-ubuntu']) {
-                                    setReleaseSucceeded = setReleaseGA(env.ENVIRONMENT)
+                                    setReleaseGA(env.ENVIRONMENT)
                                 }
                             }
                         }
                     }
-                    echo setReleaseSucceeded
                 }
             }
         }
