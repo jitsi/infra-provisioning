@@ -104,7 +104,7 @@ if [ -z "$DATACENTERS" ]; then
     AWS_DATACENTERS=$(echo $AWS_DATACENTERS| jq -r ".[]")
 fi
 
-if [ ! -z "$DATACENTERS" ]; then
+if [[ ! -z "$DATACENTERS" && "$DATACENTERS" != '[]' ]]; then
     FINAL_RET=0
     ALL_DATACENTERS=$(echo $DATACENTERS| jq -r ".[]")
 
