@@ -40,6 +40,8 @@ NOMAD_DC="$ENVIRONMENT-$ORACLE_REGION"
 
 [ -z "$CONFIG_VARS_FILE" ] && CONFIG_VARS_FILE="$LOCAL_PATH/../config/vars.yml"
 
+WAVEFRONT_PROXY_URL="https://ops-prod-us-phoenix-1-wfproxy.jitsi.net"
+
 if [ -z "$WAVEFRONT_PROXY_URL" ]; then
     WAVEFRONT_PROXY_VARIABLE="wavefront_proxy_host_by_cloud.$ENVIRONMENT-$ORACLE_REGION"
     WAVEFRONT_PROXY_URL="http://$(cat $CONFIG_VARS_FILE | yq eval .${WAVEFRONT_PROXY_VARIABLE} -):2878"
