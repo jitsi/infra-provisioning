@@ -41,12 +41,7 @@ if [[ "$CONSUL_INCLUDE_AWS" == "true" ]]; then
 fi
 
 if [[ "$CONSUL_INCLUDE_OCI" == "true" ]]; then
-    echo "## create ssh connection to OCI consul"
-    PORT_OCI=$(python -c 'import socket; s=socket.socket(); s.bind(("", 0)); print(s.getsockname()[1]); s.close()')
-    OCI_LOCAL_REGION="us-phoenix-1"
-    OCI_LOCAL_DATACENTER="$ENVIRONMENT-$OCI_LOCAL_REGION"
-    ssh -fNT -L127.0.0.1:$PORT_OCI:$OCI_LOCAL_DATACENTER-consul.jitsi.net:443 $ANSIBLE_SSH_USER@$OCI_LOCAL_REGION-$ENVIRONMENT-ssh.oracle.infra.jitsi.net
-    OCI_CONSUL_URL="https://consul-local.jitsi.net:$PORT_OCI"
+    OCI_CONSUL_URL="https://0:8500"
 fi
 
 if [ -z "$DATACENTER" ] && [ ! -z "$REGION" ]; then
