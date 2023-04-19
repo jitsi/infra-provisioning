@@ -97,16 +97,6 @@ function sanity_check() {
 echo -e "\n## recycle-haproxy-oracle: recycling pools in ${ENVIRONMENT}. current inventory:"
 ENVIRONMENT=$ENVIRONMENT ROLE=haproxy $LOCAL_PATH/pool.py inventory
 
-echo -e "\n## recycle-haproxy-oracle: block proxymonitor from running against this environment"
-HAPROXY_STATUS_LOCK_ACTION="lock" $LOCAL_PATH/haproxy-status-lock.sh $ANSIBLE_SSH_USER
-if [ $? -gt 0 ]; then
-  echo "## ERROR: haproxy-status-lock.sh failed to lock inventory, exiting..."
-  exit 1
-else
-  sleep 30
-fi
-
-
 if [ "$SCALE_DOWN_ONLY" == "true" ]; then
   echo "## recycle-haproxy-oracle: skipping scale up"
   RET_SCALE_UP=0
@@ -129,13 +119,6 @@ else
   if [ $RET_SCALE_DOWN -gt 0 ]; then
     echo -e "## ERROR: RECYCLE FAILED TO SCALE DOWN"
   fi
-fi
-
-echo -e "\n## recycle-haproxy-oracle: unlocking haproxy-status so proxymonitor can run against this environment"
-HAPROXY_STATUS_LOCK_ACTION="unlock" $LOCAL_PATH/haproxy-status-lock.sh $ANSIBLE_SSH_USER
-RET_UNLOCK=$?
-if [ $RET_UNLOCK -gt 0 ]; then
-  echo "## ERROR: haproxy-status-lock.sh failed to unlock haproxy inventory for proxymonitor to resume"
 fi
 
 if [ "$SCALE_UP_ONLY" == "true" ]; then

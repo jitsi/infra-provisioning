@@ -51,14 +51,6 @@ ANSIBLE_INVENTORY=${ANSIBLE_INVENTORY-"$HAPROXY_CACHE"}
 
 HAPROXY_STATUS_KEEP_LOCKED=${HAPROXY_STATUS_KEEP_LOCKED-"false"}
 
-echo -e "\n## reload-haproxy: block proxymonitor from running during reload"
-SKIP_BUILD_CACHE=true HAPROXY_STATUS_LOCK_ACTION=lock $LOCAL_PATH/haproxy-status-lock.sh $ANSIBLE_SSH_USER
-RET=$?
-if [ $RET -gt 0 ]; then
-  echo "## reload-haproxy ERROR: haproxy-status-lock.sh failed to lock inventory, exiting..."
-  exit $RET
-fi
-
 echo -e "\n## configuring and reloading haproxies with ${ANSIBLE_PLAYBOOK_FILE}"
 ansible-playbook ansible/$ANSIBLE_PLAYBOOK_FILE \
 -i $ANSIBLE_INVENTORY \
@@ -69,18 +61,6 @@ ansible-playbook ansible/$ANSIBLE_PLAYBOOK_FILE \
 ANSIBLE_RET=$?
 if [ $ANSIBLE_RET -gt 0 ]; then
     echo "## reload-haproxy ERROR: ${ANSIBLE_PLAYBOOK_FILE} exited nonzero value ${ANSIBLE_RET}"
-fi
-
-LOCK_RET=0
-if [ "$HAPROXY_STATUS_KEEP_LOCKED" != "true" ]; then
-  echo -e "\n## reload-haproxy: unlocking to allow proxymonitor to resume"
-  SKIP_BUILD_CACHE=true HAPROXY_STATUS_LOCK_ACTION=unlock $LOCAL_PATH/haproxy-status-lock.sh $ANSIBLE_SSH_USER
-  LOCK_RET=$?
-  if [ $LOCK_RET -gt 0 ]; then
-    echo "## reload-haproxy ERROR: haproxy-status-lock.sh failed to unlock inventory for proxymonitor"
-  fi
-else
-  echo "## reload-haproxy: leaving haproxy-status locked against proxymonitor"
 fi
 
 if [ "$ANSIBLE_RET" -gt 0 ] || [ "$LOCK_RET" -gt 0 ]; then
