@@ -35,6 +35,9 @@ KV_KEY="releases/$ENVIRONMENT/live"
 [ -z "$CONSUL_INCLUDE_OCI" ] && CONSUL_INCLUDE_OCI="true"
 [ -z "$CONSUL_VIA_SSH" ] && CONSUL_VIA_SSH="false"
 
+CONSUL_AWS_HOST="consul-$AWS_CONSUL_ENV-$AWS_LOCAL_DATACENTER.$TOP_LEVEL_DNS_ZONE_NAME"
+CONSUL_OCI_HOST="$OCI_LOCAL_DATACENTER-consul.$TOP_LEVEL_DNS_ZONE_NAME"
+
 if [[ "$CONSUL_VIA_SSH" == "true" ]]; then
     echo "## consul-set-release-ga: setting up ssh tunnels for consul"
     if [[ "$CONSUL_INCLUDE_AWS" == "true" ]]; then
