@@ -123,8 +123,8 @@ EOH
         destination = "local/coturn.conf"
       }
       resources {
-        cpu    = 512
-        memory = 256
+        cpu    = 25000
+        memory = 15360
       }
       service {
         name = "coturn"
