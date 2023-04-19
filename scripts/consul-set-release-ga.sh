@@ -2,8 +2,11 @@
 
 [ -e ./stack-env.sh ] && . ./stack-env.sh
 
-if [  -z "$1" ]
-then
+echo "## starting consul-set-release-ga.sh"
+
+set -x
+
+if [  -z "$1" ]; then
   ANSIBLE_SSH_USER=$(whoami)
 else
   ANSIBLE_SSH_USER=$1
@@ -14,13 +17,15 @@ if [ -z "$ENVIRONMENT" ]; then
     exit 1
 fi
 
-LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
-[ -e $LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh ] && . $LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh
-
 if [ -z "$RELEASE_NUMBER" ]; then
     echo "No RELEASE_NUMBER set, exiting"
     exit 1
 fi
+
+LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
+[ -e $LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh ] && . $LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh
+
+[ -e "$LOCAL_PATH/../clouds/all.sh" ] && . $LOCAL_PATH/../clouds/all.sh
 
 # string that is pushed into key value store
 RELEASE_VALUE="release-${RELEASE_NUMBER}"
@@ -30,24 +35,45 @@ KV_KEY="releases/$ENVIRONMENT/live"
 
 [ -z "$CONSUL_INCLUDE_AWS" ] && CONSUL_INCLUDE_AWS="true"
 [ -z "$CONSUL_INCLUDE_OCI" ] && CONSUL_INCLUDE_OCI="true"
+[ -z "$CONSUL_VIA_SSH" ] && CONSUL_VIA_SSH="false"
 
+OCI_LOCAL_REGION="us-phoenix-1"
+OCI_LOCAL_DATACENTER="$ENVIRONMENT-$OCI_LOCAL_REGION"
+
+CONSUL_AWS_HOST="consul-$AWS_CONSUL_ENV-$AWS_LOCAL_DATACENTER.$TOP_LEVEL_DNS_ZONE_NAME"
+CONSUL_OCI_HOST="$OCI_LOCAL_DATACENTER-consul.$TOP_LEVEL_DNS_ZONE_NAME"
+
+if [[ "$CONSUL_VIA_SSH" == "true" ]]; then
+    echo "## consul-set-release-ga: setting up ssh tunnels for consul"
+    if [[ "$CONSUL_INCLUDE_AWS" == "true" ]]; then
+        echo "## create ssh connection to AWS consul"
+        PORT=$(python -c 'import socket; s=socket.socket(); s.bind(("", 0)); print(s.getsockname()[1]); s.close()')
+        [ -z "$AWS_LOCAL_DATACENTER" ] && AWS_LOCAL_DATACENTER="us-east-1-peer1"
+        [ -z "$AWS_CONSUL_ENV" ] && AWS_CONSUL_ENV="prod"
+        ssh -fNT -L127.0.0.1:$PORT:consul-$AWS_CONSUL_ENV-$AWS_LOCAL_DATACENTER.jitsi.net:443 $ANSIBLE_SSH_USER@$AWS_LOCAL_DATACENTER-ssh.infra.jitsi.net
+        CONSUL_URL="https://consul-local.jitsi.net:$PORT"
+    fi
+
+    if [[ "$CONSUL_INCLUDE_OCI" == "true" ]]; then
+        echo "## create ssh connection to OCI consul"
+        PORT_OCI=$(python -c 'import socket; s=socket.socket(); s.bind(("", 0)); print(s.getsockname()[1]); s.close()')
+        OCI_LOCAL_REGION="us-phoenix-1"
+        OCI_LOCAL_DATACENTER="$ENVIRONMENT-$OCI_LOCAL_REGION"
+        ssh -fNT -L127.0.0.1:$PORT_OCI:$OCI_LOCAL_DATACENTER-consul.jitsi.net:443 $ANSIBLE_SSH_USER@$OCI_LOCAL_REGION-$ENVIRONMENT-ssh.oracle.infra.jitsi.net
+        OCI_CONSUL_URL="https://consul-local.jitsi.net:$PORT_OCI"
+    fi
+fi
+
+CONSUL_HOST="$AWS_LOCAL_DATACENTER-consul.$TOP_LEVEL_DNS_ZONE_NAME"
 if [[ "$CONSUL_INCLUDE_AWS" == "true" ]]; then
-    echo "## create ssh connection to AWS consul"
-    PORT=$(python -c 'import socket; s=socket.socket(); s.bind(("", 0)); print(s.getsockname()[1]); s.close()')
-    [ -z "$AWS_LOCAL_DATACENTER" ] && AWS_LOCAL_DATACENTER="us-east-1-peer1"
-    [ -z "$AWS_CONSUL_ENV" ] && AWS_CONSUL_ENV="prod"
-    ssh -fNT -L127.0.0.1:$PORT:consul-$AWS_CONSUL_ENV-$AWS_LOCAL_DATACENTER.jitsi.net:443 $ANSIBLE_SSH_USER@$AWS_LOCAL_DATACENTER-ssh.infra.jitsi.net
-    CONSUL_URL="https://consul-local.jitsi.net:$PORT"
+    CONSUL_URL="https://$CONSUL_AWS_HOST"
+fi
+if [[ "$CONSUL_INCLUDE_OCI" == "true" ]]; then
+    OCI_CONSUL_URL="https://$CONSUL_OCI_HOST"
 fi
 
-if [[ "$CONSUL_INCLUDE_OCI" == "true" ]]; then
-    echo "## create ssh connection to OCI consul"
-    PORT_OCI=$(python -c 'import socket; s=socket.socket(); s.bind(("", 0)); print(s.getsockname()[1]); s.close()')
-    OCI_LOCAL_REGION="us-phoenix-1"
-    OCI_LOCAL_DATACENTER="$ENVIRONMENT-$OCI_LOCAL_REGION"
-    ssh -fNT -L127.0.0.1:$PORT_OCI:$OCI_LOCAL_DATACENTER-consul.jitsi.net:443 $ANSIBLE_SSH_USER@$OCI_LOCAL_REGION-$ENVIRONMENT-ssh.oracle.infra.jitsi.net
-    OCI_CONSUL_URL="https://consul-local.jitsi.net:$PORT_OCI"
-fi
+echo "## consul-set-release-ga: CONSUL_URL: $CONSUL_URL"
+echo "## consul-set-release-ga: OCI_CONSUL_URL: $OCI_CONSUL_URL"
 
 if [ -z "$DATACENTER" ] && [ ! -z "$REGION" ]; then
     DATACENTER="$REGION-peer1"
@@ -84,7 +110,7 @@ if [ -z "$DATACENTERS" ]; then
     AWS_DATACENTERS=$(echo $AWS_DATACENTERS| jq -r ".[]")
 fi
 
-if [ ! -z "$DATACENTERS" ]; then
+if [[ ! -z "$DATACENTERS" && "$DATACENTERS" != '[]' ]]; then
     FINAL_RET=0
     ALL_DATACENTERS=$(echo $DATACENTERS| jq -r ".[]")
 
@@ -113,14 +139,16 @@ else
     FINAL_RET=2
 fi
 
-if [[ "$CONSUL_INCLUDE_AWS" == "true" ]]; then
-    SSH_PID=$(ps auxww | grep "ssh \-fNT -L127.0.0.1:$PORT" | awk '{print $2}')
-    kill $SSH_PID
-fi
+if [[ "$CONSUL_VIA_SSH" == "true" ]]; then
+    if [[ "$CONSUL_INCLUDE_AWS" == "true" ]]; then
+        SSH_PID=$(ps auxww | grep "ssh \-fNT -L127.0.0.1:$PORT" | awk '{print $2}')
+        kill $SSH_PID
+    fi
 
-if [[ "$CONSUL_INCLUDE_OCI" == "true" ]]; then
-    SSH_OCI_PID=$(ps auxww | grep "ssh \-fNT -L127.0.0.1:$PORT_OCI" | awk '{print $2}')
-    kill $SSH_OCI_PID
+    if [[ "$CONSUL_INCLUDE_OCI" == "true" ]]; then
+        SSH_OCI_PID=$(ps auxww | grep "ssh \-fNT -L127.0.0.1:$PORT_OCI" | awk '{print $2}')
+        kill $SSH_OCI_PID
+    fi
 fi
 
 exit $FINAL_RET
