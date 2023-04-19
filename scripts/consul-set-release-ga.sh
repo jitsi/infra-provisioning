@@ -17,13 +17,15 @@ if [ -z "$ENVIRONMENT" ]; then
     exit 1
 fi
 
-LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
-[ -e $LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh ] && . $LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh
-
 if [ -z "$RELEASE_NUMBER" ]; then
     echo "No RELEASE_NUMBER set, exiting"
     exit 1
 fi
+
+LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
+[ -e $LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh ] && . $LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh
+
+[ -e "$LOCAL_PATH/../clouds/all.sh" ] && . $LOCAL_PATH/../clouds/all.sh
 
 # string that is pushed into key value store
 RELEASE_VALUE="release-${RELEASE_NUMBER}"
@@ -136,14 +138,16 @@ else
     FINAL_RET=2
 fi
 
-if [[ "$CONSUL_INCLUDE_AWS" == "true" ]]; then
-    SSH_PID=$(ps auxww | grep "ssh \-fNT -L127.0.0.1:$PORT" | awk '{print $2}')
-    kill $SSH_PID
-fi
+if [[ "$CONSUL_VIA_SSH" == "true" ]]; then
+    if [[ "$CONSUL_INCLUDE_AWS" == "true" ]]; then
+        SSH_PID=$(ps auxww | grep "ssh \-fNT -L127.0.0.1:$PORT" | awk '{print $2}')
+        kill $SSH_PID
+    fi
 
-if [[ "$CONSUL_INCLUDE_OCI" == "true" ]]; then
-    SSH_OCI_PID=$(ps auxww | grep "ssh \-fNT -L127.0.0.1:$PORT_OCI" | awk '{print $2}')
-    kill $SSH_OCI_PID
+    if [[ "$CONSUL_INCLUDE_OCI" == "true" ]]; then
+        SSH_OCI_PID=$(ps auxww | grep "ssh \-fNT -L127.0.0.1:$PORT_OCI" | awk '{print $2}')
+        kill $SSH_OCI_PID
+    fi
 fi
 
 exit $FINAL_RET
