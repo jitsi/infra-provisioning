@@ -17,7 +17,12 @@ job "[JOB_NAME]" {
   type = "service"
 
   group "wavefront-proxy" {
-    count = 1
+    constraint {
+      operator  = "distinct_hosts"
+      value     = "true"
+    }
+
+    count = 2
     network {
       port "http" {
         to = 2878
