@@ -25,10 +25,6 @@ variable "coturn_count" {
 job "[JOB_NAME]" {
   datacenters = [var.dc]
   type        = "service"
-  spread {
-    attribute = "${node.unique.id}"
-    weight    = 100
-  }
 
   update {
     max_parallel      = 1
@@ -40,6 +36,12 @@ job "[JOB_NAME]" {
 
   group "coturn" {
     count = var.coturn_count
+
+    constraint {
+      operator  = "distinct_hosts"
+      value     = "true"
+    }
+
     restart {
       attempts = 3
       interval = "5m"

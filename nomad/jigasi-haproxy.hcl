@@ -6,7 +6,7 @@ variable "dns_zone" {
   default = "jitsi.net"
 }
 
-job "jigasi-haproxy" {
+job "[JOB_NAME]" {
   region = "global"
   datacenters = [var.dc]
 
