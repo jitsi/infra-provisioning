@@ -73,7 +73,7 @@ for SHARD in $SHARDS_READY; do
     SHARD_IP=$($LOCAL_PATH/node.py --environment $ENVIRONMENT --shard $SHARD --role core --oracle --region $SHARD_REGION --batch)
     if [ -z "$SHARD_IP" ]; then
         echo "No SHARD_IP found from $SHARD, skipping"
-        SHARD_CORE_PROVIDER="$($LOCAL_PATH/shard.sh core_provider $ANSIBLE_SSH_USER)"
+        SHARD_CORE_PROVIDER="$(SHARD=$SHARD ENVIRONMENT=$ENVIRONMENT $LOCAL_PATH/shard.sh core_provider $ANSIBLE_SSH_USER)"
         if [[ "$SHARD_CORE_PROVIDER" == "nomad" ]]; then
             echo "$SHARD is a nomad shard, not expected to have SHARD_IP"
         else

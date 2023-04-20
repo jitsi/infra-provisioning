@@ -34,5 +34,6 @@ fi
 
 NOMAD_JOB_PATH="$LOCAL_PATH/../nomad"
 NOMAD_DC="$ENVIRONMENT-$ORACLE_REGION"
+JOB_NAME="jigasi-haproxy-$ORACLE_REGION"
 
-sed -e "s/\[JOB_NAME\]/$DOMAIN/" "$NOMAD_JOB_PATH/jigasi-haproxy.hcl" | nomad job run -var="dc=$NOMAD_DC" -
+sed -e "s/\[JOB_NAME\]/$JOB_NAME/" "$NOMAD_JOB_PATH/jigasi-haproxy.hcl" | nomad job run -var="dc=$NOMAD_DC" -

@@ -28,6 +28,10 @@ variable "shard" {
   type = string
 }
 
+variable "shard_id" {
+  type = string
+}
+
 variable "octo_region" {
     type=string
 }
@@ -105,6 +109,11 @@ variable turnrelay_host {
 variable turnrelay_password {
   type = string
   default = "password"
+}
+
+variable web_repo {
+  type = string
+  default = "jitsi/web"
 }
 
 job "[JOB_NAME]" {
@@ -350,7 +359,7 @@ EOF
     task "web" {
       driver = "docker"
       config {
-        image        = "jitsi/web:${var.web_tag}"
+        image        = "${var.web_repo}:${var.web_tag}"
         ports = ["http","https","nginx-status"]
         volumes = ["local/_unlock:/usr/share/jitsi-meet/_unlock","local/base.html:/usr/share/jitsi-meet/base.html","local/nginx.conf:/defaults/nginx.conf","local/nginx-status.conf:/config/nginx/site-confs/status.conf"]
       }
@@ -925,6 +934,7 @@ EOF
         ENABLE_AV_MODERATION="1"
         ENABLE_BREAKOUT_ROOMS="1"
         ENABLE_AUTH="1"
+        PROSODY_ENABLE_RATE_LIMITS="1"
         AUTH_TYPE="jwt"
         JWT_ALLOW_EMPTY="1"
         JWT_ACCEPTED_ISSUERS="${var.jwt_accepted_issuers}"
@@ -1003,7 +1013,7 @@ EOF
 # Basic configuration options
 #
 GLOBAL_CONFIG="statistics = \"internal\"\nstatistics_interval = \"manual\"\nopenmetrics_allow_cidr = \"0.0.0.0/0\";\n"
-GLOBAL_MODULES="http_openmetrics,measure_stanza_counts,log_ringbuffer,firewall,muc_census,log_ringbuffer,external_services"
+GLOBAL_MODULES="http_openmetrics,measure_stanza_counts,log_ringbuffer,firewall,muc_census,muc_end_meeting,secure_interfaces,external_services,turncredentials_http"
 XMPP_MODULES=
 XMPP_INTERNAL_MUC_MODULES=
 XMPP_MUC_MODULES="{{ if eq "${var.enable_muc_allowners}" "true" }}muc_allowners{{ end }}"
