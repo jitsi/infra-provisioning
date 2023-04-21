@@ -47,8 +47,8 @@ export NOMAD_VAR_coturn_auth_secret="$(ansible-vault view $ENCRYPTED_COTURN_CRED
 
 set -x
 
-[ -z "$CERTIFICATE_NAME" ] && CERTIFICATE_NAME="star_jitsi_net-2023-08-19"
-export NOMAD_VAR_ssl_cert_name="$CERTIFICATE_NAME"
+[ -z "$COTURN_CERTIFICATE_NAME" ] && COTURN_CERTIFICATE_NAME="star_jitsi_net-2023-08-19"
+export NOMAD_VAR_ssl_cert_name="$COTURN_CERTIFICATE_NAME"
 
 [ -z "$DESIRED_CAPACITY" ] && DESIRED_CAPACITY=2
 export NOMAD_VAR_coturn_count="$DESIRED_CAPACITY"
