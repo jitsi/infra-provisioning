@@ -218,6 +218,7 @@ job "[JOB_NAME]" {
   region = "{{ env "meta.cloud_region" }}"
   cloud = "{{  env "NOMAD_META_cloud_provider" }}"
   cloud_provider = "{{ env "NOMAD_META_cloud_provider" }}"
+  pool_type = "{{ env "meta.pool_type" }}"
 
 EOF
         destination = "local/telegraf.conf"
