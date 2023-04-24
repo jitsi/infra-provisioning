@@ -24,7 +24,6 @@
           description: "Pool name, can be specified instead of release and mode"
       - string:
           name: ORACLE_REGION
-          default: us-phoenix-1
           description: "Oracle Region to build in"
           trim: true
       - string:
