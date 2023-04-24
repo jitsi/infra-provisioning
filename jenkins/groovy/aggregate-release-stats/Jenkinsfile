@@ -31,7 +31,7 @@ pipeline {
                 script {
                     echo 'stats aggregation beginning'
                     dir('infra-provisioning/scripts/aggregate-release-stats') {
-                        sh 'aggregate-release-stats.sh'
+                        sh './aggregate-release-stats.sh'
                     }
                 }
             }
