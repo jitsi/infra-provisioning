@@ -15,15 +15,15 @@ if [ -z "${ENVIRONMENT}" ] ;then
   exit 1
 fi
 
-[ -z "$REGIONS" ] && REGIONS="$DRG_PEER_REGIONS"
-[ -z "$REGIONS" ] && REGIONS="us-ashburn-1 us-phoenix-1 uk-london-1 sa-saopaulo-1 eu-frankfurt-1 ap-tokyo-1 ap-sydney-1 ap-mumbai-1"
-
-
 # e.g. /terraform/standalone
 LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 #pull in cloud-specific variables, e.g. tenancy
 [ -e "$LOCAL_PATH/../../clouds/oracle.sh" ] && . $LOCAL_PATH/../../clouds/oracle.sh
+[ -e "$LOCAL_PATH/../../sites/$ENVIRONMENT/stack-env.sh" ] && . "$LOCAL_PATH/../../sites/$ENVIRONMENT/stack-env.sh"
+
 [ -z "$BUCKET_NAMESPACE" ] && BUCKET_NAMESPACE="$ORACLE_S3_NAMESPACE"
+[ -z "$REGIONS" ] && REGIONS="$DRG_PEER_REGIONS"
+[ -z "$REGIONS" ] && REGIONS="us-ashburn-1 us-phoenix-1 uk-london-1 sa-saopaulo-1 eu-frankfurt-1 ap-tokyo-1 ap-sydney-1 ap-mumbai-1"
 
 if [ -z "${BUCKET_NAMESPACE}" ] ;then
   echo "BUCKET_NAMESPACE is not set."
