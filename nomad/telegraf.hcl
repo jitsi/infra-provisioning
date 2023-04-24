@@ -43,17 +43,30 @@ job "[JOB_NAME]" {
         static = 8125
       }
     }
+    # docker socket volume
+    volume "root-ro" {
+      type = "host"
+      source = "root-ro"
+      read_only = true
+    }
 
     task "telegraf" {
       user = "telegraf:997"
       driver = "docker"
       meta {
       }
+      volume_mount {
+        volume = "root-ro"
+        destination = "/hostfs"
+        read_only = true
+        propagation_mode = "host-to-task"
+      }
       config {
+        network_mode = "host"
         privileged = true
         image        = "telegraf:latest"
         ports = ["telegraf-statsd"]
-        volumes = ["/:/hostfs", "local/telegraf.conf:/etc/telegraf/telegraf.conf", "/var/run/docker.sock:/var/run/docker.sock"]
+        volumes = ["local/telegraf.conf:/etc/telegraf/telegraf.conf", "/var/run/docker.sock:/var/run/docker.sock"]
       }
       env {
 	    HOST_ETC = "/hostfs/etc"
