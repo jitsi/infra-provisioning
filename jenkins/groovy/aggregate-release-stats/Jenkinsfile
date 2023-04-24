@@ -21,7 +21,7 @@ pipeline {
                     // setup OCI credentials
                     utils.SetupOCI()
                     dir('infra-provisioning/scripts/aggregate-release-stats') {
-                        sh 'npm install'
+                        sh 'mkdir -p pre-terminate-stats'
                     }
                 }
             }
@@ -30,10 +30,8 @@ pipeline {
             steps {
                 script {
                     echo 'stats aggregation beginning'
-                    dir('infra-provisioning') {
-                        sh '''#!/bin/bash
-                        mkdir -p pre-terminate-stats
-                        scripts/aggregate-release-stats/aggregate-release-stats.sh'''
+                    dir('infra-provisioning/scripts/aggregate-release-stats') {
+                        sh 'aggregate-release-stats.sh'
                     }
                 }
             }
@@ -41,7 +39,7 @@ pipeline {
     }
     post {
         always {
-            archiveArtifacts artifacts: 'pre-terminate-stats/**'
+            archiveArtifacts artifacts: 'infra-provisioning/scripts/aggregate-release-stats/pre-terminate-stats/**'
             // Clean up afterwards
             cleanWs()
         }
