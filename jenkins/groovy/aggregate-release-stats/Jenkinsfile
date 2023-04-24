@@ -1,0 +1,46 @@
+def utils
+
+pipeline {
+    agent any
+    options {
+        ansiColor('xterm')
+        timestamps()
+        buildDiscarder(logRotator(numToKeepStr: '10', artifactNumToKeepStr: '10'))
+    }
+    stages {
+        // output stage, shows off our input parameters
+        stage ("setup") {
+            steps {
+                script {
+                    // load utility function
+                    def rootDir = pwd()
+                    utils = load "${rootDir}/jenkins/groovy/Utils.groovy"
+                    // checkout repos
+                    utils.SetupRepos(env.VIDEO_INFRA_BRANCH)
+
+                    // setup OCI credentials
+                    utils.SetupOCI()
+                }
+            }
+        }
+        stage ("stats aggregation") {
+            steps {
+                script {
+                    echo 'stats aggregation beginning'
+                    dir('infra-provisioning') {
+                        sh '''#!/bin/bash
+                        mkdir -p pre-terminate-stats
+                        scripts/aggregate-release-stats/release-stats.sh'''
+                    }
+                }
+            }
+        }
+    }
+    post {
+        always {
+            archiveArtifacts artifacts: 'pre-terminate-stats/**'
+            // Clean up afterwards
+            cleanWs()
+        }
+    }
+}
