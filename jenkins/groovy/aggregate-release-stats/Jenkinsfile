@@ -30,7 +30,7 @@ pipeline {
                     dir('infra-provisioning') {
                         sh '''#!/bin/bash
                         mkdir -p pre-terminate-stats
-                        scripts/aggregate-release-stats/release-stats.sh'''
+                        scripts/aggregate-release-stats/aggregate-release-stats.sh'''
                     }
                 }
             }
