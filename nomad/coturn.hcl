@@ -42,6 +42,11 @@ job "[JOB_NAME]" {
       value     = "true"
     }
 
+    constraint {
+      attribute  = "${meta.pool_type}"
+      value     = "coturn"
+    }
+
     restart {
       attempts = 3
       interval = "5m"
