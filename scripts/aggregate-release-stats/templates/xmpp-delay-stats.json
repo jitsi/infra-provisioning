@@ -1,0 +1,50 @@
+{
+  "colibri": {
+    "buckets": {
+      "0_to_5_ms": 4082,
+      "1000_to_max_ms": 0,
+      "100_to_1000_ms": 0,
+      "50_to_100_ms": 0,
+      "5_to_50_ms": 470
+    },
+    "discarded": 0,
+    "total_count": 4552,
+    "total_value": 9219
+  },
+  "colibri_processing": {
+    "buckets": {
+      "0_to_5_ms": 4129,
+      "1000_to_max_ms": 0,
+      "100_to_1000_ms": 0,
+      "50_to_100_ms": 0,
+      "5_to_50_ms": 423
+    },
+    "discarded": 0,
+    "total_count": 4552,
+    "total_value": 8462
+  },
+  "health": {
+    "buckets": {
+      "0_to_5_ms": 4932,
+      "1000_to_max_ms": 0,
+      "100_to_1000_ms": 0,
+      "50_to_100_ms": 0,
+      "5_to_50_ms": 0
+    },
+    "discarded": 0,
+    "total_count": 4932,
+    "total_value": 24
+  },
+  "version": {
+    "buckets": {
+      "0_to_5_ms": 0,
+      "1000_to_max_ms": 0,
+      "100_to_1000_ms": 0,
+      "50_to_100_ms": 0,
+      "5_to_50_ms": 0
+    },
+    "discarded": 0,
+    "total_count": 0,
+    "total_value": 0
+  }
+}
