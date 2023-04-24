@@ -1,0 +1,8 @@
+{
+  "CPU_POOL": {
+    "completed_task_count": 0
+  },
+  "IO_POOL": {
+    "completed_task_count": 0
+  }
+}
