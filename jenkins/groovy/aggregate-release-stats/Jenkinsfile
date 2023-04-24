@@ -20,6 +20,9 @@ pipeline {
 
                     // setup OCI credentials
                     utils.SetupOCI()
+                    dir('infra-provisioning/scripts/aggregate-release-stats') {
+                        sh 'npm install'
+                    }
                 }
             }
         }
