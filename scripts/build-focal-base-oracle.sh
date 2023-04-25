@@ -94,6 +94,7 @@ packer build \
 -var "environment=$ENVIRONMENT" \
 -var "ansible_ssh_user=ubuntu" \
 -var "ansible_build_path=$ANSIBLE_BUILD_PATH" \
+-var "image_architecture=$IMAGE_ARCH" \
 -var "base_image_type=$BASE_IMAGE_TYPE" \
 -var "base_image_ocid=$BARE_IMAGE_ID" \
 -var "region=$ORACLE_REGION" \
