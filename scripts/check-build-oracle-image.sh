@@ -15,16 +15,19 @@ LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
 [ -z "$ORACLE_REGION" ] && ORACLE_REGION=$DEFAULT_ORACLE_REGION
 
+[ -z "$IMAGE_ARCH" ] && IMAGE_ARCH="x86_64"
+
 # #pull in region-specific variables
 # [ -e "../all/regions/${ORACLE_REGION}-oracle.sh" ] && . ../all/regions/${ORACLE_REGION}-oracle.sh
 
 function checkImage() {
     IMAGE_TYPE=$1
     IMAGE_VERSION=$2
+    IMAGE_ARCH=$3
 
-    EXISTING_IMAGE_OCID=$($LOCAL_PATH/oracle_custom_images.py --type $IMAGE_TYPE --version "$IMAGE_VERSION" --region="$ORACLE_REGION" --compartment_id="$TENANCY_OCID" --tag_namespace="$TAG_NAMESPACE")
+    EXISTING_IMAGE_OCID=$($LOCAL_PATH/oracle_custom_images.py --type $IMAGE_TYPE --version "$IMAGE_VERSION" --region="$ORACLE_REGION" --architecture "$IMAGE_ARCH" --compartment_id="$TENANCY_OCID" --tag_namespace="$TAG_NAMESPACE")
 
-    if [ ! -z "$EXISTING_IMAGE_OCID" ]; then
+    if [ -n "$EXISTING_IMAGE_OCID" ]; then
         IMAGE_OCID="$EXISTING_IMAGE_OCID"
         return 0
     fi
@@ -43,7 +46,7 @@ case $IMAGE_TYPE in
     'JavaJibri')
         ;;
     *)
-        checkImage "$IMAGE_TYPE" "latest"
+        checkImage "$IMAGE_TYPE" "latest" "$IMAGE_ARCH"
         if [ $? -eq 0 ]; then
           IMAGE_EXISTS="true"
           echo "$IMAGE_TYPE $ORACLE_REGION: $IMAGE_OCID"
@@ -55,7 +58,7 @@ case $IMAGE_TYPE in
 esac
 
 if [ ! -z "$JVB_VERSION" ]; then
-    checkImage "JVB" "$JVB_VERSION"
+    checkImage "JVB" "$JVB_VERSION" "$IMAGE_ARCH"
     if [ $? -eq 0 ]; then
       JVB_IMAGE_EXISTS="true"
       JVB_IMAGE_OCID="$IMAGE_OCID"
@@ -68,7 +71,7 @@ if [ ! -z "$JVB_VERSION" ]; then
 fi
 
 if [ ! -z "$SIGNAL_VERSION" ]; then
-    checkImage "Signal" "$SIGNAL_VERSION"
+    checkImage "Signal" "$SIGNAL_VERSION" "$IMAGE_ARCH"
     if [ $? -eq 0 ]; then
       SIGNAL_IMAGE_EXISTS="true"
       SIGNAL_IMAGE_OCID="$IMAGE_OCID"
@@ -81,7 +84,7 @@ if [ ! -z "$SIGNAL_VERSION" ]; then
 fi
 
 if [ ! -z "$JIGASI_VERSION" ]; then
-    checkImage "Jigasi" "$JIGASI_VERSION"
+    checkImage "Jigasi" "$JIGASI_VERSION" "$IMAGE_ARCH"
     if [ $? -eq 0 ]; then
       JIGASI_IMAGE_EXISTS="true"
       JIGASI_IMAGE_OCID="$IMAGE_OCID"
@@ -95,7 +98,7 @@ fi
 
 
 if [ ! -z "$JIBRI_VERSION" ]; then
-    checkImage "JavaJibri" "$JIBRI_VERSION"
+    checkImage "JavaJibri" "$JIBRI_VERSION" "$IMAGE_ARCH"
     if [ $? -eq 0 ]; then
       JIBRI_IMAGE_EXISTS="true"
       JIBRI_IMAGE_OCID="$IMAGE_OCID"

@@ -134,6 +134,13 @@ resource "oci_identity_tag" "Type" {
   tag_namespace_id = oci_identity_tag_namespace.eghtjitsi.id
 }
 
+resource "oci_identity_tag" "Arch" {
+  #Required
+  description      = "Architecture"
+  name             = "Arch"
+  tag_namespace_id = oci_identity_tag_namespace.eghtjitsi.id
+}
+
 resource "oci_identity_tag" "Version" {
   #Required
   description      = "Version"

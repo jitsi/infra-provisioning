@@ -38,6 +38,12 @@ fi
 ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 [ -e "$LOCAL_PATH/../clouds/${ORACLE_CLOUD_NAME}.sh" ] && . $LOCAL_PATH/../clouds/${ORACLE_CLOUD_NAME}.sh
 
+[ -z "$IMAGE_ARCH" ] && IMAGE_ARCH="x86_64"
+
+if [[ "$IMAGE_ARCH" == "aarch64" ]]; then
+  [ -z "$SHAPE" ] && SHAPE="$SHAPE_A_1"
+fi
+
 [ -z "$SHAPE" ] && SHAPE="$SHAPE_E_4"
 [ -z "$OCPUS" ] && OCPUS="4"
 [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS="16"
@@ -47,7 +53,9 @@ ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 [ -z "$BARE_IMAGE_ID" ] && BARE_IMAGE_ID=$DEFAULT_FOCAL_IMAGE_ID
 [ -z "$BASE_IMAGE_TYPE" ] && BASE_IMAGE_TYPE="FocalBare"
 
-EXISTING_IMAGE_OCID=$($LOCAL_PATH/oracle_custom_images.py --type FocalBase --version "latest" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
+arch_from_shape $SHAPE
+
+EXISTING_IMAGE_OCID=$($LOCAL_PATH/oracle_custom_images.py --type FocalBase --architecture "$IMAGE_ARCH" --version "latest" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
 if [ ! -z "$EXISTING_IMAGE_OCID" ]; then
   if $FORCE_BUILD_IMAGE; then
     echo "Base image already exists, but FORCE_BUILD_IMAGE is true so a new image with that same version will be build"
@@ -82,6 +90,7 @@ packer build \
 -var "environment=$ENVIRONMENT" \
 -var "ansible_ssh_user=ubuntu" \
 -var "ansible_build_path=$ANSIBLE_BUILD_PATH" \
+-var "image_architecture=$IMAGE_ARCH" \
 -var "base_image_type=$BASE_IMAGE_TYPE" \
 -var "base_image_ocid=$BARE_IMAGE_ID" \
 -var "region=$ORACLE_REGION" \

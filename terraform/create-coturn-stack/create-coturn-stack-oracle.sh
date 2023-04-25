@@ -61,8 +61,10 @@ if [[ "$NOMAD_COTURN_FLAG" == "true" ]]; then
   COTURN_IMAGE_TYPE="JammyBase"
 fi
 
+arch_from_shape $SHAPE
+
 #Look up images based on version, or default to latest
-[ -z "$COTURN_IMAGE_OCID" ] && COTURN_IMAGE_OCID=$($LOCAL_PATH/../../scripts/oracle_custom_images.py --type $COTURN_IMAGE_TYPE --version "latest" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
+[ -z "$COTURN_IMAGE_OCID" ] && COTURN_IMAGE_OCID=$($LOCAL_PATH/../../scripts/oracle_custom_images.py --type $COTURN_IMAGE_TYPE --version "latest" --architecture "$IMAGE_ARCH" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
 
 #No image was found, probably not built yet?
 if [ -z "$COTURN_IMAGE_OCID" ]; then

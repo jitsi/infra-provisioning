@@ -33,6 +33,7 @@ def image_data_from_image_obj(image, tag_namespace):
     return {'image_ts': image.time_created,
             'image_epoch_ts':image_tags.get('TS'),
             'image_type':image_tags.get('Type'),
+            'image_architecture': image_tags.get('Arch'),
             'image_base_type': image_tags.get('BaseImageType'),
             'image_base_ocid': image_tags.get('BaseImageOCID'),
             'image_version':image_tags.get('Version'),
@@ -112,6 +113,7 @@ parser.add_argument('--type', action='store',
 parser.add_argument('--version', action='store',
                     help='Version of package (defaults to most recent)', default='latest')
 parser.add_argument('--region', action='store', help='Oracle Region', default='eu-frankfurt-1')
+parser.add_argument('--architecture', action='store', help='Architecture', default='x86_64')
 parser.add_argument('--compartment_id', action='store', help='Oracle Compartment Id', default='ocid1.compartment.oc1..aaaaaaaaqhjkvm74j5cz4cfbs5r3mumnvbujxbmn2vmjqzpeuzizfdtm4i4a')
 parser.add_argument('--tenancy_id', action='store', help='Oracle tenancy', default='ocid1.tenancy.oc1..aaaaaaaakxqd22zn5pin6sjgluadmjovlxqrd7sakqm2suiy3xkgg2bac3hq')
 parser.add_argument('--tag_namespace', action='store', help='Oracle Compartment Id', default='jitsi')
@@ -145,7 +147,7 @@ if args.clean:
     # old way, now deprecated in favor of search API
 #    found_images = get_image_list(compute_client, args.compartment_id, args.tenancy_id, args.tag_namespace, args.type, version)
     # only clean images that are not tagged with freeform-tag  'production-image'
-    found_images = get_oracle_image_list_by_search(args.type, version, [args.region], config)
+    found_images = get_oracle_image_list_by_search(args.type, version, [args.region], config, args.architecture)
 
     non_prod_images = [ x for x in found_images if not x['image_production'] ]
     prod_images = [ x for x in found_images if x['image_production'] ]
@@ -187,7 +189,7 @@ elif args.tag_production:
         update_image_tags(found_image, {'production-image': 'true'})
 else:
     # new way, using search API instead of brute force dump of all images
-    found_images = get_oracle_image_list_by_search(args.type, version, [args.region], config)
+    found_images = get_oracle_image_list_by_search(args.type, version, [args.region], config, args.architecture)
 
     if len(found_images) > 0:
         if args.image_details:
@@ -195,5 +197,5 @@ else:
         else:
             print(found_images[0]['image_id'])
     else:
-        warning('No image found matching type {} and version {}'.format(args.type, args.version))
+        warning('No image found matching type {} and version {} and arch {}'.format(args.type, args.version, args.architecture))
         exit(1)

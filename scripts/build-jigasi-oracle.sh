@@ -42,11 +42,19 @@ fi
 ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 [ -e "$LOCAL_PATH/../clouds/${ORACLE_CLOUD_NAME}.sh" ] && . $LOCAL_PATH/../clouds/${ORACLE_CLOUD_NAME}.sh
 
+[ -z "$IMAGE_ARCH" ] && IMAGE_ARCH="x86_64"
+
+if [[ "$IMAGE_ARCH" == "aarch64" ]]; then
+  [ -z "$SHAPE" ] && SHAPE="$SHAPE_A_1"
+fi
+
 [ -z "$SHAPE" ] && SHAPE="$SHAPE_E_3"
 [ -z "$OCPUS" ] && OCPUS="4"
 [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS="16"
 
-EXISTING_IMAGE_OCID=$($LOCAL_PATH/oracle_custom_images.py --type Jigasi --version "$JIGASI_VERSION" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
+arch_from_shape $SHAPE
+
+EXISTING_IMAGE_OCID=$($LOCAL_PATH/oracle_custom_images.py --type Jigasi --version "$JIGASI_VERSION" --architecture "$IMAGE_ARCH" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
 if [ ! -z "$EXISTING_IMAGE_OCID" ]; then
   if $FORCE_BUILD_IMAGE; then
     echo "Jigasi image already exists, but FORCE_BUILD_IMAGE is true so a new image with that same version will be build"
@@ -59,7 +67,7 @@ fi
 [ -z "$BASE_IMAGE_TYPE" ] && BASE_IMAGE_TYPE="$JIGASI_BASE_IMAGE_TYPE"
 [ -z "$BASE_IMAGE_TYPE" ] && BASE_IMAGE_TYPE="JammyBase"
 
-[ -z "$BASE_IMAGE_ID" ] && BASE_IMAGE_ID=$($LOCAL_PATH/oracle_custom_images.py --type $BASE_IMAGE_TYPE --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
+[ -z "$BASE_IMAGE_ID" ] && BASE_IMAGE_ID=$($LOCAL_PATH/oracle_custom_images.py --type $BASE_IMAGE_TYPE --architecture "$IMAGE_ARCH" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
 
 # since focal, python is python3, so use that
 [ -z "$SYSTEM_PYTHON" ] && SYSTEM_PYTHON="/usr/bin/python3"
@@ -88,7 +96,7 @@ DEPLOY_TAGS=${ANSIBLE_TAGS-"all"}
 # clean custom Jigasi images if limit is exceeded (may fail, but that's OK)
 for CLEAN_ORACLE_REGION in $ORACLE_IMAGE_REGIONS; do
   echo "Cleaning images in $CLEAN_ORACLE_REGION"
-  $LOCAL_PATH/oracle_custom_images.py --clean $ORACLE_CUSTOM_IMAGE_LIMIT --delete --region=$CLEAN_ORACLE_REGION --type=Jigasi --compartment_id=$TENANCY_OCID;
+  $LOCAL_PATH/oracle_custom_images.py --clean $ORACLE_CUSTOM_IMAGE_LIMIT --architecture "$IMAGE_ARCH" --delete --region=$CLEAN_ORACLE_REGION --type=Jigasi --compartment_id=$TENANCY_OCID;
 done
 
 
@@ -112,6 +120,7 @@ packer build \
   -var "environment=$ENVIRONMENT" \
   -var "ansible_build_path=$ANSIBLE_BUILD_PATH" \
   -var "ansible_ssh_user=$ANSIBLE_SSH_USER" \
+  -var "image_architecture=$IMAGE_ARCH" \
   -var "base_image_type=$BASE_IMAGE_TYPE" \
   -var "base_image_ocid=$BASE_IMAGE_ID" \
   -var "jigasi_deb_pkg_version=$JIGASI_VERSION" \

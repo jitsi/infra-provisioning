@@ -1674,7 +1674,7 @@ def convert_aws_regions_to_oracle(regions):
 
     return out_regions
 
-def get_oracle_image_list_by_search(type,version=False,regions=False,config=False,compartment=False):
+def get_oracle_image_list_by_search(type,version=False,regions=False,config=False,architecture='',compartment=False):
     if not config:
         config = oci.config.from_file()
     if not compartment:
@@ -1691,6 +1691,9 @@ def get_oracle_image_list_by_search(type,version=False,regions=False,config=Fals
 
     conditions_list.append('(definedTags.key = \'Type\' && definedTags.value = \'%s\')'%type)
 
+    if architecture and architecture != 'x86_64':
+        conditions_list.append('(definedTags.key = \'Arch\' && definedTags.value = \'%s\')'%architecture)
+
     if version and version != 'latest':
         conditions_list.append('(definedTags.key = \'Version\' && definedTags.value = \'%s\')'%version)
 
@@ -1706,12 +1709,7 @@ def get_oracle_image_list_by_search(type,version=False,regions=False,config=Fals
         # print('searching %s : %s'%(region,image_query_str))
         image_resp = oci_search_resources(search, image_query_str)
         if image_resp and image_resp.data and len(image_resp.data.items) > 0:
-            if version == 'latest':
-                # latest so use only the first response, responses should already be reverse sorted by time
-                image_data = [image_resp.data.items[0]]
-            else:
-                image_data = image_resp.data.items
-            for i in image_data:
+            for i in image_resp.data.items:
                 # pprint.pprint(i)
                 tags = {}
                 tags.update(i.freeform_tags)
@@ -1720,6 +1718,9 @@ def get_oracle_image_list_by_search(type,version=False,regions=False,config=Fals
                         tags.update(i.defined_tags[k])
                     if jitsi_defined_tag_key in i.defined_tags:
                         tags.update(i.defined_tags[jitsi_defined_tag_key])
+
+                if 'Arch' not in tags:
+                    tags['Arch'] = 'x86_64'
 
                 if 'TS' in tags:
                     ts = tags['TS']
@@ -1762,6 +1763,7 @@ def get_oracle_image_list_by_search(type,version=False,regions=False,config=Fals
                     'image_epoch_ts':ts,
                     'image_name':i.display_name,
                     'image_type':tags['Type'],
+                    'image_architecture':tags['Arch'],
                     'image_version':version,
                     'image_id': i.identifier,
                     'image_build': build_id,
@@ -1778,7 +1780,13 @@ def get_oracle_image_list_by_search(type,version=False,regions=False,config=Fals
                     'provider':'oracle',
                 }
 
-                image_list.append(image)
+                # filter by architecture, if none is set assume x86_64
+                # remove once all images are tagged with x86_64
+                if architecture == image['image_architecture']:
+                    image_list.append(image)
+                    if version == 'latest':
+                        return image_list
+                        # latest so use only the first response, responses should already be reverse sorted by time
 
     return image_list
 

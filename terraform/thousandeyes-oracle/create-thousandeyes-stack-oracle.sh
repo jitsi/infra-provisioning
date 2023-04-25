@@ -46,7 +46,9 @@ ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 
 [ -z "$DISPLAY_NAME" ] && DISPLAY_NAME="$NAME"
 
-[ -z "$TE_IMAGE_ID" ] && TE_IMAGE_ID=$($LOCAL_PATH/../../scripts/oracle_custom_images.py --type FocalBase --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
+arch_from_shape $SHAPE
+
+[ -z "$TE_IMAGE_ID" ] && TE_IMAGE_ID=$($LOCAL_PATH/../../scripts/oracle_custom_images.py --type FocalBase --architecture "$IMAGE_ARCH" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
 if [ -z "$TE_IMAGE_ID" ]; then
   echo "No TE_IMAGE_ID found.  Exiting..."
   exit 1
