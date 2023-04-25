@@ -155,10 +155,13 @@ IMAGE_TYPE=$(echo "$IMAGE_DETAILS" | jq -r .\"'image_type'\")
 IMAGE_VERSION=$(echo "$IMAGE_DETAILS" | jq -r .\"'image_version'\")
 IMAGE_BUILD=$(echo "$IMAGE_DETAILS" | jq -r .\"'image_build'\")
 IMAGE_BASE_TYPE=$(echo "$IMAGE_DETAILS" | jq -r .\"'image_base_type'\")
+IMAGE_ARCHITECTURE=$(echo "$IMAGE_DETAILS" | jq -r .\"'image_architecture'\")
 IMAGE_BASE_OCID=$(echo "$IMAGE_DETAILS" | jq -r .\"'image_base_ocid'\")
 IMAGE_ENVIRONMENT_TYPE=$(echo "$IMAGE_DETAILS" | jq -r .\"'image_environment_type'\")
 IMAGE_META_VERSION=$(echo "$IMAGE_DETAILS" | jq -r .\"'image_meta_version'\")
 IMAGE_COMPARTMENT=$(echo "$IMAGE_DETAILS" | jq -r .\"'image_compartment_id'\")
+
+[ -z "$IMAGE_ARCHITECTURE" ] && IMAGE_ARCHITECTURE="x86_64"
 
 if [ "$IMAGE_TYPE" == "JVB" ] || [ "$IMAGE_TYPE" == "JavaJibri" ] || [ "$IMAGE_TYPE" == "Jigasi" ]; then
   IMAGE_NAME="$IMAGE_NAME_PREFIX-$EXPORT_ORACLE_REGION-$EXPORT_ENVIRONMENT-$SERVICE_VERSION-$IMAGE_TIMESTAMP"
@@ -289,6 +292,7 @@ for REGION in "${IMPORT_ORACLE_REGIONS[@]}"; do
       "Name": "'${IMAGE_NAME}'",
       "build_id": "'${IMAGE_BUILD}'",
       "Version": "'${IMAGE_VERSION}'",
+      "Arch": "'${IMAGE_ARCHITECTURE}'",
       "BaseImageType": "'${IMAGE_BASE_TYPE}'",
       "BaseImageOCID": "'${IMAGE_BASE_OCID}'",
       "TS": "'${IMAGE_TIMESTAMP}'",
@@ -315,6 +319,7 @@ for REGION in "${IMPORT_ORACLE_REGIONS[@]}"; do
       "jitsi": {
       "Name": "'${IMAGE_NAME}'",
       "build_id": "'${IMAGE_BUILD}'",
+      "Arch": "'${IMAGE_ARCHITECTURE}'",
       "BaseImageType": "'${IMAGE_BASE_TYPE}'",
       "BaseImageOCID": "'${IMAGE_BASE_OCID}'",
       "TS": "'${IMAGE_TIMESTAMP}'",

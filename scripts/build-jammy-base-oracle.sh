@@ -38,16 +38,26 @@ fi
 ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 [ -e "$LOCAL_PATH/../clouds/${ORACLE_CLOUD_NAME}.sh" ] && . $LOCAL_PATH/../clouds/${ORACLE_CLOUD_NAME}.sh
 
+[ -z "$IMAGE_ARCH" ] && IMAGE_ARCH="x86_64"
+
+if [[ "$IMAGE_ARCH" == "aarch64" ]]; then
+  SHAPE="$SHAPE_A_1"
+fi
+
 [ -z "$SHAPE" ] && SHAPE="$SHAPE_E_4"
 [ -z "$OCPUS" ] && OCPUS="4"
 [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS="16"
 
 
+if [[ "$SHAPE" == "$SHAPE_A_1" ]]; then
+  BARE_IMAGE_ID="$ARM_BARE_IMAGE_ID"
+fi
+
 # TODO query available standard images with ubuntu 22.04
 [ -z "$BARE_IMAGE_ID" ] && BARE_IMAGE_ID=$DEFAULT_JAMMY_IMAGE_ID
 [ -z "$BASE_IMAGE_TYPE" ] && BASE_IMAGE_TYPE="JammyBare"
 
-EXISTING_IMAGE_OCID=$($LOCAL_PATH/oracle_custom_images.py --type JammyBase --version "latest" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
+EXISTING_IMAGE_OCID=$($LOCAL_PATH/oracle_custom_images.py --type JammyBase --version "latest" --architecture "$IMAGE_ARCH" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
 if [ ! -z "$EXISTING_IMAGE_OCID" ]; then
   if $FORCE_BUILD_IMAGE; then
     echo "Base image already exists, but FORCE_BUILD_IMAGE is true so a new image with that same version will be build"
@@ -82,6 +92,7 @@ packer build \
 -var "ansible_build_path=$ANSIBLE_BUILD_PATH" \
 -var "base_image_type=$BASE_IMAGE_TYPE" \
 -var "base_image_ocid=$BARE_IMAGE_ID" \
+-var "image_architecture=$IMAGE_ARCH" \
 -var "region=$ORACLE_REGION" \
 -var "availability_domain=$AVAILABILITY_DOMAIN" \
 -var "subnet_ocid=$NAT_SUBNET_OCID" \

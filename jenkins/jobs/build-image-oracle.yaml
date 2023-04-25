@@ -13,6 +13,10 @@
           description: "Type of base image to build, could be 'JVB', 'Jigasi', 'JavaJibri', 'Signal', 'SeleniumGrid' 'JammyBase' defaults to 'JammyBase'."
           trim: true
       - string:
+          name: IMAGE_ARCH
+          description: "Arch of image to build, could be 'aarch64' or 'x86_64'"
+          trim: true
+      - string:
           name: ORACLE_REGION
           default: us-phoenix-1
           description: "Region to build in, defaults to 'us-phoenix-1'."
