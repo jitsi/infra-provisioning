@@ -11,7 +11,7 @@ function aggregate(template, j) {
             for (let i = 0; i < j[field].length; i++) {
                 template[field][i] = template[field][i] + j[field][i];
             }
-        } else if (typeof template[field] === 'number') {
+        } else if (typeof template[field] === 'number' && typeof j[field] === 'number') {
             template[field] = template[field] + j[field];
         } else if (typeof template[field] === 'object') {
             if (typeof j[field] === 'object') {
