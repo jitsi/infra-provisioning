@@ -1674,7 +1674,7 @@ def convert_aws_regions_to_oracle(regions):
 
     return out_regions
 
-def get_oracle_image_list_by_search(type,version=False,regions=False,config=False,architecture=False,compartment=False):
+def get_oracle_image_list_by_search(type,version=False,regions=False,config=False,architecture='',compartment=False):
     if not config:
         config = oci.config.from_file()
     if not compartment:
@@ -1709,12 +1709,7 @@ def get_oracle_image_list_by_search(type,version=False,regions=False,config=Fals
         # print('searching %s : %s'%(region,image_query_str))
         image_resp = oci_search_resources(search, image_query_str)
         if image_resp and image_resp.data and len(image_resp.data.items) > 0:
-            if version == 'latest':
-                # latest so use only the first response, responses should already be reverse sorted by time
-                image_data = [image_resp.data.items[0]]
-            else:
-                image_data = image_resp.data.items
-            for i in image_data:
+            for i in image_resp.data.items:
                 # pprint.pprint(i)
                 tags = {}
                 tags.update(i.freeform_tags)
@@ -1787,8 +1782,11 @@ def get_oracle_image_list_by_search(type,version=False,regions=False,config=Fals
 
                 # filter by architecture, if none is set assume x86_64
                 # remove once all images are tagged with x86_64
-                if architecture == image['image_architecture'] or (image['image_architecture'] == '' and architecture=='x86_64'):
+                if architecture == image['image_architecture']:
                     image_list.append(image)
+                    if version == 'latest':
+                        return image_list
+                        # latest so use only the first response, responses should already be reverse sorted by time
 
     return image_list
 
