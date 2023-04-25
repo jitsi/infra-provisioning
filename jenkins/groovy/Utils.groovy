@@ -44,20 +44,20 @@ def SetupAnsible() {
 def CheckSkipBuild(image_type, environment, force_build) {
     echo "checking for existing ${image_type} images before building, FORCE_BUILD_IMAGE is ${force_build}"
     def checkOutput = sh(
-        returnStdout: true,
+        returnStatus: true,
         script: """#!/bin/bash
         export IMAGE_TYPE="${image_type}"
         export CLOUDS=\$(scripts/release_clouds.sh ${environment})
         SKIP_BUILD=false
         if [[ "${force_build}" != "true" ]]; then
-            scripts/check-build-oracle-image-for-clouds.sh 1>&2 && SKIP_BUILD=true
+            scripts/check-build-oracle-image-for-clouds.sh && SKIP_BUILD=true
         fi
         if \$SKIP_BUILD; then
-            echo 'skip'
+            exit 1
         fi"""
-    ).trim()
+    )
     // echo checkOutput;
-    return (checkOutput == 'skip');
+    return (checkOutput == 1);
 }
 
 def SetupRepos(branch) {
