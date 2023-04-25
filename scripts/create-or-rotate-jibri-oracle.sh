@@ -37,44 +37,11 @@ ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 #if we're not given versions, search for the latest of each type of image
 [ -z "$JIBRI_VERSION" ] && JIBRI_VERSION='latest'
 
-#Look up images based on version, or default to latest
-[ -z "$JIBRI_IMAGE_OCID" ] && JIBRI_IMAGE_OCID=$($LOCAL_PATH/oracle_custom_images.py --type JavaJibri --version "$JIBRI_VERSION" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
-
-#No image was found, probably not built yet?
-if [ -z "$JIBRI_IMAGE_OCID" ]; then
-  echo "No JIBRI_IMAGE_OCID provided or found. Exiting.. "
-  exit 210
-fi
-
-if [ -z "$JIBRI_RELEASE_NUMBER" ]; then
-  echo "No JIBRI_RELEASE_NUMBER found.  Exiting..."
-  exit 205
-fi
-
-[ -z "$ORACLE_GIT_BRANCH" ] && ORACLE_GIT_BRANCH="main"
-
 [ -z "$JIBRI_TYPE" ] && export JIBRI_TYPE="java-jibri"
 if [ "$JIBRI_TYPE" != "java-jibri" ] &&  [ "$JIBRI_TYPE" != "sip-jibri" ]; then
   echo "Unsupported jibri type $JIBRI_TYPE";
   exit 206
 fi
-
-
-if [ -z "$AUTOSCALER_URL" ]; then
-  echo "No AUTOSCALER_URL provided or found. Exiting.. "
-  exit 212
-fi
-
-if [ -z "$JWT_ENV_FILE" ]; then 
-  if [ -z "$SIDECAR_ENV_VARIABLES" ]; then
-    echo "No SIDECAR_ENV_VARIABLES provided or found. Exiting.. "
-    exit 211
-  fi
-
-  JWT_ENV_FILE="/etc/jitsi/autoscaler-sidecar/$SIDECAR_ENV_VARIABLES"
-fi
-
-[ -z "$TOKEN" ] && TOKEN=$(JWT_ENV_FILE=$JWT_ENV_FILE /opt/jitsi/jitsi-autoscaler-sidecar/scripts/jwt.sh)
 
 if [ "$JIBRI_TYPE" == "java-jibri" ]; then
   [ -z "$TYPE" ] && TYPE="jibri"
@@ -108,6 +75,43 @@ elif [ "$JIBRI_TYPE" == "sip-jibri" ]; then
   fi
 fi
 
+if [[ "$SHAPE" == "$SHAPE_A_1" ]]; then
+  IMAGE_ARCH="aarch64"
+else
+  IMAGE_ARCH="x86_64"
+fi
+
+#Look up images based on version, or default to latest
+[ -z "$JIBRI_IMAGE_OCID" ] && JIBRI_IMAGE_OCID=$($LOCAL_PATH/oracle_custom_images.py --type JavaJibri --version "$JIBRI_VERSION" --architecture "$IMAGE_ARCH" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
+
+#No image was found, probably not built yet?
+if [ -z "$JIBRI_IMAGE_OCID" ]; then
+  echo "No JIBRI_IMAGE_OCID provided or found. Exiting.. "
+  exit 210
+fi
+
+if [ -z "$JIBRI_RELEASE_NUMBER" ]; then
+  echo "No JIBRI_RELEASE_NUMBER found.  Exiting..."
+  exit 205
+fi
+
+[ -z "$ORACLE_GIT_BRANCH" ] && ORACLE_GIT_BRANCH="main"
+
+if [ -z "$AUTOSCALER_URL" ]; then
+  echo "No AUTOSCALER_URL provided or found. Exiting.. "
+  exit 212
+fi
+
+if [ -z "$JWT_ENV_FILE" ]; then 
+  if [ -z "$SIDECAR_ENV_VARIABLES" ]; then
+    echo "No SIDECAR_ENV_VARIABLES provided or found. Exiting.. "
+    exit 211
+  fi
+
+  JWT_ENV_FILE="/etc/jitsi/autoscaler-sidecar/$SIDECAR_ENV_VARIABLES"
+fi
+
+[ -z "$TOKEN" ] && TOKEN=$(JWT_ENV_FILE=$JWT_ENV_FILE /opt/jitsi/jitsi-autoscaler-sidecar/scripts/jwt.sh)
 
 [ -z "$JIBRI_PROTECTED_TTL_SEC" ] && JIBRI_PROTECTED_TTL_SEC=900
 
@@ -174,8 +178,8 @@ if [ "$getGroupHttpCode" == 404 ]; then
   [ -z "$JIBRI_GRACE_PERIOD_TTL_SEC" ] && JIBRI_GRACE_PERIOD_TTL_SEC=600
 
   [ -z "$JIBRI_SCALE_PERIOD" ] && JIBRI_SCALE_PERIOD=60
-  [ -z "$JIBRI_SCALE_UP_PERIODS_COUNT" ] && JIBRI_SCALE_UP_PERIODS_COUNT=2
-  [ -z "$JIBRI_SCALE_DOWN_PERIODS_COUNT" ] && JIBRI_SCALE_DOWN_PERIODS_COUNT=10
+  [ -z "$JIBRI_SCALE_UP_PERIODS_COUNT" ] && JIBRI_SCALE_UP_PERIODS_COUNT=5
+  [ -z "$JIBRI_SCALE_DOWN_PERIODS_COUNT" ] && JIBRI_SCALE_DOWN_PERIODS_COUNT=20
 
   # populate first with environment-based default values
   if [ "$JIBRI_TYPE" == "java-jibri" ]; then

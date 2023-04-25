@@ -30,7 +30,15 @@ TAG_NAMESPACE="jitsi"
 [ -z "$BASE_IMAGE_TYPE" ] && BASE_IMAGE_TYPE="$WFPROXY_BASE_IMAGE_TYPE"
 [ -z "$BASE_IMAGE_TYPE" ] && BASE_IMAGE_TYPE="JammyBase"
 
-[ -z "$IMAGE_OCID" ] && IMAGE_OCID=$($LOCAL_PATH/oracle_custom_images.py --type $BASE_IMAGE_TYPE --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
+[ -z "$SHAPE" ] && SHAPE="$DEFAULT_WFPROXY_SHAPE"
+
+if [[ "$SHAPE" == "$SHAPE_A_1" ]]; then
+  IMAGE_ARCH="aarch64"
+else
+  IMAGE_ARCH="x86_64"
+fi
+
+[ -z "$IMAGE_OCID" ] && IMAGE_OCID=$($LOCAL_PATH/oracle_custom_images.py --type $BASE_IMAGE_TYPE --architecture "$IMAGE_ARCH" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
 if [ -z "$IMAGE_OCID" ]; then
   echo "No IMAGE_OCID found.  Exiting..."
   exit 210
@@ -42,7 +50,6 @@ fi
 
 [ -z "$INSTANCE_POOL_NAME" ] && INSTANCE_POOL_NAME="WfProxyInstancePool"
 
-[ -z "$SHAPE" ] && SHAPE="$DEFAULT_WFPROXY_SHAPE"
 [ -z "$OCPUS" ] && OCPUS=1
 [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=16
 

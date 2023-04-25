@@ -42,7 +42,13 @@ ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 [ -z "$BASE_IMAGE_TYPE" ] && BASE_IMAGE_TYPE="$SIGNAL_BASE_IMAGE_TYPE"
 [ -z "$BASE_IMAGE_TYPE" ] && BASE_IMAGE_TYPE="JammyBase"
 
-[ -z "$BASE_IMAGE_ID" ] && BASE_IMAGE_ID=$($LOCAL_PATH/oracle_custom_images.py --type $BASE_IMAGE_TYPE --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
+if [[ "$SHAPE" == "$SHAPE_A_1" ]]; then
+  IMAGE_ARCH="aarch64"
+else
+  IMAGE_ARCH="x86_64"
+fi
+
+[ -z "$BASE_IMAGE_ID" ] && BASE_IMAGE_ID=$($LOCAL_PATH/oracle_custom_images.py --architecture "$IMAGE_ARCH" --type $BASE_IMAGE_TYPE --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
 
 if [ -z "$JICOFO_VERSION" ]; then
     JICOFO_VERSION='latest'
@@ -80,7 +86,7 @@ fi
 
 SIGNAL_VERSION="$JICOFO_VERSION-$JITSI_MEET_VERSION-$PROSODY_VERSION"
 
-EXISTING_IMAGE_OCID=$($LOCAL_PATH/oracle_custom_images.py --type Signal --version "$SIGNAL_VERSION" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
+EXISTING_IMAGE_OCID=$($LOCAL_PATH/oracle_custom_images.py --type Signal --version "$SIGNAL_VERSION" --architecture "$IMAGE_ARCH" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
 if [ ! -z "$EXISTING_IMAGE_OCID" ]; then
   if $FORCE_BUILD_IMAGE; then
     echo "Signal image version $SIGNAL_VERSION already exists, but FORCE_BUILD_IMAGE is true so a new image with that same version will be build"
@@ -107,7 +113,7 @@ ORACLE_SIGNAL_IMAGE_LIMIT=50
 # clean custom signal images if limit is exceeded (may fail, but that's OK)
 for CLEAN_ORACLE_REGION in $ORACLE_IMAGE_REGIONS; do
   echo "Cleaning images in $CLEAN_ORACLE_REGION"
-  $LOCAL_PATH/oracle_custom_images.py --clean $ORACLE_SIGNAL_IMAGE_LIMIT --delete --region=$CLEAN_ORACLE_REGION --type=Signal --compartment_id=$TENANCY_OCID;
+  $LOCAL_PATH/oracle_custom_images.py --clean $ORACLE_SIGNAL_IMAGE_LIMIT --architecture "$IMAGE_ARCH" --delete --region=$CLEAN_ORACLE_REGION --type=Signal --compartment_id=$TENANCY_OCID;
 done
 
 # packer runs ansible using as hostname the 'default' string

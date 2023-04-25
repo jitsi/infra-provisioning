@@ -51,6 +51,9 @@ fi
 
 if [[ "$SHAPE" == "$SHAPE_A_1" ]]; then
   BARE_IMAGE_ID="$ARM_BARE_IMAGE_ID"
+  IMAGE_ARCH="aarch64"
+else
+  IMAGE_ARCH="x86_64"
 fi
 
 # TODO query available standard images with ubuntu 22.04

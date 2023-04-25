@@ -41,8 +41,18 @@ ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 #if we're not given versions, search for the latest of each type of image
 [ -z "$JIGASI_VERSION" ] && JIGASI_VERSION='latest'
 
+[ -z "$SHAPE" ] && SHAPE="$JIGASI_SHAPE"
+[ -z "$SHAPE" ] && SHAPE="$DEFAULT_JIGASI_SHAPE"
+[ -z "$SHAPE" ] && SHAPE="$SHAPE_E_3"
+
+if [[ "$SHAPE" == "$SHAPE_A_1" ]]; then
+  IMAGE_ARCH="aarch64"
+else
+  IMAGE_ARCH="x86_64"
+fi
+
 #Look up images based on version, or default to latest
-[ -z "$JIGASI_IMAGE_OCID" ] && JIGASI_IMAGE_OCID=$($LOCAL_PATH/oracle_custom_images.py --type Jigasi --version "$JIGASI_VERSION" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
+[ -z "$JIGASI_IMAGE_OCID" ] && JIGASI_IMAGE_OCID=$($LOCAL_PATH/oracle_custom_images.py --type Jigasi --version "$JIGASI_VERSION" --architecture "$IMAGE_ARCH" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
 
 #No image was found, probably not built yet?
 if [ -z "$JIGASI_IMAGE_OCID" ]; then
@@ -84,9 +94,6 @@ fi
     [ -z "$GROUP_NAME" ] && GROUP_NAME="$ENVIRONMENT-$ORACLE_REGION-$NAME_ROOT_SUFFIX"
     [ -z "$INSTANCE_CONFIG_NAME" ] && export INSTANCE_CONFIG_NAME="$ENVIRONMENT-JigasiInstanceConfig"
   fi
-  [ -z "$SHAPE" ] && SHAPE="$JIGASI_SHAPE"
-  [ -z "$SHAPE" ] && SHAPE="$DEFAULT_JIGASI_SHAPE"
-  [ -z "$SHAPE" ] && SHAPE="$SHAPE_E_3"
   
   if [[ "$SHAPE" == "VM.Standard.E3.Flex" ]]; then
     [ -z "$OCPUS" ] && OCPUS=4

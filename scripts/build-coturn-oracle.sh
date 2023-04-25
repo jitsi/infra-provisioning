@@ -47,7 +47,13 @@ ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 
 TAG_NAMESPACE="jitsi"
 
-EXISTING_IMAGE_OCID=$($LOCAL_PATH/oracle_custom_images.py --type coTURN --version "latest" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
+if [[ "$SHAPE" == "$SHAPE_A_1" ]]; then
+  IMAGE_ARCH="aarch64"
+else
+  IMAGE_ARCH="x86_64"
+fi
+
+EXISTING_IMAGE_OCID=$($LOCAL_PATH/oracle_custom_images.py --type coTURN --version "latest" --architecture "$IMAGE_ARCH" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
 if [ ! -z "$EXISTING_IMAGE_OCID" ]; then
   if $FORCE_BUILD_IMAGE; then
     echo "Coturn image already exists, but FORCE_BUILD_IMAGE is true so a new image with that same version will be build"
@@ -60,7 +66,7 @@ fi
 [ -z "$BASE_IMAGE_TYPE" ] && BASE_IMAGE_TYPE="$COTURN_BASE_IMAGE_TYPE"
 [ -z "$BASE_IMAGE_TYPE" ] && BASE_IMAGE_TYPE="JammyBase"
 
-[ -z "$BASE_IMAGE_ID" ] && BASE_IMAGE_ID=$($LOCAL_PATH/oracle_custom_images.py --type $BASE_IMAGE_TYPE --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
+[ -z "$BASE_IMAGE_ID" ] && BASE_IMAGE_ID=$($LOCAL_PATH/oracle_custom_images.py --type $BASE_IMAGE_TYPE  --architecture "$IMAGE_ARCH" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
 
 # addtional bastion configs
 [ -z "$CONNECTION_SSH_PRIVATE_KEY_FILE" ] && CONNECTION_SSH_PRIVATE_KEY_FILE="~/.ssh/id_ed25519"

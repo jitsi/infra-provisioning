@@ -51,7 +51,13 @@ ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 [ -z "$BASE_IMAGE_TYPE" ] && BASE_IMAGE_TYPE="$SELENIUM_GRID_BASE_IMAGE_TYPE"
 [ -z "$BASE_IMAGE_TYPE" ] && BASE_IMAGE_TYPE="JammyBase"
 
-[ -z "$BASE_IMAGE_ID" ] && BASE_IMAGE_ID=$($LOCAL_PATH/oracle_custom_images.py --type $BASE_IMAGE_TYPE --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
+if [[ "$SHAPE" == "$SHAPE_A_1" ]]; then
+  IMAGE_ARCH="aarch64"
+else
+  IMAGE_ARCH="x86_64"
+fi
+
+[ -z "$BASE_IMAGE_ID" ] && BASE_IMAGE_ID=$($LOCAL_PATH/oracle_custom_images.py --type $BASE_IMAGE_TYPE --architecture "$IMAGE_ARCH" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
 
 # since focal, python is python3, so use that
 [ -z "$SYSTEM_PYTHON" ] && SYSTEM_PYTHON="/usr/bin/python3"
@@ -81,7 +87,7 @@ DEPLOY_TAGS=${ANSIBLE_TAGS-"all"}
 # clean custom selenium grid images if limit is exceeded (may fail, but that's OK)
 for CLEAN_ORACLE_REGION in $ORACLE_IMAGE_REGIONS; do 
   echo "Cleaning images in $CLEAN_ORACLE_REGION"
-  $LOCAL_PATH/oracle_custom_images.py --clean $ORACLE_CUSTOM_IMAGE_LIMIT --delete --region=$CLEAN_ORACLE_REGION --type=SeleniumGrid --compartment_id=$TENANCY_OCID;
+  $LOCAL_PATH/oracle_custom_images.py --clean $ORACLE_CUSTOM_IMAGE_LIMIT --architecture "$IMAGE_ARCH" --delete --region=$CLEAN_ORACLE_REGION --type=SeleniumGrid --compartment_id=$TENANCY_OCID;
 done
 
 # packer runs ansible using as hostname the 'default' string
