@@ -27,7 +27,7 @@ function checkImage() {
 
     EXISTING_IMAGE_OCID=$($LOCAL_PATH/oracle_custom_images.py --type $IMAGE_TYPE --version "$IMAGE_VERSION" --region="$ORACLE_REGION" --architecture "$IMAGE_ARCH" --compartment_id="$TENANCY_OCID" --tag_namespace="$TAG_NAMESPACE")
 
-    if [ ! -z "$EXISTING_IMAGE_OCID" ]; then
+    if [ -n "$EXISTING_IMAGE_OCID" ]; then
         IMAGE_OCID="$EXISTING_IMAGE_OCID"
         return 0
     fi

@@ -17,6 +17,8 @@ if [[ "$IMAGE_TYPE" == "Signal" ]]; then
     export SIGNAL_VERSION="$JICOFO_VERSION-$JITSI_MEET_VERSION-$PROSODY_VERSION"
 fi
 
+set -x
+
 BUILD_IMAGE=false
 for C in $CLOUDS; do
     . $LOCAL_PATH/../clouds/${C}.sh
