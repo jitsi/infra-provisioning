@@ -48,9 +48,12 @@ else
   done
 fi
 
-mkdir -p pre-terminate-stats/release-${RELEASE_NUMBER}-aggregates
+DIR="pre-terminate-stats/release-${RELEASE_NUMBER}-aggregates"
+mkdir -p "$DIR"
 for i in templates/*; do
   template=$(basename $i)
   echo "Aggregating $template"
   node ./aggregate.js templates/$template pre-terminate-stats/release-${RELEASE_NUMBER}/*/$template > pre-terminate-stats/release-${RELEASE_NUMBER}-aggregates/$template
 done
+
+node ./summarize.js "$DIR" > "$DIR/summary.txt"
