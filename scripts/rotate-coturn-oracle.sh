@@ -26,7 +26,15 @@ ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 
 TAG_NAMESPACE="jitsi"
 
-[ -z "$IMAGE_OCID" ] && IMAGE_OCID=$($LOCAL_PATH/oracle_custom_images.py --type coTURN --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
+[ -z "$SHAPE" ] && SHAPE="$DEFAULT_COTURN_SHAPE"
+
+if [[ "$SHAPE" == "$SHAPE_A_1" ]]; then
+  IMAGE_ARCH="aarch64"
+else
+  IMAGE_ARCH="x86_64"
+fi
+
+[ -z "$IMAGE_OCID" ] && IMAGE_OCID=$($LOCAL_PATH/oracle_custom_images.py --type coTURN --architecture "$IMAGE_ARCH" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
 if [ -z "$IMAGE_OCID" ]; then
   echo "No IMAGE_OCID found.  Exiting..."
   exit 210
@@ -38,7 +46,6 @@ fi
 
 [ -z "$INSTANCE_POOL_NAME" ] && INSTANCE_POOL_NAME="${ENVIRONMENT}-${ORACLE_REGION}-CoturnInstancePool"
 
-[ -z "$SHAPE" ] && SHAPE="$DEFAULT_COTURN_SHAPE"
 [ -z "$OCPUS" ] && OCPUS=8
 [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=16
 
