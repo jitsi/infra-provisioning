@@ -41,7 +41,7 @@ ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 [ -z "$IMAGE_ARCH" ] && IMAGE_ARCH="x86_64"
 
 if [[ "$IMAGE_ARCH" == "aarch64" ]]; then
-  SHAPE="$SHAPE_A_1"
+  [ -z "$SHAPE" ] && SHAPE="$SHAPE_A_1"
 fi
 
 [ -z "$SHAPE" ] && SHAPE="$SHAPE_E_4"
@@ -49,11 +49,10 @@ fi
 [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS="16"
 
 
-if [[ "$SHAPE" == "$SHAPE_A_1" ]]; then
+arch_from_shape $SHAPE
+
+if [[ "$IMAGE_ARCH" == "aarch64" ]]; then
   BARE_IMAGE_ID="$ARM_BARE_IMAGE_ID"
-  IMAGE_ARCH="aarch64"
-else
-  IMAGE_ARCH="x86_64"
 fi
 
 # TODO query available standard images with ubuntu 22.04

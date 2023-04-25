@@ -50,11 +50,7 @@ ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 [ -z "$BASE_IMAGE_TYPE" ] && BASE_IMAGE_TYPE="$SSH_BASE_IMAGE_TYPE"
 [ -z "$BASE_IMAGE_TYPE" ] && BASE_IMAGE_TYPE="JammyBase"
 
-if [[ "$SHAPE" == "$SHAPE_A_1" ]]; then
-  IMAGE_ARCH="aarch64"
-else
-  IMAGE_ARCH="x86_64"
-fi
+arch_from_shape $SHAPE
 
 [ -z "$JUMPBOX_BASE_IMAGE_ID" ] && JUMPBOX_BASE_IMAGE_ID=$($LOCAL_PATH/../../scripts/oracle_custom_images.py --type $BASE_IMAGE_TYPE --architecture "$IMAGE_ARCH" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
 if [ -z "$JUMPBOX_BASE_IMAGE_ID" ]; then

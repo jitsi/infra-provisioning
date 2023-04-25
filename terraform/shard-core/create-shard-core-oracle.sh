@@ -99,11 +99,7 @@ fi
 [ -z "$S3_ENDPOINT" ] && S3_ENDPOINT="https://$ORACLE_S3_NAMESPACE.compat.objectstorage.$ORACLE_REGION.oraclecloud.com"
 [ -z "$S3_STATE_KEY" ] && S3_STATE_KEY="$ENVIRONMENT/shards/$SHARD_NAME/terraform.tfstate"
 
-if [[ "$SHAPE" == "$SHAPE_A_1" ]]; then
-  IMAGE_ARCH="aarch64"
-else
-  IMAGE_ARCH="x86_64"
-fi
+arch_from_shape $SHAPE
 
 [ -z "$IMAGE_OCID" ] && IMAGE_OCID=$($LOCAL_PATH/../../scripts/oracle_custom_images.py --type Signal --version "$SIGNAL_VERSION" --architecture "$IMAGE_ARCH" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
 

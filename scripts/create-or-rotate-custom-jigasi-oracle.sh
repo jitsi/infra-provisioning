@@ -45,11 +45,7 @@ ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 [ -z "$SHAPE" ] && SHAPE="$DEFAULT_JIGASI_SHAPE"
 [ -z "$SHAPE" ] && SHAPE="$SHAPE_E_3"
 
-if [[ "$SHAPE" == "$SHAPE_A_1" ]]; then
-  IMAGE_ARCH="aarch64"
-else
-  IMAGE_ARCH="x86_64"
-fi
+arch_from_shape $SHAPE
 
 #Look up images based on version, or default to latest
 [ -z "$JIGASI_IMAGE_OCID" ] && JIGASI_IMAGE_OCID=$($LOCAL_PATH/oracle_custom_images.py --type Jigasi --version "$JIGASI_VERSION" --architecture "$IMAGE_ARCH" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")

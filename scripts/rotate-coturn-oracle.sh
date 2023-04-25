@@ -28,11 +28,7 @@ TAG_NAMESPACE="jitsi"
 
 [ -z "$SHAPE" ] && SHAPE="$DEFAULT_COTURN_SHAPE"
 
-if [[ "$SHAPE" == "$SHAPE_A_1" ]]; then
-  IMAGE_ARCH="aarch64"
-else
-  IMAGE_ARCH="x86_64"
-fi
+arch_from_shape $SHAPE
 
 [ -z "$IMAGE_OCID" ] && IMAGE_OCID=$($LOCAL_PATH/oracle_custom_images.py --type coTURN --architecture "$IMAGE_ARCH" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
 if [ -z "$IMAGE_OCID" ]; then

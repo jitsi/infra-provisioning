@@ -81,11 +81,7 @@ fi
 S3_STATE_BASE="$ENVIRONMENT/grid/$GRID_NAME/components"
 [ -z "$S3_STATE_KEY" ] && S3_STATE_KEY="${S3_STATE_BASE}/terraform.tfstate"
 
-if [[ "$SHAPE" == "$SHAPE_A_1" ]]; then
-  IMAGE_ARCH="aarch64"
-else
-  IMAGE_ARCH="x86_64"
-fi
+arch_from_shape $SHAPE
 
 [ -z "$IMAGE_OCID" ] && IMAGE_OCID=$($LOCAL_PATH/../../scripts/oracle_custom_images.py --type SeleniumGrid --architecture "$IMAGE_ARCH" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
 if [ -z "$IMAGE_OCID" ]; then

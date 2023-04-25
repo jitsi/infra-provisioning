@@ -47,7 +47,7 @@ ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 [ -z "$IMAGE_ARCH" ] && IMAGE_ARCH="x86_64"
 
 if [[ "$IMAGE_ARCH" == "aarch64" ]]; then
-  SHAPE="$SHAPE_A_1"
+  [ -z "$SHAPE" ] && SHAPE="$SHAPE_A_1"
 fi
 
 [ -z "$SHAPE" ] && SHAPE="$SHAPE_E_4"
@@ -57,11 +57,7 @@ fi
 [ -z "$BASE_IMAGE_TYPE" ] && BASE_IMAGE_TYPE="$SELENIUM_GRID_BASE_IMAGE_TYPE"
 [ -z "$BASE_IMAGE_TYPE" ] && BASE_IMAGE_TYPE="JammyBase"
 
-if [[ "$SHAPE" == "$SHAPE_A_1" ]]; then
-  IMAGE_ARCH="aarch64"
-else
-  IMAGE_ARCH="x86_64"
-fi
+arch_from_shape $SHAPE
 
 [ -z "$BASE_IMAGE_ID" ] && BASE_IMAGE_ID=$($LOCAL_PATH/oracle_custom_images.py --type $BASE_IMAGE_TYPE --architecture "$IMAGE_ARCH" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
 

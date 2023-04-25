@@ -61,11 +61,7 @@ if [[ "$NOMAD_COTURN_FLAG" == "true" ]]; then
   COTURN_IMAGE_TYPE="JammyBase"
 fi
 
-if [[ "$SHAPE" == "$SHAPE_A_1" ]]; then
-  IMAGE_ARCH="aarch64"
-else
-  IMAGE_ARCH="x86_64"
-fi
+arch_from_shape $SHAPE
 
 #Look up images based on version, or default to latest
 [ -z "$COTURN_IMAGE_OCID" ] && COTURN_IMAGE_OCID=$($LOCAL_PATH/../../scripts/oracle_custom_images.py --type $COTURN_IMAGE_TYPE --version "latest" --architecture "$IMAGE_ARCH" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")

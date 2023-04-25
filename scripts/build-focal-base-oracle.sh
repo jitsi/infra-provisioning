@@ -41,7 +41,7 @@ ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 [ -z "$IMAGE_ARCH" ] && IMAGE_ARCH="x86_64"
 
 if [[ "$IMAGE_ARCH" == "aarch64" ]]; then
-  SHAPE="$SHAPE_A_1"
+  [ -z "$SHAPE" ] && SHAPE="$SHAPE_A_1"
 fi
 
 [ -z "$SHAPE" ] && SHAPE="$SHAPE_E_4"
@@ -53,11 +53,7 @@ fi
 [ -z "$BARE_IMAGE_ID" ] && BARE_IMAGE_ID=$DEFAULT_FOCAL_IMAGE_ID
 [ -z "$BASE_IMAGE_TYPE" ] && BASE_IMAGE_TYPE="FocalBare"
 
-if [[ "$SHAPE" == "$SHAPE_A_1" ]]; then
-  IMAGE_ARCH="aarch64"
-else
-  IMAGE_ARCH="x86_64"
-fi
+arch_from_shape $SHAPE
 
 EXISTING_IMAGE_OCID=$($LOCAL_PATH/oracle_custom_images.py --type FocalBase --architecture "$IMAGE_ARCH" --version "latest" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
 if [ ! -z "$EXISTING_IMAGE_OCID" ]; then
