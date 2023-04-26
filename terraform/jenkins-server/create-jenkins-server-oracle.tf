@@ -147,6 +147,12 @@ resource "oci_core_instance" "instance" {
 
     defined_tags = local.common_tags
 
+    freeform_tags = {
+      configuration_repo = var.infra_configuration_repo
+      customizations_repo = var.infra_customizations_repo
+      shape = var.shape
+    }
+
     display_name = var.instance_display_name
 
     shape_config {
