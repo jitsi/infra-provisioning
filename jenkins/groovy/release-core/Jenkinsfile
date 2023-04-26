@@ -1,3 +1,5 @@
+def utils
+
 // splits incoming clouds into a list
 // alternately loads defaults for environment into a list
 def split_clouds(shard_environment,cloud_names) {
@@ -150,7 +152,7 @@ scripts/versioning-manager.sh
 """
     )
 }
-def utils
+
 pipeline {
     agent any
     options {
@@ -235,12 +237,14 @@ pipeline {
                         expression {env.CLOUD_PROVIDER == 'oracle'}
                     }
                     steps {
-                        buildJvbImage(env.JVB_VERSION,
-                            env.ENVIRONMENT,
-                            env.CLOUDS,
-                            env.FORCE_BUILD_JVB_IMAGE,
-                            env.VIDEO_INFRA_BRANCH
-                        )
+                        script {
+                            buildJvbImage(env.JVB_VERSION,
+                                env.ENVIRONMENT,
+                                env.CLOUDS,
+                                env.FORCE_BUILD_JVB_IMAGE,
+                                env.VIDEO_INFRA_BRANCH
+                            )
+                        }
                     }
                 }
 
