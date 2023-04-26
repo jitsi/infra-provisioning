@@ -70,6 +70,7 @@ variable "infra_customizations_repo" {}
 locals {
   common_freeform_tags = {
     "pool_type" = var.pool_type
+    shape = var.shape
   }
   common_tags = {
     "${var.tag_namespace}.environment" = var.environment
