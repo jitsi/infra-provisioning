@@ -69,8 +69,7 @@ def tagRelease(release) {
 }
 
 // trigger build JVB image oracle job with appropriate parameters
-def buildJvbImage(jvbVersion,hcv_environment,clouds,force_build_jvb_image,video_infra_branch) {
-    def image_arch = utils.ImageArchFromShape(env.JVB_SHAPE)
+def buildJvbImage(jvbVersion,hcv_environment,clouds,force_build_jvb_image,video_infra_branch,image_arch) {
 
     def buildImage = build job: 'build-image-oracle',parameters: [
         [$class: 'StringParameterValue', name: 'IMAGE_TYPE', value: 'JVB'],
@@ -86,8 +85,7 @@ def buildJvbImage(jvbVersion,hcv_environment,clouds,force_build_jvb_image,video_
 }
 
 // trigger build JVB image oracle job with appropriate parameters
-def buildSignalImage(signalVersion,hcv_environment,clouds,force_build_image,video_infra_branch) {
-    def image_arch = utils.ImageArchFromShape(env.SHAPE)
+def buildSignalImage(signalVersion,hcv_environment,clouds,force_build_image,video_infra_branch, image_arch) {
 
     def signalVersionParts = rsplit(signalVersion, 3);
     def buildImage = build job: 'build-image-oracle',parameters: [
@@ -238,11 +236,13 @@ pipeline {
                     }
                     steps {
                         script {
+                            def image_arch = utils.ImageArchFromShape(env.JVB_SHAPE)
                             buildJvbImage(env.JVB_VERSION,
                                 env.ENVIRONMENT,
                                 env.CLOUDS,
                                 env.FORCE_BUILD_JVB_IMAGE,
-                                env.VIDEO_INFRA_BRANCH
+                                env.VIDEO_INFRA_BRANCH,
+                                image_arch
                             )
                         }
                     }
@@ -254,11 +254,13 @@ pipeline {
                     }
                     steps {
                         script {
+                            def image_arch = utils.ImageArchFromShape(env.SHAPE)
                             buildSignalImage(env.SIGNAL_VERSION,
                                 env.ENVIRONMENT,
                                 env.CLOUDS,
                                 env.FORCE_BUILD_SIGNAL_IMAGE,
-                                env.VIDEO_INFRA_BRANCH
+                                env.VIDEO_INFRA_BRANCH,
+                                image_arch
                             )
                         }
                     }
