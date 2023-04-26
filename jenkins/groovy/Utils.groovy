@@ -254,4 +254,17 @@ echo \$CHECK_VAR"""
     return ret;
 }
 
+def ImageArchFromShape(shape) {
+    dir('infra-provisioning') {
+        def arch = sh(
+        returnStdout: true,
+        script: """#!/bin/bash
+. ./clouds/oracle.sh
+arch_from_shape ${shape}
+echo \$IMAGE_ARCH"""
+        ).trim();
+        return arch
+    }
+}
+
 return this
