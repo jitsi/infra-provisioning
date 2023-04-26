@@ -97,11 +97,12 @@ def buildSignalImage(signalVersion,hcv_environment,clouds,force_build_image,vide
     return buildImage
 }
 
-def releaseJVBPools(shard_environment,cloud_name,release_number,gitBranch,jvbVersion) {
+def releaseJVBPools(shard_environment,cloud_name,release_number,gitBranch,jvbVersion,jvbShape) {
     def jvbPools = build job: 'release-jvb-pools',parameters: [
         [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: shard_environment],
         [$class: 'StringParameterValue', name: 'CLOUD_NAME', value: cloud_name],
         [$class: 'StringParameterValue', name: 'JVB_VERSION', value: jvbVersion],
+        [$class: 'StringParameterValue', name: 'SHAPE', value: jvbShape],
         [$class: 'StringParameterValue', name: 'RELEASE_NUMBER', value: release_number],
         [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: gitBranch],
         [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH]
@@ -111,7 +112,7 @@ def releaseJVBPools(shard_environment,cloud_name,release_number,gitBranch,jvbVer
 }
 
 // trigger create shard job with appopriate parameters
-def createShard(shard_environment,cloud_name,jvb_cloud_provider,core_cloud_provider,shard_count,shard_number,release_number,gitBranch,jvbVersion,signalVersion) {
+def createShard(shard_environment,cloud_name,jvb_cloud_provider,core_cloud_provider,shard_count,shard_number,release_number,gitBranch,jvbVersion,signalVersion,shape,jvbShape) {
     def createShard = build job: 'provision-shard',parameters: [
         [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: shard_environment],
         [$class: 'StringParameterValue', name: 'CLOUD_NAME', value: cloud_name],
@@ -120,6 +121,8 @@ def createShard(shard_environment,cloud_name,jvb_cloud_provider,core_cloud_provi
         [$class: 'StringParameterValue', name: 'SHARD_COUNT', value: shard_count],
         [$class: 'StringParameterValue', name: 'SHARD_NUMBERS', value: shard_number],
         [$class: 'StringParameterValue', name: 'SIGNAL_VERSION', value: signalVersion],
+        [$class: 'StringParameterValue', name: 'SHAPE', value: shape],
+        [$class: 'StringParameterValue', name: 'JVB_SHAPE', value: jvbShape],
         [$class: 'StringParameterValue', name: 'JVB_VERSION', value: jvbVersion],
         [$class: 'StringParameterValue', name: 'RELEASE_NUMBER', value: release_number],
         [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: gitBranch],
@@ -273,7 +276,8 @@ pipeline {
                                         cloud_list[curr],
                                         env.BUILD_ID,
                                         git_branch,
-                                        env.JVB_VERSION
+                                        env.JVB_VERSION,
+                                        env.JVB_SHAPE
                                     )
                                 }
                                 echo "pipeline branch ${curr} for shard ${cloud_list[curr]}";
@@ -288,7 +292,9 @@ pipeline {
                                         env.BUILD_ID,
                                         git_branch,
                                         env.JVB_VERSION,
-                                        env.SIGNAL_VERSION
+                                        env.SIGNAL_VERSION,
+                                        env.SHAPE,
+                                        env.JVB_SHAPE
                                     )
                                 }
                             }
