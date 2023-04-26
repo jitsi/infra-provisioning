@@ -366,6 +366,11 @@ pipeline {
                             return
                         }
 
+                        // allow override of JVB shape via environment variable
+                        if (env.JVB_SHAPE) {
+                            shape=env.JVB_SHAPE
+                        }
+
                         // Deploy a small pool of Oracle JVB instances with checking status via cloud init
                         def initial_instance_pool_size = env.INITIAL_ORACLE_JVB_POOL_SIZE as int
                         if(initial_instance_pool_size >= instance_pool_size) {
