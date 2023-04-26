@@ -68,8 +68,11 @@ def tagRelease(release) {
 
 // trigger build JVB image oracle job with appropriate parameters
 def buildJvbImage(jvbVersion,hcv_environment,clouds,force_build_jvb_image,video_infra_branch) {
+    def image_arch = utils.ImageArchFromShape(env.JVB_SHAPE)
+
     def buildImage = build job: 'build-image-oracle',parameters: [
         [$class: 'StringParameterValue', name: 'IMAGE_TYPE', value: 'JVB'],
+        [$class: 'StringParameterValue', name: 'IMAGE_ARCH', value: image_arch],
         [$class: 'StringParameterValue', name: 'JVB_VERSION', value: jvbVersion],
         [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: hcv_environment],
         [$class: 'StringParameterValue', name: 'CLOUDS', value: clouds],
@@ -82,9 +85,12 @@ def buildJvbImage(jvbVersion,hcv_environment,clouds,force_build_jvb_image,video_
 
 // trigger build JVB image oracle job with appropriate parameters
 def buildSignalImage(signalVersion,hcv_environment,clouds,force_build_image,video_infra_branch) {
+    def image_arch = utils.ImageArchFromShape(env.SHAPE)
+
     def signalVersionParts = rsplit(signalVersion, 3);
     def buildImage = build job: 'build-image-oracle',parameters: [
         [$class: 'StringParameterValue', name: 'IMAGE_TYPE', value: 'Signal'],
+        [$class: 'StringParameterValue', name: 'IMAGE_ARCH', value: image_arch],
         [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: hcv_environment],
         [$class: 'StringParameterValue', name: 'CLOUDS', value: clouds],
         [$class: 'StringParameterValue', name: 'JICOFO_VERSION', value: signalVersionParts[0]],
