@@ -47,8 +47,13 @@ ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 #if we're not given versions, search for the latest of each type of image
 [ -z "$JVB_VERSION" ] && JVB_VERSION='latest'
 
+[ -z "$SHAPE" ] && SHAPE="$JVB_SHAPE"
+[ -z "$SHAPE" ] && SHAPE="$DEFAULT_SHAPE"
+
+arch_from_shape $SHAPE
+
 #Look up images based on version, or default to latest
-[ -z "$JVB_IMAGE_OCID" ] && JVB_IMAGE_OCID=$($LOCAL_PATH/oracle_custom_images.py --type JVB --version "$JVB_VERSION" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
+[ -z "$JVB_IMAGE_OCID" ] && JVB_IMAGE_OCID=$($LOCAL_PATH/oracle_custom_images.py --type JVB --version "$JVB_VERSION" --architecture "$IMAGE_ARCH" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
 
 #No image was found, probably not built yet?
 if [ -z "$JVB_IMAGE_OCID" ]; then
@@ -94,10 +99,6 @@ fi
 METADATA_PATH="$LOCAL_PATH/../terraform/create-jvb-instance-configuration/user-data/postinstall-runner-oracle.sh"
 METADATA_LIB_PATH="$LOCAL_PATH/../terraform/lib"
 [ -z "$USER_PUBLIC_KEY_PATH" ] && USER_PUBLIC_KEY_PATH=~/.ssh/id_ed25519.pub
-
-
-[ -z "$SHAPE" ] && SHAPE="$JVB_SHAPE"
-[ -z "$SHAPE" ] && SHAPE="$DEFAULT_SHAPE"
 
 if [[ "$SHAPE" == "VM.Standard.E4.Flex" ]]; then
   [ -z "$OCPUS" ] && OCPUS=4

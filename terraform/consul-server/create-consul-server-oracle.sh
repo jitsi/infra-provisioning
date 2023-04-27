@@ -9,7 +9,7 @@ if [ -z "$ENVIRONMENT" ]; then
   exit 203
 fi
 
-[ -e $LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh ] && . $LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh
+[ -e $LOCAL_PATH/../../sites/$ENVIRONMENT/stack-env.sh ] && . $LOCAL_PATH/../../sites/$ENVIRONMENT/stack-env.sh
 
 [ -z "$ROLE" ] && ROLE="consul"
 [ -z "$NAME" ] && NAME="$ENVIRONMENT-$ORACLE_REGION-$ROLE"
@@ -129,7 +129,9 @@ grep -q "$BASTION_HOST" ~/.ssh/known_hosts || ssh-keyscan -H $BASTION_HOST >> ~/
 [ -z "$BASE_IMAGE_TYPE" ] && BASE_IMAGE_TYPE="$CONSUL_BASE_IMAGE_TYPE"
 [ -z "$BASE_IMAGE_TYPE" ] && BASE_IMAGE_TYPE="JammyBase"
 
-[ -z "$IMAGE_OCID" ] && IMAGE_OCID=$($LOCAL_PATH/../../scripts/oracle_custom_images.py --type $BASE_IMAGE_TYPE --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
+arch_from_shape $SHAPE
+
+[ -z "$IMAGE_OCID" ] && IMAGE_OCID=$($LOCAL_PATH/../../scripts/oracle_custom_images.py --type $BASE_IMAGE_TYPE --architecture "$IMAGE_ARCH" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
 if [ -z "$IMAGE_OCID" ]; then
   echo "No IMAGE_OCID found.  Exiting..."
   exit 210

@@ -20,6 +20,14 @@
           description: "JVB version"
           trim: true
       - string:
+          name: SHAPE
+          description: "Shard shape"
+          trim: true
+      - string:
+          name: JVB_SHAPE
+          description: "JVB shape"
+          trim: true
+      - string:
           name: JITSI_MEET_META_VERSION
           description: "Meta package version"
           trim: true

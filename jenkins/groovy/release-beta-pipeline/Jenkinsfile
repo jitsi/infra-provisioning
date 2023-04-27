@@ -13,29 +13,6 @@ def oldReleasesFromEnvironment(environment, latestRelease) {
     return oldReleases
 }
 
-// get the list of all shards in the environment matching the release number
-def newShardsFromRelease(environment,release) {
-    def shards = sh(
-        returnStdout: true,
-        script: """#!/bin/bash
-            export ENVIRONMENT="${environment}"
-            export RELEASE_NUMBER="${release}"
-            scripts/shard.sh list ubuntu"""
-    );
-    return shards
-}
-// get the inverse of the above, all shards in the environment not matching the release
-def oldShardsFromRelease(environment,release) {
-    def shards = sh(
-        returnStdout: true,
-        script: """#!/bin/bash
-            export ENVIRONMENT="${environment}"
-            export RELEASE_NUMBER="${release}"
-            export RELEASE_INVERSE="true"
-            scripts/shard.sh list ubuntu"""
-    );
-    return shards    
-}
 def utils
 pipeline {				//indicate the job is written in Declarative Pipeline
     agent any				//agent specifies where the pipeline will execute. 
@@ -69,10 +46,12 @@ pipeline {				//indicate the job is written in Declarative Pipeline
               stage ("build JVB oracle") {		//an arbitrary stage name
                 steps {
                     script {
+                        def image_arch = utils.ImageArchFromShape(env.JVB_SHAPE)
                         build job: 'build-image-oracle',parameters: [
                                 [$class: 'StringParameterValue', name: 'IMAGE_TYPE', value: 'JVB'],
                                 [$class: 'StringParameterValue', name: 'JVB_VERSION', value: params.JVB_VERSION],
                                 [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: params.ENVIRONMENT],
+                                [$class: 'StringParameterValue', name: 'IMAGE_ARCH', value: image_arch],
                                 [$class: 'BooleanParameterValue', name: 'FORCE_BUILD_IMAGE', value: (params.FORCE_BUILD_IMAGE=='true')],
                                 [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH]
                             ]
@@ -82,8 +61,10 @@ pipeline {				//indicate the job is written in Declarative Pipeline
               stage ("build Signal Oracle") {		//an arbitrary stage name
                 steps {
                     script {
+                        def image_arch = utils.ImageArchFromShape(env.SHAPE)
                         build job: 'build-image-oracle',parameters: [
                             [$class: 'StringParameterValue', name: 'IMAGE_TYPE', value: 'Signal'],
+                            [$class: 'StringParameterValue', name: 'IMAGE_ARCH', value: image_arch],
                             [$class: 'StringParameterValue', name: 'JITSI_MEET_VERSION', value: params.JITSI_MEET_VERSION],
                             [$class: 'StringParameterValue', name: 'JICOFO_VERSION', value: params.JICOFO_VERSION],
                             [$class: 'StringParameterValue', name: 'PROSODY_VERSION', value: params.PROSODY_VERSION],
@@ -112,19 +93,13 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                                     [$class: 'StringParameterValue', name: 'CLOUD_PROVIDER', value: params.CLOUD_PROVIDER],
                                     [$class: 'StringParameterValue', name: 'CORE_CLOUD_PROVIDER', value: params.CORE_CLOUD_PROVIDER],
                                     [$class: 'StringParameterValue', name: 'JVB_VERSION', value: params.JVB_VERSION],
+                                    [$class: 'StringParameterValue', name: 'JVB_SHAPE', value: params.JVB_SHAPE],
+                                    [$class: 'StringParameterValue', name: 'SHAPE', value: params.SHAPE],
                                     [$class: 'StringParameterValue', name: 'SIGNAL_VERSION', value: env.SIGNAL_VERSION],
                                     [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: env.ENVIRONMENT],
                                     [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH]
                                 ]
                                 myRelease = releaseJob.getNumber();
-                                def newShards = newShardsFromRelease(env.ENVIRONMENT,myRelease)
-                                def oldShards = oldShardsFromRelease(env.ENVIRONMENT,myRelease)
-                                build job: 'reconfigure-shard-states',parameters: [
-                                    [$class: 'StringParameterValue', name: 'SHARDS_DRAIN', value: oldShards],
-                                    [$class: 'StringParameterValue', name: 'SHARDS_READY', value: newShards],
-                                    [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: env.ENVIRONMENT],
-                                    [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH]
-                                ]
                                 build job: 'set-release-ga',parameters: [
                                     [$class: 'StringParameterValue', name: 'RELEASE_NUMBER', value: myRelease.toString()],
                                     [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: env.ENVIRONMENT],

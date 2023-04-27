@@ -1,0 +1,153 @@
+{
+  "bridge-channel-message-incoming-queue": {
+    "added_packets": 0,
+    "dropped_packets": 0,
+    "duration_s": 0,
+    "queue_size_at_remove": {
+      "buckets": {
+        "0_to_1": 0,
+        "16_to_25": 0,
+        "1_to_4": 0,
+        "25_to_37": 0,
+        "37_to_max": 0,
+        "4_to_16": 0
+      },
+      "discarded": 0,
+      "total_count": 0,
+      "total_value": 0
+    },
+    "removed_packets": 0
+  },
+  "colibri_queue": {
+    "added_packets": 0,
+    "dropped_packets": 0,
+    "duration_s": 0,
+    "queue_size_at_remove": {
+      "buckets": {
+        "0_to_1": 0,
+        "1024_to_4096": 0,
+        "16384_to_max": 0,
+        "16_to_64": 0,
+        "1_to_4": 0,
+        "256_to_1024": 0,
+        "4096_to_16384": 0,
+        "4_to_16": 0,
+        "64_to_256": 0
+      },
+      "discarded": 0,
+      "total_count": 0,
+      "total_value": 0
+    },
+    "removed_packets": 0
+  },
+  "relay_endpoint_sender_srtp_send_queue": {
+    "added_packets": 0,
+    "dropped_packets": 0,
+    "duration_s": 0,
+    "exceptions": 0,
+    "queue_size_at_remove": {
+      "buckets": {
+        "0_to_1": 0,
+        "16_to_64": 0,
+        "1_to_4": 0,
+        "256_to_512": 0,
+        "4_to_16": 0,
+        "512_to_768": 0,
+        "64_to_256": 0,
+        "768_to_max": 0
+      },
+      "discarded": 0,
+      "total_count": 0,
+      "total_value": 0
+    },
+    "removed_packets": 0
+  },
+  "relay_srtp_send_queue": {
+    "added_packets": 0,
+    "dropped_packets": 0,
+    "duration_s": 0,
+    "exceptions": 0,
+    "queue_size_at_remove": {
+      "buckets": {
+        "0_to_1": 0,
+        "16_to_64": 0,
+        "1_to_4": 0,
+        "256_to_512": 0,
+        "4_to_16": 0,
+        "512_to_768": 0,
+        "64_to_256": 0,
+        "768_to_max": 0
+      },
+      "discarded": 0,
+      "total_count": 0,
+      "total_value": 0
+    },
+    "removed_packets": 0
+  },
+  "rtp_receiver_queue": {
+    "added_packets": 0,
+    "dropped_packets": 0,
+    "duration_s": 0,
+    "exceptions": 0,
+    "queue_size_at_remove": {
+      "buckets": {
+        "0_to_1": 0,
+        "16_to_64": 0,
+        "1_to_4": 0,
+        "256_to_512": 0,
+        "4_to_16": 0,
+        "512_to_768": 0,
+        "64_to_256": 0,
+        "768_to_max": 0
+      },
+      "discarded": 0,
+      "total_count": 0,
+      "total_value": 0
+    },
+    "removed_packets": 0
+  },
+  "rtp_sender_queue": {
+    "added_packets": 0,
+    "dropped_packets": 0,
+    "duration_s": 0,
+    "exceptions": 0,
+    "queue_size_at_remove": {
+      "buckets": {
+        "0_to_1": 0,
+        "16_to_64": 0,
+        "1_to_4": 0,
+        "256_to_512": 0,
+        "4_to_16": 0,
+        "512_to_768": 0,
+        "64_to_256": 0,
+        "768_to_max": 0
+      },
+      "discarded": 0,
+      "total_count": 0,
+      "total_value": 0
+    },
+    "removed_packets": 0
+  },
+  "srtp_send_queue": {
+    "added_packets": 0,
+    "dropped_packets": 0,
+    "duration_s": 0,
+    "exceptions": 0,
+    "queue_size_at_remove": {
+      "buckets": {
+        "0_to_1": 0,
+        "16_to_64": 0,
+        "1_to_4": 0,
+        "256_to_512": 0,
+        "4_to_16": 0,
+        "512_to_768": 0,
+        "64_to_256": 0,
+        "768_to_max": 0
+      },
+      "discarded": 0,
+      "total_count": 0,
+      "total_value": 0
+    },
+    "removed_packets": 0
+  }
+}

@@ -22,31 +22,31 @@ for C in $CLOUDS; do
     . $LOCAL_PATH/../clouds/${C}.sh
     . $LOCAL_PATH/check-build-oracle-image.sh
 
-    if [ ! -z "$SIGNAL_VERSION" ]; then
+    if [ -n "$SIGNAL_VERSION" ]; then
         if [[ "$SIGNAL_IMAGE_EXISTS" == "false" ]]; then
             echo "No signal image $SIGNAL_VERSION found in region $ORACLE_REGION"
             BUILD_IMAGE=true
         fi
     fi
-    if [ ! -z "$JVB_VERSION" ]; then
+    if [ -n "$JVB_VERSION" ]; then
         if [[ "$JVB_IMAGE_EXISTS" == "false" ]]; then
             echo "No JVB image $JVB_VERSION found in region $ORACLE_REGION"
             BUILD_IMAGE=true
         fi
     fi
-    if [ ! -z "$JIBRI_VERSION" ]; then
+    if [ -n "$JIBRI_VERSION" ]; then
         if [[ "$JIBRI_IMAGE_EXISTS" == "false" ]]; then
             echo "No jibri image $JIBRI_VERSION found in region $ORACLE_REGION"
             BUILD_IMAGE=true
         fi
     fi
-    if [ ! -z "$JIGASI_VERSION" ]; then
+    if [ -n "$JIGASI_VERSION" ]; then
         if [[ "$JIGASI_IMAGE_EXISTS" == "false" ]]; then
             echo "No jigasi image $JIGASI_VERSION found in region $ORACLE_REGION"
             BUILD_IMAGE=true
         fi
     fi
-    if [[ ! $BUILD_IMAGE ]]; then
+    if [[ $BUILD_IMAGE == false ]]; then
         if [[ "$IMAGE_EXISTS" == "false" ]]; then
             echo "No $IMAGE_TYPE image found in region $ORACLE_REGION"
             BUILD_IMAGE=true

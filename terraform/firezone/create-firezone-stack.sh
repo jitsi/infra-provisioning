@@ -9,7 +9,7 @@ if [ -z "$ENVIRONMENT" ]; then
   exit 1
 fi
 
-[ -e $LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh ] && . $LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh
+[ -e $LOCAL_PATH/../../sites/$ENVIRONMENT/stack-env.sh ] && . $LOCAL_PATH/../../sites/$ENVIRONMENT/stack-env.sh
 
 [ -z "$ORACLE_GIT_BRANCH" ] && ORACLE_GIT_BRANCH="main"
 
@@ -41,7 +41,9 @@ fi
 [ -z "$BASE_IMAGE_TYPE" ] && BASE_IMAGE_TYPE="$FIREZONE_BASE_IMAGE_TYPE"
 [ -z "$BASE_IMAGE_TYPE" ] && BASE_IMAGE_TYPE="JammyBase"
 
-[ -z "$IMAGE_OCID" ] && IMAGE_OCID=$($LOCAL_PATH/../../scripts/oracle_custom_images.py --type $BASE_IMAGE_TYPE --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
+arch_from_shape $SHAPE
+
+[ -z "$IMAGE_OCID" ] && IMAGE_OCID=$($LOCAL_PATH/../../scripts/oracle_custom_images.py --type $BASE_IMAGE_TYPE --architecture "$IMAGE_ARCH" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
 if [ -z "$IMAGE_OCID" ]; then
   echo "## no IMAGE_OCID found.  Exiting..."
   exit 1

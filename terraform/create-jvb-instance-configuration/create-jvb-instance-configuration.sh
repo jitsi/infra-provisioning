@@ -69,6 +69,9 @@ if [[ "$SHAPE" == "VM.Standard.E3.Flex" ]]; then
 elif [[ "$SHAPE" == "VM.Standard.E4.Flex" ]]; then
   [ -z "$OCPUS" ] && OCPUS=4
   [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=16
+elif [[ "$SHAPE" == "VM.Standard.A1.Flex" ]]; then
+  [ -z "$OCPUS" ] && OCPUS=8
+  [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=16
 else
   [ -z "$OCPUS" ] && OCPUS=4
   [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=60
@@ -94,7 +97,9 @@ fi
 
 [ -z "$USER_PUBLIC_KEY_PATH" ] && USER_PUBLIC_KEY_PATH="~/.ssh/id_ed25519.pub"
 
-[ -z "$IMAGE_OCID" ] && IMAGE_OCID=$($LOCAL_PATH/../../scripts/oracle_custom_images.py --type JVB --version "$JVB_VERSION" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
+arch_from_shape $SHAPE
+
+[ -z "$IMAGE_OCID" ] && IMAGE_OCID=$($LOCAL_PATH/../../scripts/oracle_custom_images.py --type JVB --version "$JVB_VERSION" --architecture "$IMAGE_ARCH" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
 if [ -z "$IMAGE_OCID" ]; then
   echo "No IMAGE_OCID found.  Exiting..."
   exit 1

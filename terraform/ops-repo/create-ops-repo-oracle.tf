@@ -57,6 +57,7 @@ locals {
   common_freeform_tags = {
     configuration_repo = var.infra_configuration_repo
     customizations_repo = var.infra_customizations_repo
+    shape = var.shape
   }
   common_tags = {
     "${var.tag_namespace}.environment" = var.environment

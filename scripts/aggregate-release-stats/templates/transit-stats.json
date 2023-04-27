@@ -1,0 +1,28 @@
+{
+  "e2e_packet_delay": {
+    "rtcp": {
+      "buckets": {
+        "0_to_max_ms": 1890167,
+        "500_to_max_ms": 0,
+        "50_to_max_ms": 0,
+        "5_to_max_ms": 215
+      },
+      "discarded": 0,
+      "packets_without_timestamps": 9822480,
+      "total_count": 1890167,
+      "total_value": 9142
+    },
+    "rtp": {
+      "buckets": {
+        "0_to_max_ms": 66575301,
+        "500_to_max_ms": 0,
+        "50_to_max_ms": 13,
+        "5_to_max_ms": 8297
+      },
+      "discarded": 0,
+      "packets_without_timestamps": 2451784,
+      "total_count": 66575301,
+      "total_value": 349205
+    }
+  }
+}

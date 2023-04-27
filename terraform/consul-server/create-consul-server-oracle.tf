@@ -292,6 +292,11 @@ resource "oci_core_instance_configuration" "oci_instance_configuration_a" {
       }
 
       metadata = local.common_metadata
+      freeform_tags = {
+        configuration_repo = var.infra_configuration_repo
+        customizations_repo = var.infra_customizations_repo
+        shape = var.shape
+      }
     }
   }
 }

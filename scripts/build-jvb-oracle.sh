@@ -44,6 +44,12 @@ fi
 ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 [ -e "$LOCAL_PATH/../clouds/${ORACLE_CLOUD_NAME}.sh" ] && . $LOCAL_PATH/../clouds/${ORACLE_CLOUD_NAME}.sh
 
+[ -z "$IMAGE_ARCH" ] && IMAGE_ARCH="x86_64"
+
+if [[ "$IMAGE_ARCH" == "aarch64" ]]; then
+  [ -z "$SHAPE" ] && SHAPE="$SHAPE_A_1"  
+fi
+
 [ -z "$SHAPE" ] && SHAPE="$SHAPE_E_4"
 [ -z "$OCPUS" ] && OCPUS="4"
 [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS="16"
@@ -51,7 +57,9 @@ ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 [ -z "$BASE_IMAGE_TYPE" ] && BASE_IMAGE_TYPE="$JVB_BASE_IMAGE_TYPE"
 [ -z "$BASE_IMAGE_TYPE" ] && BASE_IMAGE_TYPE="JammyBase"
 
-[ -z "$BASE_IMAGE_ID" ] && BASE_IMAGE_ID=$($LOCAL_PATH/oracle_custom_images.py --type $BASE_IMAGE_TYPE --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
+arch_from_shape $SHAPE
+
+[ -z "$BASE_IMAGE_ID" ] && BASE_IMAGE_ID=$($LOCAL_PATH/oracle_custom_images.py --type $BASE_IMAGE_TYPE --architecture "$IMAGE_ARCH" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
 # bionic uses python
 #SYSTEM_PYTHON="/usr/bin/python"
 
@@ -75,7 +83,7 @@ fi
 set +e
 for CLEAN_ORACLE_REGION in $ORACLE_IMAGE_REGIONS; do
   echo "Cleaning images in $CLEAN_ORACLE_REGION"
-  $LOCAL_PATH/oracle_custom_images.py --clean $ORACLE_CUSTOM_IMAGE_LIMIT --delete --region=$CLEAN_ORACLE_REGION --type=JVB --compartment_id=$TENANCY_OCID;
+  $LOCAL_PATH/oracle_custom_images.py --clean $ORACLE_CUSTOM_IMAGE_LIMIT --architecture "$IMAGE_ARCH" --delete --region=$CLEAN_ORACLE_REGION --type=JVB --compartment_id=$TENANCY_OCID;
 done
 set -e
 
@@ -99,6 +107,7 @@ packer build \
 -var "jitsi_videobridge_deb_pkg_version=$JVB_VERSION" \
 -var "jitsi_meet_meta_version=$JITSI_MEET_META_VERSION" \
 -var "ansible_ssh_user=$ANSIBLE_SSH_USER" \
+-var "image_architecture=$IMAGE_ARCH" \
 -var "base_image_type=$BASE_IMAGE_TYPE" \
 -var "base_image_ocid=$BASE_IMAGE_ID" \
 -var "region=$ORACLE_REGION" \

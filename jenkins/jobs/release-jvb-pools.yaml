@@ -33,6 +33,18 @@
           description: "Controls checkout branch for infra repos, defaults to 'main'."
           trim: true
       - string:
+          name: SHAPE
+          description: "Override CPU shape for JVB node. Can be VM.Standard.E3.Flex VM.Standard.E4.Flex or VM.Standard.A1.Flex"
+          trim: true
+      - string:
+          name: OCPUS
+          description: "Override JVB CPU count"
+          trim: true
+      - string:
+          name: MEMORY_IN_GBS
+          description: "Override JVB memory"
+          trim: true
+      - string:
           name: CLOUD_PROVIDER
           default: oracle
           description: "Cloud to build JVBs in, defaults to 'oracle'."

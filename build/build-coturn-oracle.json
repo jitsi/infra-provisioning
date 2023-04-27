@@ -6,6 +6,7 @@
     "ansible_build_path": "../../infra-configuration/ansible",
     "base_image_type": "",
     "base_image_ocid": "",
+    "image_architecture": "x86_64",
     "region": "",
     "availability_domain": "",
     "subnet_ocid": "",
@@ -46,6 +47,7 @@
         "{{user `tag_namespace`}}": {
           "Name": "{{user `coturn_image_name`}}",
           "build_id": "{{user `build_id`}}",
+          "Arch": "{{user `image_architecture`}}",
           "BaseImageType": "BaseType-{{user `base_image_type`}}",
           "BaseImageOCID": "{{user `base_image_ocid`}}",
           "TS": "{{timestamp}}",

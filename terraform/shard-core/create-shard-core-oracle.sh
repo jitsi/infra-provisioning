@@ -46,7 +46,11 @@ CLOUD_NAME="$ENVIRONMENT-$ORACLE_REGION"
 [ -z "$SHAPE" ] && SHAPE="VM.Standard.E3.Flex"
 
 [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS="16"
-[ -z "$INSTANCE_SHAPE_OCPUS" ] && INSTANCE_SHAPE_OCPUS="4"
+if [[ "$SHAPE" == "VM.Standard.A1.Flex" ]]; then
+  [ -z "$INSTANCE_SHAPE_OCPUS" ] && INSTANCE_SHAPE_OCPUS=8
+else
+  [ -z "$INSTANCE_SHAPE_OCPUS" ] && INSTANCE_SHAPE_OCPUS=4
+fi
 [ -z "$DISK_IN_GBS" ] && DISK_IN_GBS="50"
 [ -z "$VISITORS_COUNT" ] && VISITORS_COUNT="0"
 
@@ -99,7 +103,9 @@ fi
 [ -z "$S3_ENDPOINT" ] && S3_ENDPOINT="https://$ORACLE_S3_NAMESPACE.compat.objectstorage.$ORACLE_REGION.oraclecloud.com"
 [ -z "$S3_STATE_KEY" ] && S3_STATE_KEY="$ENVIRONMENT/shards/$SHARD_NAME/terraform.tfstate"
 
-[ -z "$IMAGE_OCID" ] && IMAGE_OCID=$($LOCAL_PATH/../../scripts/oracle_custom_images.py --type Signal --version "$SIGNAL_VERSION" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
+arch_from_shape $SHAPE
+
+[ -z "$IMAGE_OCID" ] && IMAGE_OCID=$($LOCAL_PATH/../../scripts/oracle_custom_images.py --type Signal --version "$SIGNAL_VERSION" --architecture "$IMAGE_ARCH" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
 
 if [ -z "$IMAGE_OCID" ]; then
   echo "No IMAGE_OCID found.  Exiting..."
