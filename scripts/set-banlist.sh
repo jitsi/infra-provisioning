@@ -1,6 +1,5 @@
 #!/bin/bash
 
-set -x
 echo "## starting set-banlist.sh"
 
 [ -e ./stack-env.sh ] && . ./stack-env.sh
@@ -132,8 +131,10 @@ if [[ ! -z "$DATACENTERS" && "$DATACENTERS" != '[]' ]]; then
             KV_URL="$CONSUL_URL:8500/$CONSUL_KEY_PATH?dc=$DC"
             RESPONSE=$(curl -s $CURL_PARAMS $KV_URL)
             if [ $? -gt 0 ]; then
-                echo "Failed $BAN_TYPE ban of $BAN_STRING in $DC"
+                echo "## Failed $BAN_TYPE ban of $BAN_STRING in $DC"
                 FINAL_RET=1
+            else
+                echo "## added $BAN_TYPE ban of $BAN_STRING in $DC"
             fi
         done
     fi
@@ -144,17 +145,20 @@ if [[ ! -z "$DATACENTERS" && "$DATACENTERS" != '[]' ]]; then
             RESPONSE=$(curl -s $CURL_PARAMS $KV_URL)
             echo $RESPONSE
             if [ $? -gt 0 ]; then
-                echo "Failed $BAN_TYPE ban of $BAN_STRING in $DC"
+                echo "## failed $BAN_TYPE ban of $BAN_STRING in $DC"
                 FINAL_RET=1
+            else
+                echo "## added $BAN_TYPE ban of $BAN_STRING in $DC"
             fi
         done
     fi
 else
-    echo "No datacenters set or found, exiting"
+    echo "## no datacenters set or found, exiting..."
     FINAL_RET=2
 fi
 
 if [[ "$CONSUL_VIA_SSH" == "true" ]]; then
+    echo "## killing ssh processes"
     if [[ "$CONSUL_INCLUDE_AWS" == "true" ]]; then
         SSH_PID=$(ps auxww | grep "ssh \-fNT -L127.0.0.1:$PORT" | awk '{print $2}')
         kill $SSH_PID
