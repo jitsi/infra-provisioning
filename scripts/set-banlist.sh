@@ -1,5 +1,8 @@
 #!/bin/bash
 
+set -x
+echo "## starting set-banlist.sh"
+
 [ -e ./stack-env.sh ] && . ./stack-env.sh
 
 if [  -z "$1" ]; then
@@ -51,6 +54,7 @@ CONSUL_AWS_HOST="consul-$AWS_CONSUL_ENV-$AWS_LOCAL_DATACENTER.$TOP_LEVEL_DNS_ZON
 CONSUL_OCI_HOST="$OCI_LOCAL_DATACENTER-consul.$TOP_LEVEL_DNS_ZONE_NAME"
 
 if [[ "$CONSUL_VIA_SSH" == "true" ]]; then
+    echo "## creating consul banlists via curl over ssh"
     CONSUL_HOST="consul-local.$TOP_LEVEL_DNS_ZONE_NAME"
     if [[ "$CONSUL_INCLUDE_AWS" == "true" ]]; then
         echo "## create ssh connection to AWS consul"
@@ -70,6 +74,7 @@ if [[ "$CONSUL_VIA_SSH" == "true" ]]; then
         OCI_CONSUL_URL="https://$CONSUL_OCI:$PORT_OCI"
     fi
 else
+    echo "## creating consul banlists via direct curls"
     CONSUL_HOST="$AWS_LOCAL_DATACENTER-consul.$TOP_LEVEL_DNS_ZONE_NAME"
     if [[ "$CONSUL_INCLUDE_AWS" == "true" ]]; then
         CONSUL_URL="https://$CONSUL_AWS_HOST"
