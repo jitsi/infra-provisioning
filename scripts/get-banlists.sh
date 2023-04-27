@@ -1,6 +1,8 @@
 #!/bin/bash
 
-echo "## starting get-banlists.sh"
+if [ -z "$JSON_ONLY" ]; then
+    echo "## starting get-banlists.sh"
+fi
 
 if [  -z "$1" ]; then
     ANSIBLE_SSH_USER=$(whoami)
@@ -43,10 +45,14 @@ CONSUL_AWS_HOST="consul-$AWS_CONSUL_ENV-$AWS_LOCAL_DATACENTER.$TOP_LEVEL_DNS_ZON
 CONSUL_OCI_HOST="$OCI_LOCAL_DATACENTER-consul.$TOP_LEVEL_DNS_ZONE_NAME"
 
 if [[ "$CONSUL_VIA_SSH" == "true" ]]; then
-    echo "## getting consul banlists via curl over ssh"
+    if [ -z "$JSON_ONLY" ]; then
+        echo "## getting consul banlists via curl over ssh"
+    fi
     CONSUL_HOST="consul-local.$TOP_LEVEL_DNS_ZONE_NAME"
     if [[ "$CONSUL_INCLUDE_AWS" == "true" ]]; then
-        echo "## create ssh connection to AWS consul"
+        if [ -z "$JSON_ONLY" ]; then
+            echo "## create ssh connection to AWS consul"
+        fi
         PORT=$(python -c 'import socket; s=socket.socket(); s.bind(("", 0)); print(s.getsockname()[1]); s.close()')
         [ -z "$AWS_LOCAL_DATACENTER" ] && AWS_LOCAL_DATACENTER="us-east-1-peer1"
         [ -z "$AWS_CONSUL_ENV" ] && AWS_CONSUL_ENV="prod"
@@ -55,7 +61,9 @@ if [[ "$CONSUL_VIA_SSH" == "true" ]]; then
     fi
 
     if [[ "$CONSUL_INCLUDE_OCI" == "true" ]]; then
-        echo "## create ssh connection to OCI consul"
+        if [ -z "$JSON_ONLY" ]; then
+            echo "## create ssh connection to OCI consul"
+        fi
         PORT_OCI="$(python -c 'import socket; s=socket.socket(); s.bind(("", 0)); print(s.getsockname()[1]); s.close()')"
         OCI_LOCAL_REGION="us-phoenix-1"
         OCI_LOCAL_DATACENTER="$ENVIRONMENT-$OCI_LOCAL_REGION"
@@ -63,7 +71,9 @@ if [[ "$CONSUL_VIA_SSH" == "true" ]]; then
         OCI_CONSUL_URL="https://$CONSUL_OCI:$PORT_OCI"
     fi
 else
-    echo "## getting consul banlists via direct curls"
+    if [ -z "$JSON_ONLY" ]; then
+        echo "## getting consul banlists via direct curls"
+    fi
     CONSUL_HOST="$AWS_LOCAL_DATACENTER-consul.$TOP_LEVEL_DNS_ZONE_NAME"
     if [[ "$CONSUL_INCLUDE_AWS" == "true" ]]; then
         CONSUL_URL="https://$CONSUL_AWS_HOST"
@@ -86,10 +96,14 @@ for ban_type in $BAN_TYPES; do
         KV_URL="$CONSUL_URL/$CONSUL_KEY_PATH?dc=$AWS_LOCAL_DATACENTER&recurse"
         RESPONSE=$(curl $KV_URL)
         if [ $? -gt 0 ]; then
-            echo "## AWS: did not find bans of type $BAN_TYPE in $AWS_LOCAL_DATACENTER"
+            if [ -z "$JSON_ONLY" ]; then
+                echo "## AWS: did not find bans of type $BAN_TYPE in $AWS_LOCAL_DATACENTER"
+            fi
         else
             BANS=$(echo $RESPONSE | jq -r '.[].Key' | rev | cut -d\/ -f1 | rev)
-            echo -e "## AWS: banned strings of type $ban_type:\n$BANS"
+            if [ -z "$JSON_ONLY" ]; then
+                echo -e "## AWS: banned strings of type $ban_type:\n$BANS"
+            fi
             for ban in $BANS; do
                 AWS_JSON_OUTPUT='$AWS_JSON_OUTPUT "$ban",'
             done
@@ -101,10 +115,14 @@ for ban_type in $BAN_TYPES; do
         KV_URL="$OCI_CONSUL_URL/$CONSUL_KEY_PATH?dc=$OCI_LOCAL_DATACENTER&recurse"
         RESPONSE=$(curl -s $KV_URL)
         if [ $? -gt 0 ]; then
-            echo "## OCI: did not find bans of type $BAN_TYPE in $OCI_LOCAL_DATACENTER"
+            if [ -z "$JSON_ONLY" ]; then
+                echo "## OCI: did not find bans of type $BAN_TYPE in $OCI_LOCAL_DATACENTER"
+            fi
         else
             BANS=$(echo $RESPONSE | jq -r '.[].Key' | rev | cut -d\/ -f1 | rev)
-            echo -e "## OCI: banned strings of type $ban_type:\n$BANS"
+            if [ -z "$JSON_ONLY" ]; then
+                echo -e "## OCI: banned strings of type $ban_type:\n$BANS"
+            fi
             for ban in $BANS; do
                 OCI_JSON_OUTPUT="$OCI_JSON_OUTPUT \"$ban\","
             done
@@ -124,7 +142,9 @@ if [[ "$CONSUL_INCLUDE_OCI" == "true" ]]; then
 fi
 
 JSON_OUTPUT="${JSON_OUTPUT::-1} }"
-echo -e "\n## json summary of banlists in $ENVIRONMENT:"
+if [ -z "$JSON_ONLY" ]; then
+    echo -e "\n## json summary of banlists in $ENVIRONMENT:"
+fi
 echo $JSON_OUTPUT
 
 if [[ "$CONSUL_VIA_SSH" == "true" ]]; then
