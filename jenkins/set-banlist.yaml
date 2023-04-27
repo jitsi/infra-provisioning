@@ -14,7 +14,7 @@
           description: "Type of ban. Valid choices are domain, exact, prefix, and substring. domain: exact match of a domain name; exact: exact match of a room name; prefix: prefix of a room name; substr: a substring anywhere in the path or room name"
           trim: true
       - string:
-          name: BAN_OR_UNBAN
+          name: BAN_ACTION
           default: BAN
           description: "BAN or UNBAN the string"
           trim: true

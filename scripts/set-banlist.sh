@@ -26,16 +26,13 @@ elif [[ ! "$BAN_TYPE" =~ ^(domain|exact|prefix|substr)$ ]]; then
     exit 1
 fi
 
-if [ -z "$BAN_OR_UNBAN" ]; then
-    echo "No BAN_OR_UNBAN set, exiting"
+if [ -z "$BAN_ACTION" ]; then
+    echo "No BAN_ACTION set, exiting"
     exit 1
-elif [[ ! "$BAN_OR_UNBAN" =~ ^(BAN|UNBAN)$ ]]; then
-    echo "BAN_OR_UNBAN must be either BAN or UNBAN"
+elif [[ ! "$BAN_ACTION" =~ ^(BAN|UNBAN)$ ]]; then
+    echo "BAN_ACTION must be either BAN or UNBAN"
     exit 1
 fi
-
-# BAN_TYPE  domain exact prefix substr
-# BAN_OR_UNBAN
 
 LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 [ -e $LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh ] && . $LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh
@@ -46,6 +43,12 @@ LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 [ -z "$CONSUL_VIA_SSH" ] && CONSUL_VIA_SSH="false"
 [ -z "$CONSUL_INCLUDE_AWS" ] && CONSUL_INCLUDE_AWS="false"
 [ -z "$CONSUL_INCLUDE_OCI" ] && CONSUL_INCLUDE_OCI="true"
+
+OCI_LOCAL_REGION="us-phoenix-1"
+OCI_LOCAL_DATACENTER="$ENVIRONMENT-$OCI_LOCAL_REGION"
+
+CONSUL_AWS_HOST="consul-$AWS_CONSUL_ENV-$AWS_LOCAL_DATACENTER.$TOP_LEVEL_DNS_ZONE_NAME"
+CONSUL_OCI_HOST="$OCI_LOCAL_DATACENTER-consul.$TOP_LEVEL_DNS_ZONE_NAME"
 
 if [[ "$CONSUL_VIA_SSH" == "true" ]]; then
     CONSUL_HOST="consul-local.$TOP_LEVEL_DNS_ZONE_NAME"
@@ -64,7 +67,7 @@ if [[ "$CONSUL_VIA_SSH" == "true" ]]; then
         OCI_LOCAL_REGION="us-phoenix-1"
         OCI_LOCAL_DATACENTER="$ENVIRONMENT-$OCI_LOCAL_REGION"
         ssh -o StrictHostKeyChecking=no -fNT -L127.0.0.1:$PORT_OCI:$OCI_LOCAL_DATACENTER-consul.$TOP_LEVEL_DNS_ZONE_NAME:443 $ANSIBLE_SSH_USER@$OCI_LOCAL_REGION-$ENVIRONMENT-ssh.oracle.infra.jitsi.net
-        OCI_CONSUL_URL="https://$CONSUL_HOST:$PORT_OCI"
+        OCI_CONSUL_URL="https://$CONSUL_OCI:$PORT_OCI"
     fi
 else
     CONSUL_HOST="$AWS_LOCAL_DATACENTER-consul.$TOP_LEVEL_DNS_ZONE_NAME"
@@ -87,7 +90,7 @@ if [ -z "$DATACENTERS" ]; then
 
     if [[ "$CONSUL_INCLUDE_AWS" == "true" ]]; then
         echo "## get AWS datacenters from consul"
-        AWS_DATACENTERS=$(curl --resolve $CONSUL_HOST:$PORT:127.0.0.1 -G $CONSUL_URL/v1/catalog/datacenters 2>/tmp/dclist)
+        AWS_DATACENTERS=$(curl -s --resolve $CONSUL_HOST:$PORT:127.0.0.1 -G $CONSUL_URL/v1/catalog/datacenters 2>/tmp/dclist)
         if [[ $? -gt 0 ]]; then
             AWS_DATACENTERS='[]'
         fi
@@ -96,7 +99,7 @@ if [ -z "$DATACENTERS" ]; then
     fi
     if [[ "$CONSUL_INCLUDE_OCI" == "true" ]]; then
         echo "## get OCI datacenters from consul"
-        OCI_DATACENTERS=$(curl --resolve $CONSUL_HOST:$PORT_OCI:127.0.0.1 -G $OCI_CONSUL_URL/v1/catalog/datacenters 2>>/tmp/dclist)
+        OCI_DATACENTERS=$(curl -s --resolve $CONSUL_HOST:$PORT_OCI:127.0.0.1 -G $OCI_CONSUL_URL/v1/catalog/datacenters 2>>/tmp/dclist)
         if [[ $? -gt 0 ]]; then
             OCI_DATACENTERS='[]'
         fi
@@ -112,8 +115,8 @@ if [[ ! -z "$DATACENTERS" && "$DATACENTERS" != '[]' ]]; then
     FINAL_RET=0
     ALL_DATACENTERS=$(echo $DATACENTERS| jq -r ".[]")
 
-    CONSUL_KEY_PATH"/v1/kv/banlists/$ENVIRONMENT/$BAN_TYPE/$BAN_STRING"
-    if BAN_OR_UNBAN == "BAN" ; then
+    CONSUL_KEY_PATH="v1/kv/banlists/$ENVIRONMENT/$BAN_TYPE/$BAN_STRING"
+    if [[ "$BAN_ACTION" == "BAN" ]]; then
         CURL_PARAMS="--request PUT --data ban"
     else
         CURL_PARAMS="--request DELETE"
@@ -121,8 +124,8 @@ if [[ ! -z "$DATACENTERS" && "$DATACENTERS" != '[]' ]]; then
 
     if [[ "$CONSUL_INCLUDE_AWS" == "true" ]]; then
         for DC in $AWS_DATACENTERS; do
-            KV_URL="$CONSUL_URL/$CONSUL_KEY_PATH?dc=$DC"
-            RESPONSE=$(curl $CURL_PARAMS $KV_URL)
+            KV_URL="$CONSUL_URL:8500/$CONSUL_KEY_PATH?dc=$DC"
+            RESPONSE=$(curl -s $CURL_PARAMS $KV_URL)
             if [ $? -gt 0 ]; then
                 echo "Failed $BAN_TYPE ban of $BAN_STRING in $DC"
                 FINAL_RET=1
@@ -132,8 +135,9 @@ if [[ ! -z "$DATACENTERS" && "$DATACENTERS" != '[]' ]]; then
 
     if [[ "$CONSUL_INCLUDE_OCI" == "true" ]]; then
         for DC in $OCI_DATACENTERS; do
-            KV_URL="$CONSUL_URL/$CONSUL_KEY_PATH?dc=$DC"
-            RESPONSE=$(curl $CURL_PARAMS $KV_URL)
+            KV_URL="$OCI_CONSUL_URL/$CONSUL_KEY_PATH?dc=$DC"
+            RESPONSE=$(curl -s $CURL_PARAMS $KV_URL)
+            echo $RESPONSE
             if [ $? -gt 0 ]; then
                 echo "Failed $BAN_TYPE ban of $BAN_STRING in $DC"
                 FINAL_RET=1
