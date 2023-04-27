@@ -2,8 +2,6 @@
 
 echo "## starting set-banlist.sh"
 
-[ -e ./stack-env.sh ] && . ./stack-env.sh
-
 if [  -z "$1" ]; then
     ANSIBLE_SSH_USER=$(whoami)
 else
@@ -128,7 +126,7 @@ if [[ ! -z "$DATACENTERS" && "$DATACENTERS" != '[]' ]]; then
 
     if [[ "$CONSUL_INCLUDE_AWS" == "true" ]]; then
         for DC in $AWS_DATACENTERS; do
-            KV_URL="$CONSUL_URL:8500/$CONSUL_KEY_PATH?dc=$DC"
+            KV_URL="$CONSUL_URL/$CONSUL_KEY_PATH?dc=$DC"
             RESPONSE=$(curl -s $CURL_PARAMS $KV_URL)
             if [ $? -gt 0 ]; then
                 echo "## Failed $BAN_TYPE ban of $BAN_STRING in $DC"
@@ -143,7 +141,6 @@ if [[ ! -z "$DATACENTERS" && "$DATACENTERS" != '[]' ]]; then
         for DC in $OCI_DATACENTERS; do
             KV_URL="$OCI_CONSUL_URL/$CONSUL_KEY_PATH?dc=$DC"
             RESPONSE=$(curl -s $CURL_PARAMS $KV_URL)
-            echo $RESPONSE
             if [ $? -gt 0 ]; then
                 echo "## failed $BAN_TYPE ban of $BAN_STRING in $DC"
                 FINAL_RET=1
