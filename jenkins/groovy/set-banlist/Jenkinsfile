@@ -20,19 +20,19 @@ pipeline {
         stage ("set ban in consul") {
             steps {
                 script {
-                    echo 'setting bans'
+                    echo 'getting banlists'
                     dir("infra-provisioning") {
                         sshagent (credentials: ['ssh-ubuntu']) {
-                            updateSucceeded = sh(
+                            getSucceeded = sh(
                                 returnStatus: true,
                                 script: """#!/bin/bash
-                                scripts/set-banlist.sh ubuntu
+                                scripts/get-banlists.sh ubuntu
                                 """
                             )
                         }
                     }
-                    if (updateSucceeded == 'false') {
-                        error('set banlist failed')
+                    if (getSucceeded == 'false') {
+                        error('get banlist failed')
                     }
                 }
             }
