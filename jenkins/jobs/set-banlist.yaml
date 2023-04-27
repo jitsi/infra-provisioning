@@ -5,8 +5,8 @@
     concurrent: true
     parameters:
       - string:
-          name: BAN_STRING
-          description: "String to match on."
+          name: BAN_STRINGS
+          description: "Space-delimited list of strings to match the ban against."
           trim: true
       - string:
           name: BAN_TYPE

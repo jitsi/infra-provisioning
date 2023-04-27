@@ -13,8 +13,8 @@ if [ -z "$ENVIRONMENT" ]; then
     exit 1
 fi
 
-if [ -z "$BAN_STRING" ]; then
-    echo "## ERROR: no BAN_STRING set, exiting..."
+if [ -z "$BAN_STRINGS" ]; then
+    echo "## ERROR: no BAN_STRINGS set, exiting..."
     exit 1
 fi
 
@@ -117,38 +117,40 @@ if [[ ! -z "$DATACENTERS" && "$DATACENTERS" != '[]' ]]; then
     FINAL_RET=0
     ALL_DATACENTERS=$(echo $DATACENTERS| jq -r ".[]")
 
-    CONSUL_KEY_PATH="v1/kv/banlists/$ENVIRONMENT/$BAN_TYPE/$BAN_STRING"
-    if [[ "$BAN_ACTION" == "BAN" ]]; then
-        CURL_PARAMS="--request PUT --data ban"
-    else
-        CURL_PARAMS="--request DELETE"
-    fi
+    for ban_str in $BAN_STRINGS; do
+        CONSUL_KEY_PATH="v1/kv/banlists/$ENVIRONMENT/$BAN_TYPE/$ban_str"
+        if [[ "$BAN_ACTION" == "BAN" ]]; then
+            CURL_PARAMS="--request PUT --data ban"
+        else
+            CURL_PARAMS="--request DELETE"
+        fi
 
-    if [[ "$CONSUL_INCLUDE_AWS" == "true" ]]; then
-        for DC in $AWS_DATACENTERS; do
-            KV_URL="$CONSUL_URL/$CONSUL_KEY_PATH?dc=$DC"
-            RESPONSE=$(curl -s $CURL_PARAMS $KV_URL)
-            if [ $? -gt 0 ]; then
-                echo "## Failed $BAN_TYPE ban of $BAN_STRING in $DC"
-                FINAL_RET=1
-            else
-                echo "## added $BAN_TYPE ban of $BAN_STRING in $DC"
-            fi
-        done
-    fi
+        if [[ "$CONSUL_INCLUDE_AWS" == "true" ]]; then
+            for DC in $AWS_DATACENTERS; do
+                KV_URL="$CONSUL_URL/$CONSUL_KEY_PATH?dc=$DC"
+                RESPONSE=$(curl -s $CURL_PARAMS $KV_URL)
+                if [ $? -gt 0 ]; then
+                    echo "## Failed $BAN_TYPE ban of $ban_str in $DC"
+                    FINAL_RET=1
+                else
+                    echo "## added $BAN_TYPE ban of $ban_str in $DC"
+                fi
+            done
+        fi
 
-    if [[ "$CONSUL_INCLUDE_OCI" == "true" ]]; then
-        for DC in $OCI_DATACENTERS; do
-            KV_URL="$OCI_CONSUL_URL/$CONSUL_KEY_PATH?dc=$DC"
-            RESPONSE=$(curl -s $CURL_PARAMS $KV_URL)
-            if [ $? -gt 0 ]; then
-                echo "## failed $BAN_TYPE ban of $BAN_STRING in $DC"
-                FINAL_RET=1
-            else
-                echo "## added $BAN_TYPE ban of $BAN_STRING in $DC"
-            fi
-        done
-    fi
+        if [[ "$CONSUL_INCLUDE_OCI" == "true" ]]; then
+            for DC in $OCI_DATACENTERS; do
+                KV_URL="$OCI_CONSUL_URL/$CONSUL_KEY_PATH?dc=$DC"
+                RESPONSE=$(curl -s $CURL_PARAMS $KV_URL)
+                if [ $? -gt 0 ]; then
+                    echo "## failed $BAN_TYPE ban of $ban_str in $DC"
+                    FINAL_RET=1
+                else
+                    echo "## added $BAN_TYPE ban of $ban_str in $DC"
+                fi
+            done
+        fi
+    done
 else
     echo "## no datacenters set or found, exiting..."
     FINAL_RET=2
