@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/opt/homebrew/bin/bash
 
 echo "## starting get-banlists.sh"
 
@@ -75,31 +75,57 @@ fi
 
 FINAL_RET=0
 
+AWS_JSON_OUTPUT="{"
+OCI_JSON_OUTPUT="{"
 for ban_type in $BAN_TYPES; do
+    AWS_JSON_OUTPUT="$AWS_JSON_OUTPUT \"$ban_type\": [ "
+    OCI_JSON_OUTPUT="$OCI_JSON_OUTPUT \"$ban_type\": [ "
     CONSUL_KEY_PATH="v1/kv/banlists/$ENVIRONMENT/$ban_type"
 
     if [[ "$CONSUL_INCLUDE_AWS" == "true" ]]; then
         KV_URL="$CONSUL_URL/$CONSUL_KEY_PATH?dc=$AWS_LOCAL_DATACENTER&recurse"
         RESPONSE=$(curl $KV_URL)
         if [ $? -gt 0 ]; then
-            echo "## did not find bans of type $BAN_TYPE in $AWS_LOCAL_DATACENTER"
+            echo "## AWS: did not find bans of type $BAN_TYPE in $AWS_LOCAL_DATACENTER"
         else
-            echo "## bans of type $ban_type:"
-            echo $RESPONSE | jq -r '.[].Key' | rev | cut -d\/ -f1 | rev
+            BANS=$(echo $RESPONSE | jq -r '.[].Key' | rev | cut -d\/ -f1 | rev)
+            echo -e "## AWS: banned strings of type $ban_type:\n$BANS"
+            for ban in $BANS; do
+                AWS_JSON_OUTPUT='$AWS_JSON_OUTPUT "$ban",'
+            done
         fi
     fi
+    AWS_JSON_OUTPUT="${AWS_JSON_OUTPUT::-1} ],"
 
     if [[ "$CONSUL_INCLUDE_OCI" == "true" ]]; then
         KV_URL="$OCI_CONSUL_URL/$CONSUL_KEY_PATH?dc=$OCI_LOCAL_DATACENTER&recurse"
         RESPONSE=$(curl -s $KV_URL)
         if [ $? -gt 0 ]; then
-            echo "## did not find bans of type $BAN_TYPE in $OCI_LOCAL_DATACENTER"
+            echo "## OCI: did not find bans of type $BAN_TYPE in $OCI_LOCAL_DATACENTER"
         else
-            echo "## bans of type $ban_type:"
-            echo $RESPONSE | jq -r '.[].Key' | rev | cut -d\/ -f1 | rev
+            BANS=$(echo $RESPONSE | jq -r '.[].Key' | rev | cut -d\/ -f1 | rev)
+            echo -e "## OCI: banned strings of type $ban_type:\n$BANS"
+            for ban in $BANS; do
+                OCI_JSON_OUTPUT="$OCI_JSON_OUTPUT \"$ban\","
+            done
         fi
     fi
+    OCI_JSON_OUTPUT="${OCI_JSON_OUTPUT::-1} ],"
 done
+
+JSON_OUTPUT="{ "
+
+if [[ "$CONSUL_INCLUDE_AWS" == "true" ]]; then
+    JSON_OUTPUT="$JSON_OUTPUT aws: ${AWS_JSON_OUTPUT::-1} ,"
+fi
+
+if [[ "$CONSUL_INCLUDE_OCI" == "true" ]]; then
+    JSON_OUTPUT="$JSON_OUTPUT oci: ${OCI_JSON_OUTPUT::-1} ,"
+fi
+
+JSON_OUTPUT="${JSON_OUTPUT::-1} }"
+echo -e "\n## json summary of banlists in $ENVIRONMENT:"
+echo $JSON_OUTPUT
 
 if [[ "$CONSUL_VIA_SSH" == "true" ]]; then
     echo "## killing ssh processes"
