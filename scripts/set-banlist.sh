@@ -12,28 +12,28 @@ else
 fi
 
 if [ -z "$ENVIRONMENT" ]; then
-    echo "No ENVIRONMENT set, exiting..."
+    echo "## ERROR: no ENVIRONMENT set, exiting..."
     exit 1
 fi
 
 if [ -z "$BAN_STRING" ]; then
-    echo "No BAN_STRING set, exiting..."
+    echo "## ERROR: no BAN_STRING set, exiting..."
     exit 1
 fi
 
 if [ -z "$BAN_TYPE" ]; then
-    echo "No BAN_TYPE set, exiting..."
+    echo "## ERROR: no BAN_TYPE set, exiting..."
     exit 1
 elif [[ ! "$BAN_TYPE" =~ ^(domain|exact|prefix|substr)$ ]]; then
-    echo "BAN_TYPE must be either domain, exact, prefix, or substr"
+    echo "## ERROR: BAN_TYPE must be either domain, exact, prefix, or substr"
     exit 1
 fi
 
 if [ -z "$BAN_ACTION" ]; then
-    echo "No BAN_ACTION set, exiting"
+    echo "## ERROR: no BAN_ACTION set, exiting..."
     exit 1
 elif [[ ! "$BAN_ACTION" =~ ^(BAN|UNBAN)$ ]]; then
-    echo "BAN_ACTION must be either BAN or UNBAN"
+    echo "## ERROR: BAN_ACTION must be either BAN or UNBAN"
     exit 1
 fi
 
