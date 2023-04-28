@@ -44,11 +44,9 @@ Create a bucket called `tf-state-<compartment-name>` at the top level for compar
 * upload ssh key and vault password to `jvb-bucket-<compartment_name>`
 
 #### Create a jitsi-video-infrastructure Branch With The New Region Configs. 
-Add the following:
-* `<customization_repo>/clouds/<oracle_region>-<compartment_name>` - add the `COMPARTMENT_ID`
-
+* add the `COMPARTMENT_ID` to `<customization_repo>/clouds/<oracle_region>-<compartment_name>.sh`
 #### Networking
-* Create VCN with a new CIRD block with the provision-vcn-oracle job
+* Create VCN with a new CIRD block with the provision-vcn job
 * Add new regions to `stack-env.sh` in `DRG_PEER_REGIONS`, `RELEASE_CLOUDS`, and `CS_HISTORY_ORACLE_REGIONS`
 * Add new regions to `vars.yml` in `consul_wan_regions_oracle`
 
@@ -94,7 +92,7 @@ For existing compartments, the policies should be manually added
 #### Set up network peering for the regions in the compartment
 * Create a DRG for each region and add a route, run `ORACLE_REGION=<region> ENVIRONMENT=<compartment> scripts/create-drg-oracle.sh`
 * For each region running shards and/or jvbs, run `ORACLE_REGION=<region> ENVIRONMENT=<compartment> scripts/link-drgs-oracle.sh`
-* Build the ops network to all regions across the environment: `OPS_ENVIRONMENT=<ops-compartment> ORACLE_REGION=<ops-region> TARGET_ENVIRONMENTS=<target-compartment> scripts/link-ops-drgs-oracle.sh`
+* Build the ops management hub-and-spoke network to all regions across the environment: `OPS_ENVIRONMENT=<ops-compartment> ORACLE_REGION=<ops-region> TARGET_ENVIRONMENTS=<target-compartment> scripts/link-ops-drgs-oracle.sh`
 
 #### Create a Consul cluster for the environment/region
 Consul is used as a source of truth for service discovery and configuration
@@ -121,7 +119,7 @@ is added, existing consul clusters will need the new region's servers to be adde
 to their config via `consul-rotate`.
 
 A consul cluster is provisioned for a new region/compartment using:
-* https://jenkins.jitsi.net/job/provision-consul-oracle/
+* Run the `provision-consul` job
 
 When a consul cluster needs a major update, the consul rotation job can be used
 to replace the current instances with fresh ones. This should also be run for
