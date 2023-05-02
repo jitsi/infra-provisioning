@@ -53,7 +53,7 @@ job "[JOB_NAME]" {
 
       resources {
         cpu    = 1000
-        memory = 2048
+        memory = 1024
       }
     }
   }

@@ -17,6 +17,7 @@ LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 [ -e "$LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh" ] && . "$LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh"
 
 [ -e "$LOCAL_PATH/../clouds/all.sh" ] && . "$LOCAL_PATH/../clouds/all.sh"
+[ -e "$LOCAL_PATH/../clouds/oracle.sh" ] && . "$LOCAL_PATH/../clouds/oracle.sh"
 
 [ -z "$VAULT_PASSWORD_FILE" ] && VAULT_PASSWORD_FILE="$LOCAL_PATH/../.vault-password.txt"
 
@@ -36,7 +37,7 @@ NOMAD_DC="$ENVIRONMENT-$ORACLE_REGION"
 #     NOMAD_DC="$( echo "$NOMAD_DC" "[\"$ENVIRONMENT-$ORACLE_REGION\"]" | jq -c -s '.|add')"
 # done
 
-[ -z "$LOCAL_REGION" ] && LOCAL_REGION="$ORACLE_REGION"
+[ -z "$LOCAL_REGION" ] && LOCAL_REGION="us-phoenix-1"
 
 if [ -z "$NOMAD_ADDR" ]; then
     NOMAD_IPS="$(DATACENTER="$ENVIRONMENT-$LOCAL_REGION" OCI_DATACENTERS="$ENVIRONMENT-$LOCAL_REGION" ENVIRONMENT="$ENVIRONMENT" FILTER_ENVIRONMENT="false" SHARD='' RELEASE_NUMBER='' SERVICE="nomad-servers" DISPLAY="addresses" $LOCAL_PATH/consul-search.sh ubuntu)"
@@ -54,8 +55,17 @@ if [ -z "$NOMAD_ADDR" ]; then
     exit 5
 fi
 
+export RESOURCE_NAME_ROOT="${ENVIRONMENT}-${ORACLE_REGION}-wfproxy"
+
 export NOMAD_VAR_dc="$NOMAD_DC"
-export NOMAD_VAR_wavefront_proxy_hostname="${ENVIRONMENT}-${ORACLE_REGION}-wfproxy.${TOP_LEVEL_DNS_ZONE_NAME}"
+export NOMAD_VAR_wavefront_proxy_hostname="${RESOURCE_NAME_ROOT}.${TOP_LEVEL_DNS_ZONE_NAME}"
 JOB_NAME="wavefront-proxy-$ORACLE_REGION"
 
 sed -e "s/\[JOB_NAME\]/$JOB_NAME/" "$NOMAD_JOB_PATH/wavefront-proxy.hcl" | nomad job run -
+
+export CNAME_VALUE="$RESOURCE_NAME_ROOT"
+export STACK_NAME="${RESOURCE_NAME_ROOT}-cname"
+export UNIQUE_ID="${RESOURCE_NAME_ROOT}"
+export CNAME_TARGET="${ENVIRONMENT}-${ORACLE_REGION}-nomad-pool-general-internal.${DEFAULT_DNS_ZONE_NAME}"
+export CNAME_VALUE="${RESOURCE_NAME_ROOT}"
+$LOCAL_PATH/create-oracle-cname-stack.sh

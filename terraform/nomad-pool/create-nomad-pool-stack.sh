@@ -37,7 +37,7 @@ ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS="32"
 [ -z "$OCPUS" ] && OCPUS="8"
 
-[ -z "$INSTANCE_POOL_SIZE" ] && INSTANCE_POOL_SIZE=3
+[ -z "$INSTANCE_POOL_SIZE" ] && INSTANCE_POOL_SIZE=2
 
 [ -z "$NAME_ROOT" ] && NAME_ROOT="$NAME"
 
@@ -275,5 +275,5 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
   -var="certificate_certificate_name=$NOMAD_CERTIFICATE_NAME" \
   -var="alt_certificate_certificate_name=$NOMAD_ALT_CERTIFICATE_NAME" \
   -var "infra_configuration_repo=$INFRA_CONFIGURATION_REPO" \
-  -var "infra_customizations_repo=$INFRA_CUSTOMIZATIONS_REPO" \
+  -var "infra_customizations_repo=$INFRA_CUSTOMIZATIONS_REPO=" \
   $ACTION_POST_PARAMS $TF_POST_PARAMS
