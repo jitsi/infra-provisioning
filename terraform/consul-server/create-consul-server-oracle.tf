@@ -690,7 +690,7 @@ resource "null_resource" "cloud_init_output_c" {
   depends_on = [null_resource.verify_cloud_init_c]
 
   provisioner "local-exec" {
-    command = "ssh -o StrictHostKeyChecking=no -J ${var.user}@${element(local.private_ips_c, count.index)} 'echo hostname: $HOSTNAME, privateIp: ${element(local.private_ips_c, count.index)} - $(cloud-init status)' >> ${var.postinstall_status_file}"
+    command = "ssh -o StrictHostKeyChecking=no ${var.user}@${element(local.private_ips_c, count.index)} 'echo hostname: $HOSTNAME, privateIp: ${element(local.private_ips_c, count.index)} - $(cloud-init status)' >> ${var.postinstall_status_file}"
   }
   triggers = {
     always_run = "${timestamp()}"
