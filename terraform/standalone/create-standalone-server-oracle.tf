@@ -35,6 +35,8 @@ variable "user_data_lib_path" {
 variable "user_data_file" {
   default = "terraform/standalone/user-data/postinstall-runner-oracle.sh"
 }
+variable "infra_configuration_repo" {}
+variable "infra_customizations_repo" {}
 
 locals {
   common_tags = {
