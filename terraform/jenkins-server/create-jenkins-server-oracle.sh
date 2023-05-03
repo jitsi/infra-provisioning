@@ -147,4 +147,6 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
   -var="user_public_key_path=$USER_PUBLIC_KEY_PATH" \
   -var="postinstall_status_file=$POSTINSTALL_STATUS_FILE" \
   -var="ingress_nsg_cidr=$INGRESS_NSG_CIDR" \
+  -var="infra_configuration_repo=$INFRA_CONFIGURATION_REPO" \
+  -var="infra_customizations_repo=$INFRA_CUSTOMIZATIONS_REPO" \
   $ACTION_POST_PARAMS $TF_POST_PARAMS
