@@ -1,0 +1,57 @@
+{
+  "bridge_selector": {
+    "total_least_loaded": 0,
+    "total_least_loaded_in_conference": 0,
+    "total_least_loaded_in_region": 0,
+    "total_least_loaded_in_region_group": 0,
+    "total_least_loaded_in_region_group_in_conference": 0,
+    "total_least_loaded_in_region_in_conference": 0,
+    "total_not_loaded_in_region": 0,
+    "total_not_loaded_in_region_group": 0,
+    "total_not_loaded_in_region_group_in_conference": 0,
+    "total_not_loaded_in_region_in_conference": 0
+  },
+  "queues": {
+    "jibri-iq-queue": {
+      "added_packets": 0,
+      "dropped_packets": 0,
+      "queue_size_at_remove": {
+        "buckets": {
+          "0_to_1": 0,
+          "1024_to_4096": 0,
+          "16384_to_max": 0,
+          "16_to_64": 0,
+          "1_to_4": 0,
+          "256_to_1024": 0,
+          "4096_to_16384": 0,
+          "4_to_16": 0,
+          "64_to_256": 0
+        },
+        "discarded": 0,
+        "total_count": 0
+      },
+      "removed_packets": 0
+    },
+    "jingle-iq-queue": {
+      "added_packets": 0,
+      "dropped_packets": 0,
+      "queue_size_at_remove": {
+        "buckets": {
+          "0_to_1": 0,
+          "1024_to_4096": 0,
+          "16384_to_max": 0,
+          "16_to_64": 0,
+          "1_to_4": 0,
+          "256_to_1024": 0,
+          "4096_to_16384": 0,
+          "4_to_16": 0,
+          "64_to_256": 0
+        },
+        "discarded": 0,
+        "total_count": 0
+      },
+      "removed_packets": 0
+    }
+  },
+  "slow_health_check": 0
+}

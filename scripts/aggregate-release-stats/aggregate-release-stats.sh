@@ -49,11 +49,21 @@ else
 fi
 
 DIR="pre-terminate-stats/release-${RELEASE_NUMBER}-aggregates"
-mkdir -p "$DIR"
-for i in templates/*; do
+mkdir -p "$DIR/jvb"
+mkdir -p "$DIR/jicofo"
+for i in templates/jvb/*; do
   template=$(basename $i)
-  echo "Aggregating $template"
-  node ./aggregate.js templates/$template pre-terminate-stats/release-${RELEASE_NUMBER}/*/$template > pre-terminate-stats/release-${RELEASE_NUMBER}-aggregates/$template
+  echo "Aggregating jvb/$template"
+  node ./aggregate.js templates/jvb/$template pre-terminate-stats/release-${RELEASE_NUMBER}/${ENVIRONMENT}-jvb-*/$template > pre-terminate-stats/release-${RELEASE_NUMBER}-aggregates/jvb/$template
+done
+
+jicofo_dirs=$(find pre-terminate-stats/release-${RELEASE_NUMBER} -type d -name ${ENVIRONMENT}-* | grep -v ${ENVIRONMENT}-jvb-)
+for i in templates/jicofo/*; do
+  template=$(basename $i)
+  echo "Aggregating jicofo/$template"
+  templates=""
+  for i in $jicofo_dirs; do templates="$templates $i/$template"; done
+  node ./aggregate.js templates/jicofo/$template $templates > pre-terminate-stats/release-${RELEASE_NUMBER}-aggregates/jicofo/$template
 done
 
 node ./summarize.js "$DIR" > "$DIR/summary.txt"
