@@ -54,9 +54,16 @@ if [ -z "$TE_IMAGE_ID" ]; then
   exit 1
 fi
 
-[ -z "$BASTION_HOST" ] && BASTION_HOST="$CONNECTION_SSH_BASTION_HOST"
-# add bastion hosts to known hosts if not present
-grep -q "$BASTION_HOST" ~/.ssh/known_hosts || ssh-keyscan -H $BASTION_HOST >> ~/.ssh/known_hosts
+if [ "$SKIP_SSH_BASTION_HOST" == "true" ]; then
+  BASTION_CONFIG=""
+else
+  [ -z "$BASTION_HOST" ] && BASTION_HOST="$CONNECTION_SSH_BASTION_HOST"
+
+  # add bastion hosts to known hosts if not present
+  grep -q "$BASTION_HOST" ~/.ssh/known_hosts || ssh-keyscan -H $BASTION_HOST >> ~/.ssh/known_hosts
+
+  BASTION_CONFIG='-var="bastion_host=$BASTION_HOST"'
+fi
 
 [ -z "$S3_PROFILE" ] && S3_PROFILE="oracle"
 [ -z "$S3_STATE_BUCKET" ] && S3_STATE_BUCKET="tf-state-$ENVIRONMENT"
@@ -98,7 +105,7 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
   -var="name=$NAME"\
   -var="display_name=$DISPLAY_NAME"\
   -var="oracle_region=$ORACLE_REGION"\
-  -var="bastion_host=$BASTION_HOST" \
+  $BASTION_CONFIG \
   -var="shape=$SHAPE"\
   -var="ocpus=$OCPUS"\
   -var="memory_in_gbs=$MEMORY_IN_GBS"\

@@ -100,7 +100,6 @@ fi
 
 [ -z "$USER_PUBLIC_KEY_PATH" ] && USER_PUBLIC_KEY_PATH="~/.ssh/id_ed25519.pub"
 [ -z "$USER_PRIVATE_KEY_PATH" ] && USER_PRIVATE_KEY_PATH="~/.ssh/id_ed25519"
-[ -z "$BASTION_HOST" ] && BASTION_HOST="$CONNECTION_SSH_BASTION_HOST"
 [ -z "$COTURNS_POSTINSTALL_STATUS_FILE" ] && COTURNS_POSTINSTALL_STATUS_FILE="/tmp/${NAME}_postinstall_status.txt"
 
 [ -z "$SECONDARY_VNIC_NAME" ] && SECONDARY_VNIC_NAME="${ENVIRONMENT}-${ORACLE_REGION}-SecondaryVnic"
@@ -111,8 +110,16 @@ fi
 [ -z "$SCALE_IN_RULE_NAME" ] && SCALE_IN_RULE_NAME="${ENVIRONMENT}-${ORACLE_REGION}-scalingLowLoad"
 [ -z "$SCALE_OUT_RULE_NAME" ] && SCALE_OUT_RULE_NAME="${ENVIRONMENT}-${ORACLE_REGION}-scalingHighLoad"
 
-# add bastion hosts to known hosts if not present
-grep -q "$BASTION_HOST" ~/.ssh/known_hosts || ssh-keyscan -H $BASTION_HOST >> ~/.ssh/known_hosts
+if [ "$SKIP_SSH_BASTION_HOST" == "true" ]; then
+  BASTION_CONFIG=""
+else
+  [ -z "$BASTION_HOST" ] && BASTION_HOST="$CONNECTION_SSH_BASTION_HOST"
+
+  # add bastion hosts to known hosts if not present
+  grep -q "$BASTION_HOST" ~/.ssh/known_hosts || ssh-keyscan -H $BASTION_HOST >> ~/.ssh/known_hosts
+
+  BASTION_CONFIG='-var="bastion_host=$BASTION_HOST"'
+fi
 
 [ -z "$S3_PROFILE" ] && S3_PROFILE="oracle"
 [ -z "$S3_STATE_BUCKET" ] && S3_STATE_BUCKET="tf-state-$ENVIRONMENT"
@@ -152,7 +159,7 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
   -var="oracle_region=$ORACLE_REGION" \
   -var="user_public_key_path=$USER_PUBLIC_KEY_PATH" \
   -var="user_private_key_path=$USER_PRIVATE_KEY_PATH" \
-  -var="bastion_host=$BASTION_HOST" \
+  $BASTION_CONFIG \
   -var="instance_config_name=$INSTANCE_CONFIG_NAME" \
   -var="shape=$SHAPE" \
   -var="ocpus=$OCPUS" \
