@@ -6,7 +6,7 @@ if (process.argv.length < 2) {
     process.exit(1);
 }
 
-const dir = process.argv[2];
+const dir = `${process.argv[2]}/jvb`;
 
 const colibri = JSON.parse(fs.readFileSync(`${dir}/colibri-stats.json`));
 const conferencePacketStats = JSON.parse(fs.readFileSync(`${dir}/conference-packet-stats.json`));
@@ -246,3 +246,52 @@ console.log(`TCC feedback required multiple TCC packets:\t${f(100 * tccGen['num_
 
 const vq = node['VideoQualityLayerLookup'];
 console.log(`Packets dropped_no_encoding:\t${f(100 * vq['num_packets_dropped_no_encoding'] / vq['num_input_packets'])}%`)
+
+const dirJicofo = `${process.argv[2]}/jicofo`;
+const statsJicofo = JSON.parse(fs.readFileSync(`${dirJicofo}/stats.json`));
+const metricsJicofo = JSON.parse(fs.readFileSync(`${dirJicofo}/metrics.json`));
+
+console.log(`\nJicofo:`);
+console.log(`Conferences:\t${metricsJicofo.conferences_created_total}`);
+console.log(`Participants:\t${metricsJicofo.participants_total}`);
+console.log(``);
+console.log(`Lost bridges:\t${metricsJicofo.bridge_selector_lost_bridges_total}`);
+console.log(`Removed bridges:\t${metricsJicofo.bridges_removed_total}`);
+console.log(`Jibri live stream failures:\t${metricsJicofo.jibri_live_streaming_failures_total}`);
+console.log(`Jibri recording failures:\t${metricsJicofo.jibri_recording_failures_total}`);
+console.log(`Jibri SIP failures:\t${metricsJicofo.jibri_sip_failures_total}`);
+console.log(``);
+console.log(`Participants ICE failed:\t${metricsJicofo.participants_ice_failed_total + metricsJicofo.participants_restart_requested_total}`);
+console.log(`Participants ICE failed:\t1 in ${f(metricsJicofo.participants_total / (metricsJicofo.participants_ice_failed_total + metricsJicofo.participants_restart_requested_total))}`);
+console.log(`Participants moved:\t${metricsJicofo.participants_moved_total}`);
+console.log(`Participants moved:\t${f(100 * metricsJicofo.participants_moved_total / metricsJicofo.participants_total)}%`);
+console.log(`Participants with no multi stream:\t${metricsJicofo.participants_no_multi_stream_total}`);
+console.log(`Participants with no multi stream:\t${f(100 * metricsJicofo.participants_no_multi_stream_total / metricsJicofo.participants_total)}%`);
+console.log(`Participants with no source names:\t${metricsJicofo.participants_no_source_name_total}`);
+console.log(`Participants with no source names:\t${f(100 * metricsJicofo.participants_no_source_name_total / metricsJicofo.participants_total)}%`);
+console.log(``);
+
+let jingleReceived = metricsJicofo.jingle_session_accept_received_total + metricsJicofo.jingle_session_info_received_total + metricsJicofo.jingle_session_terminate_received_total + metricsJicofo.jingle_sourceadd_received_total + metricsJicofo.jingle_sourceremove_received_total + metricsJicofo.jingle_transport_info_received_total;
+console.log(`Jingle received session_accept:\t${f(100 * metricsJicofo.jingle_session_accept_received_total / jingleReceived)}%`);
+console.log(`Jingle received session_info:\t${f(100 * metricsJicofo.jingle_session_info_received_total / jingleReceived)}%`);
+console.log(`Jingle received session_terminate:\t${f(100 * metricsJicofo.jingle_session_terminate_received_total / jingleReceived)}%`);
+console.log(`Jingle received source_add:\t${f(100 * metricsJicofo.jingle_sourceadd_received_total / jingleReceived)}%`);
+console.log(`Jingle received source_remove:\t${f(100 * metricsJicofo.jingle_sourceremove_received_total / jingleReceived)}%`);
+console.log(`Jingle received transport_info:\t${f(100 * metricsJicofo.jingle_transport_info_received_total / jingleReceived)}%`);
+
+let jingleSent = metricsJicofo.jingle_session_initiate_sent_total + metricsJicofo.jingle_session_terminate_sent_total + metricsJicofo.jingle_sourceadd_sent_total + metricsJicofo.jingle_sourceremove_sent_total;
+console.log(`Jingle sent session_initiate:\t${f(100 * metricsJicofo.jingle_session_initiate_sent_total / jingleSent)}%`);
+console.log(`Jingle sent session_terminate:\t${f(100 * metricsJicofo.jingle_session_terminate_sent_total / jingleSent)}%`);
+console.log(`Jingle sent source_add:\t${f(100 * metricsJicofo.jingle_sourceadd_sent_total / jingleSent)}%`);
+console.log(`Jingle sent source_remove:\t${f(100 * metricsJicofo.jingle_sourceremove_sent_total / jingleSent)}%`);
+console.log(``);
+
+let notLoaded = statsJicofo['bridge_selector']['total_not_loaded_in_region'] + statsJicofo['bridge_selector']['total_not_loaded_in_region_group'] + statsJicofo['bridge_selector']['total_not_loaded_in_region_group_in_conference'] + statsJicofo['bridge_selector']['total_not_loaded_in_region_in_conference'];
+let loaded = statsJicofo['bridge_selector']['total_least_loaded'] + statsJicofo['bridge_selector']['total_least_loaded_in_conference'] + statsJicofo['bridge_selector']['total_least_loaded_in_region'] + statsJicofo['bridge_selector']['total_least_loaded_in_region_group'] + statsJicofo['bridge_selector']['total_least_loaded_in_region_group_in_conference'] + statsJicofo['bridge_selector']['total_least_loaded_in_region_in_conference'];
+console.log(`Bridge selected not loaded:\t${f(100 * notLoaded / (notLoaded + loaded))}%`);
+console.log(`Bridge selected loaded:\t${f(100 * loaded / (notLoaded + loaded))}%`);
+
+console.log(``);
+console.log(`Jibri IQ queue dropped:\t${statsJicofo.queues['jibri-iq-queue']['dropped_packets']}`);
+console.log(`Jingle IQ queue dropped:\t${statsJicofo.queues['jingle-iq-queue']['dropped_packets']}`);
+console.log(`Slow health checks:\t${statsJicofo.slow_health_check}`);
