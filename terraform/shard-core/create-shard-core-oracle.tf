@@ -26,7 +26,6 @@ variable "tag_namespace" {}
 variable "user" {}
 variable "user_private_key_path" {}
 variable "user_public_key_path" {}
-variable "bastion_host" {}
 variable "ingress_nsg_cidr" {}
 variable "instance_display_name" {}
 variable "instance_shape_config_memory_in_gbs" {}
@@ -367,9 +366,6 @@ resource "null_resource" "verify_cloud_init" {
       user = var.user
       private_key = file(var.user_private_key_path)
 
-      bastion_host = var.bastion_host
-      bastion_user = var.user
-      bastion_private_key = file(var.user_private_key_path)
       script_path = "/home/${var.user}/script_%RAND%.sh"
 
       timeout = "5m"
