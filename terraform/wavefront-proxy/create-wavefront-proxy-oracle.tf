@@ -20,7 +20,6 @@ variable "environment_type" {}
 variable "tag_namespace" {}
 variable "user" {}
 variable "user_private_key_path" {}
-variable "bastion_host" {}
 variable "wavefront_proxy_postinstall_status_file" {}
 variable "security_group_id" {}
 variable "user_public_key_path" {}
@@ -256,9 +255,6 @@ resource "null_resource" "verify_cloud_init" {
       user = var.user
       private_key = file(var.user_private_key_path)
 
-      bastion_host = var.bastion_host
-      bastion_user = var.user
-      bastion_private_key = file(var.user_private_key_path)
       script_path = "/home/${var.user}/script_%RAND%.sh"
 
       timeout = "10m"
@@ -274,7 +270,7 @@ resource "null_resource" "cloud_init_output" {
   depends_on = [null_resource.verify_cloud_init]
 
   provisioner "local-exec" {
-    command = "ssh -o StrictHostKeyChecking=no -J ${var.user}@${var.bastion_host} ${var.user}@${element(local.private_ips, count.index)} 'echo hostname: $HOSTNAME, privateIp: ${element(local.private_ips, count.index)} - $(cloud-init status)' >> ${var.wavefront_proxy_postinstall_status_file}"
+    command = "ssh -o StrictHostKeyChecking=no ${var.user}@${element(local.private_ips, count.index)} 'echo hostname: $HOSTNAME, privateIp: ${element(local.private_ips, count.index)} - $(cloud-init status)' >> ${var.wavefront_proxy_postinstall_status_file}"
   }
   triggers = {
     always_run = "${timestamp()}"

@@ -11,7 +11,6 @@ variable "instance_pool_size" {}
 
 variable "user" {}
 variable "user_private_key_path" {}
-variable "bastion_host" {}
 variable "postinstall_status_file" {}
 
 variable "environment" {}
@@ -272,9 +271,6 @@ resource "null_resource" "verify_cloud_init_hub" {
       user = var.user
       private_key = file(var.user_private_key_path)
 
-      bastion_host = var.bastion_host
-      bastion_user = var.user
-      bastion_private_key = file(var.user_private_key_path)
       script_path = "/home/${var.user}/script_%RAND%.sh"
 
       timeout = "10m"
@@ -299,9 +295,6 @@ resource "null_resource" "verify_cloud_init_node" {
       user = var.user
       private_key = file(var.user_private_key_path)
 
-      bastion_host = var.bastion_host
-      bastion_user = var.user
-      bastion_private_key = file(var.user_private_key_path)
       script_path = "/home/${var.user}/script_%RAND%.sh"
 
       timeout = "10m"
