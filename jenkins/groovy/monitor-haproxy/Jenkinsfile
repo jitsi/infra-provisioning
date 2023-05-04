@@ -63,7 +63,7 @@ pipeline {
                         }
                     }
                     try {
-                        timeout(time: 20, unit: 'MINUTES') {
+                        timeout(time: 20, unit: 'SECONDS') {
                             dir('infra-provisioning') {
                                 lock("haproxy-state-${env.ENVIRONMENT}") {
                                     withCredentials([
