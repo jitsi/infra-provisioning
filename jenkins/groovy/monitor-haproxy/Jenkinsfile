@@ -63,7 +63,7 @@ pipeline {
                         }
                     }
                     try {
-                        timeout(time: 20, unit: 'SECONDS') {
+                        timeout(time: 20, unit: 'MINUTES') {
                             dir('infra-provisioning') {
                                 lock("haproxy-state-${env.ENVIRONMENT}") {
                                     withCredentials([
@@ -81,8 +81,8 @@ pipeline {
                         }
                     } catch (err) {
                         println err
-                        echo 'Timeout reached.'
-                        error 'haproxyStatus timeout failed'
+                        echo 'Timeout exceeded.'
+                        error 'haproxyStatus() timed out after 20 minutes'
                     }
                 }
             }
