@@ -58,23 +58,32 @@ if [ -z "$INSTANCE_POOL_DETAILS" ] || [ "$INSTANCE_POOL_DETAILS" == "null" ]; th
   echo "No instance pool found with name $INSTANCE_POOL_NAME. Exiting..."
   exit 3
 else
-
-  METADATA_PATH="$LOCAL_PATH/../terraform/nomad-pool/user-data/postinstall-runner-oracle.sh"
   INSTANCE_POOL_ID=$(echo "$INSTANCE_POOL_DETAILS" | jq -r '.id')
 
-  export ENVIRONMENT
-  export ORACLE_REGION
-  export COMPARTMENT_OCID
-  export INSTANCE_POOL_ID
-  export ORACLE_GIT_BRANCH
-  export IMAGE_OCID
-  export METADATA_PATH
-  export SHAPE
-  export OCPUS
-  export MEMORY_IN_GBS
-  export ROTATE_INSTANCE_CONFIGURATION_SCRIPT="$LOCAL_PATH/../terraform/nomad-pool/create-nomad-pool-stack.sh"
-  export INSTANCE_PRE_DETACH_SCRIPT="$LOCAL_PATH/rotate-nomad-pre-detach.sh"
+  # first apply changes to instance configuration, etc
+  $LOCAL_PATH/../terraform/nomad-pool/create-nomad-pool-stack.sh
 
-  $LOCAL_PATH/rotate-instance-pool-oracle.sh
-  exit $?
+
+  ORACLE_REGION=$ORACLE_REGION ENVIRONMENT=$ENVIRONMENT ROLE=nomad-pool INSTANCE_POOL_ID=$INSTANCE_POOL_ID $LOCAL_PATH/pool.py inventory
+
+  # next scale up by 2X
+  echo -e "\n## rotate-nomad-poool-oracle: double the size of nomad pool"
+  ENVIRONMENT=$ENVIRONMENT ROLE=nomad-pool INSTANCE_POOL_ID=$INSTANCE_POOL_ID ORACLE_REGION=$ORACLE_REGION $LOCAL_PATH/pool.py double --wait
+
+  # drain old instances
+  $LOCAL_PATH/rotate-nomad-pre-detach.sh
+
+  # scale down the old instances
+  DETACHABLE_IPS=$(ENVIRONMENT=$ENVIRONMENT MINIMUM_POOL_SIZE=2 ROLE=nomad-pool INSTANCE_POOL_ID=$INSTANCE_POOL_ID ORACLE_REGION=$ORACLE_REGION $LOCAL_PATH/pool.py halve --onlyip)
+
+  echo -e "\n## recycle-haproxy-oracle: shelling into detachable instances at ${DETACHABLE_IPS} and shutting down consul nicely"
+  for IP in $DETACHABLE_IPS; do
+    timeout 10 ssh -n -o StrictHostKeyChecking=no -F $LOCAL_PATH/../config/ssh.config $ANSIBLE_SSH_USER@$IP "nomad node eligibility -self -disable && nomad node drain -self -enable -force -detach -yes"
+    sleep 90
+    timeout 10 ssh -n -o StrictHostKeyChecking=no -F $LOCAL_PATH/../config/ssh.config $ANSIBLE_SSH_USER@$IP "sudo service nomad stop && sudo service consul stop"
+  done
+
+  echo -e "\n## recycle-haproxy-oracle: halve the size of all haproxy instance pools"
+  ENVIRONMENT=$ENVIRONMENT MINIMUM_POOL_SIZE=2 ROLE=nomad-pool INSTANCE_POOL_ID=$INSTANCE_POOL_ID ORACLE_REGION=$ORACLE_REGION $LOCAL_PATH/pool.py halve --wait
+
 fi
