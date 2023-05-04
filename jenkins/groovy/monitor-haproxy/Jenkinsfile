@@ -32,7 +32,6 @@ pipeline {
     options {
         timestamps()
         ansiColor('xterm')
-        timeout(time: 20, unit: 'MINUTES')
         buildDiscarder(logRotator(numToKeepStr: '10', artifactNumToKeepStr: '50'))
     }
     stages {
@@ -63,19 +62,27 @@ pipeline {
                             utils.SetupAnsible()
                         }
                     }
-                    dir('infra-provisioning') {
-                      lock("haproxy-state-${env.ENVIRONMENT}") {
-                        withCredentials([
-                            file(credentialsId: 'oci-jenkins-config', variable: 'OCI_CLI_CONFIG_FILE'),
-                            file(credentialsId: 'oci-jenkins-pem', variable: 'OCI_CLI_KEY_FILE'),
-                            string(credentialsId: 'jenkins-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
-                            string(credentialsId: 'jenkins-aws-id', variable: 'AWS_ACCESS_KEY_ID')
-                        ]) {
-                          sshagent (credentials: ['ssh-ubuntu']) {
-                            haproxyStatus()
-                          }
+                    try {
+                        timeout(time: 20, unit: 'MINUTES') {
+                            dir('infra-provisioning') {
+                                lock("haproxy-state-${env.ENVIRONMENT}") {
+                                    withCredentials([
+                                        file(credentialsId: 'oci-jenkins-config', variable: 'OCI_CLI_CONFIG_FILE'),
+                                        file(credentialsId: 'oci-jenkins-pem', variable: 'OCI_CLI_KEY_FILE'),
+                                        string(credentialsId: 'jenkins-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
+                                        string(credentialsId: 'jenkins-aws-id', variable: 'AWS_ACCESS_KEY_ID')
+                                    ]) {
+                                        sshagent (credentials: ['ssh-ubuntu']) {
+                                            haproxyStatus()
+                                        }
+                                    }
+                                }
+                            }
                         }
-                      }
+                    } catch (err) {
+                        println err
+                        echo 'Timeout exceeded.'
+                        error 'haproxyStatus() timed out after 20 minutes'
                     }
                 }
             }
