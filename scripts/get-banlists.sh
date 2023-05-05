@@ -134,14 +134,14 @@ done
 JSON_OUTPUT="{ "
 
 if [[ "$CONSUL_INCLUDE_AWS" == "true" ]]; then
-    JSON_OUTPUT="$JSON_OUTPUT aws: ${AWS_JSON_OUTPUT::-1} ,"
+    JSON_OUTPUT="$JSON_OUTPUT \"aws\": ${AWS_JSON_OUTPUT::-1} ,"
 fi
 
 if [[ "$CONSUL_INCLUDE_OCI" == "true" ]]; then
-    JSON_OUTPUT="$JSON_OUTPUT oci: ${OCI_JSON_OUTPUT::-1} ,"
+    JSON_OUTPUT="$JSON_OUTPUT \"oci\": ${OCI_JSON_OUTPUT::-1} ,"
 fi
 
-JSON_OUTPUT="${JSON_OUTPUT::-1} }"
+JSON_OUTPUT="${JSON_OUTPUT::-1} }}"
 if [ -z "$JSON_ONLY" ]; then
     echo -e "\n## json summary of banlists in $ENVIRONMENT:"
 fi
