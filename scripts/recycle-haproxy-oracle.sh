@@ -64,9 +64,17 @@ function scale_down_haproxy_oracle() {
   echo -e "\n## recycle-haproxy-oracle: get list of IPs of instances to detach"
   DETACHABLE_IPS=$(ENVIRONMENT=$ENVIRONMENT MINIMUM_POOL_SIZE=2 ROLE=haproxy $LOCAL_PATH/pool.py halve --onlyip)
 
+  echo -e "\n## recycle-haproxy-oracle: shelling into detachable instances at ${DETACHABLE_IPS} and setting them unhealthy"
+  for IP in $DETACHABLE_IPS; do
+    timeout 20 ssh -n -o StrictHostKeyChecking=no -F $LOCAL_PATH/../config/ssh.config $ANSIBLE_SSH_USER@$IP "echo 'clear map /etc/haproxy/maps/up.map' | sudo socat /var/run/haproxy/admin.sock stdio"
+  done
+
+  echo -e "\n## recycle-haproxy-oracle: wait for load balancers health checks to see old haproxies as unhealthy"
+  sleep 20
+
   echo -e "\n## recycle-haproxy-oracle: shelling into detachable instances at ${DETACHABLE_IPS} and shutting down consul nicely"
   for IP in $DETACHABLE_IPS; do
-    timeout 10 ssh -n -o StrictHostKeyChecking=no -F $LOCAL_PATH/../config/ssh.config $ANSIBLE_SSH_USER@$IP "echo 'up false' > /etc/haproxy/maps/up.map;sudo service haproxy reload;sudo service consul stop"
+    timeout 20 ssh -n -o StrictHostKeyChecking=no -F $LOCAL_PATH/../config/ssh.config $ANSIBLE_SSH_USER@$IP "sudo service consul stop"
   done
 
   echo -e "\n## recycle-haproxy-oracle: halve the size of all haproxy instance pools"
