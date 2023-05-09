@@ -66,7 +66,7 @@ function scale_down_haproxy_oracle() {
 
   echo -e "\n## recycle-haproxy-oracle: shelling into detachable instances at ${DETACHABLE_IPS} and shutting down consul nicely"
   for IP in $DETACHABLE_IPS; do
-    timeout 10 ssh -n -o StrictHostKeyChecking=no -F $LOCAL_PATH/../config/ssh.config $ANSIBLE_SSH_USER@$IP "echo 'up false' > /etc/haproxy/maps/up.map;sudo service haproxy stop;sudo service consul stop"
+    timeout 10 ssh -n -o StrictHostKeyChecking=no -F $LOCAL_PATH/../config/ssh.config $ANSIBLE_SSH_USER@$IP "echo 'up false' > /etc/haproxy/maps/up.map;sudo service haproxy reload;sudo service consul stop"
   done
 
   echo -e "\n## recycle-haproxy-oracle: halve the size of all haproxy instance pools"
