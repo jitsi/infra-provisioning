@@ -67,7 +67,8 @@ function scale_down_haproxy_oracle() {
 
   echo -e "\n## recycle-haproxy-oracle: shelling into detachable instances at ${DETACHABLE_IPS} and setting them unhealthy"
   for IP in $DETACHABLE_IPS; do
-    timeout 20 ssh -n -o StrictHostKeyChecking=no -F $LOCAL_PATH/../config/ssh.config $ANSIBLE_SSH_USER@$IP "echo 'clear map /etc/haproxy/maps/up.map' | sudo socat /var/run/haproxy/admin.sock stdio"
+    timeout 20 ssh -n -o StrictHostKeyChecking=no -F $LOCAL_PATH/../config/ssh.config $ANSIBLE_SSH_USER@$IP "sudo rm /etc/haproxy/maps/up.map;echo 'clear map /etc/haproxy/maps/up.map' | sudo socat /var/run/haproxy/admin.sock stdio"
+#    timeout 20 ssh -n -o StrictHostKeyChecking=no -F $LOCAL_PATH/../config/ssh.config $ANSIBLE_SSH_USER@$IP "echo 'add map /etc/haproxy/maps/up.map up false' | sudo socat /var/run/haproxy/admin.sock stdio"
   done
 
   echo -e "\n## recycle-haproxy-oracle: wait for load balancers health checks to see old haproxies as unhealthy"
