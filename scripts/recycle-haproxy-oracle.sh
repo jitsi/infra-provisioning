@@ -61,6 +61,7 @@ function scale_up_haproxy_oracle() {
 }
 
 function scale_down_haproxy_oracle() {
+  set -x
   echo -e "\n## recycle-haproxy-oracle: get list of IPs of instances to detach"
   DETACHABLE_IPS=$(ENVIRONMENT=$ENVIRONMENT MINIMUM_POOL_SIZE=2 ROLE=haproxy $LOCAL_PATH/pool.py halve --onlyip)
 
@@ -76,6 +77,7 @@ function scale_down_haproxy_oracle() {
   for IP in $DETACHABLE_IPS; do
     timeout 20 ssh -n -o StrictHostKeyChecking=no -F $LOCAL_PATH/../config/ssh.config $ANSIBLE_SSH_USER@$IP "sudo service consul stop"
   done
+  set +x
 
   echo -e "\n## recycle-haproxy-oracle: halve the size of all haproxy instance pools"
   ENVIRONMENT=$ENVIRONMENT MINIMUM_POOL_SIZE=2 ROLE=haproxy $LOCAL_PATH/pool.py halve --wait
