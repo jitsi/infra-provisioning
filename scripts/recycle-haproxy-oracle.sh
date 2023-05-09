@@ -52,9 +52,6 @@ function scale_up_haproxy_oracle() {
     return 1
   fi
 
-  echo -e "\n## wait 30 seconds for haproxies to mesh with peers and sync stick table"
-  sleep 30
-
   echo -e "\n## post scale-up split brain repair"
   HAPROXY_CACHE_TTL="0" HAPROXY_STATUS_IGNORE_LOCK="true" $LOCAL_PATH/haproxy-status.sh $ANSIBLE_SSH_USER
   if [ $? -gt 0 ]; then
@@ -69,7 +66,7 @@ function scale_down_haproxy_oracle() {
 
   echo -e "\n## recycle-haproxy-oracle: shelling into detachable instances at ${DETACHABLE_IPS} and shutting down consul nicely"
   for IP in $DETACHABLE_IPS; do
-    timeout 10 ssh -n -o StrictHostKeyChecking=no -F $LOCAL_PATH/../config/ssh.config $ANSIBLE_SSH_USER@$IP "sudo service consul stop"
+    timeout 10 ssh -n -o StrictHostKeyChecking=no -F $LOCAL_PATH/../config/ssh.config $ANSIBLE_SSH_USER@$IP "sudo service haproxy stop;sudo service consul stop"
   done
 
   echo -e "\n## recycle-haproxy-oracle: halve the size of all haproxy instance pools"
