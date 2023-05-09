@@ -53,7 +53,7 @@ function scale_up_haproxy_oracle() {
   fi
 
   echo -e "\n## wait for load balancers to see new haproxies as healthy"
-  sleep 90
+  sleep 60
 
   echo -e "\n## post scale-up split brain repair"
   HAPROXY_CACHE_TTL="0" HAPROXY_STATUS_IGNORE_LOCK="true" $LOCAL_PATH/haproxy-status.sh $ANSIBLE_SSH_USER
@@ -64,7 +64,6 @@ function scale_up_haproxy_oracle() {
 }
 
 function scale_down_haproxy_oracle() {
-  set -x
   echo -e "\n## recycle-haproxy-oracle: get list of IPs of instances to detach"
   DETACHABLE_IPS=$(ENVIRONMENT=$ENVIRONMENT MINIMUM_POOL_SIZE=2 ROLE=haproxy $LOCAL_PATH/pool.py halve --onlyip)
 
@@ -74,13 +73,12 @@ function scale_down_haproxy_oracle() {
   done
 
   echo -e "\n## recycle-haproxy-oracle: wait for load balancers health checks to see old haproxies as unhealthy"
-  sleep 90
+  sleep 60
 
   echo -e "\n## recycle-haproxy-oracle: shelling into detachable instances at ${DETACHABLE_IPS} and shutting down consul cleanly"
   for IP in $DETACHABLE_IPS; do
     timeout 20 ssh -n -o StrictHostKeyChecking=no -F $LOCAL_PATH/../config/ssh.config $ANSIBLE_SSH_USER@$IP "sudo service consul stop"
   done
-  set +x
 
   echo -e "\n## recycle-haproxy-oracle: halve the size of all haproxy instance pools"
   ENVIRONMENT=$ENVIRONMENT MINIMUM_POOL_SIZE=2 ROLE=haproxy $LOCAL_PATH/pool.py halve --wait
