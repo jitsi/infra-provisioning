@@ -52,6 +52,9 @@ function scale_up_haproxy_oracle() {
     return 1
   fi
 
+  echo -e "\n## wait for load balancers to see new haproxies as healthy"
+  sleep 90
+
   echo -e "\n## post scale-up split brain repair"
   HAPROXY_CACHE_TTL="0" HAPROXY_STATUS_IGNORE_LOCK="true" $LOCAL_PATH/haproxy-status.sh $ANSIBLE_SSH_USER
   if [ $? -gt 0 ]; then
@@ -67,14 +70,13 @@ function scale_down_haproxy_oracle() {
 
   echo -e "\n## recycle-haproxy-oracle: shelling into detachable instances at ${DETACHABLE_IPS} and setting them unhealthy"
   for IP in $DETACHABLE_IPS; do
-    timeout 20 ssh -n -o StrictHostKeyChecking=no -F $LOCAL_PATH/../config/ssh.config $ANSIBLE_SSH_USER@$IP "sudo rm /etc/haproxy/maps/up.map;echo 'clear map /etc/haproxy/maps/up.map' | sudo socat /var/run/haproxy/admin.sock stdio"
-#    timeout 20 ssh -n -o StrictHostKeyChecking=no -F $LOCAL_PATH/../config/ssh.config $ANSIBLE_SSH_USER@$IP "echo 'add map /etc/haproxy/maps/up.map up false' | sudo socat /var/run/haproxy/admin.sock stdio"
+    timeout 20 ssh -n -o StrictHostKeyChecking=no -F $LOCAL_PATH/../config/ssh.config $ANSIBLE_SSH_USER@$IP "sudo echo 'up false' > /etc/haproxy/maps/up.map;echo 'clear map /etc/haproxy/maps/up.map' | sudo socat /var/run/haproxy/admin.sock stdio"
   done
 
   echo -e "\n## recycle-haproxy-oracle: wait for load balancers health checks to see old haproxies as unhealthy"
-  sleep 20
+  sleep 90
 
-  echo -e "\n## recycle-haproxy-oracle: shelling into detachable instances at ${DETACHABLE_IPS} and shutting down consul nicely"
+  echo -e "\n## recycle-haproxy-oracle: shelling into detachable instances at ${DETACHABLE_IPS} and shutting down consul cleanly"
   for IP in $DETACHABLE_IPS; do
     timeout 20 ssh -n -o StrictHostKeyChecking=no -F $LOCAL_PATH/../config/ssh.config $ANSIBLE_SSH_USER@$IP "sudo service consul stop"
   done
@@ -86,6 +88,7 @@ function scale_down_haproxy_oracle() {
   #echo -e "\n## wait 300 seconds so that haproxy.inventory can be accurately rebuilt"
   #sleep 300
 
+  # do not do this with consul-template
   echo -e "\n## reconfigure remaining haproxies so they drop out the originals from the peer mesh"
   HAPROXY_CACHE_TTL=0 HAPROXY_STATUS_KEEP_LOCKED="true" $LOCAL_PATH/reload-haproxy.sh $ANSIBLE_SSH_USER
   if [ $? -gt 0 ]; then
