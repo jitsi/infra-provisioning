@@ -19,7 +19,18 @@ LOCAL_PATH=$(realpath $(dirname "${BASH_SOURCE[0]}"))
 # get ORACLE_REGIONS
 . $LOCAL_PATH/../clouds/all.sh
 
+# set up ansible configuration files
+[ -z "$ENVIRONMENT_CONFIGURATION_FILE" ] && ENVIRONMENT_CONFIGURATION_FILE="$LOCAL_PATH/../sites/$ENVIRONMENT/vars.yml"
+[ -z "$MAIN_CONFIGURATION_FILE" ] && MAIN_CONFIGURATION_FILE="$LOCAL_PATH/../config/vars.yml"
+
 echo "## recycle-haproxy-oracle: beginning"
+
+HAPROXY_CONSUL_TEMPLATE="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .haproxy_enable_consul_template} -)"
+if [[ "$HAPROXY_CONSUL_TEMPLATE" == "null" ]]; then
+    HAPROXY_CONSUL_TEMPLATE="$(cat $MAIN_CONFIGURATION_FILE | yq eval .haproxy_enable_consul_template} -)"
+fi
+
+echo -e "## recycle-haproxy-oracle: HAPROXY_CONSUL_TEMPLATE: ${HAPROXY_CONSUL_TEMPLATE}"
 
 if [  -z "$1" ]; then
   ANSIBLE_SSH_USER=$(whoami)
@@ -87,11 +98,13 @@ function scale_down_haproxy_oracle() {
   #sleep 300
 
   # do not do this with consul-template
-  echo -e "\n## reconfigure remaining haproxies so they drop out the originals from the peer mesh"
-  HAPROXY_CACHE_TTL=0 HAPROXY_STATUS_KEEP_LOCKED="true" $LOCAL_PATH/reload-haproxy.sh $ANSIBLE_SSH_USER
-  if [ $? -gt 0 ]; then
-    echo "## ERROR: reload-haproxy.sh failed, exiting..."
-    return 1
+  if [ "$HAPROXY_CONSUL_TEMPLATE" -ne "true" ]; then
+    echo -e "\n## reconfigure remaining haproxies so they drop out the originals from the peer mesh"
+    HAPROXY_CACHE_TTL=0 HAPROXY_STATUS_KEEP_LOCKED="true" $LOCAL_PATH/reload-haproxy.sh $ANSIBLE_SSH_USER
+    if [ $? -gt 0 ]; then
+      echo "## ERROR: reload-haproxy.sh failed, exiting..."
+      return 1
+    fi
   fi
 }
 
