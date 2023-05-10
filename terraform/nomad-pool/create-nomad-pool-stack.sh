@@ -17,7 +17,7 @@ LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 [ -z "$ROLE" ] && ROLE="nomad-pool"
 [ -z "$POOL_TYPE" ] && POOL_TYPE="general"
 [ -z "$NAME" ] && NAME="$ENVIRONMENT-$ORACLE_REGION-$ROLE-$POOL_TYPE"
-[ -z "$ORACLE_GIT_BRANCH" ] && ORACLE_GIT_BRANCH="master"
+[ -z "$ORACLE_GIT_BRANCH" ] && ORACLE_GIT_BRANCH="main"
 
 [ -z "$POOL_PUBLIC" ] && POOL_PUBLIC="false"
 
@@ -29,6 +29,16 @@ if [ -z "$ORACLE_REGION" ]; then
   exit 203
 fi
 
+if [ -z "$INFRA_CONFIGURATION_REPO" ]; then
+  echo "No INFRA_CONFIGURATION_REPO found. Exiting..."
+  exit 203
+fi
+
+if [ -z "$INFRA_CUSTOMIZATIONS_REPO" ]; then
+  echo "No INFRA_CUSTOMIZATIONS_REPO found. Exiting..."
+  exit 203
+fi
+
 ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 [ -e "$LOCAL_PATH/../../clouds/${ORACLE_CLOUD_NAME}.sh" ] && . $LOCAL_PATH/../../clouds/${ORACLE_CLOUD_NAME}.sh
 
@@ -37,7 +47,7 @@ ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS="32"
 [ -z "$OCPUS" ] && OCPUS="8"
 
-[ -z "$INSTANCE_POOL_SIZE" ] && INSTANCE_POOL_SIZE=3
+[ -z "$INSTANCE_POOL_SIZE" ] && INSTANCE_POOL_SIZE=2
 
 [ -z "$NAME_ROOT" ] && NAME_ROOT="$NAME"
 
