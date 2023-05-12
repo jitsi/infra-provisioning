@@ -141,7 +141,7 @@ if [ ! -z "$DATACENTERS" ]; then
                         ADDRESSES="$(echo $SERVICES | jq -r ".|map(.Address)|.[]")"
                         URLS=$(echo $SERVICES | jq -r '.|map("http://"+.Address+":"+(.ServicePort|tostring))|.[]')
                         RELEASES="$(echo $SERVICES | jq -r ".|map(.ServiceMeta.release_number)|unique|.[]")"
-                        SHARDS="$(echo $SERVICES | jq -r ".|map(.ServiceMeta.shard)|unique|.[]")"0
+                        SHARDS="$(echo $SERVICES | jq -r ".|map(.ServiceMeta.shard)|unique|.[]")"
                         SERVICE_META="$(echo $SERVICES | jq -r ".|map(.ServiceMeta)")"
                         ALL_SHARDS="$SHARDS $ALL_SHARDS"
                         ALL_URLS="$URLS $ALL_URLS"
