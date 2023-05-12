@@ -18,21 +18,21 @@ fi
 LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
 echo "## rotate-consul-pre-detach shutting down nomad service on $INSTANCE_PRIMARY_PRIVATE_IP with user $SSH_USER"
-ssh -F $LOCAL_PATH/../config/ssh-vpn.config $SSH_USER@$INSTANCE_PRIMARY_PRIVATE_IP "sudo service nomad stop"
+ssh -F $LOCAL_PATH/../config/ssh.config $SSH_USER@$INSTANCE_PRIMARY_PRIVATE_IP "sudo service nomad stop"
 RET=$?
 if [[ $RET -gt 0 ]]; then
     echo "## ERROR stopping nomad on $INSTANCE_PRIMARY_PRIVATE_IP with code $RET"
 fi
 
 echo "## rotate-consul-pre-detach graceful consul leave on $INSTANCE_PRIMARY_PRIVATE_IP with user $SSH_USER"
-ssh -F $LOCAL_PATH/../config/ssh-vpn.config $SSH_USER@$INSTANCE_PRIMARY_PRIVATE_IP "sudo consul leave"
+ssh -F $LOCAL_PATH/../config/ssh.config $SSH_USER@$INSTANCE_PRIMARY_PRIVATE_IP "sudo consul leave"
 RET=$?
 if [[ $RET -gt 0 ]]; then
     echo "## ERROR stopping consul on $INSTANCE_PRIMARY_PRIVATE_IP with code $RET"
 fi
 
 echo "## rotate-consul-pre-detach shutting down consul service on $INSTANCE_PRIMARY_PRIVATE_IP with user $SSH_USER"
-ssh -F $LOCAL_PATH/../config/ssh-vpn.config $SSH_USER@$INSTANCE_PRIMARY_PRIVATE_IP "sudo service consul stop"
+ssh -F $LOCAL_PATH/../config/ssh.config $SSH_USER@$INSTANCE_PRIMARY_PRIVATE_IP "sudo service consul stop"
 RET=$?
 if [[ $RET -gt 0 ]]; then
     echo "## ERROR stopping consul on $INSTANCE_PRIMARY_PRIVATE_IP with code $RET"
