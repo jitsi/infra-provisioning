@@ -11,7 +11,7 @@ import click
 import oci
 import hcvlib
 
-def init_click_context(ctx: click.Context, environment: str, role: str, pool: str, oracle_region: str, inactive: bool, debug: bool):
+def init_click_context(ctx: click.Context, environment: str, role: str, pool: str, oracle_regions: str, inactive: bool, debug: bool):
     '''
     initialize the context object
     \b
@@ -35,8 +35,8 @@ def init_click_context(ctx: click.Context, environment: str, role: str, pool: st
     if ctx.obj['DEBUG']:
         click.echo("## DEBUG: create an oracle ComputeManagementClient for each region in OCI")
     oci_config = oci.config.from_file()
-    if oracle_region:
-        regions = [oracle_region]
+    if oracle_regions:
+        regions = oracle_regions.split(',')
     else:
         regions = hcvlib.oracle_regions()
     for region in regions:
@@ -240,16 +240,16 @@ def halve_instance_pools(ctx: click.Context):
               help='jitsi environment')
 @click.option('--role', envvar=['ROLE', 'SHARD_ROLE'], default=None, help='role to filter on')
 @click.option('--pool', envvar=['INSTANCE_POOL_ID'], default=None, help='instance pool ID to use')
-@click.option('--oracle_region', envvar=['ORACLE_REGION'], default=None, help='oracle region where instance pool resides')
+@click.option('--oracle_regions', envvar=['ORACLE_REGIONS'], default=None, help='list of oracle regions where instance pools reside, comma-separated')
 @click.option('--inactive', envvar=['INACTIVE'], is_flag=True, default=False, help='load inactive pools (not ACTIVE or SCALING)')
 @click.option('--debug', '-d', envvar=['DEBUG'], is_flag=True, default=False, help='debug mode')
 @click.pass_context
-def cli(ctx: click.Context, environment: str, role: str, pool: str, oracle_region: str, inactive: bool, debug: bool):
+def cli(ctx: click.Context, environment: str, role: str, pool: str, oracle_regions: str, inactive: bool, debug: bool):
     '''interact with jitsi oci instance pools'''
     if debug:
         click.echo("# starting pool.py")
         click.echo("## DEBUG: init context")
-    init_click_context(ctx, environment, role, pool, oracle_region, inactive, debug)
+    init_click_context(ctx, environment, role, pool, oracle_regions, inactive, debug)
     if ctx.obj['DEBUG']:
         click.echo("## DEBUG: loading instance pools")
     load_instance_pools(ctx)
