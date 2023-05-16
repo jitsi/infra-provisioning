@@ -182,6 +182,9 @@ if args.display_name:
 else:
     display_name = existing_instance_configuration_details.data.display_name
 
+freeform_tags = existing_instance_configuration_details.data.freeform_tags
+freeform_tags['shape'] = shape
+
 secondary_vnics = []
 if existing_instance_configuration_details.data.instance_details.secondary_vnics:
     secondary_vnics = existing_instance_configuration_details.data.instance_details.secondary_vnics
@@ -198,7 +201,7 @@ launch_details = InstanceConfigurationLaunchInstanceDetails(
         user_data=encoded_user_data.decode('utf-8')
     ),
     defined_tags=existing_instance_configuration_details.data.defined_tags,
-    freeform_tags=existing_instance_configuration_details.data.freeform_tags,
+    freeform_tags=freeform_tags,
     create_vnic_details=existing_instance_configuration_details.data.instance_details.launch_details.create_vnic_details
 )
 
