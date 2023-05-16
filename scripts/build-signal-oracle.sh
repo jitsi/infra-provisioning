@@ -111,7 +111,7 @@ fi
 
 [ -z "$CLOUD_PROVIDER" ] && CLOUD_PROVIDER="oracle"
 
-ORACLE_SIGNAL_IMAGE_LIMIT=50
+ORACLE_SIGNAL_IMAGE_LIMIT=20
 # clean custom signal images if limit is exceeded (may fail, but that's OK)
 for CLEAN_ORACLE_REGION in $ORACLE_IMAGE_REGIONS; do
   echo "Cleaning images in $CLEAN_ORACLE_REGION"
