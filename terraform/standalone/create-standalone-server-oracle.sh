@@ -64,12 +64,6 @@ fi
 
 [ -z "$USER_PRIVATE_KEY_PATH" ] && USER_PRIVATE_KEY_PATH="~/.ssh/id_rsa"
 
-
-[ -z "$BASTION_HOST" ] && BASTION_HOST="$CONNECTION_SSH_BASTION_HOST"
-
-# add bastion hosts to known hosts if not present
-grep -q "$BASTION_HOST" ~/.ssh/known_hosts || ssh-keyscan -H $BASTION_HOST >> ~/.ssh/known_hosts
-
 [ -z "$S3_PROFILE" ] && S3_PROFILE="oracle"
 [ -z "$S3_STATE_BUCKET" ] && S3_STATE_BUCKET="tf-state-$ENVIRONMENT"
 [ -z "$S3_ENDPOINT" ] && S3_ENDPOINT="https://$ORACLE_S3_NAMESPACE.compat.objectstorage.$ORACLE_REGION.oraclecloud.com"
@@ -153,8 +147,9 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
   -var="user=$SSH_USER" \
   -var="user_private_key_path=$USER_PRIVATE_KEY_PATH" \
   -var="user_public_key_path=$USER_PUBLIC_KEY_PATH" \
-  -var="bastion_host=$BASTION_HOST" \
   -var="postinstall_status_file=$POSTINSTALL_STATUS_FILE" \
   -var="ingress_nsg_cidr=$INGRESS_NSG_CIDR" \
   -var="unique_id=$UNIQUE_ID" \
+  -var="infra_configuration_repo=$INFRA_CONFIGURATION_REPO" \
+  -var="infra_customizations_repo=$INFRA_CUSTOMIZATIONS_REPO" \
   $ACTION_POST_PARAMS $TF_POST_PARAMS

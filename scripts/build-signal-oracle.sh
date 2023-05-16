@@ -163,6 +163,4 @@ $([ ! -z $PROSODY_URL_VERSION ] && echo "-var prosody_url_version=$PROSODY_URL_V
 -var "ansible_skip_tags=failfast" \
 -var="tag_namespace=$TAG_NAMESPACE" \
 -var "connection_use_private_ip=$CONNECTION_USE_PRIVATE_IP" \
--var "connection_ssh_bastion_host=$CONNECTION_SSH_BASTION_HOST" \
--var "connection_ssh_private_key_file=$CONNECTION_SSH_PRIVATE_KEY_FILE" \
 $LOCAL_PATH/../build/build-signal-oracle.json

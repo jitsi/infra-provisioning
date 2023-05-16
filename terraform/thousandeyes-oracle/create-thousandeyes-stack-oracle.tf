@@ -7,7 +7,6 @@ variable "user_private_key_path" {}
 variable "user_public_key_path" {}
 variable "image_ocid" {}
 variable "oracle_region" {}
-variable "bastion_host" {}
 variable "environment" {}
 variable "environment_type" {}
 variable "display_name" {}
@@ -95,10 +94,6 @@ resource "oci_core_instance" "oci-instance" {
             user        = var.user
             private_key = file(var.user_private_key_path)
 
-            bastion_host = var.bastion_host
-            bastion_user = var.user
-            bastion_private_key = file(var.user_private_key_path)
-
         }
 
         content = join("",[
@@ -119,11 +114,7 @@ resource "oci_core_instance" "oci-instance" {
             user        = var.user
             private_key = file(var.user_private_key_path)
 
-            bastion_host = var.bastion_host
-            bastion_user = var.user
-            bastion_private_key = file(var.user_private_key_path)
             script_path = "/home/${var.user}/script_%RAND%.sh"
-
         }
 
         inline = [

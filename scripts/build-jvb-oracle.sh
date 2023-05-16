@@ -119,7 +119,5 @@ packer build \
 -var "memory_in_gbs=$MEMORY_IN_GBS" \
 -var "ansible_python_interpreter=$SYSTEM_PYTHON" \
 -var "connection_use_private_ip=$CONNECTION_USE_PRIVATE_IP" \
--var "connection_ssh_bastion_host=$CONNECTION_SSH_BASTION_HOST" \
--var "connection_ssh_private_key_file=$CONNECTION_SSH_PRIVATE_KEY_FILE" \
 -var "tag_namespace=$TAG_NAMESPACE" \
 $LOCAL_PATH/../build/build-jvb-oracle.json

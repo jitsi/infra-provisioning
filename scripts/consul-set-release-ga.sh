@@ -62,14 +62,14 @@ if [[ "$CONSUL_VIA_SSH" == "true" ]]; then
         ssh -fNT -L127.0.0.1:$PORT_OCI:$OCI_LOCAL_DATACENTER-consul.jitsi.net:443 $ANSIBLE_SSH_USER@$OCI_LOCAL_REGION-$ENVIRONMENT-ssh.oracle.infra.jitsi.net
         OCI_CONSUL_URL="https://consul-local.jitsi.net:$PORT_OCI"
     fi
-fi
-
-CONSUL_HOST="$AWS_LOCAL_DATACENTER-consul.$TOP_LEVEL_DNS_ZONE_NAME"
-if [[ "$CONSUL_INCLUDE_AWS" == "true" ]]; then
-    CONSUL_URL="https://$CONSUL_AWS_HOST"
-fi
-if [[ "$CONSUL_INCLUDE_OCI" == "true" ]]; then
-    OCI_CONSUL_URL="https://$CONSUL_OCI_HOST"
+else
+    CONSUL_HOST="$AWS_LOCAL_DATACENTER-consul.$TOP_LEVEL_DNS_ZONE_NAME"
+    if [[ "$CONSUL_INCLUDE_AWS" == "true" ]]; then
+        CONSUL_URL="https://$CONSUL_AWS_HOST"
+    fi
+    if [[ "$CONSUL_INCLUDE_OCI" == "true" ]]; then
+        OCI_CONSUL_URL="https://$CONSUL_OCI_HOST"
+    fi
 fi
 
 echo "## consul-set-release-ga: CONSUL_URL: $CONSUL_URL"
@@ -78,9 +78,6 @@ echo "## consul-set-release-ga: OCI_CONSUL_URL: $OCI_CONSUL_URL"
 if [ -z "$DATACENTER" ] && [ ! -z "$REGION" ]; then
     DATACENTER="$REGION-peer1"
 fi
-
-[ -z "$SERVICE" ] && SERVICE="signal"
-[ -z "$DISPLAY" ] && DISPLAY="shards"
 
 [ ! -z "$DATACENTER" ] && DATACENTERS="[\"$DATACENTER\"]"
 

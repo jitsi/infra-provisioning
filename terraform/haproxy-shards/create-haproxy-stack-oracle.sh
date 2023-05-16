@@ -148,11 +148,6 @@ fi
 
 [ -z "$POSTINSTALL_STATUS_FILE" ] && POSTINSTALL_STATUS_FILE="$LOCAL_PATH/../../../test-results/haproxy_postinstall_status.txt"
 
-[ -z "$BASTION_HOST" ] && BASTION_HOST="$CONNECTION_SSH_BASTION_HOST"
-
-# add bastion hosts to known hosts if not present
-grep -q "$BASTION_HOST" ~/.ssh/known_hosts || ssh-keyscan -H $BASTION_HOST >> ~/.ssh/known_hosts
-
 [ -z "$S3_PROFILE" ] && S3_PROFILE="oracle"
 [ -z "$S3_STATE_BUCKET" ] && S3_STATE_BUCKET="tf-state-$ENVIRONMENT"
 [ -z "$S3_ENDPOINT" ] && S3_ENDPOINT="https://$ORACLE_S3_NAMESPACE.compat.objectstorage.$ORACLE_REGION.oraclecloud.com"
@@ -333,7 +328,6 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
   -var="memory_in_gbs=$MEMORY_IN_GBS" \
   -var="ocpus=$OCPUS" \
   -var="user_private_key_path=$USER_PRIVATE_KEY_PATH" \
-  -var="bastion_host=$BASTION_HOST" \
   -var="alarm_pagerduty_is_enabled=$ALARM_PAGERDUTY_ENABLED" \
   -var="alarm_pagerduty_topic_name=$ALARM_PAGERDUTY_TOPIC_NAME" \
   -var="alarm_email_topic_name=$ALARM_EMAIL_TOPIC_NAME" \
