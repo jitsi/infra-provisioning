@@ -66,7 +66,7 @@ job "[JOB_NAME]" {
         privileged = true
         image        = "telegraf:latest"
         ports = ["telegraf-statsd"]
-        volumes = ["local/telegraf.conf:/etc/telegraf/telegraf.conf", "/var/run/docker.sock:/var/run/docker.sock"]
+        volumes = ["local/telegraf.conf:/etc/telegraf/telegraf.conf", "local/consul-resolved.conf:/etc/systemd/resolved.conf.d/consul.conf", "/var/run/docker.sock:/var/run/docker.sock"]
       }
       env {
 	    HOST_ETC = "/hostfs/etc"
@@ -75,6 +75,16 @@ job "[JOB_NAME]" {
 	    HOST_VAR = "/hostfs/var"
 	    HOST_RUN = "/hostfs/run"
 	    HOST_MOUNT_PREFIX = "/hostfs"
+      }
+
+      template {
+        destination = "local/consul-resolved.conf"
+        data = <<EOF
+[Resolve]
+DNS={{ env "attr.unique.network.ip-address" }}:8600
+DNSSEC=false
+Domains=~consul
+EOF
       }
 
       template {
