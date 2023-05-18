@@ -66,7 +66,7 @@ for R in $DRG_PEER_REGIONS; do
             fi
         done
         if $SKIP_EXISTING; then
-            echo "Skipping existing peered region $R"
+            echo "Skipping existing peered vcn: $R"
         else
             echo "Checking for existing peer connection waiting to be connected"
             PEER_CLOUD="$ENVIRONMENT-$R"
