@@ -121,10 +121,10 @@ else
   # drain old instances
   for IP in $DETACHABLE_IPS; do
     echo -e "\n## rotate-nomad-poool-oracle: draining nomad node on $IP"
-    timeout 10 ssh -n -o StrictHostKeyChecking=no -F $LOCAL_PATH/../config/ssh.config $SSH_USER@$IP "nomad node eligibility -self -disable && nomad node drain -self -enable -force -detach -yes"
+    timeout 10 ssh -n -o StrictHostKeyChecking=no -F $LOCAL_PATH/../config/ssh.config $SSH_USER@$IP "nomad node eligibility -self -disable && nomad node drain -self -enable -detach -yes"
     echo -e "\n## rotate-nomad-poool-oracle: waiting for nomad drain to complete before stopping nomad and consul on $IP"
     sleep 90
-    timeout 10 ssh -n -o StrictHostKeyChecking=no -F $LOCAL_PATH/../config/ssh.config $SSH_USER@$IP "sudo service nomad stop && sudo service consul stop"
+    timeout 10 ssh -n -o StrictHostKeyChecking=no -F $LOCAL_PATH/../config/ssh.config $SSH_USER@$IP "nomad node drain -self -enable -force -detach -yes && sleep 10 &&sudo service nomad stop && sudo service consul stop"
   done
 
   # scale down the old instances
