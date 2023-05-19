@@ -56,15 +56,12 @@ function scale_up_haproxy_oracle() {
   echo -e "\n## wait 90 seconds for ssh keys to get installed on new instances"
   sleep 90
 
-  echo -e "\n## reload haproxies to mesh new with old, post cloud-init; also lock against haproxy-status and set to healthy"
+  echo -e "\n## reconfigure haproxies, wait for mesh, wait for lb to report healthy, set to healthy"
   HAPROXY_CACHE_TTL=0 HAPROXY_STATUS_KEEP_LOCKED="true" $LOCAL_PATH/reload-haproxy.sh $ANSIBLE_SSH_USER
   if [ $? -gt 0 ]; then
     echo "## ERROR: reload-haproxy.sh failed, exiting..."
     return 1
   fi
-
-  echo -e "\n## wait for load balancers to see new haproxies as healthy"
-  sleep 60
 
   echo -e "\n## post scale-up split brain repair"
   HAPROXY_CACHE_TTL="0" HAPROXY_STATUS_IGNORE_LOCK="true" $LOCAL_PATH/haproxy-status.sh $ANSIBLE_SSH_USER
