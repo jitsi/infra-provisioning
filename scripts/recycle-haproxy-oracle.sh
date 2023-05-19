@@ -30,6 +30,10 @@ if [[ "$HAPROXY_CONSUL_TEMPLATE" == "null" ]]; then
     HAPROXY_CONSUL_TEMPLATE="$(cat $MAIN_CONFIGURATION_FILE | yq eval .haproxy_enable_consul_template} -)"
 fi
 
+if [[ "$HAPROXY_CONSUL_TEMPLATE" == "null" ]]; then
+    HAPROXY_CONSUL_TEMPLATE="false"
+fi
+
 echo -e "## recycle-haproxy-oracle: HAPROXY_CONSUL_TEMPLATE: ${HAPROXY_CONSUL_TEMPLATE}"
 
 if [  -z "$1" ]; then
@@ -56,11 +60,21 @@ function scale_up_haproxy_oracle() {
   echo -e "\n## wait 90 seconds for ssh keys to get installed on new instances"
   sleep 90
 
-  echo -e "\n## reconfigure haproxies, wait for mesh, wait for lb to report healthy, set to healthy"
-  HAPROXY_CACHE_TTL=0 HAPROXY_STATUS_KEEP_LOCKED="true" $LOCAL_PATH/reload-haproxy.sh $ANSIBLE_SSH_USER
-  if [ $? -gt 0 ]; then
-    echo "## ERROR: reload-haproxy.sh failed, exiting..."
-    return 1
+  if [[ $HAPROXY_CONSUL_TEMPLATE != "true" ]]; then
+    echo -e "\n## reconfigure haproxies, wait for mesh, wait for lb to report healthy, set to healthy"
+    HAPROXY_CACHE_TTL=0 HAPROXY_STATUS_KEEP_LOCKED="true" $LOCAL_PATH/reload-haproxy.sh $ANSIBLE_SSH_USER
+    if [ $? -gt 0 ]; then
+      echo "## ERROR: reload-haproxy.sh failed, exiting..."
+      return 1
+    fi
+  fi
+
+  echo "## wait for all haproxy load balancers to report healthy"
+  ENVIRONMENT=$ENVIRONMENT ROLE=haproxy $LOCAL_PATH/pool.py lb_health
+  POOL_RET=$?
+  if [ $POOL_RET -gt 0 ]; then
+    echo "## reload-haproxy: at least one haproxy load balancer failed to go healthy, EXITING WITHOUT SETTING HEALTHY"
+    exit 1
   fi
 
   echo -e "\n## post scale-up split brain repair"
@@ -92,7 +106,7 @@ function scale_down_haproxy_oracle() {
   ENVIRONMENT=$ENVIRONMENT MINIMUM_POOL_SIZE=2 ROLE=haproxy $LOCAL_PATH/pool.py halve --wait
 
   # do not do this with consul-template
-  if [ "$HAPROXY_CONSUL_TEMPLATE" -ne "true" ]; then
+  if [[ "$HAPROXY_CONSUL_TEMPLATE" != "true" ]]; then
     echo -e "\n## reconfigure remaining haproxies so they drop out the originals from the peer mesh"
     HAPROXY_CACHE_TTL=0 HAPROXY_STATUS_KEEP_LOCKED="true" $LOCAL_PATH/reload-haproxy.sh $ANSIBLE_SSH_USER
     if [ $? -gt 0 ]; then

@@ -64,14 +64,6 @@ if [ $ANSIBLE_RET -gt 0 ]; then
     exit 1
 fi
 
-echo "## wait for all haproxy load balancers to report healthy"
-ENVIRONMENT=$ENVIRONMENT ROLE=haproxy $LOCAL_PATH/pool.py lb_health
-POOL_RET=$?
-if [ $POOL_RET -gt 0 ]; then
-  echo "## reload-haproxy: at least one haproxy load balancer failed to go healthy, EXITING WITHOUT SETTING HEALTHY"
-  exit 1
-fi
-
 echo "## reload-haproxy: setting all haproxies to healthy"
 SKIP_BUILD_CACHE=true HAPROXY_HEALTH_VALUE=true $LOCAL_PATH/set-haproxy-health-value.sh $ANSIBLE_SSH_USER
 if [ $? -gt 0 ]; then
