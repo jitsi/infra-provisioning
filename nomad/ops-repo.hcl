@@ -39,7 +39,14 @@ job "ops-repo" {
      value     = "linux"
    }
   group "ops-repo" {
-    count = 1
+    count = 2
+
+    restart {
+      attempts = 3
+      delay    = "30s"
+      interval = "10m"
+      mode     = "delay"
+    }
 
     network {
       port "http" {
@@ -60,8 +67,16 @@ job "ops-repo" {
         tags = ["int-urlprefix-${var.ops_repo_hostname}/"]
         port = "http"
         check {
-          name     = "alive"
-          type     = "tcp"
+          check_restart {
+            limit = 3
+            grace = "90s"
+            ignore_warnings = false
+          }
+
+          name     = "health"
+          type     = "http"
+          port     = "http"
+          path     = "/health"
           interval = "10s"
           timeout  = "2s"
         }
@@ -89,8 +104,8 @@ job "ops-repo" {
       }
 
       resources {
-        cpu    = 1200 # 500 MHz
-        memory = 300 # 256MB
+        cpu    = 12000 # 500 MHz
+        memory = 500 # 256MB
       }
 
       template {
