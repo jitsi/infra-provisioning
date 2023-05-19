@@ -63,16 +63,17 @@ if [ $ANSIBLE_RET -gt 0 ]; then
     echo "## reload-haproxy ERROR: ${ANSIBLE_PLAYBOOK_FILE} exited nonzero value ${ANSIBLE_RET}"
 fi
 
-if [ "$ANSIBLE_RET" -gt 0 ] || [ "$LOCK_RET" -gt 0 ]; then
+if [ "$ANSIBLE_RET" -gt 0 ]; then
   FINAL_RET=5
-  echo "## reload-haproxy: EXITING WITHOUT SETTING HEALTHY DUE TO ERROR"
+  echo "## reload-haproxy: EXITING WITHOUT SETTING HEALTHY - haproxy reload playbook error"
   exit $FINAL_RET
 fi
 
 echo "## wait for all haproxy load balancers to report healthy"
 ENVIRONMENT=$ENVIRONMENT ROLE=haproxy $LOCAL_PATH/pool.py lb_health --wait
-if [ $? -gt 0 ]; then
-  echo "## ERROR: at least one haproxy load balancer is still not healthy"
+POOL_RET=$?
+if [ "$POOL_RET" -gt 0 ]; then
+  echo "## reload-haproxy: EXITING WITHOUT SETTING HEALTHY - at least one haproxy load balancer is still not healthy"
   exit 1
 fi
 
