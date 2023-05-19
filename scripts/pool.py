@@ -220,11 +220,11 @@ def wait_for_lb_health(ctx: click.Context):
 
     click.echo(f"## checking health of load balancers for {ctx.obj['FILTER']['ROLE']} role, with a timeout of {ctx.obj['HEALTH_TIMEOUT']} minutes")
     start_time = time.monotonic()
-    all_healthy = True
     tries = 0
+    load_balancer_client = oci.load_balancer.LoadBalancerClient(ctx.obj['OCI_CONFIG'])
 
     while time.monotonic() - start_time < 60 * float(ctx.obj['HEALTH_TIMEOUT']):
-        load_balancer_client = oci.load_balancer.LoadBalancerClient(ctx.obj['OCI_CONFIG'])
+        all_healthy = True
         for region in ctx.obj['POOLS'].keys():
             load_balancer_client.base_client.set_region(region)
             for pool in ctx.obj['POOLS'][region]:
@@ -232,7 +232,7 @@ def wait_for_lb_health(ctx: click.Context):
                     load_balancer_health = load_balancer_client.get_load_balancer_health(lb_ocid)
                     if load_balancer_health.data.status != 'OK':
                         all_healthy = False
-                        if tries % 30 == 0:
+                        if tries % 10 == 0:
                             click.echo(f"## still waiting for all load balancers to go healthy, {lb_ocid} is {load_balancer_health.data.status}")
                         break
                 else:
