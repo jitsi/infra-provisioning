@@ -65,7 +65,7 @@ if [ $ANSIBLE_RET -gt 0 ]; then
 fi
 
 echo "## wait for all haproxy load balancers to report healthy"
-ENVIRONMENT=$ENVIRONMENT ROLE=haproxy $LOCAL_PATH/pool.py lb_health --wait
+ENVIRONMENT=$ENVIRONMENT ROLE=haproxy $LOCAL_PATH/pool.py lb_health
 POOL_RET=$?
 if [ $POOL_RET -gt 0 ]; then
   echo "## reload-haproxy: at least one haproxy load balancer failed to go healthy, EXITING WITHOUT SETTING HEALTHY"
