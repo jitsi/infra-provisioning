@@ -119,13 +119,13 @@ console.log(`RTT [500, 1000):\t${f(100 * ice.all.buckets.buckets['500_to_1000'] 
 console.log(`RTT [1000, max):\t${f(100 * ice.all.buckets.buckets['1000_to_max'] / ice.all.buckets.total_count)}%`)
 console.log(``);
 
-console.log(`Packets dropped in bridge-channel-message-incoming-queue:\t${queue['bridge-channel-message-incoming-queue']['queue_size_at_remove'].discarded}`);
-console.log(`Packets dropped in colibri_queue:\t${queue['colibri_queue']['queue_size_at_remove'].discarded}`);
-console.log(`Packets dropped in relay_endpoint_sender_srtp_send_queue:\t${queue['relay_endpoint_sender_srtp_send_queue']['queue_size_at_remove'].discarded}`);
-console.log(`Packets dropped in relay_srtp_send_queue:\t${queue['relay_srtp_send_queue']['queue_size_at_remove'].discarded}`);
-console.log(`Packets dropped in rtp_receiver_queue:\t${queue['rtp_receiver_queue']['queue_size_at_remove'].discarded}`);
-console.log(`Packets dropped in rtp_sender_queue:\t${queue['rtp_sender_queue']['queue_size_at_remove'].discarded}`);
-console.log(`Packets dropped in srtp_send_queue:\t${queue['srtp_send_queue']['queue_size_at_remove'].discarded}`);
+console.log(`Packets dropped in bridge-channel-message-incoming-queue:\t${queue['bridge-channel-message-incoming-queue']['dropped_packets']}`);
+console.log(`Packets dropped in colibri_queue:\t${queue['colibri_queue']['dropped_packets']}`);
+console.log(`Packets dropped in relay_endpoint_sender_srtp_send_queue:\t${queue['relay_endpoint_sender_srtp_send_queue']['dropped_packets']}`);
+console.log(`Packets dropped in relay_srtp_send_queue:\t${queue['relay_srtp_send_queue']['dropped_packets']}`);
+console.log(`Packets dropped in rtp_receiver_queue:\t${queue['rtp_receiver_queue']['dropped_packets']}`);
+console.log(`Packets dropped in rtp_sender_queue:\t${queue['rtp_sender_queue']['dropped_packets']}`);
+console.log(`Packets dropped in srtp_send_queue:\t${queue['srtp_send_queue']['dropped_packets']}`);
 console.log(``);
 
 console.log(`RTP packets discarded:\t${transit.rtp.discarded}`);
