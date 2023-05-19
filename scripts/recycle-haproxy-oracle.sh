@@ -91,9 +91,6 @@ function scale_down_haproxy_oracle() {
   echo -e "\n## recycle-haproxy-oracle: halve the size of all haproxy instance pools"
   ENVIRONMENT=$ENVIRONMENT MINIMUM_POOL_SIZE=2 ROLE=haproxy $LOCAL_PATH/pool.py halve --wait
 
-  #echo -e "\n## wait 300 seconds so that haproxy.inventory can be accurately rebuilt"
-  #sleep 300
-
   # do not do this with consul-template
   if [ "$HAPROXY_CONSUL_TEMPLATE" -ne "true" ]; then
     echo -e "\n## reconfigure remaining haproxies so they drop out the originals from the peer mesh"
