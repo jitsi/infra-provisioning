@@ -48,4 +48,12 @@ pipeline {				//indicate the job is written in Declarative Pipeline
             }
         }
     }
+    post {
+        fixed {
+            slackSend color: "good", message: "Successfully fixed build of ${env.JOB_NAME} ${env.BUILD_NUMBER} (<${env.BUILD_URL}|Open>)\nSignal ${params.JICOFO_VERSION}-${params.JITSI_MEET_VERSION}-${params.PROSODY_VERSION} JVB  ${params.JVB_VERSION} ${env.ENVIRONMENT}"
+        }
+        failure {
+            slackSend color: "danger", message: "Failure in build of build of ${env.JOB_NAME} ${env.BUILD_NUMBER} (<${env.BUILD_URL}|Open>)\nSignal ${params.JICOFO_VERSION}-${params.JITSI_MEET_VERSION}-${params.PROSODY_VERSION} JVB  ${params.JVB_VERSION} ${env.ENVIRONMENT}"
+        }
+    }
 }
