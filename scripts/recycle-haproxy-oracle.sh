@@ -25,12 +25,12 @@ LOCAL_PATH=$(realpath $(dirname "${BASH_SOURCE[0]}"))
 
 echo "## recycle-haproxy-oracle: beginning"
 
-HAPROXY_CONSUL_TEMPLATE="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .haproxy_enable_consul_template} -)"
+HAPROXY_CONSUL_TEMPLATE="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval ".haproxy_enable_consul_template" -)"
 if [[ "$HAPROXY_CONSUL_TEMPLATE" == "null" ]]; then
-    HAPROXY_CONSUL_TEMPLATE="$(cat $MAIN_CONFIGURATION_FILE | yq eval .haproxy_enable_consul_template} -)"
+    HAPROXY_CONSUL_TEMPLATE="$(cat $MAIN_CONFIGURATION_FILE | yq eval ".haproxy_enable_consul_template" -)"
 fi
 
-if [[ "$HAPROXY_CONSUL_TEMPLATE" == "null" ]]; then
+if [ -z "$HAPROXY_CONSUL_TEMPLATE" ]; then
     HAPROXY_CONSUL_TEMPLATE="false"
 fi
 
