@@ -57,7 +57,7 @@ variable "alarm_repeat_notification_duration" {
 }
 
 variable "alarm_severity" {
-  default = "CRITICAL"
+  default = "ERROR"
 }
 
 variable "user_private_key_path" {}

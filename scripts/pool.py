@@ -11,7 +11,7 @@ import click
 import oci
 import hcvlib
 
-def init_click_context(ctx: click.Context, environment: str, role: str, inactive: bool, debug: bool):
+def init_click_context(ctx: click.Context, environment: str, role: str, pool: str, oracle_regions: str, inactive: bool, debug: bool):
     '''
     initialize the context object
     \b
@@ -28,6 +28,7 @@ def init_click_context(ctx: click.Context, environment: str, role: str, inactive
     ctx.obj['ENVIRONMENT'] = environment
     ctx.obj['FILTER'] = {}
     ctx.obj['FILTER']['ROLE'] = role
+    ctx.obj['FILTER']['POOL'] = pool
     ctx.obj['INACTIVE'] = inactive 
     ctx.obj['DEBUG'] = debug
 
@@ -35,7 +36,12 @@ def init_click_context(ctx: click.Context, environment: str, role: str, inactive
         click.echo("## DEBUG: create an oracle ComputeManagementClient for each region in OCI")
     oci_config = oci.config.from_file()
     ctx.obj['OCI_CONFIG'] = oci_config
-    for region in hcvlib.oracle_regions():
+
+    if oracle_regions:
+        regions = oracle_regions.split(',')
+    else:
+        regions = hcvlib.oracle_regions()
+    for region in regions:
         compute_client = oci.core.ComputeClient(oci_config)
         compute_client.base_client.set_region(region)
         ctx.obj['OCI_COMP'][region] = compute_client
@@ -53,58 +59,82 @@ def init_click_context(ctx: click.Context, environment: str, role: str, inactive
         checker_container=checker_container
     )
 
+def check_pool_state(ctx: click.Context, pool):
+    if pool.lifecycle_state not in ('RUNNING', 'SCALING') and not ctx.obj['INACTIVE']:
+        if ctx.obj['DEBUG']:
+            click.echo(f"## DEBUG: skipped loading an inactive instance pool: {region} {pool.display_name} {pool.lifecycle_state}")
+        return False
+    if pool.lifecycle_state != 'RUNNING':
+        if ctx.obj['DEBUG']:
+            click.echo(f"## DEBUG: flagged ALL_POOLS_RUNNING as false")
+        ctx.obj['ALL_POOLS_RUNNING'] = False
+        return False
+
+    return True
+
+def get_pool_role(pool):
+    if 'role' in pool.defined_tags['jitsi']:
+        return pool.defined_tags['jitsi']['role']
+    elif 'shard-role' in pool.defined_tags['jitsi']:
+        return pool.defined_tags['jitsi']['shard-role']
+    else:
+        return False
+
+def filter_pools(ctx: click.Context, region, pool):
+    if 'jitsi' not in pool.defined_tags:
+        click.echo(f"## WARN: skipped loading a pool missing the jitsi tag namespace: {region} {pool.display_name}")
+        return False
+    if 'Name' not in pool.defined_tags['jitsi']:
+        click.echo(f"## WARN: skipped loading a pool missing the jitsi.Name tag: {region} {pool.display_name}")
+        return False
+    pool_role = get_pool_role(pool)
+    if not pool_role:
+        click.echo(f"## WARN: skipped loading a pool missing jitsi.role and jitsi.shard-role tags: {region} {pool.display_name}")
+        return False
+    if ctx.obj['FILTER']['ROLE'] and ctx.obj['FILTER']['ROLE'] != pool_role:
+        return False
+
+    return True
+
 def load_instance_pools(ctx: click.Context):
     '''load instance pools to 'POOLS' in the context in an environment based on filters'''
     env_compartment = hcvlib.get_oracle_compartment_by_environment(ctx.obj['ENVIRONMENT'])
     ctx.obj['ALL_POOLS_RUNNING'] = True
 
+    skip_filter_pools = False
     for region in ctx.obj['OCI_MGMT'].keys():
         filtered_region_instance_pools = []
         compute_management_client = ctx.obj['OCI_MGMT'][region]
-        region_pools = compute_management_client.list_instance_pools(env_compartment.id).data
+        if (ctx.obj['FILTER']['POOL']):
+            pool = compute_management_client.get_instance_pool(ctx.obj['FILTER']['POOL']).data
+            region_pools = [pool]
+            skip_filter_pools = True
+        else:
+            region_pools = compute_management_client.list_instance_pools(env_compartment.id).data
         for pool in region_pools:
             if ctx.obj['DEBUG']:
                 click.echo(f"## DEBUG: {region} loading pool:")
                 pprint.pprint(pool)
-            if pool.lifecycle_state not in ('RUNNING', 'SCALING') and not ctx.obj['INACTIVE']:
+            if check_pool_state(ctx, pool) and (skip_filter_pools or filter_pools(ctx, region, pool)):
                 if ctx.obj['DEBUG']:
-                    click.echo(f"## DEBUG: skipped loading an inactive instance pool: {region} {pool.display_name} {pool.lifecycle_state}")
-                continue
-            if pool.lifecycle_state != 'RUNNING':
-                if ctx.obj['DEBUG']:
-                    click.echo(f"## DEBUG: flagged ALL_POOLS_RUNNING as false")
-                ctx.obj['ALL_POOLS_RUNNING'] = False
-            if 'jitsi' not in pool.defined_tags:
-                click.echo(f"## WARN: skipped loading a pool missing the jitsi tag namespace: {region} {pool.display_name}")
-                continue
-            if 'Name' not in pool.defined_tags['jitsi']:
-                click.echo(f"## WARN: skipped loading a pool missing the jitsi.Name tag: {region} {pool.display_name}")
-                continue
-            if 'role' in pool.defined_tags['jitsi']:
-                pool_role = pool.defined_tags['jitsi']['role']
-            elif 'shard-role' in pool.defined_tags['jitsi']:
-                pool_role = pool.defined_tags['jitsi']['shard-role']
-            else:
-                click.echo(f"## WARN: skipped loading a pool missing jitsi.role and jitsi.shard-role tags: {region} {pool.display_name}")
-                continue
-            if ctx.obj['FILTER']['ROLE'] and ctx.obj['FILTER']['ROLE'] != pool_role:
-                continue
-            if ctx.obj['DEBUG']:
-                click.echo(f"## DEBUG: pool {pool.id} passed checks and filters and added to list for region {region}")
-            # get_instance_pool contains more data than list_instance_pools
-            actual_pool = compute_management_client.get_instance_pool(pool.id).data
-            pool_instances = compute_management_client \
-                .list_instance_pool_instances(env_compartment.id, instance_pool_id=actual_pool.id).data
-            lb_ocids = []
-            for lb in actual_pool.load_balancers:
-                lb_ocids.append(compute_management_client \
-                    .get_instance_pool_load_balancer_attachment(actual_pool.id, lb.id).data.load_balancer_id)
-            filtered_region_instance_pools.append({
-                'instance_pool': actual_pool,
-                'instances': pool_instances,
-                'pool_role': pool_role,
-                'load_balancer_ocids': lb_ocids,
+                    click.echo(f"## DEBUG: pool {pool.id} passed checks and filters and added to list for region {region}")
+                # get_instance_pool contains more data than list_instance_pools
+                actual_pool = compute_management_client.get_instance_pool(pool.id).data
+                pool_instances = compute_management_client \
+                    .list_instance_pool_instances(env_compartment.id, instance_pool_id=actual_pool.id).data
+                lb_ocids = []
+                for lb in actual_pool.load_balancers:
+                    lb_ocids.append(compute_management_client \
+                        .get_instance_pool_load_balancer_attachment(actual_pool.id, lb.id).data.load_balancer_id)
+                filtered_region_instance_pools.append({
+                    'instance_pool': actual_pool,
+                    'instances': pool_instances,
+                    'pool_role': pool_role,
+                    'load_balancer_ocids': lb_ocids,
             })
+            else:
+                continue
+                
         ctx.obj['POOLS'][region] = filtered_region_instance_pools
 
 def list_instance_pools(ctx: click.Context):
@@ -256,15 +286,17 @@ def wait_for_lb_health(ctx: click.Context):
 @click.option('--environment', required=True, envvar=['ENVIRONMENT', 'HCV_ENVIRONMENT'],
               help='jitsi environment')
 @click.option('--role', envvar=['ROLE', 'SHARD_ROLE'], default=None, help='role to filter on')
+@click.option('--pool', envvar=['INSTANCE_POOL_ID'], default=None, help='instance pool ID to use')
+@click.option('--oracle_regions', envvar=['ORACLE_REGIONS'], default=None, help='list of oracle regions where instance pools reside, comma-separated')
 @click.option('--inactive', envvar=['INACTIVE'], is_flag=True, default=False, help='load inactive pools (not ACTIVE or SCALING)')
 @click.option('--debug', '-d', envvar=['DEBUG'], is_flag=True, default=False, help='debug mode')
 @click.pass_context
-def cli(ctx: click.Context, environment: str, role: str, inactive: bool, debug: bool):
+def cli(ctx: click.Context, environment: str, role: str, pool: str, oracle_regions: str, inactive: bool, debug: bool):
     '''interact with jitsi oci instance pools'''
     if debug:
         click.echo("# starting pool.py")
         click.echo("## DEBUG: init context")
-    init_click_context(ctx, environment, role, inactive, debug)
+    init_click_context(ctx, environment, role, pool, oracle_regions, inactive, debug)
     if ctx.obj['DEBUG']:
         click.echo("## DEBUG: loading instance pools")
     load_instance_pools(ctx)
@@ -281,8 +313,8 @@ def inventory_cmd(ctx: click.Context):
 def double_cmd(ctx: click.Context, wait: bool):
     '''double the size of existing instance pools of a specified role'''
     ctx.obj['WAIT'] = wait
-    if not ctx.obj['FILTER']['ROLE']:
-        click.echo("## must set ROLE for scaling operations")
+    if not ctx.obj['FILTER']['ROLE'] and not ctx.obj['FILTER']['POOL']:
+        click.echo("## must set ROLE or POOL for scaling operations")
         sys.exit(1)
     if ctx.obj['INACTIVE']:
         click.echo("## double can only be carried out against active pools")
@@ -300,8 +332,8 @@ def halve_cmd(ctx: click.Context, minimum: int, onlyip: bool, wait: bool):
     ctx.obj['WAIT'] = wait
     ctx.obj['IP_ONLY'] = onlyip
     ctx.obj['IP_HITLIST'] = []
-    if not ctx.obj['FILTER']['ROLE']:
-        click.echo("## must set ROLE for scaling operations")
+    if not ctx.obj['FILTER']['ROLE'] and not ctx.obj['FILTER']['POOL']:
+        click.echo("## must set ROLE or POOL for scaling operations")
         sys.exit(1)
     if ctx.obj['INACTIVE']:
         click.echo("## halve can only be carried out against active pools")

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# usage: ENVIRONMENT=<ops environment to link from> OPS_ENVIRONMENTS=<environments to link to> ORACLE_REGION=us-phoenix-1 scripts/link-ops-drgs-oracle.sh
+# usage: OPS_ENVIRONMENT=<ops environment to link from> OPS_ENVIRONMENTS=<environments to link to> ORACLE_REGION=us-phoenix-1 scripts/link-ops-drgs-oracle.sh
 
 LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 

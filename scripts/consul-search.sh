@@ -105,7 +105,8 @@ if [ ! -z "$DATACENTERS" ]; then
     ALL_RELEASES=""
     ALL_SHARDS=""
     ALL_ADDRESSES=""
-    ALL_ADDRESSES=""
+    ALL_SERVICES=""
+    ALL_URLS=""
     ALL_CORE_PROVIDERS=""
     if [[ "$CONSUL_INCLUDE_AWS" == "true" ]]; then
         for DC in $AWS_DATACENTERS; do
@@ -115,9 +116,12 @@ if [ ! -z "$DATACENTERS" ]; then
     #            echo $SERVICES
                 [ "$SERVICES" == "null" ] && SERVICES=""
                 ADDRESSES=$(echo $SERVICES | jq -r ".|map(.Address)|.[]")
+                URLS=$(echo $SERVICES | jq -r '.|map("http://"+.Address+":"+(.ServicePort|tostring))|.[]')
                 RELEASES=$(echo $SERVICES | jq -r ".|map(.ServiceMeta.release_number)|unique|.[]")
                 SHARDS=$(echo $SERVICES | jq -r ".|map(.ServiceMeta.shard)|unique|.[]")
                 ALL_SHARDS="$SHARDS $ALL_SHARDS"
+                ALL_URLS="$URLS $ALL_URLS"
+                ALL_SERVICES="$SERVICES $ALL_SERVICES"
                 ALL_RELEASES="$RELEASES $ALL_RELEASES"
                 ALL_ADDRESSES="$ADDRESSES $ALL_ADDRESSES"
                 [ ! -z "$SHARDS" ] && ALL_CORE_PROVIDERS="aws"
@@ -135,10 +139,13 @@ if [ ! -z "$DATACENTERS" ]; then
                     echo "$SERVICES" | jq '.' > /dev/null
                     if [ $? -eq 0 ]; then
                         ADDRESSES="$(echo $SERVICES | jq -r ".|map(.Address)|.[]")"
+                        URLS=$(echo $SERVICES | jq -r '.|map("http://"+.Address+":"+(.ServicePort|tostring))|.[]')
                         RELEASES="$(echo $SERVICES | jq -r ".|map(.ServiceMeta.release_number)|unique|.[]")"
                         SHARDS="$(echo $SERVICES | jq -r ".|map(.ServiceMeta.shard)|unique|.[]")"
                         SERVICE_META="$(echo $SERVICES | jq -r ".|map(.ServiceMeta)")"
                         ALL_SHARDS="$SHARDS $ALL_SHARDS"
+                        ALL_URLS="$URLS $ALL_URLS"
+                        ALL_SERVICES="$SERVICES $ALL_SERVICES"
                         ALL_RELEASES="$RELEASES $ALL_RELEASES"
                         ALL_ADDRESSES="$ADDRESSES $ALL_ADDRESSES"
                         ALL_SERVICE_META="$(echo "$ALL_SERVICE_META" "$SERVICE_META" | jq -c -s '.|add')"
@@ -161,12 +168,15 @@ if [ ! -z "$DATACENTERS" ]; then
     ALL_ADDRESSES=$(echo $ALL_ADDRESSES | xargs -n1 | sort -u)
     ALL_SHARDS=$(echo $ALL_SHARDS | xargs -n1 | sort -u)
     ALL_CORE_PROVIDERS=$(echo $ALL_CORE_PROVIDERS | xargs -n1 | sort -u)
+    ALL_URLS=$(echo $ALL_URLS | xargs -n1 | sort -u)
 
     [ "$DISPLAY" == "releases" ] && echo $ALL_RELEASES
     [ "$DISPLAY" == "shards" ] && echo $ALL_SHARDS
     [ "$DISPLAY" == "addresses" ] && echo $ALL_ADDRESSES
     [ "$DISPLAY" == "core_providers" ] && echo $ALL_CORE_PROVIDERS
     [ "$DISPLAY" == "service_meta" ] && echo $ALL_SERVICE_META
+    [ "$DISPLAY" == "service" ] && echo $ALL_SERVICES
+    [ "$DISPLAY" == "urls" ] && echo $ALL_URLS
 else
     if [[ "$CONSUL_VIA_SSH" == "true" ]]; then
         if [[ "$CONSUL_INCLUDE_AWS" == "true" ]]; then

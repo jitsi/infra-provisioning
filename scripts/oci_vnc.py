@@ -436,13 +436,11 @@ def list_seclist_cmd(ctx: click.Context, nsg_filter: str, rules: bool, audit_ssh
     '''list security lists'''
     if ctx.obj['DEBUG']:
         click.echo("## DEBUG: loading network security groups")
-    if nsg_filter:
-        ctx.obj['NETWORK_SECURITY_GROUP_FILTER'] = nsg_filter
+    ctx.obj['NETWORK_SECURITY_GROUP_FILTER'] = nsg_filter
+    ctx.obj['NETWORK_SECURITY_GROUP_RULES_FLAG'] = rules
     if rules:
-        ctx.obj['NETWORK_SECURITY_GROUP_RULES_FLAG'] = rules
         ctx.obj['NETWORK_SECURITY_GROUP_RULES'] = {}
-    if audit_ssh:
-        ctx.obj['NETWORK_SECURITY_GROUP_SSH_FLAG'] = audit_ssh
+    ctx.obj['NETWORK_SECURITY_GROUP_SSH_FLAG'] = audit_ssh
 
     load_network_security_groups(ctx)
     print_network_security_groups(ctx)
