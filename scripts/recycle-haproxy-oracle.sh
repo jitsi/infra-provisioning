@@ -19,7 +19,22 @@ LOCAL_PATH=$(realpath $(dirname "${BASH_SOURCE[0]}"))
 # get ORACLE_REGIONS
 . $LOCAL_PATH/../clouds/all.sh
 
+# set up ansible configuration files
+[ -z "$ENVIRONMENT_CONFIGURATION_FILE" ] && ENVIRONMENT_CONFIGURATION_FILE="$LOCAL_PATH/../sites/$ENVIRONMENT/vars.yml"
+[ -z "$MAIN_CONFIGURATION_FILE" ] && MAIN_CONFIGURATION_FILE="$LOCAL_PATH/../config/vars.yml"
+
 echo "## recycle-haproxy-oracle: beginning"
+
+HAPROXY_CONSUL_TEMPLATE="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval ".haproxy_enable_consul_template" -)"
+if [[ "$HAPROXY_CONSUL_TEMPLATE" == "null" ]]; then
+    HAPROXY_CONSUL_TEMPLATE="$(cat $MAIN_CONFIGURATION_FILE | yq eval ".haproxy_enable_consul_template" -)"
+fi
+
+if [ -z "$HAPROXY_CONSUL_TEMPLATE" ]; then
+    HAPROXY_CONSUL_TEMPLATE="false"
+fi
+
+echo -e "## recycle-haproxy-oracle: HAPROXY_CONSUL_TEMPLATE: ${HAPROXY_CONSUL_TEMPLATE}"
 
 if [  -z "$1" ]; then
   ANSIBLE_SSH_USER=$(whoami)
@@ -45,15 +60,22 @@ function scale_up_haproxy_oracle() {
   echo -e "\n## wait 90 seconds for ssh keys to get installed on new instances"
   sleep 90
 
-  echo -e "\n## reload haproxies to mesh new with old, post cloud-init; also lock against haproxy-status and set to healthy"
-  HAPROXY_CACHE_TTL=0 HAPROXY_STATUS_KEEP_LOCKED="true" $LOCAL_PATH/reload-haproxy.sh $ANSIBLE_SSH_USER
-  if [ $? -gt 0 ]; then
-    echo "## ERROR: reload-haproxy.sh failed, exiting..."
-    return 1
+  if [[ $HAPROXY_CONSUL_TEMPLATE != "true" ]]; then
+    echo -e "\n## reconfigure haproxies, wait for mesh, wait for lb to report healthy, set to healthy"
+    HAPROXY_CACHE_TTL=0 HAPROXY_STATUS_KEEP_LOCKED="true" $LOCAL_PATH/reload-haproxy.sh $ANSIBLE_SSH_USER
+    if [ $? -gt 0 ]; then
+      echo "## ERROR: reload-haproxy.sh failed, exiting..."
+      return 1
+    fi
   fi
 
-  echo -e "\n## wait 30 seconds for haproxies to mesh with peers and sync stick table"
-  sleep 30
+  echo "## wait for all haproxy load balancers to report healthy"
+  ENVIRONMENT=$ENVIRONMENT ROLE=haproxy $LOCAL_PATH/pool.py lb_health --timeout 15
+  POOL_RET=$?
+  if [ $POOL_RET -gt 0 ]; then
+    echo "## reload-haproxy: at least one haproxy load balancer failed to go healthy, EXITING WITHOUT SETTING HEALTHY"
+    exit 1
+  fi
 
   echo -e "\n## post scale-up split brain repair"
   HAPROXY_CACHE_TTL="0" HAPROXY_STATUS_IGNORE_LOCK="true" $LOCAL_PATH/haproxy-status.sh $ANSIBLE_SSH_USER
@@ -67,22 +89,30 @@ function scale_down_haproxy_oracle() {
   echo -e "\n## recycle-haproxy-oracle: get list of IPs of instances to detach"
   DETACHABLE_IPS=$(ENVIRONMENT=$ENVIRONMENT MINIMUM_POOL_SIZE=2 ROLE=haproxy $LOCAL_PATH/pool.py halve --onlyip)
 
-  echo -e "\n## recycle-haproxy-oracle: shelling into detachable instances at ${DETACHABLE_IPS} and shutting down consul nicely"
+  echo -e "\n## recycle-haproxy-oracle: shelling into detachable instances at ${DETACHABLE_IPS} and setting them unhealthy"
   for IP in $DETACHABLE_IPS; do
-    timeout 10 ssh -n -o StrictHostKeyChecking=no -F $LOCAL_PATH/../config/ssh.config $ANSIBLE_SSH_USER@$IP "sudo service consul stop"
+    timeout 20 ssh -n -o StrictHostKeyChecking=no -F $LOCAL_PATH/../config/ssh.config $ANSIBLE_SSH_USER@$IP 'echo "up false" | sudo tee /etc/haproxy/maps/up.map;echo "clear map /etc/haproxy/maps/up.map" | sudo socat /var/run/haproxy/admin.sock stdio'
+  done
+
+  echo -e "\n## recycle-haproxy-oracle: wait for load balancers health checks to see old haproxies as unhealthy"
+  sleep 60
+
+  echo -e "\n## recycle-haproxy-oracle: shelling into detachable instances at ${DETACHABLE_IPS} and shutting down consul cleanly"
+  for IP in $DETACHABLE_IPS; do
+    timeout 20 ssh -n -o StrictHostKeyChecking=no -F $LOCAL_PATH/../config/ssh.config $ANSIBLE_SSH_USER@$IP "sudo service consul stop"
   done
 
   echo -e "\n## recycle-haproxy-oracle: halve the size of all haproxy instance pools"
   ENVIRONMENT=$ENVIRONMENT MINIMUM_POOL_SIZE=2 ROLE=haproxy $LOCAL_PATH/pool.py halve --wait
 
-  #echo -e "\n## wait 300 seconds so that haproxy.inventory can be accurately rebuilt"
-  #sleep 300
-
-  echo -e "\n## reconfigure remaining haproxies so they drop out the originals from the peer mesh"
-  HAPROXY_CACHE_TTL=0 HAPROXY_STATUS_KEEP_LOCKED="true" $LOCAL_PATH/reload-haproxy.sh $ANSIBLE_SSH_USER
-  if [ $? -gt 0 ]; then
-    echo "## ERROR: reload-haproxy.sh failed, exiting..."
-    return 1
+  # do not do this with consul-template
+  if [[ "$HAPROXY_CONSUL_TEMPLATE" != "true" ]]; then
+    echo -e "\n## reconfigure remaining haproxies so they drop out the originals from the peer mesh"
+    HAPROXY_CACHE_TTL=0 HAPROXY_STATUS_KEEP_LOCKED="true" $LOCAL_PATH/reload-haproxy.sh $ANSIBLE_SSH_USER
+    if [ $? -gt 0 ]; then
+      echo "## ERROR: reload-haproxy.sh failed, exiting..."
+      return 1
+    fi
   fi
 }
 
@@ -97,9 +127,11 @@ function sanity_check() {
 echo -e "\n## recycle-haproxy-oracle: recycling pools in ${ENVIRONMENT}. current inventory:"
 ENVIRONMENT=$ENVIRONMENT ROLE=haproxy $LOCAL_PATH/pool.py inventory
 
+RET_SCALE_UP=0
+RET_SCALE_DOWN=0
+
 if [ "$SCALE_DOWN_ONLY" == "true" ]; then
   echo "## recycle-haproxy-oracle: skipping scale up"
-  RET_SCALE_UP=0
 else
   echo "## recycle-haproxy-oracle: scaling up"
   scale_up_haproxy_oracle
@@ -125,12 +157,12 @@ if [ "$SCALE_UP_ONLY" == "true" ]; then
   echo -e "\n## recycle-haproxy-oracle: skipped scale down - complete with SCALE_DOWN_ONLY=true"
 fi
 
-echo "## recycle-haproxy-oracle: pool inventory is now:"
+echo "## recycle-haproxy-oracle: finished scaling, pool inventory is now:"
 ENVIRONMENT=$ENVIRONMENT ROLE=haproxy $LOCAL_PATH/pool.py inventory
 
 echo "## recycle-haproxy-oracle completed"
 
-if [ $RET_SCALE_UP -gt 0 ] || [ $RET_SCALE_DOWN -gt 0 ] || [ $RET_UNLOCK -gt 0 ]; then
+if [ $RET_SCALE_UP -gt 0 ] || [ $RET_SCALE_DOWN -gt 0 ]; then
   echo "## recycle-haproxy-oracle encountered one or more ERROR conditions"
   exit 5 
 fi

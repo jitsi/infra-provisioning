@@ -60,13 +60,8 @@ ansible-playbook ansible/$ANSIBLE_PLAYBOOK_FILE \
 --tags "$DEPLOY_TAGS"
 ANSIBLE_RET=$?
 if [ $ANSIBLE_RET -gt 0 ]; then
-    echo "## reload-haproxy ERROR: ${ANSIBLE_PLAYBOOK_FILE} exited nonzero value ${ANSIBLE_RET}"
-fi
-
-if [ "$ANSIBLE_RET" -gt 0 ] || [ "$LOCK_RET" -gt 0 ]; then
-  FINAL_RET=5
-  echo "## reload-haproxy: EXITING WITHOUT SETTING HEALTHY DUE TO ERROR"
-  exit $FINAL_RET
+    echo "## reload-haproxy ERROR: ${ANSIBLE_PLAYBOOK_FILE} exited nonzero value ${ANSIBLE_RET}, EXITING WITHOUT SETTING HEALTHY"
+    exit 1
 fi
 
 echo "## reload-haproxy: setting all haproxies to healthy"

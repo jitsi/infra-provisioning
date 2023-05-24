@@ -35,6 +35,8 @@ def init_click_context(ctx: click.Context, environment: str, role: str, pool: st
     if ctx.obj['DEBUG']:
         click.echo("## DEBUG: create an oracle ComputeManagementClient for each region in OCI")
     oci_config = oci.config.from_file()
+    ctx.obj['OCI_CONFIG'] = oci_config
+
     if oracle_regions:
         regions = oracle_regions.split(',')
     else:
@@ -116,15 +118,23 @@ def load_instance_pools(ctx: click.Context):
             if check_pool_state(ctx, pool) and (skip_filter_pools or filter_pools(ctx, region, pool)):
                 if ctx.obj['DEBUG']:
                     click.echo(f"## DEBUG: pool {pool.id} passed checks and filters and added to list for region {region}")
-                pool_instances = compute_management_client.list_instance_pool_instances(env_compartment.id, instance_pool_id=pool.id).data
+                # get_instance_pool contains more data than list_instance_pools
+                actual_pool = compute_management_client.get_instance_pool(pool.id).data
+                pool_instances = compute_management_client \
+                    .list_instance_pool_instances(env_compartment.id, instance_pool_id=actual_pool.id).data
+                lb_ocids = []
+                for lb in actual_pool.load_balancers:
+                    lb_ocids.append(compute_management_client \
+                        .get_instance_pool_load_balancer_attachment(actual_pool.id, lb.id).data.load_balancer_id)
                 filtered_region_instance_pools.append({
-                    'instance_pool': pool,
+                    'instance_pool': actual_pool,
                     'instances': pool_instances,
-                    'pool_role': get_pool_role(pool),
-                })
+                    'pool_role': pool_role,
+                    'load_balancer_ocids': lb_ocids,
+            })
             else:
                 continue
-
+                
         ctx.obj['POOLS'][region] = filtered_region_instance_pools
 
 def list_instance_pools(ctx: click.Context):
@@ -235,6 +245,43 @@ def halve_instance_pools(ctx: click.Context):
     if ctx.obj['IP_ONLY']:
         click.echo(f"{' '.join(ctx.obj['IP_HITLIST'])}")
 
+def wait_for_lb_health(ctx: click.Context):
+    '''load all load balancers associated with all pools and returns True if healthy and False if the check times out'''
+
+    click.echo(f"## checking health of load balancers for {ctx.obj['FILTER']['ROLE']} role, with a timeout of {ctx.obj['HEALTH_TIMEOUT']} minutes")
+    start_time = time.monotonic()
+    tries = 0
+    load_balancer_client = oci.load_balancer.LoadBalancerClient(ctx.obj['OCI_CONFIG'])
+
+    while time.monotonic() - start_time < 60 * float(ctx.obj['HEALTH_TIMEOUT']):
+        all_healthy = True
+        for region in ctx.obj['POOLS'].keys():
+            load_balancer_client.base_client.set_region(region)
+            for pool in ctx.obj['POOLS'][region]:
+                for lb_ocid in pool['load_balancer_ocids']:
+                    load_balancer_health = load_balancer_client.get_load_balancer_health(lb_ocid)
+                    if load_balancer_health.data.status != 'OK':
+                        all_healthy = False
+                        if tries % 10 == 0:
+                            click.echo(f"## still waiting for all load balancers to go healthy, {lb_ocid} is {load_balancer_health.data.status}")
+                        break
+                else:
+                    continue
+                break
+            else:
+                continue
+            break
+
+        if all_healthy:
+            click.echo("## all load balancers are healthy")
+            sys.exit(0)
+
+        time.sleep(2)
+        tries += 1
+
+    click.echo(f"## load balancers failed to go healthy in {ctx.obj['HEALTH_TIMEOUT']} minutes; giving up")
+    sys.exit(1)
+
 @click.group(invoke_without_command=False, context_settings=dict(max_content_width=120))
 @click.option('--environment', required=True, envvar=['ENVIRONMENT', 'HCV_ENVIRONMENT'],
               help='jitsi environment')
@@ -292,6 +339,18 @@ def halve_cmd(ctx: click.Context, minimum: int, onlyip: bool, wait: bool):
         click.echo("## halve can only be carried out against active pools")
         sys.exit(1)
     halve_instance_pools(ctx)
+
+@cli.command('lb_health', short_help='wait until all load balancers for pools are healthy')
+@click.option('--timeout', default=10, help='minutes until the check times out')
+@click.pass_context
+def lb_health_cmd(ctx: click.Context, timeout: int):
+    '''check and wait until all load balancers associated with the filters are healthy'''
+    ctx.obj['HEALTH_TIMEOUT'] = timeout
+    if not ctx.obj['FILTER']['ROLE']:
+        click.echo("## must set ROLE for health check operations")
+        sys.exit(1)
+
+    wait_for_lb_health(ctx)
 
 if __name__ == '__main__':
     cli()
