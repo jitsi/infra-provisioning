@@ -127,6 +127,9 @@ function sanity_check() {
 echo -e "\n## recycle-haproxy-oracle: recycling pools in ${ENVIRONMENT}. current inventory:"
 ENVIRONMENT=$ENVIRONMENT ROLE=haproxy $LOCAL_PATH/pool.py inventory
 
+RET_SCALE_UP=0
+RET_SCALE_DOWN=0
+
 if [ "$SCALE_DOWN_ONLY" == "true" ]; then
   echo "## recycle-haproxy-oracle: skipping scale up"
   RET_SCALE_UP=0
@@ -160,7 +163,7 @@ ENVIRONMENT=$ENVIRONMENT ROLE=haproxy $LOCAL_PATH/pool.py inventory
 
 echo "## recycle-haproxy-oracle completed"
 
-if [ $RET_SCALE_UP -gt 0 ] || [ $RET_SCALE_DOWN -gt 0 ] || [ $RET_UNLOCK -gt 0 ]; then
+if [ $RET_SCALE_UP -gt 0 ] || [ $RET_SCALE_DOWN -gt 0 ]; then
   echo "## recycle-haproxy-oracle encountered one or more ERROR conditions"
   exit 5 
 fi
