@@ -30,7 +30,7 @@ variable "load_balancer_shape" {
   default = "flexible"
 }
 variable load_balancer_shape_details_maximum_bandwidth_in_mbps {
-  default = "100"
+  default = "500"
 }
 variable load_balancer_shape_details_minimum_bandwidth_in_mbps {
   default = "10"
