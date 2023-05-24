@@ -107,6 +107,7 @@ job "[JOB_NAME]" {
         JIBRI_INSTANCE_ID = "${NOMAD_SHORT_ALLOC_ID}"
         JIBRI_FINALIZE_RECORDING_SCRIPT_PATH = "/usr/bin/jitsi_uploader.sh"
         JIBRI_RECORDING_DIR="/local/recordings"
+        ENABLE_STATS_D="true"
 #        CHROMIUM_FLAGS="--start-maximized,--kiosk,--enabled,--autoplay-policy=no-user-gesture-required,--use-fake-ui-for-media-stream,--enable-logging,--v=1"
       }
 
