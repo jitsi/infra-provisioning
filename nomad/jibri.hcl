@@ -79,7 +79,9 @@ job "[JOB_NAME]" {
 
       config {
         image        = "jitsi/jibri:${var.jibri_tag}"
-        privileged = true
+        cap_add = ["SYS_ADMIN"]
+        # 2gb shm
+        shm_size = 2147483648
         ports = ["http"]
       }
 
@@ -103,6 +105,9 @@ job "[JOB_NAME]" {
         XMPP_RECORDER_DOMAIN = "recorder.${var.domain}"
         DISPLAY=":0"
         JIBRI_INSTANCE_ID = "${NOMAD_SHORT_ALLOC_ID}"
+        JIBRI_FINALIZE_RECORDING_SCRIPT_PATH = "/usr/bin/jitsi_uploader.sh"
+        JIBRI_RECORDING_DIR="/local/recordings"
+#        CHROMIUM_FLAGS="--start-maximized,--kiosk,--enabled,--autoplay-policy=no-user-gesture-required,--use-fake-ui-for-media-stream,--enable-logging,--v=1"
       }
 
       template {
@@ -121,9 +126,8 @@ EOF
       }
 
       resources {
-        cpu    = 10000
-        memory = 4096
-        memory_max = 4096
+        cpu    = 8000
+        memory = 2048
       }
     }
 
