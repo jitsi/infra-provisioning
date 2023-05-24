@@ -132,7 +132,6 @@ RET_SCALE_DOWN=0
 
 if [ "$SCALE_DOWN_ONLY" == "true" ]; then
   echo "## recycle-haproxy-oracle: skipping scale up"
-  RET_SCALE_UP=0
 else
   echo "## recycle-haproxy-oracle: scaling up"
   scale_up_haproxy_oracle
@@ -158,7 +157,7 @@ if [ "$SCALE_UP_ONLY" == "true" ]; then
   echo -e "\n## recycle-haproxy-oracle: skipped scale down - complete with SCALE_DOWN_ONLY=true"
 fi
 
-echo "## recycle-haproxy-oracle: pool inventory is now:"
+echo "## recycle-haproxy-oracle: finished scaling, pool inventory is now:"
 ENVIRONMENT=$ENVIRONMENT ROLE=haproxy $LOCAL_PATH/pool.py inventory
 
 echo "## recycle-haproxy-oracle completed"
