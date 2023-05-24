@@ -129,7 +129,7 @@ def load_instance_pools(ctx: click.Context):
                 filtered_region_instance_pools.append({
                     'instance_pool': actual_pool,
                     'instances': pool_instances,
-                    'pool_role': pool_role,
+                    'pool_role': get_pool_role(pool),
                     'load_balancer_ocids': lb_ocids,
             })
             else:
