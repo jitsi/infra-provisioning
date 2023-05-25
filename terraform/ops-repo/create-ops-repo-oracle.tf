@@ -13,7 +13,7 @@ variable "load_balancer_shape" {
   default = "flexible"
 }
 variable load_balancer_shape_details_maximum_bandwidth_in_mbps {
-  default = "100"
+  default = "500"
 }
 variable load_balancer_shape_details_minimum_bandwidth_in_mbps {
   default = "10"
@@ -25,7 +25,6 @@ variable "security_group_id" {}
 variable "shape" {}
 variable "memory_in_gbs" {}
 variable "ocpus" {}
-variable "public_subnet_ocid" {}
 variable "private_subnet_ocid" {}
 variable "instance_pool_size" {}
 variable "instance_pool_name" {}
@@ -90,14 +89,14 @@ resource "oci_load_balancer" "oci_load_balancer" {
   compartment_id = var.compartment_ocid
   display_name = "${var.resource_name_root}-LoadBalancer"
   shape = var.load_balancer_shape
-  subnet_ids = [var.public_subnet_ocid]
+  subnet_ids = [var.private_subnet_ocid]
   shape_details {
       maximum_bandwidth_in_mbps = var.load_balancer_shape_details_maximum_bandwidth_in_mbps
       minimum_bandwidth_in_mbps = var.load_balancer_shape_details_minimum_bandwidth_in_mbps
   }
 
   defined_tags = local.common_tags
-  is_private = false
+  is_private = true
   network_security_group_ids = [var.lb_security_group_id]
 }
 
