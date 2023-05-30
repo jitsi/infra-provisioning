@@ -118,6 +118,7 @@ function set_hostname() {
 
   hostname $MY_HOSTNAME
   grep $MY_HOSTNAME /etc/hosts || echo "$MY_IP    $MY_HOSTNAME" >> /etc/hosts
+  echo "$MY_HOSTNAME" > /etc/hostname
 }
 
 function checkout_repos() {
