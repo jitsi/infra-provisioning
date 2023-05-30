@@ -21,6 +21,16 @@ if [ ! -d "$ANSIBLE_BUILD_PATH" ]; then
   exit 202
 fi
 
+if [ -z "$INFRA_CONFIGURATION_REPO" ]; then
+  echo "No INFRA_CONFIGURATION_REPO set, exiting..."
+  exit 203
+fi
+
+if [ -z "$INFRA_CUSTOMIZATIONS_REPO" ]; then
+  echo "No INFRA_CUSTOMIZATIONS_REPO set, exiting..."
+  exit 203
+fi
+
 [ -z $ANSIBLE_BUILD_ID ] && ANSIBLE_BUILD_ID=$REBUILD_ID
 [ -z $ANSIBLE_BUILD_ID ] && ANSIBLE_BUILD_ID=$BUILD_ID
 [ -z $ANSIBLE_BUILD_ID ] && ANSIBLE_BUILD_ID="standalone"
@@ -106,6 +116,8 @@ packer build \
 -var "ansible_skip_tags=failfast" \
 -var "connection_use_private_ip=$CONNECTION_USE_PRIVATE_IP" \
 -var "tag_namespace=$TAG_NAMESPACE" \
+-var "infra_configuration_repo=$INFRA_CONFIGURATION_REPO" \
+-var "infra_customizations_repo=$INFRA_CUSTOMIZATIONS_REPO" \
 $PACKER_ONERROR \
 $LOCAL_PATH/../build/build-base-oracle.json
 

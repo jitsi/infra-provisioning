@@ -1,5 +1,6 @@
 
 BOOTSTRAP_DIRECTORY="/tmp/bootstrap"
+LOCAL_REPO_DIRECTORY="/opt/jitsi/bootstrap"
 
 # Oracle team says it should take maximum 4 minutes until the networking is up
 # This function will only try 2 times, which should last around ~ 1 minute
@@ -122,10 +123,26 @@ function set_hostname() {
 function checkout_repos() {
   [ -d $BOOTSTRAP_DIRECTORY/infra-configuration ] && rm -rf $BOOTSTRAP_DIRECTORY/infra-configuration
   [ -d $BOOTSTRAP_DIRECTORY/infra-customizations ] && rm -rf $BOOTSTRAP_DIRECTORY/infra-customizations
+
   if [ ! -n "$(grep "^github.com " ~/.ssh/known_hosts)" ]; then ssh-keyscan github.com >> ~/.ssh/known_hosts 2>/dev/null; fi
 
-  git clone $INFRA_CONFIGURATION_REPO $BOOTSTRAP_DIRECTORY/infra-configuration
-  git clone $INFRA_CUSTOMIZATIONS_REPO $BOOTSTRAP_DIRECTORY/infra-customizations
+  if [ -d "$LOCAL_REPO_DIRECTORY" ]; then
+    echo "Found local repo copies in $LOCAL_REPO_DIRECTORY, using instead of clone"
+    cp -a $LOCAL_REPO_DIRECTORY/infra-configuration $BOOTSTRAP_DIRECTORY
+    cp -a $LOCAL_REPO_DIRECTORY/infra-customizations $BOOTSTRAP_DIRECTORY
+    cd $BOOTSTRAP_DIRECTORY/infra-configuration
+    git pull
+    cd -
+    cd $BOOTSTRAP_DIRECTORY/infra-customizations
+    git pull
+    cd -
+  else
+    echo "No local repos found, cloning directly from github"
+    git clone $INFRA_CONFIGURATION_REPO $BOOTSTRAP_DIRECTORY/infra-configuration
+    git clone $INFRA_CUSTOMIZATIONS_REPO $BOOTSTRAP_DIRECTORY/infra-customizations
+  fi
+  
+
   cd $BOOTSTRAP_DIRECTORY/infra-configuration
   git checkout $GIT_BRANCH
   git submodule update --init --recursive
