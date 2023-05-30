@@ -207,6 +207,15 @@ if [[ $INSTANCE_COUNT -gt 0 ]]; then
         LATEST_LB_BACKEND_HEALTH=$(oci lb backend-set-health get --region "$ORACLE_REGION" --backend-set-name "$LB_BACKEND_SET_NAME" --load-balancer-id "$LOAD_BALANCER_ID")
         LATEST_LB_BACKEND_OVERALL_STATUS=$(echo $LATEST_LB_BACKEND_HEALTH | jq -r '.data.status')
       done
+
+      # confirm that final count matches expectations
+      BACKEND_COUNT=$(echo $LATEST_LB_BACKEND_HEALTH | jq -r '.data."total-backend-count"')
+      EXPECTED_COUNT=$INSTANCE_COUNT
+      if [[ "$BACKEND_COUNT" -ne "$EXPECTED_COUNT" ]]; then
+        echo "Found $BACKEND_COUNT healthy backends, expected $EXPECTED_COUNT. Something went wrong, exiting..."
+        exit 225
+      fi
+
     else
       # No load balancer to detect healthy state, so wait for fixed duration before continuing
       if [[ $i -lt $((INSTANCE_COUNT-1)) ]]; then

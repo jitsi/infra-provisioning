@@ -88,6 +88,10 @@ function scale_up_haproxy_oracle() {
 function scale_down_haproxy_oracle() {
   echo -e "\n## recycle-haproxy-oracle: get list of IPs of instances to detach"
   DETACHABLE_IPS=$(ENVIRONMENT=$ENVIRONMENT MINIMUM_POOL_SIZE=2 ROLE=haproxy $LOCAL_PATH/pool.py halve --onlyip)
+  if [ -z "$DETACHABLE_IPS" ]; then
+    echo "## ERROR: No IPs found to detach, something went wrong..."
+    return 2
+  fi
 
   echo -e "\n## recycle-haproxy-oracle: shelling into detachable instances at ${DETACHABLE_IPS} and setting them unhealthy"
   for IP in $DETACHABLE_IPS; do
