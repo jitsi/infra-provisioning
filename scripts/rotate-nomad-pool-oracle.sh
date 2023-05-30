@@ -125,7 +125,7 @@ else
   DETACHABLE_IPS=$(ENVIRONMENT=$ENVIRONMENT MINIMUM_POOL_SIZE=2 ROLE=nomad-pool INSTANCE_POOL_ID=$INSTANCE_POOL_ID ORACLE_REGIONS=$ORACLE_REGION $LOCAL_PATH/pool.py halve --onlyip)
   if [ -z "$DETACHABLE_IPS" ]; then
     echo "## ERROR: No IPs found to detach, something went wrong..."
-    return 2
+    exit 226
   fi
 
   echo -e "\n## rotate-nomad-poool-oracle: shelling into detachable instances at ${DETACHABLE_IPS} and shutting down nomad and consul nicely"
