@@ -141,7 +141,6 @@ function checkout_repos() {
     git clone $INFRA_CONFIGURATION_REPO $BOOTSTRAP_DIRECTORY/infra-configuration
     git clone $INFRA_CUSTOMIZATIONS_REPO $BOOTSTRAP_DIRECTORY/infra-customizations
   fi
-  
 
   cd $BOOTSTRAP_DIRECTORY/infra-configuration
   git checkout $GIT_BRANCH
