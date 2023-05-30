@@ -28,10 +28,10 @@ fi
 
 if [  -z "$1" ]; then
   SSH_USER=$(whoami)
-  echo "## recycle-haproxy-oracle: ansible SSH user is not defined. We use current user: $SSH_USER"
+  echo "## rotate-nomad-oracle: ansible SSH user is not defined. We use current user: $SSH_USER"
 else
   SSH_USER=$1
-  echo "## recycle-haproxy-oracle: run ansible as $SSH_USER"
+  echo "## rotate-nomad-oracle: run ansible as $SSH_USER"
 fi
 
 [ -z "$LOCAL_REGION" ] && LOCAL_REGION="us-phoenix-1"
@@ -75,7 +75,7 @@ else
   fi
 
   # first apply changes to instance configuration, etc
-  $LOCAL_PATH/../terraform/nomad-pool/create-nomad-pool-stack.sh
+  $LOCAL_PATH/../terraform/nomad-pool/create-nomad-pool-stack.sh $SSH_USER
 
   if [ $? -gt 0 ]; then
     echo -e "\n## Nomad pool configuration update failed, exiting"
