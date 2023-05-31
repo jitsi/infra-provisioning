@@ -28,9 +28,8 @@ CONSUL_AWS_HOST="consul-$AWS_CONSUL_ENV-$AWS_LOCAL_DATACENTER.$TOP_LEVEL_DNS_ZON
 CONSUL_OCI_HOST="$OCI_LOCAL_DATACENTER-consul.$TOP_LEVEL_DNS_ZONE_NAME"
 
 if [[ "$CONSUL_VIA_SSH" == "true" ]]; then
-    CONSUL_HOST="consul-local.$TOP_LEVEL_DNS_ZONE_NAME"
-
     if [[ "$CONSUL_INCLUDE_AWS" == "true" ]]; then
+        CONSUL_HOST="$CONSUL_AWS_HOST"
         PORT=$(python -c 'import socket; s=socket.socket(); s.bind(("", 0)); print(s.getsockname()[1]); s.close()')
         ssh -o StrictHostKeyChecking=no -fNT -L127.0.0.1:$PORT:$CONSUL_AWS_HOST:443 $ANSIBLE_SSH_USER@$AWS_LOCAL_DATACENTER-ssh.$INFRA_DNS_ZONE_NAME
         CONSUL_URL="https://$CONSUL_HOST:$PORT"
@@ -38,6 +37,7 @@ if [[ "$CONSUL_VIA_SSH" == "true" ]]; then
     fi
 
     if [[ "$CONSUL_INCLUDE_OCI" == "true" ]]; then
+        CONSUL_HOST="$CONSUL_OCI_HOST"
         PORT_OCI=$(python -c 'import socket; s=socket.socket(); s.bind(("", 0)); print(s.getsockname()[1]); s.close()')
         ssh -o StrictHostKeyChecking=no -fNT -L127.0.0.1:$PORT_OCI:$CONSUL_OCI_HOST:443 $ANSIBLE_SSH_USER@$OCI_LOCAL_REGION-$ENVIRONMENT-ssh.$DEFAULT_DNS_ZONE_NAME
         OCI_CONSUL_URL="https://$CONSUL_HOST:$PORT_OCI"

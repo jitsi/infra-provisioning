@@ -61,7 +61,7 @@ if [ -z "$SSL_CERTIFICATE_ID" ]; then
   exit 208
 fi
 
-[ -z "$CONSUL_CERTIFICATE_NAME" ] && CONSUL_CERTIFICATE_NAME=$SSL_CERTIFICATE_ID
+[ -z "$CONSUL_CERTIFICATE_NAME" ] && CONSUL_CERTIFICATE_NAME="star_jitsi_net-2023-08-19"
 [ -z "$CONSUL_CA_CERTIFICATE_VARIABLE" ] && CONSUL_CA_CERTIFICATE_VARIABLE="jitsi_net_ssl_extras"
 [ -z "$CONSUL_PUBLIC_CERTIFICATE_VARIABLE" ] && CONSUL_PUBLIC_CERTIFICATE_VARIABLE="jitsi_net_ssl_certificate"
 [ -z "$CONSUL_PRIVATE_KEY_VARIABLE" ] && CONSUL_PRIVATE_KEY_VARIABLE="jitsi_net_ssl_key_name"
@@ -86,6 +86,10 @@ set -x
 RESOURCE_NAME_ROOT="$ENVIRONMENT-$ORACLE_REGION-consul"
 
 [ -z "$DNS_NAME" ] && DNS_NAME="$RESOURCE_NAME_ROOT.$DNS_ZONE_NAME"
+
+[ -z "$CONSUL_HOSTNAME" ] && CONSUL_HOSTNAME="$RESOURCE_NAME_ROOT.$TOP_LEVEL_DNS_ZONE_NAME"
+
+[ -z "$NOMAD_HOSTNAME" ] && NOMAD_HOSTNAME="$$ENVIRONMENT-$ORACLE_REGION-nomad.$TOP_LEVEL_DNS_ZONE_NAME"
 
 [ -z "$LOAD_BALANCER_SHAPE" ] && LOAD_BALANCER_SHAPE="flexible"
 
@@ -199,6 +203,8 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
   -var="user_public_key_path=$USER_PUBLIC_KEY_PATH" \
   -var="postinstall_status_file=$POSTINSTALL_STATUS_FILE" \
   -var="certificate_certificate_name=$CONSUL_CERTIFICATE_NAME" \
+  -var="consul_hostname=$CONSUL_HOSTNAME" \
+  -var="nomad_hostname=$NOMAD_HOSTNAME" \
   -var "infra_configuration_repo=$INFRA_CONFIGURATION_REPO" \
   -var "infra_customizations_repo=$INFRA_CUSTOMIZATIONS_REPO" \
   $ACTION_POST_PARAMS $TF_POST_PARAMS

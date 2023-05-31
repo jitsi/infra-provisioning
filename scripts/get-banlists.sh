@@ -48,8 +48,8 @@ if [[ "$CONSUL_VIA_SSH" == "true" ]]; then
     if [ -z "$JSON_ONLY" ]; then
         echo "## getting consul banlists via curl over ssh"
     fi
-    CONSUL_HOST="consul-local.$TOP_LEVEL_DNS_ZONE_NAME"
     if [[ "$CONSUL_INCLUDE_AWS" == "true" ]]; then
+        CONSUL_HOST="$CONSUL_AWS_HOST"
         if [ -z "$JSON_ONLY" ]; then
             echo "## create ssh connection to AWS consul"
         fi
@@ -61,6 +61,7 @@ if [[ "$CONSUL_VIA_SSH" == "true" ]]; then
     fi
 
     if [[ "$CONSUL_INCLUDE_OCI" == "true" ]]; then
+        CONSUL_HOST="$CONSUL_OCI_HOST"
         if [ -z "$JSON_ONLY" ]; then
             echo "## create ssh connection to OCI consul"
         fi
