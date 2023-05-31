@@ -41,6 +41,8 @@ variable "certificate_certificate_name" {}
 variable "certificate_ca_certificate" {}
 variable "certificate_private_key" {}
 variable "certificate_public_certificate" {}
+variable "consul_hostname" {}
+variable "nomad_hostname" {}
 variable "user_data_file" {
   default = "terraform/consul-server/user-data/postinstall-runner-oracle.sh"
 }
@@ -404,6 +406,42 @@ resource "oci_load_balancer_backend_set" "oci_load_balancer_bs" {
   }
 }
 
+resource "oci_load_balancer_backend_set" "oci_load_balancer_nomad_bs" {
+  load_balancer_id = oci_load_balancer.oci_load_balancer.id
+  name = "NomadLBBS"
+  policy = "ROUND_ROBIN"
+  health_checker {
+    protocol = "HTTP"
+    port = 4646
+    retries = 3
+    url_path = "/v1/status/leader"
+  }
+}
+
+resource "oci_load_balancer_hostname" "consul_hostname" {
+    #Required
+    hostname = var.consul_hostname
+    load_balancer_id = oci_load_balancer.oci_load_balancer.id
+    name = var.consul_hostname
+
+    #Optional
+    lifecycle {
+        create_before_destroy = true
+    }
+}
+
+resource "oci_load_balancer_hostname" "nomad_hostname" {
+    #Required
+    hostname = var.nomad_hostname
+    load_balancer_id = oci_load_balancer.oci_load_balancer.id
+    name = var.nomad_hostname
+
+    #Optional
+    lifecycle {
+        create_before_destroy = true
+    }
+}
+
 resource "oci_load_balancer_certificate" "main_certificate" {
     #Required
     certificate_name = var.certificate_certificate_name
@@ -420,10 +458,25 @@ resource "oci_load_balancer_certificate" "main_certificate" {
 
 resource "oci_load_balancer_listener" "main_listener" {
   load_balancer_id = oci_load_balancer.oci_load_balancer.id
-  name = "WFProxyListener"
+  name = "ConsulListener"
   port = 443
   default_backend_set_name = oci_load_balancer_backend_set.oci_load_balancer_bs.name
   protocol = "HTTP"
+  hostname_names = [oci_load_balancer_hostname.consul_hostname.name]
+  ssl_configuration {
+      #Optional
+      certificate_name = oci_load_balancer_certificate.main_certificate.certificate_name
+      verify_peer_certificate = false
+  }
+}
+
+resource "oci_load_balancer_listener" "nomad_listener" {
+  load_balancer_id = oci_load_balancer.oci_load_balancer.id
+  name = "NomadListener"
+  port = 443
+  default_backend_set_name = oci_load_balancer_backend_set.oci_load_balancer_nomad_bs.name
+  protocol = "HTTP"
+  hostname_names = [oci_load_balancer_hostname.nomad_hostname.name]
   ssl_configuration {
       #Optional
       certificate_name = oci_load_balancer_certificate.main_certificate.certificate_name
@@ -453,6 +506,13 @@ resource "oci_core_instance_pool" "oci_instance_pool_a" {
     vnic_selection = "PrimaryVnic"
   }
 
+  load_balancers {
+    load_balancer_id = oci_load_balancer.oci_load_balancer.id
+    backend_set_name = oci_load_balancer_backend_set.oci_load_balancer_nomad_bs.name
+    port = 4646
+    vnic_selection = "PrimaryVnic"
+  }
+
   defined_tags = local.common_tags
 }
 
@@ -478,6 +538,13 @@ resource "oci_core_instance_pool" "oci_instance_pool_b" {
     vnic_selection = "PrimaryVnic"
   }
 
+  load_balancers {
+    load_balancer_id = oci_load_balancer.oci_load_balancer.id
+    backend_set_name = oci_load_balancer_backend_set.oci_load_balancer_nomad_bs.name
+    port = 4646
+    vnic_selection = "PrimaryVnic"
+  }
+
   defined_tags = local.common_tags
 }
 
@@ -500,6 +567,13 @@ resource "oci_core_instance_pool" "oci_instance_pool_c" {
     load_balancer_id = oci_load_balancer.oci_load_balancer.id
     backend_set_name = oci_load_balancer_backend_set.oci_load_balancer_bs.name
     port = 8500
+    vnic_selection = "PrimaryVnic"
+  }
+
+  load_balancers {
+    load_balancer_id = oci_load_balancer.oci_load_balancer.id
+    backend_set_name = oci_load_balancer_backend_set.oci_load_balancer_nomad_bs.name
+    port = 4646
     vnic_selection = "PrimaryVnic"
   }
 
