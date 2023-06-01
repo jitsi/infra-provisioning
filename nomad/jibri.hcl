@@ -41,13 +41,11 @@ job "[JOB_NAME]" {
 
   # Run this job as a "service" type. Each job type has different
   # properties. See the documentation below for more examples.
-  type = "service"
+  type = "batch"
 
-  # Specify this job to have rolling updates, two-at-a-time, with
-  # 30 second intervals.
-  update {
-    stagger      = "30s"
-    max_parallel = 2
+  parameterized {
+    payload = "required"
+    meta_required = ["group", "name"]
   }
 
   // must have linux for network mode
