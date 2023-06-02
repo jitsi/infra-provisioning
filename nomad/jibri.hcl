@@ -17,6 +17,16 @@ variable "jibri_tag" {
   type = string
 }
 
+variable "environment_type" {
+  type = string
+  default = "stage"
+}
+
+variable "asap_jwt_kid" {
+    type = string
+    default = "replaceme"
+}
+
 variable "dc" {
   type = string
 }
@@ -76,11 +86,14 @@ job "[JOB_NAME]" {
       driver = "docker"
 
       config {
-        image        = "jitsi/jibri:${var.jibri_tag}"
+        image        = "aaronkvanmeerten/jibri:${var.jibri_tag}"
         cap_add = ["SYS_ADMIN"]
         # 2gb shm
         shm_size = 2147483648
         ports = ["http"]
+        volumes = [
+	        "/opt/jitsi/keys:/opt/jitsi/keys"
+    	  ]        
       }
 
       env {
@@ -106,6 +119,14 @@ job "[JOB_NAME]" {
         JIBRI_FINALIZE_RECORDING_SCRIPT_PATH = "/usr/bin/jitsi_uploader.sh"
         JIBRI_RECORDING_DIR="/local/recordings"
         ENABLE_STATS_D="true"
+        PRIVATE_IP="${attr.unique.network.ip-address}"
+        AUTOSCALER_SIDECAR_PORT = "6000"
+        AUTOSCALER_SIDECAR_KEY_ID = "${var.asap_jwt_kid}"
+        AUTOSCALER_URL="https://${meta.cloud_name}-autoscaler.jitsi.net"
+        AUTOSCALER_SIDECAR_KEY_FILE="/opt/jitsi/keys/${var.environment_type}.key"
+        AUTOSCALER_SIDECAR_REGION="${meta.cloud_region}"
+        AUTOSCALER_SIDECAR_GROUP_NAME="${NOMAD_META_group}"
+        AUTOSCALER_SIDECAR_INSTANCE_ID="${NOMAD_JOB_ID}"
 #        CHROMIUM_FLAGS="--start-maximized,--kiosk,--enabled,--autoplay-policy=no-user-gesture-required,--use-fake-ui-for-media-stream,--enable-logging,--v=1"
       }
 
