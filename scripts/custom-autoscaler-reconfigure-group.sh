@@ -16,6 +16,7 @@ LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
 #pull in cloud-specific variables, e.g. tenancy
 [ -e "$LOCAL_PATH/../clouds/oracle.sh" ] && . $LOCAL_PATH/../clouds/oracle.sh
+[ -e "$LOCAL_PATH/../clouds/all.sh" ] && . $LOCAL_PATH/../clouds/all.sh
 
 if [ -z "$JWT_ENV_FILE" ]; then 
   if [ -z "$SIDECAR_ENV_VARIABLES" ]; then
@@ -24,6 +25,13 @@ if [ -z "$JWT_ENV_FILE" ]; then
   fi
 
   JWT_ENV_FILE="/etc/jitsi/autoscaler-sidecar/$SIDECAR_ENV_VARIABLES"
+fi
+
+# use custom backend if provided, otherwise use default URL for environment
+if [ -n "$AUTOSCALER_BACKEND" ]; then
+  if [[ "$AUTOSCALER_BACKEND" != "prod" ]] && [[ "$AUTOSCALER_BACKEND" != "pilot" ]]; then
+    AUTOSCALER_URL="https://$AUTOSCALER_BACKEND-autoscaler.$TOP_LEVEL_DNS_ZONE_NAME"
+  fi
 fi
 
 if [ -z "$AUTOSCALER_URL" ]; then
