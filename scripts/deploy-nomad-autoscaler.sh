@@ -66,6 +66,6 @@ sed -e "s/\[JOB_NAME\]/$JOB_NAME/" "$NOMAD_JOB_PATH/autoscaler.hcl" | nomad job 
 export CNAME_VALUE="$RESOURCE_NAME_ROOT"
 export STACK_NAME="${RESOURCE_NAME_ROOT}-cname"
 export UNIQUE_ID="${RESOURCE_NAME_ROOT}"
-export CNAME_TARGET="${ENVIRONMENT}-${ORACLE_REGION}-nomad-pool-general-internal.${DEFAULT_DNS_ZONE_NAME}"
+export CNAME_TARGET="${ENVIRONMENT}-${ORACLE_REGION}-nomad-pool-general.${DEFAULT_DNS_ZONE_NAME}"
 export CNAME_VALUE="${RESOURCE_NAME_ROOT}"
 $LOCAL_PATH/create-oracle-cname-stack.sh
