@@ -21,6 +21,10 @@
           description: "Region of group to trigger reconfiguration."
           trim: true
       - string:
+          name: AUTOSCALER_BACKEND
+          description: "Used to control which autoscaler to reconfigure"
+          trim: true
+      - string:
           name: GROUP_NAME
           description: "Set this ONLY to OVERWRITE the default value"
           trim: true
