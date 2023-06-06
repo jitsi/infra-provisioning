@@ -55,10 +55,13 @@ if [ -z "$NOMAD_ADDR" ]; then
     exit 5
 fi
 
+[ -z "$AUTOSCALER_VERSION" ] && AUTOSCALER_VERSION="latest"
+
 export RESOURCE_NAME_ROOT="${ENVIRONMENT}-${ORACLE_REGION}-autoscaler"
 
 export NOMAD_VAR_dc="$NOMAD_DC"
 export NOMAD_VAR_autoscaler_hostname="${RESOURCE_NAME_ROOT}.${TOP_LEVEL_DNS_ZONE_NAME}"
+export NOMAD_VAR_autoscaler_version="${AUTOSCALER_VERSION}"
 JOB_NAME="autoscaler-$ORACLE_REGION"
 
 sed -e "s/\[JOB_NAME\]/$JOB_NAME/" "$NOMAD_JOB_PATH/autoscaler.hcl" | nomad job run -

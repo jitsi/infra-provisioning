@@ -5,6 +5,10 @@ variable "autoscaler_hostname" {
   type = string
 }
 
+variable "autoscaler_version" {
+    type = string
+}
+
 job "[JOB_NAME]" {
   datacenters = [var.dc]
   type = "service"
@@ -103,7 +107,7 @@ TILLEND
         env = true
       }
       config {
-        image = "jitsi/autoscaler:latest"
+        image = "jitsi/autoscaler:${var.autoscaler_version}"
         ports = ["http"]
         volumes = [
           "local/groups.json:/config/groups.json",
