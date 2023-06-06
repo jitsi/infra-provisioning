@@ -41,7 +41,7 @@ fi
 [ -z "$DOCKER_TAG" ] && DOCKER_TAG="unstable-$(date +%Y-%m-%d)"
 
 if [ -n "$JIBRI_VERSION" ]; then
-    JIBRI_TAG="jibri-1.0-$JIBRI_VERSION-1"
+    JIBRI_TAG="jibri-$JIBRI_VERSION-1"
 fi
 
 [ -z "$JIBRI_TAG" ] && JIBRI_TAG="$DOCKER_TAG"
