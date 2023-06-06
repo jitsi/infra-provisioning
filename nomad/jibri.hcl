@@ -86,14 +86,17 @@ job "[JOB_NAME]" {
       driver = "docker"
 
       config {
-        image        = "aaronkvanmeerten/jibri:${var.jibri_tag}"
+        image        = "jitsi/jibri:${var.jibri_tag}"
         cap_add = ["SYS_ADMIN"]
         # 2gb shm
         shm_size = 2147483648
         ports = ["http"]
         volumes = [
-	        "/opt/jitsi/keys:/opt/jitsi/keys"
-    	  ]        
+	        "/opt/jitsi/keys:/opt/jitsi/keys",
+          "local/xmpp-servers:/opt/jitsi/xmpp-servers",
+          "local/01-xmpp-servers:/etc/cont-init.d/01-xmpp-servers",
+          "local/reload-config.sh:/opt/jitsi/scripts/reload-config.sh"
+    	  ]
       }
 
       env {
@@ -119,7 +122,7 @@ job "[JOB_NAME]" {
         JIBRI_FINALIZE_RECORDING_SCRIPT_PATH = "/usr/bin/jitsi_uploader.sh"
         JIBRI_RECORDING_DIR="/local/recordings"
         ENABLE_STATS_D="true"
-        PRIVATE_IP="${attr.unique.network.ip-address}"
+        LOCAL_ADDRESS="${attr.unique.network.ip-address}"
         AUTOSCALER_SIDECAR_PORT = "6000"
         AUTOSCALER_SIDECAR_KEY_ID = "${var.asap_jwt_kid}"
         AUTOSCALER_URL="https://${meta.cloud_name}-autoscaler.jitsi.net"
@@ -132,17 +135,44 @@ job "[JOB_NAME]" {
 
       template {
         data = <<EOF
+#!/usr/bin/with-contenv bash
+export XMPP_SERVER="$(cat /opt/jitsi/xmpp-servers/servers)"
+echo -n "$XMPP_SERVER" > /var/run/s6/container_environment/XMPP_SERVER
+EOF
+        destination = "local/01-xmpp-servers"
+        perms = "755"
+      }
+
+      template {
+        data = <<EOF
 {{ range $index, $item := service "signal" -}}
     {{ scratch.MapSetX "shards" .ServiceMeta.shard $item  -}}
 {{ end -}}
 {{ range $index, $item := service "all" -}}
     {{ scratch.MapSetX "shards" .ServiceMeta.domain $item  -}}
 {{ end -}}
-XMPP_SERVER="{{ range $sindex, $item := scratch.MapValues "shards" -}}{{ if gt $sindex 0 -}},{{end}}{{ .Address }}:{{ with .ServiceMeta.prosody_client_port}}{{.}}{{ else }}5222{{ end }}{{ end -}}"
+{{ range $sindex, $item := scratch.MapValues "shards" -}}{{ if gt $sindex 0 -}},{{end}}{{ .Address }}:{{ with .ServiceMeta.prosody_client_port}}{{.}}{{ else }}5222{{ end }}{{ end -}}
 EOF
 
-        destination = "local/jibri.env"
-        env = true
+        destination = "local/xmpp-servers/servers"
+        # instead of restarting, jibri will graceful shutdown when shard list changes
+        change_mode = "script"
+        change_script {
+          command = "/opt/jitsi/scripts/reload-config.sh"
+          timeout = "6h"
+          fail_on_error = true
+        }
+      }
+      template {
+        data = <<EOF
+#!/usr/bin/with-contenv bash
+
+. /etc/cont-init.d/01-xmpp-servers
+/etc/cont-init.d/10-config
+/opt/jitsi/jibri/reload.sh
+EOF
+        destination = "local/reload-config.sh"
+        perms = "755"
       }
 
       resources {
