@@ -18,7 +18,7 @@ if [ -z "$CLOUD_PROVIDER" ]; then
   exit 200
 fi
 
-if [ "$CLOUD_PROVIDER" != "aws" ] && [ "$CLOUD_PROVIDER" != "oracle" ] && [ "$CLOUD_PROVIDER" != "all" ] && [ "$CLOUD_PROVIDER" != "nomad" ] &&; then
+if [ "$CLOUD_PROVIDER" != "aws" ] && [ "$CLOUD_PROVIDER" != "oracle" ] && [ "$CLOUD_PROVIDER" != "all" ] && [ "$CLOUD_PROVIDER" != "nomad" ]; then
   echo "Invalid CLOUD_PROVIDER, it should be either aws, oracle, nomad or all. Existing..."
   exit 201
 fi
