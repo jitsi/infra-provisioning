@@ -141,6 +141,9 @@ job "[JOB_NAME]" {
       template {
         data = <<EOF
 #!/usr/bin/with-contenv bash
+export JIBRI_VERSION="$(dpkg -s jibri | grep Version | awk '{print $2}' | sed 's/..$//')"
+echo -n "$JIBRI_VERSION" > /var/run/s6/container_environment/JIBRI_VERSION
+
 export XMPP_SERVER="$(cat /opt/jitsi/xmpp-servers/servers)"
 echo -n "$XMPP_SERVER" > /var/run/s6/container_environment/XMPP_SERVER
 EOF
@@ -212,6 +215,9 @@ EOF
 [ -z "$JIBRI_STATSD_HOST" ] && JIBRI_STATSD_HOST="localhost"
 [ -z "$JIBRI_STATSD_PORT" ] && JIBRI_STATSD_PORT="8125"
 [ -z "$JIBRI_HTTP_API_EXTERNAL_PORT" ] && JIBRI_HTTP_API_EXTERNAL_PORT="2222"
+[ -z "$JIBRI_VERSION" ] && JIBRI_VERSION="$(dpkg -s jibri | grep Version | awk '{print $2}' | sed 's/..$//')"
+
+JIBRI_STATSD_TAGS="role:java-jibri,jibri_version:$JIBRI_VERSION,jibri:$JIBRI_INSTANCE_ID"
 
 CURL_BIN="/usr/bin/curl"
 NC_BIN="/bin/nc"
@@ -257,9 +263,9 @@ if [[ $healthyValue -eq 0 ]]; then
 fi
 
 # send metrics to statsd
-echo "jibri.available:$availableValue|g|#role:java-jibri,jibri:$JIBRI_INSTANCE_ID" | $NC_BIN -C -w 1 -u $JIBRI_STATSD_HOST $JIBRI_STATSD_PORT
-echo "jibri.healthy:$healthyValue|g|#role:java-jibri,jibri:$JIBRI_INSTANCE_ID" | $NC_BIN -C -w 1 -u $JIBRI_STATSD_HOST $JIBRI_STATSD_PORT
-echo "jibri.recording:$recordingValue|g|#role:java-jibri,jibri:$JIBRI_INSTANCE_ID" | $NC_BIN -C -w 1 -u $JIBRI_STATSD_HOST $JIBRI_STATSD_PORT
+echo "jibri.available:$availableValue|g|#$JIBRI_STATSD_TAGS" | $NC_BIN -C -w 1 -u $JIBRI_STATSD_HOST $JIBRI_STATSD_PORT
+echo "jibri.healthy:$healthyValue|g|#$JIBRI_STATSD_TAGS" | $NC_BIN -C -w 1 -u $JIBRI_STATSD_HOST $JIBRI_STATSD_PORT
+echo "jibri.recording:$recordingValue|g|#$JIBRI_STATSD_TAGS" | $NC_BIN -C -w 1 -u $JIBRI_STATSD_HOST $JIBRI_STATSD_PORT
 
 EOF
         destination = "local/jibri-status.sh"
