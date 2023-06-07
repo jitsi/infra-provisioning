@@ -95,7 +95,10 @@ job "[JOB_NAME]" {
 	        "/opt/jitsi/keys:/opt/jitsi/keys",
           "local/xmpp-servers:/opt/jitsi/xmpp-servers",
           "local/01-xmpp-servers:/etc/cont-init.d/01-xmpp-servers",
-          "local/reload-config.sh:/opt/jitsi/scripts/reload-config.sh"
+          "local/11-status-cron:/etc/cont-init.d/11-status-cron",
+          "local/reload-config.sh:/opt/jitsi/scripts/reload-config.sh",
+          "local/jibri-status.sh:/opt/jitsi/scripts/jibri-status.sh",
+          "local/cron-service-run:/etc/services.d/60-cron/run"
     	  ]
       }
 
@@ -120,16 +123,18 @@ job "[JOB_NAME]" {
         DISPLAY=":0"
         JIBRI_INSTANCE_ID = "${NOMAD_SHORT_ALLOC_ID}"
         JIBRI_FINALIZE_RECORDING_SCRIPT_PATH = "/usr/bin/jitsi_uploader.sh"
-        JIBRI_RECORDING_DIR="/local/recordings"
-        ENABLE_STATS_D="true"
-        LOCAL_ADDRESS="${attr.unique.network.ip-address}"
+        JIBRI_RECORDING_DIR = "/local/recordings"
+        JIBRI_STATSD_HOST = "${attr.unique.network.ip-address}"
+        JIBRI_STATSD_PORT = "8125"
+        ENABLE_STATS_D = "true"
+        LOCAL_ADDRESS = "${attr.unique.network.ip-address}"
         AUTOSCALER_SIDECAR_PORT = "6000"
         AUTOSCALER_SIDECAR_KEY_ID = "${var.asap_jwt_kid}"
-        AUTOSCALER_URL="https://${meta.cloud_name}-autoscaler.jitsi.net"
-        AUTOSCALER_SIDECAR_KEY_FILE="/opt/jitsi/keys/${var.environment_type}.key"
-        AUTOSCALER_SIDECAR_REGION="${meta.cloud_region}"
-        AUTOSCALER_SIDECAR_GROUP_NAME="${NOMAD_META_group}"
-        AUTOSCALER_SIDECAR_INSTANCE_ID="${NOMAD_JOB_ID}"
+        AUTOSCALER_URL = "https://${meta.cloud_name}-autoscaler.jitsi.net"
+        AUTOSCALER_SIDECAR_KEY_FILE = "/opt/jitsi/keys/${var.environment_type}.key"
+        AUTOSCALER_SIDECAR_REGION = "${meta.cloud_region}"
+        AUTOSCALER_SIDECAR_GROUP_NAME = "${NOMAD_META_group}"
+        AUTOSCALER_SIDECAR_INSTANCE_ID = "${NOMAD_JOB_ID}"
 #        CHROMIUM_FLAGS="--start-maximized,--kiosk,--enabled,--autoplay-policy=no-user-gesture-required,--use-fake-ui-for-media-stream,--enable-logging,--v=1"
       }
 
@@ -172,6 +177,92 @@ EOF
 /opt/jitsi/jibri/reload.sh
 EOF
         destination = "local/reload-config.sh"
+        perms = "755"
+      }
+
+      template {
+        data = <<EOF
+#!/usr/bin/with-contenv bash
+
+apt-get update && apt-get -y install cron netcat
+
+echo '* * * * * /opt/jitsi/scripts/jibri-status.sh' | crontab 
+
+EOF
+        destination = "local/11-status-cron"
+        perms = "755"
+      }
+
+      template {
+        data = <<EOF
+#!/usr/bin/with-contenv bash
+
+exec cron -f
+
+EOF
+        destination = "local/cron-service-run"
+        perms = "755"
+
+      }
+
+      template {
+        data = <<EOF
+#!/usr/bin/with-contenv bash
+
+[ -z "$JIBRI_STATSD_HOST" ] && JIBRI_STATSD_HOST="localhost"
+[ -z "$JIBRI_STATSD_PORT" ] && JIBRI_STATSD_PORT="8125"
+[ -z "$JIBRI_HTTP_API_EXTERNAL_PORT" ] && JIBRI_HTTP_API_EXTERNAL_PORT="2222"
+
+CURL_BIN="/usr/bin/curl"
+NC_BIN="/bin/nc"
+
+STATUS_URL="http://localhost:$JIBRI_HTTP_API_EXTERNAL_PORT/jibri/api/v1.0/health"
+
+STATUS_TIMEOUT=30
+
+function getJibriStatus() {
+    $CURL_BIN --max-time $STATUS_TIMEOUT $STATUS_URL 2>/dev/null
+}
+
+#pessimism FTW
+availableValue=0
+healthyValue=0
+recordingValue=0
+STATUS=`getJibriStatus`
+if [ $? == 0 ]; then
+  #parse status into pieces
+  recordingStatus=$(echo $STATUS | jq -r ".status.busyStatus")
+  healthyStatus=$(echo $STATUS | jq -r ".status.health.healthStatus")
+
+  #if we got a jibri response we're probably healthy?
+  if [[ $healthyStatus == "HEALTHY" ]]; then
+    healthyValue=1
+  else
+    healthyValue=0
+  fi
+
+  #mostly assume recording is available unless recording status is BUSY
+  if [[ "$recordingStatus" == "BUSY" ]]; then
+    availableValue=0
+    recordingValue=1
+  else
+    availableValue=1
+    recordingValue=0
+  fi
+fi
+
+#if jibri is unhealthy, mark it as unavailable as well
+if [[ $healthyValue -eq 0 ]]; then
+    availableValue=0
+fi
+
+# send metrics to statsd
+echo "jibri.available:$availableValue|g|#role:java-jibri,jibri:$JIBRI_INSTANCE_ID" | $NC_BIN -C -w 1 -u $JIBRI_STATSD_HOST $JIBRI_STATSD_PORT
+echo "jibri.healthy:$healthyValue|g|#role:java-jibri,jibri:$JIBRI_INSTANCE_ID" | $NC_BIN -C -w 1 -u $JIBRI_STATSD_HOST $JIBRI_STATSD_PORT
+echo "jibri.recording:$recordingValue|g|#role:java-jibri,jibri:$JIBRI_INSTANCE_ID" | $NC_BIN -C -w 1 -u $JIBRI_STATSD_HOST $JIBRI_STATSD_PORT
+
+EOF
+        destination = "local/jibri-status.sh"
         perms = "755"
       }
 
