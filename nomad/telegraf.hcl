@@ -229,6 +229,14 @@ EOF
         host = "{{"{{"}}.Node}}"
         shard-role = "coturn"
         role = "coturn"
+    [[inputs.prometheus.consul.query]]
+      name = "autoscaler"
+      tag = "ip-{{ env "attr.unique.network.ip-address" }}"
+      url = 'http://{{"{{"}}if ne .ServiceAddress ""}}{{"{{"}}.ServiceAddress}}{{"{{"}}else}}{{"{{"}}.Address}}{{"{{"}}end}}:{{"{{"}}.ServicePort}}/{{"{{"}}with .ServiceMeta.metrics_path}}{{"{{"}}.}}{{"{{"}}else}}metrics{{"{{"}}end}}'
+      [inputs.prometheus.consul.query.tags]
+        host = "{{"{{"}}.Node}}"
+        shard-role = "autoscaler"
+        role = "autoscaler"
 [[outputs.wavefront]]
   url = "${var.wavefront_proxy_url}"
   metric_separator = "."
