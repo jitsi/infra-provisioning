@@ -150,6 +150,8 @@ if [[ $INSTANCE_COUNT -gt 0 ]]; then
       [[ "$LB_BACKEND_SET_NAME" == "null" ]] && LB_BACKEND_SET_NAME=
     fi
 
+    LATEST_LB_BACKEND_HEALTH=$(oci lb backend-set-health get --region "$ORACLE_REGION" --backend-set-name "$LB_BACKEND_SET_NAME" --load-balancer-id "$LOAD_BALANCER_ID")
+    EXPECTED_COUNT="$(echo $LATEST_LB_BACKEND_HEALTH | jq -r '.data."total-backend-count"')"
 
     # Detach with is-decrement-size false and is-auto-terminate true results in automatic creation of 4 work requests, in order:
     # 1) if LB defined - detaching from the LB
@@ -213,7 +215,6 @@ if [[ $INSTANCE_COUNT -gt 0 ]]; then
 
       # confirm that final count matches expectations
       BACKEND_COUNT=$(echo $LATEST_LB_BACKEND_HEALTH | jq -r '.data."total-backend-count"')
-      EXPECTED_COUNT=$INSTANCE_COUNT
       if [[ "$BACKEND_COUNT" -ne "$EXPECTED_COUNT" ]]; then
         echo "Found $BACKEND_COUNT healthy backends, expected $EXPECTED_COUNT. Something went wrong, exiting..."
         exit 225
