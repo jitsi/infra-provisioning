@@ -103,6 +103,8 @@ for x in {a..c}; do
   export OCPUS
   export MEMORY_IN_GBS
 
+  export LB_BACKEND_SET_NAME="ConsulLBBS"
+
   $LOCAL_PATH/rotate-instance-pool-oracle.sh $SSH_USER
 
   RET=$?

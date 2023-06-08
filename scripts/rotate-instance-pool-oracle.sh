@@ -144,8 +144,11 @@ if [[ $INSTANCE_COUNT -gt 0 ]]; then
     # look up current load balancer, use if defined
     LOAD_BALANCER_ID=$(echo "$DETAILS"  | jq -r '."load-balancer-backends"|first|."load-balancer-id"')
     [[ "$LOAD_BALANCER_ID" == "null" ]] && LOAD_BALANCER_ID=
-    LB_BACKEND_SET_NAME=$(echo "$DETAILS"  | jq -r '."load-balancer-backends"|first|."backend-set-name"')
-    [[ "$LB_BACKEND_SET_NAME" == "null" ]] && LB_BACKEND_SET_NAME=
+
+    if [ -z "$LB_BACKEND_SET_NAME" ]; then
+      LB_BACKEND_SET_NAME=$(echo "$DETAILS"  | jq -r '."load-balancer-backends"|first|."backend-set-name"')
+      [[ "$LB_BACKEND_SET_NAME" == "null" ]] && LB_BACKEND_SET_NAME=
+    fi
 
 
     # Detach with is-decrement-size false and is-auto-terminate true results in automatic creation of 4 work requests, in order:
