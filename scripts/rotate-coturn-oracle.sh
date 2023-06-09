@@ -26,6 +26,14 @@ if [ -z "$ORACLE_REGION" ]; then
   exit 203
 fi
 
+if [ -z "$1" ]; then
+  SSH_USER=$(whoami)
+  echo "## ssh user not defined, using current user: $SSH_USER"
+else
+  SSH_USER=$1
+  echo "## will ssh as $SSH_USER"
+fi
+
 COTURN_NAME_VARIABLE="coturn_enable_nomad"
 
 [ -z "$CONFIG_VARS_FILE" ] && CONFIG_VARS_FILE="$LOCAL_PATH/../config/vars.yml"
@@ -98,6 +106,6 @@ else
   export MEMORY_IN_GBS
   export STARTUP_GRACE_PERIOD_SECONDS
 
-  $LOCAL_PATH/rotate-instance-pool-oracle.sh
+  $LOCAL_PATH/rotate-instance-pool-oracle.sh $SSH_USER
   exit $?
 fi
