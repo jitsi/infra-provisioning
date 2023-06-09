@@ -56,6 +56,11 @@ fi
 
 if [[ "$NOMAD_COTURN_FLAG" == "true" ]]; then
   COTURN_IMAGE_TYPE="JammyBase"
+  # with coturn in nomad, wait 5 minutes in between rotating instances
+  [ -z "$STARTUP_GRACE_PERIOD_SECONDS" ] && STARTUP_GRACE_PERIOD_SECONDS=300
+else
+  # by default wait 10 minutes in between rotating coturn instances
+  [ -z "$STARTUP_GRACE_PERIOD_SECONDS" ] && STARTUP_GRACE_PERIOD_SECONDS=600
 fi
 
 arch_from_shape $SHAPE
@@ -77,8 +82,6 @@ fi
 [ -z "$OCPUS" ] && OCPUS=8
 [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=16
 
-# by default wait 10 minutes in between rotating coturn instances
-[ -z "$STARTUP_GRACE_PERIOD_SECONDS" ] && STARTUP_GRACE_PERIOD_SECONDS=600
 
 INSTANCE_POOL_DETAILS=$(oci compute-management instance-pool list --region "$ORACLE_REGION" -c "$COMPARTMENT_OCID" --lifecycle-state RUNNING --all --display-name "$INSTANCE_POOL_NAME" | jq .data[0])
 if [ -z "$INSTANCE_POOL_DETAILS" ] || [ "$INSTANCE_POOL_DETAILS" == "null" ]; then
