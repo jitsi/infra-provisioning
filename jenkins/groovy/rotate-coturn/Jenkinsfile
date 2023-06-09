@@ -3,7 +3,7 @@ def rotateCoturn(oracle_region) {
         script: '''#!/bin/bash
         export USER_PUBLIC_KEY_PATH=~/.ssh/ssh_key.pub
         export ORACLE_GIT_BRANCH="$RELEASE_BRANCH"
-        scripts/rotate-coturn-oracle.sh $SSH_USERNAME'''
+        scripts/rotate-coturn-oracle.sh ubuntu'''
     )
 }
 

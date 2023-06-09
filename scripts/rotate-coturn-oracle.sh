@@ -38,9 +38,12 @@ TAG_NAMESPACE="jitsi"
 
 [ -z "$SHAPE" ] && SHAPE="$DEFAULT_COTURN_SHAPE"
 
-NOMAD_COTURN_FLAG="$(cat $ENVIRONMENT_VARS_FILE | yq eval .${COTURN_NAME_VARIABLE} -)"
+export NOMAD_COTURN_FLAG="$(cat $ENVIRONMENT_VARS_FILE | yq eval .${COTURN_NAME_VARIABLE} -)"
 if [[ "$NOMAD_COTURN_FLAG" == "null" ]]; then
-  NOMAD_COTURN_FLAG="$(cat $CONFIG_VARS_FILE | yq eval .${COTURN_NAME_VARIABLE} -)"
+  export NOMAD_COTURN_FLAG="$(cat $CONFIG_VARS_FILE | yq eval .${COTURN_NAME_VARIABLE} -)"
+fi
+if [[ "$NOMAD_COTURN_FLAG" == "null" ]]; then
+  export NOMAD_COTURN_FLAG=
 fi
 
 if [[ "$NOMAD_COTURN_FLAG" == "true" ]]; then
