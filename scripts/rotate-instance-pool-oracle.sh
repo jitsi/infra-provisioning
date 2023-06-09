@@ -163,7 +163,7 @@ if [[ $INSTANCE_COUNT -gt 0 ]]; then
     # 2) detaching from the Instance Pool
     # 3) attaching a new instance to the Instance Pool
     # 4) if LB defined - attaching the new instance to the LB
-    echo "Replacing instance $INSTANCE_COUNT - $INSTANCE_ID - with a new one, using the latest instance config"
+    echo "Replacing instance $i - $INSTANCE_ID - with a new one, using the latest instance config"
     REPLACE_RESULT=$(oci compute-management instance-pool-instance detach --region "$ORACLE_REGION" --instance-id "$INSTANCE_ID" --instance-pool-id "$INSTANCE_POOL_ID" \
       --is-auto-terminate true --is-decrement-size false \
       --max-wait-seconds "$MAX_WAIT_SECONDS" --wait-interval-seconds "$WAIT_INTERVAL_SECONDS" --wait-for-state "SUCCEEDED" --wait-for-state "FAILED")
