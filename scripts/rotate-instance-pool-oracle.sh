@@ -123,6 +123,8 @@ EXISTING_INSTANCE_DATA=$(oci compute-management instance-pool list-instances --c
 EXISTING_INSTANCES="$(echo "$EXISTING_INSTANCE_DATA" | jq .data)"
 INSTANCE_COUNT=$(echo $EXISTING_INSTANCES| jq -r ".|length")
 
+export DESIRED_CAPACITY=$INSTANCE_COUNT
+
 if [[ $INSTANCE_COUNT -gt 0 ]]; then
   # more than local region found, check/perform association
   for i in `seq 0 $((INSTANCE_COUNT-1))`; do
