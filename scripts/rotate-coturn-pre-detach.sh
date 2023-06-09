@@ -1,5 +1,7 @@
 #!/bin/bash
 
+LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
+
 if [ -z "$1" ]; then
   SSH_USER=$(whoami)
   echo "## ssh user not defined, using current user: $SSH_USER"
