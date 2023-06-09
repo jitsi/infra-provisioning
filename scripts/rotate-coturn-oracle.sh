@@ -75,7 +75,7 @@ if [ -z "$INSTANCE_POOL_DETAILS" ] || [ "$INSTANCE_POOL_DETAILS" == "null" ]; th
   exit 3
 else
 
-  METADATA_PATH="$LOCAL_PATH/terraform/create-coturn-stack/user-data/postinstall-runner-oracle.sh"
+  METADATA_PATH="$LOCAL_PATH/../terraform/create-coturn-stack/user-data/postinstall-runner-oracle.sh"
   INSTANCE_POOL_ID=$(echo "$INSTANCE_POOL_DETAILS" | jq -r '.id')
   export INCLUDE_EIP_LIB="true"
 
