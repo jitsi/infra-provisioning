@@ -123,6 +123,8 @@ EXISTING_INSTANCE_DATA=$(oci compute-management instance-pool list-instances --c
 EXISTING_INSTANCES="$(echo "$EXISTING_INSTANCE_DATA" | jq .data)"
 INSTANCE_COUNT=$(echo $EXISTING_INSTANCES| jq -r ".|length")
 
+export DESIRED_CAPACITY=$INSTANCE_COUNT
+
 if [[ $INSTANCE_COUNT -gt 0 ]]; then
   # more than local region found, check/perform association
   for i in `seq 0 $((INSTANCE_COUNT-1))`; do
@@ -150,15 +152,18 @@ if [[ $INSTANCE_COUNT -gt 0 ]]; then
       [[ "$LB_BACKEND_SET_NAME" == "null" ]] && LB_BACKEND_SET_NAME=
     fi
 
-    LATEST_LB_BACKEND_HEALTH=$(oci lb backend-set-health get --region "$ORACLE_REGION" --backend-set-name "$LB_BACKEND_SET_NAME" --load-balancer-id "$LOAD_BALANCER_ID")
-    EXPECTED_COUNT="$(echo $LATEST_LB_BACKEND_HEALTH | jq -r '.data."total-backend-count"')"
+    # if an existing LB is found, update expected count based on existing count
+    if [ -n "$LOAD_BALANCER_ID" ]; then
+      LATEST_LB_BACKEND_HEALTH=$(oci lb backend-set-health get --region "$ORACLE_REGION" --backend-set-name "$LB_BACKEND_SET_NAME" --load-balancer-id "$LOAD_BALANCER_ID")
+      EXPECTED_COUNT="$(echo $LATEST_LB_BACKEND_HEALTH | jq -r '.data."total-backend-count"')"
+    fi
 
     # Detach with is-decrement-size false and is-auto-terminate true results in automatic creation of 4 work requests, in order:
     # 1) if LB defined - detaching from the LB
     # 2) detaching from the Instance Pool
     # 3) attaching a new instance to the Instance Pool
     # 4) if LB defined - attaching the new instance to the LB
-    echo "Replacing instance $INSTANCE_COUNT - $INSTANCE_ID - with a new one, using the latest instance config"
+    echo "Replacing instance $i - $INSTANCE_ID - with a new one, using the latest instance config"
     REPLACE_RESULT=$(oci compute-management instance-pool-instance detach --region "$ORACLE_REGION" --instance-id "$INSTANCE_ID" --instance-pool-id "$INSTANCE_POOL_ID" \
       --is-auto-terminate true --is-decrement-size false \
       --max-wait-seconds "$MAX_WAIT_SECONDS" --wait-interval-seconds "$WAIT_INTERVAL_SECONDS" --wait-for-state "SUCCEEDED" --wait-for-state "FAILED")

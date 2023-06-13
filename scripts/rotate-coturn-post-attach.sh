@@ -1,3 +1,4 @@
+#!/bin/bash
 GOOD_PORT=443
 WAIT_GOOD=120
 # assumes pre attach ran
