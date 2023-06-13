@@ -42,6 +42,7 @@ fi
 
 if [ -n "$JIBRI_VERSION" ]; then
     JIBRI_TAG="jibri-$JIBRI_VERSION-1"
+    export NOMAD_VAR_jibri_version="$JIBRI_VERSION"
 fi
 
 [ -z "$JIBRI_TAG" ] && JIBRI_TAG="$DOCKER_TAG"

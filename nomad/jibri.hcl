@@ -17,6 +17,11 @@ variable "jibri_tag" {
   type = string
 }
 
+variable "jibri_version" {
+  type = string
+  default = "latest"
+}
+
 variable "environment_type" {
   type = string
   default = "stage"
@@ -62,6 +67,10 @@ job "[JOB_NAME]" {
   constraint {
     attribute = "${attr.kernel.name}"
     value     = "linux"
+  }
+
+  meta {
+    jibri_version = "${var.jibri_version}"
   }
 
   group "jibri" {
