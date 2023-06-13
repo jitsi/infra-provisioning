@@ -104,8 +104,8 @@ job "ops-repo" {
       }
 
       resources {
-        cpu    = 12000 # 500 MHz
-        memory = 500 # 256MB
+        cpu    = 9000
+        memory = 1000
       }
 
       template {
