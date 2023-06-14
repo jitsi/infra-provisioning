@@ -214,8 +214,8 @@ def create_coturn_template(filepath, oracle_public_ip_list=[], route53_turn_tcp=
     global t
 
     t = Template()
-    t.add_version("2010-09-09")
-    t.add_description(
+    t.set_version("2010-09-09")
+    t.set_description(
         "Template for the provisioning Oracle TURN Route53 resources"
     )
 

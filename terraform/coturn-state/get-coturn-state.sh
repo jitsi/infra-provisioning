@@ -2,7 +2,7 @@
 set -x #echo on
 
 
-LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
+SCRIPT_LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
 # We need an envirnment "all"
 if [ -z $ENVIRONMENT ]; then
@@ -28,11 +28,11 @@ CURRENT_PATH=$(pwd)
 TERRAFORM_MAJOR_VERSION=$(terraform -v | head -1  | awk '{print $2}' | cut -d'.' -f1)
 TF_GLOBALS_CHDIR=
 if [[ "$TERRAFORM_MAJOR_VERSION" == "v1" ]]; then
-  TF_GLOBALS_CHDIR="-chdir=$LOCAL_PATH"
+  TF_GLOBALS_CHDIR="-chdir=$SCRIPT_LOCAL_PATH"
   TF_POST_PARAMS=
 else
-  cd $LOCAL_PATH
-  TF_POST_PARAMS="$LOCAL_PATH"
+  cd $SCRIPT_LOCAL_PATH
+  TF_POST_PARAMS="$SCRIPT_LOCAL_PATH"
 fi
 
 # The —reconfigure option disregards any existing configuration, preventing migration of any existing state
