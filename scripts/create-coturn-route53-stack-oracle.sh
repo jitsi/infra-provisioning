@@ -15,6 +15,7 @@ LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
 #load cloud defaults
 [ -e $LOCAL_PATH/../clouds/all.sh ] && . $LOCAL_PATH/../clouds/all.sh
+[ -e $LOCAL_PATH/../clouds/oracle.sh ] && . $LOCAL_PATH/../clouds/oracle.sh
 
 [ -e $LOCAL_PATH/hcvlib.sh ] && . $LOCAL_PATH/hcvlib.sh
 
