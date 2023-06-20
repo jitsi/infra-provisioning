@@ -121,13 +121,6 @@ EOF
   fielddrop = ["time_*"]
   fieldpass = ["usage_system*", "usage_user*", "usage_iowait*", "usage_idle*", "usage_steal*"]
 
-[[inputs.disk]]
-  ignore_fs = ["tmpfs", "devtmpfs", "devfs", "overlay", "aufs", "squashfs", "nfs", "nfs4"]
-  fieldpass = ["used_percent", "free", "used", "total"]
-
-[[inputs.diskio]]
-  fieldpass = ["read_time", "write_time"]
-
 [[inputs.mem]]
   fieldpass = [ "active", "available", "buffered", "cached", "free", "total",  "used" ]
 
