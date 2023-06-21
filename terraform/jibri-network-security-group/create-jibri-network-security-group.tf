@@ -70,3 +70,48 @@ resource "oci_core_network_security_group_security_rule" "jibri_network_security
     }
   }
 }
+
+resource "oci_core_network_security_group_security_rule" "nsg_rule_ingress_nomad_tcp" {
+  network_security_group_id = oci_core_network_security_group.jibri_network_security_group.id
+  direction = "INGRESS"
+  protocol = "6"
+  source = "10.0.0.0/8"
+  stateless = false
+
+  tcp_options {
+    destination_port_range {
+      min = 4646
+      max = 4647
+    }
+  }
+}
+
+resource "oci_core_network_security_group_security_rule" "nsg_rule_ingress_consul_serf_tcp" {
+  network_security_group_id = oci_core_network_security_group.jibri_network_security_group.id
+  direction = "INGRESS"
+  protocol = "6"
+  source = data.oci_core_vcns.vcns.virtual_networks[0].cidr_block
+  stateless = false
+
+  tcp_options {
+    destination_port_range {
+      max = 8301
+      min = 8301
+    }
+  }
+}
+
+resource "oci_core_network_security_group_security_rule" "nsg_rule_ingress_consul_serf_udp" {
+  network_security_group_id = oci_core_network_security_group.jibri_network_security_group.id
+  direction = "INGRESS"
+  protocol = "17"
+  source = data.oci_core_vcns.vcns.virtual_networks[0].cidr_block
+  stateless = false
+
+  udp_options {
+    destination_port_range {
+      min = 8301
+      max = 8301
+    }
+  }
+}
