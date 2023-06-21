@@ -128,7 +128,7 @@ fi
 
 # generate a token if a client key file is defined
 if [ -n "$ASAP_CLIENT_SIGNING_KEY_FILE" ]; then
-  TOKEN=$($LOCAL_PATH/generate-client-token.sh)
+  TOKEN=$($LOCAL_PATH/generate-client-token.sh | tail -1)
 fi
 
 
