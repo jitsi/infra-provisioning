@@ -126,6 +126,12 @@ fi
 
 [ -d "$TORTURE_PATH" ] || mkdir -p $TORTURE_PATH
 
+# generate a token if a client key file is defined
+if [ -n "$ASAP_CLIENT_SIGNING_KEY_FILE" ]; then
+  TOKEN=$($LOCAL_PATH/generate-client-token.sh | tail -1)
+fi
+
+
 #clean up results from any previous tests
 rm -rf $TORTURE_PATH/*
 
@@ -159,6 +165,7 @@ ansible-playbook --verbose ansible/torturetest-shard-locally.yml \
 -e "ec2_keypair=$EC2_SSH_KEYPAIR" \
 -e "ec2_torture_image_id=$TORTURE_IMAGE_ID" \
 -e "infra_path=$(realpath $LOCAL_PATH/../../..)" \
+-e "jitsi_torture_jwt=$TOKEN" \
 --vault-password-file .vault-password.txt \
 --tags "$DEPLOY_TAGS"
 
