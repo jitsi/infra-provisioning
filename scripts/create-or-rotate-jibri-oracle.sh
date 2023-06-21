@@ -43,6 +43,12 @@ if [ "$JIBRI_TYPE" != "java-jibri" ] &&  [ "$JIBRI_TYPE" != "sip-jibri" ]; then
   exit 206
 fi
 
+JIBRI_NOMAD_VARIABLE="jibri_enable_nomad"
+
+[ -z "$CONFIG_VARS_FILE" ] && CONFIG_VARS_FILE="$LOCAL_PATH/../../config/vars.yml"
+[ -z "$ENVIRONMENT_VARS_FILE" ] && ENVIRONMENT_VARS_FILE="$LOCAL_PATH/../../sites/$ENVIRONMENT/vars.yml"
+
+
 if [ "$JIBRI_TYPE" == "java-jibri" ]; then
   [ -z "$TYPE" ] && TYPE="jibri"
   [ -z "$NAME_ROOT_SUFFIX" ] && NAME_ROOT_SUFFIX="JibriCustomGroup"
@@ -77,8 +83,20 @@ fi
 
 arch_from_shape $SHAPE
 
+JIBRI_IMAGE_TYPE="JavaJibri"
+
+NOMAD_JIBRI_FLAG="$(cat $ENVIRONMENT_VARS_FILE | yq eval .${JIBRI_NOMAD_VARIABLE} -)"
+if [[ "$NOMAD_JIBRI_FLAG" == "null" ]]; then
+  NOMAD_JIBRI_FLAG="$(cat $CONFIG_VARS_FILE | yq eval .${JIBRI_NOMAD_VARIABLE} -)"
+fi
+
+if [[ "$NOMAD_JIBRI_FLAG" == "true" ]]; then
+  JIBRI_IMAGE_TYPE="JammyBase"
+  JIBRI_VERSION="latest"
+fi
+
 #Look up images based on version, or default to latest
-[ -z "$JIBRI_IMAGE_OCID" ] && JIBRI_IMAGE_OCID=$($LOCAL_PATH/oracle_custom_images.py --type JavaJibri --version "$JIBRI_VERSION" --architecture "$IMAGE_ARCH" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
+[ -z "$JIBRI_IMAGE_OCID" ] && JIBRI_IMAGE_OCID=$($LOCAL_PATH/oracle_custom_images.py --type $JIBRI_IMAGE_TYPE --version "$JIBRI_VERSION" --architecture "$IMAGE_ARCH" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
 
 #No image was found, probably not built yet?
 if [ -z "$JIBRI_IMAGE_OCID" ]; then
