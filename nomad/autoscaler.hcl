@@ -82,6 +82,7 @@ job "[JOB_NAME]" {
 
       template {
         data = <<EOF
+[DEFAULT]
 user=${var.oci_user}
 fingerprint=${var.oci_fingerprint}
 pass_phrase=${var.oci_passphrase}
