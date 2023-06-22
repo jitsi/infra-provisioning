@@ -93,6 +93,7 @@ fi
 if [[ "$NOMAD_JIBRI_FLAG" == "true" ]]; then
   JIBRI_IMAGE_TYPE="JammyBase"
   JIBRI_VERSION="latest"
+  TYPE="nomad"
 fi
 
 #Look up images based on version, or default to latest
