@@ -37,8 +37,8 @@ set +x
 set -e
 set -o pipefail
 export NOMAD_VAR_wavefront_token="$(ansible-vault view $ENCRYPTED_WAVEFRONT_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${WAVEFRONT_TOKEN_VARIABLE}" -)"
-export NOMAD_VAR_oci_api_user="$(ansible-vault view $ENCRYPTED_OCI_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${OCI_API_USER_VARIABLE}" -)"
-export NOMAD_VAR_oci_api_passphrase="$(ansible-vault view $ENCRYPTED_OCI_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${OCI_API_PASSPHRASE_VARIABLE}" -)"
+export NOMAD_VAR_oci_user="$(ansible-vault view $ENCRYPTED_OCI_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${OCI_API_USER_VARIABLE}" -)"
+export NOMAD_VAR_oci_passphrase="$(ansible-vault view $ENCRYPTED_OCI_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${OCI_API_PASSPHRASE_VARIABLE}" -)"
 export NOMAD_VAR_oci_fingerprint="$(ansible-vault view $ENCRYPTED_OCI_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${OCI_API_KEY_FINGERPRINT_VARIABLE}" -)"
 export NOMAD_VAR_oci_tenancy="$(ansible-vault view $ENCRYPTED_OCI_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${OCI_API_TENANCY_VARIABLE}" -)"
 export NOMAD_VAR_oci_key_region="$(ansible-vault view $ENCRYPTED_OCI_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${OCI_API_REGION_VARIABLE}" -)"
