@@ -9,6 +9,26 @@ variable "autoscaler_version" {
     type = string
 }
 
+variable "oci_passphrase" {
+  type = string
+}
+
+variable "oci_user" {
+  type = string
+}
+
+variable "oci_fingerprint" {
+  type = string
+}
+
+variable "oci_tenancy" {
+  type = string
+}
+
+variable "oci_key_region" {
+  type = string
+}
+
 job "[JOB_NAME]" {
   datacenters = [var.dc]
   type = "service"
@@ -57,8 +77,22 @@ job "[JOB_NAME]" {
         NODE_ENV = "development"
         PORT = "8080"
         INITIAL_WAIT_FOR_POOLING_MS = 120000
-        CLOUD_PROVIDER="nomad"
+        CLOUD_PROVIDERS="nomad,oracle"
       }
+
+      template {
+        data = <<EOF
+user=${var.oci_user}
+fingerprint=${var.oci_fingerprint}
+pass_phrase=${var.oci_passphrase}
+key_file=/certs/oci_api_key.pem
+tenancy=${var.oci_tenancy}
+region=${var.oci_key_region}
+EOF
+        destination = "local/oci.config"
+        perms = "600"
+      }
+
       template {
         data = <<TILLEND
 {
@@ -111,6 +145,8 @@ TILLEND
         ports = ["http"]
         volumes = [
           "local/groups.json:/config/groups.json",
+          "/opt/jitsi/certs:/certs",
+          "local/oci.config:/config/oci.config",
         ]
       }
 
