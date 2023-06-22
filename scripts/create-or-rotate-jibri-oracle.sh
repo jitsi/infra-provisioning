@@ -25,6 +25,7 @@ fi
 
 #pull in cloud-specific variables, e.g. tenancy
 [ -e "$LOCAL_PATH/../clouds/oracle.sh" ] && . $LOCAL_PATH/../clouds/oracle.sh
+[ -e "$LOCAL_PATH/../clouds/all.sh" ] && . $LOCAL_PATH/../clouds/all.sh
 
 if [ -z "$ORACLE_REGION" ]; then
   echo "No ORACLE_REGION found.  Exiting..."
@@ -61,6 +62,8 @@ if [[ "$NOMAD_JIBRI_FLAG" == "true" ]]; then
   JIBRI_VERSION="latest"
   TYPE="nomad"
   [ -z "$NAME_ROOT_SUFFIX" ] && NAME_ROOT_SUFFIX="NomadJibriCustomGroup"
+  echo "Using Nomad AUTOSCALER_URL"
+  AUTOSCALER_URL="https://${ENVIRONMENT}-${ORACLE_REGION}-autoscaler.$TOP_LEVEL_DNS_ZONE_NAME"
 fi
 
 if [ "$JIBRI_TYPE" == "java-jibri" ]; then
