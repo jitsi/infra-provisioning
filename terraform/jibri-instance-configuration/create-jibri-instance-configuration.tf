@@ -30,6 +30,9 @@ variable "user_data_file" {
 }
 variable "infra_configuration_repo" {}
 variable "infra_customizations_repo" {}
+variable "nomad_flag" {
+  default = false
+}
 
 
 
@@ -127,6 +130,13 @@ resource "oci_core_instance_configuration" "oci_instance_configuration" {
           file("${path.cwd}/${var.user_data_lib_path}/postinstall-header.sh"), # load the header
           file("${path.cwd}/${var.user_data_lib_path}/postinstall-lib.sh"), # load the lib
           "\nexport INFRA_CONFIGURATION_REPO=${var.infra_configuration_repo}\nexport INFRA_CUSTOMIZATIONS_REPO=${var.infra_customizations_repo}\n", #repo variables
+          "\nexport NOMAD_FLAG=${var.nomad_flag}\n", #nomad variable
+          "\nfunction postinstall_jibri() {\n", # default postinstall
+          file("${path.cwd}/../infra-configuration/ansible/roles/jibri-java/files/postinstall-jibri-oracle.sh"), # load the lib
+          "\n}\n", # end default postinstall
+          "\nfunction configure_jibri() {\n", # default reconfigure
+          file("${path.cwd}/../infra-configuration/ansible/roles/jibri-java/files/configure-jibri-local-oracle.sh"), # load the lib
+          "\n}\n", # end default reconfigure
           file("${path.cwd}/${var.user_data_file}"), # load our customizations
           file("${path.cwd}/${var.user_data_lib_path}/postinstall-footer.sh") # load the footer
         ]))
