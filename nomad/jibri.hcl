@@ -1,6 +1,6 @@
 variable "pool_type" {
   type = string
-  default = "general"
+  default = "jibri"
 }
 
 variable jibri_recorder_password {
