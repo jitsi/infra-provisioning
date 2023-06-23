@@ -10,7 +10,10 @@ function dump() {
 
 if [[ "$NOMAD_FLAG" == "true" ]]; then
     export PROVISION_COMMAND="nomad_provisioning"
-    export HOST_ROLE="nomad-jibri"
+    export HOST_ROLE="jibri"
+    MY_IP=`curl -s curl http://169.254.169.254/opc/v1/vnics/ | jq .[0].privateIp -r`
+    MY_COMPONENT_NUMBER="$(echo $MY_IP | awk -F. '{print $2"-"$3"-"$4}')"
+    export MY_HOSTNAME="$ORACLE_REGION-$HOST_ROLE-$MY_COMPONENT_NUMBER.$DOMAIN"
 fi
 
 function nomad_provisioning() {
