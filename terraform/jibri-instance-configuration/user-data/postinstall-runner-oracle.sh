@@ -9,6 +9,7 @@ function dump() {
 }
 
 if [[ "$NOMAD_FLAG" == "true" ]]; then
+    . /usr/local/bin/oracle_cache.sh
     export PROVISION_COMMAND="nomad_provisioning"
     export HOST_ROLE="jibri"
     MY_IP=`curl -s curl http://169.254.169.254/opc/v1/vnics/ | jq .[0].privateIp -r`
