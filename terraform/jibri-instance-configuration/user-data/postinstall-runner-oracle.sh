@@ -24,8 +24,7 @@ if [[ "$NOMAD_FLAG" == "true" ]]; then
     fi
 
     export ANSIBLE_PLAYBOOK="nomad-client.yml"
-    export ANSIBLE_VARS="hcv_environment=$ENVIRONMENT cloud_name=$CLOUD_NAME cloud_provider=oracle oracle_region=$ORACLE_REGION region=$ORACLE_REGION nomad_pool_type=$POOL_TYPE autoscaler_group=$CUSTOM_AUTO_SCALE_GROUP instance_volume_id=$VOLUME_ID  oracle_instance_id=$INSTANCE_ID"
-
+    export ANSIBLE_VARS="hcv_environment=$ENVIRONMENT cloud_name=$CLOUD_NAME cloud_provider=oracle oracle_region=$ORACLE_REGION region=$ORACLE_REGION nomad_pool_type=$POOL_TYPE autoscaler_group=$CUSTOM_AUTO_SCALE_GROUP instance_volume_id=$VOLUME_ID  oracle_instance_id=$INSTANCE_ID autoscaler_server_host=$ENVIRONMENT-$ORACLE_REGION-autoscaler.jitsi.net nomad_enable_jitsi_autoscaler=true"
     export PROVISION_COMMAND="default_provision"
     export HOST_ROLE="jibri"
     MY_IP=`curl -s curl http://169.254.169.254/opc/v1/vnics/ | jq .[0].privateIp -r`
