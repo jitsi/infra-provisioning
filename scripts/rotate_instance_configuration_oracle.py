@@ -62,7 +62,7 @@ parser.add_argument('--metadata_path', action='store', help='Metadata to be used
 parser.add_argument('--metadata_lib_path', action='store', help='Metadata library path to be used by Cloud-Init to run',
                     default=False)
 
-parser.add_argument('--metadata_extra', action='store', help='Metadata string to append to the cloud init scripts',
+parser.add_argument('--metadata_extras', action='store', help='Metadata string to append to the cloud init scripts',
                     default=False)
 
 parser.add_argument('--custom_autoscaler', action='store_true',
