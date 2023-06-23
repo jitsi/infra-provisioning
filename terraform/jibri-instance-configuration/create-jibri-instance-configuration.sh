@@ -105,6 +105,10 @@ if [[ "$NOMAD_JIBRI_FLAG" == "null" ]]; then
   NOMAD_JIBRI_FLAG="$(cat $CONFIG_VARS_FILE | yq eval .${JIBRI_NOMAD_VARIABLE} -)"
 fi
 
+if [[ "$NOMAD_JIBRI_FLAG" == "null" ]]; then
+  NOMAD_JIBRI_FLAG="false"
+fi
+
 if [[ "$NOMAD_JIBRI_FLAG" == "true" ]]; then
   JIBRI_IMAGE_TYPE="JammyBase"
 fi
@@ -176,6 +180,7 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
   -var="shard_role=$JIBRI_TYPE" \
   -var="aws_cloud_name=$CLOUD_NAME" \
   -var="jibri_release_number=$JIBRI_RELEASE_NUMBER" \
+  -var="nomad_flag=$NOMAD_JIBRI_FLAG" \
   -var "infra_configuration_repo=$INFRA_CONFIGURATION_REPO" \
   -var "infra_customizations_repo=$INFRA_CUSTOMIZATIONS_REPO" \
   $ACTION_POST_PARAMS $TF_POST_PARAMS

@@ -57,6 +57,10 @@ if [[ "$NOMAD_JIBRI_FLAG" == "null" ]]; then
   NOMAD_JIBRI_FLAG="$(cat $CONFIG_VARS_FILE | yq eval .${JIBRI_NOMAD_VARIABLE} -)"
 fi
 
+if [[ "$NOMAD_JIBRI_FLAG" == "null" ]]; then
+  NOMAD_JIBRI_FLAG="false"
+fi
+
 if [[ "$NOMAD_JIBRI_FLAG" == "true" ]]; then
   JIBRI_IMAGE_TYPE="JammyBase"
   JIBRI_VERSION="latest"
@@ -297,8 +301,9 @@ elif [ "$getGroupHttpCode" == 200 ]; then
 
   NEW_INSTANCE_CONFIGURATION_ID=$($LOCAL_PATH/rotate_instance_configuration_oracle.py --region "$ORACLE_REGION" --image_id "$JIBRI_IMAGE_OCID" \
     --jibri_release_number "$JIBRI_RELEASE_NUMBER" --git_branch "$ORACLE_GIT_BRANCH" --infra_customizations_repo "$INFRA_CUSTOMIZATIONS_REPO" --infra_configuration_repo "$INFRA_CONFIGURATION_REPO" \
-    --instance_configuration_id "$EXISTING_INSTANCE_CONFIGURATION_ID" --tag_namespace "$TAG_NAMESPACE" --user_public_key_path "$USER_PUBLIC_KEY_PATH" --metadata_lib_path "$METADATA_LIB_PATH" --metadata_path "$METADATA_PATH" --custom_autoscaler \
-    $SHAPE_PARAMS)
+    --instance_configuration_id "$EXISTING_INSTANCE_CONFIGURATION_ID" --tag_namespace "$TAG_NAMESPACE" --user_public_key_path "$USER_PUBLIC_KEY_PATH" --metadata_lib_path "$METADATA_LIB_PATH" --metadata_path "$METADATA_PATH" \
+    --metadata_extra="export NOMAD_FLAG=$NOMAD_JIBRI_FLAG" \
+    --custom_autoscaler $SHAPE_PARAMS)
 
   if [ -z "$NEW_INSTANCE_CONFIGURATION_ID" ] || [ "$NEW_INSTANCE_CONFIGURATION_ID" == "null" ]; then
     echo "No Instance Configuration was created for group $GROUP_NAME. Exiting.."
