@@ -98,31 +98,6 @@ EOF
         data = <<TILLEND
 {
   "groupEntries": [
-    {
-      "name": "beta-meet-jit-si-us-phoenix-1-JibriGroup",
-      "type": "jibri",
-      "region": "us-phoenix-1",
-      "environment": "beta-meet-jit-si",
-      "compartmentId": "",
-      "instanceConfigurationId": "https://beta-meet-jit-si-us-phoenix-1-nomad.jitsi.net|jibri-us-phoenix-1",
-      "enableAutoScale": true,
-      "enableLaunch": true,
-      "gracePeriodTTLSec": 480,
-      "protectedTTLSec": 600,
-      "scalingOptions": {
-        "minDesired": 1,
-        "maxDesired": 2,
-        "desiredCount": 2,
-        "scaleUpQuantity": 1,
-        "scaleDownQuantity": 1,
-        "scaleUpThreshold": 1,
-        "scaleDownThreshold": 2,
-        "scalePeriod": 60,
-        "scaleUpPeriodsCount": 2,
-        "scaleDownPeriodsCount": 4
-      },
-      "cloud": "nomad"
-    }
   ]
 }
 TILLEND
