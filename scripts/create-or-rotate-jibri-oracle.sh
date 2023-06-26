@@ -25,6 +25,7 @@ fi
 
 #pull in cloud-specific variables, e.g. tenancy
 [ -e "$LOCAL_PATH/../clouds/oracle.sh" ] && . $LOCAL_PATH/../clouds/oracle.sh
+[ -e "$LOCAL_PATH/../clouds/all.sh" ] && . $LOCAL_PATH/../clouds/all.sh
 
 if [ -z "$ORACLE_REGION" ]; then
   echo "No ORACLE_REGION found.  Exiting..."
@@ -41,6 +42,32 @@ ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 if [ "$JIBRI_TYPE" != "java-jibri" ] &&  [ "$JIBRI_TYPE" != "sip-jibri" ]; then
   echo "Unsupported jibri type $JIBRI_TYPE";
   exit 206
+fi
+
+JIBRI_NOMAD_VARIABLE="jibri_enable_nomad"
+
+[ -z "$CONFIG_VARS_FILE" ] && CONFIG_VARS_FILE="$LOCAL_PATH/../config/vars.yml"
+[ -z "$ENVIRONMENT_VARS_FILE" ] && ENVIRONMENT_VARS_FILE="$LOCAL_PATH/../sites/$ENVIRONMENT/vars.yml"
+
+
+JIBRI_IMAGE_TYPE="JavaJibri"
+
+NOMAD_JIBRI_FLAG="$(cat $ENVIRONMENT_VARS_FILE | yq eval .${JIBRI_NOMAD_VARIABLE} -)"
+if [[ "$NOMAD_JIBRI_FLAG" == "null" ]]; then
+  NOMAD_JIBRI_FLAG="$(cat $CONFIG_VARS_FILE | yq eval .${JIBRI_NOMAD_VARIABLE} -)"
+fi
+
+if [[ "$NOMAD_JIBRI_FLAG" == "null" ]]; then
+  NOMAD_JIBRI_FLAG="false"
+fi
+
+if [[ "$NOMAD_JIBRI_FLAG" == "true" ]]; then
+  JIBRI_IMAGE_TYPE="JammyBase"
+  JIBRI_VERSION="latest"
+  TYPE="nomad"
+  [ -z "$NAME_ROOT_SUFFIX" ] && NAME_ROOT_SUFFIX="NomadJibriCustomGroup"
+  echo "Using Nomad AUTOSCALER_URL"
+  AUTOSCALER_URL="https://${ENVIRONMENT}-${ORACLE_REGION}-autoscaler.$TOP_LEVEL_DNS_ZONE_NAME"
 fi
 
 if [ "$JIBRI_TYPE" == "java-jibri" ]; then
@@ -78,7 +105,7 @@ fi
 arch_from_shape $SHAPE
 
 #Look up images based on version, or default to latest
-[ -z "$JIBRI_IMAGE_OCID" ] && JIBRI_IMAGE_OCID=$($LOCAL_PATH/oracle_custom_images.py --type JavaJibri --version "$JIBRI_VERSION" --architecture "$IMAGE_ARCH" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
+[ -z "$JIBRI_IMAGE_OCID" ] && JIBRI_IMAGE_OCID=$($LOCAL_PATH/oracle_custom_images.py --type $JIBRI_IMAGE_TYPE --version "$JIBRI_VERSION" --architecture "$IMAGE_ARCH" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
 
 #No image was found, probably not built yet?
 if [ -z "$JIBRI_IMAGE_OCID" ]; then
@@ -274,8 +301,9 @@ elif [ "$getGroupHttpCode" == 200 ]; then
 
   NEW_INSTANCE_CONFIGURATION_ID=$($LOCAL_PATH/rotate_instance_configuration_oracle.py --region "$ORACLE_REGION" --image_id "$JIBRI_IMAGE_OCID" \
     --jibri_release_number "$JIBRI_RELEASE_NUMBER" --git_branch "$ORACLE_GIT_BRANCH" --infra_customizations_repo "$INFRA_CUSTOMIZATIONS_REPO" --infra_configuration_repo "$INFRA_CONFIGURATION_REPO" \
-    --instance_configuration_id "$EXISTING_INSTANCE_CONFIGURATION_ID" --tag_namespace "$TAG_NAMESPACE" --user_public_key_path "$USER_PUBLIC_KEY_PATH" --metadata_lib_path "$METADATA_LIB_PATH" --metadata_path "$METADATA_PATH" --custom_autoscaler \
-    $SHAPE_PARAMS)
+    --instance_configuration_id "$EXISTING_INSTANCE_CONFIGURATION_ID" --tag_namespace "$TAG_NAMESPACE" --user_public_key_path "$USER_PUBLIC_KEY_PATH" --metadata_lib_path "$METADATA_LIB_PATH" --metadata_path "$METADATA_PATH" \
+    --metadata_extras="export NOMAD_FLAG=$NOMAD_JIBRI_FLAG" \
+    --custom_autoscaler $SHAPE_PARAMS)
 
   if [ -z "$NEW_INSTANCE_CONFIGURATION_ID" ] || [ "$NEW_INSTANCE_CONFIGURATION_ID" == "null" ]; then
     echo "No Instance Configuration was created for group $GROUP_NAME. Exiting.."

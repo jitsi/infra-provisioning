@@ -22,6 +22,14 @@ LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 [ -z "$VAULT_PASSWORD_FILE" ] && VAULT_PASSWORD_FILE="$LOCAL_PATH/../.vault-password.txt"
 
 [ -z "$ENCRYPTED_WAVEFRONT_CREDENTIALS_FILE" ] && ENCRYPTED_WAVEFRONT_CREDENTIALS_FILE="$LOCAL_PATH/../ansible/secrets/wavefront.yml"
+[ -z "$ENCRYPTED_OCI_CREDENTIALS_FILE" ] && ENCRYPTED_OCI_CREDENTIALS_FILE="$LOCAL_PATH/../ansible/secrets/oci-certificates.yml"
+OCI_API_USER_VARIABLE="oci_api_user"
+OCI_API_PASSPHRASE_VARIABLE="oci_api_pass_phrase"
+OCI_API_KEY_FINGERPRINT_VARIABLE="oci_api_key_fingerprint"
+OCI_API_TENANCY_VARIABLE="oci_api_tenancy"
+OCI_API_REGION_VARIABLE="oci_api_region"
+
+
 WAVEFRONT_TOKEN_VARIABLE="wavefront_api_token"
 
 # ensure no output for ansible vault contents and fail if ansible-vault fails
@@ -29,6 +37,12 @@ set +x
 set -e
 set -o pipefail
 export NOMAD_VAR_wavefront_token="$(ansible-vault view $ENCRYPTED_WAVEFRONT_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${WAVEFRONT_TOKEN_VARIABLE}" -)"
+export NOMAD_VAR_oci_user="$(ansible-vault view $ENCRYPTED_OCI_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${OCI_API_USER_VARIABLE}" -)"
+export NOMAD_VAR_oci_passphrase="$(ansible-vault view $ENCRYPTED_OCI_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${OCI_API_PASSPHRASE_VARIABLE}" -)"
+export NOMAD_VAR_oci_fingerprint="$(ansible-vault view $ENCRYPTED_OCI_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${OCI_API_KEY_FINGERPRINT_VARIABLE}" -)"
+export NOMAD_VAR_oci_tenancy="$(ansible-vault view $ENCRYPTED_OCI_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${OCI_API_TENANCY_VARIABLE}" -)"
+export NOMAD_VAR_oci_key_region="$(ansible-vault view $ENCRYPTED_OCI_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${OCI_API_REGION_VARIABLE}" -)"
+
 set -x
 
 NOMAD_JOB_PATH="$LOCAL_PATH/../nomad"

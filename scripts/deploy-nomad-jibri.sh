@@ -36,7 +36,7 @@ if [ -z "$NOMAD_ADDR" ]; then
     exit 5
 fi
 
-[ -z "$NOMAD_POOL_TYPE" ] && NOMAD_POOL_TYPE="general"
+[ -z "$NOMAD_POOL_TYPE" ] && NOMAD_POOL_TYPE="jibri"
 
 [ -z "$DOCKER_TAG" ] && DOCKER_TAG="unstable-$(date +%Y-%m-%d)"
 
