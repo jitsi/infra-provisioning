@@ -39,6 +39,11 @@ job "[JOB_NAME]" {
       value     = "true"
     }
 
+    constraint {
+      attribute  = "${meta.pool_type}"
+      value     = "general"
+    }
+
     count = 1
     network {
       port "http" {

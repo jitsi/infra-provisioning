@@ -47,6 +47,11 @@ job "grafana" {
       mode = "delay"
     }
 
+    constraint {
+      attribute  = "${meta.pool_type}"
+      value     = "general"
+    }
+
     network {
       port "grafana_http" {
         to = 3000
