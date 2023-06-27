@@ -230,6 +230,6 @@ elif [ "$getGroupHttpCode" == 200 ]; then
   fi
 
 else
-  echo "No group named $GROUP_NAME was found nor created. AutoScaler response status code is $getGroupHttpCode"
+  echo "No group named $GROUP_NAME was found nor created. AutoScaler response status code is $getGroupHttpCode\n$instanceGroupDetails"
   exit 210
 fi
