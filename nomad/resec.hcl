@@ -16,6 +16,10 @@ job "[JOB_NAME]" {
   group "cache" {
     count = 3
 
+    constraint {
+      attribute  = "${meta.pool_type}"
+      value     = "general"
+    }
 
     network {
       # This requests a dynamic port named "http". This will

@@ -26,6 +26,10 @@ job "[JOB_NAME]" {
         to = 3100
       }
     }
+    constraint {
+      attribute  = "${meta.pool_type}"
+      value     = "general"
+    }
     volume "loki" {
       type      = "host"
       read_only = false

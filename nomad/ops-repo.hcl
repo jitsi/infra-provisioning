@@ -41,6 +41,11 @@ job "ops-repo" {
   group "ops-repo" {
     count = 2
 
+    constraint {
+      attribute  = "${meta.pool_type}"
+      value     = "general"
+    }
+
     restart {
       attempts = 3
       delay    = "30s"
