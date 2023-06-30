@@ -57,6 +57,10 @@
           description: "Setting a value is optional."
           trim: true
       - string:
+          name: GRACE_PERIOD
+          description: "Setting a value is optional."
+          trim: true
+      - string:
           name: INFRA_CUSTOMIZATIONS_REPO
           default: git@github.com:jitsi/infra-customizations.git
           description: "Repo with customized configurations, defaults to 'git@github.com:jitsi/infra-customizations.git'."

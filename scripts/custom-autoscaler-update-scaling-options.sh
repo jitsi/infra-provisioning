@@ -109,6 +109,10 @@ if [ "$SCALE_DOWN_PERIODS_COUNT" ]; then
   REQUEST_BODY=$(echo "$REQUEST_BODY" | jq --arg SCALE_DOWN_PERIODS_COUNT "$SCALE_DOWN_PERIODS_COUNT" '. += {"scaleDownPeriodsCount": '$SCALE_DOWN_PERIODS_COUNT'}')
 fi
 
+if [ "$GRACE_PERIOD" ]; then
+  REQUEST_BODY=$(echo "$REQUEST_BODY" | jq --arg GRACE_PERIOD "$GRACE_PERIOD" '. += {"gracePeriodTTLSec": '$GRACE_PERIOD'}')
+fi
+
 response=$(curl -s -w "\n %{http_code}" -X PUT \
   "$AUTOSCALER_URL"/groups/"$GROUP_NAME"/scaling-options \
   -H 'Content-Type: application/json' \
