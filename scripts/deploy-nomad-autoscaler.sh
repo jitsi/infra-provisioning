@@ -21,6 +21,8 @@ LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
 [ -z "$VAULT_PASSWORD_FILE" ] && VAULT_PASSWORD_FILE="$LOCAL_PATH/../.vault-password.txt"
 
+[ -z "$ENVIRONMENT_TYPE" ] && ENVIRONMENT_TYPE="stage"
+
 [ -z "$ENCRYPTED_WAVEFRONT_CREDENTIALS_FILE" ] && ENCRYPTED_WAVEFRONT_CREDENTIALS_FILE="$LOCAL_PATH/../ansible/secrets/wavefront.yml"
 [ -z "$ENCRYPTED_OCI_CREDENTIALS_FILE" ] && ENCRYPTED_OCI_CREDENTIALS_FILE="$LOCAL_PATH/../ansible/secrets/oci-certificates.yml"
 OCI_API_USER_VARIABLE="oci_api_user"
@@ -76,6 +78,8 @@ export RESOURCE_NAME_ROOT="${ENVIRONMENT}-${ORACLE_REGION}-autoscaler"
 export NOMAD_VAR_dc="$NOMAD_DC"
 export NOMAD_VAR_autoscaler_hostname="${RESOURCE_NAME_ROOT}.${TOP_LEVEL_DNS_ZONE_NAME}"
 export NOMAD_VAR_autoscaler_version="${AUTOSCALER_VERSION}"
+export NOMAD_VAR_environment_type="${ENVIRONMENT_TYPE}"
+
 JOB_NAME="autoscaler-$ORACLE_REGION"
 
 sed -e "s/\[JOB_NAME\]/$JOB_NAME/" "$NOMAD_JOB_PATH/autoscaler.hcl" | nomad job run -

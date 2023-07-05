@@ -29,6 +29,11 @@ variable "oci_key_region" {
   type = string
 }
 
+variable "environment_type" {
+  type = string
+  default = "stage"
+}
+
 job "[JOB_NAME]" {
   datacenters = [var.dc]
   type = "service"
@@ -84,7 +89,7 @@ job "[JOB_NAME]" {
         DRY_RUN = "false"
         LOG_LEVEL = "debug"
         METRIC_TTL_SEC = "3600"
-        ASAP_PUB_KEY_BASE_URL = "https://d4dv7jmo5uq1d.cloudfront.net/server/stage"
+        ASAP_PUB_KEY_BASE_URL = "https://d4dv7jmo5uq1d.cloudfront.net/server/${var.environment_type}"
         ASAP_JWT_AUD = "jitsi-autoscaler"
         ASAP_JWT_ACCEPTED_HOOK_ISS = "jitsi-autoscaler-sidecar,homer"
         GROUP_CONFIG_FILE = "/config/groups.json"
