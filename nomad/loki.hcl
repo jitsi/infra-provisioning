@@ -2,6 +2,10 @@ variable "dc" {
   type = string
 }
 
+variable "loki_hostname" {
+  type = string
+}
+
 job "[JOB_NAME]" {
   datacenters = [var.dc]
   type        = "service"
@@ -111,6 +115,7 @@ EOH
       service {
         name = "loki"
         port = "loki"
+        tags = ["int-urlprefix-${var.loki_hostname}/"]
         check {
           name     = "Loki healthcheck"
           port     = "loki"
