@@ -68,6 +68,15 @@ if [[ "$NOMAD_JIBRI_FLAG" == "true" ]]; then
   [ -z "$NAME_ROOT_SUFFIX" ] && NAME_ROOT_SUFFIX="NomadJibriCustomGroup"
   echo "Using Nomad AUTOSCALER_URL"
   AUTOSCALER_URL="https://${ENVIRONMENT}-${ORACLE_REGION}-autoscaler.$TOP_LEVEL_DNS_ZONE_NAME"
+  [ -z $JIBRI_MAX_COUNT ] && JIBRI_MAX_COUNT=5
+  [ -z $JIBRI_MIN_COUNT ] && JIBRI_MIN_COUNT=1
+  [ -z $JIBRI_DOWNSCALE_COUNT ] && JIBRI_DOWNSCALE_COUNT="0.4"
+  [ -z $JIBRI_SCALING_INCREASE_RATE ] && JIBRI_SCALING_INCREASE_RATE=1
+  [ -z $JIBRI_SCALING_DECREASE_RATE ] && JIBRI_SCALING_DECREASE_RATE=1
+  [ -z "$JIBRI_SCALE_UP_PERIODS_COUNT" ] && JIBRI_SCALE_UP_PERIODS_COUNT=2
+  [ -z "$JIBRI_SCALE_DOWN_PERIODS_COUNT" ] && JIBRI_SCALE_DOWN_PERIODS_COUNT=20
+  [ -z "$JIBRI_AVAILABLE_COUNT" ] && JIBRI_AVAILABLE_COUNT="0.6"
+
 fi
 
 if [ "$JIBRI_TYPE" == "java-jibri" ]; then
@@ -224,11 +233,13 @@ if [ "$getGroupHttpCode" == 404 ]; then
   [ -z "$JIBRI_MIN_COUNT" ] && JIBRI_MIN_COUNT=1
   [ -z "$JIBRI_DOWNSCALE_COUNT" ] && JIBRI_DOWNSCALE_COUNT=1
 
-  # ensure we don't try to downscale past minimum if minimum is overridden
-  if [[ $JIBRI_DOWNSCALE_COUNT -lt $JIBRI_MIN_COUNT ]]; then
-    JIBRI_DOWNSCALE_COUNT=$JIBRI_MIN_COUNT
-  fi
 
+  if [[ "$NOMAD_JIBRI_FLAG" == "false" ]]; then
+    # ensure we don't try to downscale past minimum if minimum is overridden
+    if [[ $JIBRI_DOWNSCALE_COUNT -lt $JIBRI_MIN_COUNT ]]; then
+      JIBRI_DOWNSCALE_COUNT=$JIBRI_MIN_COUNT
+    fi
+  fi
   [ -z "$JIBRI_DESIRED_COUNT" ] && JIBRI_DESIRED_COUNT=$JIBRI_MIN_COUNT
   [ -z "$JIBRI_AVAILABLE_COUNT" ] && JIBRI_AVAILABLE_COUNT=$JIBRI_DESIRED_COUNT
 

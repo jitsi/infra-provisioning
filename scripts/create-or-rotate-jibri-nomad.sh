@@ -110,9 +110,9 @@ if [ "$getGroupHttpCode" == 404 ]; then
   fi
 
   # populate with generic defaults
-  [ -z "$JIBRI_MAX_COUNT" ] && JIBRI_MAX_COUNT=5
-  [ -z "$JIBRI_MIN_COUNT" ] && JIBRI_MIN_COUNT=1
-  [ -z "$JIBRI_DOWNSCALE_COUNT" ] && JIBRI_DOWNSCALE_COUNT=1
+  [ -z "$JIBRI_MAX_COUNT" ] && JIBRI_MAX_COUNT=20
+  [ -z "$JIBRI_MIN_COUNT" ] && JIBRI_MIN_COUNT=2
+  [ -z "$JIBRI_DOWNSCALE_COUNT" ] && JIBRI_DOWNSCALE_COUNT=3
 
   # ensure we don't try to downscale past minimum if minimum is overridden
   if [[ $JIBRI_DOWNSCALE_COUNT -lt $JIBRI_MIN_COUNT ]]; then
