@@ -58,14 +58,14 @@ job "[JOB_NAME]" {
       }
     }
 
-    // add constrict for meta.pool_type?
+    // TODO: add constrict for meta.pool_type?
 
     task "ingress-cloudprober" {
       driver = "docker"
       user = "root"
       config {
         ports = ["metrics"]
-        image = "cloudprober/cloudprober:latest"  // add cloudprober_version
+        image = "cloudprober/cloudprober:latest"  // TODO: add cloudprober_version
         volumes = ["local/cloudprober.cfg:/etc/cloudprober.cfg"]
       }
       template {
@@ -75,6 +75,15 @@ probe {
   type: HTTP
   targets {
     host_names: "www.google.com"
+  }
+  interval_msec: 5000  # 5s
+  timeout_msec: 1000   # 1s
+}
+probe {
+  name: "domain_ingress"
+  type: HTTP
+  targets {
+    host_names: "{{ env "var.domain" }}"
   }
   interval_msec: 5000  # 5s
   timeout_msec: 1000   # 1s
