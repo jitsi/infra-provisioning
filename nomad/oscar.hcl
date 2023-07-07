@@ -65,6 +65,7 @@ job "[JOB_NAME]" {
       user = "root"
       config {
         image = "cloudprober/cloudprober:latest"  // add cloudprober_version
+        volumes = ["local/cloudprober.cfg:/etc/cloudprober.cfg"]
       }
       template {
           data = <<EOH
@@ -78,7 +79,7 @@ probe {
   timeout_msec: 1000   # 1s
 }
 EOH
-          destination = "/etc/cloudprober.cfg"
+          destination = "local/cloudprober.cfg"
       }
       resources {
           cpu = 8000
