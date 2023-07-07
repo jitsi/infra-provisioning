@@ -83,8 +83,27 @@ EOH
           destination = "local/cloudprober.cfg"
       }
       resources {
-          cpu = 8000
-          memory = 2048 
+          cpu = 4000
+          memory = 1024 
+      }
+      service {
+        name = "oscar"
+        tags = ["int-urlprefix-${var.oscar_hostname}/","ip-${attr.unique.network.ip-address}"]
+        port = "oscar"
+        tags = ["ip-${attr.unique.network.ip-address}"]
+        check {
+          name     = "oscar synthetics"
+          port     = "metrics"
+          type     = "http"
+          path     = "/"
+          interval = "20s"
+          timeout  = "5s"
+          check_restart {
+            limit           = 3
+            grace           = "60s"
+            ignore_warnings = false
+          }
+        }
       }
     }
   }

@@ -230,6 +230,14 @@ EOF
         host = "{{"{{"}}.Node}}"
         shard-role = "autoscaler"
         role = "autoscaler"
+    [[inputs.prometheus.consul.query]]
+      name = "oscar"
+      tag = "ip-{{ env "attr.unique.network.ip-address" }}"
+      url = 'http://{{"{{"}}if ne .ServiceAddress ""}}{{"{{"}}.ServiceAddress}}{{"{{"}}else}}{{"{{"}}.Address}}{{"{{"}}end}}:9641/{{"{{"}}with .ServiceMeta.metrics_path}}{{"{{"}}.}}{{"{{"}}else}}metrics{{"{{"}}end}}'
+      [inputs.prometheus.consul.query.tags]
+        host = "{{"{{"}}.Node}}"
+        shard-role = "oscar"
+        role = "oscar"
 [[outputs.wavefront]]
   url = "${var.wavefront_proxy_url}"
   metric_separator = "."
