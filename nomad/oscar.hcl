@@ -64,6 +64,7 @@ job "[JOB_NAME]" {
       driver = "docker"
       user = "root"
       config {
+        ports = ["metrics"]
         image = "cloudprober/cloudprober:latest"  // add cloudprober_version
         volumes = ["local/cloudprober.cfg:/etc/cloudprober.cfg"]
       }
