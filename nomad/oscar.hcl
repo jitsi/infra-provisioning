@@ -99,8 +99,10 @@ probe {
   targets: { dummy_targets {} }
   external_probe {
     mode: ONCE 
-    command: /bin/oscar_probe.sh
+    command: "/bin/oscar_probe.sh"
   }
+  interval_msec: 5000  # 5s
+  timeout_msec: 1000   # 1s
 }
 EOH
           destination = "local/cloudprober.cfg"
