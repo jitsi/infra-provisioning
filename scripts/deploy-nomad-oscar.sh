@@ -48,12 +48,15 @@ NOMAD_DC="$ENVIRONMENT-$ORACLE_REGION"
 
 JOB_NAME="oscar-$ORACLE_REGION"
 
-sed -e "s/\[JOB_NAME\]/$JOB_NAME/" "$NOMAD_JOB_PATH/oscar.hcl" | nomad job run -verbose -var="dc=$NOMAD_DC" -var="domain=$DOMAIN" -var="cloudprober_version=latest" -
-
 export RESOURCE_NAME_ROOT="${ENVIRONMENT}-${ORACLE_REGION}-oscar"
 
 export NOMAD_VAR_dc="$NOMAD_DC"
-export NOMAD_VAR_wavefront_proxy_hostname="${RESOURCE_NAME_ROOT}.${TOP_LEVEL_DNS_ZONE_NAME}"
+export NOMAD_VAR_oscar_hostname="${RESOURCE_NAME_ROOT}.${TOP_LEVEL_DNS_ZONE_NAME}"
+export NOMAD_VAR_cloudprober_version="latest"
+export NOMAD_VAR_domain="$DOMAIN"
+export NOMAD_VAR_region="$ORACLE_REGION"
+
+sed -e "s/\[JOB_NAME\]/$JOB_NAME/" "$NOMAD_JOB_PATH/oscar.hcl" | nomad job run -verbose -var="dc=$NOMAD_DC" -var="domain=$DOMAIN" -var="cloudprober_version=latest" -
 
 export CNAME_VALUE="$RESOURCE_NAME_ROOT"
 export STACK_NAME="${RESOURCE_NAME_ROOT}-cname"

@@ -2,12 +2,20 @@ variable "dc" {
   type = string
 }
 
+variable "oscar_hostname" {
+  type = string
+}
+
 variable "domain" {
-    type = string
+  type = string
+}
+
+variable "region" {
+  type = string
 }
 
 variable "cloudprober_version" {
-    type = string
+  type = string
 }
 
 job "[JOB_NAME]" {
@@ -53,7 +61,7 @@ job "[JOB_NAME]" {
     }
 
     network {
-      port "metrics" {
+      port "http" {
         to = 9313 
       }
     }
@@ -61,58 +69,88 @@ job "[JOB_NAME]" {
     // TODO: add constrict for meta.pool_type?
 
     task "ingress-cloudprober" {
-      driver = "docker"
-      user = "root"
-      config {
-        ports = ["metrics"]
-        image = "cloudprober/cloudprober:latest"  // TODO: add cloudprober_version
-        volumes = ["local/cloudprober.cfg:/etc/cloudprober.cfg"]
+      service {
+        name = "oscar"
+        tags = ["int-urlprefix-${var.oscar_hostname}/","ip-${attr.unique.network.ip-address}"]
+        port = "http"
+        check {
+          name     = "alive"
+          type     = "tcp"
+          interval = "10s"
+          timeout  = "2s"
+        }
       }
+
+      driver = "docker"
       template {
           data = <<EOH
 probe {
-  name: "google_homepage"
+  name: "local_ingress"
   type: HTTP
   targets {
-    host_names: "www.google.com"
+    host_names: "${var.domain}"
   }
   interval_msec: 5000  # 5s
   timeout_msec: 1000   # 1s
 }
 probe {
-  name: "domain_ingress"
-  type: HTTP
-  targets {
-    host_names: "{{ env "var.domain" }}"
+  name: "haproxy_region"
+  type: EXTERNAL
+  targets: { dummy_targets {} }
+  external_probe {
+    mode: ONCE 
+    command: /bin/oscar_probe.sh
   }
-  interval_msec: 5000  # 5s
-  timeout_msec: 1000   # 1s
 }
 EOH
           destination = "local/cloudprober.cfg"
       }
+      template {
+        data = <<EOH
+#!/bin/sh
+
+if [ ! -e /tmp/setup ]; then
+    python3 -m ensurepip --default-pip
+    python3 -m pip install requests
+    touch /tmp/setup
+fi
+
+export DOMAIN=${var.domain}
+export REGION=${var.region}
+python3 /bin/oscar_probe.py
+EOH
+        destination = "local/oscar_probe.sh"
+        perms = "755"
+      }
+      template {
+        data = <<EOH
+import requests
+import os
+
+url = 'https://' + os.environ['DOMAIN']
+req = requests.get(url)
+
+print("haproxy_region_check 1")
+
+if req.headers['x-proxy-region'] != os.environ['REGION']:
+    print("haproxy_region_check_failed 1")
+else:
+    print("haproxy_region_check_failed 0")
+EOH
+        destination = "local/oscar_probe.py"
+      }
+      config {
+        image = "cloudprober/cloudprober:${var.cloudprober_version}"
+        ports = ["http"]
+        volumes = [
+          "local/cloudprober.cfg:/etc/cloudprober.cfg",
+          "local/oscar_probe.sh:/bin/oscar_probe.sh",
+          "local/oscar_probe.py:/bin/oscar_probe.sh"
+        ]
+      }
       resources {
           cpu = 4000
           memory = 1024 
-      }
-      service {
-        name = "oscar"
-        tags = ["int-urlprefix-${var.oscar_hostname}/","ip-${attr.unique.network.ip-address}"]
-        port = "oscar"
-        tags = ["ip-${attr.unique.network.ip-address}"]
-        check {
-          name     = "oscar synthetics"
-          port     = "metrics"
-          type     = "http"
-          path     = "/"
-          interval = "20s"
-          timeout  = "5s"
-          check_restart {
-            limit           = 3
-            grace           = "60s"
-            ignore_warnings = false
-          }
-        }
       }
     }
   }
