@@ -147,7 +147,7 @@ EOH
         volumes = [
           "local/cloudprober.cfg:/etc/cloudprober.cfg",
           "local/oscar_probe.sh:/bin/oscar_probe.sh",
-          "local/oscar_probe.py:/bin/oscar_probe.sh"
+          "local/oscar_probe.py:/bin/oscar_probe.py"
         ]
       }
       resources {
