@@ -1,3 +1,8 @@
+variable "pool_type" {
+  type = string
+  default = "general"
+}
+
 variable "dc" {
   type = string
 }
@@ -50,6 +55,10 @@ job "[JOB_NAME]" {
   }
 
   group "synthetics" {
+    constraint {
+      attribute  = "${meta.pool_type}"
+      value     = "${var.pool_type}"
+    }
 
     count = 1
 
