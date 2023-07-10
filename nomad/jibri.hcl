@@ -101,6 +101,7 @@ job "[JOB_NAME]" {
         shm_size = 2147483648
         ports = ["http"]
         volumes = [
+          "/opt/jibri/recordings:/mnt/recordings",
 	        "/opt/jitsi/keys:/opt/jitsi/keys",
           "local/xmpp-servers:/opt/jitsi/xmpp-servers",
           "local/01-xmpp-servers:/etc/cont-init.d/01-xmpp-servers",
@@ -132,7 +133,7 @@ job "[JOB_NAME]" {
         DISPLAY=":0"
         JIBRI_INSTANCE_ID = "${NOMAD_SHORT_ALLOC_ID}"
         JIBRI_FINALIZE_RECORDING_SCRIPT_PATH = "/usr/bin/jitsi_uploader.sh"
-        JIBRI_RECORDING_DIR = "/local/recordings"
+        JIBRI_RECORDING_DIR = "/mnt/recordings"
         JIBRI_STATSD_HOST = "${attr.unique.network.ip-address}"
         JIBRI_STATSD_PORT = "8125"
         ENABLE_STATS_D = "true"
