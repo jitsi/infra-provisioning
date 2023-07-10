@@ -75,6 +75,12 @@ job "[JOB_NAME]" {
 
   group "jibri" {
 
+    volume "jibri" {
+      type      = "host"
+      read_only = false
+      source    = "jibri"
+    }
+
     constraint {
       attribute  = "${meta.pool_type}"
       value     = "${var.pool_type}"
@@ -101,7 +107,6 @@ job "[JOB_NAME]" {
         shm_size = 2147483648
         ports = ["http"]
         volumes = [
-          "/opt/jibri/recordings:/mnt/recordings",
 	        "/opt/jitsi/keys:/opt/jitsi/keys",
           "local/xmpp-servers:/opt/jitsi/xmpp-servers",
           "local/01-xmpp-servers:/etc/cont-init.d/01-xmpp-servers",
@@ -110,6 +115,11 @@ job "[JOB_NAME]" {
           "local/jibri-status.sh:/opt/jitsi/scripts/jibri-status.sh",
           "local/cron-service-run:/etc/services.d/60-cron/run"
     	  ]
+      }
+      volume_mount {
+        volume      = "jibri"
+        destination = "/mnt/recordings"
+        read_only   = false
       }
 
       env {
