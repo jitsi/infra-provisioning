@@ -75,6 +75,12 @@ job "[JOB_NAME]" {
 
   group "jibri" {
 
+    volume "jibri" {
+      type      = "host"
+      read_only = false
+      source    = "jibri"
+    }
+
     constraint {
       attribute  = "${meta.pool_type}"
       value     = "${var.pool_type}"
@@ -110,6 +116,11 @@ job "[JOB_NAME]" {
           "local/cron-service-run:/etc/services.d/60-cron/run"
     	  ]
       }
+      volume_mount {
+        volume      = "jibri"
+        destination = "/mnt/recordings"
+        read_only   = false
+      }
 
       env {
         XMPP_ENV_NAME = "${var.environment}"
@@ -132,7 +143,7 @@ job "[JOB_NAME]" {
         DISPLAY=":0"
         JIBRI_INSTANCE_ID = "${NOMAD_SHORT_ALLOC_ID}"
         JIBRI_FINALIZE_RECORDING_SCRIPT_PATH = "/usr/bin/jitsi_uploader.sh"
-        JIBRI_RECORDING_DIR = "/local/recordings"
+        JIBRI_RECORDING_DIR = "/mnt/recordings"
         JIBRI_STATSD_HOST = "${attr.unique.network.ip-address}"
         JIBRI_STATSD_PORT = "8125"
         ENABLE_STATS_D = "true"
