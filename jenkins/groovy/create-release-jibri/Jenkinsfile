@@ -82,7 +82,9 @@ pipeline {				//indicate the job is written in Declarative Pipeline
         stage('Environment flags') {
             steps {
                 script {
+                  dir('infra-provisioning') {
                     jibriNomadFlag = utils.GetAnsibleVar(env.ENVIRONMENT, "jibri_enable_nomad")
+                  }
                 }
             }
         }
