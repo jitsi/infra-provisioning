@@ -75,8 +75,6 @@ job "[JOB_NAME]" {
       }
     }
 
-    // TODO: add constrict for meta.pool_type?
-
     task "ingress-cloudprober" {
       service {
         name = "oscar"
@@ -147,12 +145,10 @@ import os
 url = 'https://' + os.environ['DOMAIN']
 req = requests.get(url)
 
-print("haproxy_region_check 1")
-
-if req.headers['x-proxy-region'] != os.environ['REGION']:
-    print("haproxy_region_check_failed 1")
+if req.headers['x-proxy-region'] == os.environ['REGION']:
+    print("haproxy_region_check_passed 1")
 else:
-    print("haproxy_region_check_failed 0")
+    print("haproxy_region_check_passed 0")
 EOH
         destination = "local/oscar_probe.py"
       }
@@ -168,7 +164,7 @@ EOH
         ]
       }
       resources {
-          cpu = 500
+          cpu = 2000
           memory = 256
       }
     }
