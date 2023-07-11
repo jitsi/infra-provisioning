@@ -41,6 +41,7 @@ def provisionJibri(shard_environment,cloud_name,release_number,gitBranch,jibriVe
 // global var to track git branch from env or new tags
 def git_branch
 def utils
+def jibriNomadFlag
 
 pipeline {				//indicate the job is written in Declarative Pipeline
     agent any				//agent specifies where the pipeline will execute.
@@ -78,6 +79,13 @@ pipeline {				//indicate the job is written in Declarative Pipeline
             }
           }
         }
+        stage('Environment flags') {
+            steps {
+                script {
+                    jibriNomadFlag = utils.GetAnsibleVar(env.ENVIRONMENT, "jibri_enable_nomad")
+                }
+            }
+        }
         stage("build and replicate Jibri image in AWS") {
             when {
                 expression {env.CLOUD_PROVIDER == 'aws'}
@@ -94,7 +102,10 @@ pipeline {				//indicate the job is written in Declarative Pipeline
         }
         stage("build and replicate Jibri image in Oracle") {
             when {
-                expression {env.CLOUD_PROVIDER == 'oracle'}
+                allOf {
+                    expression {env.CLOUD_PROVIDER == 'oracle'}
+                    expression {jibriNomadFlag != 'true'}
+                }
             }
             steps {
                 script {
