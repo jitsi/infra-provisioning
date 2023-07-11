@@ -267,4 +267,15 @@ echo \$IMAGE_ARCH"""
     }
 }
 
+def OracleRegionFromCloud(cloud) {
+        def region = sh(
+        returnStdout: true,
+        script: """#!/bin/bash
+. ./clouds/${cloud}.sh
+echo \$ORACLE_REGION"""
+        ).trim();
+        return region
+
+}
+
 return this
