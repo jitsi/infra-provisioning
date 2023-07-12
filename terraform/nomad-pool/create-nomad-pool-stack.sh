@@ -162,6 +162,7 @@ set -x
 [ -n "$NOMAD_ALT_EXTRA_HOSTNAMES" ] && NOMAD_ALT_HOSTNAMES="$(echo "$NOMAD_ALT_HOSTNAMES" "$NOMAD_ALT_EXTRA_HOSTNAMES" | jq -c -s '.|add' )"
 
 [ -z "$LOAD_BALANCER_SHAPE" ] && LOAD_BALANCER_SHAPE="flexible"
+[ -z "$NOMAD_LOAD_BALANCER_MAXIMUM_BANDWIDTH_IN_MBPS" ] && NOMAD_LOAD_BALANCER_MAXIMUM_BANDWIDTH_IN_MBPS=100
 
 VCN_NAME_ROOT="$ORACLE_REGION-$ENVIRONMENT"
 VCN_NAME="$VCN_NAME_ROOT-vcn"
@@ -272,6 +273,7 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
   -var="postinstall_status_file=$POSTINSTALL_STATUS_FILE" \
   -var="vcn_name=$VCN_NAME" \
   -var="load_balancer_shape=$LOAD_BALANCER_SHAPE" \
+  -var="load_balancer_shape_details_maximum_bandwidth_in_mbps=$NOMAD_LOAD_BALANCER_MAXIMUM_BANDWIDTH_IN_MBPS" \
   -var="dns_name=$DNS_NAME" \
   -var="private_dns_name=$PRIVATE_DNS_NAME" \
   -var="dns_zone_name=$DNS_ZONE_NAME" \
