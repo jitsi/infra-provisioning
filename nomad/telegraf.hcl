@@ -164,10 +164,10 @@ EOF
 {{ end }}
 {{ end }}
 
-[[inputs.prometheus]]
 {{ range service "consul" }}
 {{ scratch.Set "consul_server" .Address }}
 {{ end }}
+[[inputs.prometheus]]
   [inputs.prometheus.consul]
     enabled = true
     agent = "{{ scratch.Get "consul_server" }}:8500"
@@ -230,6 +230,22 @@ EOF
         host = "{{"{{"}}.Node}}"
         shard-role = "autoscaler"
         role = "autoscaler"
+
+[[inputs.prometheus]]
+  name_prefix = "jitsi_oscar_"
+  [inputs.prometheus.consul]
+    enabled = true
+    agent = "{{ scratch.Get "consul_server" }}:8500"
+    query_interval = "1m"
+    [[inputs.prometheus.consul.query]]
+      name = "oscar"
+      tag = "ip-{{ env "attr.unique.network.ip-address" }}"
+      url = 'http://{{"{{"}}if ne .ServiceAddress ""}}{{"{{"}}.ServiceAddress}}{{"{{"}}else}}{{"{{"}}.Address}}{{"{{"}}end}}:{{"{{"}}.ServicePort}}/{{"{{"}}with .ServiceMeta.metrics_path}}{{"{{"}}.}}{{"{{"}}else}}metrics{{"{{"}}end}}'
+      [inputs.prometheus.consul.query.tags]
+        host = "{{"{{"}}.Node}}"
+        shard-role = "oscar"
+        role = "oscar"
+
 [[outputs.wavefront]]
   url = "${var.wavefront_proxy_url}"
   metric_separator = "."
