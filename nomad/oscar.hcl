@@ -97,7 +97,7 @@ probe {
   targets {
     host_names: "${var.domain}"
   }
-  interval_msec: 30000
+  interval_msec: 5000
   timeout_msec: 2000
 }
 probe {
@@ -110,7 +110,7 @@ probe {
     mode: ONCE 
     command: "/bin/oscar_probe.sh"
   }
-  interval_msec: 30000
+  interval_msec: 5000
   timeout_msec: 2000
 }
 EOH
@@ -142,7 +142,7 @@ EOH
 import requests
 import os
 
-url = 'https://' + os.environ['DOMAIN']
+url = 'https://' + os.environ['DOMAIN'] + "/about/health"
 req = requests.get(url)
 
 if req.headers['x-proxy-region'] == os.environ['REGION']:
