@@ -13,4 +13,4 @@ if [[ "$POOL_TYPE" == "null" ]]; then
 fi
 [ -z "$POOL_TYPE" ] && POOL_TYPE="general"
 export HOST_ROLE="nomadp"
-export ANSIBLE_VARS="hcv_environment=$ENVIRONMENT cloud_name=$CLOUD_NAME cloud_provider=oracle oracle_region=$ORACLE_REGION region=$ORACLE_REGION nomad_pool_type=$POOL_TYPE"
+export ANSIBLE_VARS="hcv_environment=$ENVIRONMENT cloud_name=$CLOUD_NAME cloud_provider=oracle oracle_region=$ORACLE_REGION region=$ORACLE_REGION nomad_pool_type=$POOL_TYPE oracle_instance_id=$INSTANCE_ID"
