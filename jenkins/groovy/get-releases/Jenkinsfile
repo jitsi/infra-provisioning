@@ -1,0 +1,57 @@
+def versioningManagerGetReleases(environment) {
+    sh(
+        script: """#!/bin/bash
+ENVIRONMENT=${environment} VERSIONING_ACTION=GET_RELEASES scripts/versioning-manager.sh
+"""
+    )
+}
+
+pipeline {
+    agent any
+    options {
+        ansiColor('xterm')
+        timestamps()
+        buildDiscarder(logRotator(numToKeepStr: '10', artifactNumToKeepStr: '10'))
+    }
+    stages {
+        stage ("setup") {
+            steps {
+                script {
+                    // load utility function
+                    def rootDir = pwd()
+                    utils = load "${rootDir}/jenkins/groovy/Utils.groovy"
+                    // checkout repos
+                    utils.SetupRepos(env.VIDEO_INFRA_BRANCH)
+
+                    // setup OCI credentials
+                    utils.SetupOCI()
+
+                    sh 'mkdir -p test-results'
+                }
+            }
+        }  
+        stage ("get releases from versioning manager") {
+            when {
+                expression { useReleaseBackends == 'true' }
+            }
+            steps {
+                script {
+                    dir("infra-provisioning") {
+                        withCredentials([
+                            string(credentialsId: 'asap-jwt-kid-dev', variable: 'ASAP_JWT_KID_DEV'),
+                            string(credentialsId: 'asap-jwt-kid-prod', variable: 'ASAP_JWT_KID_PROD'),
+                            file(credentialsId: 'asap-jwt-key-dev', variable: 'ASAP_JWT_KEY_DEV'),
+                            file(credentialsId: 'asap-jwt-key-prod', variable: 'ASAP_JWT_KEY_PROD')
+                        ]) {
+                            versioningManagerGetReleases(env.ENVIRONMENT)
+                        }
+                    }
+                }
+            }
+        }
+     post {
+        always {
+            cleanWs()
+        }
+    }
+}
