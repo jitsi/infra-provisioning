@@ -1,7 +1,7 @@
-def versioningManagerGetReleases(environment) {
+def versioningManagerGetRelease(environment, release_id) {
     sh(
         script: """#!/bin/bash
-ENVIRONMENT=${environment} VERSIONING_ACTION=GET_RELEASES scripts/versioning-manager.sh
+ENVIRONMENT=${environment} VERSIONING_ACTION=GET_RELEASES VERSIONING_RELEASE=${release_id} scripts/versioning-manager.sh
 """
     )
 }
@@ -40,7 +40,7 @@ pipeline {
                 }
             }
         }
-        stage ("get releases from versioning manager") {
+        stage ("call versioning manager") {
             when {
                 expression { useReleaseBackends == 'true' }
             }
@@ -53,7 +53,7 @@ pipeline {
                             file(credentialsId: 'asap-jwt-key-dev', variable: 'ASAP_JWT_KEY_DEV'),
                             file(credentialsId: 'asap-jwt-key-prod', variable: 'ASAP_JWT_KEY_PROD')
                         ]) {
-                            versioningManagerGetReleases(env.ENVIRONMENT)
+                            versioningManagerGetRelease(env.ENVIRONMENT, env.RELEASE_NUMBER)
                         }
                     }
                 }
