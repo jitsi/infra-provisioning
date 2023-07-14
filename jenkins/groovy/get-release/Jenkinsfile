@@ -1,7 +1,7 @@
 def versioningManagerGetRelease(environment, release_id) {
     sh(
         script: """#!/bin/bash
-ENVIRONMENT=${environment} VERSIONING_ACTION=GET_RELEASES VERSIONING_RELEASE=${release_id} scripts/versioning-manager.sh
+ENVIRONMENT=${environment} VERSIONING_ACTION=GET_RELEASE VERSIONING_RELEASE=${release_id} scripts/versioning-manager.sh
 """
     )
 }
