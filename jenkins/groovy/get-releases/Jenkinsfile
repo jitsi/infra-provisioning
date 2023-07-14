@@ -30,6 +30,16 @@ pipeline {
                 }
             }
         }  
+        stage ("load flags") {
+            steps {
+                script {
+                    dir("infra-provisioning") {
+                        useReleaseBackends = utils.GetEnvironmentVar(env.ENVIRONMENT, "USE_RELEASE_BACKENDS")
+                        echo useReleaseBackends
+                    }
+                }
+            }
+        }
         stage ("get releases from versioning manager") {
             when {
                 expression { useReleaseBackends == 'true' }
