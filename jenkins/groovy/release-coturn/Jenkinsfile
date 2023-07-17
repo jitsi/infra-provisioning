@@ -18,8 +18,8 @@ def coturnClouds(clouds) {
             returnStdout: true,
             script: '''#!/bin/bash
                 source clouds/all.sh
-                echo $COTURN_CLOUDS'''.trim().split(' ')
-        )
+                echo $COTURN_CLOUDS'''
+        ).trim().split(' ')
     } else {
         coturn_clouds = clouds.split(' ')
     }
