@@ -1,19 +1,15 @@
 #!/usr/bin/env bash
 set -x
 
-# IF THE CURRENT DIRECTORY HAS stack-env.sh THEN INCLUDE IT
-[ -e ./stack-env.sh ] && . ./stack-env.sh
-
-if [ -z "$ENVIRONMENT" ]; then
-   echo "No ENVIRONMENT provided or found.  Exiting ..."
-   exit 201
-fi
-
-[ -e ./sites/$ENVIRONMENT/stack-env.sh ] && . ./sites/$ENVIRONMENT/stack-env.sh
-
-# e.g. terraform/wavefront-proxy
+# e.g. ../all/bin/terraform/wavefront-proxy
 LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
+if [ -z $ENVIRONMENT ]; then
+  echo "No ENVIRONMENT provided or found. Exiting..."
+  exit 201
+fi
+
+[ -e $LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh ] && . $LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh
 
 [ -e "$LOCAL_PATH/../clouds/oracle.sh" ] && . $LOCAL_PATH/../clouds/oracle.sh
 
@@ -41,13 +37,20 @@ for reserved_ip in ${ips_with_old_shard_role[@]}; do
     echo "Skipping the public ip $reserved_public_ip_name, ocid $reserved_ip, as it has already tags $old_defined_tags..."
     skipped_ips_ocid+=("$reserved_ip")
   else
-    new_defined_tags="{\"$TAG_NAMESPACE\" : { \"environment\":\"$ENVIRONMENT\", \"shard-role\":\"$NEW_SHARD_ROLE\"}}"
-    echo "Setting defined tags $new_defined_tags to reserved public ip: $reserved_public_ip_name"
-    oci network public-ip update --region "$ORACLE_REGION" --public-ip-id $reserved_ip --if-match "$etag_reserved_public_ip" --defined-tags "$new_defined_tags" --force
+    grep -q "Floating" <<< "$reserved_public_ip_name"
+    if [[ $? -eq 0 ]]; then
+      echo "Floating IP skipped for $reserved_public_ip_name $reserved_ip"
+    else
 
-    if [ $? -gt 0 ]; then
-      echo "Error while updating the public ip $reserved_public_ip_name. Exiting..."
-      exit 210
+      new_defined_tags="{\"$TAG_NAMESPACE\" : { \"environment\":\"$ENVIRONMENT\", \"shard-role\":\"$NEW_SHARD_ROLE\"}}"
+      echo "Setting defined tags $new_defined_tags to reserved public ip: $reserved_public_ip_name"
+      oci network public-ip update --region "$ORACLE_REGION" --public-ip-id $reserved_ip --if-match "$etag_reserved_public_ip" --defined-tags "$new_defined_tags" --force
+
+      if [ $? -gt 0 ]; then
+        echo "Error while updating the public ip $reserved_public_ip_name. Exiting..."
+        exit 210
+      fi
+
     fi
   fi
 done
