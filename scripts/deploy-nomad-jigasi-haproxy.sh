@@ -9,6 +9,9 @@ LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
 [ -e "$LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh" ] && . "$LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh"
 
+[ -e "$LOCAL_PATH/../clouds/all.sh" ] && . "$LOCAL_PATH/../clouds/all.sh"
+[ -e "$LOCAL_PATH/../clouds/oracle.sh" ] && . "$LOCAL_PATH/../clouds/oracle.sh"
+
 if [ -z "$ORACLE_REGION" ]; then
     echo "No ORACLE_REGION set, exiting"
     exit 2
@@ -37,3 +40,12 @@ NOMAD_DC="$ENVIRONMENT-$ORACLE_REGION"
 JOB_NAME="jigasi-haproxy-$ORACLE_REGION"
 
 sed -e "s/\[JOB_NAME\]/$JOB_NAME/" "$NOMAD_JOB_PATH/jigasi-haproxy.hcl" | nomad job run -var="dc=$NOMAD_DC" -
+
+export RESOURCE_NAME_ROOT="${ENVIRONMENT}-${ORACLE_REGION}-jigasi-selector"
+
+export CNAME_VALUE="$RESOURCE_NAME_ROOT"
+export STACK_NAME="${RESOURCE_NAME_ROOT}-cname"
+export UNIQUE_ID="${RESOURCE_NAME_ROOT}"
+export CNAME_TARGET="${ENVIRONMENT}-${ORACLE_REGION}-nomad-pool-general.${DEFAULT_DNS_ZONE_NAME}"
+export CNAME_VALUE="${RESOURCE_NAME_ROOT}"
+$LOCAL_PATH/create-oracle-cname-stack.sh
