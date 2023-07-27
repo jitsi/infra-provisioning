@@ -170,7 +170,8 @@ elif [ "$VERSIONING_ACTION" == "GET_RELEASE" ]; then
 
   httpCode=$(tail -n1 <<<"$response" | sed 's/[^0-9]*//g')
   if [ "$httpCode" == 200 ]; then
-    echo "## got info for ${VERSIONING_RELEASE}:\n$response"
+    echo "## got info for ${VERSIONING_RELEASE}:"
+    echo "$response" | jq
   else
     echo "## ERROR getting info for release $VERSIONING_RELEASE with status code $httpCode and response:\n$response"
     exit 1
