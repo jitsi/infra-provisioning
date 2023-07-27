@@ -61,9 +61,10 @@ if [[ "$CONSUL_SHARD_STATES" == "true" ]]; then
             RET=$SRET
         fi
     done
-    if [[ "$CONSUL_SHARD_STATES_ONLY" == "true" ]]; then
-        exit $RET
-    fi
+    ## this currently breaks homer and possibly other things since signal-sidecar uses the file, not consul
+    #if [[ "$CONSUL_SHARD_STATES_ONLY" == "true" ]]; then
+    #    exit $RET
+    #fi
 fi
 
 ## set file on shard to drain [new]
