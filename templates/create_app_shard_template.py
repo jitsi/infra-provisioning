@@ -431,6 +431,13 @@ def add_parameters():
         Default="meetings"
     ))
 
+     tag_product_param2 = t.add_parameter(Parameter(
+        "TagProduct",
+        Description="Tag: Product",
+        Type="String",
+        Default="meetings"
+    ))
+
     tag_service_param = t.add_parameter(Parameter(
         "TagService",
         Description="Tag: Service",
