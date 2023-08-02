@@ -65,3 +65,10 @@ export NOMAD_VAR_domain="$DOMAIN"
 export NOMAD_VAR_region="$ORACLE_REGION"
 
 sed -e "s/\[JOB_NAME\]/$JOB_NAME/" "$NOMAD_CONFIG_FILE" | nomad job run -verbose -var="dc=$NOMAD_DC" -var="domain=$DOMAIN" -var="cloudprober_version=latest" -
+
+export CNAME_VALUE="$RESOURCE_NAME_ROOT"
+export STACK_NAME="${RESOURCE_NAME_ROOT}-cname"
+export UNIQUE_ID="${RESOURCE_NAME_ROOT}"
+export CNAME_TARGET="${ENVIRONMENT}-${ORACLE_REGION}-nomad-pool-general-internal.${DEFAULT_DNS_ZONE_NAME}"
+export CNAME_VALUE="${RESOURCE_NAME_ROOT}"
+$LOCAL_PATH/create-oracle-cname-stack.sh
