@@ -103,28 +103,16 @@ probe {
   http_probe {
     protocol: HTTPS
     relative_url: "/health"
-    port: 443
   }
 }
 EOH
           destination = "local/cloudprober.cfg"
       }
-      template {
-        data = <<EOH
-#!bin/sh
-
-/cloudprober --logtostderr
-EOH
-        destination = "local/custom_init.sh"
-        perms = "755"
-      }
       config {
         image = "cloudprober/cloudprober:${var.cloudprober_version}"
         ports = ["http"]
-        entrypoint = ["/bin/custom_init.sh"]
         volumes = [
           "local/cloudprober.cfg:/etc/cloudprober.cfg",
-          "local/custom_init.sh:/bin/custom_init.sh",
         ]
       }
       resources {
