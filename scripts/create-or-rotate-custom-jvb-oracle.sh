@@ -47,6 +47,10 @@ ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 #if we're not given versions, search for the latest of each type of image
 [ -z "$JVB_VERSION" ] && JVB_VERSION='latest'
 
+if [ "$ENABLE_E_4" == "true" ]; then
+  JVB_SHAPE="$SHAPE_E_4"
+fi
+
 [ -z "$SHAPE" ] && SHAPE="$JVB_SHAPE"
 [ -z "$SHAPE" ] && SHAPE="$DEFAULT_SHAPE"
 
