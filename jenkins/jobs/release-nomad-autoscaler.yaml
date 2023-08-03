@@ -1,6 +1,6 @@
 - job:
-    name: release-jibri
-    display-name: release jibri
+    name: release-nomad-autoscaler
+    display-name: release nomad autoscaler
     concurrent: true
     parameters:
       - string:
