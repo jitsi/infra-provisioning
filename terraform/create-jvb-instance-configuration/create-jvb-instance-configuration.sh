@@ -61,6 +61,12 @@ fi
 ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 [ -e "$LOCAL_PATH/../../clouds/${ORACLE_CLOUD_NAME}.sh" ] && . $LOCAL_PATH/../../clouds/${ORACLE_CLOUD_NAME}.sh
 
+[ -z "$ENABLE_E_4" ] && ENABLE_E_4="false"
+
+if [ "$ENABLE_E_4" == "true" ]; then
+  JVB_SHAPE="$SHAPE_E_4"
+fi
+
 [ -z "$SHAPE" ] && SHAPE="$JVB_SHAPE"
 
 if [[ "$SHAPE" == "VM.Standard.E3.Flex" ]]; then
