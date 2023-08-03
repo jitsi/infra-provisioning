@@ -31,6 +31,7 @@ pipeline {
                         error("No nomad job type specified, failing")
                     }
                     dir("infra-provisioning") {
+                        utils.SetupAnsible()
                         def build_script_part_lower = env.JOB_TYPE.toLowerCase()
                         def build_script_name = "deploy-nomad-${build_script_part_lower}.sh"
 
