@@ -1,0 +1,50 @@
+def utils
+pipeline {
+    agent any
+    options {
+        ansiColor('xterm')
+        timestamps()
+        buildDiscarder(logRotator(numToKeepStr: '10', artifactNumToKeepStr: '10'))
+    }
+
+    stages {
+        stage('Prepare/Checkout') { // for display purposes
+            steps {
+                script {
+                    // load utility function
+                    def rootDir = pwd()
+                    utils = load "${rootDir}/jenkins/groovy/Utils.groovy"
+                    // checkout repos
+                    utils.SetupRepos(env.VIDEO_INFRA_BRANCH)
+
+                    // setup OCI credentials
+                    utils.SetupOCI()
+                }
+            }
+        }
+        stage ("Nomad release job") {
+            steps {
+                script {
+                    echo 'Running nomad release job'
+                    sh 'printenv'
+                    if (env.JOB_TYPE == "") {
+                        error("No nomad job type specified, failing")
+                    }
+                    dir("infra-provisioning") {
+                        def build_script_part_lower = env.JOB_TYPE.toLowerCase()
+                        def build_script_name = "deploy-nomad-${build_script_part_lower}.sh"
+
+                        if (fileExists("scripts/$build_script_name")) {
+                            image_script = build_script_name;
+                        } else {
+                            error("No known job type type ${env.JOB_TYPE}")
+                        }
+                        echo "Running build script ${image_script} for job type ${env.JOB_TYPE}"
+
+                        sh "scripts/${image_script}"
+                    }
+                }
+            }
+        }
+    }
+}
