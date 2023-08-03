@@ -41,8 +41,13 @@ pipeline {
                             error("No known job type type ${env.JOB_TYPE}")
                         }
                         echo "Running build script ${image_script} for job type ${env.JOB_TYPE}"
+                        withCredentials([
+                            string(credentialsId: 'jenkins-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
+                            string(credentialsId: 'jenkins-aws-id', variable: 'AWS_ACCESS_KEY_ID')
+                        ]) {
+                            sh "scripts/${image_script}"                        
+                        }
 
-                        sh "scripts/${image_script}"
                     }
                 }
             }
