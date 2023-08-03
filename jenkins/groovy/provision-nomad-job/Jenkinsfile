@@ -22,10 +22,10 @@ pipeline {
                 }
             }
         }
-        stage ("Nomad release job") {
+        stage ("Nomad provision job") {
             steps {
                 script {
-                    echo 'Running nomad release job'
+                    echo 'Running nomad provision job'
                     sh 'printenv'
                     if (env.JOB_TYPE == "") {
                         error("No nomad job type specified, failing")
