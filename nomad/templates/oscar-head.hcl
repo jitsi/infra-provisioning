@@ -19,6 +19,11 @@ variable "region" {
   type = string
 }
 
+variable "top_level_domain" {
+  type = string
+  default = "jitsi.net"
+}
+
 variable "cloudprober_version" {
   type = string
 }
