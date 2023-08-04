@@ -24,6 +24,19 @@ probe {
   timeout_msec: 2000
 }
 probe {
+  name: "local_autoscaler"
+  type: HTTP
+  targets {
+    host_names: "${var.environment}-${var.region}-autoscaler.${var.top_level_domain}"
+  }
+  http_probe {
+    protocol: HTTPS
+    relative_url: "/health?deep=true"
+  }
+  interval_msec: 60000
+  timeout_msec: 2000
+}
+probe {
   name: "haproxy_region"
   type: EXTERNAL
   targets {
