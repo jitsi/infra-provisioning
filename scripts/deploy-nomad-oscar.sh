@@ -56,6 +56,7 @@ export NOMAD_VAR_dc="$NOMAD_DC"
 export NOMAD_VAR_oscar_hostname="${RESOURCE_NAME_ROOT}.${TOP_LEVEL_DNS_ZONE_NAME}"
 export NOMAD_VAR_cloudprober_version="latest"
 export NOMAD_VAR_domain="$DOMAIN"
+export NOMAD_VAR_environment="$ENVIRONMENT"
 export NOMAD_VAR_top_level_domain="$TOP_LEVEL_DNS_ZONE_NAME"
 export NOMAD_VAR_region="$ORACLE_REGION"
 
