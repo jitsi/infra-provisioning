@@ -1,5 +1,5 @@
 def provisionJob(shard_environment,cloud_name,release_number,oscarTemplateType,oracle_region,video_infra_branch) {
-    def provision = build job: 'provision-nomad-autoscaler',parameters: [
+    def provision = build job: 'provision-nomad-oscar',parameters: [
         [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: shard_environment],
         [$class: 'StringParameterValue', name: 'CLOUD_NAME', value: cloud_name],
         [$class: 'StringParameterValue', name: 'OSCAR_TEMPLATE_TYPE', value: oscarTemplateType],
@@ -25,7 +25,7 @@ pipeline {				//indicate the job is written in Declarative Pipeline
             steps {
                 script {
                     echo 'Oscar Release'
-                    echo "AUTOSCALER VERSION ${env.OSCAR_TEMPLATE_TYPE}"
+                    echo "OSCAR TEMPLATE TYPE ${env.OSCAR_TEMPLATE_TYPE}"
                     // load utility function
                     def rootDir = pwd()
                     utils = load "${rootDir}/jenkins/groovy/Utils.groovy"
@@ -42,7 +42,7 @@ pipeline {				//indicate the job is written in Declarative Pipeline
             steps {
                 script {
                   dir('infra-provisioning') {
-                    echo "Provision autoscaler in environment ${env.ENVIRONMENT}, clouds ${env.CLOUDS}";
+                    echo "Provision oscar in environment ${env.ENVIRONMENT}, clouds ${env.CLOUDS}";
                     def cloud_list = utils.SplitClouds(env.ENVIRONMENT,env.CLOUDS);
                     echo "cloud list ${cloud_list}";
                     def branches = [:]
