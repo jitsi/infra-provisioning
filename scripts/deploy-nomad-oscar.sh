@@ -27,6 +27,8 @@ fi
 
 [ -z "$LOCAL_REGION" ] && LOCAL_REGION="us-phoenix-1"
 
+[ -z "$OSCAR_TEMPLATE_TYPE" ] && OSCAR_TEMPLATE_TYPE="core"
+
 if [ -z "$NOMAD_ADDR" ]; then
     NOMAD_IPS="$(DATACENTER="$ENVIRONMENT-$LOCAL_REGION" OCI_DATACENTERS="$ENVIRONMENT-$LOCAL_REGION" ENVIRONMENT="$ENVIRONMENT" FILTER_ENVIRONMENT="false" SHARD='' RELEASE_NUMBER='' SERVICE="nomad-servers" DISPLAY="addresses" $LOCAL_PATH/consul-search.sh ubuntu)"
     if [ -n "$NOMAD_IPS" ]; then
@@ -56,7 +58,7 @@ export NOMAD_VAR_cloudprober_version="latest"
 export NOMAD_VAR_domain="$DOMAIN"
 export NOMAD_VAR_region="$ORACLE_REGION"
 
-sed -e "s/\[JOB_NAME\]/$JOB_NAME/" "$NOMAD_JOB_PATH/oscar.hcl" | nomad job run -verbose -var="dc=$NOMAD_DC" -var="domain=$DOMAIN" -var="cloudprober_version=latest" -
+sed -e "s/\[JOB_NAME\]/$JOB_NAME/" "$NOMAD_JOB_PATH/templates/oscar-head.hcl" | cat - $NOMAD_JOB_PATH/templates/oscar-${OSCAR_TEMPLATE_TYPE}-foot.hcl | nomad job run -verbose -var="dc=$NOMAD_DC" -var="domain=$DOMAIN" -var="cloudprober_version=latest" -
 
 export CNAME_VALUE="$RESOURCE_NAME_ROOT"
 export STACK_NAME="${RESOURCE_NAME_ROOT}-cname"
