@@ -33,7 +33,7 @@ probe {
     protocol: HTTPS
     relative_url: "/health?deep=true"
   }
-  interval_msec: 5000
+  interval_msec: 60000
   timeout_msec: 2000
 }
 probe {
