@@ -39,11 +39,16 @@ job "[JOB_NAME]" {
           "/local/redis.conf"
         ]
         ports = ["redis_db"]
+        volumes = [
+          "/mnt/redis:/data"
+        ]
       }
       // Let Redis know how much memory he can use not to be killed by OOM
       template {
         data = <<EORC
 maxmemory {{ env "NOMAD_MEMORY_LIMIT" | parseInt | subtract 16 }}mb
+save 60 1
+loglevel warning
 EORC
         destination   = "local/redis.conf"
       }
@@ -63,6 +68,9 @@ EORC
       env {
         CONSUL_HTTP_ADDR = "http://${attr.unique.network.ip-address}:8500"
         REDIS_ADDR = "${NOMAD_ADDR_redis_db}"
+        CONSUL_SERVICE_NAME = "resec-redis"
+        MASTER_TAGS = "master"
+        SLAVE_TAGS = "readonly"
       }
 
       resources {

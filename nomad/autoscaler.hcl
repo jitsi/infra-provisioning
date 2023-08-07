@@ -128,7 +128,7 @@ TILLEND
       }
       template {
         data = <<TILLEND
-{{ range $index, $item := service "redis-master" -}}
+{{ range $index, $item := service "master.resec-redis" -}}
     {{ scratch.SetX "redis" $item  -}}
 {{ end -}}
 {{ with scratch.Get "redis" -}}
