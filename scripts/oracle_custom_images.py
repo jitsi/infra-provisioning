@@ -7,7 +7,7 @@ import oci
 import json
 import datetime
 
-from hcvlib import delete_image, get_oracle_image_list_by_search, update_image_tags, get_oracle_image_by_id
+from hcvlib import delete_image, get_oracle_image_list_by_search, update_image_tags, get_oracle_image_by_id, update_image_shapes
 
 OPERATING_SYSTEM = 'Canonical Ubuntu'
 OPERATING_SYSTEM_VERSIONS = ['18.04', '20.04', '22.04']
@@ -124,8 +124,10 @@ parser.add_argument('--delete', action='store_true',
                    help='Delete images (JVB or Base) during clean operation', default=False)
 parser.add_argument('--tag_production', action='store_true',
                    help='Tag image as having been used in production', default=False)
+parser.add_argument('--add_shape_compatibility', action='store_true',
+                   help='Add shapes for image compatibility', default=False)
 parser.add_argument('--image_id', action='store',
-                   help='Image ID to tag', default='')
+                   help='Image ID to tag or update', default='')
 
 args = parser.parse_args()
 
@@ -178,6 +180,14 @@ if args.clean:
     else:
        print(("No prod_images cleanup needed for %s, only %s images found"%(args.type,len(prod_images))))
 
+elif args.add_shape_compatibility:
+    shapes=['VM.Standard.E3.Flex', 'VM.Standard.E4.Flex', 'VM.GPU.A10.1','VM.GPU.A10.2']
+    if not args.image_id:
+        print("No image_id provided, exiting...")
+        exit(2)
+    else:
+        found_image = get_oracle_image_by_id(args.image_id, args.region)
+        update_image_shapes(found_image, shapes)
 
 elif args.tag_production:
     if not args.image_id:

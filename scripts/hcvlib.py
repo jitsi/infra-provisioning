@@ -2057,6 +2057,14 @@ def get_oracle_image_by_id(id, region):
     
     return None
 
+def update_image_shapes(image, new_shapes):
+    config = oci.config.from_file()
+    compute = oci.core.ComputeClient(config)
+    compute.base_client.set_region(image.region)
+
+    for shape in new_shapes:
+        compute.add_image_shape_compatibility_entry(image_id=image.id, shape_name=shape)
+
 def update_image_tags(image, new_freeform_tags={}, new_defined_tags={}):
     config = oci.config.from_file()
     compute = oci.core.ComputeClient(config)
