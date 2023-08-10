@@ -152,6 +152,7 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
   -var="environment=$ENVIRONMENT" \
   -var="domain=$DOMAIN" \
   -var="release_number=$RELEASE_NUMBER" \
+  -var="exclusive_tenant=$EXCLUSIVE_TENANT" \
   -var="shard=$SHARD_NAME" \
   -var="cloud_name=$CLOUD_NAME" \
   -var="name=$SHARD_NAME" \
