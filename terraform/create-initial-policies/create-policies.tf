@@ -16,6 +16,8 @@ resource "oci_identity_policy" "policy" {
   statements = [
     "Allow dynamic-group ${var.dynamic_group_name} to read virtual-network-family in compartment ${var.compartment_name}",
     "Allow dynamic-group ${var.dynamic_group_name} to manage instance-family in compartment ${var.compartment_name}",
+    "Allow dynamic-group ${var.dynamic_group_name} to manage load-balancers in compartment ${var.compartment_name}",
+    "Allow dynamic-group ${var.dynamic_group_name} to manage security-lists in compartment ${var.compartment_name}",    
     "Allow dynamic-group ${var.dynamic_group_name} to read objects in compartment ${var.compartment_name} where target.bucket.name='jvb-bucket-${var.compartment_name}'",
     "Allow dynamic-group ${var.dynamic_group_name} to manage objects in compartment ${var.compartment_name} where target.bucket.name='jvb-dump-logs-${var.compartment_name}'",
     "Allow dynamic-group ${var.dynamic_group_name} to manage objects in compartment ${var.compartment_name} where target.bucket.name='dump-logs-${var.compartment_name}'",
