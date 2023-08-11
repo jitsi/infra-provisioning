@@ -44,6 +44,8 @@ if [ ! -z "$CACHE_TTL" ] && [ "$SKIP_BUILD_CACHE" != "true" ]; then
     fi
 fi
 
+set -x
+
 if [ "$SKIP_BUILD_CACHE" != "true" ]; then
     # build the cache
     PROXIES="$(SERVICE="haproxy" DISPLAY="addresses" $LOCAL_PATH/consul-search.sh ubuntu)"
