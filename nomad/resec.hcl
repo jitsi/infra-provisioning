@@ -8,6 +8,10 @@ job "[JOB_NAME]" {
   datacenters = ["${var.dc}"]
   type        = "service"
 
+  spread {
+    attribute = "${node.unique.id}"
+  }
+
   update {
     max_parallel = 1
     stagger      = "10s"
