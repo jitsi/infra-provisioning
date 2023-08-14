@@ -90,6 +90,17 @@ function add_ip_tags() {
     fi
 }
 
+function mount_volumes() {
+  INSTANCE_DATA="$(curl --connect-timeout 10 -s curl http://169.254.169.254/opc/v1/instance/)"
+  COMPARTMENT_ID="$(echo $INSTANCE_DATA | jq -r .compartmentId)"
+  AD="$(echo $INSTANCE_DATA | jq -r .availabilityDomain)"
+  REGION="$(echo $INSTANCE_DATA | jq -r .regionInfo.regionIdentifier)"
+  VOLUMES=$($OCI_BIN bv volume list --compartment-id $COMPARTMENT_ID --region $REGION --availability-domain $AD --auth instance_principal)
+  if [[ $? -eq 0 ]]; then
+    echo $VOLUMES
+  fi
+}
+
 function fetch_credentials() {
   ENVIRONMENT=$1
   BUCKET="jvb-bucket-${ENVIRONMENT}"
