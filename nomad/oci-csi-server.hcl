@@ -1,5 +1,15 @@
+variable "compartment_id" {
+  type = string
+}
+variable "vcn_id" {
+  type = string
+}
+variable "dc" {
+  type = string
+}
+
 job "plugin-oci-bs-controller" {
-  datacenters = ["dc1"]
+  datacenters = ["${var.dc}"]
 
   group "controller" {
     task "csi-volume-provisioner" {
@@ -12,10 +22,16 @@ job "plugin-oci-bs-controller" {
           "--volume-name-prefix=csi",
           "--feature-gates=Topology=true",
           "--timeout=120s",
-          "--enable-leader-election=false",
         //   "--leader-election-type=leases",
         //   "--leader-election-namespace=kube-system",
         ]
+        volumes = [
+          "secrets/:/etc/oci",
+        ]
+      }
+      template {
+        data = file("nomad/templates/csi-config.yaml")
+        destination = "secrets/config"
       }
 
     }
@@ -29,7 +45,6 @@ job "plugin-oci-bs-controller" {
           "--volume-name-prefix=csi-fss",
           "--feature-gates=Topology=true",
           "--timeout=120s",
-          "--enable-leader-election=false",
         //   "--leader-election-type=leases",
         //   "--leader-election-namespace=kube-system",
         ]
