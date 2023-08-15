@@ -14,8 +14,9 @@
       driver = "docker"
       template {
           data = <<EOH
+# probes site ingress health from this datacenter
 probe {
-  name: "local_ingress"
+  name: "site"
   type: HTTP
   targets {
     host_names: "${var.domain}"
@@ -23,32 +24,7 @@ probe {
   interval_msec: 5000
   timeout_msec: 2000
 }
-probe {
-  name: "local_autoscaler"
-  type: HTTP
-  targets {
-    host_names: "${var.environment}-${var.region}-autoscaler.${var.top_level_domain}"
-  }
-  http_probe {
-    protocol: HTTPS
-    relative_url: "/health?deep=true"
-  }
-  interval_msec: 60000
-  timeout_msec: 2000
-}
-probe {
-  name: "local_wf-proxy"
-  type: HTTP
-  targets {
-    host_names: "${var.environment}-${var.region}-wfproxy.${var.top_level_domain}"
-  }
-  http_probe {
-    protocol: HTTPS
-    relative_url: "/status"
-  }
-  interval_msec: 60000
-  timeout_msec: 2000
-}
+# probe to validate that the ingress haproxy reached is in the local datacenter
 probe {
   name: "haproxy_region"
   type: EXTERNAL
@@ -60,6 +36,34 @@ probe {
     command: "/bin/oscar_probe.sh"
   }
   interval_msec: 5000
+  timeout_msec: 2000
+}
+# probes autoscaler health in the local datacenter
+probe {
+  name: "autoscaler"
+  type: HTTP
+  targets {
+    host_names: "${var.environment}-${var.region}-autoscaler.${var.top_level_domain}"
+  }
+  http_probe {
+    protocol: HTTPS
+    relative_url: "/health?deep=true"
+  }
+  interval_msec: 60000
+  timeout_msec: 2000
+}
+# probes wavefront-proxy health in the local datacenter
+probe {
+  name: "wfproxy"
+  type: HTTP
+  targets {
+    host_names: "${var.environment}-${var.region}-wfproxy.${var.top_level_domain}"
+  }
+  http_probe {
+    protocol: HTTPS
+    relative_url: "/status"
+  }
+  interval_msec: 60000
   timeout_msec: 2000
 }
 EOH

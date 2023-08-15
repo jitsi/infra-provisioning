@@ -14,6 +14,7 @@
       driver = "docker"
       template {
           data = <<EOH
+# probes ops-repo health
 probe {
   name: "ops-repo"
   type: HTTP
@@ -28,8 +29,9 @@ probe {
     relative_url: "/health"
   }
 }
+# probes wavefront-proxy health in the local datacenter
 probe {
-  name: "local_wf-proxy"
+  name: "wfproxy"
   type: HTTP
   targets {
     host_names: "${var.environment}-${var.region}-wfproxy.${var.top_level_domain}"
