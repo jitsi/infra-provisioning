@@ -28,6 +28,19 @@ probe {
     relative_url: "/health"
   }
 }
+probe {
+  name: "local_wf-proxy"
+  type: HTTP
+  targets {
+    host_names: "${var.environment}-${var.region}-wfproxy.${var.top_level_domain}"
+  }
+  http_probe {
+    protocol: HTTPS
+    relative_url: "/status"
+  }
+  interval_msec: 60000
+  timeout_msec: 2000
+}
 EOH
           destination = "local/cloudprober.cfg"
       }
