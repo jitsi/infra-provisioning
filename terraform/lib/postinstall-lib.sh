@@ -91,13 +91,37 @@ function add_ip_tags() {
 }
 
 function mount_volumes() {
+  [ -z "$TAG_NAMESPACE" ] && TAG_NAMESPACE="jitsi"
   INSTANCE_DATA="$(curl --connect-timeout 10 -s curl http://169.254.169.254/opc/v1/instance/)"
   COMPARTMENT_ID="$(echo $INSTANCE_DATA | jq -r .compartmentId)"
+  INSTANCE_ID="$(echo $INSTANCE_DATA | jq -r .id)"
   AD="$(echo $INSTANCE_DATA | jq -r .availabilityDomain)"
   REGION="$(echo $INSTANCE_DATA | jq -r .regionInfo.regionIdentifier)"
-  VOLUMES=$($OCI_BIN bv volume list --compartment-id $COMPARTMENT_ID --region $REGION --availability-domain $AD --auth instance_principal)
+  GROUP_INDEX="$(echo $INSTANCE_DATA | jq -r .freeformTags."group-index")"
+  ROLE="$(echo $INSTANCE_DATA | jq -r .definedTags.$TAG_NAMESPACE."role")"
+  ALL_VOLUMES=$($OCI_BIN bv volume list --compartment-id $COMPARTMENT_ID --region $REGION --availability-domain $AD --auth instance_principal)
   if [[ $? -eq 0 ]]; then
-    echo $VOLUMES
+    ROLE_VOLUMES="$(echo $ALL_VOLUMES | jq ".data | map(select(.\"freeform-tags\".\"volume-role\" == \"$ROLE\"))")"
+    GROUP_VOLUMES="$(echo $ROLE_VOLUMES | jq "map(select(.\"freeform-tags\".\"volume-index\" == \"$GROUP_INDEX\"))")"
+    for volume in $(echo $GROUP_VOLUMES | jq -r '.[].id'); do
+      $OCI_BIN compute volume-attachment attach --instance-id $INSTANCE_ID --volume-id $volume --type iscsi --auth instance_principal
+      if [[ $? -eq 0 ]]; then
+        retry "lsblk | grep -q nvme1n1" 5
+        if [[ $? -eq 0 ]]; then
+          mkdir -p /mnt/volume
+          mount /dev/nvme1n1 /mnt/volume
+          if [[ $? -eq 0 ]]; then
+            echo "Volume $volume mounted successfully"
+          else
+            echo "Failed to mount volume $volume"
+          fi
+        else
+          echo "Volume $volume attached but not visible"
+        fi
+      else
+        echo "Failed to attach volume $volume"
+      fi
+    done
   fi
 }
 

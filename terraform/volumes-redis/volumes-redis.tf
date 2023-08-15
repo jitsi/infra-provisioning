@@ -72,7 +72,7 @@ resource "oci_core_volume" "redis-volume" {
     freeform_tags = {
         "volume-index" = "${count.index}"
         "volume-type" = "redis"
-        "pool-type" = "nomad"
+        "volume-role" = "consul"
     }
 
     # is_auto_tune_enabled = var.volume_is_auto_tune_enabled
