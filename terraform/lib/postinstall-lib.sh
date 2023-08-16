@@ -110,7 +110,7 @@ function init_volume() {
   mkfs -t ext4 $DEVICE
   if [[ $? -eq 0 ]]; then
     e2label $DEVICE $LABEL
-    echo 'LABEL="'$LABEL'" /mnt/'$LABEL' ext4 defaults,nofail 0 2' >> /etc/fstab
+    echo 'LABEL="'$LABEL'" /mnt/bv/'$LABEL' ext4 defaults,nofail 0 2' >> /etc/fstab
 
     # now add volume-format freeform tag to volume
     NEW_TAGS="$(echo $TAGS '{"volume-format":"ext4"}' | jq -s '.|add')"
@@ -129,7 +129,7 @@ mount_volume() {
   volume="$(echo $VOLUME_DETAIL | jq -r .id)"
   VOLUME_FORMAT="$(echo $VOLUME_DETAIL | jq -r .\"freeform-tags\".\"volume-format\")"
   VOLUME_TAGS="$(echo $VOLUME_DETAIL | jq  .\"freeform-tags\")"
-  VOLUME_PATH="/mnt/$VOLUME_LABEL"
+  VOLUME_PATH="/mnt/bv/$VOLUME_LABEL"
   NEXT_DEVICE="$(next_device)"
   $OCI_BIN compute volume-attachment attach --instance-id $INSTANCE --volume-id $volume --type paravirtualized --device $NEXT_DEVICE --auth instance_principal --wait-for-state ATTACHED
   if [[ $? -eq 0 ]]; then
