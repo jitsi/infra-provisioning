@@ -90,38 +90,125 @@ function add_ip_tags() {
     fi
 }
 
-function mount_volumes() {
-  [ -z "$TAG_NAMESPACE" ] && TAG_NAMESPACE="jitsi"
-  INSTANCE_DATA="$(curl --connect-timeout 10 -s curl http://169.254.169.254/opc/v1/instance/)"
-  COMPARTMENT_ID="$(echo $INSTANCE_DATA | jq -r .compartmentId)"
-  INSTANCE_ID="$(echo $INSTANCE_DATA | jq -r .id)"
-  AD="$(echo $INSTANCE_DATA | jq -r .availabilityDomain)"
-  REGION="$(echo $INSTANCE_DATA | jq -r .regionInfo.regionIdentifier)"
-  GROUP_INDEX="$(echo $INSTANCE_DATA | jq -r .freeformTags."group-index")"
-  ROLE="$(echo $INSTANCE_DATA | jq -r .definedTags.$TAG_NAMESPACE."role")"
-  ALL_VOLUMES=$($OCI_BIN bv volume list --compartment-id $COMPARTMENT_ID --region $REGION --availability-domain $AD --auth instance_principal)
+function next_device() { 
+  DEVICE_PREFIX="/dev/oracleoci/oraclevd"
+  ALPHA=( {a..z} ) 
+  for i in {0..25}; do 
+    DEVICE="${DEVICE_PREFIX}${ALPHA[$i]}"
+    if [ ! -e $DEVICE ]; then 
+      echo $DEVICE
+      return 0
+    fi
+  done
+}
+
+function init_volume() {
+  DEVICE=$1
+  LABEL=$2
+  VOLUME=$3
+  TAGS="$4"
+  mkfs -t ext4 $DEVICE
   if [[ $? -eq 0 ]]; then
-    ROLE_VOLUMES="$(echo $ALL_VOLUMES | jq ".data | map(select(.\"freeform-tags\".\"volume-role\" == \"$ROLE\"))")"
-    GROUP_VOLUMES="$(echo $ROLE_VOLUMES | jq "map(select(.\"freeform-tags\".\"volume-index\" == \"$GROUP_INDEX\"))")"
-    for volume in $(echo $GROUP_VOLUMES | jq -r '.[].id'); do
-      $OCI_BIN compute volume-attachment attach --instance-id $INSTANCE_ID --volume-id $volume --type iscsi --auth instance_principal
-      if [[ $? -eq 0 ]]; then
-        retry "lsblk | grep -q nvme1n1" 5
-        if [[ $? -eq 0 ]]; then
-          mkdir -p /mnt/volume
-          mount /dev/nvme1n1 /mnt/volume
-          if [[ $? -eq 0 ]]; then
-            echo "Volume $volume mounted successfully"
-          else
-            echo "Failed to mount volume $volume"
-          fi
-        else
-          echo "Volume $volume attached but not visible"
-        fi
+    e2label $DEVICE $LABEL
+    echo 'LABEL="'$LABEL'" /mnt/'$LABEL' ext4 defaults,nofail 0 2' >> /etc/fstab
+
+    # now add volume-format freeform tag to volume
+    NEW_TAGS="$(echo $TAGS '{"volume-format":"ext4"}' | jq -s '.|add')"
+    echo "Applying new tags $NEW_TAGS to volume $VOLUME"
+    $OCI_BIN bv volume update --volume-id $VOLUME --freeform-tags "$NEW_TAGS" --force --auth instance_principal
+  else
+    echo "Error initializing volume $VOLUME"
+    return 3
+  fi
+}
+
+mount_volume() {
+  VOLUME_DETAIL="$1"
+  VOLUME_LABEL="$2"
+  INSTANCE="$3"
+  volume="$(echo $VOLUME_DETAIL | jq -r .id)"
+  VOLUME_FORMAT="$(echo $VOLUME_DETAIL | jq -r .\"freeform-tags\".\"volume-format\")"
+  VOLUME_TAGS="$(echo $VOLUME_DETAIL | jq  .\"freeform-tags\")"
+  VOLUME_PATH="/mnt/$VOLUME_LABEL"
+  NEXT_DEVICE="$(next_device)"
+  $OCI_BIN compute volume-attachment attach --instance-id $INSTANCE --volume-id $volume --type paravirtualized --device $NEXT_DEVICE --auth instance_principal --wait-for-state ATTACHED
+  if [[ $? -eq 0 ]]; then
+    echo "Volume $volume $VOLUME_PATH attached successfully"
+    if [[ "$VOLUME_FORMAT" == "null" ]]; then
+      # no format provided so needs to be initialized
+      echo "Initializing volume $volume"
+      init_volume $NEXT_DEVICE $VOLUME_LABEL $volume "$VOLUME_TAGS"
+    else
+      echo "Volume $volume $VOLUME_PATH already initialized"
+    fi
+
+    [ -d "$VOLUME_PATH" ] || mkdir -p $VOLUME_PATH
+
+    echo "Mounting volume $volume $VOLUME_PATH"
+    mount $VOLUME_PATH
+    if [[ $? -eq 0 ]]; then
+      echo "Volume $volume $VOLUME_PATH mounted successfully"
+      return 0
+    else
+      echo "Failed to mount volume $volume $VOLUME_PATH"
+      return 5
+    fi
+  else
+    echo "Failed to attach volume $volume"
+    return 6
+  fi
+}
+
+function get_volumes() {
+  DETAILS="$1"
+  COMPARTMENT_ID="$(echo $DETAILS | jq -r .compartmentId)"
+  AD="$(echo $DETAILS | jq -r .availabilityDomain)"
+  REGION="$(echo $DETAILS | jq -r .regionInfo.regionIdentifier)"
+  ALL_VOLUMES=$($OCI_BIN bv volume list --compartment-id $COMPARTMENT_ID --lifecycle-state AVAILABLE --region $REGION --availability-domain $AD --auth instance_principal)
+  echo $ALL_VOLUMES
+  if [[ $? -ne 0 ]]; then
+    echo "Failed to get list of volumes"
+    return 4
+  fi
+}
+
+function mount_volumes() {
+  if [[ "$VOLUMES_ENABLED" == "true" ]]; then
+    [ -z "$TAG_NAMESPACE" ] && TAG_NAMESPACE="jitsi"
+    INSTANCE_DATA="$(curl --connect-timeout 10 -s curl http://169.254.169.254/opc/v1/instance/)"
+    INSTANCE_ID="$(echo $INSTANCE_DATA | jq -r .id)"
+    GROUP_INDEX="$(echo $INSTANCE_DATA | jq -r .freeformTags."group-index")"
+    ROLE="$(echo $INSTANCE_DATA | jq -r .definedTags.$TAG_NAMESPACE."role")"
+    ALL_VOLUMES="$(get_volumes "$INSTANCE_DATA")"
+    if [[ $? -eq 0 ]]; then
+      ROLE_VOLUMES="$(echo $ALL_VOLUMES | jq ".data | map(select(.\"freeform-tags\".\"volume-role\" == \"$ROLE\"))")"
+      GROUP_VOLUMES="$(echo $ROLE_VOLUMES | jq "map(select(.\"freeform-tags\".\"volume-index\" == \"$GROUP_INDEX\"))")"
+      GROUP_VOLUMES_COUNT="$(echo $GROUP_VOLUMES | jq length)"
+      if [[ "$GROUP_VOLUMES_COUNT" -gt 0 ]]; then
+        for i in `seq 0 $((GROUP_VOLUMES_COUNT-1))`; do
+          VOLUME_DETAIL="$(echo $GROUP_VOLUMES | jq -r ".[$i]")"
+          VOLUME_TYPE="$(echo $VOLUME_DETAIL | jq -r .\"freeform-tags\".\"volume-type\")"
+          VOLUME_LABEL="$VOLUME_TYPE-$GROUP_INDEX"
+          mount_volume "$VOLUME_DETAIL" $VOLUME_LABEL $INSTANCE_ID
+        done
       else
-        echo "Failed to attach volume $volume"
+        echo "No volumes found matching role $ROLE and group index $GROUP_INDEX"
       fi
-    done
+
+      NON_GROUP_VOLUMES="$(echo $ROLE_VOLUMES | jq "map(select(.\"freeform-tags\".\"volume-index\" == null))")"
+      NON_GROUP_VOLUMES_COUNT="$(echo $NON_GROUP_VOLUMES | jq length)"
+      if [[ "$NON_GROUP_VOLUMES_COUNT" -gt 0 ]]; then
+        for i in `seq 0 $((NON_GROUP_VOLUMES_COUNT-1))`; do
+          VOLUME_DETAIL="$(echo $NON_GROUP_VOLUMES | jq -r ".[$i]")"
+          VOLUME_TYPE="$(echo $VOLUME_DETAIL | jq -r .\"freeform-tags\".\"volume-type\")"
+          VOLUME_LABEL="$VOLUME_TYPE"
+          mount_volume "$VOLUME_DETAIL" $VOLUME_LABEL $INSTANCE_ID
+        done
+      else
+        echo "No volumes found matching role $ROLE with no group index"
+      fi
+
+    fi
   fi
 }
 
@@ -243,7 +330,7 @@ function default_main() {
   [ -z "$PROVISION_COMMAND" ] && PROVISION_COMMAND="default_provision"
   [ -z "$CLEAN_CREDENTIALS" ] && CLEAN_CREDENTIALS="true"
   EXIT_CODE=0
-  ( retry check_private_ip && retry add_ip_tags && retry $PROVISION_COMMAND ) ||  EXIT_CODE=1
+  ( retry check_private_ip && retry add_ip_tags && retry mount_volumes && retry $PROVISION_COMMAND ) ||  EXIT_CODE=1
   if [ "$CLEAN_CREDENTIALS" == "true" ]; then
     clean_credentials
   fi
