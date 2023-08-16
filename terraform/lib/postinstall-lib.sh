@@ -126,6 +126,11 @@ mount_volume() {
   VOLUME_DETAIL="$1"
   VOLUME_LABEL="$2"
   INSTANCE="$3"
+  mount | grep -q $VOLUME_LABEL
+  if [[ $? -eq 0 ]]; then
+    echo "Volume $VOLUME_LABEL already mounted"
+    return 0
+  fi
   volume="$(echo $VOLUME_DETAIL | jq -r .id)"
   VOLUME_FORMAT="$(echo $VOLUME_DETAIL | jq -r .\"freeform-tags\".\"volume-format\")"
   VOLUME_TAGS="$(echo $VOLUME_DETAIL | jq  .\"freeform-tags\")"
@@ -177,7 +182,7 @@ function mount_volumes() {
     [ -z "$TAG_NAMESPACE" ] && TAG_NAMESPACE="jitsi"
     INSTANCE_DATA="$(curl --connect-timeout 10 -s curl http://169.254.169.254/opc/v1/instance/)"
     INSTANCE_ID="$(echo $INSTANCE_DATA | jq -r .id)"
-    GROUP_INDEX="$(echo $INSTANCE_DATA | jq -r .freeformTags."group-index")"
+    GROUP_INDEX="$(echo $INSTANCE_DATA | jq -r '.freeformTags."group-index"')"
     ROLE="$(echo $INSTANCE_DATA | jq -r .definedTags.$TAG_NAMESPACE."role")"
     ALL_VOLUMES="$(get_volumes "$INSTANCE_DATA")"
     if [[ $? -eq 0 ]]; then
