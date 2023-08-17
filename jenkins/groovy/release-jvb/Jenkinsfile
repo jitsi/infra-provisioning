@@ -56,9 +56,10 @@ def tagRelease(jvb_release,env_branch) {
 }
 
 // trigger build JVB image oracle job with appropriate parameters
-def buildJvbImage(jvbVersion,environment,clouds,force_build_jvb_image,video_infra_branch) {
+def buildJvbImage(jvbVersion,environment,clouds,force_build_jvb_image,video_infra_branch,image_arch) {
     def buildImage = build job: 'build-image-oracle',parameters: [
         [$class: 'StringParameterValue', name: 'IMAGE_TYPE', value: 'JVB'],
+        [$class: 'StringParameterValue', name: 'IMAGE_ARCH', value: image_arch],
         [$class: 'StringParameterValue', name: 'JVB_VERSION', value: jvbVersion],
         [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: environment],
         [$class: 'StringParameterValue', name: 'CLOUDS', value: clouds],
@@ -136,11 +137,13 @@ pipeline {
         }
         steps {
             script {
+                def image_arch = utils.ImageArchFromShape(env.SHAPE)
                 buildJvbImage(env.JVB_VERSION,
                         env.ENVIRONMENT,
                         env.CLOUDS,
                         env.FORCE_BUILD_IMAGE,
-                        env.VIDEO_INFRA_BRANCH
+                        env.VIDEO_INFRA_BRANCH,
+                        image_arch
                         )
             }
         }
