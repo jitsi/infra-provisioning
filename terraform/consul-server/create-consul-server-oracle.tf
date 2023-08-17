@@ -328,7 +328,7 @@ resource "oci_core_instance_configuration" "oci_instance_configuration_a" {
         configuration_repo = var.infra_configuration_repo
         customizations_repo = var.infra_customizations_repo
         shape = var.shape
-        group_index = "0"
+        "group-index" = "0"
       }
     }
   }
@@ -372,7 +372,7 @@ resource "oci_core_instance_configuration" "oci_instance_configuration_b" {
         configuration_repo = var.infra_configuration_repo
         customizations_repo = var.infra_customizations_repo
         shape = var.shape
-        group_index = "1"
+        "group-index" = "1"
       }
     }
   }
@@ -416,7 +416,7 @@ resource "oci_core_instance_configuration" "oci_instance_configuration_c" {
         configuration_repo = var.infra_configuration_repo
         customizations_repo = var.infra_customizations_repo
         shape = var.shape
-        group_index = "2"
+        "group-index" = "2"
       }
     }
   }
