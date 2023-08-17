@@ -185,7 +185,9 @@ fi
 # next step is the load balancer and associated backend set
 # 35.163.97.98 - ci.jitsi.org
 # 52.41.182.55 - jenkins.jitsi.net
-[ -z "$LB_WHITELIST" ] && LB_WHITELIST='["10.0.0.0/8","35.163.97.98/32","52.41.182.55/32"]'
+# 129.146.35.175 - jenkins-ops.jitsi.net
+# 129.146.91.164 - alpha.jitsi.net
+[ -z "$LB_WHITELIST" ] && LB_WHITELIST='["10.0.0.0/8","35.163.97.98/32","52.41.182.55/32","129.146.35.175/32","129.146.91.164/32"]'
 
 [ -z "$S3_STATE_KEY_LB" ] && S3_STATE_KEY_LB="${S3_STATE_BASE}/terraform-lb.tfstate"
 
