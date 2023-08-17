@@ -305,8 +305,8 @@ elif [ "$VERSIONING_ACTION" == "CLONE_EXCLUSIVE_RELEASE" ]; then
 elif [ "$VERSIONING_ACTION" == "ACTIVATE_EXCLUSIVE_RELEASE" ]; then
   echo "## activating an exclusive release"
 
-  if [ -z "$RELEASE_NUMBER" ]; then
-    echo "## no RELEASE_NUMBER set, exiting"
+  if [ -z "$VERSIONING_RELEASE" ]; then
+    echo "## no VERSIONING_RELEASE set, exiting"
     exit 2
   fi
 
@@ -315,9 +315,9 @@ elif [ "$VERSIONING_ACTION" == "ACTIVATE_EXCLUSIVE_RELEASE" ]; then
     "releaseStatus": "ACTIVATED",
   }'
 
-  echo "## activating exclusive release $RELEASE_NUMBER"
+  echo "## activating exclusive release $VERSIONING_RELEASE"
   response=$(curl -s -w "\n %{http_code}" -X PATCH \
-      "$VERSIONING_URL"/v1/releases/$RELEASE_NUMBER \
+      "$VERSIONING_URL"/v1/releases/$VERSIONING_RELEASE \
       -H 'accept: application/json' \
       -H 'Content-Type: application/json' \
       -H "Authorization: Bearer $TOKEN" \
@@ -325,9 +325,9 @@ elif [ "$VERSIONING_ACTION" == "ACTIVATE_EXCLUSIVE_RELEASE" ]; then
 
   httpCode=$(tail -n1 <<<"$response" | sed 's/[^0-9]*//g')
   if [ "$httpCode" == 200 ]; then
-    echo "## release $RELEASE_NUMBER was successfully activated"
+    echo "## release $VERSIONING_RELEASE was successfully activated"
   else
-    echo "## ERROR activating release $RELEASE_NUMBER"
+    echo "## ERROR activating release $VERSIONING_RELEASE"
     exit 1 
   fi
 
