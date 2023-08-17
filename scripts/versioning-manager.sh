@@ -269,6 +269,68 @@ elif [ "$VERSIONING_ACTION" == "DELETE_TENANT_PIN" ]; then
     exit 1
   fi
 
+elif [ "$VERSIONING_ACTION" == "CLONE_EXCLUSIVE_RELEASE" ]; then
+  echo "## creating an exclusive cloned release"
+  if [ -z "$EXCLUSIVE_TENANCY" ]; then
+    echo "## no EXCLUSIVE_TENANCY provided or found, exiting"
+    exit 2
+  fi
+  if [ -z "$CLONED_RELEASE_NUMBER" ]; then
+    echo "## no CLONED_RELEASE_NUMBER provided or found, exiting"
+    exit 2
+  fi
+
+  REQUEST_BODY='{
+    "exclusiveTenancy": "'"$EXCLUSIVE_TENANCY"'",
+    "cloneReleaseNumber": "'"$CLONED_RELEASE_NUMBER"'",
+    "environment": "'$ENVIRONMENT'",
+  }'
+
+  echo "## creating exclusive release for $EXCLUSIVE_TENANCY based on release $CLONED_RELEASE_NUMBER"
+  response=$(curl -s -w "\n %{http_code}" -X POST \
+      "$VERSIONING_URL"/v1/releases \
+      -H 'accept: application/json' \
+      -H 'Content-Type: application/json' \
+      -H "Authorization: Bearer $TOKEN" \
+      -d "$REQUEST_BODY")
+
+  httpCode=$(tail -n1 <<<"$response" | sed 's/[^0-9]*//g')
+  if [ "$httpCode" == 200 ]; then
+    echo "## release $VERSIONING_RELEASE was created successfully"
+  else
+    echo "## ERROR creating release $VERSIONING_RELEASE with status code $httpCode and response:\n$response"
+    exit 1 
+  fi
+
+elif [ "$VERSIONING_ACTION" == "ACTIVATE_EXCLUSIVE_RELEASE" ]; then
+  echo "## activating an exclusive release"
+
+  if [ -z "$RELEASE_NUMBER" ]; then
+    echo "## no RELEASE_NUMBER set, exiting"
+    exit 2
+  fi
+
+  REQUEST_BODY='{
+    "environment": "'$ENVIRONMENT'",
+    "releaseStatus": "ACTIVATED",
+  }'
+
+  echo "## activating exclusive release $RELEASE_NUMBER"
+  response=$(curl -s -w "\n %{http_code}" -X PATCH \
+      "$VERSIONING_URL"/v1/releases/$RELEASE_NUMBER \
+      -H 'accept: application/json' \
+      -H 'Content-Type: application/json' \
+      -H "Authorization: Bearer $TOKEN" \
+      -d "$REQUEST_BODY")
+
+  httpCode=$(tail -n1 <<<"$response" | sed 's/[^0-9]*//g')
+  if [ "$httpCode" == 200 ]; then
+    echo "## release $RELEASE_NUMBER was successfully activated"
+  else
+    echo "## ERROR activating release $RELEASE_NUMBER"
+    exit 1 
+  fi
+
 else
   echo "## ERROR no action performed, invalid VERSIONING_ACTION: $VERSIONING_ACTION"
   echo "## VERSIONING_ACTION must be CREATE_RELEASE, DELETE_RELEASE, GET_RELEASES, SET_RELEASE_GA, UPDATE_RELEASE_TITLE, SET_TENANT_PIN, or DELETE_TENANT_PIN"
