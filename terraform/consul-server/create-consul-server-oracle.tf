@@ -282,7 +282,7 @@ resource "oci_core_network_security_group_security_rule" "nsg_rule_ingress_nomad
   source = var.ingress_cidr
   stateless = false
 
-  tcp_options {
+  udp_options {
     destination_port_range {
       min = 20000
       max = 32000
