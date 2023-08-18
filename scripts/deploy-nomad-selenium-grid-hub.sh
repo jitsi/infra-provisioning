@@ -10,6 +10,7 @@ LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 [ -e "$LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh" ] && . "$LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh"
 
 [ -e "$LOCAL_PATH/../clouds/all.sh" ] && . "$LOCAL_PATH/../clouds/all.sh"
+[ -e "$LOCAL_PATH/../clouds/oracle.sh" ] && . "$LOCAL_PATH/../clouds/oracle.sh"
 
 if [ -z "$ORACLE_REGION" ]; then
     echo "No ORACLE_REGION set, exiting"
@@ -45,3 +46,12 @@ JOB_NAME="grid-hub-$GRID"
 export NOMAD_VAR_grid="$GRID"
 
 sed -e "s/\[JOB_NAME\]/$JOB_NAME/" "$NOMAD_JOB_PATH/selenium-grid-hub.hcl" | nomad job run -var="dc=$NOMAD_DC" -
+
+export RESOURCE_NAME_ROOT="${ENVIRONMENT}-${ORACLE_REGION}-${GRID}-grid"
+
+export CNAME_VALUE="$RESOURCE_NAME_ROOT"
+export STACK_NAME="${RESOURCE_NAME_ROOT}-cname"
+export UNIQUE_ID="${RESOURCE_NAME_ROOT}"
+export CNAME_TARGET="${ENVIRONMENT}-${ORACLE_REGION}-nomad-pool-general-internal.${DEFAULT_DNS_ZONE_NAME}"
+export CNAME_VALUE="${RESOURCE_NAME_ROOT}"
+$LOCAL_PATH/create-oracle-cname-stack.sh
