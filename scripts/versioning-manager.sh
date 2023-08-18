@@ -74,7 +74,13 @@ if [ "$VERSIONING_ACTION" == "CREATE_RELEASE" ]; then
   # for https://developer.8x8.com/jaas/docs/6-may-2022-release-notes 
   [ -z "$VERSIONING_RELEASE_NOTES_TITLE" ] && VERSIONING_RELEASE_NOTES_TITLE=""
 
-  REQUEST_BODY='{
+  # only used if a release is being cloned for exclusive use
+  [ -z "$EXCLUSIVE_TENANCY" ] && EXCLUSIVE_TENANCY="NONE"
+  [ -z "$CLONED_RELEASE_NUMBER" ] && CLONED_RELEASE_NUMBER="NONE"
+
+  if [ "$EXCLUSIVE_TENANCY" == "NONE" ]; then
+    echo "## creating release $VERSIONING_RELEASE with version Signal $SIGNAL_VERSION JVB $JVB_VERSION"
+    REQUEST_BODY='{
       "releaseNumber": "'"$VERSIONING_RELEASE"'",
       "version": "Signal '$SIGNAL_VERSION' JVB '$JVB_VERSION'",
       "environment": "'$ENVIRONMENT'",
@@ -83,9 +89,23 @@ if [ "$VERSIONING_ACTION" == "CREATE_RELEASE" ]; then
       "lts": '$VERSIONING_LTS',
       "releaseStatus": "'"$VERSIONING_RELEASE_STATUS"'",
       "releaseNotesTitle": "'$VERSIONING_RELEASE_NOTES_TITLE'"
-  }'
+    }'
+  else
+    echo "## creating exclusive release $VERSIONING_RELEASE based on release $EXCLUSIVE_RELEASE_NUMBER"
+    REQUEST_BODY='{
+      "releaseNumber": "'"$VERSIONING_RELEASE"'",
+      "version": "Signal '$SIGNAL_VERSION' JVB '$JVB_VERSION'",
+      "environment": "'$ENVIRONMENT'",
+      "releaseDate": "'$VERSIONING_RELEASE_DATE'",
+      "endOfLife": "'$VERSIONING_RELEASE_EOL_DATE'",
+      "lts": '$VERSIONING_LTS',
+      "releaseStatus": "'"$VERSIONING_RELEASE_STATUS"'",
+      "releaseNotesTitle": "'$VERSIONING_RELEASE_NOTES_TITLE'"
+      "exclusiveTenancy": "'"$EXCLUSIVE_TENANCY"'",
+      "cloneReleaseNumber": "'"$CLONED_RELEASE_NUMBER"'",
+    }'
+  fi
 
-  echo "## creating release $VERSIONING_RELEASE with version Signal $SIGNAL_VERSION JVB $JVB_VERSION"
   response=$(curl -s -w "\n %{http_code}" -X POST \
       "$VERSIONING_URL"/v1/releases \
       -H 'accept: application/json' \
@@ -267,39 +287,6 @@ elif [ "$VERSIONING_ACTION" == "DELETE_TENANT_PIN" ]; then
   else
     echo "## ERROR deleting pin for $TENANT with status code $httpCode and response:\n$response"
     exit 1
-  fi
-
-elif [ "$VERSIONING_ACTION" == "CLONE_EXCLUSIVE_RELEASE" ]; then
-  echo "## creating an exclusive cloned release"
-  if [ -z "$EXCLUSIVE_TENANCY" ]; then
-    echo "## no EXCLUSIVE_TENANCY provided or found, exiting"
-    exit 2
-  fi
-  if [ -z "$CLONED_RELEASE_NUMBER" ]; then
-    echo "## no CLONED_RELEASE_NUMBER provided or found, exiting"
-    exit 2
-  fi
-
-  REQUEST_BODY='{
-    "exclusiveTenancy": "'"$EXCLUSIVE_TENANCY"'",
-    "cloneReleaseNumber": "'"$CLONED_RELEASE_NUMBER"'",
-    "environment": "'$ENVIRONMENT'",
-  }'
-
-  echo "## creating exclusive release for $EXCLUSIVE_TENANCY based on release $CLONED_RELEASE_NUMBER"
-  response=$(curl -s -w "\n %{http_code}" -X POST \
-      "$VERSIONING_URL"/v1/releases \
-      -H 'accept: application/json' \
-      -H 'Content-Type: application/json' \
-      -H "Authorization: Bearer $TOKEN" \
-      -d "$REQUEST_BODY")
-
-  httpCode=$(tail -n1 <<<"$response" | sed 's/[^0-9]*//g')
-  if [ "$httpCode" == 200 ]; then
-    echo "## release $VERSIONING_RELEASE was created successfully"
-  else
-    echo "## ERROR creating release $VERSIONING_RELEASE with status code $httpCode and response:\n$response"
-    exit 1 
   fi
 
 elif [ "$VERSIONING_ACTION" == "ACTIVATE_EXCLUSIVE_RELEASE" ]; then
