@@ -67,6 +67,11 @@ if [ "$ENABLE_E_4" == "true" ]; then
   JVB_SHAPE="$SHAPE_E_4"
 fi
 
+# use A1 if configured
+if [ "$ENABLE_A_1" == "true" ]; then
+  JVB_SHAPE="$SHAPE_A_1"
+fi
+
 [ -z "$SHAPE" ] && SHAPE="$JVB_SHAPE"
 
 if [[ "$SHAPE" == "VM.Standard.E3.Flex" ]]; then
