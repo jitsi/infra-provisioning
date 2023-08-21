@@ -49,7 +49,7 @@ job "[JOB_NAME]" {
       config {
         image        = "selenium/node-docker:4.11.0-20230801"
         ports = ["http"]
-        volumes = ["local/config.toml:/opt/bin/config.toml","/var/run/docker.sock:/var/run/docker.sock"]
+        volumes = ["local:/opt/selenium/assets","local/config.toml:/opt/bin/config.toml","/var/run/docker.sock:/var/run/docker.sock"]
 
         # 2gb shm
         shm_size = 2147483648
