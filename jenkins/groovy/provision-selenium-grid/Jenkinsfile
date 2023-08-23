@@ -71,10 +71,15 @@ pipeline {
                 script {
                     echo 'selenium nomad jobs'
                     dir('infra-provisioning') {
-                    sh '''#!/bin/bash
-                        GRID=$GRID_NAME scripts/deploy-nomad-selenium-grid-hub.sh
-                        GRID=$GRID_NAME scripts/deploy-nomad-selenium-grid-node.sh
-                    '''
+                        withCredentials([
+                            string(credentialsId: 'jenkins-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
+                            string(credentialsId: 'jenkins-aws-id', variable: 'AWS_ACCESS_KEY_ID')
+                        ]) {
+                            sh '''#!/bin/bash
+                                GRID=$GRID_NAME scripts/deploy-nomad-selenium-grid-hub.sh
+                                GRID=$GRID_NAME scripts/deploy-nomad-selenium-grid-node.sh
+                            '''
+                        }
                     }
                 }
             }
