@@ -9,7 +9,7 @@ job "[JOB_NAME]" {
   region = "global"
   datacenters = [var.dc]
 
-  type        = "service"
+  type        = "system"
 
   // must have linux for network mode
   constraint {
@@ -20,7 +20,11 @@ job "[JOB_NAME]" {
   group "node" {
     constraint {
       attribute  = "${meta.pool_type}"
-      value     = "general"
+      value     = "selenium-grid"
+    }
+    constraint {
+      attribute  = "${meta.selenium_grid_name}"
+      value     = "${var.grid}"
     }
 
     count = 1
