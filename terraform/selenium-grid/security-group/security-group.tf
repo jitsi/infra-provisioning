@@ -161,3 +161,63 @@ resource "oci_core_network_security_group_security_rule" "nsg_rule_ingress_hub_t
     }
   }
 }
+
+resource "oci_core_network_security_group_security_rule" "nsg_rule_ingress_nomad_ephemeral_tcp" {
+  network_security_group_id = oci_core_network_security_group.security_group_node.id
+  direction = "INGRESS"
+  protocol = "6"
+  source = data.oci_core_vcns.vcns.virtual_networks[0].cidr_block
+  stateless = false
+
+  tcp_options {
+    destination_port_range {
+      min = 20000
+      max = 32000
+    }
+  }
+}
+
+resource "oci_core_network_security_group_security_rule" "nsg_rule_ingress_nomad_ephemeral_udp" {
+  network_security_group_id = oci_core_network_security_group.security_group_node.id
+  direction = "INGRESS"
+  protocol = "17"
+  source = data.oci_core_vcns.vcns.virtual_networks[0].cidr_block
+  stateless = false
+
+  udp_options {
+    destination_port_range {
+      min = 20000
+      max = 32000
+    }
+  }
+}
+
+resource "oci_core_network_security_group_security_rule" "nsg_rule_ingress_consul_serf_tcp" {
+  network_security_group_id = oci_core_network_security_group.security_group_node.id
+  direction = "INGRESS"
+  protocol = "6"
+  source = data.oci_core_vcns.vcns.virtual_networks[0].cidr_block
+  stateless = false
+
+  tcp_options {
+    destination_port_range {
+      max = 8301
+      min = 8301
+    }
+  }
+}
+
+resource "oci_core_network_security_group_security_rule" "nsg_rule_ingress_consul_serf_udp" {
+  network_security_group_id = oci_core_network_security_group.security_group_node.id
+  direction = "INGRESS"
+  protocol = "17"
+  source = data.oci_core_vcns.vcns.virtual_networks[0].cidr_block
+  stateless = false
+
+  udp_options {
+    destination_port_range {
+      min = 8301
+      max = 8301
+    }
+  }
+}
