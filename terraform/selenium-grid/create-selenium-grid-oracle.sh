@@ -84,7 +84,13 @@ S3_STATE_BASE="$ENVIRONMENT/grid/$GRID_NAME/components"
 
 arch_from_shape $SHAPE
 
-[ -z "$IMAGE_OCID" ] && IMAGE_OCID=$($LOCAL_PATH/../../scripts/oracle_custom_images.py --type SeleniumGrid --architecture "$IMAGE_ARCH" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
+if [[ "$SELENIUM_GRID_NOMAD_ENABLED" == "true" ]]; then
+  IMAGE_TYPE="JammyBase"
+else
+  IMAGE_TYPE="SeleniumGrid"
+fi
+
+[ -z "$IMAGE_OCID" ] && IMAGE_OCID=$($LOCAL_PATH/../../scripts/oracle_custom_images.py --type $IMAGE_TYPE --architecture "$IMAGE_ARCH" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
 if [ -z "$IMAGE_OCID" ]; then
   echo "No IMAGE_OCID found.  Exiting..."
   exit 210
