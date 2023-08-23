@@ -1,4 +1,6 @@
 def utils
+def skipNomad = true;
+
 pipeline {
     agent any
     options {
@@ -22,6 +24,22 @@ pipeline {
                 }
             }
         }
+        stage('Check Nomad Flag') {
+            steps {
+                script {
+                    if (env.SELENIUM_GRID_NOMAD_ENABLED == "true") {
+                        skipNomad = false;
+                    } else {
+                        dir('infra-provisioning') {
+                            def nomadEnabled = utils.GetAnsibleVar(env.ENVIRONMENT, 'selenium_grid_nomad_enabled')
+                            if (nomadEnabled == "true") {
+                                skipNomad = false;
+                            }
+                        }          
+                    }
+                }
+            }
+        }
         stage ("selenium grid provisioning") {
             steps {
                 script {
@@ -37,9 +55,26 @@ pipeline {
                             sh '''#!/bin/bash
                             export USER_PUBLIC_KEY_PATH=~/.ssh/ssh_key.pub
                             export ORACLE_GIT_BRANCH=\"$RELEASE_BRANCH\"
-                            terraform/selenium-grid/create-selenium-grid-oracle.sh $SSH_USERNAME'''
+                            terraform/selenium-grid/create-selenium-grid-oracle.sh $SSH_USERNAME
+                            '''
                             }
                         }
+                    }
+                }
+            }
+        }
+        stage ("selenium grid nomad jobs") {
+            when {
+              expression {skipNomad == false}
+            }
+            steps {
+                script {
+                    echo 'selenium nomad jobs'
+                    dir('infra-provisioning') {
+                    sh '''#!/bin/bash
+                        GRID=$GRID_NAME scripts/deploy-nomad-selenium-grid-hub.sh
+                        GRID=$GRID_NAME scripts/deploy-nomad-selenium-grid-node.sh
+                    '''
                     }
                 }
             }
