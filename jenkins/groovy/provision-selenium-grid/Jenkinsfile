@@ -78,6 +78,13 @@ pipeline {
                             sh '''#!/bin/bash
                                 GRID=$GRID_NAME scripts/deploy-nomad-selenium-grid-hub.sh
                                 GRID=$GRID_NAME scripts/deploy-nomad-selenium-grid-node.sh
+                                RET=$?
+                                if [[ $RET -eq 2 ]]; then
+                                    echo "Complete but failed to place all allocation is expected here"
+                                    exit 0
+                                else
+                                    exit $RET
+                                fi
                             '''
                         }
                     }
