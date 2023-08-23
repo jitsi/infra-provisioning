@@ -31,7 +31,7 @@ ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 [ -e "$LOCAL_PATH/../../clouds/${ORACLE_CLOUD_NAME}.sh" ] && . $LOCAL_PATH/../../clouds/${ORACLE_CLOUD_NAME}.sh
 
 [ -z "$SHAPE" ] && SHAPE="$DEFAULT_STANDALONE_SHAPE"
-[ -z "$SHAPE" ] && SHAPE="VM.Standard.E3.Flex"
+[ -z "$SHAPE" ] && SHAPE="VM.Standard.A1.Flex"
 
 [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS="8"
 [ -z "$INSTANCE_SHAPE_OCPUS" ] && INSTANCE_SHAPE_OCPUS="4"
