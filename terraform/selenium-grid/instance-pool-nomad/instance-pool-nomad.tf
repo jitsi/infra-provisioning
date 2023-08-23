@@ -20,8 +20,6 @@ variable "jitsi_tag_namespace" {}
 variable "git_branch" {}
 variable "role" {}
 variable "grid_name" {}
-variable "load_balancer_id" {}
-variable "load_balancer_bs_name" {}
 
 variable "subnet_ocid" {}
 
