@@ -60,10 +60,10 @@ job "[JOB_NAME]" {
 # Configs have a mapping between the Docker image to use and the capabilities that need to be matched to
 # start a container with the given image.
 configs = [
-    "jitsi/selenium-standalone-firefox:daily-2023-08-22", "{\"browserName\": \"firefox\"}",
-    "jitsi/selenium-standalone-chrome:daily-2023-08-22", "{\"browserName\": \"chrome\"}",
-    "jitsi/selenium-standalone-firefox:beta-daily-2023-08-22", "{\"browserName\": \"firefox-beta\"}",
-    "jitsi/selenium-standalone-chrome:beta-daily-2023-08-22", "{\"browserName\": \"chrome-beta\"}"
+    "jitsi/selenium-standalone-firefox:daily-2023-08-23", "{\"browserName\": \"firefox\"}",
+    "jitsi/selenium-standalone-chrome:daily-2023-08-23", "{\"browserName\": \"chrome\"}",
+    "jitsi/selenium-standalone-firefox:beta-daily-2023-08-23", "{\"browserName\": \"firefox-beta\"}",
+    "jitsi/selenium-standalone-chrome:beta-daily-2023-08-23", "{\"browserName\": \"chrome-beta\"}"
     ]
 
 # URL for connecting to the docker daemon
