@@ -43,7 +43,7 @@ ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 
 [ -z "$SHAPE" ] && SHAPE="$JIGASI_SHAPE"
 [ -z "$SHAPE" ] && SHAPE="$DEFAULT_JIGASI_SHAPE"
-[ -z "$SHAPE" ] && SHAPE="$SHAPE_E_3"
+[ -z "$SHAPE" ] && SHAPE="$SHAPE_E_4"
 
 arch_from_shape $SHAPE
 
