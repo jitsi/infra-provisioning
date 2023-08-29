@@ -254,7 +254,7 @@ echo \$CHECK_VAR"""
     return ret;
 }
 
-// get the shape of the jigasi image via DEFAULT_JIGASI_SHAPE variable
+// get the shape of the jigasi image via JIGASI_SHAPE variable
 def JigasiShapeFromEnvironment(environment) {
     dir('infra-provisioning') {
         def shape = sh(
@@ -262,10 +262,10 @@ def JigasiShapeFromEnvironment(environment) {
         script: """#!/bin/bash
 . ./clouds/oracle.sh
 . ./sites/${environment}/stack-env.sh
-if [ -z "\$DEFAULT_JIGASI_SHAPE" ]; then
+if [ -z "\$JIGASI_SHAPE" ]; then
     echo \$SHAPE_E_4
 else
-    echo \$DEFAULT_JIGASI_SHAPE
+    echo \$JIGASI_SHAPE
 fi
 """).trim();
         return shape
