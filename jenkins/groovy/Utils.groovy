@@ -285,6 +285,24 @@ fi
     }        
 }
 
+// get the shape of the JVB image via ENABLE_A_1 variable
+def JVBShapeFromEnvironment(environment) {
+    dir('infra-provisioning') {
+        def shape = sh(
+        returnStdout: true,
+        script: """#!/bin/bash
+. ./clouds/oracle.sh
+. ./sites/${environment}/stack-env.sh
+if [ "\$ENABLE_A_1" == "true" ]; then
+    echo \$SHAPE_A_1
+else
+    echo \$JVB_SHAPE
+fi
+""").trim();
+        return shape
+    }        
+}
+
 def OracleRegionFromCloud(cloud) {
         def region = sh(
         returnStdout: true,
