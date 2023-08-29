@@ -254,7 +254,13 @@ pipeline {
                     }
                     steps {
                         script {
-                            def image_arch = utils.ImageArchFromShape(env.SHAPE)
+                            def shape
+                            if (env.SHAPE) {
+                                shape = env.SHAPE
+                            } else {
+                                shape = utils.SignalShapeFromEnvironment(env.ENVIRONMENT)                                
+                            }
+                            def image_arch = utils.ImageArchFromShape(shape)
                             buildSignalImage(env.SIGNAL_VERSION,
                                 env.ENVIRONMENT,
                                 env.CLOUDS,
