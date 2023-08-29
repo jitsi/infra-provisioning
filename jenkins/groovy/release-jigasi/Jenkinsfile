@@ -10,9 +10,10 @@ def buildJigasiImageAws(build_id,jigasiVersion,force_build_ami) {
 }
 
 // trigger build Jigasi image oracle job with appropriate parameters
-def buildJigasiImageOracle(environment,clouds,jigasiVersion,force_build_image,video_infra_branch) {
+def buildJigasiImageOracle(environment,clouds,jigasiVersion,force_build_image,video_infra_branch,image_arch) {
     def buildImage = build job: 'build-image-oracle',parameters: [
         [$class: 'StringParameterValue', name: 'IMAGE_TYPE', value: 'Jigasi'],
+        [$class: 'StringParameterValue', name: 'IMAGE_ARCH', value: image_arch],
         [$class: 'StringParameterValue', name: 'CLOUDS', value: clouds],
         [$class: 'StringParameterValue', name: 'JIGASI_VERSION', value: jigasiVersion],
         [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: environment],
@@ -98,12 +99,21 @@ pipeline {				//indicate the job is written in Declarative Pipeline
             }
             steps {
                 script {
+                    def jigasi_shape
+                    if (env.SHAPE) {
+                        jigasi_shape = env.SHAPE
+                    } else {
+                        jigasi_shape = utils.JigasiShapeFromEnvironment(env.ENVIRONMENT)                                
+                    }
+                    def image_arch = utils.ImageArchFromShape(jigasi_shape)                
+
                     buildJigasiImageOracle(
                             env.ENVIRONMENT,
                             env.CLOUDS,
                             env.JIGASI_VERSION,
                             env.FORCE_BUILD_IMAGE,
-                            env.VIDEO_INFRA_BRANCH
+                            env.VIDEO_INFRA_BRANCH,
+                            image_arch
                             )
                 }
             }
