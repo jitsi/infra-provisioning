@@ -81,12 +81,7 @@ function shard_region() {
 }
 
 function inventory() {
-    SHARDS="$(list)"
-    
-    for SHARD in $SHARDS; do
-        IP=$(IP_TYPE="internal" shard_ip $SHARD)
-        echo $IP
-    done
+    DISPLAY=addresses $LOCAL_PATH/consul-search.sh $ANSIBLE_SSH_USER
 }
 
 function shard_ip {
