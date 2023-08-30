@@ -101,6 +101,7 @@ job "[JOB_NAME]" {
         PORT = "8080"
         INITIAL_WAIT_FOR_POOLING_MS = 120000
         CLOUD_PROVIDERS="nomad,oracle"
+        ENABLE_PROFILING="true"
       }
 
       template {
