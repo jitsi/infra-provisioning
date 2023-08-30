@@ -285,6 +285,42 @@ echo \$IMAGE_ARCH"""
     }
 }
 
+// get the shape of the signal image via DEFAULT_SIGNAL_SHAPE variable
+def SignalShapeFromEnvironment(environment) {
+    dir('infra-provisioning') {
+        def shape = sh(
+        returnStdout: true,
+        script: """#!/bin/bash
+. ./clouds/oracle.sh
+. ./sites/${environment}/stack-env.sh
+if [ -z "\$DEFAULT_SIGNAL_SHAPE" ]; then
+    echo \$DEFAULT_STANDALONE_SHAPE
+else
+    echo \$DEFAULT_SIGNAL_SHAPE
+fi
+""").trim();
+        return shape
+    }        
+}
+
+// get the shape of the JVB image via ENABLE_A_1 variable
+def JVBShapeFromEnvironment(environment) {
+    dir('infra-provisioning') {
+        def shape = sh(
+        returnStdout: true,
+        script: """#!/bin/bash
+. ./clouds/oracle.sh
+. ./sites/${environment}/stack-env.sh
+if [ "\$ENABLE_A_1" == "true" ]; then
+    echo \$SHAPE_A_1
+else
+    echo \$JVB_SHAPE
+fi
+""").trim();
+        return shape
+    }        
+}
+
 def OracleRegionFromCloud(cloud) {
         def region = sh(
         returnStdout: true,

@@ -236,7 +236,14 @@ pipeline {
                     }
                     steps {
                         script {
-                            def image_arch = utils.ImageArchFromShape(env.JVB_SHAPE)
+                            def jvb_shape
+                            if (env.JVB_SHAPE) {
+                                jvb_shape = env.JVB_SHAPE
+                            } else {
+                                jvb_shape = utils.JVBShapeFromEnvironment(env.ENVIRONMENT)                                
+                            }
+
+                            def image_arch = utils.ImageArchFromShape(jvb_shape)
                             buildJvbImage(env.JVB_VERSION,
                                 env.ENVIRONMENT,
                                 env.CLOUDS,
@@ -254,7 +261,13 @@ pipeline {
                     }
                     steps {
                         script {
-                            def image_arch = utils.ImageArchFromShape(env.SHAPE)
+                            def signal_shape
+                            if (env.SHAPE) {
+                                signal_shape = env.SHAPE
+                            } else {
+                                signal_shape = utils.SignalShapeFromEnvironment(env.ENVIRONMENT)                                
+                            }
+                            def image_arch = utils.ImageArchFromShape(signal_shape)
                             buildSignalImage(env.SIGNAL_VERSION,
                                 env.ENVIRONMENT,
                                 env.CLOUDS,
