@@ -80,6 +80,15 @@ function shard_region() {
     echo $SHARD_REGION
 }
 
+function inventory() {
+    SHARDS="$(list)"
+    
+    for SHARD in $SHARDS; do
+        IP=$(IP_TYPE="internal" shard_ip $SHARD)
+        echo $IP
+    done
+}
+
 function shard_ip {
     local shard="$1"
     [ -z "$IP_TYPE" ] && IP_TYPE="external"
@@ -257,6 +266,9 @@ case $ACTION in
         ;;
     'list')
         list
+        ;;
+    'inventory')
+        inventory
         ;;
     'list_releases')
         list_releases
