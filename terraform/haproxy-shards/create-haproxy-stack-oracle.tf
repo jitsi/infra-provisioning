@@ -70,6 +70,10 @@ variable "certificate_public_certificate" {}
 variable "lb_hostnames" {
     type = list(string)
 }
+variable "signal_api_lb_hostnames" {
+  type = list(string)
+  default = []
+}
 variable "signal_api_hostname" {}
 variable "signal_api_certificate_certificate_name" {}
 variable "signal_api_certificate_ca_certificate" {}
@@ -260,6 +264,21 @@ resource "oci_load_balancer_hostname" "signal_api_hostname" {
         create_before_destroy = true
     }
 }
+
+resource "oci_load_balancer_hostname" "signal_api_hostnames" {
+    #Required
+    for_each = toset([ for i,v in var.signal_api_lb_hostnames: v if i > 0])
+    hostname = each.key
+    load_balancer_id = oci_load_balancer.oci_load_balancer.id
+    name = each.key
+
+    #Optional
+    lifecycle {
+        create_before_destroy = true
+    }
+}
+
+
 resource "oci_load_balancer_listener" "redirect_listener" {
   load_balancer_id = oci_load_balancer.oci_load_balancer.id
   name = "HAProxyHTTPListener"
@@ -289,7 +308,7 @@ resource "oci_load_balancer_listener" "signal_api_listener" {
   port = 443
   default_backend_set_name = oci_load_balancer_backend_set.oci_load_balancer_bs.name
   protocol = "HTTP"
-  hostname_names = [ oci_load_balancer_hostname.signal_api_hostname.name ]
+  hostname_names = concat([ oci_load_balancer_hostname.signal_api_hostname.name ],[oci_load_balancer_hostname.signal_api_hostnames.*.name])
   ssl_configuration {
       #Optional
       certificate_name = oci_load_balancer_certificate.signal_api_certificate.certificate_name

@@ -72,6 +72,11 @@ for LB_HOSTNAME in $LB_HOSTNAMES; do
   LB_HOSTNAME_JSON=$(echo $LB_HOSTNAME_JSON "[\"$LB_HOSTNAME\"]" | jq -c --slurp 'flatten(1)')
 done
 
+SIGNAL_API_LB_HOSTNAME_JSON="[]"
+for LB_HOSTNAME in $SIGNAL_API_LB_HOSTNAMES; do
+  SIGNAL_API_LB_HOSTNAME_JSON=$(echo $SIGNAL_API_LB_HOSTNAME_JSON "[\"$LB_HOSTNAME\"]" | jq -c --slurp 'flatten(1)')
+done
+
 [ -z "$CERTIFICATE_NAME" ] && CERTIFICATE_NAME="star_jitsi_net-2024-08-10"
 [ -z "$CA_CERTIFICATE_VARIABLE" ] && CA_CERTIFICATE_VARIABLE="jitsi_net_ssl_extras"
 [ -z "$PUBLIC_CERTIFICATE_VARIABLE" ] && PUBLIC_CERTIFICATE_VARIABLE="jitsi_net_ssl_certificate"
@@ -335,6 +340,7 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
   -var="lb_security_group_id=$LB_SECURITY_GROUP_ID" \
   -var="certificate_certificate_name=$CERTIFICATE_NAME" \
   -var="lb_hostnames=$LB_HOSTNAME_JSON" \
+  -var="signal_api_lb_hostnames=$SIGNAL_API_LB_HOSTNAME_JSON" \
   -var="signal_api_hostname=$SIGNAL_API_HOSTNAME" \
   -var="signal_api_certificate_certificate_name=$SIGNAL_API_CERTIFICATE_NAME" \
   -var "infra_configuration_repo=$INFRA_CONFIGURATION_REPO" \
