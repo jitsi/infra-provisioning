@@ -308,7 +308,7 @@ resource "oci_load_balancer_listener" "signal_api_listener" {
   port = 443
   default_backend_set_name = oci_load_balancer_backend_set.oci_load_balancer_bs.name
   protocol = "HTTP"
-  hostname_names = concat([ oci_load_balancer_hostname.signal_api_hostname.name ],[oci_load_balancer_hostname.signal_api_hostnames.*.name])
+  hostname_names = concat([ oci_load_balancer_hostname.signal_api_hostname.name ],[ for k,v in oci_load_balancer_hostname.signal_api_hostnames : v.name])
   ssl_configuration {
       #Optional
       certificate_name = oci_load_balancer_certificate.signal_api_certificate.certificate_name
