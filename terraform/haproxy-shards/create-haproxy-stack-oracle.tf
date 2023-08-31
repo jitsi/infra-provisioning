@@ -267,7 +267,7 @@ resource "oci_load_balancer_hostname" "signal_api_hostname" {
 
 resource "oci_load_balancer_hostname" "signal_api_hostnames" {
     #Required
-    for_each = toset([ for i,v in var.signal_api_lb_hostnames: v if i > 0])
+    for_each = toset([ for i,v in var.signal_api_lb_hostnames: v ])
     hostname = each.key
     load_balancer_id = oci_load_balancer.oci_load_balancer.id
     name = each.key
