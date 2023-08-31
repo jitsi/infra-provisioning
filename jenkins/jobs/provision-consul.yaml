@@ -20,6 +20,10 @@
           description: "Cloud Provider, defaults to 'oracle'"
           trim: true
       - string:
+          name: SHAPE
+          description: "Instance shape for consul servers"
+          trim: true
+      - string:
           name: RELEASE_BRANCH
           default: main
           description: "Name of an existing infra branch to use when creating the release, defaults to 'main'."
