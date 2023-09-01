@@ -182,6 +182,21 @@ resource "oci_core_network_security_group_security_rule" "consul_nsg_rule_ingres
   }
 }
 
+resource "oci_core_network_security_group_security_rule" "consul_nsg_rule_ingress_consul_web_redirect" {
+  network_security_group_id = oci_core_network_security_group.nomad_lb_security_group.id
+  direction = "INGRESS"
+  protocol = "6"
+  source = "0.0.0.0/0"
+  stateless = false
+
+  tcp_options {
+    destination_port_range {
+      max = 80
+      min = 80
+    }
+  }
+}
+
 resource "oci_core_network_security_group" "nomad_private_lb_security_group" {
   compartment_id = var.compartment_ocid
   vcn_id = data.oci_core_vcns.vcns.virtual_networks[0].id
