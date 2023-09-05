@@ -1,0 +1,61 @@
+def utils
+pipeline {
+    agent any
+    options {
+        ansiColor('xterm')
+        timestamps()
+        buildDiscarder(logRotator(numToKeepStr: '10', artifactNumToKeepStr: '10'))
+    }
+    stages {
+        stage("setup") {
+            steps {
+                script {
+                    // load utility function
+                    def rootDir = pwd()
+                    utils = load "${rootDir}/jenkins/groovy/Utils.groovy"
+                    // checkout repos
+                    utils.SetupRepos(env.VIDEO_INFRA_BRANCH)
+                }
+            }
+        }
+        stage ("trigger build") {
+        	environment {
+                SIGNAL_VERSION = "${params.JICOFO_VERSION}-${params.JITSI_MEET_VERSION}-${params.PROSODY_VERSION}"
+        	}
+            steps {
+                dir('infra-provisioning') {
+                    withCredentials([
+                        string(credentialsId: 'jenkins-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
+                        string(credentialsId: 'jenkins-aws-id', variable: 'AWS_ACCESS_KEY_ID')                            
+                    ]) {
+                        sshagent (credentials: ['ssh-ubuntu']) {
+                            script {
+                                def releaseJob = build job: 'release-core',parameters: [
+                                    [$class: 'StringParameterValue', name: 'EXCLUSIVE_CLONED_RELEASE_NUMBER', value: params.EXCLUSIVE_CLONED_RELEASE_NUMBER],
+                                    [$class: 'StringParameterValue', name: 'EXCLUSIVE_TENANCY', value: params.EXCLUSIVE_TENANCY],
+                                    [$class: 'StringParameterValue', name: 'CLOUD_PROVIDER', value: params.CLOUD_PROVIDER],
+                                    [$class: 'StringParameterValue', name: 'CORE_CLOUD_PROVIDER', value: params.CORE_CLOUD_PROVIDER],
+                                    [$class: 'StringParameterValue', name: 'JVB_VERSION', value: params.JVB_VERSION],
+                                    [$class: 'StringParameterValue', name: 'JVB_SHAPE', value: params.JVB_SHAPE],
+                                    [$class: 'StringParameterValue', name: 'SHAPE', value: params.SHAPE],
+                                    [$class: 'StringParameterValue', name: 'SIGNAL_VERSION', value: env.SIGNAL_VERSION],
+                                    [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: env.ENVIRONMENT],
+                                    [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH]
+                                ]
+                                myRelease = releaseJob.getNumber();
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    post {
+        fixed {
+            slackSend color: "good", message: "Successfully fixed build of ${env.JOB_NAME} ${env.BUILD_NUMBER} (<${env.BUILD_URL}|Open>)\nSignal ${params.JICOFO_VERSION}-${params.JITSI_MEET_VERSION}-${params.PROSODY_VERSION} JVB  ${params.JVB_VERSION} ${env.ENVIRONMENT}"
+        }
+        failure {
+            slackSend color: "danger", message: "Failure in build of build of ${env.JOB_NAME} ${env.BUILD_NUMBER} (<${env.BUILD_URL}|Open>)\nSignal ${params.JICOFO_VERSION}-${params.JITSI_MEET_VERSION}-${params.PROSODY_VERSION} JVB  ${params.JVB_VERSION} ${env.ENVIRONMENT}"
+        }
+    }
+}

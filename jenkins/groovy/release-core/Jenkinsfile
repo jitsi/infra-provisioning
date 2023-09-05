@@ -138,7 +138,7 @@ def createShard(shard_environment,cloud_name,jvb_cloud_provider,core_cloud_provi
     return createShard
 }
 
-def versioningManagerCreateRelease(shard_environment, release_number, signal_version, jvb_version) {
+def versioningManagerCreateRelease(shard_environment, release_number, signal_version, jvb_version, exclusive_release_num, exclusive_tenancy) {
     sh(
         script: """#!/bin/bash
 export VERSIONING_ACTION=CREATE_RELEASE
@@ -146,6 +146,9 @@ export VERSIONING_RELEASE="${release_number}"
 export VERSIONING_RELEASE_STATUS=PENDING
 export SIGNAL_VERSION="${signal_version}"
 export JVB_VERSION="${jvb_version}"
+export EXCLUSIVE_TENANCY="${exclusive_tenancy}"
+export CLONED_RELEASE_NUMBER="${exclusive_release_num}"
+
 scripts/versioning-manager.sh
 """
     )
@@ -221,7 +224,7 @@ pipeline {
                 ]) {
                     script {
                         dir('infra-provisioning') {
-                            versioningManagerCreateRelease(env.ENVIRONMENT, env.BUILD_ID, env.SIGNAL_VERSION, env.JVB_VERSION)
+                            versioningManagerCreateRelease(env.ENVIRONMENT, env.BUILD_ID, env.SIGNAL_VERSION, env.JVB_VERSION, env.EXCLUSIVE_CLONED_RELEASE_NUMBER, env.EXCLUSIVE_TENANCY)
                         }
                     }
                 }
