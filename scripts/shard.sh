@@ -80,6 +80,10 @@ function shard_region() {
     echo $SHARD_REGION
 }
 
+function inventory() {
+    DISPLAY=addresses $LOCAL_PATH/consul-search.sh $ANSIBLE_SSH_USER
+}
+
 function shard_ip {
     local shard="$1"
     [ -z "$IP_TYPE" ] && IP_TYPE="external"
@@ -257,6 +261,9 @@ case $ACTION in
         ;;
     'list')
         list
+        ;;
+    'inventory')
+        inventory
         ;;
     'list_releases')
         list_releases
