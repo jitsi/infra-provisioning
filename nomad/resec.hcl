@@ -79,7 +79,7 @@ save 60 1
       task "resec" {
         driver = "docker"
         config {
-          image = "yotpo/resec"
+          image = "aaronkvanmeerten/resec"
         }
 
         env {
