@@ -137,7 +137,14 @@ pipeline {
         }
         steps {
             script {
-                def image_arch = utils.ImageArchFromShape(env.SHAPE)
+                def jvb_shape
+                if (env.SHAPE) {
+                    jvb_shape = env.SHAPE
+                } else {
+                    jvb_shape = utils.JVBShapeFromEnvironment(env.ENVIRONMENT)                                
+                }
+
+                def image_arch = utils.ImageArchFromShape(jvb_shape)
                 buildJvbImage(env.JVB_VERSION,
                         env.ENVIRONMENT,
                         env.CLOUDS,
