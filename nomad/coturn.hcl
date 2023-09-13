@@ -137,7 +137,7 @@ EOH
         destination = "local/coturn.conf"
       }
       resources {
-        cpu    = 25000
+        cpu    = 10000
         memory = 15360
       }
       service {
