@@ -59,6 +59,7 @@ fi
 
 if [[ "$NOMAD_COTURN_FLAG" == "true" ]]; then
   COTURN_IMAGE_TYPE="JammyBase"
+  SHAPE="VM.Standard.A1.Flex"
 fi
 
 arch_from_shape $SHAPE
