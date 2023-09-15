@@ -71,7 +71,7 @@ probe {
   name: "coturn"
   type: EXTERNAL
   targets {
-    host_names: "{{ range $index, $service := service "coturn"}}{{ .serviceMeta.public_ip }},{{ end }}"
+    host_names: "{{ range $index, $service := service "coturn"}}{{ if gt $index 0 }},{{ end }}{{ .serviceMeta.public_ip }}{{ end }}"
   }
   external_probe {
     mode: ONCE 
@@ -123,7 +123,7 @@ EOH
         data = <<EOH
 #!/bin/sh
 
-curl https://meet-jit-si-turnrelay-oracle.jitsi.net/ --resolve "${var.environment}-turnrelay-oracle.jitsi.net:443:$TARGET_IP"
+curl https://${var.environment}-turnrelay-oracle.jitsi.net/ --resolve "${var.environment}-turnrelay-oracle.jitsi.net:443:$TARGET_IP"
 if [ $? -ne 52 ]; then
   exit 1
 fi
@@ -138,7 +138,7 @@ EOH
           "local/cloudprober.cfg:/etc/cloudprober.cfg",
           "local/custom_init.sh:/bin/custom_init.sh",
           "local/oscar_haproxy_probe.sh:/bin/oscar_haproxy_probe.sh",
-          "local/oscar_haproxy_probe.py:/bin/oscar_haproxy_probe.py"
+          "local/oscar_haproxy_probe.py:/bin/oscar_haproxy_probe.py",
           "local/oscar_haproxy_probe.py:/bin/oscar_coturn_probe.py"
         ]
       }
