@@ -144,6 +144,9 @@ EOH
         name = "coturn"
         port = "coturn"
         tags = ["ip-${attr.unique.network.ip-address}"]
+        meta {
+          public_ip = "${meta.public_ip}"
+        }
         check {
           name     = "coturn healthcheck"
           port     = "metrics"
