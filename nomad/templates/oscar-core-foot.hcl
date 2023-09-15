@@ -87,7 +87,7 @@ EOH
         data = <<EOH
 #!bin/sh
 
-apk add python3
+apk add python3 curl
 /usr/bin/python3 -m ensurepip --default-pip
 /usr/bin/python3 -m pip install requests
 /cloudprober --logtostderr
