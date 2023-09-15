@@ -75,7 +75,7 @@ probe {
   }
   external_probe {
     mode: ONCE 
-    command: "TARGET_IP=@target@ /bin/oscar_coturn_probe.sh"
+    command: "/bin/oscar_coturn_probe.sh @target@"
   }
   interval_msec: 5000
   timeout_msec: 2000
@@ -123,7 +123,12 @@ EOH
         data = <<EOH
 #!/bin/sh
 
-curl https://${var.environment}-turnrelay-oracle.jitsi.net/ --resolve "${var.environment}-turnrelay-oracle.jitsi.net:443:$TARGET_IP"
+if [ -z $1 ]; then
+  echo "coturn probe is missing target"
+  exit 1
+fi
+
+curl https://${var.environment}-turnrelay-oracle.jitsi.net/ --resolve "${var.environment}-turnrelay-oracle.jitsi.net:443:$1"
 if [ $? -ne 52 ]; then
   exit 1
 fi
