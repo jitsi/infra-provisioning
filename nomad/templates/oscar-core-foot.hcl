@@ -134,6 +134,7 @@ if [ $? -ne 52 ]; then
 fi
 EOH
         destination = "local/oscar_coturn_probe.sh"
+        perms = "755"
       }
       config {
         image = "cloudprober/cloudprober:${var.cloudprober_version}"
