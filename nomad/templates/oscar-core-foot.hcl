@@ -77,7 +77,7 @@ probe {
     mode: ONCE 
     command: "/bin/oscar_coturn_probe.sh @target@"
   }
-  interval_msec: 5000
+  interval_msec: 60000
   timeout_msec: 2000
 }
 EOH
@@ -128,7 +128,7 @@ if [ -z $1 ]; then
   exit 1
 fi
 
-curl https://${var.environment}-turnrelay-oracle.jitsi.net/ --resolve "${var.environment}-turnrelay-oracle.jitsi.net:443:$1"
+curl -s https://${var.environment}-turnrelay-oracle.jitsi.net/ --resolve "${var.environment}-turnrelay-oracle.jitsi.net:443:$1"
 if [ $? -ne 52 ]; then
   exit 1
 fi
