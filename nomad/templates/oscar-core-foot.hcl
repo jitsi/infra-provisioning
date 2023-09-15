@@ -71,7 +71,7 @@ probe {
   name: "coturn"
   type: EXTERNAL
   targets {
-    host_names: "{{ range $index, $service := service "coturn"}}{{ if gt $index 0 }},{{ end }}{{ .serviceMeta.public_ip }}{{ end }}"
+    host_names: "{{ range $index, $service := service "coturn"}}{{ if gt $index 0 }},{{ end }}{{ .ServiceMeta.public_ip }}{{ end }}"
   }
   external_probe {
     mode: ONCE 
