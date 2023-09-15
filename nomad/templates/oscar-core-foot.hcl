@@ -130,8 +130,10 @@ fi
 
 curl -s https://${var.environment}-turnrelay-oracle.jitsi.net/ --resolve "${var.environment}-turnrelay-oracle.jitsi.net:443:$1"
 if [ $? -ne 52 ]; then
+  echo "coturn_check_passed 0"
   exit 1
 fi
+echo "coturn_check_passed 1"
 EOH
         destination = "local/oscar_coturn_probe.sh"
         perms = "755"
