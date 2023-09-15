@@ -33,7 +33,7 @@ probe {
   }
   external_probe {
     mode: ONCE 
-    command: "/bin/oscar_probe.sh"
+    command: "/bin/oscar_haproxy_probe.sh"
   }
   interval_msec: 5000
   timeout_msec: 2000
@@ -66,6 +66,20 @@ probe {
   interval_msec: 60000
   timeout_msec: 2000
 }
+# probes coturn health in the local datacenter using public IP
+probe {
+  name: "coturn"
+  type: EXTERNAL
+  targets {
+    host_names: "{{ range $index, $service := service "coturn"}}{{ .serviceMeta.public_ip }},{{ end }}"
+  }
+  external_probe {
+    mode: ONCE 
+    command: "TARGET_IP=@target@ /bin/oscar_coturn_probe.sh"
+  }
+  interval_msec: 5000
+  timeout_msec: 2000
+}
 EOH
           destination = "local/cloudprober.cfg"
       }
@@ -85,9 +99,9 @@ EOH
         data = <<EOH
 #!/bin/sh
 
-DOMAIN=${var.domain} REGION=${var.region} /usr/bin/python3 /bin/oscar_probe.py
+DOMAIN=${var.domain} REGION=${var.region} /usr/bin/python3 /bin/oscar_haproxy_probe.py
 EOH
-        destination = "local/oscar_probe.sh"
+        destination = "local/oscar_haproxy_probe.sh"
         perms = "755"
       }
       template {
@@ -103,7 +117,18 @@ if req.headers['x-proxy-region'] == os.environ['REGION']:
 else:
     print("haproxy_region_check_passed 0")
 EOH
-        destination = "local/oscar_probe.py"
+        destination = "local/oscar_haproxy_probe.py"
+      }
+      template {
+        data = <<EOH
+#!/bin/sh
+
+curl https://meet-jit-si-turnrelay-oracle.jitsi.net/ --resolve "${var.environment}-turnrelay-oracle.jitsi.net:443:$TARGET_IP"
+if [ $? -ne 52 ]; then
+  exit 1
+fi
+EOH
+        destination = "local/oscar_coturn_probe.sh"
       }
       config {
         image = "cloudprober/cloudprober:${var.cloudprober_version}"
@@ -112,8 +137,9 @@ EOH
         volumes = [
           "local/cloudprober.cfg:/etc/cloudprober.cfg",
           "local/custom_init.sh:/bin/custom_init.sh",
-          "local/oscar_probe.sh:/bin/oscar_probe.sh",
-          "local/oscar_probe.py:/bin/oscar_probe.py"
+          "local/oscar_haproxy_probe.sh:/bin/oscar_haproxy_probe.sh",
+          "local/oscar_haproxy_probe.py:/bin/oscar_haproxy_probe.py"
+          "local/oscar_haproxy_probe.py:/bin/oscar_coturn_probe.py"
         ]
       }
       resources {
