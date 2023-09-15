@@ -144,7 +144,7 @@ EOH
           "local/custom_init.sh:/bin/custom_init.sh",
           "local/oscar_haproxy_probe.sh:/bin/oscar_haproxy_probe.sh",
           "local/oscar_haproxy_probe.py:/bin/oscar_haproxy_probe.py",
-          "local/oscar_haproxy_probe.py:/bin/oscar_coturn_probe.py"
+          "local/oscar_coturn_probe.sh:/bin/oscar_coturn_probe.sh"
         ]
       }
       resources {
