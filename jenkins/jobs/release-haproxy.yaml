@@ -27,6 +27,18 @@
           description: "Name of cloud to build in, for AWS"
           trim: true
       - string:
+          name: SHAPE
+          description: "Override CPU shape for HAProxy node. Can be VM.Standard.E3.Flex VM.Standard.E4.Flex or VM.Standard.A1.Flex"
+          trim: true
+      - string:
+          name: OCPUS
+          description: "Override HAProxy instance CPU count"
+          trim: true
+      - string:
+          name: MEMORY_IN_GBS
+          description: "Override HAProxy instance memory"
+          trim: true
+      - string:
           name: INFRA_CONFIGURATION_REPO
           default: git@github.com:jitsi/infra-configuration.git
           description: "Repo for configuration code (ansible etc), defaults to 'git@github.com:jitsi/infra-configuration.git'."
