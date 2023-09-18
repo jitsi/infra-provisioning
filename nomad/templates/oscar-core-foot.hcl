@@ -128,8 +128,9 @@ if [ -z $1 ]; then
   exit 1
 fi
 
-curl -s https://${var.environment}-turnrelay-oracle.jitsi.net/ --resolve "${var.environment}-turnrelay-oracle.jitsi.net:443:$1"
+OUT=$(curl -s https://${var.environment}-turnrelay-oracle.jitsi.net/ --resolve "${var.environment}-turnrelay-oracle.jitsi.net:443:$1")
 if [ $? -ne 52 ]; then
+  echo "coturn probe failed: CODE $1 OUT $OUT" 1>&2
   echo "coturn_check_passed 0"
   exit 1
 fi
