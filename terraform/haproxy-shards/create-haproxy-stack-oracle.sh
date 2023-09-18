@@ -30,10 +30,23 @@ fi
 ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 [ -e "$LOCAL_PATH/../../clouds/${ORACLE_CLOUD_NAME}.sh" ] && . $LOCAL_PATH/../../clouds/${ORACLE_CLOUD_NAME}.sh
 
+[ -z "$SHAPE" ] && SHAPE="$HAPROXY_SHAPE"
 [ -z "$SHAPE" ] && SHAPE="$DEFAULT_HAPROXY_SHAPE"
 
-[ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS="16"
-[ -z "$OCPUS" ] && OCPUS="2"
+if [[ "$SHAPE" == "VM.Standard.A1.Flex" ]]; then
+  [ -z "$OCPUS" ] && OCPUS=4
+  [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=16
+fi
+
+if [[ "$SHAPE" == "VM.Standard.E4.Flex" ]]; then
+  [ -z "$OCPUS" ] && OCPUS=2
+  [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=16
+fi
+
+if [[ "$SHAPE" == "VM.Standard.E3.Flex" ]]; then
+  [ -z "$OCPUS" ] && OCPUS=2
+  [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=16
+fi
 
 [ -z "$INSTANCE_POOL_SIZE" ] && INSTANCE_POOL_SIZE=2
 
