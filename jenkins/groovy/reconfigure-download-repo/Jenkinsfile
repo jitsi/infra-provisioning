@@ -47,6 +47,7 @@ pipeline {
                                 export ENVIRONMENT="torture-test" 
                                 export OPS_REPO_BUCKET="download-repo"
                                 export OPS_REPO_MOUNT_PATH="/mnt/download-repo"                                
+                                mkdir -p /mnt/download-repo
                                 scripts/update-ops-repo.sh
                                 exit $?'''
                           }
