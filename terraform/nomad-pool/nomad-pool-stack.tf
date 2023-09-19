@@ -44,10 +44,18 @@ variable "alt_certificate_ca_certificate" {}
 variable "alt_certificate_private_key" {}
 variable "alt_certificate_public_certificate" {}
 
+variable "org_certificate_certificate_name" {}
+variable "org_certificate_ca_certificate" {}
+variable "org_certificate_private_key" {}
+variable "org_certificate_public_certificate" {}
+
 variable "lb_hostnames" {
     type = list(string)
 }
 variable "alt_hostnames" {
+    type = list(string)
+}
+variable "org_hostnames" {
     type = list(string)
 }
 
@@ -307,6 +315,19 @@ resource "oci_load_balancer_hostname" "alt_hostnames" {
     }
 }
 
+resource "oci_load_balancer_hostname" "org_hostnames" {
+    #Required
+    for_each = toset(var.org_hostnames)
+    hostname = each.key
+    load_balancer_id = oci_load_balancer.public_oci_load_balancer.id
+    name = each.key
+
+    #Optional
+    lifecycle {
+        create_before_destroy = true
+    }
+}
+
 resource "oci_load_balancer_certificate" "main_certificate" {
     #Required
     certificate_name = var.certificate_certificate_name
@@ -344,6 +365,21 @@ resource "oci_load_balancer_certificate" "alt_certificate" {
     ca_certificate = var.alt_certificate_ca_certificate
     private_key = var.alt_certificate_private_key
     public_certificate = var.alt_certificate_public_certificate
+
+    lifecycle {
+        create_before_destroy = true
+    }
+}
+
+
+resource "oci_load_balancer_certificate" "org_certificate" {
+    #Required
+    certificate_name = var.org_certificate_certificate_name
+    load_balancer_id = oci_load_balancer.public_oci_load_balancer.id
+
+    ca_certificate = var.org_certificate_ca_certificate
+    private_key = var.org_certificate_private_key
+    public_certificate = var.org_certificate_public_certificate
 
     lifecycle {
         create_before_destroy = true
@@ -414,6 +450,21 @@ resource "oci_load_balancer_listener" "alt_listener" {
   ssl_configuration {
       #Optional
       certificate_name = oci_load_balancer_certificate.alt_certificate.certificate_name
+      verify_peer_certificate = false
+  }
+}
+
+resource "oci_load_balancer_listener" "org_listener" {
+  load_balancer_id = oci_load_balancer.public_oci_load_balancer.id
+  name = "NomadOrgListener"
+  port = 443
+  default_backend_set_name = oci_load_balancer_backend_set.oci_load_balancer_public_bs.name
+  protocol = "HTTP"
+  hostname_names = [ for k,v in oci_load_balancer_hostname.org_hostnames : v.name ]
+
+  ssl_configuration {
+      #Optional
+      certificate_name = oci_load_balancer_certificate.org_certificate.certificate_name
       verify_peer_certificate = false
   }
 }
