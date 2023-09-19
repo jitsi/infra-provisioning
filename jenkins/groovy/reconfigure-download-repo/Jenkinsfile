@@ -46,7 +46,8 @@ pipeline {
                                 cp $OPS_REPO_SECRING_PASSPHRASE_PATH /home/jenkins/jitsi/gnupg-jitsi/passphrase
                                 export ENVIRONMENT="torture-test" 
                                 export OPS_REPO_BUCKET="download-repo"
-                                export OPS_REPO_MOUNT_PATH="/mnt/download-repo"                                
+                                export OPS_REPO_MOUNT_PATH="/mnt/download-repo"
+                                export REPO_PATH="/mnt/download-repo/repo"
                                 mkdir -p /mnt/download-repo
                                 scripts/update-ops-repo.sh
                                 exit $?'''
