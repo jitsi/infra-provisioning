@@ -157,9 +157,9 @@ export TF_VAR_certificate_ca_certificate="$CA_CERTIFICATE"
 export TF_VAR_alt_certificate_public_certificate="$ALT_PUBLIC_CERTIFICATE"
 export TF_VAR_alt_certificate_private_key="$ALT_PRIVATE_KEY"
 export TF_VAR_alt_certificate_ca_certificate="$ALT_CA_CERTIFICATE"
-export TF_VAR_org_certificate_public_certificate="$ALT_PUBLIC_CERTIFICATE"
-export TF_VAR_org_certificate_private_key="$ALT_PRIVATE_KEY"
-export TF_VAR_org_certificate_ca_certificate="$ALT_CA_CERTIFICATE"
+export TF_VAR_org_certificate_public_certificate="$ORG_PUBLIC_CERTIFICATE"
+export TF_VAR_org_certificate_private_key="$ORG_PRIVATE_KEY"
+export TF_VAR_org_certificate_ca_certificate="$ORG_CA_CERTIFICATE"
 set -x
 
 
