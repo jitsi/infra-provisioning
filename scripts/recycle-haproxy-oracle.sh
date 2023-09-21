@@ -70,7 +70,7 @@ function scale_up_haproxy_oracle() {
   fi
 
   echo "## wait for all haproxy load balancers to report healthy"
-  ENVIRONMENT=$ENVIRONMENT ROLE=haproxy $LOCAL_PATH/pool.py lb_health --timeout 15
+  ENVIRONMENT=$ENVIRONMENT ROLE=haproxy $LOCAL_PATH/pool.py lb_health --timeout 20
   POOL_RET=$?
   if [ $POOL_RET -gt 0 ]; then
     echo "## reload-haproxy: at least one haproxy load balancer failed to go healthy, EXITING WITHOUT SETTING HEALTHY"
