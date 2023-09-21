@@ -78,7 +78,7 @@ ansible-playbook --verbose ansible/haproxy-status.yml --extra-vars "hcv_environm
 -i $ANSIBLE_INVENTORY \
 -e "ansible_ssh_user=$ANSIBLE_SSH_USER" \
 -e "hcv_haproxy_status_ignore_lock=$HAPROXY_STATUS_IGNORE_LOCK" \
---tags "$DEPLOY_TAGS" > $HAPROXY_STATUS_OUTPUT/ansible.out 2>&1
+--tags "$DEPLOY_TAGS" #> $HAPROXY_STATUS_OUTPUT/ansible.out 2>&1
 if [ $? -ne 0 ]; then
     echo "## $(date +%Y-%m-%dT%H:%M:%S) ERROR: haproxy-status.yml run failed"
     exit 2
