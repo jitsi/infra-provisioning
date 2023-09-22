@@ -37,8 +37,10 @@ pipeline {
                   string(credentialsId: 'asap-client-jwt-kid-meet', variable: 'ASAP_CLIENT_JWT_KID_MEET'),
                   string(credentialsId: 'asap-client-jwt-kid-beta', variable: 'ASAP_CLIENT_JWT_KID_BETA'),
                   string(credentialsId: 'asap-client-jwt-kid-prod', variable: 'ASAP_CLIENT_JWT_KID_PROD'),
+                  string(credentialsId: 'asap-client-jwt-kid-stage', variable: 'ASAP_CLIENT_JWT_KID_STAGE'),
                   file(credentialsId: 'asap-client-jwt-key-meet', variable: 'ASAP_CLIENT_JWT_KEY_MEET'),
                   file(credentialsId: 'asap-client-jwt-key-prod', variable: 'ASAP_CLIENT_JWT_KEY_PROD'),
+                  file(credentialsId: 'asap-client-jwt-key-stage', variable: 'ASAP_CLIENT_JWT_KEY_STAGE'),
                   file(credentialsId: 'asap-client-jwt-key-beta', variable: 'ASAP_CLIENT_JWT_KEY_BETA')
               ]) {
                 sh """#!/bin/bash
