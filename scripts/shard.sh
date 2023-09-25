@@ -33,6 +33,7 @@ function list() {
         CONSUL_INCLUDE_AWS="$CONSUL_INCLUDE_AWS" CONSUL_INCLUDE_OCI="$CONSUL_INCLUDE_OCI" RELEASE_INVERSE="$RELEASE_INVERSE" RELEASE_NUMBER="$RELEASE_NUMBER" ENVIRONMENT="$ENVIRONMENT" DISPLAY="shards" SERVICE="signal" $LOCAL_PATH/consul-search.sh $ANSIBLE_SSH_USER
     else
         [ ! -z "$RELEASE_NUMBER" ] && RELEASE_PARAM="--release $RELEASE_NUMBER"
+        ## TODO: add region into here
         $LOCAL_PATH/shard.py --environment=$ENVIRONMENT --list $RELEASE_PARAM
     fi
 }
