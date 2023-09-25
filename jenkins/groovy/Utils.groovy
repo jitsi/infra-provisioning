@@ -13,8 +13,8 @@ def SplitClouds(shard_environment,cloud_names) {
 }
 
 def SplitNomadRegions(environment,region_names) {
-    if !region_names {
-        region_names regions = sh(
+    if (!region_names) {
+        region_names = sh(
             returnStdout: true,
             script: """#!/bin/bash
 LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
@@ -22,7 +22,7 @@ source "$LOCAL_PATH/../sites/${ENVIRONMENT}/stack-env.sh"
 echo $NOMAD_REGIONS"""
         ).trim()
     }
-    if !region_names {
+    if (!region_names) {
         error("no nomad region_names entered or in stack-env.sh")
     }
 
