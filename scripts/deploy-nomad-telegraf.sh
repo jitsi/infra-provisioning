@@ -39,6 +39,8 @@ if [ -z "$WAVEFRONT_PROXY_URL" ]; then
     echo "$WAVEFRONT_PROXY_URL" | grep -q "https"
     if [[ $? -gt 0 ]]; then
         WAVEFRONT_PROXY_URL="http://$WAVEFRONT_PROXY_URL:2878"
+    else
+        WAVEFRONT_PROXY_URL="$WAVEFRONT_PROXY_URL:443"
     fi
 fi
 
