@@ -17,8 +17,7 @@ def SplitNomadRegions(environment,region_names) {
         region_names = sh(
             returnStdout: true,
             script: """#!/bin/bash
-LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
-source "$LOCAL_PATH/../sites/${ENVIRONMENT}/stack-env.sh"
+. ./sites/${environment}/stack-env.sh"
 echo $NOMAD_REGIONS"""
         ).trim()
     }
