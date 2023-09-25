@@ -66,9 +66,10 @@ job "[JOB_NAME]" {
           data = <<EORC
 maxmemory {{ env "NOMAD_MEMORY_LIMIT" | parseInt | subtract 16 }}mb
 save 60 1
-  EORC
-          destination   = "local/redis.conf"
-        }
+loglevel warning
+EORC
+        destination   = "local/redis.conf"
+      }
 
         resources {
           cpu    = 500
@@ -82,10 +83,13 @@ save 60 1
           image = "aaronkvanmeerten/resec"
         }
 
-        env {
-          CONSUL_HTTP_ADDR = "http://${attr.unique.network.ip-address}:8500"
-          REDIS_ADDR = "${NOMAD_ADDR_redis_db}"
-        }
+      env {
+        CONSUL_HTTP_ADDR = "http://${attr.unique.network.ip-address}:8500"
+        REDIS_ADDR = "${NOMAD_ADDR_redis_db}"
+        CONSUL_SERVICE_NAME = "resec-redis"
+        MASTER_TAGS = "master"
+        SLAVE_TAGS = "readonly"
+      }
 
         resources {
           cpu    = 100
