@@ -177,14 +177,11 @@
     "total_time_spent_ns": 0
   },
   "PacketCacher": {
-    "PacketCache": {
-      "_aggregates": 0,
-      "numHits": 0,
-      "numInserts": 0,
-      "numMisses": 0,
-      "numOldInserts": 0,
-      "numRequests": 0
-    },
+    "numHits": 0,
+    "numInserts": 0,
+    "numMisses": 0,
+    "numOldInserts": 0,
+    "numRequests": 0,
     "_aggregates": 0,
     "duration_ms": 0,
     "num_discarded_packets": 0,
