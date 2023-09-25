@@ -39,6 +39,10 @@
           default: false
           description: "Flag to control whether to force image builds if a matching image exists"
       - string:
+          name: SHAPE
+          description: "VM Instance shape for jigasi"
+          trim: true
+      - string:
           name: INFRA_CONFIGURATION_REPO
           default: git@github.com:jitsi/infra-configuration.git
           description: "Repo for configuration code (ansible etc), defaults to 'git@github.com:jitsi/infra-configuration.git'."

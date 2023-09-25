@@ -18,6 +18,10 @@
           description: "GRID_NAME tag used to differentiate grids"
           trim: true
       - string:
+          name: SELENIUM_GRID_NOMAD_ENABLED
+          description: "Set to 'true' to force nomad style grid"
+          trim: true
+      - string:
           name: LB_WHITELIST
           description: "default is [\"10.0.0.0/8\"]"
           trim: true

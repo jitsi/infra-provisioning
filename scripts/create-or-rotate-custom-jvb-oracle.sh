@@ -47,8 +47,14 @@ ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 #if we're not given versions, search for the latest of each type of image
 [ -z "$JVB_VERSION" ] && JVB_VERSION='latest'
 
+# first check E4 flag
 if [ "$ENABLE_E_4" == "true" ]; then
   JVB_SHAPE="$SHAPE_E_4"
+fi
+
+# use A1 if configured
+if [ "$ENABLE_A_1" == "true" ]; then
+  JVB_SHAPE="$SHAPE_A_1"
 fi
 
 [ -z "$SHAPE" ] && SHAPE="$JVB_SHAPE"
@@ -109,6 +115,11 @@ if [[ "$SHAPE" == "VM.Standard.E4.Flex" ]]; then
   [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=16
 fi
 
+if [[ "$SHAPE" == "VM.Standard.A1.Flex" ]]; then
+  [ -z "$OCPUS" ] && OCPUS=8
+  [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=16
+fi
+
 if [[ "$SHAPE" == "VM.Standard.E3.Flex" ]]; then
   [ -z "$OCPUS" ] && OCPUS=4
   [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=16
@@ -137,9 +148,9 @@ elif [ "$getGroupHttpCode" == 200 ]; then
     exit 206
   fi
 
-  [ -z "$PROTECTED_INSTANCES_COUNT" ] && PROTECTED_INSTANCES_COUNT=$(echo "$instanceGroupDetails" | jq -r ."instanceGroup.scalingOptions.minDesired")
+  [ -z "$PROTECTED_INSTANCES_COUNT" ] && PROTECTED_INSTANCES_COUNT=$(echo "$instanceGroupDetails" | jq -r ."instanceGroup.scalingOptions.desiredCount")
   if [ -z "$PROTECTED_INSTANCES_COUNT" ]; then
-    echo "Something went wrong, could not extract PROTECTED_INSTANCES_COUNT from instanceGroup.scalingOptions.minDesired";
+    echo "Something went wrong, could not extract PROTECTED_INSTANCES_COUNT from instanceGroup.scalingOptions.desiredCount";
     exit 208
   fi
 

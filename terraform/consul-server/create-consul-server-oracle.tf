@@ -259,6 +259,37 @@ resource "oci_core_network_security_group_security_rule" "consul_nsg_rule_ingres
     }
   }
 }
+
+resource "oci_core_network_security_group_security_rule" "nsg_rule_ingress_nomad_ephemeral_tcp" {
+  network_security_group_id = oci_core_network_security_group.consul_security_group.id
+  direction = "INGRESS"
+  protocol = "6"
+  source = var.ingress_cidr
+  stateless = false
+
+  tcp_options {
+    destination_port_range {
+      min = 20000
+      max = 32000
+    }
+  }
+}
+
+resource "oci_core_network_security_group_security_rule" "nsg_rule_ingress_nomad_ephemeral_udp" {
+  network_security_group_id = oci_core_network_security_group.consul_security_group.id
+  direction = "INGRESS"
+  protocol = "17"
+  source = var.ingress_cidr
+  stateless = false
+
+  udp_options {
+    destination_port_range {
+      min = 20000
+      max = 32000
+    }
+  }
+}
+
 resource "oci_core_instance_configuration" "oci_instance_configuration_a" {
   compartment_id = var.compartment_ocid
   display_name = var.instance_config_name
@@ -297,6 +328,7 @@ resource "oci_core_instance_configuration" "oci_instance_configuration_a" {
         configuration_repo = var.infra_configuration_repo
         customizations_repo = var.infra_customizations_repo
         shape = var.shape
+        "group-index" = "0"
       }
     }
   }
@@ -336,6 +368,12 @@ resource "oci_core_instance_configuration" "oci_instance_configuration_b" {
       }
 
       metadata = local.common_metadata
+      freeform_tags = {
+        configuration_repo = var.infra_configuration_repo
+        customizations_repo = var.infra_customizations_repo
+        shape = var.shape
+        "group-index" = "1"
+      }
     }
   }
 }
@@ -374,6 +412,12 @@ resource "oci_core_instance_configuration" "oci_instance_configuration_c" {
       }
 
       metadata = local.common_metadata
+      freeform_tags = {
+        configuration_repo = var.infra_configuration_repo
+        customizations_repo = var.infra_customizations_repo
+        shape = var.shape
+        "group-index" = "2"
+      }
     }
   }
 }

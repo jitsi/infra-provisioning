@@ -14,6 +14,7 @@
       driver = "docker"
       template {
           data = <<EOH
+# probes ops-repo health
 probe {
   name: "ops-repo"
   type: HTTP
@@ -27,6 +28,20 @@ probe {
     protocol: HTTPS
     relative_url: "/health"
   }
+}
+# probes wavefront-proxy health in the local datacenter
+probe {
+  name: "wfproxy"
+  type: HTTP
+  targets {
+    host_names: "${var.environment}-${var.region}-wfproxy.${var.top_level_domain}"
+  }
+  http_probe {
+    protocol: HTTPS
+    relative_url: "/status"
+  }
+  interval_msec: 60000
+  timeout_msec: 2000
 }
 EOH
           destination = "local/cloudprober.cfg"

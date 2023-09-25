@@ -55,6 +55,7 @@ if [[ "$NOMAD_COTURN_FLAG" == "null" ]]; then
 fi
 
 if [[ "$NOMAD_COTURN_FLAG" == "true" ]]; then
+  SHAPE="VM.Standard.A1.Flex"
   COTURN_IMAGE_TYPE="JammyBase"
   # with coturn in nomad, wait 5 minutes in between rotating instances
   [ -z "$STARTUP_GRACE_PERIOD_SECONDS" ] && STARTUP_GRACE_PERIOD_SECONDS=300

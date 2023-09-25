@@ -46,7 +46,8 @@ fi
 
 if [ "$SKIP_BUILD_CACHE" != "true" ]; then
     # build the cache
-    PROXIES=$($LOCAL_PATH/node.py --environment=$ENVIRONMENT --role=HAProxy --batch --oracle --region all)
+    PROXIES="$(SERVICE="haproxy" DISPLAY="addresses" $LOCAL_PATH/consul-search.sh ubuntu)"
+
     if [ $? == 0 ] && [ ! -z "$PROXIES" ]; then
         echo "## haproxy-buildcache: building ${HAPROXY_CACHE}"
         echo '[tag_shard_role_haproxy]' > $HAPROXY_CACHE; 

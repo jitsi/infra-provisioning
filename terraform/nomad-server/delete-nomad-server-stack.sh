@@ -31,23 +31,17 @@ fi
 [ -z "$NAME" ] && NAME="$ENVIRONMENT-$ORACLE_REGION-$ROLE-$POOL_TYPE"
 [ -z "$ORACLE_GIT_BRANCH" ] && ORACLE_GIT_BRANCH="master"
 
+[ -e "$LOCAL_PATH/../clouds/all.sh" ] && . "$LOCAL_PATH/../clouds/all.sh"
 [ -e "$LOCAL_PATH/../clouds/oracle.sh" ] && . $LOCAL_PATH/../clouds/oracle.sh
 
 ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 [ -e "$LOCAL_PATH/../clouds/${ORACLE_CLOUD_NAME}.sh" ] && . $LOCAL_PATH/../clouds/${ORACLE_CLOUD_NAME}.sh
 
-# find servers and shutdown nomad and consul
-NOMAD_IPS=$($LOCAL_PATH/../../node.py --role $ROLE --region $ORACLE_REGION --environment $ENVIRONMENT --batch)
-if [ ! -z "$NOMAD_IPS" ]; then
-    echo "Found nomad instances in $ENVIRONMENT $ORACLE_REGION: $NOMAD_IPS"
-    for IP in $NOMAD_IPS; do
-        ssh -F $LOCAL_PATH/../../../ssh.config $SSH_USER@$IP "sudo service nomad stop && sudo service consul stop"
-        if [ $? -eq 0 ]; then
-            echo "nomad and consul stopped on instances for: $IP"
-        else
-            echo "ERROR stopping nomad, recreating this stack cause weird behavior for 3 days, unless the servers are removed from consul"
-        fi
-    done
+[ -z "$LOCAL_REGION" ] && LOCAL_REGION="$OCI_LOCAL_REGION"
+[ -z "$LOCAL_REGION" ] && LOCAL_REGION="us-phoenix-1"
+
+if [ -z "$NOMAD_ADDR" ]; then
+    export NOMAD_ADDR="https://$ENVIRONMENT-$LOCAL_REGION-nomad.$TOP_LEVEL_DNS_ZONE_NAME"
 fi
 
 [ -z "$S3_PROFILE" ] && S3_PROFILE="oracle"

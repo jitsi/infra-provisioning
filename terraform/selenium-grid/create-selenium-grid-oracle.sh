@@ -35,8 +35,8 @@ ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 
 [ -z "$SHAPE" ] && SHAPE="$DEFAULT_SELENIUM_GRID_SHAPE"
 
-[ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS="16"
-[ -z "$OCPUS" ] && OCPUS="4"
+[ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS="8"
+[ -z "$OCPUS" ] && OCPUS="2"
 
 [ -z "$INSTANCE_POOL_SIZE" ] && INSTANCE_POOL_SIZE=2
 
@@ -56,6 +56,9 @@ RESOURCE_NAME_ROOT="$NAME"
 [ -z "$DNS_NAME" ] && DNS_NAME="$RESOURCE_NAME_ROOT.$DNS_ZONE_NAME"
 
 [ -z "$LOAD_BALANCER_SHAPE" ] && LOAD_BALANCER_SHAPE="100Mbps"
+
+[ -z "$SELENIUM_GRID_NOMAD_ENABLED" ] && SELENIUM_GRID_NOMAD_ENABLED="$SELENIUM_GRID_NOMAD_FLAG"
+[ -z "$SELENIUM_GRID_NOMAD_ENABLED" ] && SELENIUM_GRID_NOMAD_ENABLED="false"
 
 # run as user
 if [ -z "$1" ]; then
@@ -81,7 +84,13 @@ S3_STATE_BASE="$ENVIRONMENT/grid/$GRID_NAME/components"
 
 arch_from_shape $SHAPE
 
-[ -z "$IMAGE_OCID" ] && IMAGE_OCID=$($LOCAL_PATH/../../scripts/oracle_custom_images.py --type SeleniumGrid --architecture "$IMAGE_ARCH" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
+if [[ "$SELENIUM_GRID_NOMAD_ENABLED" == "true" ]]; then
+  IMAGE_TYPE="JammyBase"
+else
+  IMAGE_TYPE="SeleniumGrid"
+fi
+
+[ -z "$IMAGE_OCID" ] && IMAGE_OCID=$($LOCAL_PATH/../../scripts/oracle_custom_images.py --type $IMAGE_TYPE --architecture "$IMAGE_ARCH" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
 if [ -z "$IMAGE_OCID" ]; then
   echo "No IMAGE_OCID found.  Exiting..."
   exit 210
@@ -101,7 +110,11 @@ TF_GLOBALS_CHDIR=
 TF_GLOBALS_CHDIR_SG=
 TF_GLOBALS_CHDIR_LB=
 if [[ "$TERRAFORM_MAJOR_VERSION" == "v1" ]]; then
-  TF_GLOBALS_CHDIR="-chdir=$LOCAL_PATH//instance-pool"
+  if [[ "$SELENIUM_GRID_NOMAD_ENABLED" == "true" ]]; then
+    TF_GLOBALS_CHDIR="-chdir=$LOCAL_PATH//instance-pool-nomad"
+  else
+    TF_GLOBALS_CHDIR="-chdir=$LOCAL_PATH//instance-pool"
+  fi
   TF_GLOBALS_CHDIR_SG="-chdir=$LOCAL_PATH/security-group"
   TF_GLOBALS_CHDIR_LB="-chdir=$LOCAL_PATH/load-balancer"
   TF_CLI_ARGS=""
@@ -109,7 +122,11 @@ if [[ "$TERRAFORM_MAJOR_VERSION" == "v1" ]]; then
   TF_POST_PARAMS_SG=
   TF_POST_PARAMS_LB=
 else
-  TF_POST_PARAMS="$LOCAL_PATH//instance-pool"
+  if [[ "$SELENIUM_GRID_NOMAD_ENABLED" == "true" ]]; then
+    TF_POST_PARAMS="$LOCAL_PATH//instance-pool-nomad"
+  else
+    TF_POST_PARAMS="$LOCAL_PATH//instance-pool"
+  fi
   TF_POST_PARAMS_SG="$LOCAL_PATH/security-group"
   TF_POST_PARAMS_LB="$LOCAL_PATH/load-balancer"
 fi
@@ -182,85 +199,91 @@ if [ -z "$NODE_SECURITY_GROUP_ID" ]; then
   exit 2
 fi
 
-# next step is the load balancer and associated backend set
-# 35.163.97.98 - ci.jitsi.org
-# 52.41.182.55 - jenkins.jitsi.net
-[ -z "$LB_WHITELIST" ] && LB_WHITELIST='["10.0.0.0/8","35.163.97.98/32","52.41.182.55/32"]'
-
-[ -z "$S3_STATE_KEY_LB" ] && S3_STATE_KEY_LB="${S3_STATE_BASE}/terraform-lb.tfstate"
-
-LOCAL_LB_KEY="terraform-lb.tfstate"
-RUN_TF=false
-oci os object get --bucket-name $S3_STATE_BUCKET --name $S3_STATE_KEY_LB --region $ORACLE_REGION --file $LOCAL_LB_KEY
-if [ $? -eq 0 ]; then
-  RESOURCES=$(cat $LOCAL_LB_KEY | jq -r '.resources|length')
-  if [[ "$RESOURCES" -eq 0 ]]; then
-    RUN_TF=true
-  else
-    if [[ "$UPGRADE_GRID" == "true" ]]; then
-      echo "UPGRADE_GRID set, updating load balancer"
-      RUN_TF=true
-    else
-      echo "Using existing tfstate file for load balancer"
-    fi
-  fi
+if [[ "$SELENIUM_GRID_NOMAD_ENABLED" == "true" ]]; then
+  echo "Skipping load balancer for nomad selenium grid"
 else
-    RUN_TF=true
-fi
-if $RUN_TF; then
-  terraform $TF_GLOBALS_CHDIR_LB init \
-    -backend-config="bucket=$S3_STATE_BUCKET" \
-    -backend-config="key=$S3_STATE_KEY_LB" \
-    -backend-config="region=$ORACLE_REGION" \
-    -backend-config="profile=$S3_PROFILE" \
-    -backend-config="endpoint=$S3_ENDPOINT" \
-    -reconfigure $TF_POST_PARAMS_LB
+  # next step is the load balancer and associated backend set
+  # 35.163.97.98 - ci.jitsi.org
+  # 52.41.182.55 - jenkins.jitsi.net
+  # 129.146.35.175 - jenkins-ops.jitsi.net
+  # 129.146.91.164 - alpha.jitsi.net
+  [ -z "$LB_WHITELIST" ] && LB_WHITELIST='["10.0.0.0/8","35.163.97.98/32","52.41.182.55/32","129.146.35.175/32","129.146.91.164/32"]'
 
-  terraform $TF_GLOBALS_CHDIR_LB apply \
-    -var="vcn_name=$VCN_NAME" \
-    -var="load_balancer_shape=$LOAD_BALANCER_SHAPE" \
-    -var="resource_name_root=$RESOURCE_NAME_ROOT" \
-    -var="oracle_region=$ORACLE_REGION" \
-    -var="tenancy_ocid=$TENANCY_OCID" \
-    -var="compartment_ocid=$COMPARTMENT_OCID" \
-    -var="subnet_ocid=$PUBLIC_SUBNET_OCID" \
-    -var="dns_zone_name=$DNS_ZONE_NAME" \
-    -var="dns_name=$DNS_NAME" \
-    -var="dns_compartment_ocid=$TENANCH_OCID" \
-    -var="whitelist=$LB_WHITELIST" \
-    -var="role=$ROLE" \
-    -var="grid_name=$GRID_NAME" \
-    -var="environment=$ENVIRONMENT" \
-    -var="tag_namespace=$TAG_NAMESPACE" \
-    -auto-approve $TF_POST_PARAMS_LB
+  [ -z "$S3_STATE_KEY_LB" ] && S3_STATE_KEY_LB="${S3_STATE_BASE}/terraform-lb.tfstate"
 
+  LOCAL_LB_KEY="terraform-lb.tfstate"
+  RUN_TF=false
   oci os object get --bucket-name $S3_STATE_BUCKET --name $S3_STATE_KEY_LB --region $ORACLE_REGION --file $LOCAL_LB_KEY
   if [ $? -eq 0 ]; then
-    echo "Using new load balancer bucket state file generated from terraform apply"
+    RESOURCES=$(cat $LOCAL_LB_KEY | jq -r '.resources|length')
+    if [[ "$RESOURCES" -eq 0 ]]; then
+      RUN_TF=true
+    else
+      if [[ "$UPGRADE_GRID" == "true" ]]; then
+        echo "UPGRADE_GRID set, updating load balancer"
+        RUN_TF=true
+      else
+        echo "Using existing tfstate file for load balancer"
+      fi
+    fi
   else
-    echo "Failure fetching newly applied terraform state, load balancers may not be defined properly below"
+      RUN_TF=true
   fi
-fi
+  if $RUN_TF; then
+    terraform $TF_GLOBALS_CHDIR_LB init \
+      -backend-config="bucket=$S3_STATE_BUCKET" \
+      -backend-config="key=$S3_STATE_KEY_LB" \
+      -backend-config="region=$ORACLE_REGION" \
+      -backend-config="profile=$S3_PROFILE" \
+      -backend-config="endpoint=$S3_ENDPOINT" \
+      -reconfigure $TF_POST_PARAMS_LB
 
-LOAD_BALANCER_ID="$(cat $LOCAL_LB_KEY | jq -r '.resources[]
-    | select(.type == "oci_load_balancer")
-    | .instances[]
-    | select(.attributes.display_name == "'$RESOURCE_NAME_ROOT'-LoadBalancer")
-    | .attributes.id')"
-BACKEND_SET_NAME="$(cat $LOCAL_LB_KEY | jq -r '.resources[]
-    | select(.type == "oci_load_balancer_backend_set")
-    | .instances[]
-    | .attributes.name')"
+    terraform $TF_GLOBALS_CHDIR_LB apply \
+      -var="vcn_name=$VCN_NAME" \
+      -var="load_balancer_shape=$LOAD_BALANCER_SHAPE" \
+      -var="resource_name_root=$RESOURCE_NAME_ROOT" \
+      -var="oracle_region=$ORACLE_REGION" \
+      -var="tenancy_ocid=$TENANCY_OCID" \
+      -var="compartment_ocid=$COMPARTMENT_OCID" \
+      -var="subnet_ocid=$PUBLIC_SUBNET_OCID" \
+      -var="dns_zone_name=$DNS_ZONE_NAME" \
+      -var="dns_name=$DNS_NAME" \
+      -var="dns_compartment_ocid=$TENANCH_OCID" \
+      -var="whitelist=$LB_WHITELIST" \
+      -var="role=$ROLE" \
+      -var="grid_name=$GRID_NAME" \
+      -var="environment=$ENVIRONMENT" \
+      -var="tag_namespace=$TAG_NAMESPACE" \
+      -auto-approve $TF_POST_PARAMS_LB
 
-if [ -z "$LOAD_BALANCER_ID" ]; then
-  echo "LOAD_BALANCER_ID failed to be found or created, exiting..."
-  exit 3
-fi
-if [ -z "$BACKEND_SET_NAME" ]; then
-  echo "BACKEND_SET_NAME failed to be found or created, exiting..."
-  exit 4
-fi
+    oci os object get --bucket-name $S3_STATE_BUCKET --name $S3_STATE_KEY_LB --region $ORACLE_REGION --file $LOCAL_LB_KEY
+    if [ $? -eq 0 ]; then
+      echo "Using new load balancer bucket state file generated from terraform apply"
+    else
+      echo "Failure fetching newly applied terraform state, load balancers may not be defined properly below"
+    fi
+  fi
 
+  LOAD_BALANCER_ID="$(cat $LOCAL_LB_KEY | jq -r '.resources[]
+      | select(.type == "oci_load_balancer")
+      | .instances[]
+      | select(.attributes.display_name == "'$RESOURCE_NAME_ROOT'-LoadBalancer")
+      | .attributes.id')"
+  BACKEND_SET_NAME="$(cat $LOCAL_LB_KEY | jq -r '.resources[]
+      | select(.type == "oci_load_balancer_backend_set")
+      | .instances[]
+      | .attributes.name')"
+
+  if [ -z "$LOAD_BALANCER_ID" ]; then
+    echo "LOAD_BALANCER_ID failed to be found or created, exiting..."
+    exit 3
+  fi
+  if [ -z "$BACKEND_SET_NAME" ]; then
+    echo "BACKEND_SET_NAME failed to be found or created, exiting..."
+    exit 4
+  fi
+
+fi
 
 
 [ -z "$S3_STATE_KEY_IP" ] && S3_STATE_KEY_IP="${S3_STATE_BASE}/terraform-ip.tfstate"
@@ -294,46 +317,77 @@ if $RUN_TF; then
 
   [ -z "$ACTION" ] && ACTION="apply"
 
-if [[ "$ACTION" == "apply" ]]; then
-  ACTION_POST_PARAMS="-auto-approve"
-fi
-if [[ "$ACTION" == "import" ]]; then
-  ACTION_POST_PARAMS="$1 $2"
-fi
+  if [[ "$ACTION" == "apply" ]]; then
+    ACTION_POST_PARAMS="-auto-approve"
+  fi
+  if [[ "$ACTION" == "import" ]]; then
+    ACTION_POST_PARAMS="$1 $2"
+  fi
 
-terraform $TF_GLOBALS_CHDIR $ACTION \
-    -var="environment=$ENVIRONMENT" \
-    -var="name=$NAME" \
-    -var="oracle_region=$ORACLE_REGION" \
-    -var="availability_domains=$AVAILABILITY_DOMAINS" \
-    -var="vcn_name=$VCN_NAME" \
-    -var="role=$ROLE" \
-    -var="grid_name=$GRID_NAME" \
-    -var="git_branch=$ORACLE_GIT_BRANCH" \
-    -var="tenancy_ocid=$TENANCY_OCID" \
-    -var="compartment_ocid=$COMPARTMENT_OCID" \
-    -var="resource_name_root=$RESOURCE_NAME_ROOT" \
-    -var="subnet_ocid=$NAT_SUBNET_OCID" \
-    -var="instance_pool_size=$INSTANCE_POOL_SIZE" \
-    -var="shape=$SHAPE" \
-    -var="image_ocid=$IMAGE_OCID" \
-    -var="hub_security_group_id=$HUB_SECURITY_GROUP_ID" \
-    -var="node_security_group_id=$NODE_SECURITY_GROUP_ID" \
-    -var="user_public_key_path=$USER_PUBLIC_KEY_PATH" \
-    -var="memory_in_gbs=$MEMORY_IN_GBS" \
-    -var="ocpus=$OCPUS" \
-    -var="environment_type=$ENVIRONMENT_TYPE" \
-    -var="tag_namespace=$TAG_NAMESPACE" \
-    -var="jitsi_tag_namespace=$JITSI_TAG_NAMESPACE" \
-    -var="user=$SSH_USER" \
-    -var="user_private_key_path=$USER_PRIVATE_KEY_PATH" \
-    -var="postinstall_status_file=$POSTINSTALL_STATUS_FILE" \
-    -var="load_balancer_bs_name=$BACKEND_SET_NAME" \
-    -var="load_balancer_id=$LOAD_BALANCER_ID" \
-    -var "infra_configuration_repo=$INFRA_CONFIGURATION_REPO" \
-    -var "infra_customizations_repo=$INFRA_CUSTOMIZATIONS_REPO" \
-    $ACTION_POST_PARAMS $TF_POST_PARAMS
-
+  if [[ "$SELENIUM_GRID_NOMAD_ENABLED" == "true" ]]; then
+    terraform $TF_GLOBALS_CHDIR $ACTION \
+        -var="environment=$ENVIRONMENT" \
+        -var="name=$NAME" \
+        -var="oracle_region=$ORACLE_REGION" \
+        -var="availability_domains=$AVAILABILITY_DOMAINS" \
+        -var="vcn_name=$VCN_NAME" \
+        -var="role=$ROLE" \
+        -var="grid_name=$GRID_NAME" \
+        -var="git_branch=$ORACLE_GIT_BRANCH" \
+        -var="tenancy_ocid=$TENANCY_OCID" \
+        -var="compartment_ocid=$COMPARTMENT_OCID" \
+        -var="resource_name_root=$RESOURCE_NAME_ROOT" \
+        -var="subnet_ocid=$NAT_SUBNET_OCID" \
+        -var="instance_pool_size=$INSTANCE_POOL_SIZE" \
+        -var="shape=$SHAPE" \
+        -var="image_ocid=$IMAGE_OCID" \
+        -var="node_security_group_id=$NODE_SECURITY_GROUP_ID" \
+        -var="user_public_key_path=$USER_PUBLIC_KEY_PATH" \
+        -var="memory_in_gbs=$MEMORY_IN_GBS" \
+        -var="ocpus=$OCPUS" \
+        -var="environment_type=$ENVIRONMENT_TYPE" \
+        -var="tag_namespace=$TAG_NAMESPACE" \
+        -var="jitsi_tag_namespace=$JITSI_TAG_NAMESPACE" \
+        -var="user=$SSH_USER" \
+        -var="user_private_key_path=$USER_PRIVATE_KEY_PATH" \
+        -var="postinstall_status_file=$POSTINSTALL_STATUS_FILE" \
+        -var "infra_configuration_repo=$INFRA_CONFIGURATION_REPO" \
+        -var "infra_customizations_repo=$INFRA_CUSTOMIZATIONS_REPO" \
+        $ACTION_POST_PARAMS $TF_POST_PARAMS
+  else
+    terraform $TF_GLOBALS_CHDIR $ACTION \
+        -var="environment=$ENVIRONMENT" \
+        -var="name=$NAME" \
+        -var="oracle_region=$ORACLE_REGION" \
+        -var="availability_domains=$AVAILABILITY_DOMAINS" \
+        -var="vcn_name=$VCN_NAME" \
+        -var="role=$ROLE" \
+        -var="grid_name=$GRID_NAME" \
+        -var="git_branch=$ORACLE_GIT_BRANCH" \
+        -var="tenancy_ocid=$TENANCY_OCID" \
+        -var="compartment_ocid=$COMPARTMENT_OCID" \
+        -var="resource_name_root=$RESOURCE_NAME_ROOT" \
+        -var="subnet_ocid=$NAT_SUBNET_OCID" \
+        -var="instance_pool_size=$INSTANCE_POOL_SIZE" \
+        -var="shape=$SHAPE" \
+        -var="image_ocid=$IMAGE_OCID" \
+        -var="hub_security_group_id=$HUB_SECURITY_GROUP_ID" \
+        -var="node_security_group_id=$NODE_SECURITY_GROUP_ID" \
+        -var="user_public_key_path=$USER_PUBLIC_KEY_PATH" \
+        -var="memory_in_gbs=$MEMORY_IN_GBS" \
+        -var="ocpus=$OCPUS" \
+        -var="environment_type=$ENVIRONMENT_TYPE" \
+        -var="tag_namespace=$TAG_NAMESPACE" \
+        -var="jitsi_tag_namespace=$JITSI_TAG_NAMESPACE" \
+        -var="user=$SSH_USER" \
+        -var="user_private_key_path=$USER_PRIVATE_KEY_PATH" \
+        -var="postinstall_status_file=$POSTINSTALL_STATUS_FILE" \
+        -var="load_balancer_bs_name=$BACKEND_SET_NAME" \
+        -var="load_balancer_id=$LOAD_BALANCER_ID" \
+        -var "infra_configuration_repo=$INFRA_CONFIGURATION_REPO" \
+        -var "infra_customizations_repo=$INFRA_CUSTOMIZATIONS_REPO" \
+        $ACTION_POST_PARAMS $TF_POST_PARAMS
+  fi
   if [ $? -eq 0 ]; then
     oci os object get --bucket-name $S3_STATE_BUCKET --name $S3_STATE_KEY_IP --region $ORACLE_REGION --file $LOCAL_IP_KEY
     if [ $? -eq 0 ]; then
@@ -347,18 +401,24 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
   fi
 fi
 
-HUB_POOL_ID="$(cat $LOCAL_IP_KEY | jq -r '.resources[]
-    | select(.type == "oci_core_instance_pool" and .name == "oci_instance_pool_hub")
-    | .instances[0].attributes.id')"
 NODE_POOL_ID="$(cat $LOCAL_IP_KEY | jq -r '.resources[]
     | select(.type == "oci_core_instance_pool" and .name == "oci_instance_pool_node")
     | .instances[0].attributes.id')"
 
-if [ -z "$HUB_POOL_ID" ]; then
-  echo "HUB_POOL_ID failed to be found or created, exiting..."
-  exit 3
-fi
 if [ -z "$NODE_POOL_ID" ]; then
   echo "NODE_POOL_ID failed to be found or created, exiting..."
   exit 4
+fi
+
+if [[ "$SELENIUM_GRID_NOMAD_ENABLED" != "true" ]]; then
+
+  HUB_POOL_ID="$(cat $LOCAL_IP_KEY | jq -r '.resources[]
+      | select(.type == "oci_core_instance_pool" and .name == "oci_instance_pool_hub")
+      | .instances[0].attributes.id')"
+
+  if [ -z "$HUB_POOL_ID" ]; then
+    echo "HUB_POOL_ID failed to be found or created, exiting..."
+    exit 3
+  fi
+
 fi

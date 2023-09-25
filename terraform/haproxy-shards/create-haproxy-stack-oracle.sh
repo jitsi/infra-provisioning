@@ -30,10 +30,23 @@ fi
 ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 [ -e "$LOCAL_PATH/../../clouds/${ORACLE_CLOUD_NAME}.sh" ] && . $LOCAL_PATH/../../clouds/${ORACLE_CLOUD_NAME}.sh
 
+[ -z "$SHAPE" ] && SHAPE="$HAPROXY_SHAPE"
 [ -z "$SHAPE" ] && SHAPE="$DEFAULT_HAPROXY_SHAPE"
 
-[ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS="16"
-[ -z "$OCPUS" ] && OCPUS="2"
+if [[ "$SHAPE" == "VM.Standard.A1.Flex" ]]; then
+  [ -z "$OCPUS" ] && OCPUS=4
+  [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=16
+fi
+
+if [[ "$SHAPE" == "VM.Standard.E4.Flex" ]]; then
+  [ -z "$OCPUS" ] && OCPUS=2
+  [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=16
+fi
+
+if [[ "$SHAPE" == "VM.Standard.E3.Flex" ]]; then
+  [ -z "$OCPUS" ] && OCPUS=2
+  [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=16
+fi
 
 [ -z "$INSTANCE_POOL_SIZE" ] && INSTANCE_POOL_SIZE=2
 
@@ -70,6 +83,11 @@ fi
 LB_HOSTNAME_JSON="[]"
 for LB_HOSTNAME in $LB_HOSTNAMES; do
   LB_HOSTNAME_JSON=$(echo $LB_HOSTNAME_JSON "[\"$LB_HOSTNAME\"]" | jq -c --slurp 'flatten(1)')
+done
+
+SIGNAL_API_LB_HOSTNAME_JSON="[]"
+for LB_HOSTNAME in $SIGNAL_API_LB_HOSTNAMES; do
+  SIGNAL_API_LB_HOSTNAME_JSON=$(echo $SIGNAL_API_LB_HOSTNAME_JSON "[\"$LB_HOSTNAME\"]" | jq -c --slurp 'flatten(1)')
 done
 
 [ -z "$CERTIFICATE_NAME" ] && CERTIFICATE_NAME="star_jitsi_net-2024-08-10"
@@ -335,6 +353,7 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
   -var="lb_security_group_id=$LB_SECURITY_GROUP_ID" \
   -var="certificate_certificate_name=$CERTIFICATE_NAME" \
   -var="lb_hostnames=$LB_HOSTNAME_JSON" \
+  -var="signal_api_lb_hostnames=$SIGNAL_API_LB_HOSTNAME_JSON" \
   -var="signal_api_hostname=$SIGNAL_API_HOSTNAME" \
   -var="signal_api_certificate_certificate_name=$SIGNAL_API_CERTIFICATE_NAME" \
   -var "infra_configuration_repo=$INFRA_CONFIGURATION_REPO" \

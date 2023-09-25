@@ -11,6 +11,8 @@ fi
 
 LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
+[ -e "$LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh" ] && . "$LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh"
+
 [ -e "$LOCAL_PATH/../clouds/all.sh" ] && . "$LOCAL_PATH/../clouds/all.sh"
 [ -e "$LOCAL_PATH/../clouds/oracle.sh" ] && . "$LOCAL_PATH/../clouds/oracle.sh"
 
@@ -21,7 +23,7 @@ LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 [ -z "$AWS_CONSUL_ENV" ] && AWS_CONSUL_ENV="prod"
 [ -z "$CONSUL_VIA_SSH" ] && CONSUL_VIA_SSH="true"
 
-OCI_LOCAL_REGION="us-phoenix-1"
+[ -z "$OCI_LOCAL_REGION" ] && OCI_LOCAL_REGION="us-phoenix-1"
 OCI_LOCAL_DATACENTER="$ENVIRONMENT-$OCI_LOCAL_REGION"
 
 CONSUL_AWS_HOST="consul-$AWS_CONSUL_ENV-$AWS_LOCAL_DATACENTER.$TOP_LEVEL_DNS_ZONE_NAME"

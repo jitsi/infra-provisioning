@@ -182,6 +182,21 @@ resource "oci_core_network_security_group_security_rule" "consul_nsg_rule_ingres
   }
 }
 
+resource "oci_core_network_security_group_security_rule" "consul_nsg_rule_ingress_consul_web_redirect" {
+  network_security_group_id = oci_core_network_security_group.nomad_lb_security_group.id
+  direction = "INGRESS"
+  protocol = "6"
+  source = "0.0.0.0/0"
+  stateless = false
+
+  tcp_options {
+    destination_port_range {
+      max = 80
+      min = 80
+    }
+  }
+}
+
 resource "oci_core_network_security_group" "nomad_private_lb_security_group" {
   compartment_id = var.compartment_ocid
   vcn_id = data.oci_core_vcns.vcns.virtual_networks[0].id
@@ -333,6 +348,43 @@ resource "oci_load_balancer_certificate" "alt_certificate" {
     lifecycle {
         create_before_destroy = true
     }
+}
+
+resource "oci_load_balancer_rule_set" "redirect_rule_set" {
+    #Required
+    items {
+        #Required
+        action = "REDIRECT"
+
+        conditions {
+            #Required
+            attribute_name = "PATH"
+            attribute_value = "/"
+            #Optional
+            operator = "PREFIX_MATCH"
+        }
+        description = "redirect http to https"
+        redirect_uri {
+            #Optional
+            host = "{host}"
+            path = "{path}"
+            port = 443
+            protocol = "https"
+            query = "{query}"
+        }
+        response_code = 301
+    }
+    load_balancer_id = oci_load_balancer.public_oci_load_balancer.id
+    name = "RedirectToHTTPS"
+}
+
+resource "oci_load_balancer_listener" "redirect_listener" {
+  load_balancer_id = oci_load_balancer.public_oci_load_balancer.id
+  name = "NomadHTTPListener"
+  port = 80
+  default_backend_set_name = oci_load_balancer_backend_set.oci_load_balancer_public_bs.name
+  rule_set_names = [oci_load_balancer_rule_set.redirect_rule_set.name]
+  protocol = "HTTP"
 }
 
 resource "oci_load_balancer_listener" "main_listener" {
