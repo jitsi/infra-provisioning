@@ -113,6 +113,11 @@ variable branding_name {
   default = "jitsi-meet"
 }
 
+variable visitors_count {
+    type = number
+    default = 0
+}
+
 
 job "[JOB_NAME]" {
   region = "global"
@@ -906,7 +911,7 @@ EOF
       config {
         image        = "nginx:latest"
         ports = ["http","nginx-status"]
-        volumes = ["local/nginx.conf:/etc/nginx/nginx.conf","local/nginx-site.conf:/etc/nginx/conf.d/default.conf","local/nginx-status.conf:/etc/nginx/conf.d/status.conf"]
+        volumes = ["local/nginx.conf:/etc/nginx/nginx.conf","local/nginx-site.conf:/etc/nginx/conf.d/default.conf","local/nginx-status.conf:/etc/nginx/conf.d/status.conf","local/nginx-streams.conf:/etc/nginx/conf.stream/default.conf"]
       }
       env {
         NGINX_WORKER_PROCESSES = 4
@@ -1008,6 +1013,10 @@ http {
 	include /etc/nginx/conf.d/*.conf;
 }
 
+stream {
+    include /etc/nginx/conf.stream/*.conf;
+}
+
 #daemon off;
 
 EOF
@@ -1028,9 +1037,78 @@ EOF
       }
 
 
+      template {
+        data = <<EOF
+# upstream main prosody
+upstream prosodylimitedupstream {
+    server {{ env "NOMAD_IP_prosody_http" }}:{{ env "NOMAD_HOST_PORT_prosody_http" }};
+}
+# local rate-limited proxy for main prosody
+server {
+    listen    15280;
+    proxy_upload_rate 10k;
+    proxy_pass prosodylimitedupstream;
+}
+{{ range loop ${var.visitors_count} -}}
+# upstream visitor prosody {{ . }}
+upstream prosodylimitedupstream{{ .}} {
+    server {{ env "NOMAD_IP_prosody_http" }}:{{ env "NOMAD_HOST_PORT_prosody_http" }};
+}
+# local rate-limited proxy for visitor prosody {{ . }}
+server {
+{{ $port := add 25280 . -}}
+    listen    {{ $port }};
+    proxy_upload_rate 10k;
+    proxy_pass prosodylimitedupstream{{ . }};
+}
+{{ end -}}
+
+EOF
+        destination = "local/nginx-streams.conf"
+      }
 
       template {
         data = <<EOF
+
+{{ range service "release-${var.release_number}.jitsi-meet-web" -}}
+    {{ scratch.SetX "web" .  -}}
+{{ end -}}
+
+# local upstream for main prosody used in final proxy_pass directive
+upstream prosodylimited {
+    zone upstreams 64K;
+    server 127.0.0.1:15280;
+    keepalive 2;
+}
+
+# local upstream for web content used in final proxy_pass directive
+upstream web {
+    zone upstreams 64K;
+{{ with scratch.Get "web" -}}
+    server {{ .Address }}:{{ .Port }};
+{{ end -}}
+    keepalive 2;
+}
+
+{{ range loop ${var.visitors_count} -}}
+# local upstream for visitor prosody {{ . }} used in final proxy_pass directive
+upstream prosodylimited{{ . }} {
+    zone upstreams 64K;
+{{ $port := add 25280 . -}}
+    server 127.0.0.1:{{ $port }};
+    keepalive 2;
+}
+{{ end -}}
+
+# map to determine which prosody to proxy based on query param 'vnode'
+map $arg_vnode $prosody_bosh_node {
+    default prosodylimited;
+{{ range loop ${var.visitors_count} -}}
+    v{{ . }} prosodylimited{{ . }};
+{{ end -}}
+}
+
+# main server doing the routing
 server {
     listen       80 default_server;
     server_name  ${var.domain};
@@ -1039,30 +1117,26 @@ server {
     add_header 'X-Jitsi-Region' '${var.octo_region}';
     add_header 'X-Jitsi-Release' '${var.release_number}';
 
-{{ range service "release-${var.release_number}.jitsi-meet-web" -}}
-    {{ scratch.SetX "web" .  -}}
-{{ end -}}
+    # BOSH
+    location = /http-bind {
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header Host ${var.domain};
 
-# BOSH
-location = /http-bind {
-    proxy_set_header X-Forwarded-For $remote_addr;
-    proxy_set_header Host ${var.domain};
+        proxy_pass http://$prosody_bosh_node/http-bind?prefix=$prefix&$args;
+    }
 
-    proxy_pass http://{{ env "NOMAD_IP_prosody_http" }}:{{ env "NOMAD_HOST_PORT_prosody_http" }}/http-bind?prefix=$prefix&$args;
-}
+    # xmpp websockets
+    location = /xmpp-websocket {
+        tcp_nodelay on;
 
-# xmpp websockets
-location = /xmpp-websocket {
-    tcp_nodelay on;
+        proxy_http_version 1.1;
+        proxy_set_header Connection $connection_upgrade;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Host ${var.domain};
+        proxy_set_header X-Forwarded-For $remote_addr;
 
-    proxy_http_version 1.1;
-    proxy_set_header Connection $connection_upgrade;
-    proxy_set_header Upgrade $http_upgrade;
-    proxy_set_header Host ${var.domain};
-    proxy_set_header X-Forwarded-For $remote_addr;
-
-    proxy_pass http://{{ env "NOMAD_IP_prosody_http" }}:{{ env "NOMAD_HOST_PORT_prosody_http" }}/xmpp-websocket?prefix=$prefix&$args;
-}
+        proxy_pass http://{{ env "NOMAD_IP_prosody_http" }}:{{ env "NOMAD_HOST_PORT_prosody_http" }}/xmpp-websocket?prefix=$prefix&$args;
+    }
 
     # BOSH for subdomains
     location ~ ^/([^/?&:'"]+)/http-bind {
@@ -1086,9 +1160,7 @@ location = /xmpp-websocket {
         proxy_set_header X-Jitsi-Shard ${var.shard};
         proxy_hide_header 'X-Jitsi-Shard';
 
-{{ with scratch.Get "web" -}}
-        proxy_pass http://{{ .Address }}:{{ .Port }};
-{{ end -}}
+        proxy_pass http://web;
     }
 
     #error_page  404              /404.html;
