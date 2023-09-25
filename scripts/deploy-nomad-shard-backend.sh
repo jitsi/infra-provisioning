@@ -130,6 +130,8 @@ else
     BRANDING_NAME="jitsi-meet"
 fi
 
+[ -z "$VISITORS_COUNT" ] && VISITORS_COUNT=0
+
 export NOMAD_VAR_environment="$ENVIRONMENT"
 export NOMAD_VAR_domain="$DOMAIN"
 export NOMAD_VAR_shard="$SHARD"
@@ -143,5 +145,6 @@ export NOMAD_VAR_prosody_tag="$PROSODY_TAG"
 export NOMAD_VAR_web_tag="$WEB_TAG"
 export NOMAD_VAR_pool_type="$NOMAD_POOL_TYPE"
 export NOMAD_VAR_branding_name="$BRANDING_NAME"
+export NOMAD_VAR_visitors_count="$VISITORS_COUNT"
 
 sed -e "s/\[JOB_NAME\]/shard-${SHARD}/" "$NOMAD_JOB_PATH/jitsi-meet-backend.hcl" | nomad job run -var="dc=$NOMAD_DC" -
