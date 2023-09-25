@@ -13,7 +13,7 @@ variable "load_balancer_shape" {
   default = "flexible"
 }
 variable load_balancer_shape_details_maximum_bandwidth_in_mbps {
-  default = "100"
+  default = "500"
 }
 variable load_balancer_shape_details_minimum_bandwidth_in_mbps {
   default = "10"
@@ -25,7 +25,6 @@ variable "security_group_id" {}
 variable "shape" {}
 variable "memory_in_gbs" {}
 variable "ocpus" {}
-variable "public_subnet_ocid" {}
 variable "private_subnet_ocid" {}
 variable "instance_pool_size" {}
 variable "instance_pool_name" {}
@@ -37,7 +36,6 @@ variable "tag_namespace" {}
 variable "user" {}
 
 variable "user_private_key_path" {}
-variable "bastion_host" {}
 variable "postinstall_status_file" {}
 variable "lb_security_group_id" {}
 variable "certificate_certificate_name" {}
@@ -57,6 +55,7 @@ locals {
   common_freeform_tags = {
     configuration_repo = var.infra_configuration_repo
     customizations_repo = var.infra_customizations_repo
+    shape = var.shape
   }
   common_tags = {
     "${var.tag_namespace}.environment" = var.environment
@@ -90,14 +89,14 @@ resource "oci_load_balancer" "oci_load_balancer" {
   compartment_id = var.compartment_ocid
   display_name = "${var.resource_name_root}-LoadBalancer"
   shape = var.load_balancer_shape
-  subnet_ids = [var.public_subnet_ocid]
+  subnet_ids = [var.private_subnet_ocid]
   shape_details {
       maximum_bandwidth_in_mbps = var.load_balancer_shape_details_maximum_bandwidth_in_mbps
       minimum_bandwidth_in_mbps = var.load_balancer_shape_details_minimum_bandwidth_in_mbps
   }
 
   defined_tags = local.common_tags
-  is_private = false
+  is_private = true
   network_security_group_ids = [var.lb_security_group_id]
 }
 
@@ -297,9 +296,6 @@ resource "null_resource" "verify_cloud_init" {
       user = var.user
       private_key = file(var.user_private_key_path)
 
-      bastion_host = var.bastion_host
-      bastion_user = var.user
-      bastion_private_key = file(var.user_private_key_path)
       script_path = "/home/${var.user}/script_%RAND%.sh"
 
       timeout = "5m"
@@ -316,7 +312,7 @@ resource "null_resource" "cloud_init_output" {
   depends_on = [data.oci_core_instance.oci_instance_datasources]
 
   provisioner "local-exec" {
-    command = "ssh -o StrictHostKeyChecking=no -J ${var.user}@${var.bastion_host} ${var.user}@${element(local.private_ips, count.index)} 'cloud-init status --wait && echo hostname: $HOSTNAME, privateIp: ${element(local.private_ips, count.index)} - $(cloud-init status)' >> ${var.postinstall_status_file}"
+    command = "ssh -o StrictHostKeyChecking=no ${var.user}@${element(local.private_ips, count.index)} 'cloud-init status --wait && echo hostname: $HOSTNAME, privateIp: ${element(local.private_ips, count.index)} - $(cloud-init status)' >> ${var.postinstall_status_file}"
   }
   triggers = {
     always_run = "${timestamp()}"

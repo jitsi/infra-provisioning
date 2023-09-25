@@ -43,7 +43,7 @@ ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 
 [ -z "$SHAPE" ] && SHAPE="$JIGASI_SHAPE"
 [ -z "$SHAPE" ] && SHAPE="$DEFAULT_JIGASI_SHAPE"
-[ -z "$SHAPE" ] && SHAPE="$SHAPE_E_3"
+[ -z "$SHAPE" ] && SHAPE="$SHAPE_E_4"
 
 arch_from_shape $SHAPE
 
@@ -97,6 +97,10 @@ fi
   fi
   if [[ "$SHAPE" == "VM.Standard.E4.Flex" ]]; then
     [ -z "$OCPUS" ] && OCPUS=4
+    [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=16
+  fi
+  if [[ "$SHAPE" == "VM.Standard.A1.Flex" ]]; then
+    [ -z "$OCPUS" ] && OCPUS=8
     [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=16
   fi
 

@@ -179,6 +179,7 @@ Resources:
           hostname $MY_HOSTNAME
 
           echo "$MY_IP $MY_HOSTNAME" >> /etc/hosts
+          echo "$MY_HOSTNAME" > /etc/hostname
           export DEPLOY_TAGS="all"
           ansible-pull -v -U git@github.com:8x8Cloud/jitsi-video-infrastructure.git \
             -v \

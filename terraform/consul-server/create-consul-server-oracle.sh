@@ -28,12 +28,16 @@ ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 
 [ -z "$SHAPE" ] && SHAPE="$DEFAULT_CONSUL_SHAPE"
 if [[ "$SHAPE" == "VM.Standard.E4.Flex" ]]; then
-  [ -z "$OCPUS" ] && OCPUS=4
-  [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=16
+  [ -z "$OCPUS" ] && OCPUS=2
+  [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=8
 fi
 if [[ "$SHAPE" == "VM.Standard.E3.Flex" ]]; then
+  [ -z "$OCPUS" ] && OCPUS=2
+  [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=8
+fi
+if [[ "$SHAPE" == "VM.Standard.A1.Flex" ]]; then
   [ -z "$OCPUS" ] && OCPUS=4
-  [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=16
+  [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=8
 fi
 
 [ -z "$INSTANCE_POOL_SIZE" ] && INSTANCE_POOL_SIZE=1
@@ -61,7 +65,7 @@ if [ -z "$SSL_CERTIFICATE_ID" ]; then
   exit 208
 fi
 
-[ -z "$CONSUL_CERTIFICATE_NAME" ] && CONSUL_CERTIFICATE_NAME=$SSL_CERTIFICATE_ID
+[ -z "$CONSUL_CERTIFICATE_NAME" ] && CONSUL_CERTIFICATE_NAME="star_jitsi_net-2024-08-10"
 [ -z "$CONSUL_CA_CERTIFICATE_VARIABLE" ] && CONSUL_CA_CERTIFICATE_VARIABLE="jitsi_net_ssl_extras"
 [ -z "$CONSUL_PUBLIC_CERTIFICATE_VARIABLE" ] && CONSUL_PUBLIC_CERTIFICATE_VARIABLE="jitsi_net_ssl_certificate"
 [ -z "$CONSUL_PRIVATE_KEY_VARIABLE" ] && CONSUL_PRIVATE_KEY_VARIABLE="jitsi_net_ssl_key_name"
@@ -86,6 +90,10 @@ set -x
 RESOURCE_NAME_ROOT="$ENVIRONMENT-$ORACLE_REGION-consul"
 
 [ -z "$DNS_NAME" ] && DNS_NAME="$RESOURCE_NAME_ROOT.$DNS_ZONE_NAME"
+
+[ -z "$CONSUL_HOSTNAME" ] && CONSUL_HOSTNAME="$RESOURCE_NAME_ROOT.$TOP_LEVEL_DNS_ZONE_NAME"
+
+[ -z "$NOMAD_HOSTNAME" ] && NOMAD_HOSTNAME="$ENVIRONMENT-$ORACLE_REGION-nomad.$TOP_LEVEL_DNS_ZONE_NAME"
 
 [ -z "$LOAD_BALANCER_SHAPE" ] && LOAD_BALANCER_SHAPE="flexible"
 
@@ -115,11 +123,6 @@ if [ ! -f "$USER_PRIVATE_KEY_PATH" ]; then
 fi
 
 [ -z "$POSTINSTALL_STATUS_FILE" ] && POSTINSTALL_STATUS_FILE="/tmp/postinstall_status.txt"
-
-[ -z "$BASTION_HOST" ] && BASTION_HOST="$CONNECTION_SSH_BASTION_HOST"
-
-# add bastion hosts to known hosts if not present
-grep -q "$BASTION_HOST" ~/.ssh/known_hosts || ssh-keyscan -H $BASTION_HOST >> ~/.ssh/known_hosts
 
 [ -z "$S3_PROFILE" ] && S3_PROFILE="oracle"
 [ -z "$S3_STATE_BUCKET" ] && S3_STATE_BUCKET="tf-state-$ENVIRONMENT"
@@ -202,9 +205,10 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
   -var="user=$SSH_USER" \
   -var="user_private_key_path=$USER_PRIVATE_KEY_PATH" \
   -var="user_public_key_path=$USER_PUBLIC_KEY_PATH" \
-  -var="bastion_host=$BASTION_HOST" \
   -var="postinstall_status_file=$POSTINSTALL_STATUS_FILE" \
   -var="certificate_certificate_name=$CONSUL_CERTIFICATE_NAME" \
+  -var="consul_hostname=$CONSUL_HOSTNAME" \
+  -var="nomad_hostname=$NOMAD_HOSTNAME" \
   -var "infra_configuration_repo=$INFRA_CONFIGURATION_REPO" \
   -var "infra_customizations_repo=$INFRA_CUSTOMIZATIONS_REPO" \
   $ACTION_POST_PARAMS $TF_POST_PARAMS

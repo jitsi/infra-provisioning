@@ -2,6 +2,10 @@ variable "dc" {
   type = string
 }
 
+variable "loki_hostname" {
+  type = string
+}
+
 job "[JOB_NAME]" {
   datacenters = [var.dc]
   type        = "service"
@@ -25,6 +29,10 @@ job "[JOB_NAME]" {
       port "loki" {
         to = 3100
       }
+    }
+    constraint {
+      attribute  = "${meta.pool_type}"
+      value     = "general"
     }
     volume "loki" {
       type      = "host"
@@ -107,6 +115,7 @@ EOH
       service {
         name = "loki"
         port = "loki"
+        tags = ["int-urlprefix-${var.loki_hostname}/"]
         check {
           name     = "Loki healthcheck"
           port     = "loki"

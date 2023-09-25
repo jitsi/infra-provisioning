@@ -33,8 +33,6 @@ pipeline {
 
                     // setup OCI credentials
                     utils.SetupOCI()
-                    sh 'mkdir -p test-results'
-                    sh 'mkdir -p haproxy-status'
                 }
             }
         }
@@ -70,7 +68,6 @@ pipeline {
      }
     post {
         always {
-            archiveArtifacts artifacts: 'test-results/**', allowEmptyArchive: false
             // Clean up afterwards
             cleanWs()
         }

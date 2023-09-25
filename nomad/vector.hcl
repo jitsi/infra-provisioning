@@ -18,7 +18,7 @@ job "vector" {
       attempts = 3
       interval = "10m"
       delay = "30s"
-      mode = "fail"
+      mode = "delay"
     }
     network {
       port "api" {

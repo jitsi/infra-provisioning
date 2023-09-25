@@ -21,6 +21,16 @@ LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 [ -z $ANSIBLE_BUILD_ID ] && ANSIBLE_BUILD_ID=$BUILD_ID
 [ -z $ANSIBLE_BUILD_ID ] && ANSIBLE_BUILD_ID="standalone"
 
+if [ -z "$INFRA_CONFIGURATION_REPO" ]; then
+  echo "No INFRA_CONFIGURATION_REPO set, exiting..."
+  exit 203
+fi
+
+if [ -z "$INFRA_CUSTOMIZATIONS_REPO" ]; then
+  echo "No INFRA_CUSTOMIZATIONS_REPO set, exiting..."
+  exit 203
+fi
+
 #pull in cloud-specific variables, e.g. tenancy
 [ -e "$LOCAL_PATH/../clouds/all.sh" ] && . $LOCAL_PATH/../clouds/all.sh
 [ -e "$LOCAL_PATH/../clouds/oracle.sh" ] && . $LOCAL_PATH/../clouds/oracle.sh
@@ -41,7 +51,7 @@ if [[ "$IMAGE_ARCH" == "aarch64" ]]; then
   [ -z "$SHAPE" ] && SHAPE="$SHAPE_A_1"
 fi
 
-[ -z "$SHAPE" ] && SHAPE="$SHAPE_E_3"
+[ -z "$SHAPE" ] && SHAPE="$SHAPE_E_4"
 [ -z "$OCPUS" ] && OCPUS="4"
 [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS="16"
 
@@ -111,7 +121,7 @@ fi
 
 [ -z "$CLOUD_PROVIDER" ] && CLOUD_PROVIDER="oracle"
 
-ORACLE_SIGNAL_IMAGE_LIMIT=50
+ORACLE_SIGNAL_IMAGE_LIMIT=20
 # clean custom signal images if limit is exceeded (may fail, but that's OK)
 for CLEAN_ORACLE_REGION in $ORACLE_IMAGE_REGIONS; do
   echo "Cleaning images in $CLEAN_ORACLE_REGION"
@@ -161,8 +171,8 @@ $([ ! -z $PROSODY_URL_VERSION ] && echo "-var prosody_url_version=$PROSODY_URL_V
 -var "ansible_python_interpreter=/usr/bin/python3" \
 -var "ansible_deploy_tags=$DEPLOY_TAGS" \
 -var "ansible_skip_tags=failfast" \
+-var "infra_configuration_repo=$INFRA_CONFIGURATION_REPO" \
+-var "infra_customizations_repo=$INFRA_CUSTOMIZATIONS_REPO" \
 -var="tag_namespace=$TAG_NAMESPACE" \
 -var "connection_use_private_ip=$CONNECTION_USE_PRIVATE_IP" \
--var "connection_ssh_bastion_host=$CONNECTION_SSH_BASTION_HOST" \
--var "connection_ssh_private_key_file=$CONNECTION_SSH_PRIVATE_KEY_FILE" \
 $LOCAL_PATH/../build/build-signal-oracle.json

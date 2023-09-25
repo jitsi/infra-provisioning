@@ -22,7 +22,7 @@ def tagExistingProxies(stack_environment,cloud_provider,haproxy_release_number,g
 }
 
 // trigger create or update stack job with appropriate parameters
-def createHAProxyStack(stack_environment,cloud_provider,cloud_name,oracle_region,haproxy_release_number,gitBranch) {
+def createHAProxyStack(stack_environment,cloud_provider,cloud_name,oracle_region,haproxy_release_number,gitBranch,shape,ocpus,memoryInGbs) {
     def createStack = build job: 'provision-haproxy',parameters: [
         [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: stack_environment],
         [$class: 'StringParameterValue', name: 'CLOUD_NAME', value: cloud_name.trim()],
@@ -30,6 +30,9 @@ def createHAProxyStack(stack_environment,cloud_provider,cloud_name,oracle_region
         [$class: 'StringParameterValue', name: 'CLOUD_PROVIDER', value: cloud_provider],
         [$class: 'StringParameterValue', name: 'HAPROXY_RELEASE_NUMBER', value: haproxy_release_number],
         [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: gitBranch],
+        [$class: 'StringParameterValue', name: 'SHAPE', value: shape],
+        [$class: 'StringParameterValue', name: 'OCPUS', value: ocpus],
+        [$class: 'StringParameterValue', name: 'MEMORY_IN_GBS', value: memoryInGbs],
         [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH]
     ]
 
@@ -95,7 +98,10 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                                     cloud_list[curr],
                                     oracle_region[curr],
                                     env.BUILD_ID,
-                                    git_branch
+                                    git_branch,
+                                    env.SHAPE,
+                                    env.OCPUS,
+                                    env.MEMORY_IN_GBS
                                 )
                             }
                         }

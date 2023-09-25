@@ -16,6 +16,7 @@ LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
 #pull in cloud-specific variables, e.g. tenancy
 [ -e "$LOCAL_PATH/../clouds/oracle.sh" ] && . $LOCAL_PATH/../clouds/oracle.sh
+[ -e "$LOCAL_PATH/../clouds/all.sh" ] && . $LOCAL_PATH/../clouds/all.sh
 
 if [ -z "$ORACLE_REGION" ]; then
   echo "No ORACLE_REGION found.  Exiting..."
@@ -24,6 +25,13 @@ fi
 
 ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 [ -e "$LOCAL_PATH/../clouds/${ORACLE_CLOUD_NAME}.sh" ] && . $LOCAL_PATH/../clouds/"${ORACLE_CLOUD_NAME}".sh
+
+# use custom backend if provided, otherwise use default URL for environment
+if [ -n "$AUTOSCALER_BACKEND" ]; then
+  if [[ "$AUTOSCALER_BACKEND" != "prod" ]] && [[ "$AUTOSCALER_BACKEND" != "pilot" ]]; then
+    AUTOSCALER_URL="https://$AUTOSCALER_BACKEND-autoscaler.$TOP_LEVEL_DNS_ZONE_NAME"
+  fi
+fi
 
 if [ -z "$AUTOSCALER_URL" ]; then
   echo "No AUTOSCALER_URL provided or found. Exiting.. "
@@ -99,6 +107,10 @@ fi
 
 if [ "$SCALE_DOWN_PERIODS_COUNT" ]; then
   REQUEST_BODY=$(echo "$REQUEST_BODY" | jq --arg SCALE_DOWN_PERIODS_COUNT "$SCALE_DOWN_PERIODS_COUNT" '. += {"scaleDownPeriodsCount": '$SCALE_DOWN_PERIODS_COUNT'}')
+fi
+
+if [ "$GRACE_PERIOD" ]; then
+  REQUEST_BODY=$(echo "$REQUEST_BODY" | jq --arg GRACE_PERIOD "$GRACE_PERIOD" '. += {"gracePeriodTTLSec": '$GRACE_PERIOD'}')
 fi
 
 response=$(curl -s -w "\n %{http_code}" -X PUT \

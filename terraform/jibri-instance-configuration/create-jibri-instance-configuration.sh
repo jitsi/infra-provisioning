@@ -34,6 +34,12 @@ fi
 ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 [ -e "$LOCAL_PATH/../../clouds/${ORACLE_CLOUD_NAME}.sh" ] && . $LOCAL_PATH/../../clouds/${ORACLE_CLOUD_NAME}.sh
 
+JIBRI_NOMAD_VARIABLE="jibri_enable_nomad"
+
+[ -z "$CONFIG_VARS_FILE" ] && CONFIG_VARS_FILE="$LOCAL_PATH/../../config/vars.yml"
+[ -z "$ENVIRONMENT_VARS_FILE" ] && ENVIRONMENT_VARS_FILE="$LOCAL_PATH/../../sites/$ENVIRONMENT/vars.yml"
+
+
 [ -z "$JIBRI_TYPE" ] && JIBRI_TYPE="java-jibri"
 if [ "$JIBRI_TYPE" != "java-jibri" ] &&  [ "$JIBRI_TYPE" != "sip-jibri" ]; then
   echo "Unsupported jibri type $JIBRI_TYPE";
@@ -92,10 +98,26 @@ fi
 #if we're not given versions, search for the latest of each type of image
 [ -z "$JIBRI_VERSION" ] && JIBRI_VERSION='latest'
 
+JIBRI_IMAGE_TYPE="JavaJibri"
+
+NOMAD_JIBRI_FLAG="$(cat $ENVIRONMENT_VARS_FILE | yq eval .${JIBRI_NOMAD_VARIABLE} -)"
+if [[ "$NOMAD_JIBRI_FLAG" == "null" ]]; then
+  NOMAD_JIBRI_FLAG="$(cat $CONFIG_VARS_FILE | yq eval .${JIBRI_NOMAD_VARIABLE} -)"
+fi
+
+if [[ "$NOMAD_JIBRI_FLAG" == "null" ]]; then
+  NOMAD_JIBRI_FLAG="false"
+fi
+
+if [[ "$NOMAD_JIBRI_FLAG" == "true" ]]; then
+  JIBRI_IMAGE_TYPE="JammyBase"
+fi
+
+
 arch_from_shape $SHAPE
 
 #Look up images based on version, or default to latest
-[ -z "$JIBRI_IMAGE_OCID" ] && JIBRI_IMAGE_OCID=$($LOCAL_PATH/../../scripts/oracle_custom_images.py --type JavaJibri --version "$JIBRI_VERSION" --architecture "$IMAGE_ARCH" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
+[ -z "$JIBRI_IMAGE_OCID" ] && JIBRI_IMAGE_OCID=$($LOCAL_PATH/../../scripts/oracle_custom_images.py --type $JIBRI_IMAGE_TYPE  --version "$JIBRI_VERSION" --architecture "$IMAGE_ARCH" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
 
 #No image was found, probably not built yet?
 if [ -z "$JIBRI_IMAGE_OCID" ]; then
@@ -158,6 +180,7 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
   -var="shard_role=$JIBRI_TYPE" \
   -var="aws_cloud_name=$CLOUD_NAME" \
   -var="jibri_release_number=$JIBRI_RELEASE_NUMBER" \
+  -var="nomad_flag=$NOMAD_JIBRI_FLAG" \
   -var "infra_configuration_repo=$INFRA_CONFIGURATION_REPO" \
   -var "infra_customizations_repo=$INFRA_CUSTOMIZATIONS_REPO" \
   $ACTION_POST_PARAMS $TF_POST_PARAMS

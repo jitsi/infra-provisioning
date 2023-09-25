@@ -60,13 +60,25 @@ ansible-playbook ansible/$ANSIBLE_PLAYBOOK_FILE \
 --tags "$DEPLOY_TAGS"
 ANSIBLE_RET=$?
 if [ $ANSIBLE_RET -gt 0 ]; then
-    echo "## reload-haproxy ERROR: ${ANSIBLE_PLAYBOOK_FILE} exited nonzero value ${ANSIBLE_RET}"
+    echo "## reload-haproxy ERROR: ${ANSIBLE_PLAYBOOK_FILE} exited nonzero value ${ANSIBLE_RET}, EXITING WITHOUT SETTING HEALTHY"
+    exit 1
 fi
 
-if [ "$ANSIBLE_RET" -gt 0 ] || [ "$LOCK_RET" -gt 0 ]; then
-  FINAL_RET=5
-  echo "## reload-haproxy: EXITING WITHOUT SETTING HEALTHY DUE TO ERROR"
-  exit $FINAL_RET
+if [[ "$SKIP_SAFE_RELOAD" != "true" ]]; then
+  ANSIBLE_PLAYBOOK_SAFE_RELOAD_REMOTE_FILE="haproxy-safe-reload-remote.yml"
+  echo -e "\n## applying final configuration via  ${ANSIBLE_PLAYBOOK_SAFE_RELOAD_REMOTE_FILE}"
+  ansible-playbook ansible/$ANSIBLE_PLAYBOOK_SAFE_RELOAD_REMOTE_FILE \
+  -i $ANSIBLE_INVENTORY \
+  --extra-vars "hcv_environment=$ENVIRONMENT" \
+  -e "ansible_ssh_user=$ANSIBLE_SSH_USER" --vault-password-file .vault-password.txt \
+  --tags "$DEPLOY_TAGS"
+  ANSIBLE_RET=$?
+  if [ $ANSIBLE_RET -gt 0 ]; then
+      echo "## reload-haproxy ERROR: ${ANSIBLE_PLAYBOOK_FILE} exited nonzero value ${ANSIBLE_RET}, EXITING WITHOUT SETTING HEALTHY"
+      exit 1
+  fi
+else
+  echo "## SKIP_SAFE_RELOAD=true so skipping safe reload"
 fi
 
 echo "## reload-haproxy: setting all haproxies to healthy"

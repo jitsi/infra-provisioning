@@ -57,11 +57,10 @@ variable "alarm_repeat_notification_duration" {
 }
 
 variable "alarm_severity" {
-  default = "CRITICAL"
+  default = "ERROR"
 }
 
 variable "user_private_key_path" {}
-variable "bastion_host" {}
 variable "postinstall_status_file" {}
 variable "lb_security_group_id" {}
 variable "certificate_certificate_name" {}
@@ -70,6 +69,10 @@ variable "certificate_private_key" {}
 variable "certificate_public_certificate" {}
 variable "lb_hostnames" {
     type = list(string)
+}
+variable "signal_api_lb_hostnames" {
+  type = list(string)
+  default = []
 }
 variable "signal_api_hostname" {}
 variable "signal_api_certificate_certificate_name" {}
@@ -90,6 +93,7 @@ locals {
     haproxy_release_number = var.haproxy_release_number
     configuration_repo = var.infra_configuration_repo
     customizations_repo = var.infra_customizations_repo
+    shape = var.shape
   }
   common_tags = {
     "${var.tag_namespace}.environment" = var.environment
@@ -260,6 +264,21 @@ resource "oci_load_balancer_hostname" "signal_api_hostname" {
         create_before_destroy = true
     }
 }
+
+resource "oci_load_balancer_hostname" "signal_api_hostnames" {
+    #Required
+    for_each = toset([ for i,v in var.signal_api_lb_hostnames: v ])
+    hostname = each.key
+    load_balancer_id = oci_load_balancer.oci_load_balancer.id
+    name = each.key
+
+    #Optional
+    lifecycle {
+        create_before_destroy = true
+    }
+}
+
+
 resource "oci_load_balancer_listener" "redirect_listener" {
   load_balancer_id = oci_load_balancer.oci_load_balancer.id
   name = "HAProxyHTTPListener"
@@ -289,7 +308,7 @@ resource "oci_load_balancer_listener" "signal_api_listener" {
   port = 443
   default_backend_set_name = oci_load_balancer_backend_set.oci_load_balancer_bs.name
   protocol = "HTTP"
-  hostname_names = [ oci_load_balancer_hostname.signal_api_hostname.name ]
+  hostname_names = concat([ oci_load_balancer_hostname.signal_api_hostname.name ],[ for k,v in oci_load_balancer_hostname.signal_api_hostnames : v.name])
   ssl_configuration {
       #Optional
       certificate_name = oci_load_balancer_certificate.signal_api_certificate.certificate_name
@@ -416,9 +435,6 @@ resource "null_resource" "verify_cloud_init" {
       user = var.user
       private_key = file(var.user_private_key_path)
 
-      bastion_host = var.bastion_host
-      bastion_user = var.user
-      bastion_private_key = file(var.user_private_key_path)
       script_path = "/home/${var.user}/script_%RAND%.sh"
 
       timeout = "5m"
@@ -435,7 +451,7 @@ resource "null_resource" "cloud_init_output" {
   depends_on = [data.oci_core_instance.oci_instance_datasources]
 
   provisioner "local-exec" {
-    command = "ssh -o StrictHostKeyChecking=no -J ${var.user}@${var.bastion_host} ${var.user}@${element(local.private_ips, count.index)} 'cloud-init status --wait && echo hostname: $HOSTNAME, privateIp: ${element(local.private_ips, count.index)} - $(cloud-init status)' >> ${var.postinstall_status_file}"
+    command = "ssh -o StrictHostKeyChecking=no ${var.user}@${element(local.private_ips, count.index)} 'cloud-init status --wait && echo hostname: $HOSTNAME, privateIp: ${element(local.private_ips, count.index)} - $(cloud-init status)' >> ${var.postinstall_status_file}"
   }
   triggers = {
     always_run = "${timestamp()}"

@@ -66,7 +66,7 @@ job "[JOB_NAME]" {
         privileged = true
         image        = "telegraf:latest"
         ports = ["telegraf-statsd"]
-        volumes = ["local/telegraf.conf:/etc/telegraf/telegraf.conf", "/var/run/docker.sock:/var/run/docker.sock"]
+        volumes = ["local/telegraf.conf:/etc/telegraf/telegraf.conf", "local/consul-resolved.conf:/etc/systemd/resolved.conf.d/consul.conf", "/var/run/docker.sock:/var/run/docker.sock"]
       }
       env {
 	    HOST_ETC = "/hostfs/etc"
@@ -75,6 +75,16 @@ job "[JOB_NAME]" {
 	    HOST_VAR = "/hostfs/var"
 	    HOST_RUN = "/hostfs/run"
 	    HOST_MOUNT_PREFIX = "/hostfs"
+      }
+
+      template {
+        destination = "local/consul-resolved.conf"
+        data = <<EOF
+[Resolve]
+DNS={{ env "attr.unique.network.ip-address" }}:8600
+DNSSEC=false
+Domains=~consul
+EOF
       }
 
       template {
@@ -110,13 +120,6 @@ job "[JOB_NAME]" {
   report_active = false
   fielddrop = ["time_*"]
   fieldpass = ["usage_system*", "usage_user*", "usage_iowait*", "usage_idle*", "usage_steal*"]
-
-[[inputs.disk]]
-  ignore_fs = ["tmpfs", "devtmpfs", "devfs", "overlay", "aufs", "squashfs", "nfs", "nfs4"]
-  fieldpass = ["used_percent", "free", "used", "total"]
-
-[[inputs.diskio]]
-  fieldpass = ["read_time", "write_time"]
 
 [[inputs.mem]]
   fieldpass = [ "active", "available", "buffered", "cached", "free", "total",  "used" ]
@@ -161,10 +164,10 @@ job "[JOB_NAME]" {
 {{ end }}
 {{ end }}
 
-[[inputs.prometheus]]
 {{ range service "consul" }}
 {{ scratch.Set "consul_server" .Address }}
 {{ end }}
+[[inputs.prometheus]]
   [inputs.prometheus.consul]
     enabled = true
     agent = "{{ scratch.Get "consul_server" }}:8500"
@@ -219,6 +222,30 @@ job "[JOB_NAME]" {
         host = "{{"{{"}}.Node}}"
         shard-role = "coturn"
         role = "coturn"
+    [[inputs.prometheus.consul.query]]
+      name = "autoscaler"
+      tag = "ip-{{ env "attr.unique.network.ip-address" }}"
+      url = 'http://{{"{{"}}if ne .ServiceAddress ""}}{{"{{"}}.ServiceAddress}}{{"{{"}}else}}{{"{{"}}.Address}}{{"{{"}}end}}:{{"{{"}}.ServicePort}}/{{"{{"}}with .ServiceMeta.metrics_path}}{{"{{"}}.}}{{"{{"}}else}}metrics{{"{{"}}end}}'
+      [inputs.prometheus.consul.query.tags]
+        host = "{{"{{"}}.Node}}"
+        shard-role = "autoscaler"
+        role = "autoscaler"
+
+[[inputs.prometheus]]
+  name_prefix = "jitsi_oscar_"
+  [inputs.prometheus.consul]
+    enabled = true
+    agent = "{{ scratch.Get "consul_server" }}:8500"
+    query_interval = "1m"
+    [[inputs.prometheus.consul.query]]
+      name = "oscar"
+      tag = "ip-{{ env "attr.unique.network.ip-address" }}"
+      url = 'http://{{"{{"}}if ne .ServiceAddress ""}}{{"{{"}}.ServiceAddress}}{{"{{"}}else}}{{"{{"}}.Address}}{{"{{"}}end}}:{{"{{"}}.ServicePort}}/{{"{{"}}with .ServiceMeta.metrics_path}}{{"{{"}}.}}{{"{{"}}else}}metrics{{"{{"}}end}}'
+      [inputs.prometheus.consul.query.tags]
+        host = "{{"{{"}}.Node}}"
+        shard-role = "oscar"
+        role = "oscar"
+
 [[outputs.wavefront]]
   url = "${var.wavefront_proxy_url}"
   metric_separator = "."

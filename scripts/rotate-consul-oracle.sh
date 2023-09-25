@@ -61,12 +61,16 @@ fi
 [ -z "$INSTANCE_POOL_BASE_NAME" ] && INSTANCE_POOL_BASE_NAME="ConsulInstancePool"
 
 if [[ "$SHAPE" == "VM.Standard.E4.Flex" ]]; then
-  [ -z "$OCPUS" ] && OCPUS=4
-  [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=16
+  [ -z "$OCPUS" ] && OCPUS=2
+  [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=8
 fi
 if [[ "$SHAPE" == "VM.Standard.E3.Flex" ]]; then
+  [ -z "$OCPUS" ] && OCPUS=2
+  [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=8
+fi
+if [[ "$SHAPE" == "VM.Standard.A1.Flex" ]]; then
   [ -z "$OCPUS" ] && OCPUS=4
-  [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=16
+  [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=8
 fi
 
 # by default wait 5 minutes in between rotating consul instances
@@ -102,6 +106,8 @@ for x in {a..c}; do
   export SHAPE
   export OCPUS
   export MEMORY_IN_GBS
+
+  export LB_BACKEND_SET_NAME="ConsulLBBS"
 
   $LOCAL_PATH/rotate-instance-pool-oracle.sh $SSH_USER
 

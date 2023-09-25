@@ -6,7 +6,6 @@ variable "security_group_ocid" {}
 variable "user" {}
 variable "user_private_key_path" {}
 variable "user_public_key_path" {}
-variable "bastion_host" {}
 variable "image_ocid" {}
 variable "oracle_region" {}
 variable "environment" {}
@@ -142,6 +141,12 @@ resource "oci_core_instance" "oci-instance" {
         "${var.tag_namespace}.Name" = var.name
      }
 
+    freeform_tags = {
+      configuration_repo = var.infra_configuration_repo
+      customizations_repo = var.infra_customizations_repo
+      shape = var.shape
+    }
+
     metadata = {
         ssh_authorized_keys = file(var.user_public_key_path)
     }
@@ -152,10 +157,6 @@ resource "oci_core_instance" "oci-instance" {
             host        = oci_core_instance.oci-instance.private_ip
             user        = var.user
             private_key = file(var.user_private_key_path)
-
-            bastion_host = var.bastion_host
-            bastion_user = var.user
-            bastion_private_key = file(var.user_private_key_path)
         }
 
         content = join("",[
@@ -175,10 +176,6 @@ resource "oci_core_instance" "oci-instance" {
             user        = var.user
             private_key = file(var.user_private_key_path)
             
-            bastion_host = var.bastion_host
-            bastion_user = var.user
-            bastion_private_key = file(var.user_private_key_path)
-
             script_path = "/home/${var.user}/script_%RAND%.sh"
         }
 

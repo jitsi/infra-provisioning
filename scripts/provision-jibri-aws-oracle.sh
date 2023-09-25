@@ -18,8 +18,8 @@ if [ -z "$CLOUD_PROVIDER" ]; then
   exit 200
 fi
 
-if [ "$CLOUD_PROVIDER" != "aws" ] && [ "$CLOUD_PROVIDER" != "oracle" ] && [ "$CLOUD_PROVIDER" != "all" ]; then
-  echo "Invalid CLOUD_PROVIDER, it should be either aws, oracle or all. Existing..."
+if [ "$CLOUD_PROVIDER" != "aws" ] && [ "$CLOUD_PROVIDER" != "oracle" ] && [ "$CLOUD_PROVIDER" != "all" ] && [ "$CLOUD_PROVIDER" != "nomad" ]; then
+  echo "Invalid CLOUD_PROVIDER, it should be either aws, oracle, nomad or all. Existing..."
   exit 201
 fi
 
@@ -50,4 +50,17 @@ if [ "$CLOUD_PROVIDER" == "oracle" ] || [ "$CLOUD_PROVIDER" == "all" ]; then
 
 fi
 
+if [ "$CLOUD_PROVIDER" == "nomad" ]; then
+	if [ "$JIBRI_TYPE" != "java-jibri" ]; then
+    echo "Nomad supports only java-jibri deployments. Exiting..."
+    exit 202
+  fi
+
+  echo "Deploying Nomad Jibris..."
+  $LOCAL_PATH/create-or-rotate-jibri-nomad.sh
+  if [ $? -gt 0 ]; then
+    echo "Nomad provisioning failed. Existing..."
+    exit 203
+  fi
+fi
 

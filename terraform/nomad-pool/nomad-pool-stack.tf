@@ -25,7 +25,6 @@ variable "environment_type" {}
 variable "tag_namespace" {}
 variable "user" {}
 variable "user_private_key_path" {}
-variable "bastion_host" {}
 variable "vcn_name" {}
 variable "load_balancer_shape" {
   default = "flexible"
@@ -70,6 +69,7 @@ variable "infra_customizations_repo" {}
 locals {
   common_freeform_tags = {
     "pool_type" = var.pool_type
+    shape = var.shape
   }
   common_tags = {
     "${var.tag_namespace}.environment" = var.environment
@@ -178,6 +178,21 @@ resource "oci_core_network_security_group_security_rule" "consul_nsg_rule_ingres
     destination_port_range {
       max = 443
       min = 443
+    }
+  }
+}
+
+resource "oci_core_network_security_group_security_rule" "consul_nsg_rule_ingress_consul_web_redirect" {
+  network_security_group_id = oci_core_network_security_group.nomad_lb_security_group.id
+  direction = "INGRESS"
+  protocol = "6"
+  source = "0.0.0.0/0"
+  stateless = false
+
+  tcp_options {
+    destination_port_range {
+      max = 80
+      min = 80
     }
   }
 }
@@ -335,6 +350,43 @@ resource "oci_load_balancer_certificate" "alt_certificate" {
     }
 }
 
+resource "oci_load_balancer_rule_set" "redirect_rule_set" {
+    #Required
+    items {
+        #Required
+        action = "REDIRECT"
+
+        conditions {
+            #Required
+            attribute_name = "PATH"
+            attribute_value = "/"
+            #Optional
+            operator = "PREFIX_MATCH"
+        }
+        description = "redirect http to https"
+        redirect_uri {
+            #Optional
+            host = "{host}"
+            path = "{path}"
+            port = 443
+            protocol = "https"
+            query = "{query}"
+        }
+        response_code = 301
+    }
+    load_balancer_id = oci_load_balancer.public_oci_load_balancer.id
+    name = "RedirectToHTTPS"
+}
+
+resource "oci_load_balancer_listener" "redirect_listener" {
+  load_balancer_id = oci_load_balancer.public_oci_load_balancer.id
+  name = "NomadHTTPListener"
+  port = 80
+  default_backend_set_name = oci_load_balancer_backend_set.oci_load_balancer_public_bs.name
+  rule_set_names = [oci_load_balancer_rule_set.redirect_rule_set.name]
+  protocol = "HTTP"
+}
+
 resource "oci_load_balancer_listener" "main_listener" {
   load_balancer_id = oci_load_balancer.public_oci_load_balancer.id
   name = "NomadProxyListener"
@@ -469,9 +521,6 @@ resource "null_resource" "verify_cloud_init" {
       user = var.user
       private_key = file(var.user_private_key_path)
 
-      bastion_host = var.bastion_host
-      bastion_user = var.user
-      bastion_private_key = file(var.user_private_key_path)
       script_path = "/home/${var.user}/script_%RAND%.sh"
 
       timeout = "10m"
@@ -484,7 +533,7 @@ resource "null_resource" "cloud_init_output" {
   depends_on = [null_resource.verify_cloud_init]
 
   provisioner "local-exec" {
-    command = "ssh -o StrictHostKeyChecking=no -J ${var.user}@${var.bastion_host} ${var.user}@${element(local.private_ips, count.index)} 'echo hostname: $HOSTNAME, privateIp: ${element(local.private_ips, count.index)} - $(cloud-init status)' >> ${var.postinstall_status_file}"
+    command = "ssh -o StrictHostKeyChecking=no ${var.user}@${element(local.private_ips, count.index)} 'echo hostname: $HOSTNAME, privateIp: ${element(local.private_ips, count.index)} - $(cloud-init status)' >> ${var.postinstall_status_file}"
   }
 }
 

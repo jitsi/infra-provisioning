@@ -29,7 +29,7 @@ fi
 ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 [ -e "$LOCAL_PATH/../../clouds/${ORACLE_CLOUD_NAME}.sh" ] && . $LOCAL_PATH/../../clouds/${ORACLE_CLOUD_NAME}.sh
 
-[ -z "$SHAPE" ] && SHAPE="$SHAPE_E_3"
+[ -z "$SHAPE" ] && SHAPE="$SHAPE_E_4"
 
 [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS="8"
 [ -z "$OCPUS" ] && OCPUS="2"
@@ -56,7 +56,7 @@ if [ ! -f "$VAULT_PASSWORD_FILE" ]; then
   exit 211
 fi
 
-[ -z "$CERTIFICATE_NAME" ] && CERTIFICATE_NAME="star_jitsi_net-2023-08-19"
+[ -z "$CERTIFICATE_NAME" ] && CERTIFICATE_NAME="star_jitsi_net-2024-08-10"
 [ -z "$CA_CERTIFICATE_VARIABLE" ] && CA_CERTIFICATE_VARIABLE="jitsi_net_ssl_extras"
 [ -z "$PUBLIC_CERTIFICATE_VARIABLE" ] && PUBLIC_CERTIFICATE_VARIABLE="jitsi_net_ssl_certificate"
 [ -z "$PRIVATE_KEY_VARIABLE" ] && PRIVATE_KEY_VARIABLE="jitsi_net_ssl_key_name"
@@ -112,11 +112,6 @@ fi
 [ -z "$USER_PRIVATE_KEY_PATH" ] && USER_PRIVATE_KEY_PATH="~/.ssh/id_ed25519"
 
 [ -z "$POSTINSTALL_STATUS_FILE" ] && POSTINSTALL_STATUS_FILE="$LOCAL_PATH/../../../test-results/repo_postinstall_status.txt"
-
-[ -z "$BASTION_HOST" ] && BASTION_HOST="$CONNECTION_SSH_BASTION_HOST"
-
-# add bastion hosts to known hosts if not present
-grep -q "$BASTION_HOST" ~/.ssh/known_hosts || ssh-keyscan -H $BASTION_HOST >> ~/.ssh/known_hosts
 
 [ -z "$S3_PROFILE" ] && S3_PROFILE="oracle"
 [ -z "$S3_STATE_BUCKET" ] && S3_STATE_BUCKET="tf-state-$ENVIRONMENT"
@@ -296,7 +291,6 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
   -var="memory_in_gbs=$MEMORY_IN_GBS" \
   -var="ocpus=$OCPUS" \
   -var="user_private_key_path=$USER_PRIVATE_KEY_PATH" \
-  -var="bastion_host=$BASTION_HOST" \
   -var="postinstall_status_file=$POSTINSTALL_STATUS_FILE" \
   -var="lb_security_group_id=$LB_SECURITY_GROUP_ID" \
   -var="certificate_certificate_name=$CERTIFICATE_NAME" \

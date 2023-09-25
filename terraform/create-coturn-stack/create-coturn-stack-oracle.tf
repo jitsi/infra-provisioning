@@ -23,7 +23,6 @@ variable "shard_role" {}
 variable "name" {}
 variable "user_public_key_path" {}
 variable "user_private_key_path" {}
-variable "bastion_host" {}
 variable "auto_scaling_config_name" {}
 variable "scale_out_rule_name" {}
 variable "scale_in_rule_name" {}
@@ -239,6 +238,7 @@ resource "oci_core_instance_configuration" "oci_instance_configuration" {
       freeform_tags = {
         configuration_repo = var.infra_configuration_repo
         customizations_repo = var.infra_customizations_repo
+        shape = var.shape
       }
     }
     secondary_vnics {
@@ -441,9 +441,6 @@ resource "null_resource" "verify_cloud_init" {
       user = var.user
       private_key = file(var.user_private_key_path)
 
-      bastion_host = var.bastion_host
-      bastion_user = var.user
-      bastion_private_key = file(var.user_private_key_path)
       script_path = "/home/${var.user}/script_%RAND%.sh"
 
       timeout = "10m"
@@ -461,7 +458,7 @@ resource "null_resource" "cloud_init_output" {
     null_resource.verify_cloud_init]
 
   provisioner "local-exec" {
-    command = "ssh -o StrictHostKeyChecking=no -J ${var.user}@${var.bastion_host}  ${var.user}@${element(data.oci_core_instance.oci_instance_datasources.*.private_ip, count.index)} 'echo hostname: $HOSTNAME, privateIp: ${element(data.oci_core_instance.oci_instance_datasources.*.private_ip, count.index)} - $(cloud-init status)' >> ${var.coturns_postinstall_status_file}"
+    command = "ssh -o StrictHostKeyChecking=no ${var.user}@${element(data.oci_core_instance.oci_instance_datasources.*.private_ip, count.index)} 'echo hostname: $HOSTNAME, privateIp: ${element(data.oci_core_instance.oci_instance_datasources.*.private_ip, count.index)} - $(cloud-init status)' >> ${var.coturns_postinstall_status_file}"
   }
   triggers = {
     always_run = "${timestamp()}"

@@ -20,7 +20,7 @@ LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 [ -z "$ORACLE_GIT_BRANCH" ] && ORACLE_GIT_BRANCH="master"
 
 [ -e "$LOCAL_PATH/../../clouds/all.sh" ] && . $LOCAL_PATH/../../clouds/all.sh
-[ -e "$LOCAL_PATH/../clouds/oracle.sh" ] && . $LOCAL_PATH/../clouds/oracle.sh
+[ -e "$LOCAL_PATH/../../clouds/oracle.sh" ] && . $LOCAL_PATH/../../clouds/oracle.sh
 
 if [ -z "$ORACLE_REGION" ]; then
   echo "No ORACLE_REGION found. Exiting..."
@@ -70,15 +70,10 @@ fi
 
 [ -z "$WFPROXY_POSTINSTALL_STATUS_FILE" ] && WFPROXY_POSTINSTALL_STATUS_FILE="../test-results/wfproxy_postinstall_status.txt"
 
-[ -z "$BASTION_HOST" ] && BASTION_HOST="$CONNECTION_SSH_BASTION_HOST"
-
-# add bastion hosts to known hosts if not present
-grep -q "$BASTION_HOST" ~/.ssh/known_hosts || ssh-keyscan -H $BASTION_HOST >> ~/.ssh/known_hosts
-
 [ -z "$S3_PROFILE" ] && S3_PROFILE="oracle"
 [ -z "$S3_STATE_BUCKET" ] && S3_STATE_BUCKET="tf-state-$ENVIRONMENT"
 [ -z "$S3_ENDPOINT" ] && S3_ENDPOINT="https://fr4eeztjonbe.compat.objectstorage.$ORACLE_REGION.oraclecloud.com"
-[ -z "$S3_STATE_KEY" ] && S3_STATE_KEY="$ENVIRONMENT/wfproxy-components/terraform.tfstate"
+[ -z "$S3_STATE_KEY" ] && S3_STATE_KEY="$ENVIRONMENT/wfproxy/terraform.tfstate"
 
 [ -z "$BASE_IMAGE_TYPE" ] && BASE_IMAGE_TYPE="$WFPROXY_BASE_IMAGE_TYPE"
 [ -z "$BASE_IMAGE_TYPE" ] && BASE_IMAGE_TYPE="JammyBase"
@@ -114,7 +109,7 @@ else
 fi
 
 # first find or create the security group
-[ -z "$S3_STATE_KEY_SG" ] && S3_STATE_KEY_SG="$ENVIRONMENT/wfproxy-components/terraform-sg.tfstate"
+[ -z "$S3_STATE_KEY_SG" ] && S3_STATE_KEY_SG="$ENVIRONMENT/wfproxy/terraform-sg.tfstate"
 LOCAL_SG_KEY="terraform-sg.tfstate"
 
 oci os object get --bucket-name $S3_STATE_BUCKET --name $S3_STATE_KEY_SG --region $ORACLE_REGION --file $LOCAL_SG_KEY
@@ -152,8 +147,10 @@ if [ -z "$SECURITY_GROUP_ID" ]; then
 fi
 
 if [ -z "$SECURITY_GROUP_ID" ]; then
-  echo "SECURITY_GROUP_ID failed to be found or created, exiting..."
-  exit 2
+  if [[ "$ACTION" != "destroy" ]]; then
+    echo "SECURITY_GROUP_ID failed to be found or created, exiting..."
+    exit 2
+  fi
 fi
 
 # The —reconfigure option disregards any existing configuration, preventing migration of any existing state
@@ -199,7 +196,6 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
   -var="memory_in_gbs=$MEMORY_IN_GBS" \
   -var="ocpus=$OCPUS" \
   -var="user_private_key_path=$USER_PRIVATE_KEY_PATH" \
-  -var="bastion_host=$BASTION_HOST" \
   -var="wavefront_proxy_postinstall_status_file=$WFPROXY_POSTINSTALL_STATUS_FILE" \
   -var="security_group_id=$SECURITY_GROUP_ID" \
   -var "infra_configuration_repo=$INFRA_CONFIGURATION_REPO" \

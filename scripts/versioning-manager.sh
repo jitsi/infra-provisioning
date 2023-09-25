@@ -154,6 +154,29 @@ elif [ "$VERSIONING_ACTION" == "SET_RELEASE_GA" ]; then
     exit 1
   fi
 
+elif [ "$VERSIONING_ACTION" == "GET_RELEASE" ]; then
+
+  if [ -z "$VERSIONING_RELEASE" ]; then
+    echo "## ERROR: no VERSIONING_RELEASE provided or found for GET_RELEASE, exiting..."
+    exit 2
+  fi
+
+  echo "## getting information for $VERSIONING_RELEASE"
+  response=$(curl -s -w '\n %{http_code}' -X GET \
+      "$VERSIONING_URL"/v1/releases/"$VERSIONING_RELEASE"?environment="$ENVIRONMENT" \
+      -H 'accept: application/json' \
+      -H 'Content-Type: application/json' \
+      -H "Authorization: Bearer $TOKEN")
+
+  httpCode=$(tail -n1 <<<"$response" | sed 's/[^0-9]*//g')
+  if [ "$httpCode" == 200 ]; then
+    echo "## got info for ${VERSIONING_RELEASE}:"
+    echo "$response" | jq
+  else
+    echo "## ERROR getting info for release $VERSIONING_RELEASE with status code $httpCode and response:\n$response"
+    exit 1
+  fi
+
 elif [ "$VERSIONING_ACTION" == "GET_RELEASES" ]; then
   echo "## getting list of all releases"
   response=$(curl -s -w '\n %{http_code}' -X GET \

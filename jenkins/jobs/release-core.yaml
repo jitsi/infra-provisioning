@@ -32,6 +32,14 @@
           description: "Visitor factor flag"
           trim: true
       - string:
+          name: SHAPE
+          description: "CPU shape for signal node, can be VM.Standard.E3.Flex VM.Standard.E4.Flex or VM.Standard.A1.Flex"
+          trim: true
+      - string:
+          name: JVB_SHAPE
+          description: "Override CPU shape for JVB node. Disregards limits for region/AD. Can be VM.Standard.E3.Flex VM.Standard.E4.Flex or VM.Standard.A1.Flex"
+          trim: true
+      - string:
           name: INSTANCE_SHAPE_OCPUS
           description: "CPU count for signal node"
           trim: true

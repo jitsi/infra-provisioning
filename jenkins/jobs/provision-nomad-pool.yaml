@@ -37,6 +37,18 @@
           description: "Oracle Region to build in"
           trim: true
       - string:
+          name: SHAPE
+          description: "Shape to use"
+          trim: true
+      - string:
+          name: OCPUS
+          description: "OCPU count"
+          trim: true
+      - string:
+          name: MEMORY_IN_GBS
+          description: "Memory to use"
+          trim: true
+      - string:
           name: INFRA_CONFIGURATION_REPO
           default: git@github.com:jitsi/infra-configuration.git
           description: "Repo for configuration code (ansible etc), defaults to 'git@github.com:jitsi/infra-configuration.git'."

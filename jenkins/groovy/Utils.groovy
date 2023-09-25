@@ -12,6 +12,22 @@ def SplitClouds(shard_environment,cloud_names) {
     return clouds
 }
 
+def SplitNomadRegions(environment,region_names) {
+    if (!region_names) {
+        region_names = sh(
+            returnStdout: true,
+            script: """#!/bin/bash
+. ./sites/${environment}/stack-env.sh"
+echo $NOMAD_REGIONS"""
+        ).trim()
+    }
+    if (!region_names) {
+        error("no nomad region_names entered or in stack-env.sh")
+    }
+
+    return region_names.split(' ')
+}
+
 def ReplicateImageOracle(image_type) {
     sh(
         script: """#!/bin/bash
@@ -252,6 +268,84 @@ echo \$CHECK_VAR"""
     }
 
     return ret;
+}
+
+// get the shape of the jigasi image via JIGASI_SHAPE variable
+def JigasiShapeFromEnvironment(environment) {
+    dir('infra-provisioning') {
+        def shape = sh(
+        returnStdout: true,
+        script: """#!/bin/bash
+. ./clouds/oracle.sh
+. ./sites/${environment}/stack-env.sh
+if [ -z "\$JIGASI_SHAPE" ]; then
+    echo \$SHAPE_E_4
+else
+    echo \$JIGASI_SHAPE
+fi
+""").trim();
+        return shape
+    }        
+}
+
+def ImageArchFromShape(shape) {
+    dir('infra-provisioning') {
+        def arch = sh(
+        returnStdout: true,
+        script: """#!/bin/bash
+. ./clouds/oracle.sh
+arch_from_shape ${shape}
+echo \$IMAGE_ARCH"""
+        ).trim();
+        return arch
+    }
+}
+
+// get the shape of the signal image via DEFAULT_SIGNAL_SHAPE variable
+def SignalShapeFromEnvironment(environment) {
+    dir('infra-provisioning') {
+        def shape = sh(
+        returnStdout: true,
+        script: """#!/bin/bash
+. ./clouds/oracle.sh
+. ./sites/${environment}/stack-env.sh
+if [ -z "\$DEFAULT_SIGNAL_SHAPE" ]; then
+    echo \$DEFAULT_STANDALONE_SHAPE
+else
+    echo \$DEFAULT_SIGNAL_SHAPE
+fi
+""").trim();
+        return shape
+    }        
+}
+
+// get the shape of the JVB image via ENABLE_A_1 variable
+def JVBShapeFromEnvironment(environment) {
+    dir('infra-provisioning') {
+        def shape = sh(
+        returnStdout: true,
+        script: """#!/bin/bash
+. ./clouds/oracle.sh
+. ./sites/${environment}/stack-env.sh
+if [ "\$ENABLE_A_1" == "true" ]; then
+    echo \$SHAPE_A_1
+else
+    echo \$JVB_SHAPE
+fi
+""").trim();
+        return shape
+    }        
+}
+
+def OracleRegionFromCloud(cloud) {
+        def region = sh(
+        returnStdout: true,
+        script: """#!/bin/bash
+. ./clouds/${cloud}.sh
+echo \$ORACLE_REGION"""
+        ).trim();
+        return region
+
 }
 
 return this

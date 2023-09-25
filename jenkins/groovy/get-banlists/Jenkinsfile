@@ -1,0 +1,46 @@
+pipeline {
+    agent any
+    options {
+        ansiColor('xterm')
+        timestamps()
+        buildDiscarder(logRotator(numToKeepStr: '10', artifactNumToKeepStr: '10'))
+    }
+    stages {
+        stage ("setup") {
+            steps {
+                script {
+                    // load utility function
+                    def rootDir = pwd()
+                    utils = load "${rootDir}/jenkins/groovy/Utils.groovy"
+                    // checkout repos
+                    utils.SetupRepos(env.VIDEO_INFRA_BRANCH)
+                }
+            }
+        }
+        stage ("set ban in consul") {
+            steps {
+                script {
+                    echo 'getting banlists'
+                    dir("infra-provisioning") {
+                        sshagent (credentials: ['ssh-ubuntu']) {
+                            getSucceeded = sh(
+                                returnStatus: true,
+                                script: """#!/bin/bash
+                                scripts/get-banlists.sh ubuntu
+                                """
+                            )
+                        }
+                    }
+                    if (getSucceeded == 'false') {
+                        error('get banlist failed')
+                    }
+                }
+            }
+        }
+    }
+    post {
+        always {
+            cleanWs()
+        }
+    }
+}

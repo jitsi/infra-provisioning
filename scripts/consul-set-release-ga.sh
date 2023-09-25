@@ -37,7 +37,7 @@ KV_KEY="releases/$ENVIRONMENT/live"
 [ -z "$CONSUL_INCLUDE_OCI" ] && CONSUL_INCLUDE_OCI="true"
 [ -z "$CONSUL_VIA_SSH" ] && CONSUL_VIA_SSH="false"
 
-OCI_LOCAL_REGION="us-phoenix-1"
+[ -z "$OCI_LOCAL_REGION" ] && OCI_LOCAL_REGION="us-phoenix-1"
 OCI_LOCAL_DATACENTER="$ENVIRONMENT-$OCI_LOCAL_REGION"
 
 CONSUL_AWS_HOST="consul-$AWS_CONSUL_ENV-$AWS_LOCAL_DATACENTER.$TOP_LEVEL_DNS_ZONE_NAME"
@@ -57,19 +57,19 @@ if [[ "$CONSUL_VIA_SSH" == "true" ]]; then
     if [[ "$CONSUL_INCLUDE_OCI" == "true" ]]; then
         echo "## create ssh connection to OCI consul"
         PORT_OCI=$(python -c 'import socket; s=socket.socket(); s.bind(("", 0)); print(s.getsockname()[1]); s.close()')
-        OCI_LOCAL_REGION="us-phoenix-1"
+        [ -z "$OCI_LOCAL_REGION" ] && OCI_LOCAL_REGION="us-phoenix-1"
         OCI_LOCAL_DATACENTER="$ENVIRONMENT-$OCI_LOCAL_REGION"
         ssh -fNT -L127.0.0.1:$PORT_OCI:$OCI_LOCAL_DATACENTER-consul.jitsi.net:443 $ANSIBLE_SSH_USER@$OCI_LOCAL_REGION-$ENVIRONMENT-ssh.oracle.infra.jitsi.net
         OCI_CONSUL_URL="https://consul-local.jitsi.net:$PORT_OCI"
     fi
-fi
-
-CONSUL_HOST="$AWS_LOCAL_DATACENTER-consul.$TOP_LEVEL_DNS_ZONE_NAME"
-if [[ "$CONSUL_INCLUDE_AWS" == "true" ]]; then
-    CONSUL_URL="https://$CONSUL_AWS_HOST"
-fi
-if [[ "$CONSUL_INCLUDE_OCI" == "true" ]]; then
-    OCI_CONSUL_URL="https://$CONSUL_OCI_HOST"
+else
+    CONSUL_HOST="$AWS_LOCAL_DATACENTER-consul.$TOP_LEVEL_DNS_ZONE_NAME"
+    if [[ "$CONSUL_INCLUDE_AWS" == "true" ]]; then
+        CONSUL_URL="https://$CONSUL_AWS_HOST"
+    fi
+    if [[ "$CONSUL_INCLUDE_OCI" == "true" ]]; then
+        OCI_CONSUL_URL="https://$CONSUL_OCI_HOST"
+    fi
 fi
 
 echo "## consul-set-release-ga: CONSUL_URL: $CONSUL_URL"
@@ -78,9 +78,6 @@ echo "## consul-set-release-ga: OCI_CONSUL_URL: $OCI_CONSUL_URL"
 if [ -z "$DATACENTER" ] && [ ! -z "$REGION" ]; then
     DATACENTER="$REGION-peer1"
 fi
-
-[ -z "$SERVICE" ] && SERVICE="signal"
-[ -z "$DISPLAY" ] && DISPLAY="shards"
 
 [ ! -z "$DATACENTER" ] && DATACENTERS="[\"$DATACENTER\"]"
 

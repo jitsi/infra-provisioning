@@ -22,7 +22,7 @@ function switch_to_secondary_vnic() {
   fi
 
   echo "Detect secondary NIC"
-  SECONDARY_VNIC_DEVICE="$(ip addr | egrep '^3:' | awk '{print $2}')"
+  SECONDARY_VNIC_DEVICE="$(ip addr | egrep '^[0-9]' | egrep -v 'lo|docker' | tail -1 | awk '{print $2}')"
   SECONDARY_VNIC_DEVICE="${SECONDARY_VNIC_DEVICE::-1}"
 
   echo "Add rule for secondary NIC "

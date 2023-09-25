@@ -22,6 +22,11 @@ job "[JOB_NAME]" {
       value     = "true"
     }
 
+    constraint {
+      attribute  = "${meta.pool_type}"
+      value     = "general"
+    }
+
     count = 2
     network {
       port "http" {
@@ -53,7 +58,7 @@ job "[JOB_NAME]" {
 
       resources {
         cpu    = 1000
-        memory = 2048
+        memory = 1024
       }
     }
   }

@@ -17,7 +17,7 @@ LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 [ -z "$ROLE" ] && ROLE="nomad-pool"
 [ -z "$POOL_TYPE" ] && POOL_TYPE="general"
 [ -z "$NAME" ] && NAME="$ENVIRONMENT-$ORACLE_REGION-$ROLE-$POOL_TYPE"
-[ -z "$ORACLE_GIT_BRANCH" ] && ORACLE_GIT_BRANCH="master"
+[ -z "$ORACLE_GIT_BRANCH" ] && ORACLE_GIT_BRANCH="main"
 
 [ -z "$POOL_PUBLIC" ] && POOL_PUBLIC="false"
 
@@ -29,15 +29,25 @@ if [ -z "$ORACLE_REGION" ]; then
   exit 203
 fi
 
+if [ -z "$INFRA_CONFIGURATION_REPO" ]; then
+  echo "No INFRA_CONFIGURATION_REPO found. Exiting..."
+  exit 203
+fi
+
+if [ -z "$INFRA_CUSTOMIZATIONS_REPO" ]; then
+  echo "No INFRA_CUSTOMIZATIONS_REPO found. Exiting..."
+  exit 203
+fi
+
 ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 [ -e "$LOCAL_PATH/../../clouds/${ORACLE_CLOUD_NAME}.sh" ] && . $LOCAL_PATH/../../clouds/${ORACLE_CLOUD_NAME}.sh
 
-[ -z "$SHAPE" ] && SHAPE="$SHAPE_E_3"
+[ -z "$SHAPE" ] && SHAPE="$SHAPE_A_1"
 
 [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS="32"
 [ -z "$OCPUS" ] && OCPUS="8"
 
-[ -z "$INSTANCE_POOL_SIZE" ] && INSTANCE_POOL_SIZE=3
+[ -z "$INSTANCE_POOL_SIZE" ] && INSTANCE_POOL_SIZE=2
 
 [ -z "$NAME_ROOT" ] && NAME_ROOT="$NAME"
 
@@ -64,7 +74,7 @@ fi
 [ -z "$ENCRYPTED_CREDENTIALS_FILE" ] && ENCRYPTED_CREDENTIALS_FILE="$LOCAL_PATH/../../ansible/secrets/ssl-certificates.yml"
 [ -z "$VAULT_PASSWORD_FILE" ] && VAULT_PASSWORD_FILE="$LOCAL_PATH/../../.vault-password.txt"
 
-[ -z "$NOMAD_CERTIFICATE_NAME" ] && NOMAD_CERTIFICATE_NAME="star_jitsi_net-2023-08-19"
+[ -z "$NOMAD_CERTIFICATE_NAME" ] && NOMAD_CERTIFICATE_NAME="star_jitsi_net-2024-08-10"
 [ -z "$NOMAD_CA_CERTIFICATE_VARIABLE" ] && NOMAD_CA_CERTIFICATE_VARIABLE="jitsi_net_ssl_extras"
 [ -z "$NOMAD_PUBLIC_CERTIFICATE_VARIABLE" ] && NOMAD_PUBLIC_CERTIFICATE_VARIABLE="jitsi_net_ssl_certificate"
 [ -z "$NOMAD_PRIVATE_KEY_VARIABLE" ] && NOMAD_PRIVATE_KEY_VARIABLE="jitsi_net_ssl_key_name"
@@ -96,19 +106,17 @@ fi
 
 [ -z "$POSTINSTALL_STATUS_FILE" ] && POSTINSTALL_STATUS_FILE="$(realpath $LOCAL_PATH/../../..)/test-results/nomad_postinstall_status.txt"
 
-[ -z "$BASTION_HOST" ] && BASTION_HOST="$CONNECTION_SSH_BASTION_HOST"
-
-# add bastion hosts to known hosts if not present
-grep -q "$BASTION_HOST" ~/.ssh/known_hosts || ssh-keyscan -H $BASTION_HOST >> ~/.ssh/known_hosts
-
 [ -z "$S3_PROFILE" ] && S3_PROFILE="oracle"
 [ -z "$S3_STATE_BUCKET" ] && S3_STATE_BUCKET="tf-state-$ENVIRONMENT"
 [ -z "$S3_ENDPOINT" ] && S3_ENDPOINT="https://$ORACLE_S3_NAMESPACE.compat.objectstorage.$ORACLE_REGION.oraclecloud.com"
 [ -z "$S3_STATE_KEY" ] && S3_STATE_KEY="$ENVIRONMENT/nomad-pool/$POOL_TYPE/terraform.tfstate"
 
+[ -z "$BASE_IMAGE_TYPE" ] && BASE_IMAGE_TYPE="$NOMAD_BASE_IMAGE_TYPE"
+[ -z "$BASE_IMAGE_TYPE" ] && BASE_IMAGE_TYPE="JammyBase"
+
 arch_from_shape $SHAPE
 
-[ -z "$IMAGE_OCID" ] && IMAGE_OCID=$($LOCAL_PATH/../../scripts/oracle_custom_images.py --type JammyBase --architecture "$IMAGE_ARCH" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
+[ -z "$IMAGE_OCID" ] && IMAGE_OCID=$($LOCAL_PATH/../../scripts/oracle_custom_images.py --type $BASE_IMAGE_TYPE --architecture "$IMAGE_ARCH" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
 if [ -z "$IMAGE_OCID" ]; then
   echo "No IMAGE_OCID found.  Exiting..."
   exit 210
@@ -119,8 +127,6 @@ if [ -z "$AVAILABILITY_DOMAINS" ]; then
   echo "No AVAILABILITY_DOMAINS found.  Exiting..."
   exit 206
 fi
-
-
 
 # ensure no output for ansible vault contents
 set +x
@@ -148,10 +154,15 @@ set -x
 [ -z "$DNS_NAME" ] && DNS_NAME="$RESOURCE_NAME_ROOT.$DNS_ZONE_NAME"
 [ -z "$PRIVATE_DNS_NAME" ] && PRIVATE_DNS_NAME="$RESOURCE_NAME_ROOT-internal.$DNS_ZONE_NAME"
 
-[ -z "$NOMAD_LB_HOSTNAMES" ] && NOMAD_LB_HOSTNAMES="[\"$RESOURCE_NAME_ROOT.$TOP_LEVEL_DNS_ZONE_NAME\"]"
+[ -z "$NOMAD_LB_HOSTNAMES" ] && NOMAD_LB_HOSTNAMES="[\"$RESOURCE_NAME_ROOT.$TOP_LEVEL_DNS_ZONE_NAME\",\"${ENVIRONMENT}-${ORACLE_REGION}-jigasi-selector.$TOP_LEVEL_DNS_ZONE_NAME\",\"${ENVIRONMENT}-${ORACLE_REGION}-autoscaler.$TOP_LEVEL_DNS_ZONE_NAME\"]"
 [ -z "$NOMAD_ALT_HOSTNAMES" ] && NOMAD_ALT_HOSTNAMES="[\"$DOMAIN\"]"
 
+[ -n "$NOMAD_LB_EXTRA_HOSTNAMES" ] && NOMAD_LB_HOSTNAMES="$(echo "$NOMAD_LB_HOSTNAMES" "$NOMAD_LB_EXTRA_HOSTNAMES" | jq -c -s '.|add' )"
+
+[ -n "$NOMAD_ALT_EXTRA_HOSTNAMES" ] && NOMAD_ALT_HOSTNAMES="$(echo "$NOMAD_ALT_HOSTNAMES" "$NOMAD_ALT_EXTRA_HOSTNAMES" | jq -c -s '.|add' )"
+
 [ -z "$LOAD_BALANCER_SHAPE" ] && LOAD_BALANCER_SHAPE="flexible"
+[ -z "$NOMAD_LOAD_BALANCER_MAXIMUM_BANDWIDTH_IN_MBPS" ] && NOMAD_LOAD_BALANCER_MAXIMUM_BANDWIDTH_IN_MBPS=100
 
 VCN_NAME_ROOT="$ORACLE_REGION-$ENVIRONMENT"
 VCN_NAME="$VCN_NAME_ROOT-vcn"
@@ -259,10 +270,10 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
   -var="memory_in_gbs=$MEMORY_IN_GBS" \
   -var="ocpus=$OCPUS" \
   -var="user_private_key_path=$USER_PRIVATE_KEY_PATH" \
-  -var="bastion_host=$BASTION_HOST" \
   -var="postinstall_status_file=$POSTINSTALL_STATUS_FILE" \
   -var="vcn_name=$VCN_NAME" \
   -var="load_balancer_shape=$LOAD_BALANCER_SHAPE" \
+  -var="load_balancer_shape_details_maximum_bandwidth_in_mbps=$NOMAD_LOAD_BALANCER_MAXIMUM_BANDWIDTH_IN_MBPS" \
   -var="dns_name=$DNS_NAME" \
   -var="private_dns_name=$PRIVATE_DNS_NAME" \
   -var="dns_zone_name=$DNS_ZONE_NAME" \

@@ -61,6 +61,17 @@ fi
 ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 [ -e "$LOCAL_PATH/../../clouds/${ORACLE_CLOUD_NAME}.sh" ] && . $LOCAL_PATH/../../clouds/${ORACLE_CLOUD_NAME}.sh
 
+[ -z "$ENABLE_E_4" ] && ENABLE_E_4="false"
+
+if [ "$ENABLE_E_4" == "true" ]; then
+  JVB_SHAPE="$SHAPE_E_4"
+fi
+
+# use A1 if configured
+if [ "$ENABLE_A_1" == "true" ]; then
+  JVB_SHAPE="$SHAPE_A_1"
+fi
+
 [ -z "$SHAPE" ] && SHAPE="$JVB_SHAPE"
 
 if [[ "$SHAPE" == "VM.Standard.E3.Flex" ]]; then
@@ -68,6 +79,9 @@ if [[ "$SHAPE" == "VM.Standard.E3.Flex" ]]; then
   [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=16
 elif [[ "$SHAPE" == "VM.Standard.E4.Flex" ]]; then
   [ -z "$OCPUS" ] && OCPUS=4
+  [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=16
+elif [[ "$SHAPE" == "VM.Standard.A1.Flex" ]]; then
+  [ -z "$OCPUS" ] && OCPUS=8
   [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=16
 else
   [ -z "$OCPUS" ] && OCPUS=4

@@ -15,6 +15,14 @@ fi
 [ -e ./sites/$ENVIRONMENT/stack-env.sh ] && . ./sites/$ENVIRONMENT/stack-env.sh
 
 LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
+[ -e "$LOCAL_PATH/../clouds/all.sh" ] && . $LOCAL_PATH/../clouds/all.sh
+
+# use custom backend if provided, otherwise use default URL for environment
+if [ -n "$AUTOSCALER_BACKEND" ]; then
+  if [[ "$AUTOSCALER_BACKEND" != "prod" ]] && [[ "$AUTOSCALER_BACKEND" != "pilot" ]]; then
+    AUTOSCALER_URL="https://$AUTOSCALER_BACKEND-autoscaler.$TOP_LEVEL_DNS_ZONE_NAME"
+  fi
+fi
 
 if [ -z "$AUTOSCALER_URL" ]; then
   echo "No AUTOSCALER_URL provided or found. Exiting.. "

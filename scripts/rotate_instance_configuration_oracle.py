@@ -62,6 +62,9 @@ parser.add_argument('--metadata_path', action='store', help='Metadata to be used
 parser.add_argument('--metadata_lib_path', action='store', help='Metadata library path to be used by Cloud-Init to run',
                     default=False)
 
+parser.add_argument('--metadata_extras', action='store', help='Metadata string to append to the cloud init scripts',
+                    default=False)
+
 parser.add_argument('--custom_autoscaler', action='store_true',
                     help='Used to rotate instance configuration for the custom autoscaler',
                     default=False)
@@ -149,6 +152,8 @@ if args.infra_configuration_repo and args.infra_customizations_repo:
     existing_instance_configuration_details.data.freeform_tags['customizations_repo'] = args.infra_customizations_repo
     metadata_files.append(bytes("\nexport INFRA_CONFIGURATION_REPO=\"{}\"\nexport INFRA_CUSTOMIZATIONS_REPO=\"{}\"\n".format(args.infra_configuration_repo,args.infra_customizations_repo),"utf8"))
 
+if args.metadata_extras:
+    metadata_files.append(bytes("\n{}\n".format(args.metadata_extras),"utf8"))
 
 metadata_files.extend([metadata_file_contents,metadata_footer_contents])
 
@@ -182,6 +187,9 @@ if args.display_name:
 else:
     display_name = existing_instance_configuration_details.data.display_name
 
+freeform_tags = existing_instance_configuration_details.data.freeform_tags
+freeform_tags['shape'] = shape
+
 secondary_vnics = []
 if existing_instance_configuration_details.data.instance_details.secondary_vnics:
     secondary_vnics = existing_instance_configuration_details.data.instance_details.secondary_vnics
@@ -198,7 +206,7 @@ launch_details = InstanceConfigurationLaunchInstanceDetails(
         user_data=encoded_user_data.decode('utf-8')
     ),
     defined_tags=existing_instance_configuration_details.data.defined_tags,
-    freeform_tags=existing_instance_configuration_details.data.freeform_tags,
+    freeform_tags=freeform_tags,
     create_vnic_details=existing_instance_configuration_details.data.instance_details.launch_details.create_vnic_details
 )
 

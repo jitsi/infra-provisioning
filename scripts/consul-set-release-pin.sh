@@ -59,7 +59,7 @@ fi
 if [[ "$CONSUL_INCLUDE_OCI" == "true" ]]; then
     echo "## creating ssh tunnel for OCI"
     PORT_OCI=$(python -c 'import socket; s=socket.socket(); s.bind(("", 0)); print(s.getsockname()[1]); s.close()')
-    OCI_LOCAL_REGION="us-phoenix-1"
+    [ -z "$OCI_LOCAL_REGION" ] && OCI_LOCAL_REGION="us-phoenix-1"
     OCI_LOCAL_DATACENTER="$ENVIRONMENT-$OCI_LOCAL_REGION"
     ssh -fNT -L127.0.0.1:$PORT_OCI:$OCI_LOCAL_DATACENTER-consul.jitsi.net:443 $ANSIBLE_SSH_USER@$OCI_LOCAL_REGION-$ENVIRONMENT-ssh.oracle.infra.jitsi.net
     OCI_CONSUL_URL="https://consul-local.jitsi.net:$PORT_OCI"

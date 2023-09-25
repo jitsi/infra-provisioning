@@ -25,6 +25,7 @@ fi
 
 #pull in cloud-specific variables, e.g. tenancy
 [ -e "$LOCAL_PATH/../clouds/oracle.sh" ] && . $LOCAL_PATH/../clouds/oracle.sh
+[ -e "$LOCAL_PATH/../clouds/all.sh" ] && . $LOCAL_PATH/../clouds/all.sh
 
 if [ -z "$ORACLE_REGION" ]; then
   echo "No ORACLE_REGION found.  Exiting..."
@@ -43,6 +44,41 @@ if [ "$JIBRI_TYPE" != "java-jibri" ] &&  [ "$JIBRI_TYPE" != "sip-jibri" ]; then
   exit 206
 fi
 
+JIBRI_NOMAD_VARIABLE="jibri_enable_nomad"
+
+[ -z "$CONFIG_VARS_FILE" ] && CONFIG_VARS_FILE="$LOCAL_PATH/../config/vars.yml"
+[ -z "$ENVIRONMENT_VARS_FILE" ] && ENVIRONMENT_VARS_FILE="$LOCAL_PATH/../sites/$ENVIRONMENT/vars.yml"
+
+
+JIBRI_IMAGE_TYPE="JavaJibri"
+
+NOMAD_JIBRI_FLAG="$(cat $ENVIRONMENT_VARS_FILE | yq eval .${JIBRI_NOMAD_VARIABLE} -)"
+if [[ "$NOMAD_JIBRI_FLAG" == "null" ]]; then
+  NOMAD_JIBRI_FLAG="$(cat $CONFIG_VARS_FILE | yq eval .${JIBRI_NOMAD_VARIABLE} -)"
+fi
+
+if [[ "$NOMAD_JIBRI_FLAG" == "null" ]]; then
+  NOMAD_JIBRI_FLAG="false"
+fi
+
+if [[ "$NOMAD_JIBRI_FLAG" == "true" ]]; then
+  JIBRI_IMAGE_TYPE="JammyBase"
+  JIBRI_VERSION="latest"
+  TYPE="nomad"
+  [ -z "$NAME_ROOT_SUFFIX" ] && NAME_ROOT_SUFFIX="NomadJibriCustomGroup"
+  echo "Using Nomad AUTOSCALER_URL"
+  AUTOSCALER_URL="https://${ENVIRONMENT}-${ORACLE_REGION}-autoscaler.$TOP_LEVEL_DNS_ZONE_NAME"
+  [ -z $JIBRI_MAX_COUNT ] && JIBRI_MAX_COUNT=5
+  [ -z $JIBRI_MIN_COUNT ] && JIBRI_MIN_COUNT=1
+  [ -z $JIBRI_DOWNSCALE_COUNT ] && JIBRI_DOWNSCALE_COUNT="0.4"
+  [ -z $JIBRI_SCALING_INCREASE_RATE ] && JIBRI_SCALING_INCREASE_RATE=1
+  [ -z $JIBRI_SCALING_DECREASE_RATE ] && JIBRI_SCALING_DECREASE_RATE=1
+  [ -z "$JIBRI_SCALE_UP_PERIODS_COUNT" ] && JIBRI_SCALE_UP_PERIODS_COUNT=2
+  [ -z "$JIBRI_SCALE_DOWN_PERIODS_COUNT" ] && JIBRI_SCALE_DOWN_PERIODS_COUNT=20
+  [ -z "$JIBRI_AVAILABLE_COUNT" ] && JIBRI_AVAILABLE_COUNT="0.65"
+
+fi
+
 if [ "$JIBRI_TYPE" == "java-jibri" ]; then
   [ -z "$TYPE" ] && TYPE="jibri"
   [ -z "$NAME_ROOT_SUFFIX" ] && NAME_ROOT_SUFFIX="JibriCustomGroup"
@@ -56,6 +92,10 @@ if [ "$JIBRI_TYPE" == "java-jibri" ]; then
   fi
   if [[ "$SHAPE" == "VM.Standard.E4.Flex" ]]; then
     [ -z "$OCPUS" ] && OCPUS=4
+    [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=16
+  fi
+  if [[ "$SHAPE" == "VM.Standard.A1.Flex" ]]; then
+    [ -z "$OCPUS" ] && OCPUS=8
     [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=16
   fi
 elif [ "$JIBRI_TYPE" == "sip-jibri" ]; then
@@ -73,12 +113,16 @@ elif [ "$JIBRI_TYPE" == "sip-jibri" ]; then
     [ -z "$OCPUS" ] && OCPUS=8
     [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=16
   fi
+  if [[ "$SHAPE" == "VM.Standard.A1.Flex" ]]; then
+    [ -z "$OCPUS" ] && OCPUS=16
+    [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=16
+  fi
 fi
 
 arch_from_shape $SHAPE
 
 #Look up images based on version, or default to latest
-[ -z "$JIBRI_IMAGE_OCID" ] && JIBRI_IMAGE_OCID=$($LOCAL_PATH/oracle_custom_images.py --type JavaJibri --version "$JIBRI_VERSION" --architecture "$IMAGE_ARCH" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
+[ -z "$JIBRI_IMAGE_OCID" ] && JIBRI_IMAGE_OCID=$($LOCAL_PATH/oracle_custom_images.py --type $JIBRI_IMAGE_TYPE --version "$JIBRI_VERSION" --architecture "$IMAGE_ARCH" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
 
 #No image was found, probably not built yet?
 if [ -z "$JIBRI_IMAGE_OCID" ]; then
@@ -171,7 +215,7 @@ if [ "$getGroupHttpCode" == 404 ]; then
   [ -z "$JIBRI_ENABLE_LAUNCH" ] && JIBRI_ENABLE_LAUNCH=true
   [ -z "$JIBRI_ENABLE_SCHEDULER" ] && JIBRI_ENABLE_SCHEDULER=true
   [ -z "$JIBRI_ENABLE_RECONFIGURATION" ] && JIBRI_ENABLE_RECONFIGURATION=false
-  [ -z "$JIBRI_GRACE_PERIOD_TTL_SEC" ] && JIBRI_GRACE_PERIOD_TTL_SEC=600
+  [ -z "$JIBRI_GRACE_PERIOD_TTL_SEC" ] && JIBRI_GRACE_PERIOD_TTL_SEC=300
 
   [ -z "$JIBRI_SCALE_PERIOD" ] && JIBRI_SCALE_PERIOD=60
   [ -z "$JIBRI_SCALE_UP_PERIODS_COUNT" ] && JIBRI_SCALE_UP_PERIODS_COUNT=5
@@ -197,11 +241,13 @@ if [ "$getGroupHttpCode" == 404 ]; then
   [ -z "$JIBRI_MIN_COUNT" ] && JIBRI_MIN_COUNT=1
   [ -z "$JIBRI_DOWNSCALE_COUNT" ] && JIBRI_DOWNSCALE_COUNT=1
 
-  # ensure we don't try to downscale past minimum if minimum is overridden
-  if [[ $JIBRI_DOWNSCALE_COUNT -lt $JIBRI_MIN_COUNT ]]; then
-    JIBRI_DOWNSCALE_COUNT=$JIBRI_MIN_COUNT
-  fi
 
+  if [[ "$NOMAD_JIBRI_FLAG" == "false" ]]; then
+    # ensure we don't try to downscale past minimum if minimum is overridden
+    if [[ $JIBRI_DOWNSCALE_COUNT -lt $JIBRI_MIN_COUNT ]]; then
+      JIBRI_DOWNSCALE_COUNT=$JIBRI_MIN_COUNT
+    fi
+  fi
   [ -z "$JIBRI_DESIRED_COUNT" ] && JIBRI_DESIRED_COUNT=$JIBRI_MIN_COUNT
   [ -z "$JIBRI_AVAILABLE_COUNT" ] && JIBRI_AVAILABLE_COUNT=$JIBRI_DESIRED_COUNT
 
@@ -274,8 +320,9 @@ elif [ "$getGroupHttpCode" == 200 ]; then
 
   NEW_INSTANCE_CONFIGURATION_ID=$($LOCAL_PATH/rotate_instance_configuration_oracle.py --region "$ORACLE_REGION" --image_id "$JIBRI_IMAGE_OCID" \
     --jibri_release_number "$JIBRI_RELEASE_NUMBER" --git_branch "$ORACLE_GIT_BRANCH" --infra_customizations_repo "$INFRA_CUSTOMIZATIONS_REPO" --infra_configuration_repo "$INFRA_CONFIGURATION_REPO" \
-    --instance_configuration_id "$EXISTING_INSTANCE_CONFIGURATION_ID" --tag_namespace "$TAG_NAMESPACE" --user_public_key_path "$USER_PUBLIC_KEY_PATH" --metadata_lib_path "$METADATA_LIB_PATH" --metadata_path "$METADATA_PATH" --custom_autoscaler \
-    $SHAPE_PARAMS)
+    --instance_configuration_id "$EXISTING_INSTANCE_CONFIGURATION_ID" --tag_namespace "$TAG_NAMESPACE" --user_public_key_path "$USER_PUBLIC_KEY_PATH" --metadata_lib_path "$METADATA_LIB_PATH" --metadata_path "$METADATA_PATH" \
+    --metadata_extras="export NOMAD_FLAG=$NOMAD_JIBRI_FLAG" \
+    --custom_autoscaler $SHAPE_PARAMS)
 
   if [ -z "$NEW_INSTANCE_CONFIGURATION_ID" ] || [ "$NEW_INSTANCE_CONFIGURATION_ID" == "null" ]; then
     echo "No Instance Configuration was created for group $GROUP_NAME. Exiting.."

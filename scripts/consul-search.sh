@@ -11,6 +11,8 @@ fi
 
 LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
+[ -e "$LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh" ] && . "$LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh"
+
 [ -e "$LOCAL_PATH/../clouds/all.sh" ] && . "$LOCAL_PATH/../clouds/all.sh"
 [ -e "$LOCAL_PATH/../clouds/oracle.sh" ] && . "$LOCAL_PATH/../clouds/oracle.sh"
 
@@ -21,16 +23,15 @@ LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 [ -z "$AWS_CONSUL_ENV" ] && AWS_CONSUL_ENV="prod"
 [ -z "$CONSUL_VIA_SSH" ] && CONSUL_VIA_SSH="true"
 
-OCI_LOCAL_REGION="us-phoenix-1"
+[ -z "$OCI_LOCAL_REGION" ] && OCI_LOCAL_REGION="us-phoenix-1"
 OCI_LOCAL_DATACENTER="$ENVIRONMENT-$OCI_LOCAL_REGION"
 
 CONSUL_AWS_HOST="consul-$AWS_CONSUL_ENV-$AWS_LOCAL_DATACENTER.$TOP_LEVEL_DNS_ZONE_NAME"
 CONSUL_OCI_HOST="$OCI_LOCAL_DATACENTER-consul.$TOP_LEVEL_DNS_ZONE_NAME"
 
 if [[ "$CONSUL_VIA_SSH" == "true" ]]; then
-    CONSUL_HOST="consul-local.$TOP_LEVEL_DNS_ZONE_NAME"
-
     if [[ "$CONSUL_INCLUDE_AWS" == "true" ]]; then
+        CONSUL_HOST="$CONSUL_AWS_HOST"
         PORT=$(python -c 'import socket; s=socket.socket(); s.bind(("", 0)); print(s.getsockname()[1]); s.close()')
         ssh -o StrictHostKeyChecking=no -fNT -L127.0.0.1:$PORT:$CONSUL_AWS_HOST:443 $ANSIBLE_SSH_USER@$AWS_LOCAL_DATACENTER-ssh.$INFRA_DNS_ZONE_NAME
         CONSUL_URL="https://$CONSUL_HOST:$PORT"
@@ -38,6 +39,7 @@ if [[ "$CONSUL_VIA_SSH" == "true" ]]; then
     fi
 
     if [[ "$CONSUL_INCLUDE_OCI" == "true" ]]; then
+        CONSUL_HOST="$CONSUL_OCI_HOST"
         PORT_OCI=$(python -c 'import socket; s=socket.socket(); s.bind(("", 0)); print(s.getsockname()[1]); s.close()')
         ssh -o StrictHostKeyChecking=no -fNT -L127.0.0.1:$PORT_OCI:$CONSUL_OCI_HOST:443 $ANSIBLE_SSH_USER@$OCI_LOCAL_REGION-$ENVIRONMENT-ssh.$DEFAULT_DNS_ZONE_NAME
         OCI_CONSUL_URL="https://$CONSUL_HOST:$PORT_OCI"
@@ -105,7 +107,8 @@ if [ ! -z "$DATACENTERS" ]; then
     ALL_RELEASES=""
     ALL_SHARDS=""
     ALL_ADDRESSES=""
-    ALL_ADDRESSES=""
+    ALL_SERVICES=""
+    ALL_URLS=""
     ALL_CORE_PROVIDERS=""
     if [[ "$CONSUL_INCLUDE_AWS" == "true" ]]; then
         for DC in $AWS_DATACENTERS; do
@@ -115,9 +118,12 @@ if [ ! -z "$DATACENTERS" ]; then
     #            echo $SERVICES
                 [ "$SERVICES" == "null" ] && SERVICES=""
                 ADDRESSES=$(echo $SERVICES | jq -r ".|map(.Address)|.[]")
+                URLS=$(echo $SERVICES | jq -r '.|map("http://"+.Address+":"+(.ServicePort|tostring))|.[]')
                 RELEASES=$(echo $SERVICES | jq -r ".|map(.ServiceMeta.release_number)|unique|.[]")
                 SHARDS=$(echo $SERVICES | jq -r ".|map(.ServiceMeta.shard)|unique|.[]")
                 ALL_SHARDS="$SHARDS $ALL_SHARDS"
+                ALL_URLS="$URLS $ALL_URLS"
+                ALL_SERVICES="$SERVICES $ALL_SERVICES"
                 ALL_RELEASES="$RELEASES $ALL_RELEASES"
                 ALL_ADDRESSES="$ADDRESSES $ALL_ADDRESSES"
                 [ ! -z "$SHARDS" ] && ALL_CORE_PROVIDERS="aws"
@@ -135,10 +141,13 @@ if [ ! -z "$DATACENTERS" ]; then
                     echo "$SERVICES" | jq '.' > /dev/null
                     if [ $? -eq 0 ]; then
                         ADDRESSES="$(echo $SERVICES | jq -r ".|map(.Address)|.[]")"
+                        URLS=$(echo $SERVICES | jq -r '.|map("http://"+.Address+":"+(.ServicePort|tostring))|.[]')
                         RELEASES="$(echo $SERVICES | jq -r ".|map(.ServiceMeta.release_number)|unique|.[]")"
                         SHARDS="$(echo $SERVICES | jq -r ".|map(.ServiceMeta.shard)|unique|.[]")"
                         SERVICE_META="$(echo $SERVICES | jq -r ".|map(.ServiceMeta)")"
                         ALL_SHARDS="$SHARDS $ALL_SHARDS"
+                        ALL_URLS="$URLS $ALL_URLS"
+                        ALL_SERVICES="$SERVICES $ALL_SERVICES"
                         ALL_RELEASES="$RELEASES $ALL_RELEASES"
                         ALL_ADDRESSES="$ADDRESSES $ALL_ADDRESSES"
                         ALL_SERVICE_META="$(echo "$ALL_SERVICE_META" "$SERVICE_META" | jq -c -s '.|add')"
@@ -161,12 +170,15 @@ if [ ! -z "$DATACENTERS" ]; then
     ALL_ADDRESSES=$(echo $ALL_ADDRESSES | xargs -n1 | sort -u)
     ALL_SHARDS=$(echo $ALL_SHARDS | xargs -n1 | sort -u)
     ALL_CORE_PROVIDERS=$(echo $ALL_CORE_PROVIDERS | xargs -n1 | sort -u)
+    ALL_URLS=$(echo $ALL_URLS | xargs -n1 | sort -u)
 
     [ "$DISPLAY" == "releases" ] && echo $ALL_RELEASES
     [ "$DISPLAY" == "shards" ] && echo $ALL_SHARDS
     [ "$DISPLAY" == "addresses" ] && echo $ALL_ADDRESSES
     [ "$DISPLAY" == "core_providers" ] && echo $ALL_CORE_PROVIDERS
     [ "$DISPLAY" == "service_meta" ] && echo $ALL_SERVICE_META
+    [ "$DISPLAY" == "service" ] && echo $ALL_SERVICES
+    [ "$DISPLAY" == "urls" ] && echo $ALL_URLS
 else
     if [[ "$CONSUL_VIA_SSH" == "true" ]]; then
         if [[ "$CONSUL_INCLUDE_AWS" == "true" ]]; then

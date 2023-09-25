@@ -14,7 +14,7 @@ if [ -z $ENVIRONMENT ]; then
   exit 201
 fi
 
-[ -e "$LOCAL_PATH/../clouds/all.sh" ] && . $LOCAL_PATH/../clouds/all.sh
+[ -e "$LOCAL_PATH/../../clouds/all.sh" ] && . $LOCAL_PATH/../../clouds/all.sh
 [ -e "$LOCAL_PATH/../../clouds/oracle.sh" ] && . $LOCAL_PATH/../../clouds/oracle.sh
 
 if [ -z "$ORACLE_REGION" ]; then

@@ -47,7 +47,7 @@ if [[ "$IMAGE_ARCH" == "aarch64" ]]; then
   [ -z "$SHAPE" ] && SHAPE="$SHAPE_A_1"
 fi
 
-[ -z "$SHAPE" ] && SHAPE="$SHAPE_E_3"
+[ -z "$SHAPE" ] && SHAPE="$SHAPE_E_4"
 [ -z "$OCPUS" ] && OCPUS="8"
 [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS="16"
 
@@ -69,9 +69,6 @@ fi
 [ -z "$BASE_IMAGE_TYPE" ] && BASE_IMAGE_TYPE="JammyBase"
 
 [ -z "$BASE_IMAGE_ID" ] && BASE_IMAGE_ID=$($LOCAL_PATH/oracle_custom_images.py --type $BASE_IMAGE_TYPE  --architecture "$IMAGE_ARCH" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
-
-# addtional bastion configs
-[ -z "$CONNECTION_SSH_PRIVATE_KEY_FILE" ] && CONNECTION_SSH_PRIVATE_KEY_FILE="~/.ssh/id_ed25519"
 
 usage() { echo "Usage: $0 [<username>]" 1>&2; }
 
@@ -119,8 +116,6 @@ packer build \
 -var "memory_in_gbs=$MEMORY_IN_GBS" \
 -var "ansible_python_interpreter=/usr/bin/python" \
 -var "connection_use_private_ip=$CONNECTION_USE_PRIVATE_IP" \
--var "connection_ssh_bastion_host=$CONNECTION_SSH_BASTION_HOST" \
--var "connection_ssh_private_key_file=$CONNECTION_SSH_PRIVATE_KEY_FILE" \
 -var "tag_namespace=$TAG_NAMESPACE" \
 -var "ansible_deploy_tags=$DEPLOY_TAGS" \
 $LOCAL_PATH/../build/build-coturn-oracle.json

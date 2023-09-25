@@ -1,0 +1,71 @@
+def provisionJob(shard_environment,cloud_name,release_number,oscarTemplateType,oracle_region,video_infra_branch) {
+    def provision = build job: 'provision-nomad-oscar',parameters: [
+        [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: shard_environment],
+        [$class: 'StringParameterValue', name: 'CLOUD_NAME', value: cloud_name],
+        [$class: 'StringParameterValue', name: 'OSCAR_TEMPLATE_TYPE', value: oscarTemplateType],
+        [$class: 'StringParameterValue', name: 'ORACLE_REGION', value: oracle_region],
+        [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: video_infra_branch]
+    ]
+
+    return provision
+}
+// global var to track git branch from env or new tags
+def utils
+
+pipeline {				//indicate the job is written in Declarative Pipeline
+    agent any				//agent specifies where the pipeline will execute.
+    options {
+      ansiColor('xterm')
+      timestamps()
+      buildDiscarder(logRotator(numToKeepStr: '10', artifactNumToKeepStr: '10'))
+    }
+    stages {
+        // output stage, shows off our input parameters
+        stage('Prepare/Checkout') {
+            steps {
+                script {
+                    echo 'Oscar Release'
+                    echo "OSCAR TEMPLATE TYPE ${env.OSCAR_TEMPLATE_TYPE}"
+                    // load utility function
+                    def rootDir = pwd()
+                    utils = load "${rootDir}/jenkins/groovy/Utils.groovy"
+                    // checkout repos
+                    utils.SetupRepos(env.VIDEO_INFRA_BRANCH)
+
+                    // setup OCI credentials
+                    utils.SetupOCI()
+                }
+            }
+        }
+
+        stage("provision oscar regions") {
+            steps {
+                script {
+                  dir('infra-provisioning') {
+                    echo "Provision oscar in environment ${env.ENVIRONMENT}, clouds ${env.CLOUDS}";
+                    def cloud_list = utils.SplitClouds(env.ENVIRONMENT,env.CLOUDS);
+                    echo "cloud list ${cloud_list}";
+                    def branches = [:]
+                    for(i = 0; i < cloud_list.size(); i++) {
+                        def curr = i
+                        def oracle_region = utils.OracleRegionFromCloud(cloud_list[curr])
+                        echo "pipeline branch ${curr} for ${cloud_list[curr]} ${oracle_region}";
+                        branches["Build ${cloud_list[curr]}"] = {
+                            provisionJob(env.ENVIRONMENT,
+                                cloud_list[curr],
+                                env.BUILD_ID,
+                                env.OSCAR_TEMPLATE_TYPE,
+                                oracle_region,
+                                env.VIDEO_INFRA_BRANCH
+                            )
+                        }
+                    }
+                    // branch out here, run all create shard jobs at once
+                    // only succeed if all branches succeed
+                    parallel branches
+                  }
+                }
+            }
+        }
+    }
+}

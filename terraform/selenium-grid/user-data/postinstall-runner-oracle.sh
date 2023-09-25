@@ -10,8 +10,17 @@ export GRID_TAG="grid"
 export GRID_ROLE_TAG="grid-role"
 export GRID_ROLE=$(cat $CACHE_PATH | jq -r --arg GRID_ROLE_TAG "$GRID_ROLE_TAG" ".[\"$GRID_ROLE_TAG\"]")
 export GRID=$(cat $CACHE_PATH | jq -r --arg GRID_TAG "$GRID_TAG" ".[\"$GRID_TAG\"]")
+export NOMAD_FLAG_TAG="nomad"
+export NOMAD_FLAG=$(cat $CACHE_PATH | jq -r --arg NOMAD_FLAG_TAG "$NOMAD_FLAG_TAG" ".[\"$NOMAD_FLAG_TAG\"]")
+
+if [[ "$NOMAD_FLAG" == "null" ]]; then    
+    NOMAD_FLAG="false"
+fi
 
 export HOST_ROLE="$GRID-grid"
-export MY_HOSTNAME="${CLOUD_NAME}-${HOST_ROLE}.oracle.infra.jitsi.net"
-export ANSIBLE_VARS="hcv_environment=$ENVIRONMENT cloud_name=$CLOUD_NAME selenium_grid_name=$GRID selenium_grid_role=$GRID_ROLE cloud_provider=oracle region=$ORACLE_REGION oracle_region=$ORACLE_REGION"
+MY_IP=`curl -s curl http://169.254.169.254/opc/v1/vnics/ | jq .[0].privateIp -r`
+export MY_COMPONENT_NUMBER="$(echo $MY_IP | awk -F. '{print $2"-"$3"-"$4}')"
+
+export MY_HOSTNAME="${ORACLE_REGION}-${HOST_ROLE}-$MY_COMPONENT_NUMBER.oracle.infra.jitsi.net"
+export ANSIBLE_VARS="hcv_environment=$ENVIRONMENT cloud_name=$CLOUD_NAME selenium_grid_enable_nomad=$NOMAD_FLAG selenium_grid_name=$GRID selenium_grid_role=$GRID_ROLE cloud_provider=oracle region=$ORACLE_REGION oracle_region=$ORACLE_REGION"
 

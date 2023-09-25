@@ -33,7 +33,6 @@ variable "tag_namespace" {}
 variable "user" {}
 variable "user_private_key_path" {}
 variable "user_public_key_path" {}
-variable "bastion_host" {}
 variable "postinstall_status_file" {}
 variable "memory_in_gbs" {}
 variable "ocpus" {}
@@ -42,6 +41,8 @@ variable "certificate_certificate_name" {}
 variable "certificate_ca_certificate" {}
 variable "certificate_private_key" {}
 variable "certificate_public_certificate" {}
+variable "consul_hostname" {}
+variable "nomad_hostname" {}
 variable "user_data_file" {
   default = "terraform/consul-server/user-data/postinstall-runner-oracle.sh"
 }
@@ -258,6 +259,37 @@ resource "oci_core_network_security_group_security_rule" "consul_nsg_rule_ingres
     }
   }
 }
+
+resource "oci_core_network_security_group_security_rule" "nsg_rule_ingress_nomad_ephemeral_tcp" {
+  network_security_group_id = oci_core_network_security_group.consul_security_group.id
+  direction = "INGRESS"
+  protocol = "6"
+  source = var.ingress_cidr
+  stateless = false
+
+  tcp_options {
+    destination_port_range {
+      min = 20000
+      max = 32000
+    }
+  }
+}
+
+resource "oci_core_network_security_group_security_rule" "nsg_rule_ingress_nomad_ephemeral_udp" {
+  network_security_group_id = oci_core_network_security_group.consul_security_group.id
+  direction = "INGRESS"
+  protocol = "17"
+  source = var.ingress_cidr
+  stateless = false
+
+  udp_options {
+    destination_port_range {
+      min = 20000
+      max = 32000
+    }
+  }
+}
+
 resource "oci_core_instance_configuration" "oci_instance_configuration_a" {
   compartment_id = var.compartment_ocid
   display_name = var.instance_config_name
@@ -292,6 +324,12 @@ resource "oci_core_instance_configuration" "oci_instance_configuration_a" {
       }
 
       metadata = local.common_metadata
+      freeform_tags = {
+        configuration_repo = var.infra_configuration_repo
+        customizations_repo = var.infra_customizations_repo
+        shape = var.shape
+        "group-index" = "0"
+      }
     }
   }
 }
@@ -330,6 +368,12 @@ resource "oci_core_instance_configuration" "oci_instance_configuration_b" {
       }
 
       metadata = local.common_metadata
+      freeform_tags = {
+        configuration_repo = var.infra_configuration_repo
+        customizations_repo = var.infra_customizations_repo
+        shape = var.shape
+        "group-index" = "1"
+      }
     }
   }
 }
@@ -368,6 +412,12 @@ resource "oci_core_instance_configuration" "oci_instance_configuration_c" {
       }
 
       metadata = local.common_metadata
+      freeform_tags = {
+        configuration_repo = var.infra_configuration_repo
+        customizations_repo = var.infra_customizations_repo
+        shape = var.shape
+        "group-index" = "2"
+      }
     }
   }
 }
@@ -400,6 +450,42 @@ resource "oci_load_balancer_backend_set" "oci_load_balancer_bs" {
   }
 }
 
+resource "oci_load_balancer_backend_set" "oci_load_balancer_nomad_bs" {
+  load_balancer_id = oci_load_balancer.oci_load_balancer.id
+  name = "NomadLBBS"
+  policy = "ROUND_ROBIN"
+  health_checker {
+    protocol = "HTTP"
+    port = 4646
+    retries = 3
+    url_path = "/v1/status/leader"
+  }
+}
+
+resource "oci_load_balancer_hostname" "consul_hostname" {
+    #Required
+    hostname = var.consul_hostname
+    load_balancer_id = oci_load_balancer.oci_load_balancer.id
+    name = var.consul_hostname
+
+    #Optional
+    lifecycle {
+        create_before_destroy = true
+    }
+}
+
+resource "oci_load_balancer_hostname" "nomad_hostname" {
+    #Required
+    hostname = var.nomad_hostname
+    load_balancer_id = oci_load_balancer.oci_load_balancer.id
+    name = var.nomad_hostname
+
+    #Optional
+    lifecycle {
+        create_before_destroy = true
+    }
+}
+
 resource "oci_load_balancer_certificate" "main_certificate" {
     #Required
     certificate_name = var.certificate_certificate_name
@@ -416,10 +502,25 @@ resource "oci_load_balancer_certificate" "main_certificate" {
 
 resource "oci_load_balancer_listener" "main_listener" {
   load_balancer_id = oci_load_balancer.oci_load_balancer.id
-  name = "WFProxyListener"
+  name = "ConsulListener"
   port = 443
   default_backend_set_name = oci_load_balancer_backend_set.oci_load_balancer_bs.name
   protocol = "HTTP"
+  hostname_names = [oci_load_balancer_hostname.consul_hostname.name]
+  ssl_configuration {
+      #Optional
+      certificate_name = oci_load_balancer_certificate.main_certificate.certificate_name
+      verify_peer_certificate = false
+  }
+}
+
+resource "oci_load_balancer_listener" "nomad_listener" {
+  load_balancer_id = oci_load_balancer.oci_load_balancer.id
+  name = "NomadListener"
+  port = 443
+  default_backend_set_name = oci_load_balancer_backend_set.oci_load_balancer_nomad_bs.name
+  protocol = "HTTP"
+  hostname_names = [oci_load_balancer_hostname.nomad_hostname.name]
   ssl_configuration {
       #Optional
       certificate_name = oci_load_balancer_certificate.main_certificate.certificate_name
@@ -449,6 +550,13 @@ resource "oci_core_instance_pool" "oci_instance_pool_a" {
     vnic_selection = "PrimaryVnic"
   }
 
+  load_balancers {
+    load_balancer_id = oci_load_balancer.oci_load_balancer.id
+    backend_set_name = oci_load_balancer_backend_set.oci_load_balancer_nomad_bs.name
+    port = 4646
+    vnic_selection = "PrimaryVnic"
+  }
+
   defined_tags = local.common_tags
 }
 
@@ -474,6 +582,13 @@ resource "oci_core_instance_pool" "oci_instance_pool_b" {
     vnic_selection = "PrimaryVnic"
   }
 
+  load_balancers {
+    load_balancer_id = oci_load_balancer.oci_load_balancer.id
+    backend_set_name = oci_load_balancer_backend_set.oci_load_balancer_nomad_bs.name
+    port = 4646
+    vnic_selection = "PrimaryVnic"
+  }
+
   defined_tags = local.common_tags
 }
 
@@ -496,6 +611,13 @@ resource "oci_core_instance_pool" "oci_instance_pool_c" {
     load_balancer_id = oci_load_balancer.oci_load_balancer.id
     backend_set_name = oci_load_balancer_backend_set.oci_load_balancer_bs.name
     port = 8500
+    vnic_selection = "PrimaryVnic"
+  }
+
+  load_balancers {
+    load_balancer_id = oci_load_balancer.oci_load_balancer.id
+    backend_set_name = oci_load_balancer_backend_set.oci_load_balancer_nomad_bs.name
+    port = 4646
     vnic_selection = "PrimaryVnic"
   }
 
@@ -602,9 +724,6 @@ resource "null_resource" "verify_cloud_init_a" {
       user = var.user
       private_key = file(var.user_private_key_path)
 
-      bastion_host = var.bastion_host
-      bastion_user = var.user
-      bastion_private_key = file(var.user_private_key_path)
       script_path = "/home/${var.user}/script_%RAND%.sh"
 
       timeout = "10m"
@@ -619,7 +738,7 @@ resource "null_resource" "cloud_init_output_a" {
   depends_on = [null_resource.verify_cloud_init_a]
 
   provisioner "local-exec" {
-    command = "ssh -o StrictHostKeyChecking=no -J ${var.user}@${var.bastion_host} ${var.user}@${element(local.private_ips_a, count.index)} 'echo hostname: $HOSTNAME, privateIp: ${element(local.private_ips_a, count.index)} - $(cloud-init status)' >> ${var.postinstall_status_file}"
+    command = "ssh -o StrictHostKeyChecking=no ${var.user}@${element(local.private_ips_a, count.index)} 'echo hostname: $HOSTNAME, privateIp: ${element(local.private_ips_a, count.index)} - $(cloud-init status)' >> ${var.postinstall_status_file}"
   }
   triggers = {
     always_run = "${timestamp()}"
@@ -640,9 +759,6 @@ resource "null_resource" "verify_cloud_init_b" {
       user = var.user
       private_key = file(var.user_private_key_path)
 
-      bastion_host = var.bastion_host
-      bastion_user = var.user
-      bastion_private_key = file(var.user_private_key_path)
       script_path = "/home/${var.user}/script_%RAND%.sh"
 
       timeout = "10m"
@@ -657,7 +773,7 @@ resource "null_resource" "cloud_init_output_b" {
   depends_on = [null_resource.verify_cloud_init_b]
 
   provisioner "local-exec" {
-    command = "ssh -o StrictHostKeyChecking=no -J ${var.user}@${var.bastion_host} ${var.user}@${element(local.private_ips_b, count.index)} 'echo hostname: $HOSTNAME, privateIp: ${element(local.private_ips_b, count.index)} - $(cloud-init status)' >> ${var.postinstall_status_file}"
+    command = "ssh -o StrictHostKeyChecking=no ${var.user}@${element(local.private_ips_b, count.index)} 'echo hostname: $HOSTNAME, privateIp: ${element(local.private_ips_b, count.index)} - $(cloud-init status)' >> ${var.postinstall_status_file}"
   }
   triggers = {
     always_run = "${timestamp()}"
@@ -678,9 +794,6 @@ resource "null_resource" "verify_cloud_init_c" {
       user = var.user
       private_key = file(var.user_private_key_path)
 
-      bastion_host = var.bastion_host
-      bastion_user = var.user
-      bastion_private_key = file(var.user_private_key_path)
       script_path = "/home/${var.user}/script_%RAND%.sh"
 
       timeout = "10m"
@@ -695,7 +808,7 @@ resource "null_resource" "cloud_init_output_c" {
   depends_on = [null_resource.verify_cloud_init_c]
 
   provisioner "local-exec" {
-    command = "ssh -o StrictHostKeyChecking=no -J ${var.user}@${var.bastion_host} ${var.user}@${element(local.private_ips_c, count.index)} 'echo hostname: $HOSTNAME, privateIp: ${element(local.private_ips_c, count.index)} - $(cloud-init status)' >> ${var.postinstall_status_file}"
+    command = "ssh -o StrictHostKeyChecking=no ${var.user}@${element(local.private_ips_c, count.index)} 'echo hostname: $HOSTNAME, privateIp: ${element(local.private_ips_c, count.index)} - $(cloud-init status)' >> ${var.postinstall_status_file}"
   }
   triggers = {
     always_run = "${timestamp()}"

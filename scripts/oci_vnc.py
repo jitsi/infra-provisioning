@@ -104,7 +104,76 @@ def print_security_lists(ctx: click.Context):
         if len(ctx.obj['SECURITY_LISTS'][region]) < 1:
             continue
         for seclist in ctx.obj['SECURITY_LISTS'][region]:
-            pprint.pprint(seclist)
+            if ctx.obj['SECLIST_SSH_FLAG']:
+                print(f"ssh audit for {seclist.display_name} in {region} -- {seclist.id}")
+                for rule in seclist.ingress_security_rules:
+                    if rule.tcp_options and rule.tcp_options.destination_port_range and rule.tcp_options.destination_port_range.max == 22:
+                        print(f"{rule.description} has source {rule.source}")
+                print("")
+            else:
+                pprint.pprint(seclist)
+
+def load_network_security_groups(ctx: click.Context) -> bool:
+    '''load network security groups to 'NETWORK_SECURITY_GROUPS' in the context in an environment based NSG_FILTER'''
+    found_seclists = False
+    if ctx.obj['DEBUG']:
+        click.echo("## DEBUG: entering load_security_lists")
+        if 'NSG_FILTER' in ctx.obj:
+            click.echo(f"## DEBUG: filtering on {ctx.obj['NSG_FILTER']}")
+    if 'OCI_VCNS' not in ctx.obj:
+        click.echo("## ERROR: no VCNs in context, load_vcns() first")
+        sys.exit(1)
+
+    ctx.obj['NETWORK_SECURITY_GROUPS'] = {}
+    for region in ctx.obj['OCI_VN_CLIENT'].keys():
+        vn_client = ctx.obj['OCI_VN_CLIENT'][region]
+        for vcn in ctx.obj['OCI_VCNS'][region]:
+            vcn_nsgs = vn_client.list_network_security_groups(
+                compartment_id=ctx.obj['COMPARTMENT'].id,
+                vcn_id=vcn.id
+            ).data
+            for nsg in vcn_nsgs:
+                if 'NSG_FILTER' in ctx.obj:
+                    if ctx.obj['NSG_FILTER'] not in nsg.display_name:
+                        if ctx.obj['DEBUG']:
+                            click.echo(f"## DEBUG: skipping {nsg.display_name} since filter did not match")
+                        continue
+                found_nsgs=True
+                if ctx.obj['DEBUG']:
+                    click.echo(f"## DEBUG: adding security list {nsg.display_name}")
+                if region not in ctx.obj['NETWORK_SECURITY_GROUPS']:
+                    ctx.obj['NETWORK_SECURITY_GROUPS'][region] = [nsg]
+                else:
+                    ctx.obj['NETWORK_SECURITY_GROUPS'][region].append(nsg)
+                if ctx.obj['NETWORK_SECURITY_GROUP_RULES_FLAG']:
+                    nsgr = vn_client.list_network_security_group_security_rules(network_security_group_id=nsg.id).data
+                    ctx.obj['NETWORK_SECURITY_GROUP_RULES'][nsg.id] = nsgr
+
+
+    if ctx.obj['DEBUG']:
+        click.echo(f"## DEBUG: loaded network_security_groups:\n{ctx.obj['NETWORK_SECURITY_GROUPS']}")
+
+    return found_nsgs
+
+def print_network_security_groups(ctx: click.Context):
+    '''pretty print summary info for loaded network security groups'''
+    for region in ctx.obj['NETWORK_SECURITY_GROUPS'].keys():
+        if len(ctx.obj['NETWORK_SECURITY_GROUPS'][region]) < 1:
+            continue
+        for nsg in ctx.obj['NETWORK_SECURITY_GROUPS'][region]:
+            print(f"-=- {nsg.id} -=-")
+            if ctx.obj['NETWORK_SECURITY_GROUP_SSH_FLAG']:
+                print(f"ssh audit for {nsg.display_name}")
+            else:
+                pprint.pprint(nsg)
+            if ctx.obj['NETWORK_SECURITY_GROUP_RULES_FLAG']:
+                for ruleset in ctx.obj['NETWORK_SECURITY_GROUP_RULES'][nsg.id]:
+                    if ctx.obj['NETWORK_SECURITY_GROUP_SSH_FLAG']:
+                        if ruleset.tcp_options and ruleset.tcp_options.destination_port_range and ruleset.tcp_options.destination_port_range.max == 22:
+                            print(f"{ruleset.description}, source: {ruleset.source}")
+                    else:
+                        pprint.pprint(ruleset)
+            print("")
 
 def build_ingress_security_rule(description: str, source: str, source_type: str, protocol: str, dest_port: int, source_port: int, stateless: bool) -> oci.core.models.IngressSecurityRule:
     '''builds a simple ingress security rule'''
@@ -267,13 +336,15 @@ def cli(ctx: click.Context, environment: str, debug: bool):
 
 @cli.command('list_security_lists', short_help='list security lists')
 @click.option('--seclist_filter', envvar=['SECLIST_FILTER'], default=None, help='string to filter security lists against')
+@click.option('--audit_ssh', is_flag=True, default=False, help='audit ssh ingress')
 @click.pass_context
-def list_seclist_cmd(ctx: click.Context, seclist_filter: str):
+def list_seclist_cmd(ctx: click.Context, seclist_filter: str, audit_ssh: bool):
     '''list security lists'''
     if ctx.obj['DEBUG']:
         click.echo("## DEBUG: loading security lists")
     if seclist_filter:
         ctx.obj['SECLIST_FILTER'] = seclist_filter
+    ctx.obj['SECLIST_SSH_FLAG'] = audit_ssh
 
     load_security_lists(ctx)
     print_security_lists(ctx)
@@ -355,6 +426,24 @@ def update_subnet_seclists_cmd(ctx: click.Context, seclist_filter: str, subnet_f
         add_seclists_to_subnets(ctx)
     else:
         remove_seclists_from_subnets(ctx)
+
+@cli.command('list_security_groups', short_help='list network security groups')
+@click.option('--nsg_filter', envvar=['NSG_FILTER'], default=None, help='string to filter network security group names against')
+@click.option('--rules', is_flag=True, default=False, help='also show the rules in each group')
+@click.option('--audit_ssh', is_flag=True, default=False, help='audit ssh ingress')
+@click.pass_context
+def list_seclist_cmd(ctx: click.Context, nsg_filter: str, rules: bool, audit_ssh: bool):
+    '''list security lists'''
+    if ctx.obj['DEBUG']:
+        click.echo("## DEBUG: loading network security groups")
+    ctx.obj['NETWORK_SECURITY_GROUP_FILTER'] = nsg_filter
+    ctx.obj['NETWORK_SECURITY_GROUP_RULES_FLAG'] = rules
+    if rules:
+        ctx.obj['NETWORK_SECURITY_GROUP_RULES'] = {}
+    ctx.obj['NETWORK_SECURITY_GROUP_SSH_FLAG'] = audit_ssh
+
+    load_network_security_groups(ctx)
+    print_network_security_groups(ctx)
 
 if __name__ == '__main__':
     cli()

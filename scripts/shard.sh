@@ -33,6 +33,7 @@ function list() {
         CONSUL_INCLUDE_AWS="$CONSUL_INCLUDE_AWS" CONSUL_INCLUDE_OCI="$CONSUL_INCLUDE_OCI" RELEASE_INVERSE="$RELEASE_INVERSE" RELEASE_NUMBER="$RELEASE_NUMBER" ENVIRONMENT="$ENVIRONMENT" DISPLAY="shards" SERVICE="signal" $LOCAL_PATH/consul-search.sh $ANSIBLE_SSH_USER
     else
         [ ! -z "$RELEASE_NUMBER" ] && RELEASE_PARAM="--release $RELEASE_NUMBER"
+        ## TODO: add region into here
         $LOCAL_PATH/shard.py --environment=$ENVIRONMENT --list $RELEASE_PARAM
     fi
 }
@@ -78,6 +79,10 @@ function shard_region() {
     local shard="$1"
     SHARD_REGION=$($LOCAL_PATH/shard.py  --shard_region --environment=$ENVIRONMENT --shard=$SHARD)
     echo $SHARD_REGION
+}
+
+function inventory() {
+    DISPLAY=addresses $LOCAL_PATH/consul-search.sh $ANSIBLE_SSH_USER
 }
 
 function shard_ip {
@@ -257,6 +262,9 @@ case $ACTION in
         ;;
     'list')
         list
+        ;;
+    'inventory')
+        inventory
         ;;
     'list_releases')
         list_releases

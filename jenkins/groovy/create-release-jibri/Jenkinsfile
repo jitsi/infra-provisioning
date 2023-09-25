@@ -23,7 +23,7 @@ def buildJibriImageOracle(environment,clouds,jibriVersion,force_build_image,vide
     return buildImage
 }
 
-def provisionJibri(shard_environment,cloud_name,release_number,gitBranch,jibriVersion,cloud_provider,video_infra_branch) {
+def provisionJibri(shard_environment,cloud_name,release_number,gitBranch,jibriVersion,cloud_provider,oracle_region,video_infra_branch) {
     def provision = build job: 'provision-jibri',parameters: [
         [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: shard_environment],
         [$class: 'StringParameterValue', name: 'CLOUD_NAME', value: cloud_name],
@@ -31,6 +31,7 @@ def provisionJibri(shard_environment,cloud_name,release_number,gitBranch,jibriVe
         [$class: 'StringParameterValue', name: 'JIBRI_RELEASE_NUMBER', value: release_number],
         [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: gitBranch],
         [$class: 'StringParameterValue', name: 'CLOUD_PROVIDER', value: cloud_provider],
+        [$class: 'StringParameterValue', name: 'ORACLE_REGION', value: oracle_region],
         [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: video_infra_branch]
     ]
 
@@ -40,6 +41,7 @@ def provisionJibri(shard_environment,cloud_name,release_number,gitBranch,jibriVe
 // global var to track git branch from env or new tags
 def git_branch
 def utils
+def jibriNomadFlag
 
 pipeline {				//indicate the job is written in Declarative Pipeline
     agent any				//agent specifies where the pipeline will execute.
@@ -77,6 +79,15 @@ pipeline {				//indicate the job is written in Declarative Pipeline
             }
           }
         }
+        stage('Environment flags') {
+            steps {
+                script {
+                  dir('infra-provisioning') {
+                    jibriNomadFlag = utils.GetAnsibleVar(env.ENVIRONMENT, "jibri_enable_nomad")
+                  }
+                }
+            }
+        }
         stage("build and replicate Jibri image in AWS") {
             when {
                 expression {env.CLOUD_PROVIDER == 'aws'}
@@ -93,7 +104,10 @@ pipeline {				//indicate the job is written in Declarative Pipeline
         }
         stage("build and replicate Jibri image in Oracle") {
             when {
-                expression {env.CLOUD_PROVIDER == 'oracle'}
+                allOf {
+                    expression {env.CLOUD_PROVIDER == 'oracle'}
+                    expression {jibriNomadFlag != 'true'}
+                }
             }
             steps {
                 script {
@@ -118,7 +132,8 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                     def branches = [:]
                     for(i = 0; i < cloud_list.size(); i++) {
                         def curr = i
-                        echo "pipeline branch ${curr} for shard ${cloud_list[curr]}";
+                        def oracle_region = utils.OracleRegionFromCloud(cloud_list[curr])
+                        echo "pipeline branch ${curr} for shard ${cloud_list[curr]} ${oracle_region}";
                         branches["Build ${cloud_list[curr]}"] = {
                             provisionJibri(env.ENVIRONMENT,
                                 cloud_list[curr],
@@ -126,6 +141,7 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                                 git_branch,
                                 env.JIBRI_VERSION,
                                 env.CLOUD_PROVIDER,
+                                oracle_region,
                                 env.VIDEO_INFRA_BRANCH
                             )
                         }

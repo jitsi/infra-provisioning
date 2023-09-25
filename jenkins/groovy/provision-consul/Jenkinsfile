@@ -50,7 +50,12 @@ pipeline {
                             . clouds/oracle.sh
                             export RESOURCE_NAME_ROOT="\$ENVIRONMENT-\$ORACLE_REGION-consul"
                             export DNS_NAME="\$RESOURCE_NAME_ROOT.\$DEFAULT_DNS_ZONE_NAME"
-                            export CNAME_VALUE="\$RESOURCE_NAME_ROOT"
+                            export STACK_NAME="\${RESOURCE_NAME_ROOT}-cname"
+                            export UNIQUE_ID="\${RESOURCE_NAME_ROOT}"
+                            export CNAME_TARGET="\${DNS_NAME}"
+                            export CNAME_VALUE="\${RESOURCE_NAME_ROOT}"
+                            scripts/create-oracle-cname-stack.sh
+                            export RESOURCE_NAME_ROOT="\$ENVIRONMENT-\$ORACLE_REGION-nomad"
                             export STACK_NAME="\${RESOURCE_NAME_ROOT}-cname"
                             export UNIQUE_ID="\${RESOURCE_NAME_ROOT}"
                             export CNAME_TARGET="\${DNS_NAME}"

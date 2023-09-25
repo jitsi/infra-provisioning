@@ -45,7 +45,7 @@ Parameters:
     Description:
       The ARN of the SSL certificate
     Type: String
-    Default: "star_jitsi_net-2023-08-19"
+    Default: "star_jitsi_net-2024-08-10"
     ConstraintDescription: Must be a valid SSL certificate ARN
   HostedZoneName:
     Description:

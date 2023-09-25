@@ -42,11 +42,16 @@ ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 [ -e "$LOCAL_PATH/../../clouds/${ORACLE_CLOUD_NAME}.sh" ] && . $LOCAL_PATH/../../clouds/${ORACLE_CLOUD_NAME}.sh
 
 CLOUD_NAME="$ENVIRONMENT-$ORACLE_REGION"
+[ -z "$SHAPE" ] && SHAPE="$DEFAULT_SIGNAL_SHAPE"
 [ -z "$SHAPE" ] && SHAPE="$DEFAULT_STANDALONE_SHAPE"
-[ -z "$SHAPE" ] && SHAPE="VM.Standard.E3.Flex"
+[ -z "$SHAPE" ] && SHAPE="VM.Standard.E4.Flex"
 
 [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS="16"
-[ -z "$INSTANCE_SHAPE_OCPUS" ] && INSTANCE_SHAPE_OCPUS="4"
+if [[ "$SHAPE" == "VM.Standard.A1.Flex" ]]; then
+  [ -z "$INSTANCE_SHAPE_OCPUS" ] && INSTANCE_SHAPE_OCPUS=8
+else
+  [ -z "$INSTANCE_SHAPE_OCPUS" ] && INSTANCE_SHAPE_OCPUS=4
+fi
 [ -z "$DISK_IN_GBS" ] && DISK_IN_GBS="50"
 [ -z "$VISITORS_COUNT" ] && VISITORS_COUNT="0"
 
@@ -91,8 +96,6 @@ fi
 [ -z "$USER_PRIVATE_KEY_PATH" ] && USER_PRIVATE_KEY_PATH="~/.ssh/id_ed25519"
 
 [ -z "$POSTINSTALL_STATUS_FILE" ] && POSTINSTALL_STATUS_FILE="/tmp/postinstall_status.txt"
-
-[ -z "$BASTION_HOST" ] && BASTION_HOST="$CONNECTION_SSH_BASTION_HOST"
 
 [ -z "$S3_PROFILE" ] && S3_PROFILE="oracle"
 [ -z "$S3_STATE_BUCKET" ] && S3_STATE_BUCKET="tf-state-$ENVIRONMENT"
@@ -181,7 +184,6 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
   -var="user=$SSH_USER" \
   -var="user_private_key_path=$USER_PRIVATE_KEY_PATH" \
   -var="user_public_key_path=$USER_PUBLIC_KEY_PATH" \
-  -var="bastion_host=$BASTION_HOST" \
   -var="postinstall_status_file=$POSTINSTALL_STATUS_FILE" \
   -var="ingress_nsg_cidr=$INGRESS_NSG_CIDR" \
   -var "infra_configuration_repo=$INFRA_CONFIGURATION_REPO" \

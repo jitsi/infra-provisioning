@@ -34,6 +34,13 @@ job "[JOB_NAME]" {
     progress_deadline = "5m"
   }
 
+  reschedule {
+    delay          = "30s"
+    delay_function = "exponential"
+    max_delay      = "1h"
+    unlimited      = true
+  }
+
   group "coturn" {
     count = var.coturn_count
 
@@ -130,13 +137,16 @@ EOH
         destination = "local/coturn.conf"
       }
       resources {
-        cpu    = 25000
+        cpu    = 10000
         memory = 15360
       }
       service {
         name = "coturn"
         port = "coturn"
         tags = ["ip-${attr.unique.network.ip-address}"]
+        meta {
+          public_ip = "${meta.public_ip}"
+        }
         check {
           name     = "coturn healthcheck"
           port     = "metrics"

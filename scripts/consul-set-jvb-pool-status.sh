@@ -38,7 +38,7 @@ fi
 [ -e "$LOCAL_PATH/../clouds/all.sh" ] && . "$LOCAL_PATH/../clouds/all.sh"
 [ -e "$LOCAL_PATH/../clouds/oracle.sh" ] && . "$LOCAL_PATH/../clouds/oracle.sh"
 
-OCI_LOCAL_REGION="us-phoenix-1"
+[ -z "$OCI_LOCAL_REGION" ] && OCI_LOCAL_REGION="us-phoenix-1"
 OCI_LOCAL_DATACENTER="$ENVIRONMENT-$OCI_LOCAL_REGION"
 OCI_DATACENTER="$ENVIRONMENT-$ORACLE_REGION"
 
