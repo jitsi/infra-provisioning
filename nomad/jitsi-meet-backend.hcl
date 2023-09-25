@@ -140,6 +140,202 @@ job "[JOB_NAME]" {
     value     = "linux"
   }
 
+  group "vnodes" {
+    count = var.visitors_count
+
+    constraint {
+      attribute  = "${meta.pool_type}"
+      value     = "${var.pool_type}"
+    }
+
+    network {
+      port "prosody-http" {
+        to = 5280
+      }
+    }
+
+    service {
+      name = "prosody-vnode"
+      tags = ["${var.shard}","v-${NOMAD_ALLOC_INDEX}","ip-${attr.unique.network.ip-address}"]
+      port = "prosody-http"
+      meta {
+        domain = "${var.domain}"
+        shard = "${var.shard}"
+        release_number = "${var.release_number}"
+        environment = "${meta.environment}"
+        vindex = "${NOMAD_ALLOC_INDEX}"
+      }
+
+      check {
+        name     = "health"
+        type     = "http"
+        path     = "/http-bind"
+        port     = "prosody-http"
+        interval = "10s"
+        timeout  = "2s"
+      }
+    }
+
+    task "prosody" {
+      driver = "docker"
+
+      config {
+        image        = "jitsi/prosody:${var.prosody_tag}"
+        ports = ["prosody-http"]
+        volumes = ["local/prosody-plugins-custom:/prosody-plugins-custom"]
+      }
+
+      env {
+        ENABLE_RECORDING="1"
+        ENABLE_OCTO="1"
+        ENABLE_JVB_XMPP_SERVER="1"
+        ENABLE_LOBBY="1"
+        ENABLE_AV_MODERATION="1"
+        ENABLE_BREAKOUT_ROOMS="1"
+        ENABLE_AUTH="1"
+        PROSODY_ENABLE_RATE_LIMITS="1"
+        AUTH_TYPE="jwt"
+        JWT_ALLOW_EMPTY="1"
+        JWT_ACCEPTED_ISSUERS="${var.jwt_accepted_issuers}"
+        JWT_ACCEPTED_AUDIENCES="${var.jwt_accepted_audiences}"
+        JWT_ASAP_KEYSERVER="${var.jwt_asap_keyserver}"
+        JWT_APP_ID="jitsi"
+        TURN_CREDENTIALS="${var.turnrelay_password}"
+        TURNS_HOST="${var.turnrelay_host}"
+        TURN_HOST="${var.turnrelay_host}"
+        MAX_PARTICIPANTS=500
+        XMPP_DOMAIN = "${var.domain}"
+        PUBLIC_URL="https://${var.domain}/"
+        JICOFO_AUTH_PASSWORD = "${var.jicofo_auth_password}"
+        JVB_AUTH_PASSWORD = "${var.jvb_auth_password}"
+        JIGASI_XMPP_PASSWORD = "${var.jigasi_xmpp_password}"
+        JIBRI_RECORDER_PASSWORD = "${var.jibri_recorder_password}"
+        JIBRI_XMPP_PASSWORD = "${var.jibri_xmpp_password}"
+        # Internal XMPP domain for authenticated services
+        XMPP_AUTH_DOMAIN = "auth.${var.domain}"
+        JVB_XMPP_AUTH_DOMAIN = "auth.jvb.${var.domain}"
+        # XMPP domain for the MUC
+        XMPP_MUC_DOMAIN = "conference.${var.domain}"
+        # XMPP domain for the internal MUC used for jibri, jigasi and jvb pools
+        XMPP_INTERNAL_MUC_DOMAIN = "internal.auth.${var.domain}"
+        JVB_XMPP_INTERNAL_MUC_DOMAIN = "muc.jvb.${var.domain}"
+        # XMPP domain for unauthenticated users
+        XMPP_GUEST_DOMAIN = "guest.${var.domain}"
+        # XMPP domain for the jibri recorder
+        XMPP_RECORDER_DOMAIN = "recorder.${var.domain}"
+      }
+      artifact {
+        source      = "https://hg.prosody.im/prosody-modules/raw-file/tip/mod_measure_stanza_counts/mod_measure_stanza_counts.lua"
+        destination = "local/prosody-plugins-custom"
+      }
+      artifact {
+        source      = "https://hg.prosody.im/prosody-modules/raw-file/tip/mod_debug_traceback/mod_debug_traceback.lua"
+        destination = "local/prosody-plugins-custom"
+      }
+      artifact {
+        source      = "https://hg.prosody.im/prosody-modules/raw-file/tip/mod_secure_interfaces/mod_secure_interfaces.lua"
+        destination = "local/prosody-plugins-custom"
+      }
+      artifact {
+        source      = "https://hg.prosody.im/prosody-modules/raw-file/tip/mod_firewall/mod_firewall.lua"
+        destination = "local/prosody-plugins-custom/mod_firewall"
+      }
+      artifact {
+        source      = "https://hg.prosody.im/prosody-modules/raw-file/tip/mod_firewall/definitions.lib.lua"
+        destination = "local/prosody-plugins-custom/mod_firewall"
+      }
+      artifact {
+        source      = "https://hg.prosody.im/prosody-modules/raw-file/tip/mod_firewall/actions.lib.lua"
+        destination = "local/prosody-plugins-custom/mod_firewall"
+      }
+      artifact {
+        source      = "https://hg.prosody.im/prosody-modules/raw-file/tip/mod_firewall/marks.lib.lua"
+        destination = "local/prosody-plugins-custom/mod_firewall"
+      }
+      artifact {
+        source      = "https://hg.prosody.im/prosody-modules/raw-file/tip/mod_firewall/conditions.lib.lua"
+        destination = "local/prosody-plugins-custom/mod_firewall"
+      }
+      artifact {
+        source      = "https://hg.prosody.im/prosody-modules/raw-file/tip/mod_firewall/test.lib.lua"
+        destination = "local/prosody-plugins-custom/mod_firewall"
+      }
+      artifact {
+        source      = "https://hg.prosody.im/prosody-modules/raw-file/tip/mod_log_ringbuffer/mod_log_ringbuffer.lua"
+        destination = "local/prosody-plugins-custom"
+      }
+
+
+      template {
+        data = <<EOF
+#
+# Basic configuration options
+#
+GLOBAL_CONFIG="statistics = \"internal\"\nstatistics_interval = \"manual\"\nopenmetrics_allow_cidr = \"0.0.0.0/0\";\n"
+GLOBAL_MODULES="http_openmetrics,measure_stanza_counts,log_ringbuffer,firewall,muc_census,muc_end_meeting,secure_interfaces,external_services,turncredentials_http"
+XMPP_MODULES=
+XMPP_INTERNAL_MUC_MODULES=
+XMPP_MUC_MODULES="{{ if eq "${var.enable_muc_allowners}" "true" }}muc_allowners{{ end }}"
+XMPP_SERVER={{ env "NOMAD_IP_prosody_client" }}
+XMPP_PORT={{  env "NOMAD_HOST_PORT_prosody_client" }}
+XMPP_BOSH_URL_BASE=http://{{ env "NOMAD_IP_prosody_http" }}:{{ env "NOMAD_HOST_PORT_prosody_http" }}
+HTTP_PORT={{ env "NOMAD_HOST_PORT_http" }}
+HTTPS_PORT={{ env "NOMAD_HOST_PORT_https" }}
+CONFIG=~/.jitsi-meet-cfg
+TZ=UTC
+ENABLE_LETSENCRYPT=0
+ENABLE_XMPP_WEBSOCKET=1
+DISABLE_HTTPS=1
+
+# MUC for the JVB pool
+JVB_BREWERY_MUC=jvbbrewery
+
+# XMPP user for JVB client connections
+JVB_AUTH_USER=jvb
+
+# XMPP user for Jicofo client connections.
+# NOTE: this option doesn't currently work due to a bug
+JICOFO_AUTH_USER=focus
+
+# XMPP user for Jigasi MUC client connections
+JIGASI_XMPP_USER=jigasi
+
+# MUC name for the Jigasi pool
+JIGASI_BREWERY_MUC=jigasibrewery
+
+# XMPP recorder user for Jibri client connections
+JIBRI_RECORDER_USER=recorder
+
+# Directory for recordings inside Jibri container
+JIBRI_RECORDING_DIR=/config/recordings
+
+# The finalizing script. Will run after recording is complete
+#JIBRI_FINALIZE_RECORDING_SCRIPT_PATH=/config/finalize.sh
+
+# XMPP user for Jibri client connections
+JIBRI_XMPP_USER=jibri
+
+# MUC name for the Jibri pool
+JIBRI_BREWERY_MUC=jibribrewery
+
+# Container restart policy
+# Defaults to unless-stopped
+RESTART_POLICY=unless-stopped
+
+EOF
+
+        destination = "local/prosody.env"
+        env = true
+      }
+
+      resources {
+        cpu    = 200
+        memory = 256
+      }
+    }
+
+  }
+
   group "signal" {
     count = 1
 
@@ -1049,17 +1245,22 @@ server {
     proxy_upload_rate 10k;
     proxy_pass prosodylimitedupstream;
 }
-{{ range loop ${var.visitors_count} -}}
-# upstream visitor prosody {{ . }}
-upstream prosodylimitedupstream{{ .}} {
-    server {{ env "NOMAD_IP_prosody_http" }}:{{ env "NOMAD_HOST_PORT_prosody_http" }};
+
+{{ range service "${var.shard}.prosody-vnode" -}}
+    {{ scratch.MapSetX "vnodes" .ServiceMeta.vindex . -}}
+{{ end -}}
+
+{{ range $i, $e := scratch.MapValues "vnodes" -}}
+# upstream visitor prosody {{ $i }}
+upstream prosodylimitedupstream{{ $i }} {
+    server {{ $e.Address }}:{{ $e.Port }};
 }
-# local rate-limited proxy for visitor prosody {{ . }}
+# local rate-limited proxy for visitor prosody {{ $i }}
 server {
-{{ $port := add 25280 . -}}
+{{ $port := add 25280 $i -}}
     listen    {{ $port }};
     proxy_upload_rate 10k;
-    proxy_pass prosodylimitedupstream{{ . }};
+    proxy_pass prosodylimitedupstream{{ $i }};
 }
 {{ end -}}
 
