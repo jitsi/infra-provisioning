@@ -1,6 +1,8 @@
 #!/bin/bash
 set -x
 
+LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
+
 echo "## starting synthetic-longlived-test.sh"
 
 if [ -z "$BASE_URL" ]; then
@@ -40,6 +42,13 @@ fi
 if [ -z "$WAVEFRONT_PROXY_URL" ]; then
   echo "## No WAVEFRONT_PROXY_URL found. Exiting..."
   exit 2
+fi
+
+if [ -x "$LOCAL_PATH/generate-client-token.sh" ]; then
+  # generate a token if a client key file is defined
+  if [ -n "$ASAP_CLIENT_SIGNING_KEY_FILE" ]; then
+    TOKEN=$($LOCAL_PATH/generate-client-token.sh | tail -1)
+  fi
 fi
 
 [ -z "$CLOUDWATCH_NAMESPACE" ] && CLOUDWATCH_NAMESPACE="Video"
@@ -103,7 +112,8 @@ function doTest {
         -Dremote.resource.path=/usr/share/jitsi-meet-torture \
         -Dtest.report.directory=target/report${REPORT_ID} \
         -Dwdm.gitHubTokenName=$TORTURE_GITHUB_USER \
-        -Dwdm.gitHubTokenSecret=$TORTURE_GITHUB_TOKEN
+        -Dwdm.gitHubTokenSecret=$TORTURE_GITHUB_TOKEN \
+        -Dorg.jitsi.token=$TOKEN
 }
 
 cd ../jitsi-meet-torture
