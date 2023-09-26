@@ -69,7 +69,17 @@ job "[JOB_NAME]" {
   }
 
   group "web" {
-    count = 1
+    count = 2
+
+    update {
+      max_parallel = 1
+      health_check      = "checks"
+    }
+
+    constraint {
+      operator  = "distinct_hosts"
+      value     = "true"
+    }
 
     constraint {
       attribute  = "${meta.pool_type}"
@@ -245,6 +255,18 @@ http {
       ap-southeast-1 ap-southeast-1;
       ap-southeast-2 ap-southeast-2;
       sa-east-1 sa-east-1;
+      ap-mumbai-1 ap-south-1;
+      ap-sydney-1 ap-southeast-2;
+      ap-tokyo-1 ap-northeast-1;
+      ca-toronto-1 ca-central-1;
+      eu-amsterdam-1 eu-west-3;
+      eu-frankfurt-1 eu-central-1;
+      me-jeddah-1 me-south-1;
+      sa-saopaulo-1 sa-east-1;
+      sa-vinhedo-1 sa-east-1;
+      uk-london-1 eu-west-2;
+      us-ashburn-1 us-east-1;
+      us-phoenix-1 us-west-2;
   }
 
 	##

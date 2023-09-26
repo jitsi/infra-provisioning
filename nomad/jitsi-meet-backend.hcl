@@ -118,6 +118,11 @@ variable visitors_count {
     default = 0
 }
 
+variable signal_api_domain_name {
+    type = string
+    default = "signal-api.example.com"
+}
+
 
 job "[JOB_NAME]" {
   region = "global"
@@ -1309,6 +1314,82 @@ map $arg_vnode $prosody_bosh_node {
 {{ end -}}
 }
 
+server {
+
+    listen 80;
+
+    server_name ${var.signal_api_domain_name};
+
+    set $prefix "";
+
+    location = /kick-participant {
+        proxy_pass http://prosodylimited/kick-participant?prefix=$prefix&$args;
+        proxy_http_version 1.1;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header Host '${var.domain}';
+    }
+
+    location ~ ^/([^/?&:'"]+)/kick-participant {
+        set $subdomain "$1.";
+        set $subdir "$1/";
+        set $prefix "$1";
+
+        rewrite ^/(.*)$ /kick-participant;
+    }
+
+    location ~ ^/room-password(/?)(.*)$ {
+        proxy_pass http://prosodylimited/room-password$2$is_args$args;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header Host ${var.domain};
+
+        proxy_buffering off;
+        tcp_nodelay on;
+    }
+
+    location = /end-meeting {
+        proxy_pass http://prosodylimited/end-meeting$is_args$args;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header Host ${var.domain};
+
+        proxy_buffering off;
+        tcp_nodelay on;
+    }
+
+    location = /invite-jigasi{
+            proxy_pass http://prosodylimited/invite-jigasi$is_args$args;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header Host ${var.domain};
+
+            proxy_buffering off;
+            tcp_nodelay on;
+    }
+
+    location ~ ^/([^/?&:'"]+)/room-password$ {
+        set $subdomain "$1.";
+        set $subdir "$1/";
+        set $prefix "$1";
+
+        rewrite ^/(.*)$ /room-password;
+    }
+
+    location ~ ^/([^/?&:'"]+)/end-meeting$ {
+        set $subdomain "$1.";
+        set $subdir "$1/";
+        set $prefix "$1";
+
+        rewrite ^/(.*)$ /end-meeting;
+    }
+
+    location ~ ^/([^/?&:'"]+)/invite-jigasi$ {
+        set $subdomain "$1.";
+        set $subdir "$1/";
+        set $prefix "$1";
+
+        rewrite ^/(.*)$ /invite-jigasi;
+    }
+}
+
+
 # main server doing the routing
 server {
     listen       80 default_server;
@@ -1320,6 +1401,11 @@ server {
 
     # BOSH
     location = /http-bind {
+        add_header 'Access-Control-Allow-Origin' '*';
+        add_header 'Access-Control-Expose-Headers' "Content-Type, X-Jitsi-Region, X-Jitsi-Shard, X-Proxy-Region, X-Jitsi-Release";
+        add_header 'X-Jitsi-Shard' '${var.shard}';
+        add_header 'X-Jitsi-Region' '${var.octo_region}';
+        add_header 'X-Jitsi-Release' '${var.release_number}';
         proxy_set_header X-Forwarded-For $remote_addr;
         proxy_set_header Host ${var.domain};
 
@@ -1330,6 +1416,11 @@ server {
     location = /xmpp-websocket {
         tcp_nodelay on;
 
+        add_header 'Access-Control-Allow-Origin' '*';
+        add_header 'Access-Control-Expose-Headers' "Content-Type, X-Jitsi-Region, X-Jitsi-Shard, X-Proxy-Region, X-Jitsi-Release";
+        add_header 'X-Jitsi-Shard' '${var.shard}';
+        add_header 'X-Jitsi-Region' '${var.octo_region}';
+        add_header 'X-Jitsi-Release' '${var.release_number}';
         proxy_http_version 1.1;
         proxy_set_header Connection $connection_upgrade;
         proxy_set_header Upgrade $http_upgrade;
@@ -1356,6 +1447,21 @@ server {
 
         rewrite ^/(.*)$ /xmpp-websocket;
     }
+
+    # shard health check
+    location = /about/health {
+        proxy_pass      http://{{ env "NOMAD_IP_signal_sidecar_http" }}:{{ env "NOMAD_HOST_PORT_signal_sidecar_http" }}/signal/health;
+        # do not cache anything from prebind
+        add_header "Cache-Control" "no-cache, no-store";
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header Host $http_host;
+        add_header 'X-Jitsi-Shard' '${var.shard}';
+        add_header 'X-Jitsi-Region' '${var.octo_region}';
+        add_header 'X-Jitsi-Release' '${var.release_number}';
+        add_header 'Access-Control-Allow-Origin' '*';
+        add_header 'Access-Control-Expose-Headers' "Content-Type, X-Jitsi-Region, X-Jitsi-Shard, X-Proxy-Region, X-Jitsi-Release";
+    }
+
 
     location / {
         proxy_set_header X-Jitsi-Shard ${var.shard};

@@ -30,6 +30,8 @@ if [ -z "$NOMAD_ADDR" ]; then
     export NOMAD_ADDR="https://$ENVIRONMENT-$LOCAL_REGION-nomad.$TOP_LEVEL_DNS_ZONE_NAME"
 fi
 
+[ -z "$SIGNAL_API_HOSTNAME" ] && SIGNAL_API_HOSTNAME="signal-api-$ENVIRONMENT.$TOP_LEVEL_DNS_ZONE_NAME"
+
 [ -z "$NOMAD_POOL_TYPE" ] && NOMAD_POOL_TYPE="general"
 
 [ -z "$DOCKER_TAG" ] && DOCKER_TAG="unstable-$(date +%Y-%m-%d)"
@@ -63,6 +65,7 @@ fi
 if [ -n "$PROSODY_VERSION" ]; then
     PROSODY_TAG="prosody-$PROSODY_VERSION"
 fi
+
 
 [ -z "$JICOFO_TAG" ] && JICOFO_TAG="$DOCKER_TAG"
 [ -z "$WEB_TAG" ] && WEB_TAG="$DOCKER_TAG"
@@ -146,5 +149,6 @@ export NOMAD_VAR_web_tag="$WEB_TAG"
 export NOMAD_VAR_pool_type="$NOMAD_POOL_TYPE"
 export NOMAD_VAR_branding_name="$BRANDING_NAME"
 export NOMAD_VAR_visitors_count="$VISITORS_COUNT"
+export NOMAD_VAR_signal_api_domain_name="$SIGNAL_API_HOSTNAME"
 
 sed -e "s/\[JOB_NAME\]/shard-${SHARD}/" "$NOMAD_JOB_PATH/jitsi-meet-backend.hcl" | nomad job run -var="dc=$NOMAD_DC" -
