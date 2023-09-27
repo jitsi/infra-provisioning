@@ -55,15 +55,15 @@ else
 fi
 
 if [ -n "$JICOFO_VERSION" ]; then
-    JICOFO_TAG="jicofo-1.0-$JICOFO_VERSION-1"
+    [ -z "$JICOFO_TAG" ] && JICOFO_TAG="jicofo-1.0-$JICOFO_VERSION-1"
 fi
 
 if [ -n "$JITSI_MEET_VERSION" ]; then
-    WEB_TAG="web-1.0.$JITSI_MEET_VERSION-1"
+    [ -z "$WEB_TAG" ] && WEB_TAG="web-1.0.$JITSI_MEET_VERSION-1"
 fi
 
 if [ -n "$PROSODY_VERSION" ]; then
-    PROSODY_TAG="prosody-$PROSODY_VERSION"
+    [ -z "$PROSODY_TAG" ] && PROSODY_TAG="prosody-$PROSODY_VERSION"
 fi
 
 
