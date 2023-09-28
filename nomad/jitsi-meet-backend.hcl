@@ -201,6 +201,7 @@ job "[JOB_NAME]" {
         PROSODY_MODE="visitors"
         VISITORS_MAX_PARTICIPANTS=5
         VISITORS_MAX_VISITORS_PER_NODE=250
+        PROSODY_VISITORS_MUC_PREFIX="conference"
         ENABLE_VISITORS="1"
         PROSODY_VISITOR_INDEX="${NOMAD_ALLOC_INDEX}"
         ENABLE_RECORDING="1"
@@ -598,6 +599,7 @@ EOF
         ENABLE_BREAKOUT_ROOMS="1"
         ENABLE_AUTH="1"
         ENABLE_VISITORS="1"
+        PROSODY_VISITORS_MUC_PREFIX="conference"
         PROSODY_ENABLE_RATE_LIMITS="1"
         AUTH_TYPE="jwt"
         JWT_ALLOW_EMPTY="1"
@@ -957,6 +959,7 @@ EOF
         JICOFO_ENABLE_REST="1"
         VISITORS_MAX_PARTICIPANTS=5
         VISITORS_MAX_VISITORS_PER_NODE=250
+        PROSODY_VISITORS_MUC_PREFIX="conference"
         AUTH_TYPE="jwt"
         JICOFO_ENABLE_BRIDGE_HEALTH_CHECKS="1"
         JICOFO_HEALTH_CHECKS_USE_PRESENCE="1"
@@ -1345,6 +1348,18 @@ upstream prosodylimited{{ . }} {
 {{ $port := add 25280 . -}}
     server 127.0.0.1:{{ $port }};
     keepalive 2;
+}
+{{ end -}}
+
+
+{{ range service "${var.shard}.prosody-vnode" -}}
+    {{ scratch.MapSetX "vnodes" .ServiceMeta.vindex . -}}
+{{ end -}}
+
+{{ range $i, $e := scratch.MapValues "vnodes" -}}
+# upstream visitor prosody {{ $i }}
+upstream v{{ $i }} {
+    server {{ $e.Address }}:{{ $e.Port }};
 }
 {{ end -}}
 
