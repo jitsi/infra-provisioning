@@ -1316,6 +1316,12 @@ EOF
     {{ scratch.SetX "web" .  -}}
 {{ end -}}
 
+upstream prosody {
+    zone upstreams 64K;
+    server {{ env "NOMAD_IP_prosody_http" }}:{{ env "NOMAD_HOST_PORT_prosody_http" }};
+    keepalive 2;
+}
+
 # local upstream for main prosody used in final proxy_pass directive
 upstream prosodylimited {
     zone upstreams 64K;
@@ -1341,6 +1347,13 @@ upstream prosodylimited{{ . }} {
     keepalive 2;
 }
 {{ end -}}
+
+map $arg_vnode $prosody_node {
+    default prosody;
+{{ range loop ${var.visitors_count} -}}
+    v{{ . }} v{{ . }};
+{{ end -}}
+}
 
 # map to determine which prosody to proxy based on query param 'vnode'
 map $arg_vnode $prosody_bosh_node {
@@ -1463,7 +1476,7 @@ server {
         proxy_set_header Host ${var.domain};
         proxy_set_header X-Forwarded-For $remote_addr;
 
-        proxy_pass http://{{ env "NOMAD_IP_prosody_http" }}:{{ env "NOMAD_HOST_PORT_prosody_http" }}/xmpp-websocket?prefix=$prefix&$args;
+        proxy_pass http://$prosody_node/xmpp-websocket?prefix=$prefix&$args;
     }
 
     # BOSH for subdomains
