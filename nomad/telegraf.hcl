@@ -51,7 +51,7 @@ job "[JOB_NAME]" {
     }
 
     task "telegraf" {
-      user = "telegraf:997"
+      user = "telegraf:999"
       driver = "docker"
       meta {
       }
