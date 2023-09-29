@@ -1530,6 +1530,7 @@ server {
     location / {
         proxy_set_header X-Jitsi-Shard ${var.shard};
         proxy_hide_header 'X-Jitsi-Shard';
+        proxy_set_header Host $http_host;
 
         proxy_pass http://web;
     }

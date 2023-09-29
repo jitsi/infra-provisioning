@@ -47,6 +47,111 @@ variable cloud_provider {
     default = "oracle"
 }
 
+variable token_auth_url {
+  type = string
+  default = ""
+}
+
+variable token_auth_auto_redirect {
+  type = string
+  default = "false"
+}
+
+variable token_logout_url {
+  type = string
+  default = ""
+}
+
+variable token_sso {
+  type = string
+  default = ""
+}
+
+variable jvb_prefer_sctp {
+  type = string
+  default = "false"
+}
+
+variable insecure_room_name_warning {
+  type = string
+  default = "false"
+}
+
+variable amplitude_api_key {
+  type = string
+  default = ""
+}
+
+variable amplitude_include_utm {
+  type = string
+  default = "false"
+}
+
+variable rtcstats_enabled {
+  type = string
+  default = "false"
+}
+
+variable rtcstats_store_logs {
+  type = string
+  default = "false"
+}
+
+variable rtcstats_use_legacy {
+  type = string
+  default = "false"
+}
+
+variable rtcstats_endpoint {
+  type = string
+  default = ""
+}
+
+variable rtcstats_poll_interval {
+  type = string
+  default = "10000"
+}
+
+variable rtcstats_log_sdp {
+  type = string
+  default = "false"
+}
+
+variable analytics_white_listed_events {
+  type = string
+  default = ""
+}
+
+variable video_resolution {
+  type = string
+  default = ""
+}
+
+variable conference_request_http_enabled {
+  type = string
+  default = "false"
+}
+
+variable google_api_app_client_id {
+  type = string
+  default = ""
+}
+
+variable microsoft_api_app_client_id {
+  type = string
+  default = ""
+}
+
+variable dropbox_appkey {
+  type = string
+  default = ""
+}
+
+variable calendar_enabled {
+  type = string
+  default = "true"
+}
+
 job "[JOB_NAME]" {
   region = "global"
   datacenters = [var.dc]
@@ -131,11 +236,18 @@ job "[JOB_NAME]" {
       config {
         image        = "${var.web_repo}:${var.web_tag}"
         ports = ["http","https","nginx-status"]
-        volumes = ["local/_unlock:/usr/share/${var.branding_name}/_unlock","local/base.html:/usr/share/${var.branding_name}/base.html","local/nginx.conf:/defaults/nginx.conf","local/nginx-status.conf:/config/nginx/site-confs/status.conf"]
+        volumes = [
+          "local/_unlock:/usr/share/${var.branding_name}/_unlock",
+          "local/base.html:/usr/share/${var.branding_name}/base.html",
+          "local/nginx.conf:/defaults/nginx.conf",
+          "local/config:/config",
+          "local/nginx-status.conf:/config/nginx/site-confs/status.conf"
+        ]
       }
 
       env {
         XMPP_DOMAIN = "${var.domain}"
+        JVB_PREFER_SCTP = "${var.jvb_prefer_sctp}"
         PUBLIC_URL="https://${var.domain}/"
         XMPP_AUTH_DOMAIN = "auth.${var.domain}"
         # XMPP domain for the MUC
@@ -150,6 +262,10 @@ job "[JOB_NAME]" {
         DEPLOYMENTINFO_USERREGION = "<!--# echo var=\"user_region\" default=\"\" -->"
         ENABLE_SIMULCAST = "true"
         WEBSOCKET_KEEPALIVE_URL = "https://${var.domain}/_unlock"
+        ENABLE_CALENDAR = "${var.calendar_enabled}"
+        GOOGLE_API_APP_CLIENT_ID = "${var.google_api_app_client_id}"
+        MICROSOFT_API_APP_CLIENT_ID = "${var.microsoft_api_app_client_id}"
+        DROPBOX_APPKEY = "${var.dropbox_appkey}"
       }
       template {
         destination = "local/_unlock"
@@ -292,6 +408,68 @@ server {
 }
 EOF
         destination = "local/nginx-status.conf"
+      }
+      template {
+        data = <<EOF
+
+
+var subdomainNoDot = '';
+if (subdomain.endsWith('.')) {
+  subdomainNoDot = subdomain.substr(0,subdomain.length-1)
+  subdomain = subdomainNoDot;
+}
+{{ if ne "${var.token_auth_url}" "" -}}
+config.tokenAuthUrl=${var.token_auth_url};
+{{ end -}}
+{{ if eq "${var.token_auth_auto_redirect}" "true" -}}
+config.tokenAuthUrlAutoRedirect=true;
+{{ end -}}
+{{ if ne "${var.token_logout_url}" "" -}}
+config.tokenLogoutUrl='${var.token_logout_url}';
+{{ end -}}
+{{ if ne "${var.token_sso}" "" -}}
+config.sso=${var.token_sso};
+{{ end -}}
+
+{{ if eq "${var.insecure_room_name_warning}" "true" -}}
+config.enableInsecureRoomNameWarning=true;
+{{ end -}}
+
+if (!config.hasOwnProperty('analytics')) config.analytics = {};
+{{ if ne "${var.amplitude_api_key}" "" -}}
+config.analytics.amplitudeAPPKey="${var.amplitude_api_key}";
+config.analytics.amplitudeIncludeUTM=${var.amplitude_include_utm};
+{{ end -}}
+config.analytics.rtcstatsEnabled=${var.rtcstats_enabled};
+config.analytics.rtcstatsStoreLogs=${var.rtcstats_store_logs};
+config.analytics.rtcstatsUseLegacy=${var.rtcstats_use_legacy};
+config.analytics.rtcstatsEndpoint="${var.rtcstats_endpoint}";
+config.analytics.rtcstatsPollInterval=${var.rtcstats_poll_interval};
+config.analytics.rtcstatsSendSdp=${var.rtcstats_log_sdp};
+{{ if ne "${var.amplitude_api_key}" "" -}}
+config.analytics.whiteListedEvents=${var.analytics_white_listed_events};
+{{ end -}}
+{{ if ne "${var.video_resolution}" "" -}}
+config.constraints.video.aspectRatio=16/9;
+config.constraints.video.height={
+  ideal: ${var.video_resolution},
+  max: ${var.video_resolution},
+  min: 180
+};
+config.constraints.video.width={
+  ideal: {{ sprig_round (multiply ${var.video_resolution} (divide 9.0 16.0)) 0 }},
+  max: {{ sprig_round (multiply ${var.video_resolution} (divide 9.0 16.0)) 0 }},
+  min: 320
+};
+config.constraints.video.frameRate={max: 30, min: 15};
+{{ end -}}
+
+{{ if eq "${var.conference_request_http_enabled}" "true" -}}
+config.conferenceRequestUrl='https://<!--# echo var="http_host" default="${var.domain}" -->/<!--# echo var="subdir" default="" -->conference-request/v1',
+{{ end -}}
+
+EOF
+        destination = "local/config/custom-config.js"
       }
 
       template {
