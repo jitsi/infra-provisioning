@@ -15,11 +15,7 @@ variable "signal_version" {
 }
 
 variable "dc" {
-  type = string
-}
-
-variable "octo_region" {
-    type=string
+  type = list(string)
 }
 
 variable "release_number" {
@@ -279,7 +275,11 @@ variable api_branding_data_url {
 
 job "[JOB_NAME]" {
   region = "global"
-  datacenters = [var.dc]
+  datacenters = var.dc
+
+  spread {
+    attribute = "${node.datacenter}"
+  }
 
   type        = "service"
 
@@ -288,7 +288,6 @@ job "[JOB_NAME]" {
     web_tag = "${var.web_tag}"
     release_number = "${var.release_number}"
     environment = "${var.environment}"
-    octo_region = "${var.octo_region}"
     cloud_provider = "${var.cloud_provider}"
   }
 
@@ -299,7 +298,7 @@ job "[JOB_NAME]" {
   }
 
   group "web" {
-    count = 2
+    count = 2 * length(var.dc)
 
     update {
       max_parallel = 1
@@ -383,7 +382,7 @@ job "[JOB_NAME]" {
         XMPP_RECORDER_DOMAIN = "recorder.${var.domain}"
         DEPLOYMENTINFO_ENVIRONMENT = "${var.environment}"
         DEPLOYMENTINFO_SHARD = "release-${var.release_number}"
-        DEPLOYMENTINFO_REGION = "${var.octo_region}"
+        DEPLOYMENTINFO_REGION = "${meta.cloud_region}"
         DEPLOYMENTINFO_USERREGION = "<!--# echo var=\"user_region\" default=\"\" -->"
         ENABLE_SIMULCAST = "true"
         ENABLE_RECORDING = "true"

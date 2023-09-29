@@ -13,11 +13,6 @@ LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
 [ -z "$VAULT_PASSWORD_FILE" ] && VAULT_PASSWORD_FILE="$LOCAL_PATH/../.vault-password.txt"
 
-if [ -z "$ORACLE_REGION" ]; then
-    echo "No ORACLE_REGION set, exiting"
-    exit 2
-fi
-
 [ -z "$LOCAL_REGION" ] && LOCAL_REGION="$OCI_LOCAL_REGION"
 [ -z "$LOCAL_REGION" ] && LOCAL_REGION="us-phoenix-1"
 
@@ -64,7 +59,6 @@ fi
 [ -z "$PROSODY_TAG" ] && PROSODY_TAG="$DOCKER_TAG"
 
 NOMAD_JOB_PATH="$LOCAL_PATH/../nomad"
-NOMAD_DC="$ENVIRONMENT-$ORACLE_REGION"
 
 [ -z "$ENCRYPTED_JVB_CREDENTIALS_FILE" ] && ENCRYPTED_JVB_CREDENTIALS_FILE="$LOCAL_PATH/../ansible/secrets/jvb.yml"
 [ -z "$ENCRYPTED_JIBRI_CREDENTIALS_FILE" ] && ENCRYPTED_JIBRI_CREDENTIALS_FILE="$LOCAL_PATH/../ansible/secrets/jibri.yml"
@@ -228,7 +222,6 @@ fi
 
 export NOMAD_VAR_environment="$ENVIRONMENT"
 export NOMAD_VAR_domain="$DOMAIN"
-export NOMAD_VAR_octo_region="$ORACLE_REGION"
 # [ -n "$SHARD_STATE" ] && export NOMAD_VAR_shard_state="$SHARD_STATE"
 export NOMAD_VAR_release_number="$RELEASE_NUMBER"
 export NOMAD_VAR_signal_version="$SIGNAL_VERSION"
@@ -238,4 +231,13 @@ export NOMAD_VAR_prosody_tag="$PROSODY_TAG"
 export NOMAD_VAR_pool_type="$NOMAD_POOL_TYPE"
 export NOMAD_VAR_branding_name="$BRANDING_NAME"
 
-sed -e "s/\[JOB_NAME\]/release-${RELEASE_NUMBER}/" "$NOMAD_JOB_PATH/jitsi-meet-web.hcl" | nomad job run -var="dc=$NOMAD_DC" -
+[ -z "$REGIONS" ] && REGIONS="$DRG_PEER_REGIONS"
+
+NOMAD_DC="[]"
+for ORACLE_REGION in $REGIONS; do
+    NOMAD_DC="$( echo "$NOMAD_DC" "[\"$ENVIRONMENT-$ORACLE_REGION\"]" | jq -c -s '.|add')"
+done
+
+export NOMAD_VAR_dc="$NOMAD_DC"
+
+sed -e "s/\[JOB_NAME\]/web_release-${RELEASE_NUMBER}/" "$NOMAD_JOB_PATH/jitsi-meet-web.hcl" | nomad job run -
