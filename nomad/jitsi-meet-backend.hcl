@@ -1388,6 +1388,15 @@ map $arg_vnode $prosody_bosh_node {
 {{ end -}}
 }
 
+limit_req_zone $remote_addr zone=conference-request:10m rate=5r/s;
+
+# Set $remote_addr by scanning X-Forwarded-For, while only trusting the defined list of trusted proxies.
+set_real_ip_from 127.0.0.1;
+set_real_ip_from 172.0.0.0/8;
+set_real_ip_from 10.0.0.0/8;
+real_ip_header X-Forwarded-For;
+real_ip_recursive on;
+
 server {
 
     listen 80;
