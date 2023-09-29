@@ -133,7 +133,10 @@ pipeline {
                       sshagent (credentials: ['ssh-ubuntu']) {
                         dir("infra-provisioning") {
                             sh """#!/bin/bash
-                            scripts/nomad.sh job status web-release-${env.RELEASE_NUMBER} > /dev/null && scripts/nomad.sh job stop web-release-${env.RELEASE_NUMBER} || echo "No nomad release found for release ${env.RELEASE_NUMBER}"
+                            for R in ${env.RELEASE_NUMBER}; do
+                            echo \"Deleting release \$R\"
+                            scripts/nomad.sh job status web-release-\$R > /dev/null && scripts/nomad.sh job stop web-release-\$R || echo "No nomad release found for release \$R"
+                            done
                             """
 
                             def pools = listPools();
