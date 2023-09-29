@@ -42,7 +42,7 @@ fi
 
 
 # create shard via nomad
-SHARD="$SHARD_NAME" SHARD_ID="$SHARD_NUMBER" $LOCAL_PATH/deploy-nomad-shard.sh
+SHARD="$SHARD_NAME" SHARD_ID="$SHARD_NUMBER" $LOCAL_PATH/deploy-nomad-shard-backend.sh
 
 if [ $? -gt 0 ]; then
   echo "ERROR: Nomad shard creation failed, exiting"

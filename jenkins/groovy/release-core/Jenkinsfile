@@ -280,6 +280,22 @@ pipeline {
                 }
             }
         }
+        stage("deploy nomad web release") {
+            when {
+                expression {env.CORE_CLOUD_PROVIDER == 'nomad'}
+            }
+            steps {
+                script {
+                    dir('infra-provisioning') {
+                        utils.SetupAnsible()
+
+                        sh """#!/bin/bash
+                        export RELEASE_NUMBER="${env.BUILD_ID}"
+                        scripts/deploy-nomad-web-release.sh"""
+                    }
+                }
+            }
+        }
         stage("create new shards") {
             steps {
                 script {

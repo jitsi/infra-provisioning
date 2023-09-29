@@ -113,6 +113,11 @@ variable branding_name {
   default = "jitsi-meet"
 }
 
+variable visitors_enabled {
+  type = string
+  default = "false"
+}
+
 variable visitors_count {
     type = number
     default = 0
@@ -157,6 +162,11 @@ job "[JOB_NAME]" {
       port "prosody-http" {
         to = 5280
       }
+      port "prosody-client" {
+      }
+      port "prosody-s2s" {
+        to = 5269
+      }
     }
 
     service {
@@ -167,6 +177,8 @@ job "[JOB_NAME]" {
         domain = "${var.domain}"
         shard = "${var.shard}"
         release_number = "${var.release_number}"
+        prosody_client_port = "${NOMAD_HOST_PORT_prosody_client}"
+        prosody_s2s_port = "${NOMAD_HOST_PORT_prosody_s2s}"
         environment = "${meta.environment}"
         vindex = "${NOMAD_ALLOC_INDEX}"
       }
@@ -186,19 +198,23 @@ job "[JOB_NAME]" {
 
       config {
         image        = "jitsi/prosody:${var.prosody_tag}"
-        ports = ["prosody-http"]
+        ports = ["prosody-http","prosody-client","prosody-s2s"]
         volumes = ["local/prosody-plugins-custom:/prosody-plugins-custom"]
       }
 
       env {
+        PROSODY_MODE="visitors"
+        VISITORS_MAX_PARTICIPANTS=5
+        VISITORS_MAX_VISITORS_PER_NODE=250
+        PROSODY_VISITORS_MUC_PREFIX="conference"
+        ENABLE_VISITORS="${var.visitors_enabled}"
+        PROSODY_VISITOR_INDEX="${NOMAD_ALLOC_INDEX}"
         ENABLE_RECORDING="1"
         ENABLE_OCTO="1"
         ENABLE_JVB_XMPP_SERVER="1"
-        ENABLE_LOBBY="1"
-        ENABLE_AV_MODERATION="1"
-        ENABLE_BREAKOUT_ROOMS="1"
         ENABLE_AUTH="1"
         PROSODY_ENABLE_RATE_LIMITS="1"
+        PROSODY_RATE_LIMIT_ALLOW_RANGES="10.0.0.0/8,172.17.0.0/16"
         AUTH_TYPE="jwt"
         JWT_ALLOW_EMPTY="1"
         JWT_ACCEPTED_ISSUERS="${var.jwt_accepted_issuers}"
@@ -273,19 +289,25 @@ job "[JOB_NAME]" {
 
       template {
         data = <<EOF
+{{ range service "shard-${var.shard}.signal" -}}
+    {{ scratch.SetX "xmpp_server" . -}}
+{{ end -}}
+
 #
 # Basic configuration options
 #
+
+{{ with scratch.Get "xmpp_server"  }}
+XMPP_SERVER={{ .ServiceMeta.prosody_client_ip }}
+XMPP_SERVER_S2S_PORT={{ .ServiceMeta.prosody_s2s_port }}
+{{ end -}}
 GLOBAL_CONFIG="statistics = \"internal\"\nstatistics_interval = \"manual\"\nopenmetrics_allow_cidr = \"0.0.0.0/0\";\n"
-GLOBAL_MODULES="http_openmetrics,measure_stanza_counts,log_ringbuffer,firewall,muc_census,muc_end_meeting,secure_interfaces,external_services,turncredentials_http"
-XMPP_MODULES=
+GLOBAL_MODULES="http_openmetrics,measure_stanza_counts,log_ringbuffer,firewall,muc_census,secure_interfaces,external_services,turncredentials_http"
+XMPP_MODULES="jiconop"
 XMPP_INTERNAL_MUC_MODULES=
-XMPP_MUC_MODULES="{{ if eq "${var.enable_muc_allowners}" "true" }}muc_allowners{{ end }}"
-XMPP_SERVER={{ env "NOMAD_IP_prosody_client" }}
+XMPP_MUC_MODULES=
 XMPP_PORT={{  env "NOMAD_HOST_PORT_prosody_client" }}
-XMPP_BOSH_URL_BASE=http://{{ env "NOMAD_IP_prosody_http" }}:{{ env "NOMAD_HOST_PORT_prosody_http" }}
-HTTP_PORT={{ env "NOMAD_HOST_PORT_http" }}
-HTTPS_PORT={{ env "NOMAD_HOST_PORT_https" }}
+
 CONFIG=~/.jitsi-meet-cfg
 TZ=UTC
 ENABLE_LETSENCRYPT=0
@@ -359,6 +381,9 @@ EOF
       port "prosody-http" {
         to = 5280
       }
+      port "prosody-s2s" {
+        to = 5269
+      }
       port "signal-sidecar-agent" {
       }
       port "signal-sidecar-http" {
@@ -392,6 +417,7 @@ EOF
         prosody_client_ip = "${NOMAD_IP_prosody_client}"
         prosody_http_port = "${NOMAD_HOST_PORT_prosody_http}"
         prosody_client_port = "${NOMAD_HOST_PORT_prosody_client}"
+        prosody_s2s_port = "${NOMAD_HOST_PORT_prosody_s2s}"
         prosody_jvb_client_port = "${NOMAD_HOST_PORT_prosody_jvb_client}"
         signal_sidecar_agent_port = "${NOMAD_HOST_PORT_signal_sidecar_agent}"
         signal_sidecar_http_ip = "${NOMAD_IP_signal_sidecar_http}"
@@ -563,7 +589,7 @@ EOF
 
       config {
         image        = "jitsi/prosody:${var.prosody_tag}"
-        ports = ["prosody-http","prosody-client"]
+        ports = ["prosody-http","prosody-client","prosody-s2s"]
         volumes = ["local/prosody-plugins-custom:/prosody-plugins-custom"]
       }
 
@@ -575,6 +601,8 @@ EOF
         ENABLE_AV_MODERATION="1"
         ENABLE_BREAKOUT_ROOMS="1"
         ENABLE_AUTH="1"
+        ENABLE_VISITORS="${var.visitors_enabled}"
+        PROSODY_VISITORS_MUC_PREFIX="conference"
         PROSODY_ENABLE_RATE_LIMITS="1"
         AUTH_TYPE="jwt"
         JWT_ALLOW_EMPTY="1"
@@ -650,6 +678,11 @@ EOF
 
       template {
         data = <<EOF
+{{ range service "${var.shard}.prosody-vnode" -}}
+    {{ scratch.MapSetX "vnodes" .ServiceMeta.vindex . -}}
+{{ end -}}
+
+VISITORS_XMPP_SERVER={{ range $i, $e := scratch.MapValues "vnodes" }}{{ if gt $i 0 }},{{ end }}{{ $e.Address }}:{{ $e.ServiceMeta.prosody_s2s_port}}{{ end }}
 #
 # Basic configuration options
 #
@@ -925,7 +958,11 @@ EOF
       env {
         ENABLE_RECORDING="1"
         ENABLE_OCTO="1"
+        ENABLE_VISITORS="${var.visitors_enabled}"
         JICOFO_ENABLE_REST="1"
+        VISITORS_MAX_PARTICIPANTS=5
+        VISITORS_MAX_VISITORS_PER_NODE=250
+        PROSODY_VISITORS_MUC_PREFIX="conference"
         AUTH_TYPE="jwt"
         JICOFO_ENABLE_BRIDGE_HEALTH_CHECKS="1"
         JICOFO_HEALTH_CHECKS_USE_PRESENCE="1"
@@ -970,6 +1007,11 @@ EOF
 
       template {
         data = <<EOF
+{{ range service "${var.shard}.prosody-vnode" -}}
+    {{ scratch.MapSetX "vnodes" .ServiceMeta.vindex . -}}
+{{ end -}}
+
+VISITORS_XMPP_SERVER={{ range $i, $e := scratch.MapValues "vnodes" }}{{ if gt $i 0 }},{{ end }}{{ $e.Address }}:{{ $e.ServiceMeta.prosody_client_port}}{{ end }}
 #
 # Basic configuration options
 #
@@ -1280,6 +1322,12 @@ EOF
     {{ scratch.SetX "web" .  -}}
 {{ end -}}
 
+upstream prosody {
+    zone upstreams 64K;
+    server {{ env "NOMAD_IP_prosody_http" }}:{{ env "NOMAD_HOST_PORT_prosody_http" }};
+    keepalive 2;
+}
+
 # local upstream for main prosody used in final proxy_pass directive
 upstream prosodylimited {
     zone upstreams 64K;
@@ -1305,6 +1353,25 @@ upstream prosodylimited{{ . }} {
     keepalive 2;
 }
 {{ end -}}
+
+
+{{ range service "${var.shard}.prosody-vnode" -}}
+    {{ scratch.MapSetX "vnodes" .ServiceMeta.vindex . -}}
+{{ end -}}
+
+{{ range $i, $e := scratch.MapValues "vnodes" -}}
+# upstream visitor prosody {{ $i }}
+upstream v{{ $i }} {
+    server {{ $e.Address }}:{{ $e.Port }};
+}
+{{ end -}}
+
+map $arg_vnode $prosody_node {
+    default prosody;
+{{ range loop ${var.visitors_count} -}}
+    v{{ . }} v{{ . }};
+{{ end -}}
+}
 
 # map to determine which prosody to proxy based on query param 'vnode'
 map $arg_vnode $prosody_bosh_node {
@@ -1427,7 +1494,7 @@ server {
         proxy_set_header Host ${var.domain};
         proxy_set_header X-Forwarded-For $remote_addr;
 
-        proxy_pass http://{{ env "NOMAD_IP_prosody_http" }}:{{ env "NOMAD_HOST_PORT_prosody_http" }}/xmpp-websocket?prefix=$prefix&$args;
+        proxy_pass http://$prosody_node/xmpp-websocket?prefix=$prefix&$args;
     }
 
     # BOSH for subdomains
@@ -1466,6 +1533,7 @@ server {
     location / {
         proxy_set_header X-Jitsi-Shard ${var.shard};
         proxy_hide_header 'X-Jitsi-Shard';
+        proxy_set_header Host $http_host;
 
         proxy_pass http://web;
     }
