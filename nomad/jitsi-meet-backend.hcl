@@ -207,11 +207,9 @@ job "[JOB_NAME]" {
         ENABLE_RECORDING="1"
         ENABLE_OCTO="1"
         ENABLE_JVB_XMPP_SERVER="1"
-        ENABLE_LOBBY="1"
-        ENABLE_AV_MODERATION="1"
-        ENABLE_BREAKOUT_ROOMS="1"
         ENABLE_AUTH="1"
         PROSODY_ENABLE_RATE_LIMITS="1"
+        PROSODY_RATE_LIMIT_ALLOW_RANGES="10.0.0.0/8,172.17.0.0/16"
         AUTH_TYPE="jwt"
         JWT_ALLOW_EMPTY="1"
         JWT_ACCEPTED_ISSUERS="${var.jwt_accepted_issuers}"
@@ -302,7 +300,7 @@ GLOBAL_CONFIG="statistics = \"internal\"\nstatistics_interval = \"manual\"\nopen
 GLOBAL_MODULES="http_openmetrics,measure_stanza_counts,log_ringbuffer,firewall,muc_census,secure_interfaces,external_services,turncredentials_http"
 XMPP_MODULES="jiconop"
 XMPP_INTERNAL_MUC_MODULES=
-XMPP_MUC_MODULES="{{ if eq "${var.enable_muc_allowners}" "true" }}muc_allowners{{ end }}"
+XMPP_MUC_MODULES=
 XMPP_PORT={{  env "NOMAD_HOST_PORT_prosody_client" }}
 
 CONFIG=~/.jitsi-meet-cfg
@@ -586,7 +584,7 @@ EOF
 
       config {
         image        = "jitsi/prosody:${var.prosody_tag}"
-        ports = ["prosody-http","prosody-client"]
+        ports = ["prosody-http","prosody-client","prosody-s2s"]
         volumes = ["local/prosody-plugins-custom:/prosody-plugins-custom"]
       }
 

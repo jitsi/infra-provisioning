@@ -198,8 +198,9 @@ fi
 
 DROPBOX_APP_KEY="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_dropbox_app_key -)"
 if [[ "$DROPBOX_APP_KEY" != "null" ]]; then
-    export NOMAD_VAR_dropbox_app_key="$DROPBOX_APP_KEY"
+    export NOMAD_VAR_dropbox_appkey="$DROPBOX_APP_KEY"
 fi
+
 
 TURNRELAY_HOST_ARRAY="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .${TURNRELAY_HOST_VARIABLE} -)"
 if [[ "$TURNRELAY_HOST_ARRAY" == "null" ]]; then

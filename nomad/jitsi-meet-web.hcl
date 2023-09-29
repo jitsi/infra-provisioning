@@ -137,6 +137,11 @@ variable google_api_app_client_id {
   default = ""
 }
 
+variable google_analytics_id {
+  type = string
+  default = ""
+}
+
 variable microsoft_api_app_client_id {
   type = string
   default = ""
@@ -150,6 +155,126 @@ variable dropbox_appkey {
 variable calendar_enabled {
   type = string
   default = "true"
+}
+
+variable token_based_roles_enabled {
+  type = string
+  default = "false"
+}
+
+variable invite_service_url {
+  type = string
+  default = ""
+}
+
+variable people_search_url {
+  type = string
+  default = ""
+}
+
+variable confcode_url {
+  type = string
+  default = ""
+}
+
+variable dialin_numbers_url {
+  type = string
+  default = ""
+}
+
+variable dialout_auth_url {
+  type = string
+  default = ""
+}
+
+variable dialout_codes_url {
+  type = string
+  default = ""
+}
+
+variable dialout_region_url {
+  type = string
+  default = ""
+}
+
+variable api_dialin_numbers_url {
+  type = string
+  default = ""
+}
+
+variable api_conference_mapper_url {
+  type = string
+  default = ""
+}
+
+variable api_dialout_auth_url {
+  type = string
+  default = ""
+}
+
+variable api_dialout_codes_url {
+  type = string
+  default = ""
+}
+
+variable api_dialout_region_url {
+  type = string
+  default = ""
+}
+
+variable api_directory_search_url {
+  type = string
+  default = ""
+}
+
+variable api_conference_invite_url {
+  type = string
+  default = ""
+}
+
+variable api_conference_invite_callflows_url {
+  type = string
+  default = ""
+}
+
+variable api_guest_dial_out_url {
+  type = string
+  default = ""
+}
+
+variable api_guest_dial_out_status_url {
+  type = string
+  default = ""
+}
+
+variable api_recoding_sharing_url {
+  type = string
+  default = ""
+}
+
+variable prosody_jaas_actuator_url {
+  type = string
+  default = ""
+}
+
+variable api_jaas_token_url {
+  type = string
+  default = ""
+}
+
+variable api_jaas_webhook_proxy {
+  type = string
+  default = ""
+}
+
+variable api_billing_counter {
+  type = string
+  default = ""
+}
+
+variable api_branding_data_url {
+  type = string
+  default = ""
 }
 
 job "[JOB_NAME]" {
@@ -261,11 +386,20 @@ job "[JOB_NAME]" {
         DEPLOYMENTINFO_REGION = "${var.octo_region}"
         DEPLOYMENTINFO_USERREGION = "<!--# echo var=\"user_region\" default=\"\" -->"
         ENABLE_SIMULCAST = "true"
+        ENABLE_RECORDING = "true"
         WEBSOCKET_KEEPALIVE_URL = "https://${var.domain}/_unlock"
         ENABLE_CALENDAR = "${var.calendar_enabled}"
         GOOGLE_API_APP_CLIENT_ID = "${var.google_api_app_client_id}"
         MICROSOFT_API_APP_CLIENT_ID = "${var.microsoft_api_app_client_id}"
         DROPBOX_APPKEY = "${var.dropbox_appkey}"
+        AMPLITUDE_ID = "${var.amplitude_api_key}"
+        GOOGLE_ANALYTICS_ID = "${var.google_analytics_id}"
+        INVITE_SERVICE_URL = "${var.invite_service_url}"
+        PEOPLE_SEARCH_URL = "${var.people_search_url}"
+        CONFCODE_URL = "${var.confcode_url}"
+        DIALIN_NUMBERS_URL = "${var.dialin_numbers_url}"
+        DIALOUT_AUTH_URL = "${var.dialout_auth_url}"
+        DIALOUT_CODES_URL = "${var.dialout_codes_url}"
       }
       template {
         destination = "local/_unlock"
@@ -466,6 +600,59 @@ config.constraints.video.frameRate={max: 30, min: 15};
 
 {{ if eq "${var.conference_request_http_enabled}" "true" -}}
 config.conferenceRequestUrl='https://<!--# echo var="http_host" default="${var.domain}" -->/<!--# echo var="subdir" default="" -->conference-request/v1',
+{{ end -}}
+
+
+{{ if ne "${var.prosody_jaas_actuator_url}" "" -}}
+config.jaasActuatorUrl='${var.prosody_jaas_actuator_url}',
+{{ end -}}
+{{ if ne "${var.api_jaas_token_url}" "" -}}
+config.jaasTokenUrl='${var.api_jaas_token_url}',
+{{ end -}}
+{{ if ne "${var.api_jaas_webhook_proxy}" "" -}}
+config.webhookProxyUrl='${var.api_jaas_webhook_proxy }';
+{{ end -}}
+{{ if ne "${var.api_billing_counter}" "" -}}
+config.billingCounterUrl='${var.api_billing_counter }';
+{{ end -}}
+{{ if ne "${var.api_branding_data_url}" "" -}}
+config.brandingDataUrl='${var.api_branding_data_url }';
+{{ end -}}
+config.dialInNumbersUrl='${var.api_dialin_numbers_url }';
+config.dialInConfCodeUrl= '${var.api_conference_mapper_url }';
+
+{{ if ne "${var.api_dialout_codes_url}" "" -}}
+config.dialOutCodesUrl= '${var.api_dialout_codes_url }';
+{{ end -}}
+{{ if ne "${var.api_dialout_auth_url}" "" -}}
+config.dialOutAuthUrl='${var.api_dialout_auth_url }';
+{{ end -}}
+{{ if ne "${var.api_dialout_region_url}" "" -}}
+config.dialOutRegionUrl='${var.api_dialout_region_url }';
+{{ end -}}
+{{ if ne "${var.api_directory_search_url}" "" -}}
+config.peopleSearchUrl='${var.api_directory_search_url }';
+{{ end -}}
+{{ if ne "${var.api_conference_invite_url}" "" -}}
+config.inviteServiceUrl='${var.api_conference_invite_url }';
+{{ end -}}
+{{ if ne "${var.api_conference_invite_callflows_url}" "" -}}
+config.inviteServiceCallFlowsUrl='${var.api_conference_invite_callflows_url }';
+{{ end -}}
+{{ if ne "${var.api_guest_dial_out_url}" "" -}}
+config.guestDialOutUrl='${var.api_guest_dial_out_url }';
+{{ end -}}
+
+{{ if ne "${var.api_guest_dial_out_status_url}" "" -}}
+config.guestDialOutStatusUrl='${var.api_guest_dial_out_status_url }';
+{{ end -}}
+
+{{ if ne "${var.api_recoding_sharing_url}" "" -}}
+config.recordingSharingUrl='${var.api_recoding_sharing_url }';
+{{ end -}}
+
+{{ if eq "${var.token_based_roles_enabled}" "true" -}}
+config.enableUserRolesBasedOnToken=true;
 {{ end -}}
 
 EOF
