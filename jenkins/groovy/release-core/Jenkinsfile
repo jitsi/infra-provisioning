@@ -287,6 +287,8 @@ pipeline {
             steps {
                 script {
                     dir('infra-provisioning') {
+                        utils.SetupAnsible()
+
                         sh """#!/bin/bash
                         export RELEASE_NUMBER="${env.BUILD_ID}"
                         scripts/deploy-nomad-web-release.sh"""
