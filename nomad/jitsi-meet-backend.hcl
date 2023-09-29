@@ -113,6 +113,11 @@ variable branding_name {
   default = "jitsi-meet"
 }
 
+variable visitors_enabled {
+  type = string
+  default = "false"
+}
+
 variable visitors_count {
     type = number
     default = 0
@@ -202,7 +207,7 @@ job "[JOB_NAME]" {
         VISITORS_MAX_PARTICIPANTS=5
         VISITORS_MAX_VISITORS_PER_NODE=250
         PROSODY_VISITORS_MUC_PREFIX="conference"
-        ENABLE_VISITORS="1"
+        ENABLE_VISITORS="${var.visitors_enabled}"
         PROSODY_VISITOR_INDEX="${NOMAD_ALLOC_INDEX}"
         ENABLE_RECORDING="1"
         ENABLE_OCTO="1"
@@ -596,7 +601,7 @@ EOF
         ENABLE_AV_MODERATION="1"
         ENABLE_BREAKOUT_ROOMS="1"
         ENABLE_AUTH="1"
-        ENABLE_VISITORS="1"
+        ENABLE_VISITORS="${var.visitors_enabled}"
         PROSODY_VISITORS_MUC_PREFIX="conference"
         PROSODY_ENABLE_RATE_LIMITS="1"
         AUTH_TYPE="jwt"
@@ -953,7 +958,7 @@ EOF
       env {
         ENABLE_RECORDING="1"
         ENABLE_OCTO="1"
-        ENABLE_VISITORS="1"
+        ENABLE_VISITORS="${var.visitors_enabled}"
         JICOFO_ENABLE_REST="1"
         VISITORS_MAX_PARTICIPANTS=5
         VISITORS_MAX_VISITORS_PER_NODE=250

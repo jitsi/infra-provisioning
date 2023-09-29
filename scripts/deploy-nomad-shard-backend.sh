@@ -133,6 +133,16 @@ else
     BRANDING_NAME="jitsi-meet"
 fi
 
+VISITORS_COUNT_ENV="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .visitors_count -)"
+if [[ "$VISITORS_COUNT_ENV" != "null" ]]; then
+    VISITORS_COUNT=$VISITORS_COUNT_ENV
+fi
+
+VISITORS_ENABLED_ENV="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .visitors_enabled -)"
+if [[ "$VISITORS_ENABLED_ENV" != "null" ]]; then
+    VISITORS_ENABLED=$VISITORS_ENABLED_ENV
+fi
+
 [ -z "$VISITORS_COUNT" ] && VISITORS_COUNT=0
 
 export NOMAD_VAR_environment="$ENVIRONMENT"
@@ -149,6 +159,7 @@ export NOMAD_VAR_web_tag="$WEB_TAG"
 export NOMAD_VAR_pool_type="$NOMAD_POOL_TYPE"
 export NOMAD_VAR_branding_name="$BRANDING_NAME"
 export NOMAD_VAR_visitors_count="$VISITORS_COUNT"
+export NOMAD_VAR_visitors_enabled="$VISITORS_ENABLED"
 export NOMAD_VAR_signal_api_domain_name="$SIGNAL_API_HOSTNAME"
 
 sed -e "s/\[JOB_NAME\]/shard-${SHARD}/" "$NOMAD_JOB_PATH/jitsi-meet-backend.hcl" | nomad job run -var="dc=$NOMAD_DC" -
