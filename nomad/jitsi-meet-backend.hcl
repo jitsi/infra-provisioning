@@ -1344,6 +1344,13 @@ upstream web {
     keepalive 2;
 }
 
+# local upstream for jicofo connection
+upstream jicofo {
+    zone upstreams 64K;
+    server {{ env "NOMAD_IP_jicofo_http" }}:{{ env "NOMAD_HOST_PORT_jicofo_http" }};
+    keepalive 2;
+}
+
 {{ range loop ${var.visitors_count} -}}
 # local upstream for visitor prosody {{ . }} used in final proxy_pass directive
 upstream prosodylimited{{ . }} {
@@ -1496,6 +1503,19 @@ server {
 
         proxy_pass http://$prosody_node/xmpp-websocket?prefix=$prefix&$args;
     }
+
+    location ~ ^/conference-request/v1(\/.*)?$ {
+        proxy_pass http://jicofo/conference-request/v1$1;
+        limit_req zone=conference-request burst=5;
+        add_header "Cache-Control" "no-cache, no-store";
+        add_header 'Access-Control-Allow-Origin' '*';
+        add_header 'Access-Control-Expose-Headers' "Content-Type, X-Jitsi-Region, X-Jitsi-Shard, X-Proxy-Region, X-Jitsi-Release";
+
+    }
+    location ~ ^/([^/?&:'"]+)/conference-request/v1(\/.*)?$ {
+            rewrite ^/([^/?&:'"]+)/conference-request/v1(\/.*)?$ /conference-request/v1$2;
+    }
+
 
     # BOSH for subdomains
     location ~ ^/([^/?&:'"]+)/http-bind {
