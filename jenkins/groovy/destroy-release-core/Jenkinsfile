@@ -132,6 +132,9 @@ pipeline {
                     ]) {
                       sshagent (credentials: ['ssh-ubuntu']) {
                         dir("infra-provisioning") {
+                            sh """#!/bin/bash
+                            scripts/nomad.sh job status web-release-${env.RELEASE_NUMBER} > /dev/null && scripts/nomad.sh job stop web-release-${env.RELEASE_NUMBER} || echo "No nomad release found for release ${env.RELEASE_NUMBER}"
+                            """
 
                             def pools = listPools();
                             def shards = listShards();
