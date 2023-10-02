@@ -143,6 +143,32 @@ if [[ "$VISITORS_ENABLED_ENV" != "null" ]]; then
     VISITORS_ENABLED=$VISITORS_ENABLED_ENV
 fi
 
+WAIT_FOR_HOSTS_ENABLED_ENV="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .prosody_enable_wait_for_host -)"
+if [[ "$WAIT_FOR_HOSTS_ENABLED_ENV" != "null" ]]; then
+    WAIT_FOR_HOSTS_ENABLED=$WAIT_FOR_HOSTS_ENABLED_ENV
+fi
+
+JWT_ALLOW_EMPTY_ENV="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .prosody_token_allow_empty -)"
+if [[ "$JWT_ALLOW_EMPTY_ENV" != "null" ]]; then
+    JWT_ALLOW_EMPTY=$JWT_ALLOW_EMPTY_ENV
+fi
+
+PASSWORD_WAITING_FOR_HOST_ENABLED_ENV="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .prosody_enable_password_waiting_for_host -)"
+if [[ "$PASSWORD_WAITING_FOR_HOST_ENABLED_ENV" != "null" ]]; then
+    PASSWORD_WAITING_FOR_HOST_ENABLED=$PASSWORD_WAITING_FOR_HOST_ENABLED_ENV
+fi
+
+ASAP_DISABLE_REQUIRE_ROOM_CLAIM_ENV="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .prosody_disable_required_room_claim -)"
+if [[ "$ASAP_DISABLE_REQUIRE_ROOM_CLAIM_ENV" != "null" ]]; then
+    ASAP_DISABLE_REQUIRE_ROOM_CLAIM=$ASAP_DISABLE_REQUIRE_ROOM_CLAIM_ENV
+fi
+
+PROSODY_CACHE_KEYS_URL_ENV="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .prosody_cache_keys_url -)"
+if [[ "$PROSODY_CACHE_KEYS_URL_ENV" != "null" ]]; then
+    PROSODY_CACHE_KEYS_URL=$PROSODY_CACHE_KEYS_URL_ENV
+fi
+
+
 [ -z "$VISITORS_COUNT" ] && VISITORS_COUNT=0
 
 export NOMAD_VAR_environment="$ENVIRONMENT"
@@ -160,6 +186,11 @@ export NOMAD_VAR_pool_type="$NOMAD_POOL_TYPE"
 export NOMAD_VAR_branding_name="$BRANDING_NAME"
 export NOMAD_VAR_visitors_count="$VISITORS_COUNT"
 export NOMAD_VAR_visitors_enabled="$VISITORS_ENABLED"
+export NOMAD_VAR_wait_for_host_enabled="$WAIT_FOR_HOSTS_ENABLED"
+export NOMAD_VAR_jwt_allow_empty="$JWT_ALLOW_EMPTY"
+export NOMAD_VAR_asap_disable_require_room_claim="$ASAP_DISABLE_REQUIRE_ROOM_CLAIM"
+export NOMAD_VAR_password_waiting_for_host_enabled="$PASSWORD_WAITING_FOR_HOST_ENABLED"
+export NOMAD_VAR_prosody_cache_keys_url="$PROSODY_CACHE_KEYS_URL"
 export NOMAD_VAR_signal_api_domain_name="$SIGNAL_API_HOSTNAME"
 
 sed -e "s/\[JOB_NAME\]/shard-${SHARD}/" "$NOMAD_JOB_PATH/jitsi-meet-backend.hcl" | nomad job run -var="dc=$NOMAD_DC" -

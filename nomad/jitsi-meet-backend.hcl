@@ -98,6 +98,21 @@ variable jwt_accepted_audiences {
     default = "jitsi"
 }
 
+variable jwt_allow_empty {
+    type = string
+    default = "false"
+}
+
+variable asap_disable_require_room_claim {
+    type = string
+    default = "false"
+}
+
+variable prosody_cache_keys_url {
+    type = string
+    default = ""
+}
+
 variable turnrelay_host {
   type = string
   default = "turn.example.com"
@@ -128,6 +143,16 @@ variable signal_api_domain_name {
     default = "signal-api.example.com"
 }
 
+variable wait_for_host_enabled {
+    type = string
+    default = "false"
+}
+
+variable password_waiting_for_host_enabled {
+    type = string
+    default = "false"
+}
+
 
 job "[JOB_NAME]" {
   region = "global"
@@ -152,6 +177,11 @@ job "[JOB_NAME]" {
 
   group "vnodes" {
     count = var.visitors_count
+
+    update {
+      max_parallel = var.visitors_count
+      health_check      = "checks"
+    }
 
     constraint {
       attribute  = "${meta.pool_type}"
@@ -209,18 +239,8 @@ job "[JOB_NAME]" {
         PROSODY_VISITORS_MUC_PREFIX="conference"
         ENABLE_VISITORS="${var.visitors_enabled}"
         PROSODY_VISITOR_INDEX="${NOMAD_ALLOC_INDEX}"
-        ENABLE_RECORDING="1"
-        ENABLE_OCTO="1"
-        ENABLE_JVB_XMPP_SERVER="1"
-        ENABLE_AUTH="1"
         PROSODY_ENABLE_RATE_LIMITS="1"
         PROSODY_RATE_LIMIT_ALLOW_RANGES="10.0.0.0/8,172.17.0.0/16"
-        AUTH_TYPE="jwt"
-        JWT_ALLOW_EMPTY="1"
-        JWT_ACCEPTED_ISSUERS="${var.jwt_accepted_issuers}"
-        JWT_ACCEPTED_AUDIENCES="${var.jwt_accepted_audiences}"
-        JWT_ASAP_KEYSERVER="${var.jwt_asap_keyserver}"
-        JWT_APP_ID="jitsi"
         TURN_CREDENTIALS="${var.turnrelay_password}"
         TURNS_HOST="${var.turnrelay_host}"
         TURN_HOST="${var.turnrelay_host}"
@@ -294,7 +314,7 @@ job "[JOB_NAME]" {
 {{ end -}}
 
 #
-# Basic configuration options
+# prosody vnode configuration options
 #
 
 {{ with scratch.Get "xmpp_server"  }}
@@ -605,7 +625,7 @@ EOF
         PROSODY_VISITORS_MUC_PREFIX="conference"
         PROSODY_ENABLE_RATE_LIMITS="1"
         AUTH_TYPE="jwt"
-        JWT_ALLOW_EMPTY="1"
+        JWT_ALLOW_EMPTY="${var.jwt_allow_empty}"
         JWT_ACCEPTED_ISSUERS="${var.jwt_accepted_issuers}"
         JWT_ACCEPTED_AUDIENCES="${var.jwt_accepted_audiences}"
         JWT_ASAP_KEYSERVER="${var.jwt_asap_keyserver}"
@@ -684,13 +704,24 @@ EOF
 
 VISITORS_XMPP_SERVER={{ range $i, $e := scratch.MapValues "vnodes" }}{{ if gt $i 0 }},{{ end }}{{ $e.Address }}:{{ $e.ServiceMeta.prosody_s2s_port}}{{ end }}
 #
-# Basic configuration options
+# prosody main configuration options
 #
-GLOBAL_CONFIG="statistics = \"internal\"\nstatistics_interval = \"manual\"\nopenmetrics_allow_cidr = \"0.0.0.0/0\";\n"
+GLOBAL_CONFIG="statistics = \"internal\"\nstatistics_interval = \"manual\"\nopenmetrics_allow_cidr = \"0.0.0.0/0\";\n
+{{- if eq "${var.asap_disable_require_room_claim}" "true" -}}
+asap_require_room_claim = false;\n
+{{- end -}}
+{{- if eq "${var.password_waiting_for_host_enabled}" "true" -}}
+enable_password_waiting_for_host = true;\n
+{{- end -}}
+"
 GLOBAL_MODULES="http_openmetrics,measure_stanza_counts,log_ringbuffer,firewall,muc_census,muc_end_meeting,secure_interfaces,external_services,turncredentials_http"
-XMPP_MODULES=
+XMPP_MODULES=persistent_lobby
 XMPP_INTERNAL_MUC_MODULES=
-XMPP_MUC_MODULES="{{ if eq "${var.enable_muc_allowners}" "true" }}muc_allowners{{ end }}"
+# hack to avoid token_verification when firebase auth is on
+JWT_TOKEN_AUTH_MODULE=muc_allowners
+XMPP_CONFIGURATION="prosody_cache_keys_url=\"${var.prosody_cache_keys_url}\",shard_name=\"${var.shard}\",region_name=\"{{ env "meta.cloud_region" }}\",release_number=\"${var.release_number}\""
+XMPP_MUC_CONFIGURATION="muc_room_allow_persistent = false"
+XMPP_MUC_MODULES="{{ if eq "${var.enable_muc_allowners}" "true" }}muc_allowners,{{ end }}{{ if eq "${var.wait_for_host_enabled}" "true" }}muc_wait_for_host,{{ end }}muc_hide_all"
 XMPP_SERVER={{ env "NOMAD_IP_prosody_client" }}
 XMPP_PORT={{  env "NOMAD_HOST_PORT_prosody_client" }}
 XMPP_BOSH_URL_BASE=http://{{ env "NOMAD_IP_prosody_http" }}:{{ env "NOMAD_HOST_PORT_prosody_http" }}
@@ -1340,6 +1371,8 @@ upstream web {
     zone upstreams 64K;
 {{ with scratch.Get "web" -}}
     server {{ .Address }}:{{ .Port }};
+{{ else -}}
+    server 127.0.0.1:15280;
 {{ end -}}
     keepalive 2;
 }
