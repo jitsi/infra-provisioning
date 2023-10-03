@@ -51,7 +51,7 @@ job "[JOB_NAME]" {
       driver = "docker"
 
       config {
-        image        = "selenium/node-docker:4.11.0-20230801"
+        image        = "selenium/node-docker:latest"
         ports = ["http"]
         volumes = ["local:/opt/selenium/assets","local/config.toml:/opt/bin/config.toml","/var/run/docker.sock:/var/run/docker.sock"]
 

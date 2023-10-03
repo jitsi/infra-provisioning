@@ -70,7 +70,7 @@ job "[JOB_NAME]" {
       }
 
       config {
-        image        = "selenium/hub:4.11.0-20230801"
+        image        = "selenium/hub:latest"
         ports = ["http","publish","subscribe"]
       }
     }
