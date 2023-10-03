@@ -22,11 +22,19 @@ if [ -z "$GRID" ]; then
     exit 2
 fi
 
+[ -z "$PUBLIC_GRID" ] && PUBLIC_GRID="false"
+
 [ -z "$LOCAL_REGION" ] && LOCAL_REGION="$OCI_LOCAL_REGION"
 [ -z "$LOCAL_REGION" ] && LOCAL_REGION="us-phoenix-1"
 
 if [ -z "$NOMAD_ADDR" ]; then
     export NOMAD_ADDR="https://$ENVIRONMENT-$LOCAL_REGION-nomad.$TOP_LEVEL_DNS_ZONE_NAME"
+fi
+
+INTERNAL_SUFFIX="-internal"
+if [[ "$PUBLIC_GRID" == "true" ]]; then
+    export NOMAD_VAR_service_tag_urlprefix=""
+    INTERNAL_SUFFIX=""
 fi
 
 NOMAD_JOB_PATH="$LOCAL_PATH/../nomad"
@@ -41,6 +49,6 @@ export RESOURCE_NAME_ROOT="${ENVIRONMENT}-${ORACLE_REGION}-${GRID}-grid"
 export CNAME_VALUE="$RESOURCE_NAME_ROOT"
 export STACK_NAME="${RESOURCE_NAME_ROOT}-cname"
 export UNIQUE_ID="${RESOURCE_NAME_ROOT}"
-export CNAME_TARGET="${ENVIRONMENT}-${ORACLE_REGION}-nomad-pool-general-internal.${DEFAULT_DNS_ZONE_NAME}"
+export CNAME_TARGET="${ENVIRONMENT}-${ORACLE_REGION}-nomad-pool-general${INTERNAL_SUFFIX}.${DEFAULT_DNS_ZONE_NAME}"
 export CNAME_VALUE="${RESOURCE_NAME_ROOT}"
 $LOCAL_PATH/create-oracle-cname-stack.sh

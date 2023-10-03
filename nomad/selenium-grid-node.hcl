@@ -5,6 +5,11 @@ variable "grid" {
   type = string
 }
 
+variable "max_sessions" {
+  type = number
+  default = 2
+}
+
 job "[JOB_NAME]" {
   region = "global"
   datacenters = [var.dc]
@@ -60,6 +65,10 @@ job "[JOB_NAME]" {
       }
       template {
         data = <<EOF
+[node]
+detect-drivers = false
+max-sessions = ${var.max_sessions}
+
 [docker]
 # Configs have a mapping between the Docker image to use and the capabilities that need to be matched to
 # start a container with the given image.
@@ -106,6 +115,10 @@ SE_NODE_PORT="{{ env "NOMAD_HOST_PORT_http" }}"
         EOF
         destination = "local/selenium.env"
         env = true
+      }
+      resources {
+        cpu    = 4000
+        memory = 2048
       }
     }
   }
