@@ -5,6 +5,11 @@ variable "grid" {
   type = string
 }
 
+variable "max_sessions" {
+  type = number
+  default = 3
+}
+
 job "[JOB_NAME]" {
   region = "global"
   datacenters = [var.dc]
@@ -51,7 +56,7 @@ job "[JOB_NAME]" {
       driver = "docker"
 
       config {
-        image        = "selenium/node-docker:4.11.0-20230801"
+        image        = "selenium/node-docker:latest"
         ports = ["http"]
         volumes = ["local:/opt/selenium/assets","local/config.toml:/opt/bin/config.toml","/var/run/docker.sock:/var/run/docker.sock"]
 
@@ -60,14 +65,18 @@ job "[JOB_NAME]" {
       }
       template {
         data = <<EOF
+[node]
+detect-drivers = false
+max-sessions = ${var.max_sessions}
+
 [docker]
 # Configs have a mapping between the Docker image to use and the capabilities that need to be matched to
 # start a container with the given image.
 configs = [
-    "jitsi/selenium-standalone-firefox:daily-2023-08-23", "{\"browserName\": \"firefox\"}",
-    "jitsi/selenium-standalone-chrome:daily-2023-08-23", "{\"browserName\": \"chrome\"}",
-    "jitsi/selenium-standalone-firefox:beta-daily-2023-08-23", "{\"browserName\": \"firefox-beta\"}",
-    "jitsi/selenium-standalone-chrome:beta-daily-2023-08-23", "{\"browserName\": \"chrome-beta\"}"
+    "jitsi/selenium-standalone-firefox:daily-2023-10-03", "{\"browserName\": \"firefox\"}",
+    "jitsi/selenium-standalone-chrome:daily-2023-10-03", "{\"browserName\": \"chrome\"}",
+    "jitsi/selenium-standalone-firefox:beta-daily-2023-10-03", "{\"browserName\": \"firefox-beta\"}",
+    "jitsi/selenium-standalone-chrome:beta-daily-2023-10-03", "{\"browserName\": \"chrome-beta\"}"
     ]
 
 # URL for connecting to the docker daemon
@@ -106,6 +115,10 @@ SE_NODE_PORT="{{ env "NOMAD_HOST_PORT_http" }}"
         EOF
         destination = "local/selenium.env"
         env = true
+      }
+      resources {
+        cpu    = 4000
+        memory = 2048
       }
     }
   }

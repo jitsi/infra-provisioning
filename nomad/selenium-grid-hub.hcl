@@ -9,6 +9,11 @@ variable "dns_zone" {
   default = "jitsi.net"
 }
 
+variable "service_tag_urlprefix" {
+  type = string
+  default = "int-"
+}
+
 job "[JOB_NAME]" {
   region = "global"
   datacenters = [var.dc]
@@ -44,7 +49,7 @@ job "[JOB_NAME]" {
 
     service {
       name = "grid-hub"
-      tags = ["int-urlprefix-${var.dc}-${var.grid}-grid.${var.dns_zone}/","grid-${var.grid}"]
+      tags = ["${var.service_tag_urlprefix}urlprefix-${var.dc}-${var.grid}-grid.${var.dns_zone}/","grid-${var.grid}"]
       port = "http"
 
       meta {
@@ -70,8 +75,12 @@ job "[JOB_NAME]" {
       }
 
       config {
-        image        = "selenium/hub:4.11.0-20230801"
+        image        = "selenium/hub:latest"
         ports = ["http","publish","subscribe"]
+      }
+      resources {
+        cpu    = 4000
+        memory = 2048
       }
     }
   }

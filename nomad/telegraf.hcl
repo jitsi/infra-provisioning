@@ -259,6 +259,7 @@ EOF
   cloud = "{{  env "NOMAD_META_cloud_provider" }}"
   cloud_provider = "{{ env "NOMAD_META_cloud_provider" }}"
   pool_type = "{{ env "meta.pool_type" }}"
+{{ with env "meta.selenium_grid_name" }}  grid = "{{ . }}"{{ end }}
 
 EOF
         destination = "local/telegraf.conf"
