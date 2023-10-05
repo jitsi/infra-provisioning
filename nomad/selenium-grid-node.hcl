@@ -7,7 +7,7 @@ variable "grid" {
 
 variable "max_sessions" {
   type = number
-  default = 3
+  default = 2
 }
 
 job "[JOB_NAME]" {
