@@ -37,6 +37,10 @@ job "[JOB_NAME]" {
     network {
       port "http" {
       }
+      port "vnc" {
+      }
+      port "no-vnc" {
+      }
     }
 
     service {
@@ -57,7 +61,7 @@ job "[JOB_NAME]" {
 
       config {
         image        = "selenium/node-docker:latest"
-        ports = ["http"]
+        ports = ["http","vnc","no-vnc"]
         volumes = ["local:/opt/selenium/assets","local/config.toml:/opt/bin/config.toml","/var/run/docker.sock:/var/run/docker.sock"]
 
         # 2gb shm
@@ -73,10 +77,10 @@ max-sessions = ${var.max_sessions}
 # Configs have a mapping between the Docker image to use and the capabilities that need to be matched to
 # start a container with the given image.
 configs = [
-    "jitsi/selenium-standalone-firefox:daily-2023-10-03", "{\"browserName\": \"firefox\"}",
-    "jitsi/selenium-standalone-chrome:daily-2023-10-03", "{\"browserName\": \"chrome\"}",
-    "jitsi/selenium-standalone-firefox:beta-daily-2023-10-03", "{\"browserName\": \"firefox-beta\"}",
-    "jitsi/selenium-standalone-chrome:beta-daily-2023-10-03", "{\"browserName\": \"chrome-beta\"}"
+    "jitsi/selenium-standalone-firefox:daily-2023-10-05", "{\"browserName\": \"firefox\"}",
+    "jitsi/selenium-standalone-chrome:daily-2023-10-05", "{\"browserName\": \"chrome\"}",
+    "jitsi/selenium-standalone-firefox:beta-daily-2023-10-05", "{\"browserName\": \"firefox-beta\"}",
+    "jitsi/selenium-standalone-chrome:beta-daily-2023-10-05", "{\"browserName\": \"chrome-beta\"}"
     ]
 
 # URL for connecting to the docker daemon
@@ -112,6 +116,9 @@ SE_EVENT_BUS_SUBSCRIBE_PORT="{{ .ServiceMeta.subscribe_port }}"
 {{ end -}}
 SE_NODE_HOST="{{env "attr.unique.network.ip-address" }}"
 SE_NODE_PORT="{{ env "NOMAD_HOST_PORT_http" }}"
+SE_VNC_PORT="{{ env "NOMAD_HOST_PORT_vnc" }}"
+SE_NO_VNC_PORT="{{ env "NOMAD_HOST_PORT_no_vnc" }}"
+#SE_OPTS="--log-level FINE"
         EOF
         destination = "local/selenium.env"
         env = true
