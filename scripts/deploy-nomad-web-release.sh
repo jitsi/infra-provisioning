@@ -349,6 +349,11 @@ if [[ "$API_CONFERENCE_INVITE_CALLFLOWS_URL" != "null" ]]; then
     export NOMAD_VAR_api_conference_invite_callflows_url="$API_CONFERENCE_INVITE_CALLFLOWS_URL"
 fi
 
+LEGAL_URLS="$(cat $LEGAL_URLS | yq eval '.legal_urls|tojson' -)"
+if [[ "$LEGAL_URLS" != "null" ]]; then
+    export NOMAD_VAR_legal_urls="$(echo "$LEGAL_URLS" | jq -c)"
+fi
+
 TURNRELAY_HOST_ARRAY="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .${TURNRELAY_HOST_VARIABLE} -)"
 if [[ "$TURNRELAY_HOST_ARRAY" == "null" ]]; then
     TURNRELAY_HOST_ARRAY="$(cat $MAIN_CONFIGURATION_FILE | yq eval .${TURNRELAY_HOST_VARIABLE} -)"

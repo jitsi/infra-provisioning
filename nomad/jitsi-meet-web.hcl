@@ -338,6 +338,16 @@ variable start_audio_muted {
   default = 25
 }
 
+variable forced_reloads_enabled {
+  type = string
+  default = "false"
+}
+
+variable legal_urls {
+  type = string
+  default = "{\"helpCentre\": \"https://web-cdn.jitsi.net/faq/meet-faq.html\", \"privacy\": \"https://jitsi.org/meet/privacy\", \"terms\": \"https://jitsi.org/meet/terms\"}"
+}
+
 job "[JOB_NAME]" {
   region = "global"
   datacenters = var.dc
@@ -767,6 +777,14 @@ config.recordingSharingUrl='${var.api_recoding_sharing_url }';
 
 {{ if eq "${var.token_based_roles_enabled}" "true" -}}
 config.enableUserRolesBasedOnToken=true;
+{{ end -}}
+
+{{ if eq "${var.forced_reloads_enabled}" "true" -}}
+config.enableForcedReload=true;
+{{ end -}}
+
+{{ if ne "${var.legal_urls}" "" -}}
+config.legalUrls=${var.legal_urls}
 {{ end -}}
 
 EOF
