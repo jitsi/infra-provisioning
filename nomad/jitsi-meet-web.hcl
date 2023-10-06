@@ -348,6 +348,26 @@ variable legal_urls {
   default = "{\"helpCentre\": \"https://web-cdn.jitsi.net/faq/meet-faq.html\", \"privacy\": \"https://jitsi.org/meet/privacy\", \"terms\": \"https://jitsi.org/meet/terms\"}"
 }
 
+variable whiteboard_enabled {
+  type = string
+  default = "false"
+}
+
+variable whiteboard_server_url {
+  type = string
+  default = ""
+}
+
+variable giphy_enabled {
+  type = string
+  default = "false"
+}
+
+variable giphy_sdk_key {
+  type = string
+  default = ""
+}
+
 job "[JOB_NAME]" {
   region = "global"
   datacenters = var.dc
@@ -485,6 +505,8 @@ job "[JOB_NAME]" {
         DIALOUT_CODES_URL = "${var.dialout_codes_url}"
         START_VIDEO_MUTED = "${var.start_video_muted}"
         START_AUDIO_MUTED = "${var.start_audio_muted}"
+        WHITEBOARD_ENABLED = "${var.whiteboard_enabled}"
+        WHITEBOARD_COLLAB_SERVER_PUBLIC_URL = "${var.whiteboard_server_url}"
       }
       template {
         destination = "local/_unlock"
@@ -783,8 +805,10 @@ config.enableUserRolesBasedOnToken=true;
 config.enableForcedReload=true;
 {{ end -}}
 
-{{ if ne "${var.legal_urls}" "" -}}
-config.legalUrls=${var.legal_urls}
+{{ if eq "${var.giphy_enabled}" "true" -}}
+config.giphy={};
+config.giphy.enabled=true;
+config.giphy.sdkKey='${var.giphy_sdk_key}';
 {{ end -}}
 
 EOF

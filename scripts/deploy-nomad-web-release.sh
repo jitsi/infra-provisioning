@@ -349,7 +349,27 @@ if [[ "$API_CONFERENCE_INVITE_CALLFLOWS_URL" != "null" ]]; then
     export NOMAD_VAR_api_conference_invite_callflows_url="$API_CONFERENCE_INVITE_CALLFLOWS_URL"
 fi
 
-LEGAL_URLS="$(cat $LEGAL_URLS | yq eval '.legal_urls|tojson' -)"
+WHITEBOARD_ENABLED="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_whiteboard_enabled -)"
+if [[ "$WHITEBOARD_ENABLED" != "null" ]]; then
+    export NOMAD_VAR_whiteboard_enabled="$WHITEBOARD_ENABLED"
+fi
+
+WHITEBOARD_SERVER_URL="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_whiteboard_collab_server_base_url -)"
+if [[ "$WHITEBOARD_SERVER_URL" != "null" ]]; then
+    export NOMAD_VAR_whiteboard_server_url="$WHITEBOARD_SERVER_URL"
+fi
+
+GIPHY_ENABLED="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_giphy_enabled -)"
+if [[ "$GIPHY_ENABLED" != "null" ]]; then
+    export NOMAD_VAR_giphy_enabled="$GIPHY_ENABLED"
+fi
+
+GIPHY_SDK_KEY="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_giphy_sdk_key -)"
+if [[ "$GIPHY_SDK_KEY" != "null" ]]; then
+    export NOMAD_VAR_giphy_sdk_key="$GIPHY_SDK_KEY"
+fi
+
+LEGAL_URLS="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval '.legal_urls|tojson' -)"
 if [[ "$LEGAL_URLS" != "null" ]]; then
     export NOMAD_VAR_legal_urls="$(echo "$LEGAL_URLS" | jq -c)"
 fi
