@@ -35,5 +35,5 @@ if [ -z "$NOMAD_ADDR" ]; then
     export NOMAD_ADDR="https://$ENVIRONMENT-$LOCAL_REGION-nomad.$TOP_LEVEL_DNS_ZONE_NAME"
 fi
 
-nomad job stop $SHARD
+nomad job stop "shard-$SHARD"
 exit $?

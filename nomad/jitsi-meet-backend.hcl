@@ -719,7 +719,7 @@ XMPP_MODULES=persistent_lobby
 XMPP_INTERNAL_MUC_MODULES=
 # hack to avoid token_verification when firebase auth is on
 JWT_TOKEN_AUTH_MODULE=muc_allowners
-XMPP_CONFIGURATION="prosody_cache_keys_url=\"${var.prosody_cache_keys_url}\",shard_name=\"${var.shard}\",region_name=\"{{ env "meta.cloud_region" }}\",release_number=\"${var.release_number}\""
+XMPP_CONFIGURATION="cache_keys_url=\"${var.prosody_cache_keys_url}\",shard_name=\"${var.shard}\",region_name=\"{{ env "meta.cloud_region" }}\",release_number=\"${var.release_number}\""
 XMPP_MUC_CONFIGURATION="muc_room_allow_persistent = false"
 XMPP_MUC_MODULES="{{ if eq "${var.enable_muc_allowners}" "true" }}muc_allowners,{{ end }}{{ if eq "${var.wait_for_host_enabled}" "true" }}muc_wait_for_host,{{ end }}muc_hide_all"
 XMPP_SERVER={{ env "NOMAD_IP_prosody_client" }}
@@ -1185,7 +1185,13 @@ EOF
       config {
         image        = "nginx:latest"
         ports = ["http","nginx-status"]
-        volumes = ["local/nginx.conf:/etc/nginx/nginx.conf","local/nginx-site.conf:/etc/nginx/conf.d/default.conf","local/nginx-status.conf:/etc/nginx/conf.d/status.conf","local/nginx-streams.conf:/etc/nginx/conf.stream/default.conf"]
+        volumes = [
+          "local/_unlock:/usr/share/nginx/html/_unlock",
+          "local/nginx.conf:/etc/nginx/nginx.conf",
+          "local/nginx-site.conf:/etc/nginx/conf.d/default.conf",
+          "local/nginx-status.conf:/etc/nginx/conf.d/status.conf",
+          "local/nginx-streams.conf:/etc/nginx/conf.stream/default.conf"
+        ]
       }
       env {
         NGINX_WORKER_PROCESSES = 4
@@ -1235,11 +1241,38 @@ http {
 	}
 	default_type application/octet-stream;
 
+map $remote_addr $remote_addr_anon {
+    ~(?P<ip>\d+\.\d+)\.         $ip.X.X;
+    ~(?P<ip>[^:]+:[^:]+):       $ip::X;
+    127.0.0.1                   $remote_addr;
+    ::1                         $remote_addr;
+    default                     0.0.0.0;
+}
+map $request $request_anon {
+    "~(?P<method>.+) (?P<url>\/.+\?)(?P<room>room=[^\&]+\&?)?.* (?P<protocol>.+)"     "$method $url$room $protocol";
+    default                    $request;
+}
+map $http_referer $http_referer_anon {
+    "~(?P<url>\/.+\?)(?P<room>room=[^\&]+\&?)?.*"     "$url$room";
+    default                    $http_referer;
+}
+map $http_x_real_ip $http_x_real_ip_anon {
+    ~(?P<ip>\d+\.\d+)\.         $ip.X.X;
+    ~(?P<ip>[^:]+:[^:]+):       $ip::X;
+    127.0.0.1                   $remote_addr;
+    ::1                         $remote_addr;
+    default                     0.0.0.0;
+}
+
+log_format anon '$remote_addr_anon - $remote_user [$time_local] "$request_anon" '
+    '$status $body_bytes_sent "$http_referer_anon" '
+    '"$http_user_agent" "$http_x_real_ip_anon" $request_time';
+
 	##
 	# Logging Settings
 	##
 
-	access_log /dev/stdout;
+	access_log /dev/stdout anon;
 	error_log /dev/stderr;
 
 	##
@@ -1431,6 +1464,10 @@ real_ip_header X-Forwarded-For;
 real_ip_recursive on;
 
 server {
+    proxy_connect_timeout       90s;
+    proxy_send_timeout          90s;
+    proxy_read_timeout          90s;
+    send_timeout                90s;
 
     listen 80;
 
@@ -1511,9 +1548,14 @@ server {
     listen       80 default_server;
     server_name  ${var.domain};
 
+    add_header Strict-Transport-Security max-age=63072000;
+    add_header X-Content-Type-Options nosniff;
     add_header 'X-Jitsi-Shard' '${var.shard}';
     add_header 'X-Jitsi-Region' '${var.octo_region}';
     add_header 'X-Jitsi-Release' '${var.release_number}';
+    add_header 'Access-Control-Expose-Headers' "Content-Type, X-Jitsi-Region, X-Jitsi-Shard, X-Proxy-Region";
+
+    set $prefix "";
 
     # BOSH
     location = /http-bind {
@@ -1591,7 +1633,26 @@ server {
         add_header 'Access-Control-Expose-Headers' "Content-Type, X-Jitsi-Region, X-Jitsi-Shard, X-Proxy-Region, X-Jitsi-Release";
     }
 
+    location = /_unlock {
+        add_header 'Access-Control-Allow-Origin' '*';
+        add_header 'Access-Control-Expose-Headers' "Content-Type, X-Jitsi-Region, X-Jitsi-Shard, X-Proxy-Region, X-Jitsi-Release";
+        add_header 'X-Jitsi-Shard' '${var.shard}';
+        add_header 'X-Jitsi-Region' '${var.octo_region}';
+        add_header 'X-Jitsi-Release' '${var.release_number}';
+        add_header "Cache-Control" "no-cache, no-store";
 
+        alias /usr/share/nginx/html/_unlock;
+    }
+
+    # unlock for subdomains
+    location ~ ^/([^/?&:'"]+)/_unlock {
+        set $subdomain "$1.";
+        set $subdir "$1/";
+        set $prefix "$1";
+
+        rewrite ^/(.*)$ /_unlock;
+    }
+s
     location / {
         proxy_set_header X-Jitsi-Shard ${var.shard};
         proxy_hide_header 'X-Jitsi-Shard';
@@ -1612,6 +1673,12 @@ server {
 }
 EOF
         destination = "local/nginx-site.conf"
+      }
+      template {
+        destination = "local/_unlock"
+  data = <<EOF
+OK
+EOF
       }
     }
   }
