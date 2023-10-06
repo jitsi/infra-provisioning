@@ -551,6 +551,9 @@ if (subdomain.endsWith('.')) {
   subdomainNoDot = subdomain.substr(0,subdomain.length-1)
   subdomain = subdomainNoDot;
 }
+
+config.websocketKeepAliveUrl = 'https://<!--# echo var="http_host" default="${var.domain}" -->/<!--# echo var="subdir" default="" -->_unlock';
+
 {{ if ne "${var.token_auth_url}" "" -}}
 config.tokenAuthUrl=${var.token_auth_url};
 {{ end -}}
