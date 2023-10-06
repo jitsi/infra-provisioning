@@ -175,6 +175,66 @@ if [[ "$LOCAL_RECORDING_ENABLED" == "false" ]]; then
     export NOMAD_VAR_local_recording_disabled="true"
 fi
 
+API_DIALIN_NUMBERS_URL="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_api_dialin_numbers_url -)"
+if [[ "$API_DIALIN_NUMBERS_URL" != "null" ]]; then
+    export NOMAD_VAR_api_dialin_numbers_url="$API_DIALIN_NUMBERS_URL"
+fi
+
+API_CONFERENCE_MAPPER_URL="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_api_conference_mapper_url -)"
+if [[ "$API_CONFERENCE_MAPPER_URL" != "null" ]]; then
+    export NOMAD_VAR_api_conference_mapper_url="$API_CONFERENCE_MAPPER_URL"
+fi
+
+API_DIALOUT_AUTH_URL="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_api_dialout_auth_url -)"
+if [[ "$API_DIALOUT_AUTH_URL" != "null" ]]; then
+    export NOMAD_VAR_api_dialout_auth_url="$API_DIALOUT_AUTH_URL"
+fi
+
+API_DIALOUT_CODES_URL="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_api_dialout_codes_url -)"
+if [[ "$API_DIALOUT_CODES_URL" != "null" ]]; then
+    export NOMAD_VAR_api_dialout_codes_url="$API_DIALOUT_CODES_URL"
+fi
+
+API_DIALOUT_REGION_URL="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_api_dialout_region_url -)"
+if [[ "$API_DIALOUT_REGION_URL" != "null" ]]; then
+    export NOMAD_VAR_api_dialout_region_url="$API_DIALOUT_REGION_URL"
+fi
+
+API_RECORDING_SHARING_URL="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_api_recoding_sharing_url -)"
+if [[ "$API_RECORDING_SHARING_URL" != "null" ]]; then
+    export NOMAD_VAR_api_recoding_sharing_url="$API_RECORDING_SHARING_URL"
+fi
+
+GUEST_DIAL_OUT_URL="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_api_guest_dial_out_url -)"
+if [[ "$GUEST_DIAL_OUT_URL" != "null" ]]; then
+    export NOMAD_VAR_api_guest_dial_out_url="$GUEST_DIAL_OUT_URL"
+fi
+
+GUEST_DIAL_OUT_STATUS_URL="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_api_guest_dial_out_status_url -)"
+if [[ "$GUEST_DIAL_OUT_STATUS_URL" != "null" ]]; then
+    export NOMAD_VAR_api_guest_dial_out_status_url="$GUEST_DIAL_OUT_STATUS_URL"
+fi
+
+REQUIRE_DISPLAY_NAME="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_require_displayname -)"
+if [[ "$REQUIRE_DISPLAY_NAME" != "null" ]]; then
+    export NOMAD_VAR_require_display_name="$REQUIRE_DISPLAY_NAME"
+fi
+
+START_VIDEO_MUTED="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_start_video_muted_count -)"
+if [[ "$START_VIDEO_MUTED" != "null" ]]; then
+    export NOMAD_VAR_start_video_muted="$START_VIDEO_MUTED"
+fi
+
+START_AUDIO_MUTED="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_start_audio_muted_count -)"
+if [[ "$START_AUDIO_MUTED" != "null" ]]; then
+    export NOMAD_VAR_start_audio_muted="$START_AUDIO_MUTED"
+fi
+
+USER_ROLE_BASED_ON_TOKEN_ENABLED="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_enable_user_roles_based_on_token -)"
+if [[ "$USER_ROLE_BASED_ON_TOKEN_ENABLED" != "null" ]]; then
+    export NOMAD_VAR_token_based_roles_enabled="$USER_ROLE_BASED_ON_TOKEN_ENABLED"
+fi
+
 AMPLITUDE_API_KEY="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_amplitude_api_key -)"
 AMPLITUDE_INCLUDE_UTM="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_amplitude_include_utm -)"
 if [[ "$AMPLITUDE_API_KEY" != "null" ]]; then

@@ -323,6 +323,21 @@ variable local_recording_disabled {
   default = "false"
 }
 
+variable require_display_name {
+  type = string
+  default = "false"
+}
+
+variable start_video_muted {
+  type = number
+  default = 25
+}
+
+variable start_audio_muted {
+  type = number
+  default = 25
+}
+
 job "[JOB_NAME]" {
   region = "global"
   datacenters = var.dc
@@ -444,6 +459,7 @@ job "[JOB_NAME]" {
         ENABLE_CLOSE_PAGE = "true"
         ENABLE_TRANSCRIPTIONS = "${var.transcriptions_enabled}"
         ENABLE_LOCAL_RECORDING_NOTIFY_ALL_PARTICIPANTS = "true"
+        ENABLE_REQUIRE_DISPLAY_NAME = "${var.require_display_name}"
         WEBSOCKET_KEEPALIVE_URL = "https://${var.domain}/_unlock"
         ENABLE_CALENDAR = "${var.calendar_enabled}"
         GOOGLE_API_APP_CLIENT_ID = "${var.google_api_app_client_id}"
@@ -457,6 +473,8 @@ job "[JOB_NAME]" {
         DIALIN_NUMBERS_URL = "${var.dialin_numbers_url}"
         DIALOUT_AUTH_URL = "${var.dialout_auth_url}"
         DIALOUT_CODES_URL = "${var.dialout_codes_url}"
+        START_VIDEO_MUTED = "${var.start_video_muted}"
+        START_AUDIO_MUTED = "${var.start_audio_muted}"
       }
       template {
         destination = "local/_unlock"
