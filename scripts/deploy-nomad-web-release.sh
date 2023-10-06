@@ -306,6 +306,48 @@ if [[ "$DROPBOX_APP_KEY" != "null" ]]; then
     export NOMAD_VAR_dropbox_appkey="$DROPBOX_APP_KEY"
 fi
 
+JAAS_ACTUATOR_URL="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .prosody_jaas_actuator_url -)"
+if [[ "$JAAS_ACTUATOR_URL" != "null" ]]; then
+    export NOMAD_VAR_jaas_actuator_url="$JAAS_ACTUATOR_URL"
+fi
+
+JAAS_TOKEN_URL="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_api_jaas_token_url -)"
+if [[ "$JAAS_TOKEN_URL" != "null" ]]; then
+    export NOMAD_VAR_api_jaas_token_url="$JAAS_TOKEN_URL"
+fi
+
+JAAS_WEBHOOK_PROXY="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_api_jaas_webhook_proxy -)"
+if [[ "$JAAS_WEBHOOK_PROXY" != "null" ]]; then
+    export NOMAD_VAR_api_jaas_webhook_proxy="$JAAS_WEBHOOK_PROXY"
+fi
+
+API_BILLING_COUNTER="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_api_billing_counter -)"
+if [[ "$API_BILLING_COUNTER" != "null" ]]; then
+    export NOMAD_VAR_api_billing_counter="$API_BILLING_COUNTER"
+fi
+
+API_BRANDING_DATA_URL="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_api_branding_data_url -)"
+if [[ "$API_BRANDING_DATA_URL" != "null" ]]; then
+    export NOMAD_VAR_api_branding_data_url="$API_BRANDING_DATA_URL"
+fi
+
+
+
+API_DIRECTORY_SEARCH_URL="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_api_directory_search_url -)"
+if [[ "$API_DIRECTORY_SEARCH_URL" != "null" ]]; then
+    export NOMAD_VAR_api_directory_search_url="$API_DIRECTORY_SEARCH_URL"
+fi
+
+API_CONFERENCE_INVITE_URL="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_api_conference_invite_url -)"
+if [[ "$API_CONFERENCE_INVITE_URL" != "null" ]]; then
+    export NOMAD_VAR_api_conference_invite_url="$API_CONFERENCE_INVITE_URL"
+fi
+
+# callflows are deprecated ?
+API_CONFERENCE_INVITE_CALLFLOWS_URL="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_api_conference_invite_callflows_url -)"
+if [[ "$API_CONFERENCE_INVITE_CALLFLOWS_URL" != "null" ]]; then
+    export NOMAD_VAR_api_conference_invite_callflows_url="$API_CONFERENCE_INVITE_CALLFLOWS_URL"
+fi
 
 TURNRELAY_HOST_ARRAY="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .${TURNRELAY_HOST_VARIABLE} -)"
 if [[ "$TURNRELAY_HOST_ARRAY" == "null" ]]; then

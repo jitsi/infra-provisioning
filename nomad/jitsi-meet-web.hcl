@@ -248,7 +248,7 @@ variable api_recoding_sharing_url {
   default = ""
 }
 
-variable prosody_jaas_actuator_url {
+variable jaas_actuator_url {
   type = string
   default = ""
 }
@@ -717,8 +717,8 @@ config.conferenceRequestUrl='https://<!--# echo var="http_host" default="${var.d
 {{ end -}}
 
 
-{{ if ne "${var.prosody_jaas_actuator_url}" "" -}}
-config.jaasActuatorUrl='${var.prosody_jaas_actuator_url}',
+{{ if ne "${var.jaas_actuator_url}" "" -}}
+config.jaasActuatorUrl='${var.jaas_actuator_url}',
 {{ end -}}
 {{ if ne "${var.api_jaas_token_url}" "" -}}
 config.jaasTokenUrl='${var.api_jaas_token_url}',
