@@ -120,6 +120,17 @@ fi
 
 export NOMAD_VAR_jwt_accepted_issuers="$(cat $MAIN_CONFIGURATION_FILE | yq eval ".${JWT_ACCEPTED_ISSUERS_VARIABLE} | @csv" -)"
 export NOMAD_VAR_jwt_accepted_audiences="$(cat $MAIN_CONFIGURATION_FILE | yq eval ".${JWT_ACCEPTED_AUDIENCES_VARIABLE} | @csv" -)"
+
+JWT_ACCEPTED_ISSUERS_ENV="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval ".${JWT_ACCEPTED_ISSUERS_VARIABLE} | @csv" -)"
+if [[ "$JWT_ACCEPTED_ISSUERS_ENV" != "null" ]]; then
+    export NOMAD_VAR_jwt_accepted_issuers="$JWT_ACCEPTED_ISSUERS_ENV"
+fi
+
+JWT_ACCEPTED_AUDIENCES_ENV="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval ".${JWT_ACCEPTED_AUDIENCES_VARIABLE} | @csv" -)"
+if [[ "$JWT_ACCEPTED_AUDIENCES_ENV" != "null" ]]; then
+    export NOMAD_VAR_jwt_accepted_audiences="$JWT_ACCEPTED_AUDIENCES_ENV"
+fi
+
 export ENABLE_MUC_ALLOWNERS="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .${ENABLE_MUC_ALLOWNERS_VARIABLE} -)"
 if [[ "$ENABLE_MUC_ALLOWNERS" != "null" ]]; then
     export NOMAD_VAR_enable_muc_allowners="$ENABLE_MUC_ALLOWNERS"

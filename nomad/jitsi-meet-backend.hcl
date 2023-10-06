@@ -1431,6 +1431,10 @@ real_ip_header X-Forwarded-For;
 real_ip_recursive on;
 
 server {
+    proxy_connect_timeout       90s;
+    proxy_send_timeout          90s;
+    proxy_read_timeout          90s;
+    send_timeout                90s;
 
     listen 80;
 
