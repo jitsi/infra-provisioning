@@ -124,6 +124,57 @@ if [[ "$JVB_PREFER_SCTP" != "null" ]]; then
     export NOMAD_VAR_jvb_prefer_sctp="$JVB_PREFER_SCTP"
 fi
 
+CHANNEL_LAST_N="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_channel_last_n -)"
+if [[ "$CHANNEL_LAST_N" != "null" ]]; then
+    export NOMAD_VAR_channel_last_n="$CHANNEL_LAST_N"
+fi
+
+SSRC_REWRITING_ENABLED="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_enable_ssrc_rewriting -)"
+if [[ "$SSRC_REWRITING_ENABLED" != "null" ]]; then
+    export NOMAD_VAR_ssrc_rewriting_enabled="$SSRC_REWRITING_ENABLED"
+fi
+
+RESTRICT_HD_TILE_VIEW_JVB="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_restrict_HD_tile_view_jvb -)"
+if [[ "$RESTRICT_HD_TILE_VIEW_JVB" != "null" ]]; then
+    export NOMAD_VAR_restrict_hd_tile_view_jvb="$RESTRICT_HD_TILE_VIEW_JVB"
+fi
+
+
+DTX_ENABLED="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_enable_dtx -)"
+if [[ "$DTX_ENABLED" != "null" ]]; then
+    export NOMAD_VAR_dtx_enabled="$DTX_ENABLED"
+fi
+
+HIDDEN_FROM_RECORDER_FEATURE="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_hidden_from_recorder_feature -)"
+if [[ "$HIDDEN_FROM_RECORDER_FEATURE" != "null" ]]; then
+    export NOMAD_VAR_hidden_from_recorder_feature="$HIDDEN_FROM_RECORDER_FEATURE"
+fi
+
+TRANSCRIPTIONS_ENABLED="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_enable_transcription -)"
+if [[ "$TRANSCRIPTIONS_ENABLED" != "null" ]]; then
+    export NOMAD_VAR_transcriptions_enabled="$TRANSCRIPTIONS_ENABLED"
+fi
+
+LIVESTREAMING_ENABLED="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_enable_livestreaming -)"
+if [[ "$LIVESTREAMING_ENABLED" != "null" ]]; then
+    export NOMAD_VAR_livestreaming_enabled="$LIVESTREAMING_ENABLED"
+fi
+
+SERVICE_RECORDING_ENABLED="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_enable_file_recordings -)"
+if [[ "$SERVICE_RECORDING_ENABLED" != "null" ]]; then
+    export NOMAD_VAR_service_recording_enabled="$SERVICE_RECORDING_ENABLED"
+fi
+
+SERVICE_RECORDING_SHARING_ENABLED="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_enable_file_recordings_sharing -)"
+if [[ "$SERVICE_RECORDING_SHARING_ENABLED" != "null" ]]; then
+    export NOMAD_VAR_service_recording_sharing_enabled="$SERVICE_RECORDING_SHARING_ENABLED"
+fi
+
+LOCAL_RECORDING_ENABLED="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_enable_local_recording -)"
+if [[ "$LOCAL_RECORDING_ENABLED" == "false" ]]; then
+    export NOMAD_VAR_local_recording_disabled="true"
+fi
+
 AMPLITUDE_API_KEY="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_amplitude_api_key -)"
 AMPLITUDE_INCLUDE_UTM="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_amplitude_include_utm -)"
 if [[ "$AMPLITUDE_API_KEY" != "null" ]]; then
@@ -203,13 +254,6 @@ fi
 
 if [[ "$TURNRELAY_HOST_ARRAY" != "null" ]]; then
     export NOMAD_VAR_turnrelay_host="$(echo $TURNRELAY_HOST_ARRAY | yq eval '.[0]' -)"
-fi
-
-export NOMAD_VAR_jwt_accepted_issuers="$(cat $MAIN_CONFIGURATION_FILE | yq eval ".${JWT_ACCEPTED_ISSUERS_VARIABLE} | @csv" -)"
-export NOMAD_VAR_jwt_accepted_audiences="$(cat $MAIN_CONFIGURATION_FILE | yq eval ".${JWT_ACCEPTED_AUDIENCES_VARIABLE} | @csv" -)"
-export ENABLE_MUC_ALLOWNERS="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .${ENABLE_MUC_ALLOWNERS_VARIABLE} -)"
-if [[ "$ENABLE_MUC_ALLOWNERS" != "null" ]]; then
-    export NOMAD_VAR_enable_muc_allowners="$ENABLE_MUC_ALLOWNERS"
 fi
 
 BRANDING_NAME="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .${BRANDING_NAME_VARIABLE} -)"

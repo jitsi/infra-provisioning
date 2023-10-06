@@ -278,6 +278,51 @@ variable channel_last_n {
   default = "-1"
 }
 
+variable ssrc_rewriting_enabled {
+  type = string
+  default = "false"
+}
+
+variable restrict_hd_tile_view_jvb {
+  type = string
+  default = "false"
+}
+
+variable dtx_enabled {
+  type = string
+  default = "false"
+}
+
+variable hidden_from_recorder_feature {
+  type = string
+  default = "false"
+}
+
+variable transcriptions_enabled {
+  type = string
+  default = "false"
+}
+
+variable livestreaming_enabled {
+  type = string
+  default = "false"
+}
+
+variable service_recording_enabled {
+  type = string
+  default = "false"
+}
+
+variable service_recording_sharing_enabled {
+  type = string
+  default = "false"
+}
+
+variable local_recording_disabled {
+  type = string
+  default = "false"
+}
+
 job "[JOB_NAME]" {
   region = "global"
   datacenters = var.dc
@@ -389,8 +434,16 @@ job "[JOB_NAME]" {
         DEPLOYMENTINFO_SHARD = "release-${var.release_number}"
         DEPLOYMENTINFO_REGION = "${meta.cloud_region}"
         DEPLOYMENTINFO_USERREGION = "<!--# echo var=\"user_region\" default=\"\" -->"
+        DISABLE_LOCAL_RECORDING = "${var.local_recording_disabled}"
         ENABLE_SIMULCAST = "true"
         ENABLE_RECORDING = "true"
+        ENABLE_LIVESTREAMING = "${var.livestreaming_enabled}"
+        ENABLE_SERVICE_RECORDING = "${var.service_recording_enabled}"
+        ENABLE_FILE_RECORDING_SHARING = "${var.service_recording_sharing_enabled}"
+        ENABLE_TALK_WHILE_MUTED = "true"
+        ENABLE_CLOSE_PAGE = "true"
+        ENABLE_TRANSCRIPTIONS = "${var.transcriptions_enabled}"
+        ENABLE_LOCAL_RECORDING_NOTIFY_ALL_PARTICIPANTS = "true"
         WEBSOCKET_KEEPALIVE_URL = "https://${var.domain}/_unlock"
         ENABLE_CALENDAR = "${var.calendar_enabled}"
         GOOGLE_API_APP_CLIENT_ID = "${var.google_api_app_client_id}"
@@ -562,6 +615,36 @@ config.useStunTurn=true;
 config.enableSaveLogs=true;
 config.disableRtx=false;
 config.channelLastN=${var.channel_last_n};
+config.flags.ssrcRewritingEnabled=${var.ssrc_rewriting_enabled};
+
+{{ if eq "${var.restrict_hd_tile_view_jvb}" "true" -}}
+config.maxFullResolutionParticipants = 1;
+{{ end -}}
+
+if (!config.hasOwnProperty('videoQuality')) config.videoQuality = {};
+config.videoQuality.maxBitratesVideo = {
+  H264: {
+    low: 200000,
+    standard: 500000,
+    high: 1500000
+  },
+  VP8: {
+    low: 200000,
+    standard: 500000,
+    high: 1500000
+  },
+  VP9: {
+    low: 100000,
+    standard: 300000,
+    high: 1200000
+  }
+};
+
+config.audioQuality.enableOpusDtx=${var.dtx_enabled};
+
+{{ if eq "${var.hidden_from_recorder_feature}" "true" -}}
+config.hiddenFromRecorderFeatureEnabled=true;
+{{ end -}}
 
 config.websocketKeepAliveUrl = 'https://<!--# echo var="http_host" default="${var.domain}" -->/<!--# echo var="subdir" default="" -->_unlock';
 
