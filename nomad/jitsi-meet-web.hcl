@@ -273,6 +273,11 @@ variable api_branding_data_url {
   default = ""
 }
 
+variable channel_last_n {
+  type = string
+  default = "-1"
+}
+
 job "[JOB_NAME]" {
   region = "global"
   datacenters = var.dc
@@ -551,6 +556,12 @@ if (subdomain.endsWith('.')) {
   subdomainNoDot = subdomain.substr(0,subdomain.length-1)
   subdomain = subdomainNoDot;
 }
+
+config.p2p.useStunTurn=true;
+config.useStunTurn=true;
+config.enableSaveLogs=true;
+config.disableRtx=false;
+config.channelLastN=${var.channel_last_n};
 
 config.websocketKeepAliveUrl = 'https://<!--# echo var="http_host" default="${var.domain}" -->/<!--# echo var="subdir" default="" -->_unlock';
 
