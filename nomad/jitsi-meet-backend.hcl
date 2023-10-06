@@ -719,7 +719,7 @@ XMPP_MODULES=persistent_lobby
 XMPP_INTERNAL_MUC_MODULES=
 # hack to avoid token_verification when firebase auth is on
 JWT_TOKEN_AUTH_MODULE=muc_allowners
-XMPP_CONFIGURATION="prosody_cache_keys_url=\"${var.prosody_cache_keys_url}\",shard_name=\"${var.shard}\",region_name=\"{{ env "meta.cloud_region" }}\",release_number=\"${var.release_number}\""
+XMPP_CONFIGURATION="cache_keys_url=\"${var.prosody_cache_keys_url}\",shard_name=\"${var.shard}\",region_name=\"{{ env "meta.cloud_region" }}\",release_number=\"${var.release_number}\""
 XMPP_MUC_CONFIGURATION="muc_room_allow_persistent = false"
 XMPP_MUC_MODULES="{{ if eq "${var.enable_muc_allowners}" "true" }}muc_allowners,{{ end }}{{ if eq "${var.wait_for_host_enabled}" "true" }}muc_wait_for_host,{{ end }}muc_hide_all"
 XMPP_SERVER={{ env "NOMAD_IP_prosody_client" }}
