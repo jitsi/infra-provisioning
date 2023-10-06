@@ -124,6 +124,117 @@ if [[ "$JVB_PREFER_SCTP" != "null" ]]; then
     export NOMAD_VAR_jvb_prefer_sctp="$JVB_PREFER_SCTP"
 fi
 
+CHANNEL_LAST_N="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_channel_last_n -)"
+if [[ "$CHANNEL_LAST_N" != "null" ]]; then
+    export NOMAD_VAR_channel_last_n="$CHANNEL_LAST_N"
+fi
+
+SSRC_REWRITING_ENABLED="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_enable_ssrc_rewriting -)"
+if [[ "$SSRC_REWRITING_ENABLED" != "null" ]]; then
+    export NOMAD_VAR_ssrc_rewriting_enabled="$SSRC_REWRITING_ENABLED"
+fi
+
+RESTRICT_HD_TILE_VIEW_JVB="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_restrict_HD_tile_view_jvb -)"
+if [[ "$RESTRICT_HD_TILE_VIEW_JVB" != "null" ]]; then
+    export NOMAD_VAR_restrict_hd_tile_view_jvb="$RESTRICT_HD_TILE_VIEW_JVB"
+fi
+
+
+DTX_ENABLED="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_enable_dtx -)"
+if [[ "$DTX_ENABLED" != "null" ]]; then
+    export NOMAD_VAR_dtx_enabled="$DTX_ENABLED"
+fi
+
+HIDDEN_FROM_RECORDER_FEATURE="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_hidden_from_recorder_feature -)"
+if [[ "$HIDDEN_FROM_RECORDER_FEATURE" != "null" ]]; then
+    export NOMAD_VAR_hidden_from_recorder_feature="$HIDDEN_FROM_RECORDER_FEATURE"
+fi
+
+TRANSCRIPTIONS_ENABLED="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_enable_transcription -)"
+if [[ "$TRANSCRIPTIONS_ENABLED" != "null" ]]; then
+    export NOMAD_VAR_transcriptions_enabled="$TRANSCRIPTIONS_ENABLED"
+fi
+
+LIVESTREAMING_ENABLED="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_enable_livestreaming -)"
+if [[ "$LIVESTREAMING_ENABLED" != "null" ]]; then
+    export NOMAD_VAR_livestreaming_enabled="$LIVESTREAMING_ENABLED"
+fi
+
+SERVICE_RECORDING_ENABLED="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_enable_file_recordings -)"
+if [[ "$SERVICE_RECORDING_ENABLED" != "null" ]]; then
+    export NOMAD_VAR_service_recording_enabled="$SERVICE_RECORDING_ENABLED"
+fi
+
+SERVICE_RECORDING_SHARING_ENABLED="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_enable_file_recordings_sharing -)"
+if [[ "$SERVICE_RECORDING_SHARING_ENABLED" != "null" ]]; then
+    export NOMAD_VAR_service_recording_sharing_enabled="$SERVICE_RECORDING_SHARING_ENABLED"
+fi
+
+LOCAL_RECORDING_ENABLED="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_enable_local_recording -)"
+if [[ "$LOCAL_RECORDING_ENABLED" == "false" ]]; then
+    export NOMAD_VAR_local_recording_disabled="true"
+fi
+
+API_DIALIN_NUMBERS_URL="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_api_dialin_numbers_url -)"
+if [[ "$API_DIALIN_NUMBERS_URL" != "null" ]]; then
+    export NOMAD_VAR_api_dialin_numbers_url="$API_DIALIN_NUMBERS_URL"
+fi
+
+API_CONFERENCE_MAPPER_URL="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_api_conference_mapper_url -)"
+if [[ "$API_CONFERENCE_MAPPER_URL" != "null" ]]; then
+    export NOMAD_VAR_api_conference_mapper_url="$API_CONFERENCE_MAPPER_URL"
+fi
+
+API_DIALOUT_AUTH_URL="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_api_dialout_auth_url -)"
+if [[ "$API_DIALOUT_AUTH_URL" != "null" ]]; then
+    export NOMAD_VAR_api_dialout_auth_url="$API_DIALOUT_AUTH_URL"
+fi
+
+API_DIALOUT_CODES_URL="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_api_dialout_codes_url -)"
+if [[ "$API_DIALOUT_CODES_URL" != "null" ]]; then
+    export NOMAD_VAR_api_dialout_codes_url="$API_DIALOUT_CODES_URL"
+fi
+
+API_DIALOUT_REGION_URL="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_api_dialout_region_url -)"
+if [[ "$API_DIALOUT_REGION_URL" != "null" ]]; then
+    export NOMAD_VAR_api_dialout_region_url="$API_DIALOUT_REGION_URL"
+fi
+
+API_RECORDING_SHARING_URL="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_api_recoding_sharing_url -)"
+if [[ "$API_RECORDING_SHARING_URL" != "null" ]]; then
+    export NOMAD_VAR_api_recoding_sharing_url="$API_RECORDING_SHARING_URL"
+fi
+
+GUEST_DIAL_OUT_URL="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_api_guest_dial_out_url -)"
+if [[ "$GUEST_DIAL_OUT_URL" != "null" ]]; then
+    export NOMAD_VAR_api_guest_dial_out_url="$GUEST_DIAL_OUT_URL"
+fi
+
+GUEST_DIAL_OUT_STATUS_URL="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_api_guest_dial_out_status_url -)"
+if [[ "$GUEST_DIAL_OUT_STATUS_URL" != "null" ]]; then
+    export NOMAD_VAR_api_guest_dial_out_status_url="$GUEST_DIAL_OUT_STATUS_URL"
+fi
+
+REQUIRE_DISPLAY_NAME="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_require_displayname -)"
+if [[ "$REQUIRE_DISPLAY_NAME" != "null" ]]; then
+    export NOMAD_VAR_require_display_name="$REQUIRE_DISPLAY_NAME"
+fi
+
+START_VIDEO_MUTED="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_start_video_muted_count -)"
+if [[ "$START_VIDEO_MUTED" != "null" ]]; then
+    export NOMAD_VAR_start_video_muted="$START_VIDEO_MUTED"
+fi
+
+START_AUDIO_MUTED="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_start_audio_muted_count -)"
+if [[ "$START_AUDIO_MUTED" != "null" ]]; then
+    export NOMAD_VAR_start_audio_muted="$START_AUDIO_MUTED"
+fi
+
+USER_ROLE_BASED_ON_TOKEN_ENABLED="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_enable_user_roles_based_on_token -)"
+if [[ "$USER_ROLE_BASED_ON_TOKEN_ENABLED" != "null" ]]; then
+    export NOMAD_VAR_token_based_roles_enabled="$USER_ROLE_BASED_ON_TOKEN_ENABLED"
+fi
+
 AMPLITUDE_API_KEY="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_amplitude_api_key -)"
 AMPLITUDE_INCLUDE_UTM="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_amplitude_include_utm -)"
 if [[ "$AMPLITUDE_API_KEY" != "null" ]]; then
@@ -195,6 +306,73 @@ if [[ "$DROPBOX_APP_KEY" != "null" ]]; then
     export NOMAD_VAR_dropbox_appkey="$DROPBOX_APP_KEY"
 fi
 
+JAAS_ACTUATOR_URL="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .prosody_jaas_actuator_url -)"
+if [[ "$JAAS_ACTUATOR_URL" != "null" ]]; then
+    export NOMAD_VAR_jaas_actuator_url="$JAAS_ACTUATOR_URL"
+fi
+
+JAAS_TOKEN_URL="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_api_jaas_token_url -)"
+if [[ "$JAAS_TOKEN_URL" != "null" ]]; then
+    export NOMAD_VAR_api_jaas_token_url="$JAAS_TOKEN_URL"
+fi
+
+JAAS_WEBHOOK_PROXY="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_api_jaas_webhook_proxy -)"
+if [[ "$JAAS_WEBHOOK_PROXY" != "null" ]]; then
+    export NOMAD_VAR_api_jaas_webhook_proxy="$JAAS_WEBHOOK_PROXY"
+fi
+
+API_BILLING_COUNTER="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_api_billing_counter -)"
+if [[ "$API_BILLING_COUNTER" != "null" ]]; then
+    export NOMAD_VAR_api_billing_counter="$API_BILLING_COUNTER"
+fi
+
+API_BRANDING_DATA_URL="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_api_branding_data_url -)"
+if [[ "$API_BRANDING_DATA_URL" != "null" ]]; then
+    export NOMAD_VAR_api_branding_data_url="$API_BRANDING_DATA_URL"
+fi
+
+
+
+API_DIRECTORY_SEARCH_URL="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_api_directory_search_url -)"
+if [[ "$API_DIRECTORY_SEARCH_URL" != "null" ]]; then
+    export NOMAD_VAR_api_directory_search_url="$API_DIRECTORY_SEARCH_URL"
+fi
+
+API_CONFERENCE_INVITE_URL="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_api_conference_invite_url -)"
+if [[ "$API_CONFERENCE_INVITE_URL" != "null" ]]; then
+    export NOMAD_VAR_api_conference_invite_url="$API_CONFERENCE_INVITE_URL"
+fi
+
+# callflows are deprecated ?
+API_CONFERENCE_INVITE_CALLFLOWS_URL="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_api_conference_invite_callflows_url -)"
+if [[ "$API_CONFERENCE_INVITE_CALLFLOWS_URL" != "null" ]]; then
+    export NOMAD_VAR_api_conference_invite_callflows_url="$API_CONFERENCE_INVITE_CALLFLOWS_URL"
+fi
+
+WHITEBOARD_ENABLED="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_whiteboard_enabled -)"
+if [[ "$WHITEBOARD_ENABLED" != "null" ]]; then
+    export NOMAD_VAR_whiteboard_enabled="$WHITEBOARD_ENABLED"
+fi
+
+WHITEBOARD_SERVER_URL="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_whiteboard_collab_server_base_url -)"
+if [[ "$WHITEBOARD_SERVER_URL" != "null" ]]; then
+    export NOMAD_VAR_whiteboard_server_url="$WHITEBOARD_SERVER_URL"
+fi
+
+GIPHY_ENABLED="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_giphy_enabled -)"
+if [[ "$GIPHY_ENABLED" != "null" ]]; then
+    export NOMAD_VAR_giphy_enabled="$GIPHY_ENABLED"
+fi
+
+GIPHY_SDK_KEY="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_giphy_sdk_key -)"
+if [[ "$GIPHY_SDK_KEY" != "null" ]]; then
+    export NOMAD_VAR_giphy_sdk_key="$GIPHY_SDK_KEY"
+fi
+
+LEGAL_URLS="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval '.legal_urls|tojson' -)"
+if [[ "$LEGAL_URLS" != "null" ]]; then
+    export NOMAD_VAR_legal_urls="$(echo "$LEGAL_URLS" | jq -c)"
+fi
 
 TURNRELAY_HOST_ARRAY="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .${TURNRELAY_HOST_VARIABLE} -)"
 if [[ "$TURNRELAY_HOST_ARRAY" == "null" ]]; then
@@ -203,13 +381,6 @@ fi
 
 if [[ "$TURNRELAY_HOST_ARRAY" != "null" ]]; then
     export NOMAD_VAR_turnrelay_host="$(echo $TURNRELAY_HOST_ARRAY | yq eval '.[0]' -)"
-fi
-
-export NOMAD_VAR_jwt_accepted_issuers="$(cat $MAIN_CONFIGURATION_FILE | yq eval ".${JWT_ACCEPTED_ISSUERS_VARIABLE} | @csv" -)"
-export NOMAD_VAR_jwt_accepted_audiences="$(cat $MAIN_CONFIGURATION_FILE | yq eval ".${JWT_ACCEPTED_AUDIENCES_VARIABLE} | @csv" -)"
-export ENABLE_MUC_ALLOWNERS="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .${ENABLE_MUC_ALLOWNERS_VARIABLE} -)"
-if [[ "$ENABLE_MUC_ALLOWNERS" != "null" ]]; then
-    export NOMAD_VAR_enable_muc_allowners="$ENABLE_MUC_ALLOWNERS"
 fi
 
 BRANDING_NAME="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .${BRANDING_NAME_VARIABLE} -)"

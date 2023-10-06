@@ -248,7 +248,7 @@ variable api_recoding_sharing_url {
   default = ""
 }
 
-variable prosody_jaas_actuator_url {
+variable jaas_actuator_url {
   type = string
   default = ""
 }
@@ -269,6 +269,101 @@ variable api_billing_counter {
 }
 
 variable api_branding_data_url {
+  type = string
+  default = ""
+}
+
+variable channel_last_n {
+  type = string
+  default = "-1"
+}
+
+variable ssrc_rewriting_enabled {
+  type = string
+  default = "false"
+}
+
+variable restrict_hd_tile_view_jvb {
+  type = string
+  default = "false"
+}
+
+variable dtx_enabled {
+  type = string
+  default = "false"
+}
+
+variable hidden_from_recorder_feature {
+  type = string
+  default = "false"
+}
+
+variable transcriptions_enabled {
+  type = string
+  default = "false"
+}
+
+variable livestreaming_enabled {
+  type = string
+  default = "false"
+}
+
+variable service_recording_enabled {
+  type = string
+  default = "false"
+}
+
+variable service_recording_sharing_enabled {
+  type = string
+  default = "false"
+}
+
+variable local_recording_disabled {
+  type = string
+  default = "false"
+}
+
+variable require_display_name {
+  type = string
+  default = "false"
+}
+
+variable start_video_muted {
+  type = number
+  default = 25
+}
+
+variable start_audio_muted {
+  type = number
+  default = 25
+}
+
+variable forced_reloads_enabled {
+  type = string
+  default = "false"
+}
+
+variable legal_urls {
+  type = string
+  default = "{\"helpCentre\": \"https://web-cdn.jitsi.net/faq/meet-faq.html\", \"privacy\": \"https://jitsi.org/meet/privacy\", \"terms\": \"https://jitsi.org/meet/terms\"}"
+}
+
+variable whiteboard_enabled {
+  type = string
+  default = "false"
+}
+
+variable whiteboard_server_url {
+  type = string
+  default = ""
+}
+
+variable giphy_enabled {
+  type = string
+  default = "false"
+}
+
+variable giphy_sdk_key {
   type = string
   default = ""
 }
@@ -384,8 +479,17 @@ job "[JOB_NAME]" {
         DEPLOYMENTINFO_SHARD = "release-${var.release_number}"
         DEPLOYMENTINFO_REGION = "${meta.cloud_region}"
         DEPLOYMENTINFO_USERREGION = "<!--# echo var=\"user_region\" default=\"\" -->"
+        DISABLE_LOCAL_RECORDING = "${var.local_recording_disabled}"
         ENABLE_SIMULCAST = "true"
         ENABLE_RECORDING = "true"
+        ENABLE_LIVESTREAMING = "${var.livestreaming_enabled}"
+        ENABLE_SERVICE_RECORDING = "${var.service_recording_enabled}"
+        ENABLE_FILE_RECORDING_SHARING = "${var.service_recording_sharing_enabled}"
+        ENABLE_TALK_WHILE_MUTED = "true"
+        ENABLE_CLOSE_PAGE = "true"
+        ENABLE_TRANSCRIPTIONS = "${var.transcriptions_enabled}"
+        ENABLE_LOCAL_RECORDING_NOTIFY_ALL_PARTICIPANTS = "true"
+        ENABLE_REQUIRE_DISPLAY_NAME = "${var.require_display_name}"
         WEBSOCKET_KEEPALIVE_URL = "https://${var.domain}/_unlock"
         ENABLE_CALENDAR = "${var.calendar_enabled}"
         GOOGLE_API_APP_CLIENT_ID = "${var.google_api_app_client_id}"
@@ -399,6 +503,10 @@ job "[JOB_NAME]" {
         DIALIN_NUMBERS_URL = "${var.dialin_numbers_url}"
         DIALOUT_AUTH_URL = "${var.dialout_auth_url}"
         DIALOUT_CODES_URL = "${var.dialout_codes_url}"
+        START_VIDEO_MUTED = "${var.start_video_muted}"
+        START_AUDIO_MUTED = "${var.start_audio_muted}"
+        WHITEBOARD_ENABLED = "${var.whiteboard_enabled}"
+        WHITEBOARD_COLLAB_SERVER_PUBLIC_URL = "${var.whiteboard_server_url}"
       }
       template {
         destination = "local/_unlock"
@@ -552,6 +660,42 @@ if (subdomain.endsWith('.')) {
   subdomain = subdomainNoDot;
 }
 
+config.p2p.useStunTurn=true;
+config.useStunTurn=true;
+config.enableSaveLogs=true;
+config.disableRtx=false;
+config.channelLastN=${var.channel_last_n};
+config.flags.ssrcRewritingEnabled=${var.ssrc_rewriting_enabled};
+
+{{ if eq "${var.restrict_hd_tile_view_jvb}" "true" -}}
+config.maxFullResolutionParticipants = 1;
+{{ end -}}
+
+if (!config.hasOwnProperty('videoQuality')) config.videoQuality = {};
+config.videoQuality.maxBitratesVideo = {
+  H264: {
+    low: 200000,
+    standard: 500000,
+    high: 1500000
+  },
+  VP8: {
+    low: 200000,
+    standard: 500000,
+    high: 1500000
+  },
+  VP9: {
+    low: 100000,
+    standard: 300000,
+    high: 1200000
+  }
+};
+
+config.audioQuality.enableOpusDtx=${var.dtx_enabled};
+
+{{ if eq "${var.hidden_from_recorder_feature}" "true" -}}
+config.hiddenFromRecorderFeatureEnabled=true;
+{{ end -}}
+
 config.websocketKeepAliveUrl = 'https://<!--# echo var="http_host" default="${var.domain}" -->/<!--# echo var="subdir" default="" -->_unlock';
 
 {{ if ne "${var.token_auth_url}" "" -}}
@@ -605,8 +749,8 @@ config.conferenceRequestUrl='https://<!--# echo var="http_host" default="${var.d
 {{ end -}}
 
 
-{{ if ne "${var.prosody_jaas_actuator_url}" "" -}}
-config.jaasActuatorUrl='${var.prosody_jaas_actuator_url}',
+{{ if ne "${var.jaas_actuator_url}" "" -}}
+config.jaasActuatorUrl='${var.jaas_actuator_url}',
 {{ end -}}
 {{ if ne "${var.api_jaas_token_url}" "" -}}
 config.jaasTokenUrl='${var.api_jaas_token_url}',
@@ -655,6 +799,16 @@ config.recordingSharingUrl='${var.api_recoding_sharing_url }';
 
 {{ if eq "${var.token_based_roles_enabled}" "true" -}}
 config.enableUserRolesBasedOnToken=true;
+{{ end -}}
+
+{{ if eq "${var.forced_reloads_enabled}" "true" -}}
+config.enableForcedReload=true;
+{{ end -}}
+
+{{ if eq "${var.giphy_enabled}" "true" -}}
+config.giphy={};
+config.giphy.enabled=true;
+config.giphy.sdkKey='${var.giphy_sdk_key}';
 {{ end -}}
 
 EOF
