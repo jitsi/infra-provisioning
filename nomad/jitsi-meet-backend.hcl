@@ -635,6 +635,7 @@ EOF
         PROSODY_RATE_LIMIT_ALLOW_RANGES="${var.prosody_rate_limit_allow_ranges}"
         AUTH_TYPE="jwt"
         JWT_ALLOW_EMPTY="${var.jwt_allow_empty}"
+        JWT_ENABLE_DOMAIN_VERIFICATION="true"
         JWT_ACCEPTED_ISSUERS="${var.jwt_accepted_issuers}"
         JWT_ACCEPTED_AUDIENCES="${var.jwt_accepted_audiences}"
         JWT_ASAP_KEYSERVER="${var.jwt_asap_keyserver}"
