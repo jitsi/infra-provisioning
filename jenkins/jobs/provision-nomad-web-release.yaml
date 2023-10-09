@@ -12,6 +12,10 @@
           description: "Controls the versions to run."
           trim: true
       - string:
+          name: RELEASE_NUMBER
+          description: "Release number for the deployment."
+          trim: true
+      - string:
           name: VIDEO_INFRA_BRANCH
           default: main
           description: "Controls checkout branch for infra repos, defaults to 'main'."
