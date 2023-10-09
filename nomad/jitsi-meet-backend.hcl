@@ -1652,7 +1652,7 @@ server {
 
         rewrite ^/(.*)$ /_unlock;
     }
-s
+
     location / {
         proxy_set_header X-Jitsi-Shard ${var.shard};
         proxy_hide_header 'X-Jitsi-Shard';
