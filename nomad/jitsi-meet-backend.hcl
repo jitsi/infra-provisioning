@@ -153,6 +153,14 @@ variable password_waiting_for_host_enabled {
     default = "false"
 }
 
+variable filter_iq_rayo_enabled {
+    type = string
+    default = "false"
+}
+variable prosody_rate_limit_allow_ranges {
+    type = string
+    default = "10.0.0.0/8,172.17.0.0/16" 
+}
 
 job "[JOB_NAME]" {
   region = "global"
@@ -240,7 +248,7 @@ job "[JOB_NAME]" {
         ENABLE_VISITORS="${var.visitors_enabled}"
         PROSODY_VISITOR_INDEX="${NOMAD_ALLOC_INDEX}"
         PROSODY_ENABLE_RATE_LIMITS="1"
-        PROSODY_RATE_LIMIT_ALLOW_RANGES="10.0.0.0/8,172.17.0.0/16"
+        PROSODY_RATE_LIMIT_ALLOW_RANGES="${var.prosody_rate_limit_allow_ranges}"
         TURN_CREDENTIALS="${var.turnrelay_password}"
         TURNS_HOST="${var.turnrelay_host}"
         TURN_HOST="${var.turnrelay_host}"
@@ -715,10 +723,10 @@ enable_password_waiting_for_host = true;\n
 {{- end -}}
 "
 GLOBAL_MODULES="http_openmetrics,measure_stanza_counts,log_ringbuffer,firewall,muc_census,muc_end_meeting,secure_interfaces,external_services,turncredentials_http"
-XMPP_MODULES=persistent_lobby
+XMPP_MODULES="{{ if eq "${var.filter_iq_rayo_enabled}" "true" }}filter_iq_rayo,{{ end }},jiconop,persistent_lobby,measure_message_count"
 XMPP_INTERNAL_MUC_MODULES=
 # hack to avoid token_verification when firebase auth is on
-JWT_TOKEN_AUTH_MODULE=muc_allowners
+JWT_TOKEN_AUTH_MODULE=muc_hide_all
 XMPP_CONFIGURATION="cache_keys_url=\"${var.prosody_cache_keys_url}\",shard_name=\"${var.shard}\",region_name=\"{{ env "meta.cloud_region" }}\",release_number=\"${var.release_number}\""
 XMPP_MUC_CONFIGURATION="muc_room_allow_persistent = false"
 XMPP_MUC_MODULES="{{ if eq "${var.enable_muc_allowners}" "true" }}muc_allowners,{{ end }}{{ if eq "${var.wait_for_host_enabled}" "true" }}muc_wait_for_host,{{ end }}muc_hide_all"

@@ -136,6 +136,23 @@ if [[ "$ENABLE_MUC_ALLOWNERS" != "null" ]]; then
     export NOMAD_VAR_enable_muc_allowners="$ENABLE_MUC_ALLOWNERS"
 fi
 
+export FILTER_IQ_RAYO_ENABLED="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .prosody_enable_filter_iq_rayo -)"
+if [[ "$FILTER_IQ_RAYO_ENABLED" != "null" ]]; then
+    export NOMAD_VAR_filter_iq_rayo_enabled="$FILTER_IQ_RAYO_ENABLED"
+fi
+
+# check main configuration file for rate limit whitelist
+export PROSODY_RATE_LIMIT_ALLOW_RANGES="$(cat $MAIN_CONFIGURATION_FILE | yq eval '.prosody_rate_limit_whitelist| @csv' -)"
+if [[ "$PROSODY_RATE_LIMIT_ALLOW_RANGES" != "null" ]]; then
+    export NOMAD_VAR_prosody_rate_limit_allow_ranges="$PROSODY_RATE_LIMIT_ALLOW_RANGES"
+fi
+
+# check environment configuration file for rate limit whitelist
+export PROSODY_RATE_LIMIT_ALLOW_RANGES="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval '.prosody_rate_limit_whitelist | @csv' -)"
+if [[ "$PROSODY_RATE_LIMIT_ALLOW_RANGES" != "null" ]]; then
+    export NOMAD_VAR_prosody_rate_limit_allow_ranges="$PROSODY_RATE_LIMIT_ALLOW_RANGES"
+fi
+
 BRANDING_NAME="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .${BRANDING_NAME_VARIABLE} -)"
 if [[ "$BRANDING_NAME" != "null" ]]; then
     export NOMAD_VAR_web_repo="$AWS_ECR_REPO_HOST/jitsi/$BRANDING_NAME"
