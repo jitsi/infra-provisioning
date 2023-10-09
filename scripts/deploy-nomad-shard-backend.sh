@@ -153,6 +153,11 @@ if [[ "$PROSODY_RATE_LIMIT_ALLOW_RANGES" != "null" ]]; then
     export NOMAD_VAR_prosody_rate_limit_allow_ranges="$PROSODY_RATE_LIMIT_ALLOW_RANGES"
 fi
 
+export WEBHOOKS_ENABLED="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .prosody_meet_webhooks_enabled -)"
+if [[ "$WEBHOOKS_ENABLED" != "null" ]]; then
+    export NOMAD_VAR_webhooks_enabled="$WEBHOOKS_ENABLED"
+fi
+
 BRANDING_NAME="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .${BRANDING_NAME_VARIABLE} -)"
 if [[ "$BRANDING_NAME" != "null" ]]; then
     export NOMAD_VAR_web_repo="$AWS_ECR_REPO_HOST/jitsi/$BRANDING_NAME"
