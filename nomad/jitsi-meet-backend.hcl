@@ -632,6 +632,7 @@ EOF
         ENABLE_VISITORS="${var.visitors_enabled}"
         PROSODY_VISITORS_MUC_PREFIX="conference"
         PROSODY_ENABLE_RATE_LIMITS="1"
+        PROSODY_RATE_LIMIT_ALLOW_RANGES="${var.prosody_rate_limit_allow_ranges}"
         AUTH_TYPE="jwt"
         JWT_ALLOW_EMPTY="${var.jwt_allow_empty}"
         JWT_ACCEPTED_ISSUERS="${var.jwt_accepted_issuers}"
