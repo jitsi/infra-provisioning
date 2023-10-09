@@ -723,7 +723,7 @@ enable_password_waiting_for_host = true;\n
 {{- end -}}
 "
 GLOBAL_MODULES="http_openmetrics,measure_stanza_counts,log_ringbuffer,firewall,muc_census,muc_end_meeting,secure_interfaces,external_services,turncredentials_http"
-XMPP_MODULES="{{ if eq "${var.filter_iq_rayo_enabled}" "true" }}filter_iq_rayo,{{ end }},jiconop,persistent_lobby,measure_message_count"
+XMPP_MODULES="{{ if eq "${var.filter_iq_rayo_enabled}" "true" }}filter_iq_rayo,{{ end }}jiconop,persistent_lobby,measure_message_count"
 XMPP_INTERNAL_MUC_MODULES=
 # hack to avoid token_verification when firebase auth is on
 JWT_TOKEN_AUTH_MODULE=muc_hide_all
