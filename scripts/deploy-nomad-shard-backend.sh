@@ -158,14 +158,18 @@ fi
 
 # check main configuration file for rate limit whitelist
 export PROSODY_RATE_LIMIT_ALLOW_RANGES="$(cat $MAIN_CONFIGURATION_FILE | yq eval '.prosody_rate_limit_whitelist| @csv' -)"
-if [[ "$PROSODY_RATE_LIMIT_ALLOW_RANGES" != "null" ]]; then
-    export NOMAD_VAR_prosody_rate_limit_allow_ranges="$PROSODY_RATE_LIMIT_ALLOW_RANGES"
+if [ -n "$PROSODY_RATE_LIMIT_ALLOW_RANGES" ]; then
+    if [[ "$PROSODY_RATE_LIMIT_ALLOW_RANGES" != "null" ]]; then
+        export NOMAD_VAR_prosody_rate_limit_allow_ranges="$PROSODY_RATE_LIMIT_ALLOW_RANGES"
+    fi
 fi
 
 # check environment configuration file for rate limit whitelist
 export PROSODY_RATE_LIMIT_ALLOW_RANGES="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval '.prosody_rate_limit_whitelist | @csv' -)"
-if [[ "$PROSODY_RATE_LIMIT_ALLOW_RANGES" != "null" ]]; then
-    export NOMAD_VAR_prosody_rate_limit_allow_ranges="$PROSODY_RATE_LIMIT_ALLOW_RANGES"
+if [ -n "$PROSODY_RATE_LIMIT_ALLOW_RANGES" ]; then
+    if [[ "$PROSODY_RATE_LIMIT_ALLOW_RANGES" != "null" ]]; then
+        export NOMAD_VAR_prosody_rate_limit_allow_ranges="$PROSODY_RATE_LIMIT_ALLOW_RANGES"
+    fi
 fi
 
 export WEBHOOKS_ENABLED="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .prosody_meet_webhooks_enabled -)"
