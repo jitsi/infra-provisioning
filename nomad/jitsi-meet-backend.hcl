@@ -631,7 +631,7 @@ EOF
     task "prosody-egress" {
       driver = "docker"
       config {
-        image        = "103425057857.dkr.ecr.us-west-2.amazonaws.com/jitsi-vo/prosody-egress:j-33"
+        image        = "103425057857.dkr.ecr.us-west-2.amazonaws.com/jitsi-vo/prosody-egress:j-36"
         ports = ["prosody-egress"]
         volumes = [
           "local/logs:/var/log/prosody-egress",
@@ -640,6 +640,9 @@ EOF
       }
       env {
         ENVIRONMENT_TYPE = "${var.prosody_egress_environment_type}"
+        STATSD_HOST = "${attr.unique.network.ip-address}"
+        SHARD = "${var.shard}"
+        RELEASE_NUMBER = "${var.release_number}"
       }
       resources {
         cpu    = 1200
