@@ -24,6 +24,7 @@ function switch_to_secondary_vnic() {
   echo "Detect secondary NIC"
   SECONDARY_VNIC_DEVICE="$(ip addr | egrep '^[0-9]' | egrep -v 'lo|docker' | tail -1 | awk '{print $2}')"
   SECONDARY_VNIC_DEVICE="${SECONDARY_VNIC_DEVICE::-1}"
+  SECONDARY_VNIC_DEVICE="$(echo $SECONDARY_VNIC_DEVICE | cut -d'@' -f1)"
 
   echo "Add rule for secondary NIC "
   export SECONDARY_PRIVATE_IP=$(ip route show | grep $SECONDARY_VNIC_DEVICE | awk '{print $1}')
