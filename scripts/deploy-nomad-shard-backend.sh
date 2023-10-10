@@ -74,10 +74,15 @@ fi
 NOMAD_JOB_PATH="$LOCAL_PATH/../nomad"
 NOMAD_DC="$ENVIRONMENT-$ORACLE_REGION"
 
+[ -z "$ENVIRONMENT_TYPE" ] && ENVIRONMENT_TYPE="stage"
+
 [ -z "$ENCRYPTED_JVB_CREDENTIALS_FILE" ] && ENCRYPTED_JVB_CREDENTIALS_FILE="$LOCAL_PATH/../ansible/secrets/jvb.yml"
 [ -z "$ENCRYPTED_JIBRI_CREDENTIALS_FILE" ] && ENCRYPTED_JIBRI_CREDENTIALS_FILE="$LOCAL_PATH/../ansible/secrets/jibri.yml"
 [ -z "$ENCRYPTED_JIGASI_CREDENTIALS_FILE" ] && ENCRYPTED_JIGASI_CREDENTIALS_FILE="$LOCAL_PATH/../ansible/secrets/jigasi.yml"
 [ -z "$ENCRYPTED_COTURN_CREDENTIALS_FILE" ] && ENCRYPTED_COTURN_CREDENTIALS_FILE="$LOCAL_PATH/../ansible/secrets/coturn.yml"
+[ -z "$ENCRYPTED_ASAP_KEYS_FILE" ] && ENCRYPTED_ASAP_KEYS_FILE="$LOCAL_PATH/../ansible/secrets/asap-keys.yml"
+[ -z "$ENCRYPTED_PROSODY_EGRESS_AWS_FILE" ] && ENCRYPTED_PROSODY_EGRESS_AWS_FILE="$LOCAL_PATH/../ansible/secrets/prosody-egress-aws.yml"
+
 [ -z "$ENVIRONMENT_CONFIGURATION_FILE" ] && ENVIRONMENT_CONFIGURATION_FILE="$LOCAL_PATH/../sites/$ENVIRONMENT/vars.yml"
 [ -z "$MAIN_CONFIGURATION_FILE" ] && MAIN_CONFIGURATION_FILE="$LOCAL_PATH/../config/vars.yml"
 
@@ -94,6 +99,8 @@ TURNRELAY_HOST_VARIABLE="prosody_mod_turncredentials_hosts"
 TURNRELAY_PASSWORD_VARIABLE="coturn_secret"
 ENABLE_MUC_ALLOWNERS_VARIABLE="prosody_muc_allowners"
 BRANDING_NAME_VARIABLE="jitsi_meet_branding_override"
+ASAP_KEY_VARIABLE="asap_key_$ENVIRONMENT_TYPE"
+
 
 # ensure no output for ansible vault contents and fail if ansible-vault fails
 set +x
@@ -107,7 +114,13 @@ export NOMAD_VAR_turnrelay_password="$(ansible-vault view $ENCRYPTED_COTURN_CRED
 
 export NOMAD_VAR_jicofo_auth_password="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .${JICOFO_XMPP_PASSWORD_VARIABLE} -)"
 export NOMAD_VAR_jwt_asap_keyserver="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .${JWT_ASAP_KEYSERVER_VARIABLE} -)"
+
+export NOMAD_VAR_aws_access_key_id="$(ansible-vault view $ENCRYPTED_PROSODY_EGRESS_AWS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".prosody_egress_aws_access_key_id_by_type.$ENVIRONMENT_TYPE" -)"
+export NOMAD_VAR_aws_secret_access_key="$(ansible-vault view $ENCRYPTED_PROSODY_EGRESS_AWS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".prosody_egress_aws_secret_access_key_by_type.$ENVIRONMENT_TYPE" -)"
+
 set -x
+
+export NOMAD_VAR_environment_type="${ENVIRONMENT_TYPE}"
 
 TURNRELAY_HOST_ARRAY="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .${TURNRELAY_HOST_VARIABLE} -)"
 if [[ "$TURNRELAY_HOST_ARRAY" == "null" ]]; then
@@ -156,6 +169,11 @@ fi
 export WEBHOOKS_ENABLED="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .prosody_meet_webhooks_enabled -)"
 if [[ "$WEBHOOKS_ENABLED" != "null" ]]; then
     export NOMAD_VAR_webhooks_enabled="$WEBHOOKS_ENABLED"
+fi
+
+export MUC_EVENTS_ENABLED="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .prosody_enable_muc_events -)"
+if [[ "$MUC_EVENTS_ENABLED" != "null" ]]; then
+    export NOMAD_VAR_muc_events_enabled="$MUC_EVENTS_ENABLED"
 fi
 
 BRANDING_NAME="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .${BRANDING_NAME_VARIABLE} -)"
