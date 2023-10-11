@@ -9,6 +9,9 @@ else
     fi
 fi
 
+. $LOCAL_PATH/../clouds/all.sh
+. $LOCAL_PATH/../clouds/oracle.sh
+
 [ -z "$DEFAULT_DNS_ZONE_NAME" ] && DEFAULT_DNS_ZONE_NAME="oracle.infra.jitsi.net"
 
 #set -x
@@ -230,6 +233,29 @@ function shard_logs() {
     fi
 }
 
+function shard_log_search() {
+    local shard="$1"
+    local search="$2"
+    local PROVIDER=$(core_provider $1)
+    if [[ "$PROVIDER" != "nomad" ]]; then
+        # nomad shards 
+        echo 'Not implemented for non-nomad shards'
+    else
+        set -x
+        SHARD_REGION=$(shard_region $shard)
+        [ -z "$SEARCH_PERIOD" ] && SEARCH_PERIOD="1 hour"
+        [ -z "$START_DATE" ] && START_DATE="$(date -u '+%Y-%m-%dT%H:%M:%SZ' -d "$SEARCH_PERIOD ago")"
+        [ -z "$END_DATE" ] && END_DATE="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+        LOKI_ADDR="https://${ENVIRONMENT}-${SHARD_REGION}-loki.${TOP_LEVEL_DNS_ZONE_NAME}"
+        ~/bin/logcli query --addr $LOKI_ADDR \
+         --timezone=UTC \
+         --from="$START_DATE" \
+         --to="$END_DATE" \
+         --output=default \
+        "{job=\"shard-$shard\"} |= \"$search\""
+    fi
+}
+
 case $ACTION in
     'name')
         if [ -z "$SHARD_NUMBER" ]; then
@@ -285,6 +311,13 @@ case $ACTION in
             echo "No SHARD set, exiting..."
         else
             shard_logs $SHARD "$2" $3
+        fi
+        ;;
+    'log_search')
+        if [ -z "$SHARD" ]; then
+            echo "No SHARD set, exiting..."
+        else
+            shard_log_search $SHARD "$2"
         fi
         ;;
     'list')
