@@ -219,7 +219,7 @@ function shard_logs() {
     local PROVIDER=$(core_provider $1)
     if [[ "$PROVIDER" != "nomad" ]]; then
         # nomad shards 
-        echo 'Not implement for non-nomad shards'
+        echo 'Not implemented for non-nomad shards'
     else
         SIGNAL_ALLOC="$(ENVIRONMENT=$ENVIRONMENT $LOCAL_PATH/nomad.sh job status "shard-$SHARD" | grep signal | tail -1 | awk '{print $1}')"
         if [ -z "$SIGNAL_ALLOC" ]; then
