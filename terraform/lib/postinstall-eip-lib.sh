@@ -28,10 +28,16 @@ function switch_to_secondary_vnic() {
 
   echo "Add rule for secondary NIC "
   export SECONDARY_PRIVATE_IP=$(ip route show | grep $SECONDARY_VNIC_DEVICE | awk '{print $1}')
-  sudo ip rule add to $SECONDARY_PRIVATE_IP table ort1 || status_code=1
+  RULE_EXISTS=true
+  sudo ip rule | grep -q "$SECONDARY_PRIVATE_IP" || RULE_EXISTS=false
+  if [[ $RULE_EXISTS == true ]]; then
+    echo "Rule for secondary NIC already exists"
+  else
+    sudo ip rule add to $SECONDARY_PRIVATE_IP table ort1 || status_code=1
 
-  if [ $status_code -gt 0 ]; then
-    return $status_code
+    if [ $status_code -gt 0 ]; then
+      return $status_code
+    fi
   fi
 
   echo "Switch default routes to NIC2"
