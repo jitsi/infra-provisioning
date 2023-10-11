@@ -210,6 +210,26 @@ function shard_name() {
     return 1
 }
 
+function shard_logs() {
+    local shard="$1"
+    local task="$2"
+    [ -z "$task" ] && task="jicofo"
+    local flags="$3"
+
+    local PROVIDER=$(core_provider $1)
+    if [[ "$PROVIDER" != "nomad" ]]; then
+        # nomad shards 
+        echo 'Not implemented for non-nomad shards'
+    else
+        SIGNAL_ALLOC="$(ENVIRONMENT=$ENVIRONMENT $LOCAL_PATH/nomad.sh job status "shard-$SHARD" | grep signal | tail -1 | awk '{print $1}')"
+        if [ -z "$SIGNAL_ALLOC" ]; then
+            echo "No signal alloc found for shard $SHARD"
+            return 1
+        fi
+        $LOCAL_PATH/nomad.sh alloc logs $flags $SIGNAL_ALLOC $task
+    fi
+}
+
 case $ACTION in
     'name')
         if [ -z "$SHARD_NUMBER" ]; then
@@ -258,6 +278,13 @@ case $ACTION in
             echo "No SHARD set, exiting..."
         else
             number $SHARD
+        fi
+        ;;
+    'logs')
+        if [ -z "$SHARD" ]; then
+            echo "No SHARD set, exiting..."
+        else
+            shard_logs $SHARD "$2" $3
         fi
         ;;
     'list')
