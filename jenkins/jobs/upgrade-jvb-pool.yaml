@@ -58,6 +58,10 @@
           description: "Override JVB memory"
           trim: true
       - string:
+          name: SKIP_SCALE_DOWN
+          description: "Set to true to only update instance configuration, skip rotation"
+          trim: true
+      - string:
           name: INFRA_CONFIGURATION_REPO
           default: git@github.com:jitsi/infra-configuration.git
           description: "Repo for configuration code (ansible etc), defaults to 'git@github.com:jitsi/infra-configuration.git'."
