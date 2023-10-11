@@ -47,6 +47,8 @@ ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 #if we're not given versions, search for the latest of each type of image
 [ -z "$JVB_VERSION" ] && JVB_VERSION='latest'
 
+[ -z "$SKIP_SCALE_DOWN" ] && SKIP_SCALE_DOWN="false"
+
 # first check E4 flag
 if [ "$ENABLE_E_4" == "true" ]; then
   JVB_SHAPE="$SHAPE_E_4"
@@ -155,6 +157,13 @@ elif [ "$getGroupHttpCode" == 200 ]; then
   fi
 
   NEW_MAXIMUM_DESIRED=$((EXISTING_MAXIMUM + PROTECTED_INSTANCES_COUNT))
+
+  if [[ "$SKIP_SCALE_DOWN" == "true" ]]; then
+    echo "Skipping scale down step, setting NEW_MAXIMUM_DESIRED to EXISTING_MAXIMUM"
+    NEW_MAXIMUM_DESIRED=$EXISTING_MAXIMUM
+    PROTECTED_INSTANCES_COUNT=0
+  fi
+
   echo "Creating new Instance Configuration for group $GROUP_NAME based on the existing one"
   SHAPE_PARAMS=""
   [ ! -z "$SHAPE" ] && SHAPE_PARAMS="$SHAPE_PARAMS --shape $SHAPE"
@@ -202,26 +211,31 @@ elif [ "$getGroupHttpCode" == 200 ]; then
     exit 208
   fi
 
-  #Wait as much as it will take to provision the new instances, before scaling down the existing ones
-  sleep 480
+# check flag for skipping scale down step
+  if [[ "$SKIP_SCALE_DOWN" != "true" ]]; then
+    #Wait as much as it will take to provision the new instances, before scaling down the existing ones
+    sleep 480
 
-  echo "Will scale down the group $GROUP_NAME and keep only the $PROTECTED_INSTANCES_COUNT protected instances with maximum $EXISTING_MAXIMUM"
-  instanceGroupScaleDownResponse=$(curl -s -w "\n %{http_code}" -X PUT \
-    "$AUTOSCALER_URL"/groups/"$GROUP_NAME"/desired \
-    -H 'Content-Type: application/json' \
-    -H "Authorization: Bearer $TOKEN" \
-    -d '{
-  "desiredCount": '"$PROTECTED_INSTANCES_COUNT"',
-  "maxDesired": '"$EXISTING_MAXIMUM"'
-}')
-  scaleDownGroupHttpCode=$(tail -n1 <<<"$instanceGroupScaleDownResponse" | sed 's/[^0-9]*//g')
-  if [ "$scaleDownGroupHttpCode" == 200 ]; then
-    echo "Successfully scaled down to $PROTECTED_INSTANCES_COUNT instances in group $GROUP_NAME"
+    echo "Will scale down the group $GROUP_NAME and keep only the $PROTECTED_INSTANCES_COUNT protected instances with maximum $EXISTING_MAXIMUM"
+    instanceGroupScaleDownResponse=$(curl -s -w "\n %{http_code}" -X PUT \
+      "$AUTOSCALER_URL"/groups/"$GROUP_NAME"/desired \
+      -H 'Content-Type: application/json' \
+      -H "Authorization: Bearer $TOKEN" \
+      -d '{
+    "desiredCount": '"$PROTECTED_INSTANCES_COUNT"',
+    "maxDesired": '"$EXISTING_MAXIMUM"'
+  }')
+    scaleDownGroupHttpCode=$(tail -n1 <<<"$instanceGroupScaleDownResponse" | sed 's/[^0-9]*//g')
+    if [ "$scaleDownGroupHttpCode" == 200 ]; then
+      echo "Successfully scaled down to $PROTECTED_INSTANCES_COUNT instances in group $GROUP_NAME"
+    else
+      echo "Error scaling down to $PROTECTED_INSTANCES_COUNT instances in group $GROUP_NAME. AutoScaler response status code is $scaleDownGroupHttpCode"
+      exit 209
+    fi
   else
-    echo "Error scaling down to $PROTECTED_INSTANCES_COUNT instances in group $GROUP_NAME. AutoScaler response status code is $scaleDownGroupHttpCode"
-    exit 209
+    echo "Skipping scale down step as SKIP_SCALE_DOWN=true, exiting..."
+    exit 0
   fi
-
 else
   echo "No group named $GROUP_NAME was found nor created. AutoScaler response status code is $getGroupHttpCode"
   exit 210
