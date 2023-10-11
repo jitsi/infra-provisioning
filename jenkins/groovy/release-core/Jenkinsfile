@@ -280,22 +280,6 @@ pipeline {
                 }
             }
         }
-        stage("deploy nomad web release") {
-            when {
-                expression {env.CORE_CLOUD_PROVIDER == 'nomad'}
-            }
-            steps {
-                script {
-                    dir('infra-provisioning') {
-                        utils.SetupAnsible()
-
-                        sh """#!/bin/bash
-                        export RELEASE_NUMBER="${env.BUILD_ID}"
-                        scripts/deploy-nomad-web-release.sh"""
-                    }
-                }
-            }
-        }
         stage("create new shards") {
             steps {
                 script {
@@ -310,6 +294,16 @@ pipeline {
                             echo "cloud list ${cloud_list}";
                             def shard_numbers = generate_numbers(env.ENVIRONMENT,cloud_list);
                             def branches = [:]
+                            if (env.CORE_CLOUD_PROVIDER == 'nomad') {
+                                branches["Nomad web release"] = {
+                                    build job: 'provision-nomad-web-release',parameters: [
+                                        [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: env.ENVIRONMENT],
+                                        [$class: 'StringParameterValue', name: 'SIGNAL_VERSION', value: env.SIGNAL_VERSION],
+                                        [$class: 'StringParameterValue', name: 'RELEASE_NUMBER', value: env.BUILD_ID],
+                                        [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH]
+                                    ]
+                                }
+                            }
                             for(i = 0; i < cloud_list.size(); i++) {
                                 def curr = i
                                 branches["JVB Pools ${cloud_list[curr]}"] = {
