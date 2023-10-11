@@ -162,6 +162,51 @@ variable prosody_rate_limit_allow_ranges {
     default = "10.0.0.0/8,172.17.0.0/16" 
 }
 
+variable fabio_internal_port {
+  type = number
+  default = 9997
+}
+
+variable webhooks_enabled {
+    type = string
+    default = "false"
+}
+
+variable muc_events_enabled {
+    type = string
+    default = "false"
+}
+
+variable "environment_type" {
+  type = string
+  default = "stage"
+}
+
+variable "asap_jwt_kid" {
+    type = string
+    default = "replaceme"
+}
+
+variable "asap_jwt_iss" {
+    type = string
+    default = "jitsi"
+}
+
+variable "asap_jwt_aud" {
+    type = string
+    default = "jitsi"
+}
+
+variable "aws_access_key_id" {
+    type = string
+    default = "replaceme"
+}
+
+variable "aws_secret_access_key" {
+    type = string
+    default = "replaceme"
+}
+
 job "[JOB_NAME]" {
   region = "global"
   datacenters = [var.dc]
@@ -580,7 +625,6 @@ EOF
       }
     }
 
-
     task "signal-sidecar" {
       driver = "docker"
       config {
@@ -618,7 +662,10 @@ EOF
       config {
         image        = "jitsi/prosody:${var.prosody_tag}"
         ports = ["prosody-http","prosody-client","prosody-s2s"]
-        volumes = ["local/prosody-plugins-custom:/prosody-plugins-custom"]
+        volumes = [
+	        "/opt/jitsi/keys:/opt/jitsi/keys",
+          "local/prosody-plugins-custom:/prosody-plugins-custom"
+        ]
       }
 
       env {
@@ -632,8 +679,10 @@ EOF
         ENABLE_VISITORS="${var.visitors_enabled}"
         PROSODY_VISITORS_MUC_PREFIX="conference"
         PROSODY_ENABLE_RATE_LIMITS="1"
+        PROSODY_RATE_LIMIT_ALLOW_RANGES="${var.prosody_rate_limit_allow_ranges}"
         AUTH_TYPE="jwt"
         JWT_ALLOW_EMPTY="${var.jwt_allow_empty}"
+        JWT_ENABLE_DOMAIN_VERIFICATION="true"
         JWT_ACCEPTED_ISSUERS="${var.jwt_accepted_issuers}"
         JWT_ACCEPTED_AUDIENCES="${var.jwt_accepted_audiences}"
         JWT_ASAP_KEYSERVER="${var.jwt_asap_keyserver}"
@@ -702,7 +751,35 @@ EOF
         source      = "https://hg.prosody.im/prosody-modules/raw-file/tip/mod_log_ringbuffer/mod_log_ringbuffer.lua"
         destination = "local/prosody-plugins-custom"
       }
+      artifact {
+        source      = "https://raw.githubusercontent.com/jitsi/infra-configuration/main/ansible/roles/prosody/files/mod_muc_webhooks.lua"
+        destination = "local/prosody-plugins-custom"
+      }
+      artifact {
+        source      = "https://raw.githubusercontent.com/jitsi/infra-configuration/main/ansible/roles/prosody/files/mod_muc_moderators.lua"
+        destination = "local/prosody-plugins-custom"
+      }
+      artifact {
+        source      = "https://raw.githubusercontent.com/jitsi/infra-configuration/main/ansible/roles/prosody/files/mod_muc_events.lua"
+        destination = "local/prosody-plugins-custom"
+      }
+      artifact {
+        source      = "https://raw.githubusercontent.com/jitsi/infra-configuration/main/ansible/roles/prosody/files/mod_muc_auth_vpaas.lua"
+        destination = "local/prosody-plugins-custom"
+      }
+      artifact {
+        source      = "https://raw.githubusercontent.com/jitsi/infra-configuration/main/ansible/roles/prosody/files/mod_muc_permissions_vpaas.lua"
+        destination = "local/prosody-plugins-custom"
+      }
+      artifact {
+        source      = "https://raw.githubusercontent.com/jitsi/infra-configuration/main/ansible/roles/prosody/files/mod_muc_password_preset.lua"
+        destination = "local/prosody-plugins-custom"
+      }
 
+      artifact {
+        source      = "https://raw.githubusercontent.com/jitsi/infra-configuration/main/ansible/roles/prosody/files/util.internal.lib.lua"
+        destination = "local/prosody-plugins-custom"
+      }
 
       template {
         data = <<EOF
@@ -721,7 +798,11 @@ asap_require_room_claim = false;\n
 {{- if eq "${var.password_waiting_for_host_enabled}" "true" -}}
 enable_password_waiting_for_host = true;\n
 {{- end -}}
-"
+{{- if eq "${var.muc_events_enabled}" "true" -}}
+asap_key_path = \"/opt/jitsi/keys/${var.environment_type}.key\";\nasap_key_id = \"${var.asap_jwt_kid}\";\nasap_issuer = \"${var.asap_jwt_iss}\";\nasap_audience = \"${var.asap_jwt_aud}\";\n
+{{- end -}}
+muc_prosody_egress_url = \"http://{{ env "attr.unique.network.ip-address" }}:${var.fabio_internal_port}/v1/events\";\ntrusted_proxies = {\n\"127.0.0.1\";\n \"::1\";\n \"172.17.0.0/16\";\n \"10.0.0.0/8\";\n \"103.21.244.0/22\";\n \"103.22.200.0/22\";\n \"103.31.4.0/22\";\n \"104.16.0.0/13\";\n \"104.24.0.0/14\";\n \"108.162.192.0/18\";\n \"131.0.72.0/22\";\n \"141.101.64.0/18\";\n \"162.158.0.0/15\";\n \"172.64.0.0/13\";\n \"173.245.48.0/20\";\n \"188.114.96.0/20\";\n \"190.93.240.0/20\";\n \"197.234.240.0/22\";\n \"198.41.128.0/17\";\n \"2400:cb00::/32\";\n \"2405:8100::/32\";\n \"2405:b500::/32\";\n \"2606:4700::/32\";\n \"2803:f800::/32\";\n \"2a06:98c0::/29\";\n \"2c0f:f248::/32\";\n }\n"
+# trusted_proxies above is a list of Cloudflare IPs
 GLOBAL_MODULES="http_openmetrics,measure_stanza_counts,log_ringbuffer,firewall,muc_census,muc_end_meeting,secure_interfaces,external_services,turncredentials_http"
 XMPP_MODULES="{{ if eq "${var.filter_iq_rayo_enabled}" "true" }}filter_iq_rayo,{{ end }}jiconop,persistent_lobby,measure_message_count"
 XMPP_INTERNAL_MUC_MODULES=
@@ -729,7 +810,9 @@ XMPP_INTERNAL_MUC_MODULES=
 JWT_TOKEN_AUTH_MODULE=muc_hide_all
 XMPP_CONFIGURATION="cache_keys_url=\"${var.prosody_cache_keys_url}\",shard_name=\"${var.shard}\",region_name=\"{{ env "meta.cloud_region" }}\",release_number=\"${var.release_number}\""
 XMPP_MUC_CONFIGURATION="muc_room_allow_persistent = false"
-XMPP_MUC_MODULES="{{ if eq "${var.enable_muc_allowners}" "true" }}muc_allowners,{{ end }}{{ if eq "${var.wait_for_host_enabled}" "true" }}muc_wait_for_host,{{ end }}muc_hide_all"
+XMPP_MUC_MODULES="{{ if eq "${var.webhooks_enabled}" "true" }}muc_webhooks,{{ end }}{{ if eq "${var.enable_muc_allowners}" "true" }}muc_allowners,{{ end }}{{ if eq "${var.wait_for_host_enabled}" "true" }}muc_wait_for_host,{{ end }}muc_hide_all"
+XMPP_LOBBY_MUC_MODULES="{{ if eq "${var.webhooks_enabled}" "true" }}muc_webhooks,{{ end }}muc_hide_all"
+XMPP_BREAKOUT_MUC_MODULES="{{ if eq "${var.webhooks_enabled}" "true" }}muc_webhooks,{{ end }}muc_hide_all"
 XMPP_SERVER={{ env "NOMAD_IP_prosody_client" }}
 XMPP_PORT={{  env "NOMAD_HOST_PORT_prosody_client" }}
 XMPP_BOSH_URL_BASE=http://{{ env "NOMAD_IP_prosody_http" }}:{{ env "NOMAD_HOST_PORT_prosody_http" }}
@@ -1465,9 +1548,33 @@ map $arg_vnode $prosody_bosh_node {
 limit_req_zone $remote_addr zone=conference-request:10m rate=5r/s;
 
 # Set $remote_addr by scanning X-Forwarded-For, while only trusting the defined list of trusted proxies.
+# public ips below are ranges of Cloudflare IPs
 set_real_ip_from 127.0.0.1;
-set_real_ip_from 172.0.0.0/8;
+set_real_ip_from 172.17.0.0/16;
+set_real_ip_from ::1;
 set_real_ip_from 10.0.0.0/8;
+set_real_ip_from 103.21.244.0/22;
+set_real_ip_from 103.22.200.0/22;
+set_real_ip_from 103.31.4.0/22;
+set_real_ip_from 104.16.0.0/13;
+set_real_ip_from 104.24.0.0/14;
+set_real_ip_from 108.162.192.0/18;
+set_real_ip_from 131.0.72.0/22;
+set_real_ip_from 141.101.64.0/18;
+set_real_ip_from 162.158.0.0/15;
+set_real_ip_from 172.64.0.0/13;
+set_real_ip_from 173.245.48.0/20;
+set_real_ip_from 188.114.96.0/20;
+set_real_ip_from 190.93.240.0/20;
+set_real_ip_from 197.234.240.0/22;
+set_real_ip_from 198.41.128.0/17;
+set_real_ip_from 2400:cb00::/32;
+set_real_ip_from 2405:8100::/32;
+set_real_ip_from 2405:b500::/32;
+set_real_ip_from 2606:4700::/32;
+set_real_ip_from 2803:f800::/32;
+set_real_ip_from 2a06:98c0::/29;
+set_real_ip_from 2c0f:f248::/32;
 real_ip_header X-Forwarded-For;
 real_ip_recursive on;
 
