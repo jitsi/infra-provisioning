@@ -225,6 +225,10 @@ if [[ "$PROSODY_CACHE_KEYS_URL_ENV" != "null" ]]; then
     PROSODY_CACHE_KEYS_URL=$PROSODY_CACHE_KEYS_URL_ENV
 fi
 
+AMPLITUDE_API_KEY="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_amplitude_api_key -)"
+if [[ "$AMPLITUDE_API_KEY" != "null" ]]; then
+    export NOMAD_VAR_amplitude_api_key="$AMPLITUDE_API_KEY"
+fi
 
 [ -z "$VISITORS_COUNT" ] && VISITORS_COUNT=0
 
