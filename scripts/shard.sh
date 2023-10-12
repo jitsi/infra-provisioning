@@ -224,13 +224,18 @@ function shard_logs() {
         # nomad shards 
         echo 'Not implemented for non-nomad shards'
     else
-        SIGNAL_ALLOC="$(ENVIRONMENT=$ENVIRONMENT $LOCAL_PATH/nomad.sh job status "shard-$SHARD" | grep signal | tail -1 | awk '{print $1}')"
+        SIGNAL_ALLOC="$(signal_allocation_from_shard $shard)"
         if [ -z "$SIGNAL_ALLOC" ]; then
-            echo "No signal alloc found for shard $SHARD"
+            echo "No signal alloc found for shard $shard"
             return 1
         fi
         $LOCAL_PATH/nomad.sh alloc logs $flags $SIGNAL_ALLOC $task
     fi
+}
+
+function signal_allocation_from_shard() {
+    local shard="$1"
+    ENVIRONMENT=$ENVIRONMENT $LOCAL_PATH/nomad.sh job status "shard-$shard" | grep signal | grep running | tail -1 | awk '{print $1}'
 }
 
 function shard_log_search() {
@@ -249,6 +254,30 @@ function shard_log_search() {
          --output=jsonl \
          --since="$SEARCH_PERIOD" \
         "{job=\"shard-$shard\"} |~ \"(?i)$search\"" | jq -r -s '.[]|"\(.timestamp): \(.labels.task) \(.line|fromjson|.message)"'
+    fi
+}
+
+function shard_shell() {
+    local shard="$1"
+    local task="$2"
+    local PROVIDER=$(core_provider $1)
+    if [[ "$PROVIDER" == "nomad" ]]; then
+        if [ -n "$task" ]; then
+            SIGNAL_ALLOC="$(signal_allocation_from_shard $shard)"
+            if [ -z "$SIGNAL_ALLOC" ]; then
+                echo "No signal alloc found for shard $SHARD"
+                return 1
+            fi
+            echo "nomad shard $SHARD alloc $SIGNAL_ALLOC task $task exec"
+            $LOCAL_PATH/nomad.sh alloc exec -task $task $SIGNAL_ALLOC /bin/bash
+        else
+            echo "Nomad shards require a task name"
+            return 1
+        fi
+    else
+        INTERNAL_IP="$(IP_TYPE="internal" shard_ip $shard)"
+        echo "ssh for non-nomad shard $shard to $ANSIBLE_SSH_USER@$INTERNAL_IP"
+        ssh $ANSIBLE_SSH_USER@$INTERNAL_IP
     fi
 }
 
@@ -314,6 +343,13 @@ case $ACTION in
             echo "No SHARD set, exiting..."
         else
             shard_log_search $SHARD "$2"
+        fi
+        ;;
+    'shell')
+        if [ -z "$SHARD" ]; then
+            echo "No SHARD set, exiting..."
+        else
+            shard_shell $SHARD "$2"
         fi
         ;;
     'list')
