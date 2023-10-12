@@ -282,7 +282,7 @@ job "[JOB_NAME]" {
       config {
         image        = "jitsi/prosody:${var.prosody_tag}"
         ports = ["prosody-http","prosody-client","prosody-s2s"]
-        volumes = ["local/prosody-plugins-custom:/prosody-plugins-custom"]
+        volumes = ["local/prosody-plugins-custom:/prosody-plugins-custom","local/config:/config"]
       }
 
       env {
@@ -664,7 +664,8 @@ EOF
         ports = ["prosody-http","prosody-client","prosody-s2s"]
         volumes = [
 	        "/opt/jitsi/keys:/opt/jitsi/keys",
-          "local/prosody-plugins-custom:/prosody-plugins-custom"
+          "local/prosody-plugins-custom:/prosody-plugins-custom",
+          "local/config:/config"
         ]
       }
 
@@ -877,7 +878,7 @@ EOF
       config {
         image        = "jitsi/prosody:${var.prosody_tag}"
         ports = ["prosody-jvb-client","prosody-jvb-http"]
-        volumes = ["local/prosody-plugins-custom:/prosody-plugins-custom"]
+        volumes = ["local/prosody-plugins-custom:/prosody-plugins-custom","local/config:/config"]
       }
 
       env {
@@ -1075,6 +1076,7 @@ EOF
       config {
         image        = "jitsi/jicofo:${var.jicofo_tag}"
         ports = ["jicofo-http"]
+        volumes = ["local/config:/config"]
       }
 
       env {
