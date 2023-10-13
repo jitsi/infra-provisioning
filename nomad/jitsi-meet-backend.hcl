@@ -232,6 +232,16 @@ variable max_outgoing_calls {
   default = 3
 }
 
+variable muc_moderated_rooms {
+  type = string
+  default = ""
+}
+
+variable muc_moderated_subdomains {
+  type = string
+  default = ""
+}
+
 job "[JOB_NAME]" {
   region = "global"
   datacenters = [var.dc]
@@ -853,7 +863,7 @@ XMPP_INTERNAL_MUC_MODULES=
 # hack to avoid token_verification when firebase auth is on
 JWT_TOKEN_AUTH_MODULE=muc_hide_all
 XMPP_CONFIGURATION="cache_keys_url=\"${var.prosody_cache_keys_url}\",shard_name=\"${var.shard}\",region_name=\"{{ env "meta.cloud_region" }}\",release_number=\"${var.release_number}\",max_number_outgoing_calls=${var.max_outgoing_calls}"
-XMPP_MUC_CONFIGURATION="muc_room_allow_persistent = false"
+XMPP_MUC_CONFIGURATION="muc_room_allow_persistent = false,allowners_moderated_subdomains = {\n {{ range ("${var.muc_moderated_subdomains}" | split ",") }}    \"{{ . }}\";\n{{ end }}\n},allowners_moderated_rooms = {\n {{ range ("${var.muc_moderated_rooms}" | split ",") }}    \"{{ . }}\";\n{{ end }}\n}"
 XMPP_MUC_MODULES="{{ if eq "${var.webhooks_enabled}" "true" }}muc_webhooks,{{ end }}{{ if eq "${var.enable_muc_allowners}" "true" }}muc_allowners,{{ end }}{{ if eq "${var.wait_for_host_enabled}" "true" }}muc_wait_for_host,{{ end }}muc_hide_all,measure_message_count"
 XMPP_LOBBY_MUC_MODULES="{{ if eq "${var.webhooks_enabled}" "true" }}muc_webhooks,{{ end }}muc_hide_all,measure_message_count"
 XMPP_BREAKOUT_MUC_MODULES="{{ if eq "${var.webhooks_enabled}" "true" }}muc_webhooks,{{ end }}muc_hide_all,measure_message_count"

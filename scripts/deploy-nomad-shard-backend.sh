@@ -151,6 +151,21 @@ if [[ "$ENABLE_MUC_ALLOWNERS" != "null" ]]; then
     export NOMAD_VAR_enable_muc_allowners="$ENABLE_MUC_ALLOWNERS"
 fi
 
+PROSODY_MUC_MODERATED_ROOMS="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval ".prosody_muc_moderated_rooms | @csv" -)"
+if [ -n "$PROSODY_MUC_MODERATED_ROOMS" ]; then
+    if [[ "$PROSODY_MUC_MODERATED_ROOMS" != "null" ]]; then
+        export NOMAD_VAR_muc_moderated_rooms="$PROSODY_MUC_MODERATED_ROOMS"
+    fi
+fi
+
+
+PROSODY_MUC_MODERATED_SUBDOMAINS="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval ".prosody_muc_moderated_subdomains | @csv" -)"
+if [ -n "$PROSODY_MUC_MODERATED_SUBDOMAINS" ]; then
+    if [[ "$PROSODY_MUC_MODERATED_SUBDOMAINS" != "null" ]]; then
+        export NOMAD_VAR_muc_moderated_subdomains="$PROSODY_MUC_MODERATED_SUBDOMAINS"
+    fi
+fi
+
 export FILTER_IQ_RAYO_ENABLED="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .prosody_enable_filter_iq_rayo -)"
 if [[ "$FILTER_IQ_RAYO_ENABLED" != "null" ]]; then
     export NOMAD_VAR_filter_iq_rayo_enabled="$FILTER_IQ_RAYO_ENABLED"
