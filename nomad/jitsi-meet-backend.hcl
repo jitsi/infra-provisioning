@@ -833,8 +833,7 @@ debug_traceback_filename = \"traceback.txt\";\nc2s_stanza_size_limit = 512*1024;
 muc_limit_messages_count = ${var.prosody_limit_messages};\nmuc_limit_messages_check_token = ${var.prosody_limit_messages_check_token};\n
 {{- end -}}
 {{- if eq "${var.webhooks_enabled}" "true" -}}
-muc_prosody_egress_url = \"http://{{ env "attr.unique.network.ip-address" }}:${var.fabio_internal_port}/v1/events\";\n
-muc_prosody_egress_fallback_url = \"${var.prosody_egress_fallback_url}\"\n;
+muc_prosody_egress_url = \"http://{{ env "attr.unique.network.ip-address" }}:${var.fabio_internal_port}/v1/events\";\nmuc_prosody_egress_fallback_url = \"${var.prosody_egress_fallback_url}\"\n;
 {{- end -}}
 trusted_proxies = {\n\"127.0.0.1\";\n \"::1\";\n \"172.17.0.0/16\";\n \"10.0.0.0/8\";\n \"103.21.244.0/22\";\n \"103.22.200.0/22\";\n \"103.31.4.0/22\";\n \"104.16.0.0/13\";\n \"104.24.0.0/14\";\n \"108.162.192.0/18\";\n \"131.0.72.0/22\";\n \"141.101.64.0/18\";\n \"162.158.0.0/15\";\n \"172.64.0.0/13\";\n \"173.245.48.0/20\";\n \"188.114.96.0/20\";\n \"190.93.240.0/20\";\n \"197.234.240.0/22\";\n \"198.41.128.0/17\";\n \"2400:cb00::/32\";\n \"2405:8100::/32\";\n \"2405:b500::/32\";\n \"2606:4700::/32\";\n \"2803:f800::/32\";\n \"2a06:98c0::/29\";\n \"2c0f:f248::/32\";\n }\n"
 # trusted_proxies above is a list of Cloudflare IPs
