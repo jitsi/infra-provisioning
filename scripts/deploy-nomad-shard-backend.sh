@@ -125,7 +125,7 @@ export NOMAD_VAR_jigasi_shared_secret="$NOMAD_VAR_jigasi_xmpp_password"
 
 SIP_JIBRI_SHARED_SECRET="$(ansible-vault view $ENCRYPTED_JIBRI_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${SIP_JIBRI_SHARED_SECRET_VARIABLE}" -)"
 if [[ "$SIP_JIBRI_SHARED_SECRET" != "null" ]]; then
-    export NOMAD_VAR_jibri_shared_secret="$SIP_JIBRI_SHARED_SECRET"
+    export NOMAD_VAR_sip_jibri_shared_secret="$SIP_JIBRI_SHARED_SECRET"
 fi
 
 set -x
