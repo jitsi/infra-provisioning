@@ -847,13 +847,13 @@ trusted_proxies = {\n\"127.0.0.1\";\n \"::1\";\n \"172.17.0.0/16\";\n \"10.0.0.0
 
 PROSODY_LOG_CONFIG="{level = \"debug\", to = \"ringbuffer\",size = 1024*1024*400, filename_template = \"traceback.txt\", event = \"debug_traceback/triggered\";};"
 GLOBAL_MODULES="debug_traceback,http_openmetrics,measure_stanza_counts,log_ringbuffer,firewall,muc_census,muc_end_meeting,secure_interfaces,external_services,turncredentials_http"
-XMPP_MODULES="{{ if eq "${var.filter_iq_rayo_enabled}" "true" }}filter_iq_rayo,{{ end }}jiconop,persistent_lobby,measure_message_count"
+XMPP_MODULES="{{ if eq "${var.filter_iq_rayo_enabled}" "true" }}filter_iq_rayo,{{ end }}jiconop,persistent_lobby"
 XMPP_INTERNAL_MUC_MODULES=
 # hack to avoid token_verification when firebase auth is on
 JWT_TOKEN_AUTH_MODULE=muc_hide_all
 XMPP_CONFIGURATION="cache_keys_url=\"${var.prosody_cache_keys_url}\",shard_name=\"${var.shard}\",region_name=\"{{ env "meta.cloud_region" }}\",release_number=\"${var.release_number}\",max_number_outgoing_calls=${var.max_outgoing_calls}"
 XMPP_MUC_CONFIGURATION="muc_room_allow_persistent = false"
-XMPP_MUC_MODULES="{{ if eq "${var.webhooks_enabled}" "true" }}muc_webhooks,{{ end }}{{ if eq "${var.enable_muc_allowners}" "true" }}muc_allowners,{{ end }}{{ if eq "${var.wait_for_host_enabled}" "true" }}muc_wait_for_host,{{ end }}muc_hide_all"
+XMPP_MUC_MODULES="{{ if eq "${var.webhooks_enabled}" "true" }}muc_webhooks,{{ end }}{{ if eq "${var.enable_muc_allowners}" "true" }}muc_allowners,{{ end }}{{ if eq "${var.wait_for_host_enabled}" "true" }}muc_wait_for_host,{{ end }}muc_hide_all,measure_message_count"
 XMPP_LOBBY_MUC_MODULES="{{ if eq "${var.webhooks_enabled}" "true" }}muc_webhooks,{{ end }}muc_hide_all"
 XMPP_BREAKOUT_MUC_MODULES="{{ if eq "${var.webhooks_enabled}" "true" }}muc_webhooks,{{ end }}muc_hide_all"
 XMPP_SERVER={{ env "NOMAD_IP_prosody_client" }}
