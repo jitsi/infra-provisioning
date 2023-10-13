@@ -854,8 +854,8 @@ JWT_TOKEN_AUTH_MODULE=muc_hide_all
 XMPP_CONFIGURATION="cache_keys_url=\"${var.prosody_cache_keys_url}\",shard_name=\"${var.shard}\",region_name=\"{{ env "meta.cloud_region" }}\",release_number=\"${var.release_number}\",max_number_outgoing_calls=${var.max_outgoing_calls}"
 XMPP_MUC_CONFIGURATION="muc_room_allow_persistent = false"
 XMPP_MUC_MODULES="{{ if eq "${var.webhooks_enabled}" "true" }}muc_webhooks,{{ end }}{{ if eq "${var.enable_muc_allowners}" "true" }}muc_allowners,{{ end }}{{ if eq "${var.wait_for_host_enabled}" "true" }}muc_wait_for_host,{{ end }}muc_hide_all,measure_message_count"
-XMPP_LOBBY_MUC_MODULES="{{ if eq "${var.webhooks_enabled}" "true" }}muc_webhooks,{{ end }}muc_hide_all"
-XMPP_BREAKOUT_MUC_MODULES="{{ if eq "${var.webhooks_enabled}" "true" }}muc_webhooks,{{ end }}muc_hide_all"
+XMPP_LOBBY_MUC_MODULES="{{ if eq "${var.webhooks_enabled}" "true" }}muc_webhooks,{{ end }}muc_hide_all,measure_message_count"
+XMPP_BREAKOUT_MUC_MODULES="{{ if eq "${var.webhooks_enabled}" "true" }}muc_webhooks,{{ end }}muc_hide_all,measure_message_count"
 XMPP_SERVER={{ env "NOMAD_IP_prosody_client" }}
 XMPP_PORT={{  env "NOMAD_HOST_PORT_prosody_client" }}
 XMPP_BOSH_URL_BASE=http://{{ env "NOMAD_IP_prosody_http" }}:{{ env "NOMAD_HOST_PORT_prosody_http" }}
