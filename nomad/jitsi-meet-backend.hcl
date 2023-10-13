@@ -940,7 +940,7 @@ VirtualHost "sipjibri.${var.domain}"
     authentication = "jitsi-shared-secret"
     shared_secret = "${var.sip_jibri_shared_secret}"
 
-{{- end -}}
+{{- end }}
 
 VirtualHost "jigasi.${var.domain}"
     modules_enabled = {
