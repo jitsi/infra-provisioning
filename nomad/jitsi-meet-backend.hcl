@@ -710,6 +710,7 @@ EOF
         PROSODY_RATE_LIMIT_ALLOW_RANGES="${var.prosody_rate_limit_allow_ranges}"
         PROSODY_C2S_LIMIT="512kb/s"
         PROSODY_S2S_LIMIT=""
+        PROSODY_RATE_LIMIT_SESSION_RATE="2000"
         AUTH_TYPE="jwt"
         JWT_ALLOW_EMPTY="${var.jwt_allow_empty}"
         JWT_ENABLE_DOMAIN_VERIFICATION="true"
