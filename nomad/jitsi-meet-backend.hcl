@@ -217,6 +217,16 @@ variable amplitude_api_key {
   default = ""
 }
 
+variable prosody_limit_messages {
+  type = string
+  default = ""
+}
+
+variable prosody_limit_messages_check_token {
+  type = string
+  default = "false"
+}
+
 job "[JOB_NAME]" {
   region = "global"
   datacenters = [var.dc]
@@ -805,7 +815,8 @@ VISITORS_XMPP_SERVER={{ range $i, $e := scratch.MapValues "vnodes" }}{{ if gt $i
 # prosody main configuration options
 #
 
-GLOBAL_CONFIG="statistics = \"internal\"\nstatistics_interval = \"manual\"\nopenmetrics_allow_cidr = \"0.0.0.0/0\";\n
+GLOBAL_CONFIG="statistics = \"internal\"\nstatistics_interval = \"manual\"\nopenmetrics_allow_cidr = \"0.0.0.0/0\";\ntoken_verification_allowlist = { "recorder.${var.domain}" };\n
+{{- if eq "${var.asap_disable_require_room_claim}" "true" -}}
 {{- if eq "${var.asap_disable_require_room_claim}" "true" -}}
 asap_require_room_claim = false;\n
 {{- end -}}
@@ -818,7 +829,10 @@ asap_key_path = \"/opt/jitsi/keys/${var.environment_type}.key\";\nasap_key_id = 
 {{- if ne "${var.amplitude_api_key}" "" -}}
 amplitude_api_key = \"${var.amplitude_api_key}\";\n
 {{- end -}}
-debug_traceback_filename = \"traceback.txt\";\nc2s_stanza_size_limit = 512*1024;\n
+debug_traceback_filename = \"traceback.txt\";\nc2s_stanza_size_limit = 512*1024;\ncross_domain_websocket =  true;\ncross_domain_bosh = false;\nbosh_max_inactivity = 60;\n
+{{- if ne  "${var.prosody_limit_messages}" "" -}}
+muc_limit_messages_count = ${var.prosody_limit_messages};\nmuc_limit_messages_check_token = ${var.prosody_limit_messages_check_token};\n
+{{- end -}}
 {{- if eq "${var.webhooks_enabled}" "true" -}}
 muc_prosody_egress_url = \"http://{{ env "attr.unique.network.ip-address" }}:${var.fabio_internal_port}/v1/events\";\n
 muc_prosody_egress_fallback_url = \"${var.prosody_egress_fallback_url}\"\n;
