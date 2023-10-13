@@ -815,7 +815,7 @@ VISITORS_XMPP_SERVER={{ range $i, $e := scratch.MapValues "vnodes" }}{{ if gt $i
 # prosody main configuration options
 #
 
-GLOBAL_CONFIG="statistics = \"internal\"\nstatistics_interval = \"manual\"\nopenmetrics_allow_cidr = \"0.0.0.0/0\";\ntoken_verification_allowlist = { "recorder.${var.domain}" };\n
+GLOBAL_CONFIG="statistics = \"internal\"\nstatistics_interval = \"manual\"\nopenmetrics_allow_cidr = \"0.0.0.0/0\";\ntoken_verification_allowlist = { \"recorder.${var.domain}]\" };\n
 {{- if eq "${var.asap_disable_require_room_claim}" "true" -}}
 asap_require_room_claim = false;\n
 {{- end -}}
