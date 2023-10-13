@@ -247,6 +247,11 @@ variable jigasi_shared_secret {
   default = "replaceme"
 }
 
+variable sip_jibri_shared_secret {
+  type = string
+  default = ""
+}
+
 job "[JOB_NAME]" {
   region = "global"
   datacenters = [var.dc]
@@ -926,6 +931,17 @@ EOF
 
       template {
         data = <<EOH
+{{- if ne "${var.sip_jibri_shared_secret}" "" -}}
+VirtualHost "sipjibri.${var.domain}"
+    modules_enabled = {
+      "ping";
+      "smacks";
+    }
+    authentication = "jitsi-shared-secret"
+    shared_secret = "${var.sip_jibri_shared_secret}"
+
+{{- end -}}
+
 VirtualHost "jigasi.${var.domain}"
     modules_enabled = {
       "ping";
@@ -934,7 +950,7 @@ VirtualHost "jigasi.${var.domain}"
     authentication = "jitsi-shared-secret"
     shared_secret = "${var.jigasi_shared_secret}"
 EOH
-        destination = "local/config/conf.d/jigasi.cfg.lua"
+        destination = "local/config/conf.d/other-domains.cfg.lua"
       }
 
       resources {

@@ -101,6 +101,7 @@ ENABLE_MUC_ALLOWNERS_VARIABLE="prosody_muc_allowners"
 BRANDING_NAME_VARIABLE="jitsi_meet_branding_override"
 ASAP_KEY_VARIABLE="asap_key_$ENVIRONMENT_TYPE"
 
+SIP_JIBRI_SHARED_SECRET_VARIABLE="sip_jibri_shared_secrets.\"$ENVIRONMENT\""
 
 # ensure no output for ansible vault contents and fail if ansible-vault fails
 set +x
@@ -121,6 +122,11 @@ export NOMAD_VAR_aws_access_key_id="$(ansible-vault view $ENCRYPTED_PROSODY_EGRE
 export NOMAD_VAR_aws_secret_access_key="$(ansible-vault view $ENCRYPTED_PROSODY_EGRESS_AWS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".prosody_egress_aws_secret_access_key_by_type.$ENVIRONMENT_TYPE" -)"
 
 export NOMAD_VAR_jigasi_shared_secret="$NOMAD_VAR_jigasi_xmpp_password"
+
+SIP_JIBRI_SHARED_SECRET="$(ansible-vault view $ENCRYPTED_JIBRI_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${SIP_JIBRI_SHARED_SECRET_VARIABLE}" -)"
+if [[ "$SIP_JIBRI_SHARED_SECRET" != "null" ]]; then
+    export NOMAD_VAR_jibri_shared_secret="$SIP_JIBRI_SHARED_SECRET"
+fi
 
 set -x
 
