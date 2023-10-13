@@ -691,6 +691,8 @@ EOF
         PROSODY_VISITORS_MUC_PREFIX="conference"
         PROSODY_ENABLE_RATE_LIMITS="1"
         PROSODY_RATE_LIMIT_ALLOW_RANGES="${var.prosody_rate_limit_allow_ranges}"
+        PROSODY_C2S_LIMIT="512kb/s"
+        PROSODY_S2S_LIMIT=""
         AUTH_TYPE="jwt"
         JWT_ALLOW_EMPTY="${var.jwt_allow_empty}"
         JWT_ENABLE_DOMAIN_VERIFICATION="true"
@@ -816,7 +818,7 @@ asap_key_path = \"/opt/jitsi/keys/${var.environment_type}.key\";\nasap_key_id = 
 {{- if ne "${var.amplitude_api_key}" "" -}}
 amplitude_api_key = \"${var.amplitude_api_key}\";\n
 {{- end -}}
-debug_traceback_filename = \"traceback.txt\";\n
+debug_traceback_filename = \"traceback.txt\";\nc2s_stanza_size_limit = 512*1024;\n
 {{- if eq "${var.webhooks_enabled}" "true" -}}
 muc_prosody_egress_url = \"http://{{ env "attr.unique.network.ip-address" }}:${var.fabio_internal_port}/v1/events\";\n
 muc_prosody_egress_fallback_url = \"${var.prosody_egress_fallback_url}\"\n;
