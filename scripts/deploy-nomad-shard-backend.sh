@@ -177,6 +177,11 @@ if [[ "$WEBHOOKS_ENABLED" != "null" ]]; then
     export NOMAD_VAR_webhooks_enabled="$WEBHOOKS_ENABLED"
 fi
 
+export PROSODY_EGRESS_FALLBACK_URL="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .prosody_egress_fallback_url -)"
+if [[ "$PROSODY_EGRESS_FALLBACK_URL" != "null" ]]; then
+    export NOMAD_VAR_prosody_egress_fallback_url="$PROSODY_EGRESS_FALLBACK_URL"
+fi
+
 export MUC_EVENTS_ENABLED="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .prosody_enable_muc_events -)"
 if [[ "$MUC_EVENTS_ENABLED" != "null" ]]; then
     export NOMAD_VAR_muc_events_enabled="$MUC_EVENTS_ENABLED"
