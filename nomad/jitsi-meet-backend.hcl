@@ -242,6 +242,11 @@ variable muc_moderated_subdomains {
   default = ""
 }
 
+variable jigasi_shared_secret {
+  type = string
+  default = "replaceme"
+}
+
 job "[JOB_NAME]" {
   region = "global"
   datacenters = [var.dc]
@@ -917,6 +922,19 @@ EOF
 
         destination = "local/prosody.env"
         env = true
+      }
+
+      template {
+        data = <<EOH
+VirtualHost "jigasi.${var.domain}"
+    modules_enabled = {
+      "ping";
+      "smacks";
+    }
+    authentication = "jitsi-shared-secret"
+    shared_secret = "${var.jigasi_shared_secret}"
+EOH
+        destination = "local/config/conf.d/jigasi.cfg.lua"
       }
 
       resources {
