@@ -644,8 +644,9 @@ EOF
 
       check {
         name = "health"
-        type = "tcp"
-        port = "prosody-client"
+        type = "http"
+        path = "/http-bind"
+        port = "prosody-http"
         interval = "10s"
         timeout = "2s"
       }
@@ -665,11 +666,12 @@ EOF
       port = "prosody-jvb-client"
 
       check {
-        name = "health"
-        type = "tcp"
-        port = "prosody-jvb-client"
+        name     = "health"
+        type     = "http"
+        path     = "/http-bind"
+        port     = "prosody-jvb-http"
         interval = "10s"
-        timeout = "2s"
+        timeout  = "2s"
       }
     }
 
