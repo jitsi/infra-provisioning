@@ -1754,6 +1754,11 @@ server {
 
 # main server doing the routing
 server {
+    proxy_connect_timeout       90s;
+    proxy_send_timeout          90s;
+    proxy_read_timeout          90s;
+    send_timeout                90s;
+
     listen       80 default_server;
     server_name  ${var.domain};
 
