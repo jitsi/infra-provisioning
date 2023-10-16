@@ -101,6 +101,7 @@ ENABLE_MUC_ALLOWNERS_VARIABLE="prosody_muc_allowners"
 BRANDING_NAME_VARIABLE="jitsi_meet_branding_override"
 ASAP_KEY_VARIABLE="asap_key_$ENVIRONMENT_TYPE"
 
+SIP_JIBRI_SHARED_SECRET_VARIABLE="sip_jibri_shared_secrets.\"$ENVIRONMENT\""
 
 # ensure no output for ansible vault contents and fail if ansible-vault fails
 set +x
@@ -119,6 +120,13 @@ export NOMAD_VAR_asap_jwt_kid="$(ansible-vault view $ENCRYPTED_ASAP_KEYS_FILE --
 
 export NOMAD_VAR_aws_access_key_id="$(ansible-vault view $ENCRYPTED_PROSODY_EGRESS_AWS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".prosody_egress_aws_access_key_id_by_type.$ENVIRONMENT_TYPE" -)"
 export NOMAD_VAR_aws_secret_access_key="$(ansible-vault view $ENCRYPTED_PROSODY_EGRESS_AWS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".prosody_egress_aws_secret_access_key_by_type.$ENVIRONMENT_TYPE" -)"
+
+export NOMAD_VAR_jigasi_shared_secret="$NOMAD_VAR_jigasi_xmpp_password"
+
+SIP_JIBRI_SHARED_SECRET="$(ansible-vault view $ENCRYPTED_JIBRI_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${SIP_JIBRI_SHARED_SECRET_VARIABLE}" -)"
+if [[ "$SIP_JIBRI_SHARED_SECRET" != "null" ]]; then
+    export NOMAD_VAR_sip_jibri_shared_secret="$SIP_JIBRI_SHARED_SECRET"
+fi
 
 set -x
 
@@ -151,6 +159,21 @@ if [[ "$ENABLE_MUC_ALLOWNERS" != "null" ]]; then
     export NOMAD_VAR_enable_muc_allowners="$ENABLE_MUC_ALLOWNERS"
 fi
 
+PROSODY_MUC_MODERATED_ROOMS="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval ".prosody_muc_moderated_rooms | @csv" -)"
+if [ -n "$PROSODY_MUC_MODERATED_ROOMS" ]; then
+    if [[ "$PROSODY_MUC_MODERATED_ROOMS" != "null" ]]; then
+        export NOMAD_VAR_muc_moderated_rooms="$PROSODY_MUC_MODERATED_ROOMS"
+    fi
+fi
+
+
+PROSODY_MUC_MODERATED_SUBDOMAINS="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval ".prosody_muc_moderated_subdomains | @csv" -)"
+if [ -n "$PROSODY_MUC_MODERATED_SUBDOMAINS" ]; then
+    if [[ "$PROSODY_MUC_MODERATED_SUBDOMAINS" != "null" ]]; then
+        export NOMAD_VAR_muc_moderated_subdomains="$PROSODY_MUC_MODERATED_SUBDOMAINS"
+    fi
+fi
+
 export FILTER_IQ_RAYO_ENABLED="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .prosody_enable_filter_iq_rayo -)"
 if [[ "$FILTER_IQ_RAYO_ENABLED" != "null" ]]; then
     export NOMAD_VAR_filter_iq_rayo_enabled="$FILTER_IQ_RAYO_ENABLED"
@@ -175,6 +198,11 @@ fi
 export WEBHOOKS_ENABLED="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .prosody_meet_webhooks_enabled -)"
 if [[ "$WEBHOOKS_ENABLED" != "null" ]]; then
     export NOMAD_VAR_webhooks_enabled="$WEBHOOKS_ENABLED"
+fi
+
+export PROSODY_EGRESS_FALLBACK_URL="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .prosody_egress_fallback_url -)"
+if [[ "$PROSODY_EGRESS_FALLBACK_URL" != "null" ]]; then
+    export NOMAD_VAR_prosody_egress_fallback_url="$PROSODY_EGRESS_FALLBACK_URL"
 fi
 
 export MUC_EVENTS_ENABLED="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .prosody_enable_muc_events -)"
@@ -225,8 +253,15 @@ if [[ "$PROSODY_CACHE_KEYS_URL_ENV" != "null" ]]; then
     PROSODY_CACHE_KEYS_URL=$PROSODY_CACHE_KEYS_URL_ENV
 fi
 
+AMPLITUDE_API_KEY="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_amplitude_api_key -)"
+if [[ "$AMPLITUDE_API_KEY" != "null" ]]; then
+    export NOMAD_VAR_amplitude_api_key="$AMPLITUDE_API_KEY"
+fi
 
 [ -z "$VISITORS_COUNT" ] && VISITORS_COUNT=0
+
+# override for testing
+VISITORS_COUNT=1
 
 export NOMAD_VAR_environment="$ENVIRONMENT"
 export NOMAD_VAR_domain="$DOMAIN"

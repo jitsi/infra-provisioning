@@ -487,6 +487,8 @@ job "[JOB_NAME]" {
         ENABLE_FILE_RECORDING_SHARING = "${var.service_recording_sharing_enabled}"
         ENABLE_TALK_WHILE_MUTED = "true"
         ENABLE_CLOSE_PAGE = "true"
+        ENABLE_GUESTS = "true"
+        ENABLE_AUTH = "true"
         ENABLE_TRANSCRIPTIONS = "${var.transcriptions_enabled}"
         ENABLE_LOCAL_RECORDING_NOTIFY_ALL_PARTICIPANTS = "true"
         ENABLE_REQUIRE_DISPLAY_NAME = "${var.require_display_name}"
