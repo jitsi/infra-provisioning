@@ -345,6 +345,9 @@ job "[JOB_NAME]" {
         TURN_CREDENTIALS="${var.turnrelay_password}"
         TURNS_HOST="${var.turnrelay_host}"
         TURN_HOST="${var.turnrelay_host}"
+        SHARD="${var.shard}"
+        RELEASE_NUMBER="${var.release_number}"
+        PROSODY_REGION_NAME="${var.octo_region}"
         MAX_PARTICIPANTS=500
         XMPP_DOMAIN = "${var.domain}"
         PUBLIC_URL="https://${var.domain}/"
