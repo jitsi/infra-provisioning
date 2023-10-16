@@ -337,6 +337,7 @@ job "[JOB_NAME]" {
         PROSODY_VISITORS_MUC_PREFIX="conference"
         ENABLE_VISITORS="true"
         ENABLE_GUESTS="true"
+        ENABLE_AUTH="true"
         PROSODY_VISITOR_INDEX="${NOMAD_ALLOC_INDEX}"
         PROSODY_ENABLE_RATE_LIMITS="1"
         PROSODY_RATE_LIMIT_ALLOW_RANGES="${var.prosody_rate_limit_allow_ranges}"
