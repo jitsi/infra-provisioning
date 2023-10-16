@@ -338,7 +338,6 @@ job "[JOB_NAME]" {
         ENABLE_VISITORS="true"
         ENABLE_GUESTS="true"
         ENABLE_AUTH="true"
-        LOG_LEVEL="debug"
         PROSODY_VISITOR_INDEX="${NOMAD_ALLOC_INDEX}"
         PROSODY_ENABLE_RATE_LIMITS="1"
         PROSODY_RATE_LIMIT_ALLOW_RANGES="${var.prosody_rate_limit_allow_ranges}"
