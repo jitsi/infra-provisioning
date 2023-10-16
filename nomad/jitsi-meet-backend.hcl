@@ -335,7 +335,8 @@ job "[JOB_NAME]" {
         VISITORS_MAX_PARTICIPANTS=5
         VISITORS_MAX_VISITORS_PER_NODE=250
         PROSODY_VISITORS_MUC_PREFIX="conference"
-        ENABLE_VISITORS="${var.visitors_enabled}"
+        ENABLE_VISITORS="true"
+        ENABLE_GUESTS="true"
         PROSODY_VISITOR_INDEX="${NOMAD_ALLOC_INDEX}"
         PROSODY_ENABLE_RATE_LIMITS="1"
         PROSODY_RATE_LIMIT_ALLOW_RANGES="${var.prosody_rate_limit_allow_ranges}"
