@@ -224,15 +224,32 @@ function shard_logs() {
         # nomad shards 
         echo 'Not implemented for non-nomad shards'
     else
-        SIGNAL_ALLOC="$(signal_allocation_from_shard $shard)"
-        if [ -z "$SIGNAL_ALLOC" ]; then
-            echo "No signal alloc found for shard $shard"
-            return 1
+        if [[ "$task" == "vnodes" ]]; then
+            VNODE_ALLOCS="$(vnode_allocations_from_shard $shard)"
+            if [ -z "$VNODE_ALLOCS" ]; then
+                echo "No vnode allocations found for shard $shard"
+                return 1
+            fi
+            for alloc in $VNODE_ALLOCS; do
+                echo "---- ALLOCATION $alloc PROSODY LOGS ----"
+                $LOCAL_PATH/nomad.sh alloc logs $flags $alloc prosody
+                echo "---- END ALLOCATION $alloc PROSODY LOGS ----"
+            done
+        else
+            SIGNAL_ALLOC="$(signal_allocation_from_shard $shard)"
+            if [ -z "$SIGNAL_ALLOC" ]; then
+                echo "No signal alloc found for shard $shard"
+                return 1
+            fi
+            $LOCAL_PATH/nomad.sh alloc logs $flags $SIGNAL_ALLOC $task
         fi
-        $LOCAL_PATH/nomad.sh alloc logs $flags $SIGNAL_ALLOC $task
     fi
 }
 
+function vnode_allocations_from_shard() {
+    local shard="$1"
+    ENVIRONMENT=$ENVIRONMENT $LOCAL_PATH/nomad.sh job status "shard-$shard" | grep vnode | grep running | awk '{print $1}'
+}
 function signal_allocation_from_shard() {
     local shard="$1"
     ENVIRONMENT=$ENVIRONMENT $LOCAL_PATH/nomad.sh job status "shard-$shard" | grep signal | grep running | tail -1 | awk '{print $1}'
