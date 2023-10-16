@@ -423,7 +423,7 @@ XMPP_SERVER={{ .ServiceMeta.prosody_client_ip }}
 XMPP_SERVER_S2S_PORT={{ .ServiceMeta.prosody_s2s_port }}
 {{ end -}}
 GLOBAL_CONFIG="statistics = \"internal\"\nstatistics_interval = \"manual\"\nopenmetrics_allow_cidr = \"0.0.0.0/0\";\n"
-GLOBAL_MODULES="http_openmetrics,measure_stanza_counts,log_ringbuffer,firewall,muc_census,secure_interfaces,external_services,turncredentials_http"
+GLOBAL_MODULES="admin_telnet,http_openmetrics,measure_stanza_counts,log_ringbuffer,firewall,muc_census,secure_interfaces,external_services,turncredentials_http"
 XMPP_MODULES="jiconop"
 XMPP_INTERNAL_MUC_MODULES=
 XMPP_MUC_MODULES=
@@ -872,7 +872,7 @@ trusted_proxies = {\n\"127.0.0.1\";\n \"::1\";\n \"172.17.0.0/16\";\n \"10.0.0.0
 # trusted_proxies above is a list of Cloudflare IPs
 
 PROSODY_LOG_CONFIG="{level = \"debug\", to = \"ringbuffer\",size = 1024*1024*400, filename_template = \"traceback.txt\", event = \"debug_traceback/triggered\";};"
-GLOBAL_MODULES="debug_traceback,http_openmetrics,measure_stanza_counts,log_ringbuffer,firewall,muc_census,muc_end_meeting,secure_interfaces,external_services,turncredentials_http"
+GLOBAL_MODULES="admin_telnet,debug_traceback,http_openmetrics,measure_stanza_counts,log_ringbuffer,firewall,muc_census,muc_end_meeting,secure_interfaces,external_services,turncredentials_http"
 XMPP_MODULES="{{ if eq "${var.filter_iq_rayo_enabled}" "true" }}filter_iq_rayo,{{ end }}jiconop,persistent_lobby"
 XMPP_INTERNAL_MUC_MODULES=
 # hack to avoid token_verification when firebase auth is on
@@ -1039,7 +1039,7 @@ EOH
 # Basic configuration options
 #
 GLOBAL_CONFIG="statistics = \"internal\"\nstatistics_interval = \"manual\"\nopenmetrics_allow_cidr = \"0.0.0.0/0\""
-GLOBAL_MODULES="http_openmetrics,measure_stanza_counts,log_ringbuffer,firewall,log_ringbuffer"
+GLOBAL_MODULES="admin_telnet,http_openmetrics,measure_stanza_counts,log_ringbuffer,firewall,log_ringbuffer"
 
 FOO=bar2
 # Directory where all configuration will be stored
