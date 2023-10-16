@@ -278,15 +278,32 @@ function shard_shell() {
     local shard="$1"
     local task="$2"
     local PROVIDER=$(core_provider $1)
+    [ -z "$VNODE" ] && VNODE=0
     if [[ "$PROVIDER" == "nomad" ]]; then
         if [ -n "$task" ]; then
-            SIGNAL_ALLOC="$(signal_allocation_from_shard $shard)"
-            if [ -z "$SIGNAL_ALLOC" ]; then
-                echo "No signal alloc found for shard $SHARD"
-                return 1
+            if [[ "$task" == "vnodes" ]]; then
+                VNODE_ALLOCS="$(vnode_allocations_from_shard $shard)"
+                if [ -z "$VNODE_ALLOCS" ]; then
+                    echo "No vnode allocations found for shard $shard"
+                    return 1
+                fi
+                i=0
+                for alloc in $VNODE_ALLOCS; do
+                    if [[ $i -eq $VNODE ]]; then
+                        echo "nomad shard $SHARD vnode $VNODE alloc $alloc task prosody exec"
+                        $LOCAL_PATH/nomad.sh alloc exec -task prosody $alloc /bin/bash
+                    fi
+                    i=$((i+1))
+                done
+            else
+                SIGNAL_ALLOC="$(signal_allocation_from_shard $shard)"
+                if [ -z "$SIGNAL_ALLOC" ]; then
+                    echo "No signal alloc found for shard $SHARD"
+                    return 1
+                fi
+                echo "nomad shard $SHARD alloc $SIGNAL_ALLOC task $task exec"
+                $LOCAL_PATH/nomad.sh alloc exec -task $task $SIGNAL_ALLOC /bin/bash
             fi
-            echo "nomad shard $SHARD alloc $SIGNAL_ALLOC task $task exec"
-            $LOCAL_PATH/nomad.sh alloc exec -task $task $SIGNAL_ALLOC /bin/bash
         else
             echo "Nomad shards require a task name"
             return 1
