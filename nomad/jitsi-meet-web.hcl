@@ -915,10 +915,10 @@ config.disableIframeAPI=true;
 {{ end -}}
 
 config.faceLandmarks={
-    enableFaceCentering: ${var.face_landmarks_centering_enabled},  {% if jitsi_meet_enable_face_landmarks_enable_centering %}true{% else %}false{% endif %},
-    enableFaceExpressionsDetection: ${var.face_landmarks_detect_expressions}, {% if jitsi_meet_enable_face_landmarks_detect_expressions %}true{% else %}false{% endif %},
-    enableDisplayFaceExpressions: ${var.face_landmarks_display_expressions}, {% if jitsi_meet_enable_face_landmarks_display_expressions %}true{% else %}false{% endif %},
-    enableRTCStats: ${var.face_landmarks_rtcstats_enabled}, {% if jitsi_meet_enable_face_landmarks_enable_rtc_stats %}true{% else %}false{% endif %},
+    enableFaceCentering: ${var.face_landmarks_centering_enabled},
+    enableFaceExpressionsDetection: ${var.face_landmarks_detect_expressions},
+    enableDisplayFaceExpressions: ${var.face_landmarks_display_expressions},
+    enableRTCStats: ${var.face_landmarks_rtcstats_enabled},
     faceCenteringThreshold: 20,
     captureInterval: 1000
 };
