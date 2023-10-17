@@ -550,6 +550,7 @@ job "[JOB_NAME]" {
         ENABLE_GUESTS = "true"
         ENABLE_AUTH = "true"
         ENABLE_AUTH_DOMAIN = "false"
+        ENABLE_IPV6 = "false"
         ENABLE_TRANSCRIPTIONS = "${var.transcriptions_enabled}"
         ENABLE_LOCAL_RECORDING_NOTIFY_ALL_PARTICIPANTS = "true"
         ENABLE_REQUIRE_DISPLAY_NAME = "${var.require_display_name}"
