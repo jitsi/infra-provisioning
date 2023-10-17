@@ -388,6 +388,11 @@ variable webhid_feature_enabled {
   default = "true"
 }
 
+variable iframe_api_disabled {
+  type = string
+  default = "false"
+}
+
 job "[JOB_NAME]" {
   region = "global"
   datacenters = var.dc
@@ -858,6 +863,10 @@ config.mouseMoveCallbackInterval = 1000;
 
 {{ if eq "${var.webhid_feature_enabled}" "true" -}}
 config.enableWebHIDFeature=true;
+{{ end -}}
+
+{{ if eq "${var.iframe_api_disabled}" "true" -}}
+config.disableIframeAPI=true;
 {{ end -}}
 
 EOF

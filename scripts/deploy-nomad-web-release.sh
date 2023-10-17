@@ -255,6 +255,11 @@ if [[ "$WEBHID_FEATURE_ENABLED" != "null" ]]; then
     export NOMAD_VAR_webhid_feature_enabled="$WEBHID_FEATURE_ENABLED"
 fi
 
+IFRAME_API_DISABLED="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_disable_iframe_api -)"
+if [[ "$IFRAME_API_DISABLED" != "null" ]]; then
+    export NOMAD_VAR_iframe_api_disabled="$IFRAME_API_DISABLED"
+fi
+
 AMPLITUDE_API_KEY="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_amplitude_api_key -)"
 AMPLITUDE_INCLUDE_UTM="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_amplitude_include_utm -)"
 if [[ "$AMPLITUDE_API_KEY" != "null" ]]; then
