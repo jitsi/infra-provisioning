@@ -807,6 +807,8 @@ config.recordingSharingUrl='${var.api_recoding_sharing_url }';
 
 {{ if eq "${var.token_based_roles_enabled}" "true" -}}
 config.enableUserRolesBasedOnToken=true;
+{{ else -}}
+config.enableUserRolesBasedOnToken=false;
 {{ end -}}
 
 {{ if eq "${var.forced_reloads_enabled}" "true" -}}
