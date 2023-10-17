@@ -200,6 +200,16 @@ if [[ "$WEBHOOKS_ENABLED" != "null" ]]; then
     export NOMAD_VAR_webhooks_enabled="$WEBHOOKS_ENABLED"
 fi
 
+export SCTP_ENABLED="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jicofo_enable_sctp -)"
+if [[ "$SCTP_ENABLED" != "null" ]]; then
+    export NOMAD_VAR_sctp_enabled="$SCTP_ENABLED"
+fi
+
+export SCTP_RELAY_ENABLED="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jicofo_enable_sctp_relay -)"
+if [[ "$SCTP_RELAY_ENABLED" != "null" ]]; then
+    export NOMAD_VAR_sctp_relay_enabled="$SCTP_RELAY_ENABLED"
+fi
+
 export PROSODY_EGRESS_FALLBACK_URL="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .prosody_egress_fallback_url -)"
 if [[ "$PROSODY_EGRESS_FALLBACK_URL" != "null" ]]; then
     export NOMAD_VAR_prosody_egress_fallback_url="$PROSODY_EGRESS_FALLBACK_URL"
