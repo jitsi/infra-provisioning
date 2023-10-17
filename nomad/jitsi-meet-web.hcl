@@ -945,12 +945,12 @@ EOF
       }
 
       template {
-        data = file('nomad/templates/config_deeplinking.js')
+        data = file("nomad/templates/config_deeplinking.js")
         destination = "local/config/config_deeplinking.js"
       }
 
       template {
-        data = file('nomad/templates/config_legal.js')
+        data = file("nomad/templates/config_legal.js")
         destination = "local/config/config_legal.js"
       }
 
