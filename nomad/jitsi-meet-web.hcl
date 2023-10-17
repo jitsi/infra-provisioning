@@ -522,7 +522,8 @@ job "[JOB_NAME]" {
         ports = ["http","https","nginx-status"]
         volumes = [
           "local/_unlock:/usr/share/${var.branding_name}/_unlock",
-          // "local/base.html:/usr/share/${var.branding_name}/base.html",
+          "local/config_deeplinking.js:/usr/share/${var.branding_name}/config_deeplinking.js",
+          "local/config_legal.js:/usr/share/${var.branding_name}/config_legal.js",
           "local/nginx.conf:/defaults/nginx.conf",
           "local/config:/config",
           "local/nginx-status.conf:/config/nginx/site-confs/status.conf"
@@ -936,9 +937,9 @@ config.disableReactionsModeration=true;
 config.useTurnUdp=true;
 {{ end -}}
 
-<!--#include virtual="/config/config_deeplinking.js" -->
+<!--#include virtual="config_deeplinking.js" -->
 
-<!--#include virtual="/config/config_legal.js" -->
+<!--#include virtual="config_legal.js" -->
 
 EOF
         destination = "local/config/custom-config.js"
@@ -946,12 +947,12 @@ EOF
 
       template {
         data = file("nomad/templates/config_deeplinking.js")
-        destination = "local/config/config_deeplinking.js"
+        destination = "local/config_deeplinking.js"
       }
 
       template {
         data = file("nomad/templates/config_legal.js")
-        destination = "local/config/config_legal.js"
+        destination = "local/config_legal.js"
       }
 
       template {
