@@ -895,7 +895,7 @@ config.prejoinPageEnabled=false;
 {{ end -}}
 
 {{ if ne "${var.moderated_service_url}" "" -}}
-moderatedRoomServiceUrl='${var.moderated_service_url}';
+config.moderatedRoomServiceUrl='${var.moderated_service_url}';
 {{ end -}}
 
 config.deploymentInfo.releaseNumber='${var.release_number}';
