@@ -849,6 +849,8 @@ moderatedRoomServiceUrl='${var.moderated_service_url}';
 
 config.deploymentInfo.releaseNumber='${var.release_number}';
 
+config.mouseMoveCallbackInterval = 1000;
+
 EOF
         destination = "local/config/custom-config.js"
       }
