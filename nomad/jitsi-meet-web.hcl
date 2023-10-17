@@ -522,7 +522,7 @@ job "[JOB_NAME]" {
         ports = ["http","https","nginx-status"]
         volumes = [
           "local/_unlock:/usr/share/${var.branding_name}/_unlock",
-          "local/base.html:/usr/share/${var.branding_name}/base.html",
+          // "local/base.html:/usr/share/${var.branding_name}/base.html",
           "local/nginx.conf:/defaults/nginx.conf",
           "local/config:/config",
           "local/nginx-status.conf:/config/nginx/site-confs/status.conf"
@@ -583,12 +583,12 @@ job "[JOB_NAME]" {
 OK
 EOF
       }
-      template {
-        destination = "local/base.html"
-  data = <<EOF
-
-EOF
-      }
+//       template {
+//         destination = "local/base.html"
+//   data = <<EOF
+// <base href=\"{{ jitsi_meet_cdn_base_url }}/{{ jitsi_meet_cdn_prefix }}{{ jitsi_meet_branding_version }}/\" />
+// EOF
+//       }
       template {
         destination = "local/nginx.conf"
         # overriding the delimiters to [[ ]] to avoid conflicts with tpl's native templating, which also uses {{ }}
