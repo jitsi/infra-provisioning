@@ -378,6 +378,11 @@ variable prejoin_page_enabled {
   default = "false"
 }
 
+variable moderated_service_url {
+  type = string
+  default = ""
+}
+
 job "[JOB_NAME]" {
   region = "global"
   datacenters = var.dc
@@ -836,6 +841,10 @@ config.longTasksStatsInterval = 10000;
 config.prejoinPageEnabled=true;
 {{ else -}}
 config.prejoinPageEnabled=false;
+{{ end -}}
+
+{{ if ne "${var.moderated_service_url}" "" -}}
+moderatedRoomServiceUrl='${var.moderated_service_url}';
 {{ end -}}
 
 EOF

@@ -245,6 +245,11 @@ if [[ "$PREJOIN_PAGE_ENABLED" != "null" ]]; then
     export NOMAD_VAR_prejoin_page_enabled="$PREJOIN_PAGE_ENABLED"
 fi
 
+MODERATED_SERVICE_URL="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_moderated_service_url -)"
+if [[ "$MODERATED_SERVICE_URL" != "null" ]]; then
+    export NOMAD_VAR_moderated_service_url="$MODERATED_SERVICE_URL"
+fi
+
 AMPLITUDE_API_KEY="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_amplitude_api_key -)"
 AMPLITUDE_INCLUDE_UTM="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_amplitude_include_utm -)"
 if [[ "$AMPLITUDE_API_KEY" != "null" ]]; then
