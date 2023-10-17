@@ -368,6 +368,11 @@ variable giphy_sdk_key {
   default = ""
 }
 
+variable performance_stats_enabled {
+  type = string
+  default = "false"
+}
+
 job "[JOB_NAME]" {
   region = "global"
   datacenters = var.dc
@@ -489,6 +494,7 @@ job "[JOB_NAME]" {
         ENABLE_CLOSE_PAGE = "true"
         ENABLE_GUESTS = "true"
         ENABLE_AUTH = "true"
+        ENABLE_AUTH_DOMAIN = "false"
         ENABLE_TRANSCRIPTIONS = "${var.transcriptions_enabled}"
         ENABLE_LOCAL_RECORDING_NOTIFY_ALL_PARTICIPANTS = "true"
         ENABLE_REQUIRE_DISPLAY_NAME = "${var.require_display_name}"
@@ -811,6 +817,10 @@ config.enableForcedReload=true;
 config.giphy={};
 config.giphy.enabled=true;
 config.giphy.sdkKey='${var.giphy_sdk_key}';
+{{ end -}}
+
+{{ if eq "${var.performance_stats_enabled}" "true" -}}
+config.longTasksStatsInterval = 10000;
 {{ end -}}
 
 EOF

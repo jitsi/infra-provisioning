@@ -235,6 +235,11 @@ if [[ "$USER_ROLE_BASED_ON_TOKEN_ENABLED" != "null" ]]; then
     export NOMAD_VAR_token_based_roles_enabled="$USER_ROLE_BASED_ON_TOKEN_ENABLED"
 fi
 
+PERFORMANCE_STATS_ENABLED="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_performance_stats -)"
+if [[ "$PERFORMANCE_STATS_ENABLED" != "null" ]]; then
+    export NOMAD_VAR_performance_stats_enabled="$PERFORMANCE_STATS_ENABLED"
+fi
+
 AMPLITUDE_API_KEY="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_amplitude_api_key -)"
 AMPLITUDE_INCLUDE_UTM="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_amplitude_include_utm -)"
 if [[ "$AMPLITUDE_API_KEY" != "null" ]]; then
