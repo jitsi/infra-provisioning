@@ -1177,6 +1177,7 @@ EOF
       env {
         ENABLE_RECORDING="1"
         ENABLE_OCTO="1"
+        ENABLE_SCTP="1"
         ENABLE_VISITORS="${var.visitors_enabled}"
         JICOFO_ENABLE_REST="1"
         VISITORS_MAX_PARTICIPANTS=5
