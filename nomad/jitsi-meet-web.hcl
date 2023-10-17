@@ -428,6 +428,11 @@ variable reactions_moderation_disabled {
   default = "false"
 }
 
+variable turn_udp_enabled {
+  type = string
+  default = "false"
+}
+
 job "[JOB_NAME]" {
   region = "global"
   datacenters = var.dc
@@ -926,6 +931,11 @@ config.faceLandmarks={
 {{ if eq "${var.reactions_moderation_disabled}" "true" -}}
 config.disableReactionsModeration=true;
 {{ end -}}
+
+{{ if eq "${var.turn_udp_enabled}" "true" -}}
+config.useTurnUdp=true;
+{{ end -}}
+
 
 EOF
         destination = "local/config/custom-config.js"

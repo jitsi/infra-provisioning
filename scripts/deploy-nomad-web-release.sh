@@ -280,6 +280,11 @@ if [[ "$REACTIONS_MODERATION_DISABLED" != "null" ]]; then
     export NOMAD_VAR_reactions_moderation_disabled="$REACTIONS_MODERATION_DISABLED"
 fi
 
+TURN_UDP_ENABLED="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_enable_turn_udp_jvb -)"
+if [[ "$TURN_UDP_ENABLED" != "null" ]]; then
+    export NOMAD_VAR_turn_udp_enabled="$TURN_UDP_ENABLED"
+fi
+
 IFRAME_API_DISABLED="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_disable_iframe_api -)"
 if [[ "$IFRAME_API_DISABLED" != "null" ]]; then
     export NOMAD_VAR_iframe_api_disabled="$IFRAME_API_DISABLED"
