@@ -936,9 +936,22 @@ config.disableReactionsModeration=true;
 config.useTurnUdp=true;
 {{ end -}}
 
+<!--#include virtual="/config/config_deeplinking.js" -->
+
+<!--#include virtual="/config/config_legal.js" -->
 
 EOF
         destination = "local/config/custom-config.js"
+      }
+
+      template {
+        data = file('nomad/templates/config_deeplinking.js')
+        destination = "local/config/config_deeplinking.js"
+      }
+
+      template {
+        data = file('nomad/templates/config_legal.js')
+        destination = "local/config/config_legal.js"
       }
 
       template {
