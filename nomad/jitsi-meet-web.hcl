@@ -393,6 +393,41 @@ variable iframe_api_disabled {
   default = "false"
 }
 
+variable screenshot_capture_enabled {
+  type = string
+  default = "false"
+}
+
+variable screenshot_capture_mode {
+  type = string
+  default = "recording"
+}
+
+variable face_landmarks_centering_enabled {
+  type = string
+  default = "false"
+}
+
+variable face_landmarks_detect_expressions {
+  type = string
+  default = "false"
+}
+
+variable face_landmarks_display_expressions {
+  type = string
+  default = "false"
+}
+
+variable face_landmarks_rtcstats_enabled {
+  type = string
+  default = "false"
+}
+
+variable reactions_moderation_disabled {
+  type = string
+  default = "false"
+}
+
 job "[JOB_NAME]" {
   region = "global"
   datacenters = var.dc
@@ -859,7 +894,16 @@ moderatedRoomServiceUrl='${var.moderated_service_url}';
 
 config.deploymentInfo.releaseNumber='${var.release_number}';
 
-config.mouseMoveCallbackInterval = 1000;
+config.mouseMoveCallbackInterval=1000;
+
+config.screenshotCapture={
+  enabled: ${var.screenshot_capture_enabled},
+  mode: '${var.screenshot_capture_mode}'
+};
+config.toolbarConfig={
+        timeout: 4000,
+        initialTimeout: 20000
+};
 
 {{ if eq "${var.webhid_feature_enabled}" "true" -}}
 config.enableWebHIDFeature=true;
@@ -867,6 +911,19 @@ config.enableWebHIDFeature=true;
 
 {{ if eq "${var.iframe_api_disabled}" "true" -}}
 config.disableIframeAPI=true;
+{{ end -}}
+
+config.faceLandmarks={
+    enableFaceCentering: ${var.face_landmarks_centering_enabled},  {% if jitsi_meet_enable_face_landmarks_enable_centering %}true{% else %}false{% endif %},
+    enableFaceExpressionsDetection: ${var.face_landmarks_detect_expressions}, {% if jitsi_meet_enable_face_landmarks_detect_expressions %}true{% else %}false{% endif %},
+    enableDisplayFaceExpressions: ${var.face_landmarks_display_expressions}, {% if jitsi_meet_enable_face_landmarks_display_expressions %}true{% else %}false{% endif %},
+    enableRTCStats: ${var.face_landmarks_rtcstats_enabled}, {% if jitsi_meet_enable_face_landmarks_enable_rtc_stats %}true{% else %}false{% endif %},
+    faceCenteringThreshold: 20,
+    captureInterval: 1000
+};
+
+{{ if eq "${var.reactions_moderation_disabled}" "true" -}}
+config.disableReactionsModeration=true;
 {{ end -}}
 
 EOF

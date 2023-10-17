@@ -255,6 +255,31 @@ if [[ "$WEBHID_FEATURE_ENABLED" != "null" ]]; then
     export NOMAD_VAR_webhid_feature_enabled="$WEBHID_FEATURE_ENABLED"
 fi
 
+FACE_LANDMARKS_CENTERING_ENABLED="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_enable_face_landmarks_enable_centering -)"
+if [[ "$FACE_LANDMARKS_CENTERING_ENABLED" != "null" ]]; then
+    export NOMAD_VAR_face_landmarks_centering_enabled="$FACE_LANDMARKS_CENTERING_ENABLED"
+fi
+
+FACE_LANDMARKS_DETECT_EXPRESSIONS="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_enable_face_landmarks_detect_expressions -)"
+if [[ "$FACE_LANDMARKS_DETECT_EXPRESSIONS" != "null" ]]; then
+    export NOMAD_VAR_face_landmarks_detect_expressions="$FACE_LANDMARKS_DETECT_EXPRESSIONS"
+fi
+
+FACE_LANDMARKS_DISPLAY_EXPRESSIONS="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_enable_face_landmarks_display_expressions -)"
+if [[ "$FACE_LANDMARKS_DISPLAY_EXPRESSIONS" != "null" ]]; then
+    export NOMAD_VAR_face_landmarks_display_expressions="$FACE_LANDMARKS_DISPLAY_EXPRESSIONS"
+fi
+
+FACE_LANDMARKS_RTCSTATS_ENABLED="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_enable_face_landmarks_enable_rtc_stats -)"
+if [[ "$FACE_LANDMARKS_RTCSTATS_ENABLED" != "null" ]]; then
+    export NOMAD_VAR_face_landmarks_rtcstats_enabled="$FACE_LANDMARKS_RTCSTATS_ENABLED"
+fi
+
+REACTIONS_MODERATION_DISABLED="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_disable_reactions_moderation -)"
+if [[ "$REACTIONS_MODERATION_DISABLED" != "null" ]]; then
+    export NOMAD_VAR_reactions_moderation_disabled="$REACTIONS_MODERATION_DISABLED"
+fi
+
 IFRAME_API_DISABLED="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_disable_iframe_api -)"
 if [[ "$IFRAME_API_DISABLED" != "null" ]]; then
     export NOMAD_VAR_iframe_api_disabled="$IFRAME_API_DISABLED"
