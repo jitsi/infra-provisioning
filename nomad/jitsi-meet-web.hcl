@@ -847,6 +847,8 @@ config.prejoinPageEnabled=false;
 moderatedRoomServiceUrl='${var.moderated_service_url}';
 {{ end -}}
 
+config.deploymentInfo.releaseNumber='${var.release_number}';
+
 EOF
         destination = "local/config/custom-config.js"
       }
