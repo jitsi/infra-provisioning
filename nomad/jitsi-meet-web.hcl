@@ -373,6 +373,11 @@ variable performance_stats_enabled {
   default = "false"
 }
 
+variable prejoin_page_enabled {
+  type = string
+  default = "false"
+}
+
 job "[JOB_NAME]" {
   region = "global"
   datacenters = var.dc
@@ -825,6 +830,12 @@ config.giphy.sdkKey='${var.giphy_sdk_key}';
 
 {{ if eq "${var.performance_stats_enabled}" "true" -}}
 config.longTasksStatsInterval = 10000;
+{{ end -}}
+
+{{ if eq "${var.prejoin_page_enabled}" "true" -}}
+config.prejoinPageEnabled=true;
+{{ else -}}
+config.prejoinPageEnabled=false;
 {{ end -}}
 
 EOF

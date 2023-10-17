@@ -240,6 +240,11 @@ if [[ "$PERFORMANCE_STATS_ENABLED" != "null" ]]; then
     export NOMAD_VAR_performance_stats_enabled="$PERFORMANCE_STATS_ENABLED"
 fi
 
+PREJOIN_PAGE_ENABLED="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_enable_prejoin_page -)"
+if [[ "$PREJOIN_PAGE_ENABLED" != "null" ]]; then
+    export NOMAD_VAR_prejoin_page_enabled="$PREJOIN_PAGE_ENABLED"
+fi
+
 AMPLITUDE_API_KEY="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_amplitude_api_key -)"
 AMPLITUDE_INCLUDE_UTM="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_amplitude_include_utm -)"
 if [[ "$AMPLITUDE_API_KEY" != "null" ]]; then
