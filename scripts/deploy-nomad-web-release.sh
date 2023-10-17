@@ -250,6 +250,11 @@ if [[ "$MODERATED_SERVICE_URL" != "null" ]]; then
     export NOMAD_VAR_moderated_service_url="$MODERATED_SERVICE_URL"
 fi
 
+WEBHID_FEATURE_ENABLED="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_enable_webhid_feature -)"
+if [[ "$WEBHID_FEATURE_ENABLED" != "null" ]]; then
+    export NOMAD_VAR_webhid_feature_enabled="$WEBHID_FEATURE_ENABLED"
+fi
+
 AMPLITUDE_API_KEY="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_amplitude_api_key -)"
 AMPLITUDE_INCLUDE_UTM="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_amplitude_include_utm -)"
 if [[ "$AMPLITUDE_API_KEY" != "null" ]]; then

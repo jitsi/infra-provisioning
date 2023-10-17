@@ -383,6 +383,11 @@ variable moderated_service_url {
   default = ""
 }
 
+variable webhid_feature_enabled {
+  type = string
+  default = "true"
+}
+
 job "[JOB_NAME]" {
   region = "global"
   datacenters = var.dc
@@ -850,6 +855,10 @@ moderatedRoomServiceUrl='${var.moderated_service_url}';
 config.deploymentInfo.releaseNumber='${var.release_number}';
 
 config.mouseMoveCallbackInterval = 1000;
+
+{{ if eq "${var.webhid_feature_enabled}" "true" -}}
+config.enableWebHIDFeature=true;
+{{ end -}}
 
 EOF
         destination = "local/config/custom-config.js"
