@@ -813,6 +813,8 @@ config.enableUserRolesBasedOnToken=false;
 
 {{ if eq "${var.forced_reloads_enabled}" "true" -}}
 config.enableForcedReload=true;
+{{ else -}}
+config.enableForcedReload=false;
 {{ end -}}
 
 {{ if eq "${var.giphy_enabled}" "true" -}}
