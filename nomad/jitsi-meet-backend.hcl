@@ -252,6 +252,16 @@ variable sip_jibri_shared_secret {
   default = ""
 }
 
+variable sctp_enabled {
+  type = string
+  default = "false"
+}
+
+variable sctp_relay_enabled {
+  type = string
+  default = "false"
+}
+
 job "[JOB_NAME]" {
   region = "global"
   datacenters = [var.dc]
@@ -1177,6 +1187,8 @@ EOF
       env {
         ENABLE_RECORDING="1"
         ENABLE_OCTO="1"
+        ENABLE_SCTP="${var.sctp_enabled}"
+        ENABLE_SCTP_RELAY="${var.sctp_relay_enabled}"
         ENABLE_VISITORS="${var.visitors_enabled}"
         JICOFO_ENABLE_REST="1"
         VISITORS_MAX_PARTICIPANTS=5

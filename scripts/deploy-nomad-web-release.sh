@@ -235,6 +235,61 @@ if [[ "$USER_ROLE_BASED_ON_TOKEN_ENABLED" != "null" ]]; then
     export NOMAD_VAR_token_based_roles_enabled="$USER_ROLE_BASED_ON_TOKEN_ENABLED"
 fi
 
+PERFORMANCE_STATS_ENABLED="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_performance_stats -)"
+if [[ "$PERFORMANCE_STATS_ENABLED" != "null" ]]; then
+    export NOMAD_VAR_performance_stats_enabled="$PERFORMANCE_STATS_ENABLED"
+fi
+
+PREJOIN_PAGE_ENABLED="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_enable_prejoin_page -)"
+if [[ "$PREJOIN_PAGE_ENABLED" != "null" ]]; then
+    export NOMAD_VAR_prejoin_page_enabled="$PREJOIN_PAGE_ENABLED"
+fi
+
+MODERATED_SERVICE_URL="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_moderated_service_url -)"
+if [[ "$MODERATED_SERVICE_URL" != "null" ]]; then
+    export NOMAD_VAR_moderated_service_url="$MODERATED_SERVICE_URL"
+fi
+
+WEBHID_FEATURE_ENABLED="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_enable_webhid_feature -)"
+if [[ "$WEBHID_FEATURE_ENABLED" != "null" ]]; then
+    export NOMAD_VAR_webhid_feature_enabled="$WEBHID_FEATURE_ENABLED"
+fi
+
+FACE_LANDMARKS_CENTERING_ENABLED="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_enable_face_landmarks_enable_centering -)"
+if [[ "$FACE_LANDMARKS_CENTERING_ENABLED" != "null" ]]; then
+    export NOMAD_VAR_face_landmarks_centering_enabled="$FACE_LANDMARKS_CENTERING_ENABLED"
+fi
+
+FACE_LANDMARKS_DETECT_EXPRESSIONS="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_enable_face_landmarks_detect_expressions -)"
+if [[ "$FACE_LANDMARKS_DETECT_EXPRESSIONS" != "null" ]]; then
+    export NOMAD_VAR_face_landmarks_detect_expressions="$FACE_LANDMARKS_DETECT_EXPRESSIONS"
+fi
+
+FACE_LANDMARKS_DISPLAY_EXPRESSIONS="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_enable_face_landmarks_display_expressions -)"
+if [[ "$FACE_LANDMARKS_DISPLAY_EXPRESSIONS" != "null" ]]; then
+    export NOMAD_VAR_face_landmarks_display_expressions="$FACE_LANDMARKS_DISPLAY_EXPRESSIONS"
+fi
+
+FACE_LANDMARKS_RTCSTATS_ENABLED="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_enable_face_landmarks_enable_rtc_stats -)"
+if [[ "$FACE_LANDMARKS_RTCSTATS_ENABLED" != "null" ]]; then
+    export NOMAD_VAR_face_landmarks_rtcstats_enabled="$FACE_LANDMARKS_RTCSTATS_ENABLED"
+fi
+
+REACTIONS_MODERATION_DISABLED="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_disable_reactions_moderation -)"
+if [[ "$REACTIONS_MODERATION_DISABLED" != "null" ]]; then
+    export NOMAD_VAR_reactions_moderation_disabled="$REACTIONS_MODERATION_DISABLED"
+fi
+
+TURN_UDP_ENABLED="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_enable_turn_udp_jvb -)"
+if [[ "$TURN_UDP_ENABLED" != "null" ]]; then
+    export NOMAD_VAR_turn_udp_enabled="$TURN_UDP_ENABLED"
+fi
+
+IFRAME_API_DISABLED="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_disable_iframe_api -)"
+if [[ "$IFRAME_API_DISABLED" != "null" ]]; then
+    export NOMAD_VAR_iframe_api_disabled="$IFRAME_API_DISABLED"
+fi
+
 AMPLITUDE_API_KEY="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_amplitude_api_key -)"
 AMPLITUDE_INCLUDE_UTM="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_amplitude_include_utm -)"
 if [[ "$AMPLITUDE_API_KEY" != "null" ]]; then

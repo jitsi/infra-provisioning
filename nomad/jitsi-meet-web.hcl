@@ -368,6 +368,71 @@ variable giphy_sdk_key {
   default = ""
 }
 
+variable performance_stats_enabled {
+  type = string
+  default = "false"
+}
+
+variable prejoin_page_enabled {
+  type = string
+  default = "false"
+}
+
+variable moderated_service_url {
+  type = string
+  default = ""
+}
+
+variable webhid_feature_enabled {
+  type = string
+  default = "true"
+}
+
+variable iframe_api_disabled {
+  type = string
+  default = "false"
+}
+
+variable screenshot_capture_enabled {
+  type = string
+  default = "false"
+}
+
+variable screenshot_capture_mode {
+  type = string
+  default = "recording"
+}
+
+variable face_landmarks_centering_enabled {
+  type = string
+  default = "false"
+}
+
+variable face_landmarks_detect_expressions {
+  type = string
+  default = "false"
+}
+
+variable face_landmarks_display_expressions {
+  type = string
+  default = "false"
+}
+
+variable face_landmarks_rtcstats_enabled {
+  type = string
+  default = "false"
+}
+
+variable reactions_moderation_disabled {
+  type = string
+  default = "false"
+}
+
+variable turn_udp_enabled {
+  type = string
+  default = "false"
+}
+
 job "[JOB_NAME]" {
   region = "global"
   datacenters = var.dc
@@ -457,7 +522,8 @@ job "[JOB_NAME]" {
         ports = ["http","https","nginx-status"]
         volumes = [
           "local/_unlock:/usr/share/${var.branding_name}/_unlock",
-          "local/base.html:/usr/share/${var.branding_name}/base.html",
+          "local/config_deeplinking.js:/usr/share/${var.branding_name}/config_deeplinking.js",
+          "local/config_legal.js:/usr/share/${var.branding_name}/config_legal.js",
           "local/nginx.conf:/defaults/nginx.conf",
           "local/config:/config",
           "local/nginx-status.conf:/config/nginx/site-confs/status.conf"
@@ -489,6 +555,8 @@ job "[JOB_NAME]" {
         ENABLE_CLOSE_PAGE = "true"
         ENABLE_GUESTS = "true"
         ENABLE_AUTH = "true"
+        ENABLE_AUTH_DOMAIN = "false"
+        ENABLE_IPV6 = "false"
         ENABLE_TRANSCRIPTIONS = "${var.transcriptions_enabled}"
         ENABLE_LOCAL_RECORDING_NOTIFY_ALL_PARTICIPANTS = "true"
         ENABLE_REQUIRE_DISPLAY_NAME = "${var.require_display_name}"
@@ -516,12 +584,12 @@ job "[JOB_NAME]" {
 OK
 EOF
       }
-      template {
-        destination = "local/base.html"
-  data = <<EOF
-
-EOF
-      }
+//       template {
+//         destination = "local/base.html"
+//   data = <<EOF
+// <base href=\"{{ jitsi_meet_cdn_base_url }}/{{ jitsi_meet_cdn_prefix }}{{ jitsi_meet_branding_version }}/\" />
+// EOF
+//       }
       template {
         destination = "local/nginx.conf"
         # overriding the delimiters to [[ ]] to avoid conflicts with tpl's native templating, which also uses {{ }}
@@ -801,10 +869,14 @@ config.recordingSharingUrl='${var.api_recoding_sharing_url }';
 
 {{ if eq "${var.token_based_roles_enabled}" "true" -}}
 config.enableUserRolesBasedOnToken=true;
+{{ else -}}
+config.enableUserRolesBasedOnToken=false;
 {{ end -}}
 
 {{ if eq "${var.forced_reloads_enabled}" "true" -}}
 config.enableForcedReload=true;
+{{ else -}}
+config.enableForcedReload=false;
 {{ end -}}
 
 {{ if eq "${var.giphy_enabled}" "true" -}}
@@ -813,8 +885,74 @@ config.giphy.enabled=true;
 config.giphy.sdkKey='${var.giphy_sdk_key}';
 {{ end -}}
 
+{{ if eq "${var.performance_stats_enabled}" "true" -}}
+config.longTasksStatsInterval = 10000;
+{{ end -}}
+
+{{ if eq "${var.prejoin_page_enabled}" "true" -}}
+config.prejoinPageEnabled=true;
+{{ else -}}
+config.prejoinPageEnabled=false;
+{{ end -}}
+
+{{ if ne "${var.moderated_service_url}" "" -}}
+config.moderatedRoomServiceUrl='${var.moderated_service_url}';
+{{ end -}}
+
+config.deploymentInfo.releaseNumber='${var.release_number}';
+
+config.mouseMoveCallbackInterval=1000;
+
+config.screenshotCapture={
+  enabled: ${var.screenshot_capture_enabled},
+  mode: '${var.screenshot_capture_mode}'
+};
+config.toolbarConfig={
+        timeout: 4000,
+        initialTimeout: 20000
+};
+
+{{ if eq "${var.webhid_feature_enabled}" "true" -}}
+config.enableWebHIDFeature=true;
+{{ end -}}
+
+{{ if eq "${var.iframe_api_disabled}" "true" -}}
+config.disableIframeAPI=true;
+{{ end -}}
+
+config.faceLandmarks={
+    enableFaceCentering: ${var.face_landmarks_centering_enabled},
+    enableFaceExpressionsDetection: ${var.face_landmarks_detect_expressions},
+    enableDisplayFaceExpressions: ${var.face_landmarks_display_expressions},
+    enableRTCStats: ${var.face_landmarks_rtcstats_enabled},
+    faceCenteringThreshold: 20,
+    captureInterval: 1000
+};
+
+{{ if eq "${var.reactions_moderation_disabled}" "true" -}}
+config.disableReactionsModeration=true;
+{{ end -}}
+
+{{ if eq "${var.turn_udp_enabled}" "true" -}}
+config.useTurnUdp=true;
+{{ end -}}
+
+<!--#include virtual="config_deeplinking.js" -->
+
+<!--#include virtual="config_legal.js" -->
+
 EOF
         destination = "local/config/custom-config.js"
+      }
+
+      template {
+        data = file("nomad/templates/config_deeplinking.js")
+        destination = "local/config_deeplinking.js"
+      }
+
+      template {
+        data = file("nomad/templates/config_legal.js")
+        destination = "local/config_legal.js"
       }
 
       template {
