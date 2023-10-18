@@ -1580,8 +1580,9 @@ EOF
         destination = "local/nginx-streams.conf"
         change_mode = "script"
         change_script {
-          command = "/usr/sbin/nginx -s reload"
-          timeout = "6h"
+          command = "/usr/sbin/nginx"
+          args = ["-s", "reload"]
+          timeout = "30s"
           fail_on_error = true
         }
       }
@@ -1926,8 +1927,9 @@ EOF
         destination = "local/nginx-site.conf"
         change_mode = "script"
         change_script {
-          command = "/usr/sbin/nginx -s reload"
-          timeout = "6h"
+          command = "/usr/sbin/nginx"
+          args = ["-s", "reload"]
+          timeout = "30s"
           fail_on_error = true
         }
       }
