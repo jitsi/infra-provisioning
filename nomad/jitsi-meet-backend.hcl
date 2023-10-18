@@ -1787,7 +1787,7 @@ server {
     listen       80 default_server;
     server_name  ${var.domain};
 
-    add_header 'Strict-Transport-Security' 'max-age=63072000; includeSubDomains'
+    add_header 'Strict-Transport-Security' 'max-age=63072000; includeSubDomains';
     add_header X-Content-Type-Options nosniff;
     add_header 'X-Jitsi-Shard' '${var.shard}';
     add_header 'X-Jitsi-Region' '${var.octo_region}';
