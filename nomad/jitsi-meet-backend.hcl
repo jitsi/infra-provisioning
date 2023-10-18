@@ -1578,6 +1578,12 @@ server {
 
 EOF
         destination = "local/nginx-streams.conf"
+        change_mode = "script"
+        change_script {
+          command = "nginx -s reload"
+          timeout = "6h"
+          fail_on_error = true
+        }
       }
       template {
         destination = "local/consul-resolved.conf"
@@ -1918,6 +1924,12 @@ server {
 }
 EOF
         destination = "local/nginx-site.conf"
+        change_mode = "script"
+        change_script {
+          command = "nginx -s reload"
+          timeout = "6h"
+          fail_on_error = true
+        }
       }
       template {
         destination = "local/_unlock"
