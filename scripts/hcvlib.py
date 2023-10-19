@@ -2057,13 +2057,37 @@ def get_oracle_image_by_id(id, region):
     
     return None
 
-def update_image_shapes(image, new_shapes):
+def get_image_shapes(image):
     config = oci.config.from_file()
     compute = oci.core.ComputeClient(config)
     compute.base_client.set_region(image.region)
 
+    entries = compute.list_image_shape_compatibility_entries(image.id)
+
+    if entries:
+        return entries.data
+
+def update_image_shapes(image, new_shapes):
+    config = oci.config.from_file()
+    compute = oci.core.ComputeClient(config)
+    compute.base_client.set_region(image.region)
+    entries = get_image_shapes(image)
+    shapes = [e.shape for e in entries]
+    #assume we are not adding shapes
+    add_shapes = False
     for shape in new_shapes:
-        compute.add_image_shape_compatibility_entry(image_id=image.id, shape_name=shape)
+        if shape not in shapes:
+            add_shapes = True
+            entries.append(oci.core.models.ImageShapeCompatibilityEntry(shape=shape))
+
+    if add_shapes:
+        for e in entries:
+            # do not try to add generic shapes back in
+            if not e.shape.endswith('Generic'):
+                compute.add_image_shape_compatibility_entry(image_id=image.id, shape_name=e.shape)
+        return True
+    else:
+        return None
 
 def update_image_tags(image, new_freeform_tags={}, new_defined_tags={}):
     config = oci.config.from_file()
