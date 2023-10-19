@@ -338,7 +338,7 @@ for REGION in "${IMPORT_ORACLE_REGIONS[@]}"; do
 
   NEW_OCID=$(echo "$IMPORT_IMAGE_STATE_JSON" | jq -r .data.\"id\")
   echo "Importing image $IMAGE_NAME in region $REGION with OCID $NEW_OCID, updating shape compatibility"
-  $LOCAL_PATH/oracle_custom_images.py --add_shape_compatibility --image-id $NEW_OCID --region $REGION
+  $LOCAL_PATH/oracle_custom_images.py --add_shape_compatibility --image_id $NEW_OCID --region $REGION
 
 done
 
