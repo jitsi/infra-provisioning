@@ -122,7 +122,5 @@ packer build \
 -var "infra_customizations_repo=$INFRA_CUSTOMIZATIONS_REPO" \
 $LOCAL_PATH/../build/build-base-oracle.json
 
-if [[ "$IMAGE_ARCH" == "x86_64" ]]; then
-  IMAGE_OCID=$($LOCAL_PATH/oracle_custom_images.py --type JammyBase --version "latest" --architecture "$IMAGE_ARCH" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
-  $LOCAL_PATH/../scripts/oracle_custom_images.py --add_shape_compatibility --image_id $IMAGE_OCID --region $ORACLE_REGION
-fi
+IMAGE_OCID=$($LOCAL_PATH/oracle_custom_images.py --type JammyBase --version "latest" --architecture "$IMAGE_ARCH" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
+$LOCAL_PATH/../scripts/oracle_custom_images.py --add_shape_compatibility --image_id $IMAGE_OCID --region $ORACLE_REGION
