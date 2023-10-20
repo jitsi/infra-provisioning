@@ -56,13 +56,6 @@ ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 
 RESOURCE_NAME_ROOT="${NAME_ROOT}"
 
-[ -z "$DNS_ZONE_NAME" ] && DNS_ZONE_NAME="$DEFAULT_DNS_ZONE_NAME"
-
-if [ -z "$DNS_ZONE_NAME" ]; then
-  echo "No DNS_ZONE_NAME provided or found. Exiting..."
-  exit 205
-fi
-
 if [[ "$POOL_PUBLIC" == "true" ]]; then
   POOL_SUBNET_OCID="$PUBLIC_SUBNET_OCID"
   EPHEMERAL_INGRESS_CIDR="0.0.0.0/0"
