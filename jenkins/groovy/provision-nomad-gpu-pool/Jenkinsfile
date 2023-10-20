@@ -40,7 +40,7 @@ pipeline {
                                 sh '''#!/bin/bash
                                 export USER_PUBLIC_KEY_PATH=~/.ssh/ssh_key.pub
                                 export ORACLE_GIT_BRANCH=\"$RELEASE_BRANCH\"
-                                terraform/nomad-pool/create-nomad-gpu-pool-stack.sh $SSH_USERNAME'''
+                                terraform/nomad-gpu-pool/create-nomad-gpu-pool-stack.sh $SSH_USERNAME'''
                             }
                         }
                     }
