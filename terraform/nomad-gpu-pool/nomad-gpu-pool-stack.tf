@@ -32,7 +32,7 @@ variable "user_data_lib_path" {
   default = "terraform/lib"
 }
 variable "user_data_file" {
-  default = "terraform/nomad-pool/user-data/postinstall-runner-oracle.sh"
+  default = "terraform/nomad-gpu-pool/user-data/postinstall-runner-oracle.sh"
 }
 variable "infra_configuration_repo" {}
 variable "infra_customizations_repo" {}
