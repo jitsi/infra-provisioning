@@ -24,10 +24,10 @@ pipeline {
                 }
             }
         }
-        stage ("nomad pool provisioning") {
+        stage ("nomad GPU pool provisioning") {
             steps {
                 script {
-                    echo 'nomad pool provision beginning'
+                    echo 'nomad GPU pool provision beginning'
                     dir('infra-provisioning') {
                         withCredentials([
                             string(credentialsId: 'oci-jenkins-terraform-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
