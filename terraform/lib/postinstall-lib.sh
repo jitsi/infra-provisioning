@@ -148,7 +148,7 @@ mount_volume() {
 
     # add volume to fstab
     echo "Adding volume to fstab"
-    grep -q "/mnt/bv/$LABEL" /etc/fstab || echo 'LABEL="'$LABEL'" /mnt/bv/'$LABEL' ext4 defaults,nofail 0 2' >> /etc/fstab
+    grep -q "$VOLUME_PATH" /etc/fstab || echo 'LABEL="'$VOLUME_LABEL'" '$VOLUME_PATH' ext4 defaults,nofail 0 2' >> /etc/fstab
 
 
     [ -d "$VOLUME_PATH" ] || mkdir -p $VOLUME_PATH
