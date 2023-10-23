@@ -70,7 +70,7 @@
         "-e",
         "infra_configuration_repo={{user `infra_configuration_repo`}} infra_customizations_repo={{user `infra_customizations_repo`}}",
         "-e",
-        "cloud_provider=oracle {{user `ansible_extra_vars`}}",
+        "cloud_provider=oracle oracle_region={{user `region`}} {{user `ansible_extra_vars`}}",
         "--vault-password-file",
         ".vault-password.txt",
         "--tags",
