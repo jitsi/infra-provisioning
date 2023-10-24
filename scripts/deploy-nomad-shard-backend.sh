@@ -270,9 +270,6 @@ fi
 
 [ -z "$VISITORS_COUNT" ] && VISITORS_COUNT=0
 
-# override for testing
-VISITORS_COUNT=1
-
 export NOMAD_VAR_environment="$ENVIRONMENT"
 export NOMAD_VAR_domain="$DOMAIN"
 export NOMAD_VAR_shard="$SHARD"
