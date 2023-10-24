@@ -1777,7 +1777,7 @@ server {
     listen       80 default_server;
     server_name  ${var.domain};
 
-    add_header Strict-Transport-Security max-age=63072000; includeSubDomains
+    add_header Strict-Transport-Security 'max-age=63072000; includeSubDomains';
     add_header X-Content-Type-Options nosniff;
     add_header 'X-Jitsi-Shard' '${var.shard}';
     add_header 'X-Jitsi-Region' '${var.octo_region}';
@@ -1788,7 +1788,7 @@ server {
 
     # BOSH
     location = /http-bind {
-        add_header Strict-Transport-Security max-age=63072000; includeSubDomains
+        add_header Strict-Transport-Security 'max-age=63072000; includeSubDomains';
         add_header 'Access-Control-Allow-Origin' '*';
         add_header 'Access-Control-Expose-Headers' "Content-Type, X-Jitsi-Region, X-Jitsi-Shard, X-Proxy-Region, X-Jitsi-Release";
         add_header 'X-Jitsi-Shard' '${var.shard}';
@@ -1804,7 +1804,7 @@ server {
     location = /xmpp-websocket {
         tcp_nodelay on;
 
-        add_header Strict-Transport-Security max-age=63072000; includeSubDomains
+        add_header Strict-Transport-Security 'max-age=63072000; includeSubDomains';
         add_header 'Access-Control-Allow-Origin' '*';
         add_header 'Access-Control-Expose-Headers' "Content-Type, X-Jitsi-Region, X-Jitsi-Shard, X-Proxy-Region, X-Jitsi-Release";
         add_header 'X-Jitsi-Shard' '${var.shard}';
@@ -1822,7 +1822,7 @@ server {
     location ~ ^/conference-request/v1(\/.*)?$ {
         proxy_pass http://jicofo/conference-request/v1$1;
         limit_req zone=conference-request burst=5;
-        add_header Strict-Transport-Security max-age=63072000; includeSubDomains
+        add_header Strict-Transport-Security 'max-age=63072000; includeSubDomains';
         add_header "Cache-Control" "no-cache, no-store";
         add_header 'Access-Control-Allow-Origin' '*';
         add_header 'Access-Control-Expose-Headers' "Content-Type, X-Jitsi-Region, X-Jitsi-Shard, X-Proxy-Region, X-Jitsi-Release";
@@ -1858,7 +1858,7 @@ server {
         add_header "Cache-Control" "no-cache, no-store";
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header Host $http_host;
-        add_header Strict-Transport-Security max-age=63072000; includeSubDomains
+        add_header Strict-Transport-Security 'max-age=63072000; includeSubDomains';
         add_header 'X-Jitsi-Shard' '${var.shard}';
         add_header 'X-Jitsi-Region' '${var.octo_region}';
         add_header 'X-Jitsi-Release' '${var.release_number}';
@@ -1867,7 +1867,7 @@ server {
     }
 
     location = /_unlock {
-        add_header Strict-Transport-Security max-age=63072000; includeSubDomains
+        add_header Strict-Transport-Security 'max-age=63072000; includeSubDomains';
         add_header 'Access-Control-Allow-Origin' '*';
         add_header 'Access-Control-Expose-Headers' "Content-Type, X-Jitsi-Region, X-Jitsi-Shard, X-Proxy-Region, X-Jitsi-Release";
         add_header 'X-Jitsi-Shard' '${var.shard}';
@@ -1888,7 +1888,7 @@ server {
     }
 
     location / {
-        add_header Strict-Transport-Security max-age=63072000; includeSubDomains
+        add_header Strict-Transport-Security 'max-age=63072000; includeSubDomains';
         proxy_set_header X-Jitsi-Shard ${var.shard};
         proxy_hide_header 'X-Jitsi-Shard';
         proxy_set_header Host $http_host;
