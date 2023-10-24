@@ -65,7 +65,9 @@ pipeline {				//indicate the job is written in Declarative Pipeline
         // output stage, shows off our input parameters
         stage ("setup") {
             steps {
-                echo 'HAProxy Release Creation'
+                script {
+                    echo 'HAProxy Release Creation'
+                }
             }
         }
         // tag the new release or load git_branch from input parameters
