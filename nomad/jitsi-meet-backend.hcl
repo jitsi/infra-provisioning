@@ -741,6 +741,7 @@ EOF
         ENABLE_BREAKOUT_ROOMS="1"
         ENABLE_AUTH="1"
         ENABLE_GUESTS="1"
+        ENABLE_END_CONFERENCE="0"
         ENABLE_VISITORS="${var.visitors_enabled}"
         PROSODY_VISITORS_MUC_PREFIX="conference"
         PROSODY_ENABLE_RATE_LIMITS="1"
