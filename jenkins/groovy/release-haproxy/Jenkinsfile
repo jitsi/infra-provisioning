@@ -67,10 +67,6 @@ pipeline {				//indicate the job is written in Declarative Pipeline
             steps {
                 script {
                     echo 'HAProxy Release Creation'
-                    dir('infra-provisioning') {
-                        useHAProxyConsulTemplate = utils.GetAnsibleVar(env.ENVIRONMENT, "haproxy_enable_consul_template")
-                        echo useHAProxyConsulTemplate
-                    }
                 }
             }
         }
@@ -137,9 +133,6 @@ pipeline {				//indicate the job is written in Declarative Pipeline
         }
         // trigger rotation of load balancers to trigger reconfigure step using new branches
         stage ("rotate load balancers") {
-            when {
-                expression { useHAProxyConsulTemplate != 'true' }
-            }
             steps {
                 script {
                     utils.ReconfigureHAProxy(env.ENVIRONMENT, env.VIDEO_INFRA_BRANCH)
