@@ -157,6 +157,11 @@ set -x
 [ -z "$NOMAD_LB_HOSTNAMES" ] && NOMAD_LB_HOSTNAMES="[\"$RESOURCE_NAME_ROOT.$TOP_LEVEL_DNS_ZONE_NAME\",\"${ENVIRONMENT}-${ORACLE_REGION}-jigasi-selector.$TOP_LEVEL_DNS_ZONE_NAME\",\"${ENVIRONMENT}-${ORACLE_REGION}-autoscaler.$TOP_LEVEL_DNS_ZONE_NAME\"]"
 [ -z "$NOMAD_ALT_HOSTNAMES" ] && NOMAD_ALT_HOSTNAMES="[\"$DOMAIN\"]"
 
+# if environment has skynet alt hostname, add it to the list
+if [ -n "$SKYNET_ALT_HOSTNAME" ]; then
+  NOMAD_LB_HOSTNAMES="$(echo "$NOMAD_LB_HOSTNAMES" "[\"$SKYNET_ALT_HOSTNAME\"]" | jq -c -s '.|add' )"
+fi
+
 [ -n "$NOMAD_LB_EXTRA_HOSTNAMES" ] && NOMAD_LB_HOSTNAMES="$(echo "$NOMAD_LB_HOSTNAMES" "$NOMAD_LB_EXTRA_HOSTNAMES" | jq -c -s '.|add' )"
 
 [ -n "$NOMAD_ALT_EXTRA_HOSTNAMES" ] && NOMAD_ALT_HOSTNAMES="$(echo "$NOMAD_ALT_HOSTNAMES" "$NOMAD_ALT_EXTRA_HOSTNAMES" | jq -c -s '.|add' )"
