@@ -164,13 +164,10 @@ EOF
 {{ end }}
 {{ end }}
 
-{{ range service "consul" }}
-{{ scratch.Set "consul_server" .Address }}
-{{ end }}
 [[inputs.prometheus]]
   [inputs.prometheus.consul]
     enabled = true
-    agent = "{{ scratch.Get "consul_server" }}:8500"
+    agent = "{{ env "attr.unique.network.ip-address" }}:8500"
     query_interval = "1m"
     [[inputs.prometheus.consul.query]]
       name = "jicofo"
@@ -235,7 +232,7 @@ EOF
   name_prefix = "jitsi_oscar_"
   [inputs.prometheus.consul]
     enabled = true
-    agent = "{{ scratch.Get "consul_server" }}:8500"
+    agent = "{{ env "attr.unique.network.ip-address" }}:8500"
     query_interval = "1m"
     [[inputs.prometheus.consul.query]]
       name = "oscar"
@@ -245,6 +242,21 @@ EOF
         host = "{{"{{"}}.Node}}"
         shard-role = "oscar"
         role = "oscar"
+
+[[inputs.prometheus]]
+  name_prefix = "jitsi_skynet_"
+  [inputs.prometheus.consul]
+    enabled = true
+    agent = "{{ env "attr.unique.network.ip-address" }}:8500"
+    query_interval = "1m"
+    [[inputs.prometheus.consul.query]]
+      name = "skynet"
+      tag = "ip-{{ env "attr.unique.network.ip-address" }}"
+      url = 'http://{{"{{"}}if ne .ServiceAddress ""}}{{"{{"}}.ServiceAddress}}{{"{{"}}else}}{{"{{"}}.Address}}{{"{{"}}end}}:{{"{{"}}.ServicePort}}/{{"{{"}}with .ServiceMeta.metrics_path}}{{"{{"}}.}}{{"{{"}}else}}summaries/metrics{{"{{"}}end}}'
+      [inputs.prometheus.consul.query.tags]
+        host = "{{"{{"}}.Node}}"
+        shard-role = "skynet"
+        role = "skynet"
 
 [[outputs.wavefront]]
   url = "${var.wavefront_proxy_url}"
