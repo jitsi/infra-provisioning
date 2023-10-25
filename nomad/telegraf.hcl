@@ -230,11 +230,20 @@ EOF
     [[inputs.prometheus.consul.query]]
       name = "skynet"
       tag = "ip-{{ env "attr.unique.network.ip-address" }}"
-      url = 'http://{{"{{"}}if ne .ServiceAddress ""}}{{"{{"}}.ServiceAddress}}{{"{{"}}else}}{{"{{"}}.Address}}{{"{{"}}end}}:{{"{{"}}with .ServiceMeta.metrics_port}}{{"{{"}}.}}{{"{{"}}else}}{{"{{"}}.ServicePort}}{{"{{"}}end}}/{{"{{"}}with .ServiceMeta.metrics_path}}{{"{{"}}.}}{{"{{"}}else}}summaries/metrics{{"{{"}}end}}'
+      url = 'http://{{"{{"}}if ne .ServiceAddress ""}}{{"{{"}}.ServiceAddress}}{{"{{"}}else}}{{"{{"}}.Address}}{{"{{"}}end}}:{{"{{"}}with .ServiceMeta.metrics_port}}{{"{{"}}.}}{{"{{"}}else}}{{"{{"}}.ServicePort}}{{"{{"}}end}}/{{"{{"}}with .ServiceMeta.metrics_path}}{{"{{"}}.}}{{"{{"}}else}}/metrics{{"{{"}}end}}'
       [inputs.prometheus.consul.query.tags]
         host = "{{"{{"}}.Node}}"
         shard-role = "skynet"
         role = "skynet"
+    [[inputs.prometheus.consul.query]]
+      name = "redis-metrics"
+      tag = "ip-{{ env "attr.unique.network.ip-address" }}"
+      url = 'http://{{"{{"}}if ne .ServiceAddress ""}}{{"{{"}}.ServiceAddress}}{{"{{"}}else}}{{"{{"}}.Address}}{{"{{"}}end}}:{{"{{"}}with .ServiceMeta.metrics_port}}{{"{{"}}.}}{{"{{"}}else}}{{"{{"}}.ServicePort}}{{"{{"}}end}}/{{"{{"}}with .ServiceMeta.metrics_path}}{{"{{"}}.}}{{"{{"}}else}}/metrics{{"{{"}}end}}'
+      [inputs.prometheus.consul.query.tags]
+        host = "{{"{{"}}.Node}}"
+        shard-role = "redis"
+        role = "redis"
+        redis-index = "{{"{{"}}with .ServiceMeta.redis_index}}{{"{{"}}.}}{{"{{"}}else}}NA{{"{{"}}end}}"
 
 [[inputs.prometheus]]
   name_prefix = "jitsi_oscar_"

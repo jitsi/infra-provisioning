@@ -37,6 +37,9 @@ job "[JOB_NAME]" {
         port "redis_db" {
           to = 6379
         }
+        port "metrics" {
+          to = 9121
+        }
       }
 
       volume "redis" {
@@ -97,6 +100,31 @@ EORC
         }
       }
 
+      task "redis_exporter" {
+        driver = "docker"
+        config {
+          image = "oliver006/redis_exporter"
+          ports = ["metrics"]
+        }
+        env {
+          REDIS_ADDR = "redis://${NOMAD_ADDR_redis_db}"
+        }
+        service {
+          name = "redis-metrics"
+          tags = ["ip-${attr.unique.network.ip-address}","redis-${group.key}"]
+          port = "metrics"
+          check {
+            name     = "alive"
+            type     = "http"
+            path     = "/health"
+            interval = "10s"
+            timeout  = "2s"
+          }
+          meta {
+            redis_index = "${group.key}"
+          }
+        }
+      }
     }
   }
 }
