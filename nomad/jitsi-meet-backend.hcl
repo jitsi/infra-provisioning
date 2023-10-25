@@ -1189,6 +1189,7 @@ EOF
         ports = ["jicofo-http"]
         volumes = [
           "local/config:/config",
+          "local/11-jicofo-rtcstats-push:/etc/cont-init.d/11-jicofo-rtcstats-push",
           "local/jicofo-rtcstats-push-service-run:/etc/services.d/60-jicofo-rtcstats-push/run"
         ]
       }
@@ -1251,7 +1252,24 @@ EOF
 
       artifact {
         source      = "https://github.com/jitsi/jicofo-rtcstats-push/releases/download/release-0.0.1/jicofo-rtcstats-push.zip"
-        destination = "local/jicofo-rtcstats-push"
+        destination = "local/jicofo-rtcstats-push.zip"
+        mode = file
+        options {
+          archive = false
+        }
+      }
+
+      template {
+        data = <<EOF
+#!/usr/bin/with-contenv bash
+
+mkdir -p /jicofo-rtcstats-push
+cd /jicofo-rtcstats-push
+unzip /local/jicofo-rtstats-push.zip
+
+EOF
+        destination = "local/11-jicofo-rtcstats-push"
+        perms = "755"
       }
 
       template {
