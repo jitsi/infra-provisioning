@@ -1189,6 +1189,7 @@ EOF
         ports = ["jicofo-http"]
         volumes = [
           "local/config:/config",
+          "local/jicofo-service-run:/etc/services.d/jicofo/run",
           "local/11-jicofo-rtcstats-push:/etc/cont-init.d/11-jicofo-rtcstats-push",
           "local/jicofo-rtcstats-push-service-run:/etc/services.d/60-jicofo-rtcstats-push/run"
         ]
@@ -1248,6 +1249,7 @@ EOF
         JICOFO_ADDRESS = "http://127.0.0.1:8888"
         RTCSTATS_SERVER="${var.rtcstats_server}"
         INTERVAL=10000
+        JICOFO_LOG_FILE = "/local/jicofo.log"
       }
 
       artifact {
@@ -1258,6 +1260,24 @@ EOF
           archive = false
         }
       }
+      template {
+        data = <<EOF
+#!/usr/bin/with-contenv bash
+
+JAVA_SYS_PROPS="-Djava.util.logging.config.file=/config/logging.properties -Dconfig.file=/config/jicofo.conf"
+DAEMON=/usr/share/jicofo/jicofo.sh
+DAEMON_DIR=/usr/share/jicofo/
+
+JICOFO_CMD="exec $DAEMON"
+
+[ -n "$JICOFO_LOG_FILE" ] && JICOFO_CMD="$JICOFO_CMD 2>&1 | tee $JICOFO_LOG_FILE"
+
+exec s6-setuidgid jicofo /bin/bash -c "cd $DAEMON_DIR; JAVA_SYS_PROPS=\"$JAVA_SYS_PROPS\" $JICOFO_CMD"
+EOF
+        destination = "local/jicofo-service-run"
+        perms = "755"
+      }
+
 
       template {
         data = <<EOF
