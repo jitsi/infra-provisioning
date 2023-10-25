@@ -1189,7 +1189,7 @@ EOF
         ports = ["jicofo-http"]
         volumes = [
           "local/config:/config",
-          "local/jicofo-rtcstats-push.zip:/tmp/jicofo-rtcstats-push.zip"
+          "local/jicofo-rtcstats-push.zip:/tmp/jicofo-rtcstats-push.zip",
           "local/11-jicofo-rtcstats-push:/etc/cont-init.d/11-jicofo-rtcstats-push",
           "local/jicofo-rtcstats-push-service-run:/etc/services.d/60-jicofo-rtcstats-push/run"
         ]
