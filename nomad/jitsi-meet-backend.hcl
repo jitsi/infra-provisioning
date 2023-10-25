@@ -262,6 +262,11 @@ variable sctp_relay_enabled {
   default = "false"
 }
 
+variable rtcstats_server {
+  type = string
+  default = ""
+}
+
 job "[JOB_NAME]" {
   region = "global"
   datacenters = [var.dc]
@@ -1182,7 +1187,10 @@ EOF
       config {
         image        = "jitsi/jicofo:${var.jicofo_tag}"
         ports = ["jicofo-http"]
-        volumes = ["local/config:/config"]
+        volumes = [
+          "local/config:/config",
+          "local/jicofo-rtcstats-push-service-run:/etc/services.d/60-jicofo-rtcstats-push/run"
+        ]
       }
 
       env {
@@ -1235,6 +1243,27 @@ EOF
         XMPP_RECORDER_DOMAIN = "recorder.${var.domain}"
         JICOFO_OCTO_REGION = "${var.octo_region}"
         JICOFO_ENABLE_HEALTH_CHECKS="1"
+        # jicofo rtcstats push vars
+        JICOFO_ADDRESS = "http://127.0.0.1:8888"
+        RTCSTATS_SERVER="${var.rtcstats_server}"
+        INTERVAL=10000
+      }
+
+      artifact {
+        source      = "https://github.com/jitsi/jicofo-rtcstats-push/releases/download/release-0.0.1/jicofo-rtcstats-push.zip"
+        destination = "local/jicofo-rtcstats-push"
+      }
+
+      template {
+        data = <<EOF
+#!/usr/bin/with-contenv bash
+
+exec node /local/jicofo-rtcstats-push/app.js
+
+EOF
+        destination = "local/jicofo-rtcstats-push-service-run"
+        perms = "755"
+
       }
 
       template {
