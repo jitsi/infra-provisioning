@@ -1253,7 +1253,6 @@ EOF
       artifact {
         source      = "https://github.com/jitsi/jicofo-rtcstats-push/releases/download/release-0.0.1/jicofo-rtcstats-push.zip"
         destination = "local/jicofo-rtcstats-push.zip"
-        mode = file
         options {
           archive = false
         }
