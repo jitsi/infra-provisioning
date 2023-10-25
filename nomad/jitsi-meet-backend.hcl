@@ -1265,7 +1265,7 @@ EOF
 apt-get update && apt-get -y install unzip
 mkdir -p /jicofo-rtcstats-push
 cd /jicofo-rtcstats-push
-unzip /local/jicofo-rtstats-push.zip
+unzip /local/jicofo-rtcstats-push.zip
 
 EOF
         destination = "local/11-jicofo-rtcstats-push"
