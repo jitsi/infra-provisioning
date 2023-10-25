@@ -1189,6 +1189,7 @@ EOF
         ports = ["jicofo-http"]
         volumes = [
           "local/config:/config",
+          "local/jicofo-rtcstats-push.zip:/tmp/jicofo-rtcstats-push.zip"
           "local/11-jicofo-rtcstats-push:/etc/cont-init.d/11-jicofo-rtcstats-push",
           "local/jicofo-rtcstats-push-service-run:/etc/services.d/60-jicofo-rtcstats-push/run"
         ]
@@ -1265,7 +1266,7 @@ EOF
 apt-get update && apt-get -y install unzip
 mkdir -p /jicofo-rtcstats-push
 cd /jicofo-rtcstats-push
-unzip /local/jicofo-rtcstats-push.zip
+unzip /tmp/jicofo-rtcstats-push.zip
 
 EOF
         destination = "local/11-jicofo-rtcstats-push"
