@@ -1263,7 +1263,13 @@ EOF
         data = <<EOF
 #!/usr/bin/with-contenv bash
 
-apt-get update && apt-get -y install unzip nodejs
+
+apt-get update && apt-get -y install unzip ca-certificates curl gnupg
+curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
+NODE_MAJOR=16
+echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_$NODE_MAJOR.x nodistro main" | sudo tee /etc/apt/sources.list.d/nodesource.list
+apt-get update && apt-get install nodejs -y
+
 mkdir -p /jicofo-rtcstats-push
 cd /jicofo-rtcstats-push
 unzip /local/jicofo-rtcstats-push.zip
