@@ -96,8 +96,12 @@ pipeline {
             cleanWs() // clean up
         }
         failure {
-            if (env.SLACK_REPORT == 'true' && env.STICK_TABLE_FIXED == 'true') {
-                slackSend color: "danger", message: "${env.JOB_NAME} ${env.BUILD_NUMBER} repaired stick tables in ${env.ENVIRONMENT}."
+            steps {
+                script {
+                    if (env.SLACK_REPORT == 'true' && env.STICK_TABLE_FIXED == 'true') {
+                        slackSend color: "danger", message: "${env.JOB_NAME} ${env.BUILD_NUMBER} repaired stick tables in ${env.ENVIRONMENT}."
+                    }
+                }
             }
         }
     }
