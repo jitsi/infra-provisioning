@@ -1262,6 +1262,7 @@ EOF
         data = <<EOF
 #!/usr/bin/with-contenv bash
 
+apt-get update && apt-get -y install unzip
 mkdir -p /jicofo-rtcstats-push
 cd /jicofo-rtcstats-push
 unzip /local/jicofo-rtstats-push.zip
