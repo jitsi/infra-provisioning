@@ -1277,7 +1277,7 @@ EOF
         data = <<EOF
 #!/usr/bin/with-contenv bash
 
-exec node /local/jicofo-rtcstats-push/app.js
+#exec node /local/jicofo-rtcstats-push/app.js
 
 EOF
         destination = "local/jicofo-rtcstats-push-service-run"
