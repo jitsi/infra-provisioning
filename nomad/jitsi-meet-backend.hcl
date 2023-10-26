@@ -495,8 +495,8 @@ EOF
       }
 
       resources {
-        cpu    = 200
-        memory = 256
+        cpu    = 1000
+        memory = 512
       }
     }
 
@@ -978,8 +978,8 @@ EOH
       }
 
       resources {
-        cpu    = 200
-        memory = 256
+        cpu    = 4000
+        memory = 2048
       }
     }
 
@@ -1176,8 +1176,8 @@ EOF
       }
 
       resources {
-        cpu    = 200
-        memory = 256
+        cpu    = 1000
+        memory = 512
       }
     }
 
@@ -1451,7 +1451,7 @@ EOF
       }
 
       resources {
-        cpu    = 1000
+        cpu    = 4000
         memory = 4096
       }
     }
