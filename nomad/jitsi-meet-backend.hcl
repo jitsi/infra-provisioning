@@ -1283,8 +1283,7 @@ EOF
         data = <<EOF
 #!/usr/bin/with-contenv bash
 
-
-apt-get update && apt-get -y install unzip ca-certificates curl gnupg
+apt-get update && apt-get -y install unzip ca-certificates curl gnupg cron
 mkdir -p /etc/apt/keyrings/
 curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
 NODE_MAJOR=16
@@ -1295,8 +1294,20 @@ mkdir -p /jicofo-rtcstats-push
 cd /jicofo-rtcstats-push
 unzip /local/jicofo-rtcstats-push.zip
 
+echo '0 * * * * /local/jicofo-log-truncate.sh' | crontab 
+
 EOF
         destination = "local/11-jicofo-rtcstats-push"
+        perms = "755"
+      }
+
+      template {
+        data = <<EOF
+#!/usr/bin/with-contenv bash
+
+echo > $JICOFO_LOG_FILE
+EOF
+        destination = "local/jicofo-log-truncate.sh"
         perms = "755"
       }
 
