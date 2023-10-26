@@ -268,6 +268,13 @@ if [[ "$AMPLITUDE_API_KEY" != "null" ]]; then
     export NOMAD_VAR_amplitude_api_key="$AMPLITUDE_API_KEY"
 fi
 
+RTCSTATS_SERVER="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jicofo_rtcstats_push_rtcstats_server -)"
+if [[ "$RTCSTATS_SERVER" != "null" ]]; then
+    export NOMAD_VAR_rtcstats_server="$RTCSTATS_SERVER"
+fi
+
+
+
 [ -z "$VISITORS_COUNT" ] && VISITORS_COUNT=0
 
 export NOMAD_VAR_environment="$ENVIRONMENT"
