@@ -1224,6 +1224,7 @@ EOF
         JICOFO_CONF_MAX_VIDEO_SENDERS=999999
         JICOFO_CONF_STRIP_SIMULCAST="1"
         JICOFO_SOURCE_SIGNALING_DELAYS="{ 50: 1000, 100: 2000 }"
+        JICOFO_MAX_MEMORY="1536m"
         XMPP_DOMAIN = "${var.domain}"
         PUBLIC_URL="https://${var.domain}/"
         JICOFO_AUTH_PASSWORD = "${var.jicofo_auth_password}"
@@ -1452,7 +1453,7 @@ EOF
 
       resources {
         cpu    = 4000
-        memory = 4096
+        memory = 2048
       }
     }
 
