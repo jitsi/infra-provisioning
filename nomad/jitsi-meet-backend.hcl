@@ -978,7 +978,7 @@ EOH
       }
 
       resources {
-        cpu    = 4000
+        cpu    = 1000
         memory = 2048
       }
     }
@@ -1452,7 +1452,7 @@ EOF
       }
 
       resources {
-        cpu    = 4000
+        cpu    = 1000
         memory = 2048
       }
     }
