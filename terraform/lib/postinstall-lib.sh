@@ -110,7 +110,6 @@ function init_volume() {
   mkfs -t ext4 $DEVICE
   if [[ $? -eq 0 ]]; then
     e2label $DEVICE $LABEL
-    echo 'LABEL="'$LABEL'" /mnt/bv/'$LABEL' ext4 defaults,nofail 0 2' >> /etc/fstab
 
     # now add volume-format freeform tag to volume
     NEW_TAGS="$(echo $TAGS '{"volume-format":"ext4"}' | jq -s '.|add')"
@@ -146,6 +145,11 @@ mount_volume() {
     else
       echo "Volume $volume $VOLUME_PATH already initialized"
     fi
+
+    # add volume to fstab
+    echo "Adding volume to fstab"
+    grep -q "$VOLUME_PATH" /etc/fstab || echo 'LABEL="'$VOLUME_LABEL'" '$VOLUME_PATH' ext4 defaults,nofail 0 2' >> /etc/fstab
+
 
     [ -d "$VOLUME_PATH" ] || mkdir -p $VOLUME_PATH
 

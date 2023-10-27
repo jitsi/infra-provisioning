@@ -262,6 +262,11 @@ variable sctp_relay_enabled {
   default = "false"
 }
 
+variable rtcstats_server {
+  type = string
+  default = ""
+}
+
 job "[JOB_NAME]" {
   region = "global"
   datacenters = [var.dc]
@@ -490,8 +495,8 @@ EOF
       }
 
       resources {
-        cpu    = 200
-        memory = 256
+        cpu    = 1000
+        memory = 512
       }
     }
 
@@ -741,6 +746,7 @@ EOF
         ENABLE_BREAKOUT_ROOMS="1"
         ENABLE_AUTH="1"
         ENABLE_GUESTS="1"
+        ENABLE_END_CONFERENCE="0"
         ENABLE_VISITORS="${var.visitors_enabled}"
         PROSODY_VISITORS_MUC_PREFIX="conference"
         PROSODY_ENABLE_RATE_LIMITS="1"
@@ -972,8 +978,8 @@ EOH
       }
 
       resources {
-        cpu    = 200
-        memory = 256
+        cpu    = 1000
+        memory = 2048
       }
     }
 
@@ -1170,8 +1176,8 @@ EOF
       }
 
       resources {
-        cpu    = 200
-        memory = 256
+        cpu    = 1000
+        memory = 512
       }
     }
 
@@ -1181,7 +1187,12 @@ EOF
       config {
         image        = "jitsi/jicofo:${var.jicofo_tag}"
         ports = ["jicofo-http"]
-        volumes = ["local/config:/config"]
+        volumes = [
+          "local/config:/config",
+          "local/jicofo-service-run:/etc/services.d/jicofo/run",
+          "local/11-jicofo-rtcstats-push:/etc/cont-init.d/11-jicofo-rtcstats-push",
+          "local/jicofo-rtcstats-push-service-run:/etc/services.d/60-jicofo-rtcstats-push/run"
+        ]
       }
 
       env {
@@ -1213,6 +1224,7 @@ EOF
         JICOFO_CONF_MAX_VIDEO_SENDERS=999999
         JICOFO_CONF_STRIP_SIMULCAST="1"
         JICOFO_SOURCE_SIGNALING_DELAYS="{ 50: 1000, 100: 2000 }"
+        JICOFO_MAX_MEMORY="1536m"
         XMPP_DOMAIN = "${var.domain}"
         PUBLIC_URL="https://${var.domain}/"
         JICOFO_AUTH_PASSWORD = "${var.jicofo_auth_password}"
@@ -1234,6 +1246,82 @@ EOF
         XMPP_RECORDER_DOMAIN = "recorder.${var.domain}"
         JICOFO_OCTO_REGION = "${var.octo_region}"
         JICOFO_ENABLE_HEALTH_CHECKS="1"
+        # jicofo rtcstats push vars
+        JICOFO_ADDRESS = "http://127.0.0.1:8888"
+        RTCSTATS_SERVER="${var.rtcstats_server}"
+        INTERVAL=10000
+        JICOFO_LOG_FILE = "/local/jicofo.log"
+      }
+
+      artifact {
+        source      = "https://github.com/jitsi/jicofo-rtcstats-push/releases/download/release-0.0.1/jicofo-rtcstats-push.zip"
+        mode = "file"
+        destination = "local/jicofo-rtcstats-push.zip"
+        options {
+          archive = false
+        }
+      }
+      template {
+        data = <<EOF
+#!/usr/bin/with-contenv bash
+
+JAVA_SYS_PROPS="-Djava.util.logging.config.file=/config/logging.properties -Dconfig.file=/config/jicofo.conf"
+DAEMON=/usr/share/jicofo/jicofo.sh
+DAEMON_DIR=/usr/share/jicofo/
+
+JICOFO_CMD="exec $DAEMON"
+
+[ -n "$JICOFO_LOG_FILE" ] && JICOFO_CMD="$JICOFO_CMD 2>&1 | tee $JICOFO_LOG_FILE"
+
+exec s6-setuidgid jicofo /bin/bash -c "cd $DAEMON_DIR; JAVA_SYS_PROPS=\"$JAVA_SYS_PROPS\" $JICOFO_CMD"
+EOF
+        destination = "local/jicofo-service-run"
+        perms = "755"
+      }
+
+
+      template {
+        data = <<EOF
+#!/usr/bin/with-contenv bash
+
+apt-get update && apt-get -y install unzip ca-certificates curl gnupg cron
+mkdir -p /etc/apt/keyrings/
+curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
+NODE_MAJOR=16
+echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_$NODE_MAJOR.x nodistro main" | tee /etc/apt/sources.list.d/nodesource.list
+apt-get update && apt-get install nodejs -y
+
+mkdir -p /jicofo-rtcstats-push
+cd /jicofo-rtcstats-push
+unzip /local/jicofo-rtcstats-push.zip
+
+echo '0 * * * * /local/jicofo-log-truncate.sh' | crontab 
+
+EOF
+        destination = "local/11-jicofo-rtcstats-push"
+        perms = "755"
+      }
+
+      template {
+        data = <<EOF
+#!/usr/bin/with-contenv bash
+
+echo > $JICOFO_LOG_FILE
+EOF
+        destination = "local/jicofo-log-truncate.sh"
+        perms = "755"
+      }
+
+      template {
+        data = <<EOF
+#!/usr/bin/with-contenv bash
+
+exec node /jicofo-rtcstats-push/app.js
+
+EOF
+        destination = "local/jicofo-rtcstats-push-service-run"
+        perms = "755"
+
       }
 
       template {
@@ -1376,7 +1464,7 @@ EOF
 
       resources {
         cpu    = 1000
-        memory = 4096
+        memory = 2048
       }
     }
 
@@ -1794,7 +1882,7 @@ server {
     listen       80 default_server;
     server_name  ${var.domain};
 
-    add_header 'Strict-Transport-Security' 'max-age=63072000; includeSubDomains';
+    add_header Strict-Transport-Security 'max-age=63072000; includeSubDomains';
     add_header X-Content-Type-Options nosniff;
     add_header 'X-Jitsi-Shard' '${var.shard}';
     add_header 'X-Jitsi-Region' '${var.octo_region}';
@@ -1805,7 +1893,7 @@ server {
 
     # BOSH
     location = /http-bind {
-        add_header 'Strict-Transport-Security' 'max-age=63072000; includeSubDomains';
+        add_header Strict-Transport-Security 'max-age=63072000; includeSubDomains';
         add_header 'Access-Control-Allow-Origin' '*';
         add_header 'Access-Control-Expose-Headers' "Content-Type, X-Jitsi-Region, X-Jitsi-Shard, X-Proxy-Region, X-Jitsi-Release";
         add_header 'X-Jitsi-Shard' '${var.shard}';
@@ -1821,7 +1909,7 @@ server {
     location = /xmpp-websocket {
         tcp_nodelay on;
 
-        add_header 'Strict-Transport-Security' 'max-age=63072000; includeSubDomains';
+        add_header Strict-Transport-Security 'max-age=63072000; includeSubDomains';
         add_header 'Access-Control-Allow-Origin' '*';
         add_header 'Access-Control-Expose-Headers' "Content-Type, X-Jitsi-Region, X-Jitsi-Shard, X-Proxy-Region, X-Jitsi-Release";
         add_header 'X-Jitsi-Shard' '${var.shard}';
@@ -1839,7 +1927,7 @@ server {
     location ~ ^/conference-request/v1(\/.*)?$ {
         proxy_pass http://jicofo/conference-request/v1$1;
         limit_req zone=conference-request burst=5;
-        add_header 'Strict-Transport-Security' 'max-age=63072000; includeSubDomains';
+        add_header Strict-Transport-Security 'max-age=63072000; includeSubDomains';
         add_header "Cache-Control" "no-cache, no-store";
         add_header 'Access-Control-Allow-Origin' '*';
         add_header 'Access-Control-Expose-Headers' "Content-Type, X-Jitsi-Region, X-Jitsi-Shard, X-Proxy-Region, X-Jitsi-Release";
@@ -1875,7 +1963,7 @@ server {
         add_header "Cache-Control" "no-cache, no-store";
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header Host $http_host;
-        add_header 'Strict-Transport-Security' 'max-age=63072000; includeSubDomains';
+        add_header Strict-Transport-Security 'max-age=63072000; includeSubDomains';
         add_header 'X-Jitsi-Shard' '${var.shard}';
         add_header 'X-Jitsi-Region' '${var.octo_region}';
         add_header 'X-Jitsi-Release' '${var.release_number}';
@@ -1884,7 +1972,7 @@ server {
     }
 
     location = /_unlock {
-        add_header 'Strict-Transport-Security' 'max-age=63072000; includeSubDomains';
+        add_header Strict-Transport-Security 'max-age=63072000; includeSubDomains';
         add_header 'Access-Control-Allow-Origin' '*';
         add_header 'Access-Control-Expose-Headers' "Content-Type, X-Jitsi-Region, X-Jitsi-Shard, X-Proxy-Region, X-Jitsi-Release";
         add_header 'X-Jitsi-Shard' '${var.shard}';
@@ -1905,7 +1993,7 @@ server {
     }
 
     location / {
-        add_header 'Strict-Transport-Security' 'max-age=63072000; includeSubDomains';
+        add_header Strict-Transport-Security 'max-age=63072000; includeSubDomains';
         proxy_set_header X-Jitsi-Shard ${var.shard};
         proxy_hide_header 'X-Jitsi-Shard';
         proxy_set_header Host $http_host;

@@ -1,0 +1,83 @@
+{
+  "variables": {
+    "build_id": "",
+    "jitsi_videobridge_deb_pkg_version": "",
+    "jitsi_meet_meta_version": "",
+    "ansible_ssh_user": "ubuntu",
+    "ansible_build_path": "../../infra-configuration/ansible",
+    "ansible_extra_vars": "",
+    "base_image_type": "",
+    "base_image_ocid": "",
+    "image_architecture": "x86_64",
+    "region": "",
+    "type":"GPU",
+    "availability_domain": "",
+    "subnet_ocid": "",
+    "compartment_ocid": "",
+    "shape": "",
+    "ocpus": "",
+    "memory_in_gbs": "",
+    "connection_ssh_private_key_file": "",
+    "ansible_python_interpreter": "",
+    "connection_use_private_ip": "false",
+    "tag_namespace": "",
+    "infra_customizations_repo": "git@github.com:jitsi/infra-customizations.git",
+    "infra_configuration_repo": "git@github.com:jitsi/infra-configuration.git",
+    "base_image_name": "Build{{user `type`}}-{{user `region`}}-{{user `environment`}}-{{timestamp}}"
+  },
+  "builders": [
+    {
+      "type": "oracle-oci",
+      "availability_domain": "{{user `availability_domain`}}",
+      "region": "{{user `region`}}",
+      "base_image_ocid": "{{user `base_image_ocid`}}",
+      "compartment_ocid": "{{user `compartment_ocid`}}",
+      "subnet_ocid": "{{user `subnet_ocid`}}",
+      "shape": "{{user `shape`}}",
+      "shape_config": {
+        "ocpus": "{{user `ocpus`}}",
+        "memory_in_gbs": "{{user `memory_in_gbs`}}"
+      },
+      "image_name": "{{user `base_image_name`}}",
+      "communicator": "ssh",
+      "ssh_username": "{{user `ansible_ssh_user`}}",
+      "ssh_private_key_file": "{{user `connection_ssh_private_key_file`}}",
+      "use_private_ip": "{{user `connection_use_private_ip`}}",
+      "defined_tags": {
+        "{{user `tag_namespace`}}": {
+          "Name": "{{user `base_image_name`}}",
+          "build_id": "{{user `build_id`}}",
+          "BaseImageType": "BaseType-{{user `base_image_type`}}",
+          "BaseImageOCID": "{{user `base_image_ocid`}}",
+          "Arch": "{{user `image_architecture`}}",
+          "TS": "{{timestamp}}",
+          "Type": "{{user `type`}}",
+          "environment_type": "dev"
+        }
+      }
+    }
+  ],
+  "provisioners": [
+    {
+      "type": "ansible",
+      "playbook_file": "{{user `ansible_build_path`}}/build-gpu-oracle.yml",
+      "user": "{{user `ansible_ssh_user`}}",
+      "extra_arguments": [
+        "-e",
+        "ansible_python_interpreter={{user `ansible_python_interpreter`}}",
+        "-e",
+        "ansible_ssh_user={{user `ansible_ssh_user`}}",
+        "-e",
+        "infra_configuration_repo={{user `infra_configuration_repo`}} infra_customizations_repo={{user `infra_customizations_repo`}}",
+        "-e",
+        "cloud_provider=oracle oracle_region={{user `region`}} {{user `ansible_extra_vars`}}",
+        "--vault-password-file",
+        ".vault-password.txt",
+        "--tags",
+        "{{user `ansible_deploy_tags`}}",
+        "--skip-tags",
+        "{{user `ansible_skip_tags`}}"
+      ]
+    }
+  ]
+}

@@ -54,30 +54,26 @@ if [[ "$IMAGE_ARCH" == "aarch64" ]]; then
   [ -z "$SHAPE" ] && SHAPE="$SHAPE_A_1"
 fi
 
-[ -z "$SHAPE" ] && SHAPE="$SHAPE_E_4"
-[ -z "$OCPUS" ] && OCPUS="4"
-[ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS="16"
-
+[ -z "$SHAPE" ] && SHAPE="VM.GPU.A10.1"
+[ -z "$OCPUS" ] && OCPUS="15"
+[ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS="240"
 
 arch_from_shape $SHAPE
 
-if [[ "$IMAGE_ARCH" == "aarch64" ]]; then
-  BARE_IMAGE_ID="$ARM_BARE_IMAGE_ID"
-fi
+[ -z "$BASE_IMAGE_TYPE" ] && BASE_IMAGE_TYPE="$GPU_BASE_IMAGE_TYPE"
+[ -z "$BASE_IMAGE_TYPE" ] && BASE_IMAGE_TYPE="JammyBase"
 
-# TODO query available standard images with ubuntu 22.04
-[ -z "$BARE_IMAGE_ID" ] && BARE_IMAGE_ID=$DEFAULT_JAMMY_IMAGE_ID
-[ -z "$BASE_IMAGE_TYPE" ] && BASE_IMAGE_TYPE="JammyBare"
-
-EXISTING_IMAGE_OCID=$($LOCAL_PATH/oracle_custom_images.py --type JammyBase --version "latest" --architecture "$IMAGE_ARCH" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
+EXISTING_IMAGE_OCID=$($LOCAL_PATH/oracle_custom_images.py --type GPU --version "latest" --architecture "$IMAGE_ARCH" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
 if [ ! -z "$EXISTING_IMAGE_OCID" ]; then
   if $FORCE_BUILD_IMAGE; then
-    echo "Base image already exists, but FORCE_BUILD_IMAGE is true so a new image with that same version will be build"
+    echo "GPU image already exists, but FORCE_BUILD_IMAGE is true so a new image with that same version will be build"
   else
-    echo "Base image already exists and FORCE_BUILD_IMAGE is false. Exiting..."
+    echo "GPU image already exists and FORCE_BUILD_IMAGE is false. Exiting..."
     exit 0
   fi
 fi
+
+[ -z "$BASE_IMAGE_ID" ] && BASE_IMAGE_ID=$($LOCAL_PATH/oracle_custom_images.py --type $BASE_IMAGE_TYPE  --architecture "$IMAGE_ARCH" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
 
 # addtional bastion configs
 [ -z "$CONNECTION_SSH_PRIVATE_KEY_FILE" ] && CONNECTION_SSH_PRIVATE_KEY_FILE="~/.ssh/id_ed25519"
@@ -103,13 +99,13 @@ packer build \
 -var "ansible_ssh_user=ubuntu" \
 -var "ansible_build_path=$ANSIBLE_BUILD_PATH" \
 -var "base_image_type=$BASE_IMAGE_TYPE" \
--var "base_image_ocid=$BARE_IMAGE_ID" \
+-var "base_image_ocid=$BASE_IMAGE_ID" \
 -var "image_architecture=$IMAGE_ARCH" \
 -var "region=$ORACLE_REGION" \
 -var "availability_domain=$AVAILABILITY_DOMAIN" \
 -var "subnet_ocid=$NAT_SUBNET_OCID" \
 -var "compartment_ocid=$TENANCY_OCID" \
--var "type=JammyBase" \
+-var "type=GPU" \
 -var "shape=$SHAPE" \
 -var "ocpus=$OCPUS" \
 -var "memory_in_gbs=$MEMORY_IN_GBS" \
@@ -120,7 +116,7 @@ packer build \
 -var "tag_namespace=$TAG_NAMESPACE" \
 -var "infra_configuration_repo=$INFRA_CONFIGURATION_REPO" \
 -var "infra_customizations_repo=$INFRA_CUSTOMIZATIONS_REPO" \
-$LOCAL_PATH/../build/build-base-oracle.json
+$LOCAL_PATH/../build/build-gpu-oracle.json
 
-IMAGE_OCID=$($LOCAL_PATH/oracle_custom_images.py --type JammyBase --version "latest" --architecture "$IMAGE_ARCH" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
+IMAGE_OCID=$($LOCAL_PATH/oracle_custom_images.py --type GPU --version "latest" --architecture "$IMAGE_ARCH" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
 $LOCAL_PATH/../scripts/oracle_custom_images.py --add_shape_compatibility --image_id $IMAGE_OCID --region $ORACLE_REGION
