@@ -1478,7 +1478,8 @@ EOF
           "local/nginx.conf:/etc/nginx/nginx.conf",
           "local/nginx-site.conf:/etc/nginx/conf.d/default.conf",
           "local/nginx-status.conf:/etc/nginx/conf.d/status.conf",
-          "local/nginx-streams.conf:/etc/nginx/conf.stream/default.conf"
+          "local/nginx-streams.conf:/etc/nginx/conf.stream/default.conf",
+          "local/consul-resolved.conf:/etc/systemd/resolved.conf.d/consul.conf"
         ]
       }
       env {
@@ -1665,6 +1666,22 @@ server {
 
 EOF
         destination = "local/nginx-streams.conf"
+        change_mode = "script"
+        change_script {
+          command = "/usr/sbin/nginx"
+          args = ["-s", "reload"]
+          timeout = "30s"
+          fail_on_error = true
+        }
+      }
+      template {
+        destination = "local/consul-resolved.conf"
+        data = <<EOF
+[Resolve]
+DNS={{ env "attr.unique.network.ip-address" }}:8600
+DNSSEC=false
+Domains=~consul
+EOF
       }
 
       template {
@@ -1996,6 +2013,13 @@ server {
 }
 EOF
         destination = "local/nginx-site.conf"
+        change_mode = "script"
+        change_script {
+          command = "/usr/sbin/nginx"
+          args = ["-s", "reload"]
+          timeout = "30s"
+          fail_on_error = true
+        }
       }
       template {
         destination = "local/_unlock"
