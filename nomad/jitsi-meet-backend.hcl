@@ -1476,9 +1476,8 @@ EOF
         volumes = [
           "local/_unlock:/usr/share/nginx/html/_unlock",
           "local/nginx.conf:/etc/nginx/nginx.conf",
-          "local/nginx-site.conf:/etc/nginx/conf.d/default.conf",
-          "local/nginx-status.conf:/etc/nginx/conf.d/status.conf",
-          "local/nginx-streams.conf:/etc/nginx/conf.stream/default.conf",
+          "local/conf.d:/etc/nginx/conf.d",
+          "local/conf.stream:/etc/nginx/conf.stream",
           "local/consul-resolved.conf:/etc/systemd/resolved.conf.d/consul.conf"
         ]
       }
@@ -1629,7 +1628,7 @@ server {
     }
 }
 EOF
-        destination = "local/nginx-status.conf"
+        destination = "local/conf.d/nginx-status.conf"
       }
 
 
@@ -1665,7 +1664,7 @@ server {
 {{ end -}}
 
 EOF
-        destination = "local/nginx-streams.conf"
+        destination = "local/conf.stream/nginx-streams.conf"
         change_mode = "script"
         change_script {
           command = "/usr/sbin/nginx"
@@ -2012,7 +2011,7 @@ server {
 
 }
 EOF
-        destination = "local/nginx-site.conf"
+        destination = "local/conf.d/default.conf"
         change_mode = "script"
         change_script {
           command = "/usr/sbin/nginx"
