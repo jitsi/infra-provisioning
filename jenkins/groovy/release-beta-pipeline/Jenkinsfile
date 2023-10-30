@@ -44,6 +44,9 @@ pipeline {				//indicate the job is written in Declarative Pipeline
         stage ("build") {		//an arbitrary stage name
             parallel {
               stage ("build JVB oracle") {		//an arbitrary stage name
+                when {
+                    expression {env.CLOUD_PROVIDER == 'oracle'}
+                }
                 steps {
                     script {
                         def image_arch = utils.ImageArchFromShape(env.JVB_SHAPE)
@@ -59,6 +62,9 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                 }
               }
               stage ("build Signal Oracle") {		//an arbitrary stage name
+                when {
+                    expression {env.CORE_CLOUD_PROVIDER == 'oracle'}
+                }
                 steps {
                     script {
                         def image_arch = utils.ImageArchFromShape(env.SHAPE)
