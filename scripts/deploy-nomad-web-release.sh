@@ -446,6 +446,31 @@ else
     BRANDING_NAME="jitsi-meet"
 fi
 
+# login to docker and check for branding image
+[ -z "$AWS_DEFAULT_REGION" ] && AWS_DEFAULT_REGION="us-west-2"
+aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ECR_REPO_HOST
+
+# grab manifest
+RETRIES=30
+while true; do
+    MANIFEST="$(docker manifest inspect $AWS_ECR_REPO_HOST/jitsi/$BRANDING_NAME:$WEB_TAG)"
+    if [ $? -eq 0 ]; then
+        echo "Image details found for $AWS_ECR_REPO_HOST/jitsi/$BRANDING_NAME:$WEB_TAG"
+        break
+    else
+        # check if we have any more retries left
+        if [ $RETRIES -eq 0 ]; then
+            echo "No image available at $AWS_ECR_REPO_HOST/jitsi/$BRANDING_NAME:$WEB_TAG, exiting"
+            echo "$MANIFEST"
+            exit 1
+        else
+            RETRIES=$((RETRIES-1))
+            echo "No image available yet at $AWS_ECR_REPO_HOST/jitsi/$BRANDING_NAME:$WEB_TAG, delaying release job"
+            sleep 10
+        fi
+    fi
+done
+
 export NOMAD_VAR_environment="$ENVIRONMENT"
 export NOMAD_VAR_domain="$DOMAIN"
 # [ -n "$SHARD_STATE" ] && export NOMAD_VAR_shard_state="$SHARD_STATE"
