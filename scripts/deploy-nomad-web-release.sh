@@ -94,7 +94,7 @@ export NOMAD_VAR_turnrelay_password="$(ansible-vault view $ENCRYPTED_COTURN_CRED
 export NOMAD_VAR_jicofo_auth_password="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .${JICOFO_XMPP_PASSWORD_VARIABLE} -)"
 export NOMAD_VAR_jwt_asap_keyserver="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .${JWT_ASAP_KEYSERVER_VARIABLE} -)"
 set -x
-
+set +e
 
 TOKEN_AUTH_URL="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_token_auth_url -)"
 TOKEN_LOGOUT_URL="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_token_logout_url -)"
@@ -445,6 +445,31 @@ if [[ "$BRANDING_NAME" != "null" ]]; then
 else
     BRANDING_NAME="jitsi-meet"
 fi
+
+# login to docker and check for branding image
+[ -z "$AWS_DEFAULT_REGION" ] && AWS_DEFAULT_REGION="us-west-2"
+aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ECR_REPO_HOST
+
+# grab manifest
+RETRIES=30
+while true; do
+    MANIFEST="$(docker manifest inspect $AWS_ECR_REPO_HOST/jitsi/$BRANDING_NAME:$WEB_TAG)"
+    if [ $? -eq 0 ]; then
+        echo "Image details found for $AWS_ECR_REPO_HOST/jitsi/$BRANDING_NAME:$WEB_TAG"
+        break
+    else
+        # check if we have any more retries left
+        if [ $RETRIES -eq 0 ]; then
+            echo "No image available at $AWS_ECR_REPO_HOST/jitsi/$BRANDING_NAME:$WEB_TAG, exiting"
+            echo "$MANIFEST"
+            exit 1
+        else
+            RETRIES=$((RETRIES-1))
+            echo "No image available yet at $AWS_ECR_REPO_HOST/jitsi/$BRANDING_NAME:$WEB_TAG, delaying release job"
+            sleep 10
+        fi
+    fi
+done
 
 export NOMAD_VAR_environment="$ENVIRONMENT"
 export NOMAD_VAR_domain="$DOMAIN"
