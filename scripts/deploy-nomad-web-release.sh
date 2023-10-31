@@ -451,7 +451,7 @@ fi
 aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ECR_REPO_HOST
 
 # grab manifest
-RETRIES=30
+RETRIES=360
 while true; do
     MANIFEST="$(docker manifest inspect $AWS_ECR_REPO_HOST/jitsi/$BRANDING_NAME:$WEB_TAG)"
     if [ $? -eq 0 ]; then
