@@ -94,7 +94,7 @@ export NOMAD_VAR_turnrelay_password="$(ansible-vault view $ENCRYPTED_COTURN_CRED
 export NOMAD_VAR_jicofo_auth_password="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .${JICOFO_XMPP_PASSWORD_VARIABLE} -)"
 export NOMAD_VAR_jwt_asap_keyserver="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .${JWT_ASAP_KEYSERVER_VARIABLE} -)"
 set -x
-
+set +e
 
 TOKEN_AUTH_URL="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_token_auth_url -)"
 TOKEN_LOGOUT_URL="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_token_logout_url -)"
