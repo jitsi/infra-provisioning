@@ -365,7 +365,18 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
   $ACTION_POST_PARAMS $TF_POST_PARAMS
 
 # TODO
-# OCI_LOAD_BALANCER_ID=lb_id
+LOCAL_HAPROXY_KEY="terraform-haproxy.tfstate"
+
+oci os object get --bucket-name $S3_STATE_BUCKET --name $S3_STATE_KEY --region $ORACLE_REGION --file $LOCAL_HAPROXY_KEY
+if [ $? -eq 0 ]; then
+  OCI_LOAD_BALANCER_ID="$(cat $LOCAL_HAPROXY_KEY | jq -r '.resources[]
+      | select(.type == "oci_load_balancer")
+      | .instances[]
+      | .attributes.id')"
+else
+  echo "Failed to extract load balancer ID, redirect ruleset will not be applied."
+  exit 12
+fi
 
 # find or create the load balancer rule set for https redirect
 [ -z "$S3_STATE_LB_KEY_RS" ] && S3_STATE_LB_KEY_RS="$ENVIRONMENT/haproxy-components/terraform-lb-rs.tfstate"
@@ -400,7 +411,7 @@ if [ -z "$LB_RULE_SET_ID" ]; then
 
   oci os object get --bucket-name $S3_STATE_BUCKET --name $S3_STATE_LB_KEY_RS --region $ORACLE_REGION --file $LOCAL_LB_KEY_RS
 
-  LB_RULESET_ID="$(cat $LOCAL_LB_KEY_RS | jq -r '.resources[]
+  LB_RULE_SET_ID="$(cat $LOCAL_LB_KEY_RS | jq -r '.resources[]
       | select(.type == "oci_core_network_security_group")
       | .instances[]
       | .attributes.id')"
