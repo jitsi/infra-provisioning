@@ -279,14 +279,14 @@ resource "oci_load_balancer_hostname" "signal_api_hostnames" {
 }
 
 
-resource "oci_load_balancer_listener" "redirect_listener" {
-  load_balancer_id = oci_load_balancer.oci_load_balancer.id
-  name = "HAProxyHTTPListener"
-  port = 80
-  default_backend_set_name = oci_load_balancer_backend_set.oci_load_balancer_bs.name
-  rule_set_names = [oci_load_balancer_rule_set.redirect_rule_set.name]
-  protocol = "HTTP"
-}
+#resource "oci_load_balancer_listener" "redirect_listener" {
+#  load_balancer_id = oci_load_balancer.oci_load_balancer.id
+#  name = "HAProxyHTTPListener"
+#  port = 80
+#  default_backend_set_name = oci_load_balancer_backend_set.oci_load_balancer_bs.name
+#  rule_set_names = [oci_load_balancer_rule_set.redirect_rule_set.name]
+#  protocol = "HTTP"
+#}
 
 resource "oci_load_balancer_listener" "main_listener" {
   load_balancer_id = oci_load_balancer.oci_load_balancer.id
