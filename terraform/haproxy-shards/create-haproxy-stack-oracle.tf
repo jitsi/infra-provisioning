@@ -172,33 +172,33 @@ resource "oci_load_balancer_backend_set" "oci_load_balancer_bs" {
   }
 }
 
-resource "oci_load_balancer_rule_set" "redirect_rule_set" {
-    #Required
-    items {
-        #Required
-        action = "REDIRECT"
-
-        conditions {
-            #Required
-            attribute_name = "PATH"
-            attribute_value = "/"
-            #Optional
-            operator = "PREFIX_MATCH"
-        }
-        description = "redirect http to https"
-        redirect_uri {
-            #Optional
-            host = "{host}"
-            path = "{path}"
-            port = 443
-            protocol = "https"
-            query = "{query}"
-        }
-        response_code = 301
-    }
-    load_balancer_id = oci_load_balancer.oci_load_balancer.id
-    name = "RedirectToHTTPS"
-}
+#resource "oci_load_balancer_rule_set" "redirect_rule_set" {
+#    #Required
+#    items {
+#        #Required
+#        action = "REDIRECT"
+#
+#        conditions {
+#            #Required
+#            attribute_name = "PATH"
+#            attribute_value = "/"
+#            #Optional
+#            operator = "PREFIX_MATCH"
+#        }
+#        description = "redirect http to https"
+#        redirect_uri {
+#            #Optional
+#            host = "{host}"
+#            path = "{path}"
+#            port = 443
+#            protocol = "https"
+#            query = "{query}"
+#        }
+#        response_code = 301
+#    }
+#    load_balancer_id = oci_load_balancer.oci_load_balancer.id
+#    name = "RedirectToHTTPS"
+#}
 
 resource "oci_load_balancer_certificate" "main_certificate" {
     #Required
