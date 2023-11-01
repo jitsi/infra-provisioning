@@ -203,10 +203,12 @@ if [[ "$TERRAFORM_MAJOR_VERSION" == "v1" ]]; then
   TF_POST_PARAMS=
   TF_POST_PARAMS_SG=
   TF_POST_PARAMS_LBSG=
+  TF_POST_PARAMS_RS=
 else
   TF_POST_PARAMS="$LOCAL_PATH"
   TF_POST_PARAMS_SG="$LOCAL_PATH/security-group"
   TF_POST_PARAMS_LBSG="$LOCAL_PATH/load-balancer-security-group"
+  TF_POST_PARAMS_RS="$LOCAL_PATH/load-balancer-rule-set"
 fi
 
 # first find or create the haproxy security group
@@ -295,6 +297,51 @@ fi
 
 if [ -z "$LB_SECURITY_GROUP_ID" ]; then
   echo "LB_SECURITY_GROUP_ID failed to be found or created, exiting..."
+  exit 3
+fi
+
+# first find or create the load balancer rule set for https redirect
+[ -z "$S3_STATE_LB_KEY_RS" ] && S3_STATE_LB_KEY_RS="$ENVIRONMENT/haproxy-components/terraform-lb-rs.tfstate"
+LOCAL_LB_KEY_RS="terraform-lb-rs.tfstate"
+
+oci os object get --bucket-name $S3_STATE_BUCKET --name $S3_STATE_LB_KEY_RS --region $ORACLE_REGION --file $LOCAL_LB_KEY_RS
+
+if [ $? -eq 0 ]; then
+  LB_RULE_SET_ID="$(cat $LOCAL_LB_KEY_RS | jq -r '.resources[]
+      | select(.type == "oci_load_balancer_rule_set")
+      | .instances[]
+      | .attributes.id')"
+fi
+
+if [ -z "$LB_RULE_SET_ID" ]; then
+  terraform $TF_GLOBALS_CHDIR_LBSG init \
+    -backend-config="bucket=$S3_STATE_BUCKET" \
+    -backend-config="key=$S3_STATE_LB_KEY_RS" \
+    -backend-config="region=$ORACLE_REGION" \
+    -backend-config="profile=$S3_PROFILE" \
+    -backend-config="endpoint=$S3_ENDPOINT" \
+    -reconfigure $TF_POST_PARAMS_LBSG
+
+      ## TODO: get some of this stuff
+  terraform $TF_GLOBALS_CHDIR_LBSG apply \
+    -var="oracle_region=$ORACLE_REGION" \
+    -var="tenancy_ocid=$TENANCY_OCID" \
+    -var="oci_load_balancer_id=$OCI_LOAD_BALANCER_ID" \
+    -var="oci_load_balancer_bs_name=$OCI_LOAD_BALANCER_BS_NAME" \
+    -var="oci_load_balancer_redirect_rule_set_name=$OCI_LOAD_BALANCER_REDIRECT_RULE_SET_NAME" \
+    -var="resource_name_root=$ENVIRONMENT-$ORACLE_REGION-haproxy-lb" \
+    -auto-approve $TF_POST_PARAMS_RS
+
+  oci os object get --bucket-name $S3_STATE_BUCKET --name $S3_STATE_LB_KEY_RS --region $ORACLE_REGION --file $LOCAL_LB_KEY_RS
+
+  LB_RULESET_ID="$(cat $LOCAL_LB_KEY_RS | jq -r '.resources[]
+      | select(.type == "oci_core_network_security_group")
+      | .instances[]
+      | .attributes.id')"
+fi
+
+if [ -z "$LB_RULE_SET_ID" ]; then
+  echo "LB_RULE_SET_ID failed to be found or created, exiting..."
   exit 3
 fi
 
