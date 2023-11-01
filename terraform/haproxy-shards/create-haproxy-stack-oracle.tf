@@ -368,6 +368,7 @@ data "oci_core_instance" "oci_instance_datasources" {
 locals {
   private_ips = data.oci_core_instance.oci_instance_datasources.*.private_ip
   lb_ip = oci_load_balancer.oci_load_balancer.ip_address_details[0].ip_address
+  lb_id = oci_load_balancer.oci_load_balancer.id
 }
 
 resource "oci_dns_rrset" "haproxy_dns_record" {
@@ -472,4 +473,8 @@ output "private_ips" {
 
 output "lb_ip" {
   value = local.lb_ip
+}
+
+output "lb_id" {
+  value = local.lb_id
 }
