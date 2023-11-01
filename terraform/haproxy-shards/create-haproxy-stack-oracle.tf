@@ -250,23 +250,12 @@ resource "oci_load_balancer_hostname" "signal_api_hostnames" {
     }
 }
 
-
-
-
 resource "oci_load_balancer_listener" "main_listener" {
   load_balancer_id = oci_load_balancer.oci_load_balancer.id
   name = "HAProxyHTTPSListener"
   port = 443
   default_backend_set_name = oci_load_balancer_backend_set.oci_load_balancer_bs.name
-  #resource "oci_load_balancer_listener" "redirect_listener" {
-#  load_balancer_id = oci_load_balancer.oci_load_balancer.id
-#  name = "HAProxyHTTPListener"
-#  port = 80
-#  default_backend_set_name = oci_load_balancer_backend_set.oci_load_balancer_bs.name
-#  rule_set_names = [oci_load_balancer_rule_set.redirect_rule_set.name]
-#  protocol = "HTTP"
-#}protocol = "HTTP"
-  hostname_names = concat([oci_load_balancer_hostname.main_hostname.name],[ for k,v in oci_load_balancer_hostname.regional_hostnames : v.name ])
+  protocol = "HTTP"
   ssl_configuration {
       #Optional
       certificate_name = oci_load_balancer_certificate.main_certificate.certificate_name
