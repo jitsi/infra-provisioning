@@ -741,25 +741,6 @@ config.flags.ssrcRewritingEnabled=${var.ssrc_rewriting_enabled};
 config.maxFullResolutionParticipants = 1;
 {{ end -}}
 
-if (!config.hasOwnProperty('videoQuality')) config.videoQuality = {};
-config.videoQuality.maxBitratesVideo = {
-  H264: {
-    low: 200000,
-    standard: 500000,
-    high: 1500000
-  },
-  VP8: {
-    low: 200000,
-    standard: 500000,
-    high: 1500000
-  },
-  VP9: {
-    low: 100000,
-    standard: 300000,
-    high: 1200000
-  }
-};
-
 config.audioQuality.enableOpusDtx=${var.dtx_enabled};
 
 {{ if eq "${var.hidden_from_recorder_feature}" "true" -}}
