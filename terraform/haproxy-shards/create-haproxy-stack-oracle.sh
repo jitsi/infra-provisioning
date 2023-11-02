@@ -195,10 +195,12 @@ TERRAFORM_MAJOR_VERSION=$(terraform -v | head -1  | awk '{print $2}' | cut -d'.'
 TF_GLOBALS_CHDIR=
 TF_GLOBALS_CHDIR_SG=
 TF_GLOBALS_CHDIR_LBSG=
+TF_GLOBALS_CHDIR_RS=
 if [[ "$TERRAFORM_MAJOR_VERSION" == "v1" ]]; then
   TF_GLOBALS_CHDIR="-chdir=$LOCAL_PATH"
   TF_GLOBALS_CHDIR_SG="-chdir=$LOCAL_PATH/security-group"
   TF_GLOBALS_CHDIR_LBSG="-chdir=$LOCAL_PATH/load-balancer-security-group"
+  TF_GLOBALS_CHDIR_RS="-chdir=$LOCAL_PATH/load-balancer-ruleset"
   TF_CLI_ARGS=""
   TF_POST_PARAMS=
   TF_POST_PARAMS_SG=
@@ -392,7 +394,7 @@ if [ $? -eq 0 ]; then
 fi
 
 if [ -z "$LB_RULE_SET_ID" ]; then
-  terraform $TF_GLOBALS_CHDIR_LBSG init \
+  terraform $TF_GLOBALS_CHDIR_RS init \
     -backend-config="bucket=$S3_STATE_BUCKET" \
     -backend-config="key=$S3_STATE_LB_KEY_RS" \
     -backend-config="region=$ORACLE_REGION" \
