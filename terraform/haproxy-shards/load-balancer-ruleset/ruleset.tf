@@ -43,7 +43,7 @@ resource "oci_load_balancer_rule_set" "redirect_rule_set" {
         response_code = 301
     }
     load_balancer_id = var.oci_load_balancer_id
-    name = "RedirectToHTTPS"
+    name = var.oci_load_balancer_redirect_rule_set_name
 }
 
 resource "oci_load_balancer_listener" "redirect_listener" {
