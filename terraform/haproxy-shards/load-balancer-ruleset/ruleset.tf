@@ -53,4 +53,5 @@ resource "oci_load_balancer_listener" "redirect_listener" {
   default_backend_set_name = var.oci_load_balancer_bs_name
   rule_set_names = [var.oci_load_balancer_redirect_rule_set_name]
   protocol = "HTTP"
+  depends_on = [oci_load_balancer_rule_set.redirect_rule_set]
 }
