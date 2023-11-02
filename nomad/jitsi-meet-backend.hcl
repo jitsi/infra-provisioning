@@ -1958,6 +1958,7 @@ server {
     # shard health check
     location = /about/health {
         proxy_pass      http://{{ env "NOMAD_IP_signal_sidecar_http" }}:{{ env "NOMAD_HOST_PORT_signal_sidecar_http" }}/signal/health;
+        access_log   off;
         # do not cache anything from prebind
         add_header "Cache-Control" "no-cache, no-store";
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
