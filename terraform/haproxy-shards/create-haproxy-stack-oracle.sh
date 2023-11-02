@@ -402,7 +402,7 @@ if [ -z "$LB_RULE_SET_ID" ]; then
     -backend-config="endpoint=$S3_ENDPOINT" \
     -reconfigure $TF_POST_PARAMS_LBSG
 
-  terraform $TF_GLOBALS_CHDIR_LBSG apply \
+  terraform $TF_GLOBALS_CHDIR_RS apply \
     -var="oracle_region=$ORACLE_REGION" \
     -var="tenancy_ocid=$TENANCY_OCID" \
     -var="oci_load_balancer_id=$OCI_LOAD_BALANCER_ID" \
