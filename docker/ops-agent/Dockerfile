@@ -11,7 +11,7 @@ COPY ./requirements.txt /home/jenkins/requirements.txt
 COPY ./s3cfg /home/jenkins/.s3cfg
 
 USER root
-RUN apt-get update && apt-get -y install procps dnsutils jq python3-pip wget curl gpg unzip zip git python-is-python3 maven xvfb imagemagick s3cmd s3fs mini-dinstall sudo devscripts dpkg-dev && pip install -r /home/jenkins/requirements.txt && pip install jenkins-job-builder
+RUN apt-get update && apt-get -y install procps dnsutils jq python3-pip rsync wget curl gpg unzip zip git python-is-python3 maven xvfb imagemagick s3cmd s3fs mini-dinstall sudo devscripts dpkg-dev && pip install -r /home/jenkins/requirements.txt && pip install jenkins-job-builder
 RUN echo "%jenkins ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/jenkins
 RUN wget -O- https://apt.releases.hashicorp.com/gpg | \
     gpg --dearmor | \
