@@ -408,7 +408,6 @@ if [ -z "$LB_RULE_SET_ID" ]; then
     -var="oci_load_balancer_id=$OCI_LOAD_BALANCER_ID" \
     -var="oci_load_balancer_bs_name=HAProxyLBBS" \
     -var="oci_load_balancer_redirect_rule_set_name=RedirectToHTTPS" \
-    -var="resource_name_root=$ENVIRONMENT-$ORACLE_REGION-haproxy-lb" \
     -auto-approve $TF_POST_PARAMS_RS
 
   oci os object get --bucket-name $S3_STATE_BUCKET --name $S3_STATE_LB_KEY_RS --region $ORACLE_REGION --file $LOCAL_LB_KEY_RS
