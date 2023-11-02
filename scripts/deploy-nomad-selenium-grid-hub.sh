@@ -44,6 +44,11 @@ export NOMAD_VAR_grid="$GRID"
 
 sed -e "s/\[JOB_NAME\]/$JOB_NAME/" "$NOMAD_JOB_PATH/selenium-grid-hub.hcl" | nomad job run -var="dc=$NOMAD_DC" -
 
+if [ $? -ne 0 ]; then
+    echo "Failed to run nomad selenium grid hub job, exiting"
+    exit 5
+fi
+
 export RESOURCE_NAME_ROOT="${ENVIRONMENT}-${ORACLE_REGION}-${GRID}-grid"
 
 export CNAME_VALUE="$RESOURCE_NAME_ROOT"

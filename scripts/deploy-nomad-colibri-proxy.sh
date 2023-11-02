@@ -57,3 +57,4 @@ JOB_NAME="colibri-proxy"
 export NOMAD_VAR_dc="$NOMAD_DC"
 
 sed -e "s/\[JOB_NAME\]/$JOB_NAME/" "$NOMAD_JOB_PATH/colibri-proxy.hcl" | nomad job run -
+exit $?

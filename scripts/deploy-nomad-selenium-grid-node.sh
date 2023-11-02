@@ -36,3 +36,4 @@ export NOMAD_VAR_grid="$GRID"
 
 #sed -e "s/\[JOB_NAME\]/$JOB_NAME/" "$NOMAD_JOB_PATH/selenium-grid-node-firefox.hcl" | nomad job run -var="dc=$NOMAD_DC" -
 sed -e "s/\[JOB_NAME\]/$JOB_NAME/" "$NOMAD_JOB_PATH/selenium-grid-node.hcl" | nomad job run -var="dc=$NOMAD_DC" -
+exit $?

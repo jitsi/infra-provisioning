@@ -51,3 +51,4 @@ NOMAD_DC="$ENVIRONMENT-$ORACLE_REGION"
 JOB_NAME="coturn-$ORACLE_REGION"
 
 sed -e "s/\[JOB_NAME\]/$JOB_NAME/" "$NOMAD_JOB_PATH/coturn.hcl" | nomad job run -var="dc=$NOMAD_DC" -
+exit $?

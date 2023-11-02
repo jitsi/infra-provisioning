@@ -50,3 +50,4 @@ export NOMAD_VAR_environment="$ENVIRONMENT"
 JOB_NAME="telegraf-$ORACLE_REGION"
 
 sed -e "s/\[JOB_NAME\]/$JOB_NAME/" "$NOMAD_JOB_PATH/telegraf.hcl" | nomad job run -var="dc=$NOMAD_DC" -
+exit $?

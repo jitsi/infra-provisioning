@@ -49,3 +49,4 @@ export NOMAD_VAR_oracle_region="$ORACLE_REGION"
 
 
 sed -e "s/\[JOB_NAME\]/$JOB_NAME/" "$NOMAD_JOB_PATH/ops-repo.hcl" | nomad job run -var="dc=$NOMAD_DC" -
+exit $?

@@ -51,6 +51,11 @@ export NOMAD_VAR_region="$ORACLE_REGION"
 
 sed -e "s/\[JOB_NAME\]/$JOB_NAME/" "$NOMAD_JOB_PATH/templates/oscar-head.hcl" | cat - $NOMAD_JOB_PATH/templates/oscar-${OSCAR_TEMPLATE_TYPE}-foot.hcl | nomad job run -verbose -var="dc=$NOMAD_DC" -var="domain=$DOMAIN" -var="cloudprober_version=latest" -
 
+if [ $? -ne 0 ]; then
+    echo "Failed to run nomad oscar job, exiting"
+    exit 5
+fi
+
 export CNAME_VALUE="$RESOURCE_NAME_ROOT"
 export STACK_NAME="${RESOURCE_NAME_ROOT}-cname"
 export UNIQUE_ID="${RESOURCE_NAME_ROOT}"

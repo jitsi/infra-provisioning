@@ -30,3 +30,4 @@ fi
 export NOMAD_VAR_dc="$NOMAD_DC"
 
 sed -e "s/\[JOB_NAME\]/$DOMAIN/" "$NOMAD_JOB_PATH/vector.hcl" | nomad job run  -
+exit $?
