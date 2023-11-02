@@ -28,3 +28,4 @@ NOMAD_DC="$ENVIRONMENT-$ORACLE_REGION"
 JOB_NAME="resec-$ORACLE_REGION"
 
 sed -e "s/\[JOB_NAME\]/$JOB_NAME/" "$NOMAD_JOB_PATH/resec.hcl" | nomad job run -var="dc=$NOMAD_DC" -
+exit $?

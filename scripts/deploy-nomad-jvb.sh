@@ -25,38 +25,36 @@ if [ -z "$NOMAD_ADDR" ]; then
     export NOMAD_ADDR="https://$ENVIRONMENT-$LOCAL_REGION-nomad.$TOP_LEVEL_DNS_ZONE_NAME"
 fi
 
-[ -z "$NOMAD_POOL_TYPE" ] && NOMAD_POOL_TYPE="jibri"
+[ -z "$NOMAD_POOL_TYPE" ] && NOMAD_POOL_TYPE="JVB"
 
 [ -z "$DOCKER_TAG" ] && DOCKER_TAG="unstable-$(date +%Y-%m-%d)"
 
-if [ -n "$JIBRI_VERSION" ]; then
-    JIBRI_TAG="jibri-$JIBRI_VERSION-1"
-    export NOMAD_VAR_jibri_version="$JIBRI_VERSION"
+if [ -n "$JVB_VERSION" ]; then
+    JVB_TAG="jvb-$JVB_VERSION-1"
+    export NOMAD_VAR_jvb_version="$JVB_VERSION"
 fi
 
-[ -z "$JIBRI_TAG" ] && JIBRI_TAG="$DOCKER_TAG"
+[ -z "$JVB_TAG" ] && JVB_TAG="$DOCKER_TAG"
 
 NOMAD_JOB_PATH="$LOCAL_PATH/../nomad"
 NOMAD_DC="$ENVIRONMENT-$ORACLE_REGION"
 
 [ -z "$ENVIRONMENT_TYPE" ] && ENVIRONMENT_TYPE="stage"
 
-[ -z "$ENCRYPTED_JIBRI_CREDENTIALS_FILE" ] && ENCRYPTED_JIBRI_CREDENTIALS_FILE="$LOCAL_PATH/../ansible/secrets/jibri.yml"
+[ -z "$ENCRYPTED_JVB_CREDENTIALS_FILE" ] && ENCRYPTED_JVB_CREDENTIALS_FILE="$LOCAL_PATH/../ansible/secrets/jvb.yml"
 [ -z "$ENVIRONMENT_CONFIGURATION_FILE" ] && ENVIRONMENT_CONFIGURATION_FILE="$LOCAL_PATH/../sites/$ENVIRONMENT/vars.yml"
 [ -z "$MAIN_CONFIGURATION_FILE" ] && MAIN_CONFIGURATION_FILE="$LOCAL_PATH/../config/vars.yml"
 [ -z "$ENCRYPTED_ASAP_KEYS_FILE" ] && ENCRYPTED_ASAP_KEYS_FILE="$LOCAL_PATH/../ansible/secrets/asap-keys.yml"
 
 ASAP_KEY_VARIABLE="asap_key_$ENVIRONMENT_TYPE"
 
-JIBRI_XMPP_PASSWORD_VARIABLE="jibri_auth_password"
-JIBRI_RECORDER_PASSWORD_VARIABLE="jibri_selenium_auth_password"
+JVB_XMPP_PASSWORD_VARIABLE="jvb_xmpp_password"
 
 # ensure no output for ansible vault contents and fail if ansible-vault fails
 set +x
 set -e
 set -o pipefail
-export NOMAD_VAR_jibri_xmpp_password="$(ansible-vault view $ENCRYPTED_JIBRI_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${JIBRI_XMPP_PASSWORD_VARIABLE}" -)"
-export NOMAD_VAR_jibri_recorder_password="$(ansible-vault view $ENCRYPTED_JIBRI_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${JIBRI_RECORDER_PASSWORD_VARIABLE}" -)"
+export NOMAD_VAR_jvb_auth_password="$(ansible-vault view $ENCRYPTED_JVB_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${JVB_XMPP_PASSWORD_VARIABLE}" -)"
 export NOMAD_VAR_asap_jwt_kid="$(ansible-vault view $ENCRYPTED_ASAP_KEYS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${ASAP_KEY_VARIABLE}.id" -)"
 
 set -x
@@ -65,11 +63,15 @@ export NOMAD_VAR_environment="$ENVIRONMENT"
 export NOMAD_VAR_environment_type="${ENVIRONMENT_TYPE}"
 export NOMAD_VAR_domain="$DOMAIN"
 # [ -n "$SHARD_STATE" ] && export NOMAD_VAR_shard_state="$SHARD_STATE"
-export NOMAD_VAR_jibri_tag="$JIBRI_TAG"
+export NOMAD_VAR_jvb_tag="$JVB_TAG"
 export NOMAD_VAR_pool_type="$NOMAD_POOL_TYPE"
+export NOMAD_VAR_release_number="$RELEASE_NUMBER"
+export NOMAD_VAR_shard="$SHARD"
 
-export NOMAD_JOB_NAME="jibri-${ORACLE_REGION}"
+[ -z "$JVB_POOL_TYPE" ] && export NOMAD_VAR_jvb_pool_type="$JVB_POOL_TYPE"
+
+export NOMAD_JOB_NAME="jvb-release-${RELEASE_NUMBER}-${ORACLE_REGION}"
 export NOMAD_URL="https://${ENVIRONMENT}-${ORACLE_REGION}-nomad.$TOP_LEVEL_DNS_ZONE_NAME"
 
-sed -e "s/\[JOB_NAME\]/${NOMAD_JOB_NAME}/" "$NOMAD_JOB_PATH/jibri.hcl" | nomad job run -var="dc=$NOMAD_DC" -
+sed -e "s/\[JOB_NAME\]/${NOMAD_JOB_NAME}/" "$NOMAD_JOB_PATH/jvb.hcl" | nomad job run -var="dc=$NOMAD_DC" -
 exit $?

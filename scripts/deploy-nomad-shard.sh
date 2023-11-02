@@ -142,3 +142,4 @@ export NOMAD_VAR_prosody_tag="$PROSODY_TAG"
 export NOMAD_VAR_pool_type="$NOMAD_POOL_TYPE"
 
 sed -e "s/\[JOB_NAME\]/shard-${SHARD}/" "$NOMAD_JOB_PATH/shard.hcl" | nomad job run -var="dc=$NOMAD_DC" -
+exit $?

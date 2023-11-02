@@ -33,3 +33,4 @@ export NOMAD_VAR_domain="$DOMAIN"
 export NOMAD_VAR_tag="$DOCKER_TAG"
 
 sed -e "s/\[JOB_NAME\]/$DOMAIN/" "$NOMAD_JOB_PATH/standalone.hcl" | nomad job run -var="dc=$NOMAD_DC" -
+exit $?

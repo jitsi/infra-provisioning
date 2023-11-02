@@ -73,6 +73,11 @@ JOB_NAME="autoscaler-$ORACLE_REGION"
 
 sed -e "s/\[JOB_NAME\]/$JOB_NAME/" "$NOMAD_JOB_PATH/autoscaler.hcl" | nomad job run -
 
+if [ $? -ne 0 ]; then
+    echo "Failed to run nomad autoscaler job, exiting"
+    exit 5
+fi
+
 export CNAME_VALUE="$RESOURCE_NAME_ROOT"
 export STACK_NAME="${RESOURCE_NAME_ROOT}-cname"
 export UNIQUE_ID="${RESOURCE_NAME_ROOT}"

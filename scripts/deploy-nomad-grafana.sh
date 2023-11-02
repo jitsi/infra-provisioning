@@ -31,3 +31,4 @@ NOMAD_DC="$ENVIRONMENT-$ORACLE_REGION"
 export NOMAD_VAR_grafana_hostname="$GRAFANA_HOSTNAME"
 
 sed -e "s/\[JOB_NAME\]/$DOMAIN/" "$NOMAD_JOB_PATH/grafana.hcl" | nomad job run -var="dc=$NOMAD_DC" -
+exit $?

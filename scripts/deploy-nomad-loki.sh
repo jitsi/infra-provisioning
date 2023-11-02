@@ -33,6 +33,10 @@ JOB_NAME="loki-$ORACLE_REGION"
 
 sed -e "s/\[JOB_NAME\]/$JOB_NAME/" "$NOMAD_JOB_PATH/loki.hcl" | nomad job run -var="dc=$NOMAD_DC" -
 
+if [ $? -ne 0 ]; then
+    echo "Failed to run nomad loki job, exiting"
+    exit 5
+fi
 
 export RESOURCE_NAME_ROOT="${ENVIRONMENT}-${ORACLE_REGION}-loki"
 

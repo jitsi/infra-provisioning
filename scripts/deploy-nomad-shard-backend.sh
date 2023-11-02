@@ -300,3 +300,4 @@ export NOMAD_VAR_prosody_cache_keys_url="$PROSODY_CACHE_KEYS_URL"
 export NOMAD_VAR_signal_api_domain_name="$SIGNAL_API_HOSTNAME"
 
 sed -e "s/\[JOB_NAME\]/shard-${SHARD}/" "$NOMAD_JOB_PATH/jitsi-meet-backend.hcl" | nomad job run -var="dc=$NOMAD_DC" -
+exit $?
