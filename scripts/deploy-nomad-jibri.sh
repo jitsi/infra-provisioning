@@ -72,4 +72,3 @@ export NOMAD_JOB_NAME="jibri-${ORACLE_REGION}"
 export NOMAD_URL="https://${ENVIRONMENT}-${ORACLE_REGION}-nomad.$TOP_LEVEL_DNS_ZONE_NAME"
 
 sed -e "s/\[JOB_NAME\]/${NOMAD_JOB_NAME}/" "$NOMAD_JOB_PATH/jibri.hcl" | nomad job run -var="dc=$NOMAD_DC" -
-exit $?
