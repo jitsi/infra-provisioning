@@ -71,7 +71,7 @@ job "[JOB_NAME]" {
     task "autoscaler" {
       service {
         name = "autoscaler"
-        tags = ["urlprefix-${var.autoscaler_hostname}/","ip-${attr.unique.network.ip-address}"]
+        tags = ["int-urlprefix-${var.autoscaler_hostname}/","urlprefix-${var.autoscaler_hostname}/","ip-${attr.unique.network.ip-address}"]
         port = "http"
         check {
           name     = "alive"
