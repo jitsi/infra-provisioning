@@ -34,7 +34,7 @@ fi
 [ -z "$IMAGE_ARCH" ] && IMAGE_ARCH="x86_64"
 
 case $IMAGE_TYPE in
-HotfixJicofo)
+JicofoHotfix)
   export IMAGE_TYPE="Signal"
   IMAGE_NAME_PREFIX="BuildSignal"
   #if we're not given versions, search for the latest image
