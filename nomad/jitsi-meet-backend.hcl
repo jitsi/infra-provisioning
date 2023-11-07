@@ -242,6 +242,11 @@ variable muc_moderated_subdomains {
   default = ""
 }
 
+variable prosody_modules_commit_id {
+  type = string
+  default = "6696075e26e2"
+}
+
 variable jigasi_shared_secret {
   type = string
   default = "replaceme"
@@ -385,43 +390,43 @@ job "[JOB_NAME]" {
         XMPP_RECORDER_DOMAIN = "recorder.${var.domain}"
       }
       artifact {
-        source      = "https://hg.prosody.im/prosody-modules/raw-file/tip/mod_measure_stanza_counts/mod_measure_stanza_counts.lua"
+        source      = "https://hg.prosody.im/prosody-modules/raw-file/${var.prosody_modules_commit_id}/mod_measure_stanza_counts/mod_measure_stanza_counts.lua"
         destination = "local/prosody-plugins-custom"
       }
       artifact {
-        source      = "https://hg.prosody.im/prosody-modules/raw-file/tip/mod_debug_traceback/mod_debug_traceback.lua"
+        source      = "https://hg.prosody.im/prosody-modules/raw-file/${var.prosody_modules_commit_id}/mod_debug_traceback/mod_debug_traceback.lua"
         destination = "local/prosody-plugins-custom"
       }
       artifact {
-        source      = "https://hg.prosody.im/prosody-modules/raw-file/tip/mod_secure_interfaces/mod_secure_interfaces.lua"
+        source      = "https://hg.prosody.im/prosody-modules/raw-file/${var.prosody_modules_commit_id}/mod_secure_interfaces/mod_secure_interfaces.lua"
         destination = "local/prosody-plugins-custom"
       }
       artifact {
-        source      = "https://hg.prosody.im/prosody-modules/raw-file/tip/mod_firewall/mod_firewall.lua"
+        source      = "https://hg.prosody.im/prosody-modules/raw-file/${var.prosody_modules_commit_id}/mod_firewall/mod_firewall.lua"
         destination = "local/prosody-plugins-custom/mod_firewall"
       }
       artifact {
-        source      = "https://hg.prosody.im/prosody-modules/raw-file/tip/mod_firewall/definitions.lib.lua"
+        source      = "https://hg.prosody.im/prosody-modules/raw-file/${var.prosody_modules_commit_id}/mod_firewall/definitions.lib.lua"
         destination = "local/prosody-plugins-custom/mod_firewall"
       }
       artifact {
-        source      = "https://hg.prosody.im/prosody-modules/raw-file/tip/mod_firewall/actions.lib.lua"
+        source      = "https://hg.prosody.im/prosody-modules/raw-file/${var.prosody_modules_commit_id}/mod_firewall/actions.lib.lua"
         destination = "local/prosody-plugins-custom/mod_firewall"
       }
       artifact {
-        source      = "https://hg.prosody.im/prosody-modules/raw-file/tip/mod_firewall/marks.lib.lua"
+        source      = "https://hg.prosody.im/prosody-modules/raw-file/${var.prosody_modules_commit_id}/mod_firewall/marks.lib.lua"
         destination = "local/prosody-plugins-custom/mod_firewall"
       }
       artifact {
-        source      = "https://hg.prosody.im/prosody-modules/raw-file/tip/mod_firewall/conditions.lib.lua"
+        source      = "https://hg.prosody.im/prosody-modules/raw-file/${var.prosody_modules_commit_id}/mod_firewall/conditions.lib.lua"
         destination = "local/prosody-plugins-custom/mod_firewall"
       }
       artifact {
-        source      = "https://hg.prosody.im/prosody-modules/raw-file/tip/mod_firewall/test.lib.lua"
+        source      = "https://hg.prosody.im/prosody-modules/raw-file/${var.prosody_modules_commit_id}/mod_firewall/test.lib.lua"
         destination = "local/prosody-plugins-custom/mod_firewall"
       }
       artifact {
-        source      = "https://hg.prosody.im/prosody-modules/raw-file/tip/mod_log_ringbuffer/mod_log_ringbuffer.lua"
+        source      = "https://hg.prosody.im/prosody-modules/raw-file/${var.prosody_modules_commit_id}/mod_log_ringbuffer/mod_log_ringbuffer.lua"
         destination = "local/prosody-plugins-custom"
       }
 
@@ -787,43 +792,43 @@ EOF
         XMPP_RECORDER_DOMAIN = "recorder.${var.domain}"
       }
       artifact {
-        source      = "https://hg.prosody.im/prosody-modules/raw-file/tip/mod_measure_stanza_counts/mod_measure_stanza_counts.lua"
+        source      = "https://hg.prosody.im/prosody-modules/raw-file/${var.prosody_modules_commit_id}/mod_measure_stanza_counts/mod_measure_stanza_counts.lua"
         destination = "local/prosody-plugins-custom"
       }
       artifact {
-        source      = "https://hg.prosody.im/prosody-modules/raw-file/tip/mod_debug_traceback/mod_debug_traceback.lua"
+        source      = "https://hg.prosody.im/prosody-modules/raw-file/${var.prosody_modules_commit_id}/mod_debug_traceback/mod_debug_traceback.lua"
         destination = "local/prosody-plugins-custom"
       }
       artifact {
-        source      = "https://hg.prosody.im/prosody-modules/raw-file/tip/mod_secure_interfaces/mod_secure_interfaces.lua"
+        source      = "https://hg.prosody.im/prosody-modules/raw-file/${var.prosody_modules_commit_id}/mod_secure_interfaces/mod_secure_interfaces.lua"
         destination = "local/prosody-plugins-custom"
       }
       artifact {
-        source      = "https://hg.prosody.im/prosody-modules/raw-file/tip/mod_firewall/mod_firewall.lua"
+        source      = "https://hg.prosody.im/prosody-modules/raw-file/${var.prosody_modules_commit_id}/mod_firewall/mod_firewall.lua"
         destination = "local/prosody-plugins-custom/mod_firewall"
       }
       artifact {
-        source      = "https://hg.prosody.im/prosody-modules/raw-file/tip/mod_firewall/definitions.lib.lua"
+        source      = "https://hg.prosody.im/prosody-modules/raw-file/${var.prosody_modules_commit_id}/mod_firewall/definitions.lib.lua"
         destination = "local/prosody-plugins-custom/mod_firewall"
       }
       artifact {
-        source      = "https://hg.prosody.im/prosody-modules/raw-file/tip/mod_firewall/actions.lib.lua"
+        source      = "https://hg.prosody.im/prosody-modules/raw-file/${var.prosody_modules_commit_id}/mod_firewall/actions.lib.lua"
         destination = "local/prosody-plugins-custom/mod_firewall"
       }
       artifact {
-        source      = "https://hg.prosody.im/prosody-modules/raw-file/tip/mod_firewall/marks.lib.lua"
+        source      = "https://hg.prosody.im/prosody-modules/raw-file/${var.prosody_modules_commit_id}/mod_firewall/marks.lib.lua"
         destination = "local/prosody-plugins-custom/mod_firewall"
       }
       artifact {
-        source      = "https://hg.prosody.im/prosody-modules/raw-file/tip/mod_firewall/conditions.lib.lua"
+        source      = "https://hg.prosody.im/prosody-modules/raw-file/${var.prosody_modules_commit_id}/mod_firewall/conditions.lib.lua"
         destination = "local/prosody-plugins-custom/mod_firewall"
       }
       artifact {
-        source      = "https://hg.prosody.im/prosody-modules/raw-file/tip/mod_firewall/test.lib.lua"
+        source      = "https://hg.prosody.im/prosody-modules/raw-file/${var.prosody_modules_commit_id}/mod_firewall/test.lib.lua"
         destination = "local/prosody-plugins-custom/mod_firewall"
       }
       artifact {
-        source      = "https://hg.prosody.im/prosody-modules/raw-file/tip/mod_log_ringbuffer/mod_log_ringbuffer.lua"
+        source      = "https://hg.prosody.im/prosody-modules/raw-file/${var.prosody_modules_commit_id}/mod_log_ringbuffer/mod_log_ringbuffer.lua"
         destination = "local/prosody-plugins-custom"
       }
       artifact {
@@ -1012,43 +1017,43 @@ EOH
         XMPP_RECORDER_DOMAIN = "recorder.${var.domain}"
       }
       artifact {
-        source      = "https://hg.prosody.im/prosody-modules/raw-file/tip/mod_measure_stanza_counts/mod_measure_stanza_counts.lua"
+        source      = "https://hg.prosody.im/prosody-modules/raw-file/${var.prosody_modules_commit_id}/mod_measure_stanza_counts/mod_measure_stanza_counts.lua"
         destination = "local/prosody-plugins-custom"
       }
       artifact {
-        source      = "https://hg.prosody.im/prosody-modules/raw-file/tip/mod_debug_traceback/mod_debug_traceback.lua"
+        source      = "https://hg.prosody.im/prosody-modules/raw-file/${var.prosody_modules_commit_id}/mod_debug_traceback/mod_debug_traceback.lua"
         destination = "local/prosody-plugins-custom"
       }
       artifact {
-        source      = "https://hg.prosody.im/prosody-modules/raw-file/tip/mod_secure_interfaces/mod_secure_interfaces.lua"
+        source      = "https://hg.prosody.im/prosody-modules/raw-file/${var.prosody_modules_commit_id}/mod_secure_interfaces/mod_secure_interfaces.lua"
         destination = "local/prosody-plugins-custom"
       }
       artifact {
-        source      = "https://hg.prosody.im/prosody-modules/raw-file/tip/mod_firewall/mod_firewall.lua"
+        source      = "https://hg.prosody.im/prosody-modules/raw-file/${var.prosody_modules_commit_id}/mod_firewall/mod_firewall.lua"
         destination = "local/prosody-plugins-custom/mod_firewall"
       }
       artifact {
-        source      = "https://hg.prosody.im/prosody-modules/raw-file/tip/mod_firewall/definitions.lib.lua"
+        source      = "https://hg.prosody.im/prosody-modules/raw-file/${var.prosody_modules_commit_id}/mod_firewall/definitions.lib.lua"
         destination = "local/prosody-plugins-custom/mod_firewall"
       }
       artifact {
-        source      = "https://hg.prosody.im/prosody-modules/raw-file/tip/mod_firewall/actions.lib.lua"
+        source      = "https://hg.prosody.im/prosody-modules/raw-file/${var.prosody_modules_commit_id}/mod_firewall/actions.lib.lua"
         destination = "local/prosody-plugins-custom/mod_firewall"
       }
       artifact {
-        source      = "https://hg.prosody.im/prosody-modules/raw-file/tip/mod_firewall/marks.lib.lua"
+        source      = "https://hg.prosody.im/prosody-modules/raw-file/${var.prosody_modules_commit_id}/mod_firewall/marks.lib.lua"
         destination = "local/prosody-plugins-custom/mod_firewall"
       }
       artifact {
-        source      = "https://hg.prosody.im/prosody-modules/raw-file/tip/mod_firewall/conditions.lib.lua"
+        source      = "https://hg.prosody.im/prosody-modules/raw-file/${var.prosody_modules_commit_id}/mod_firewall/conditions.lib.lua"
         destination = "local/prosody-plugins-custom/mod_firewall"
       }
       artifact {
-        source      = "https://hg.prosody.im/prosody-modules/raw-file/tip/mod_firewall/test.lib.lua"
+        source      = "https://hg.prosody.im/prosody-modules/raw-file/${var.prosody_modules_commit_id}/mod_firewall/test.lib.lua"
         destination = "local/prosody-plugins-custom/mod_firewall"
       }
       artifact {
-        source      = "https://hg.prosody.im/prosody-modules/raw-file/tip/mod_log_ringbuffer/mod_log_ringbuffer.lua"
+        source      = "https://hg.prosody.im/prosody-modules/raw-file/${var.prosody_modules_commit_id}/mod_log_ringbuffer/mod_log_ringbuffer.lua"
         destination = "local/prosody-plugins-custom"
       }
 
