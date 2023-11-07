@@ -35,6 +35,7 @@ fi
 
 case $IMAGE_TYPE in
 HotfixJicofo)
+  export IMAGE_TYPE="Signal"
   IMAGE_NAME_PREFIX="BuildSignal"
   #if we're not given versions, search for the latest image
   JITSI_MEET_VERSION=$(echo $BASE_SIGNAL_VERSION | cut -d'-' -f2)
