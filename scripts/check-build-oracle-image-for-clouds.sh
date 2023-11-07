@@ -13,6 +13,13 @@ fi
 
 [ -z "$CLOUDS" ] && CLOUDS=$($LOCAL_PATH/release_clouds.sh $ENVIRONMENT)
 
+# if doing a jicofo hotfix, pull prosody and jitsi-meet versions from base signal version
+if [[ "$IMAGE_TYPE" == "JicofoHotfix" ]]; then
+    export IMAGE_TYPE="Signal"
+    export JITSI_MEET_VERSION="$(echo $BASE_SIGNAL_VERSION | cut -d'-' -f2)"
+    export PROSODY_VERSION="$(echo $BASE_SIGNAL_VERSION | cut -d'-' -f3)"
+fi
+
 if [[ "$IMAGE_TYPE" == "Signal" ]]; then
     export SIGNAL_VERSION="$JICOFO_VERSION-$JITSI_MEET_VERSION-$PROSODY_VERSION"
 fi

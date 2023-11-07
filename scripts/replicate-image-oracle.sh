@@ -34,6 +34,18 @@ fi
 [ -z "$IMAGE_ARCH" ] && IMAGE_ARCH="x86_64"
 
 case $IMAGE_TYPE in
+HotfixJicofo)
+  IMAGE_NAME_PREFIX="BuildSignal"
+  #if we're not given versions, search for the latest image
+  JITSI_MEET_VERSION=$(echo $BASE_SIGNAL_VERSION | cut -d'-' -f2)
+  PROSODY_VERSION=$(echo $BASE_SIGNAL_VERSION | cut -d'-' -f3)
+  [ -z "$SIGNAL_VERSION" ] && SIGNAL_VERSION="$JICOFO_VERSION-$JITSI_MEET_VERSION-$PROSODY_VERSION"
+  SERVICE_VERSION="$SIGNAL_VERSION"
+  if [ -z "$SERVICE_VERSION" ]; then
+    SERVICE_VERSION='latest'
+  fi
+  ;;
+
 Signal)
   IMAGE_NAME_PREFIX="BuildSignal"
 

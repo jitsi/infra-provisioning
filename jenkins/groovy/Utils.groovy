@@ -128,6 +128,9 @@ def CreateImageOracle(image_type) {
         case 'JVB':
             image_script = 'build-jvb-oracle.sh'
         break;
+        case 'JicofoHotfix':
+            image_script = 'build-jicofo-hotfix-oracle.sh'
+        break;
         case 'Signal':
             image_script = 'build-signal-oracle.sh'
         break;
