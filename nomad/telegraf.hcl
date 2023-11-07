@@ -241,8 +241,8 @@ EOF
       url = 'http://{{"{{"}}if ne .ServiceAddress ""}}{{"{{"}}.ServiceAddress}}{{"{{"}}else}}{{"{{"}}.Address}}{{"{{"}}end}}:{{"{{"}}with .ServiceMeta.metrics_port}}{{"{{"}}.}}{{"{{"}}else}}{{"{{"}}.ServicePort}}{{"{{"}}end}}/{{"{{"}}with .ServiceMeta.metrics_path}}{{"{{"}}.}}{{"{{"}}else}}/metrics{{"{{"}}end}}'
       [inputs.prometheus.consul.query.tags]
         host = "{{"{{"}}.Node}}"
-        shard-role = "core"
-        role = "core"
+        shard-role = "recovery-agent"
+        role = "recovery-agent"
     [[inputs.prometheus.consul.query]]
       name = "redis-metrics"
       tag = "ip-{{ env "attr.unique.network.ip-address" }}"
