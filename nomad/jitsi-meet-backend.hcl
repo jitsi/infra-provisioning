@@ -707,6 +707,7 @@ EOF
 
       env {
         CENSUS_POLL = true
+        CENSUS_REPORTS = true
         CONSUL_SECURE = false
         CONSUL_PORT=8500
         CONSUL_STATUS = true
