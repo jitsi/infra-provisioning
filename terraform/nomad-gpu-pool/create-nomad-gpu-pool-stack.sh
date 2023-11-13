@@ -14,7 +14,7 @@ fi
 
 LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
-[ -z "$ROLE" ] && ROLE="nomad-pool"
+[ -z "$ROLE" ] && ROLE="$POOL_TYPE"
 [ -z "$POOL_TYPE" ] && POOL_TYPE="skynet"
 [ -z "$NAME" ] && NAME="$ENVIRONMENT-$ORACLE_REGION-$ROLE-$POOL_TYPE"
 [ -z "$ORACLE_GIT_BRANCH" ] && ORACLE_GIT_BRANCH="main"
