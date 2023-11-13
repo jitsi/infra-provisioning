@@ -19,6 +19,8 @@ LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 [ -z "$NAME" ] && NAME="$ENVIRONMENT-$ORACLE_REGION-$ROLE-$POOL_TYPE"
 [ -z "$ORACLE_GIT_BRANCH" ] && ORACLE_GIT_BRANCH="main"
 
+[ -z "$DISK_IN_GBS" ] && DISK_IN_GBS="100"
+
 [ -z "$POOL_PUBLIC" ] && POOL_PUBLIC="false"
 
 [ -e "$LOCAL_PATH/../../clouds/all.sh" ] && . $LOCAL_PATH/../../clouds/all.sh
@@ -210,6 +212,7 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
   -var="shape=$SHAPE" \
   -var="memory_in_gbs=$MEMORY_IN_GBS" \
   -var="ocpus=$OCPUS" \
+  -var="disk_in_gbs=$DISK_IN_GBS" \
   -var="user_private_key_path=$USER_PRIVATE_KEY_PATH" \
   -var="postinstall_status_file=$POSTINSTALL_STATUS_FILE" \
   -var="vcn_name=$VCN_NAME" \
