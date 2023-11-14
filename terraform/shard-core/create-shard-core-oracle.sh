@@ -43,7 +43,7 @@ ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 
 CLOUD_NAME="$ENVIRONMENT-$ORACLE_REGION"
 [ -z "$SHAPE" ] && SHAPE="$DEFAULT_SIGNAL_SHAPE"
-[ -z "$SHAPE" ] && SHAPE="VM.Standard.E4.Flex"
+[ -z "$SHAPE" ] && SHAPE="VM.Standard.A1.Flex"
 
 [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS="16"
 if [[ "$SHAPE" == "VM.Standard.A1.Flex" ]]; then

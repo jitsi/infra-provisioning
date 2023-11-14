@@ -310,7 +310,7 @@ def SignalShapeFromEnvironment(environment) {
 . ./clouds/oracle.sh
 . ./sites/${environment}/stack-env.sh
 if [ -z "\$DEFAULT_SIGNAL_SHAPE" ]; then
-    echo \$DEFAULT_STANDALONE_SHAPE
+    echo \$SHAPE_A_1
 else
     echo \$DEFAULT_SIGNAL_SHAPE
 fi
