@@ -38,7 +38,7 @@ pipeline {
                         if (fileExists("scripts/$build_script_name")) {
                             image_script = build_script_name;
                         } else {
-                            error("No known job type type ${env.JOB_TYPE}")
+                            error("No known job type: ${env.JOB_TYPE}")
                         }
                         echo "Running build script ${image_script} for job type ${env.JOB_TYPE}"
                         withCredentials([
