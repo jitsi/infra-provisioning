@@ -471,6 +471,9 @@ while true; do
     fi
 done
 
+# evaluate each string, integer and boolean in the environment configuration file and export it as a NOMAD_VAR_ environment variable
+eval $(yq '.. | select(tag == "!!int" or tag == "!!str" or tag == "!!bool") |  "export NOMAD_VAR_"+(path | join("_")) + "=\"" + . + "\""' $ENVIRONMENT_CONFIGURATION_FILE)
+
 export NOMAD_VAR_environment="$ENVIRONMENT"
 export NOMAD_VAR_domain="$DOMAIN"
 # [ -n "$SHARD_STATE" ] && export NOMAD_VAR_shard_state="$SHARD_STATE"
