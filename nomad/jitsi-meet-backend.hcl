@@ -272,6 +272,46 @@ variable rtcstats_server {
   default = ""
 }
 
+variable jicofo_ssrc_rewriting {
+  type = string
+  default = "false"
+}
+
+variable jicofo_enable_opus_red {
+  type = string
+  default = "false"
+}
+
+variable jicofo_enable_h264 {
+  type = string
+  default = "true"
+}
+
+variable jicofo_enable_vp8 {
+  type = string
+  default = "true"
+}
+
+variable jicofo_enable_vp9 {
+  type = string
+  default = "true"
+}
+
+variable jicofo_strip_simulcast {
+  type = string
+  default = "true"
+}
+
+variable jicofo_visitors_max_participants {
+  type = string
+  default = "5"
+}
+
+variable jicofo_visitors_max_visitors_per_node {
+  type = string
+  default = "250"
+}
+
 job "[JOB_NAME]" {
   region = "global"
   datacenters = [var.dc]
@@ -1209,8 +1249,8 @@ EOF
         ENABLE_SCTP_RELAY="${var.sctp_relay_enabled}"
         ENABLE_VISITORS="${var.visitors_enabled}"
         JICOFO_ENABLE_REST="1"
-        VISITORS_MAX_PARTICIPANTS=5
-        VISITORS_MAX_VISITORS_PER_NODE=250
+        VISITORS_MAX_PARTICIPANTS="${var.jicofo_visitors_max_participants}"
+        VISITORS_MAX_VISITORS_PER_NODE="${var.jicofo_visitors_max_visitors_per_node}"
         PROSODY_VISITORS_MUC_PREFIX="conference"
         AUTH_TYPE="jwt"
         JICOFO_ENABLE_BRIDGE_HEALTH_CHECKS="1"
@@ -1222,14 +1262,14 @@ EOF
         BRIDGE_AVG_PARTICIPANT_STRESS="0.005"
         MAX_BRIDGE_PARTICIPANTS="80"
         ENABLE_JVB_XMPP_SERVER="1"
-        ENABLE_CODEC_VP8="1"
-        ENABLE_CODEC_VP9="1"
-        ENABLE_CODEC_H264="1"
-        ENABLE_CODEC_OPUS_RED="1"
-        JICOFO_CONF_SSRC_REWRITING="0"
+        ENABLE_CODEC_VP8="${var.jicofo_enable_vp8}"
+        ENABLE_CODEC_VP9="${var.jicofo_enable_vp9}"
+        ENABLE_CODEC_H264="${var.jicofo_enable_h264}"
+        ENABLE_CODEC_OPUS_RED="${var.jicofo_enable_opus_red}"
+        JICOFO_CONF_SSRC_REWRITING="${var.jicofo_ssrc_rewriting}"
         JICOFO_CONF_MAX_AUDIO_SENDERS=999999
         JICOFO_CONF_MAX_VIDEO_SENDERS=999999
-        JICOFO_CONF_STRIP_SIMULCAST="1"
+        JICOFO_CONF_STRIP_SIMULCAST="${var.jicofo_strip_simulcast}"
         JICOFO_SOURCE_SIGNALING_DELAYS="{ 50: 1000, 100: 2000 }"
         JICOFO_MAX_MEMORY="1536m"
         XMPP_DOMAIN = "${var.domain}"
