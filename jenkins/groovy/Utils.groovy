@@ -279,7 +279,7 @@ def JigasiShapeFromEnvironment(environment) {
 . ./clouds/oracle.sh
 . ./sites/${environment}/stack-env.sh
 if [ -z "\$JIGASI_SHAPE" ]; then
-    echo \$SHAPE_E_4
+    echo \$SHAPE_A_1
 else
     echo \$JIGASI_SHAPE
 fi
