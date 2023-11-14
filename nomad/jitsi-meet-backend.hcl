@@ -812,6 +812,7 @@ EOF
         TURN_CREDENTIALS="${var.turnrelay_password}"
         TURNS_HOST="${var.turnrelay_host}"
         TURN_HOST="${var.turnrelay_host}"
+        STUN_HOST="${var.turnrelay_host}"
         MAX_PARTICIPANTS=500
         XMPP_DOMAIN = "${var.domain}"
         PUBLIC_URL="https://${var.domain}/"
