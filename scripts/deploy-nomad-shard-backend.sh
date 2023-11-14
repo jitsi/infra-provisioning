@@ -273,7 +273,8 @@ if [[ "$RTCSTATS_SERVER" != "null" ]]; then
     export NOMAD_VAR_rtcstats_server="$RTCSTATS_SERVER"
 fi
 
-
+# evaluate each string in the environment configuration file and export it as a NOMAD_VAR_ environment variable
+eval $(yq '.. | select(tag == "!!str") |  "export NOMAD_VAR_"+(path | join("_")) + "=\"" + . + "\""' $ENVIRONMENT_CONFIGURATION_FILE)
 
 [ -z "$VISITORS_COUNT" ] && VISITORS_COUNT=0
 
