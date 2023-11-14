@@ -304,12 +304,12 @@ variable jicofo_strip_simulcast {
 
 variable jicofo_visitors_max_participants {
   type = string
-  default = "5"
+  default = "false"
 }
 
 variable jicofo_visitors_max_visitors_per_node {
   type = string
-  default = "250"
+  default = "false"
 }
 
 job "[JOB_NAME]" {
@@ -1249,8 +1249,6 @@ EOF
         ENABLE_SCTP_RELAY="${var.sctp_relay_enabled}"
         ENABLE_VISITORS="${var.visitors_enabled}"
         JICOFO_ENABLE_REST="1"
-        VISITORS_MAX_PARTICIPANTS="${var.jicofo_visitors_max_participants}"
-        VISITORS_MAX_VISITORS_PER_NODE="${var.jicofo_visitors_max_visitors_per_node}"
         PROSODY_VISITORS_MUC_PREFIX="conference"
         AUTH_TYPE="jwt"
         JICOFO_ENABLE_BRIDGE_HEALTH_CHECKS="1"
@@ -1381,6 +1379,13 @@ VISITORS_XMPP_SERVER={{ range $i, $e := scratch.MapValues "vnodes" }}{{ if gt $i
 #
 # Basic configuration options
 #
+{{ if ne "${var.jicofo_visitors_max_participants}" "false" -}}
+VISITORS_MAX_PARTICIPANTS="${var.jicofo_visitors_max_participants}"
+{{ end -}}
+{{ if ne "${var.jicofo_visitors_max_visitors_per_node}" "false" -}}
+VISITORS_MAX_VISITORS_PER_NODE="${var.jicofo_visitors_max_visitors_per_node}"
+{{ end -}}
+
 ENABLE_RECORDING="1"
 ENABLE_OCTO="1"
 
