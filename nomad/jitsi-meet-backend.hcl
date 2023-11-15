@@ -277,6 +277,11 @@ variable jicofo_ssrc_rewriting {
   default = "false"
 }
 
+variable jicofo_enable_av1 {
+  type = string
+  default = "false"
+}
+
 variable jicofo_enable_opus_red {
   type = string
   default = "false"
@@ -1261,6 +1266,7 @@ EOF
         BRIDGE_AVG_PARTICIPANT_STRESS="0.005"
         MAX_BRIDGE_PARTICIPANTS="80"
         ENABLE_JVB_XMPP_SERVER="1"
+        ENABLE_CODEC_AV1="${var.jicofo_enable_av1}"
         ENABLE_CODEC_VP8="${var.jicofo_enable_vp8}"
         ENABLE_CODEC_VP9="${var.jicofo_enable_vp9}"
         ENABLE_CODEC_H264="${var.jicofo_enable_h264}"
