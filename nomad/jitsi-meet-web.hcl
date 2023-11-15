@@ -433,7 +433,7 @@ variable turn_udp_enabled {
   default = "false"
 }
 
-variable jvb_preferred_codecs {
+variable jitsi_meet_jvb_preferred_codecs {
   type = string
   default = ""
 }
