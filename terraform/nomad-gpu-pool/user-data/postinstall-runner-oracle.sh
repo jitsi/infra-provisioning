@@ -13,4 +13,5 @@ if [[ "$POOL_TYPE" == "null" ]]; then
 fi
 [ -z "$POOL_TYPE" ] && POOL_TYPE="skynet"
 export HOST_ROLE="gpu"
-export ANSIBLE_VARS="hcv_environment=$ENVIRONMENT cloud_name=$CLOUD_NAME cloud_provider=oracle oracle_region=$ORACLE_REGION region=$ORACLE_REGION nomad_pool_type=$POOL_TYPE nvidia_docker_flag=true"
+export GPU_COUNT="$(nvidia-smi --list-gpus | wc -l)"
+export ANSIBLE_VARS="hcv_environment=$ENVIRONMENT cloud_name=$CLOUD_NAME cloud_provider=oracle oracle_region=$ORACLE_REGION region=$ORACLE_REGION nomad_pool_type=$POOL_TYPE nomad_gpu_count=$GPU_COUNT nvidia_docker_flag=true"
