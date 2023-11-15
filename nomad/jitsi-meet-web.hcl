@@ -756,8 +756,8 @@ config.maxFullResolutionParticipants = 1;
 {{ end -}}
 
 if (!config.hasOwnProperty('videoQuality')) config.videoQuality = {};
-{{ if ne "${var.jvb_preferred_codecs}" "" -}}
-config.videoQuality.codecPreferenceOrder='${var.jvb_preferred_codecs}';
+{{ if ne "${var.jitsi_meet_jvb_preferred_codecs}" "" -}}
+config.videoQuality.codecPreferenceOrder='${var.jitsi_meet_jvb_preferred_codecs}';
 {{ end -}}
 
 config.audioQuality.enableOpusDtx=${var.dtx_enabled};
