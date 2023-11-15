@@ -742,7 +742,7 @@ if (subdomain.endsWith('.')) {
 
 config.p2p.useStunTurn=true;
 {{ if ne "${var.jitsi_meet_p2p_preferred_codecs}" "" -}}
-config.p2p.codecPreferenceOrder='${var.p2p_preferred_codecs}';
+config.p2p.codecPreferenceOrder='${var.jitsi_meet_p2p_preferred_codecs}';
 {{ end -}}
 
 config.useStunTurn=true;
