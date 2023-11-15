@@ -433,6 +433,16 @@ variable turn_udp_enabled {
   default = "false"
 }
 
+variable jvb_preferred_codecs {
+  type = string
+  default = ""
+}
+
+variable p2p_preferred_codecs {
+    type = string
+    default = ""
+}
+
 job "[JOB_NAME]" {
   region = "global"
   datacenters = var.dc
