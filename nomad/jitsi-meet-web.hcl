@@ -433,6 +433,16 @@ variable turn_udp_enabled {
   default = "false"
 }
 
+variable jitsi_meet_jvb_preferred_codecs {
+  type = string
+  default = ""
+}
+
+variable jitsi_meet_p2p_preferred_codecs {
+    type = string
+    default = ""
+}
+
 job "[JOB_NAME]" {
   region = "global"
   datacenters = var.dc
@@ -731,6 +741,10 @@ if (subdomain.endsWith('.')) {
 }
 
 config.p2p.useStunTurn=true;
+{{ if ne "${var.jitsi_meet_p2p_preferred_codecs}" "" -}}
+config.p2p.codecPreferenceOrder='${var.jitsi_meet_p2p_preferred_codecs}';
+{{ end -}}
+
 config.useStunTurn=true;
 config.enableSaveLogs=true;
 config.disableRtx=false;
@@ -742,6 +756,9 @@ config.maxFullResolutionParticipants = 1;
 {{ end -}}
 
 if (!config.hasOwnProperty('videoQuality')) config.videoQuality = {};
+{{ if ne "${var.jitsi_meet_jvb_preferred_codecs}" "" -}}
+config.videoQuality.codecPreferenceOrder='${var.jitsi_meet_jvb_preferred_codecs}';
+{{ end -}}
 
 config.audioQuality.enableOpusDtx=${var.dtx_enabled};
 
