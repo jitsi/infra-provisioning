@@ -11,15 +11,10 @@ job "nvidia-prom-exporter" {
     attribute = "${attr.kernel.name}"
     value     = "linux"
   }
-//   constraint {
-//     attribute = "${meta.gpu_count}"
-//     operator  = ">="
-//     value     = "1"
-//   }
   constraint {
-    attribute = "${meta.pool_type}"
-    operator  = "="
-    value     = "whisper"
+    attribute = "${meta.gpu_count}"
+    operator  = ">="
+    value     = "1"
   }
 
   group "gpu-monitor" {
@@ -45,10 +40,6 @@ job "nvidia-prom-exporter" {
           path     = "/healthz"
           interval = "10s"
           timeout  = "2s"
-        }
-        meta {
-          metrics_port = "9400"
-          metrics_path = "metrics"
         }
       }
 

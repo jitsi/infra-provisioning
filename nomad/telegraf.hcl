@@ -260,6 +260,21 @@ EOF
         shard-role = "oscar"
         role = "oscar"
 
+[[inputs.prometheus]]
+  namepass = ["DCGM_FI_DEV_GPU_UTIL*", "DCGM_FI_DEV_MEM_COPY_UTIL*"]
+  [inputs.prometheus.consul]
+    enabled = true
+    agent = "{{ env "attr.unique.network.ip-address" }}:8500"
+    query_interval = "1m"
+    [[inputs.prometheus.consul.query]]
+      name = "gpu-monitor"
+      tag = "ip-{{ env "attr.unique.network.ip-address" }}"
+      url = 'http://{{"{{"}}if ne .ServiceAddress ""}}{{"{{"}}.ServiceAddress}}{{"{{"}}else}}{{"{{"}}.Address}}{{"{{"}}end}}:{{"{{"}}with .ServiceMeta.metrics_port}}{{"{{"}}.}}{{"{{"}}else}}{{"{{"}}.ServicePort}}{{"{{"}}end}}/{{"{{"}}with .ServiceMeta.metrics_path}}{{"{{"}}.}}{{"{{"}}else}}/metrics{{"{{"}}end}}'
+      [inputs.prometheus.consul.query.tags]
+        host = "{{"{{"}}.Node}}"
+        shard-role = "gpu"
+        role = "gpu"
+
 [[outputs.wavefront]]
   url = "${var.wavefront_proxy_url}"
   metric_separator = "."
