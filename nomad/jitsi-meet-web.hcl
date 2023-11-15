@@ -438,7 +438,7 @@ variable jvb_preferred_codecs {
   default = ""
 }
 
-variable p2p_preferred_codecs {
+variable jitsi_meet_p2p_preferred_codecs {
     type = string
     default = ""
 }
