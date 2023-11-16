@@ -12,6 +12,8 @@ COPY ./s3cfg /home/jenkins/.s3cfg
 
 USER root
 RUN apt-get update && apt-get -y install procps dnsutils jq python3-pip python3-venv rsync wget curl gpg unzip zip git python-is-python3 maven xvfb imagemagick s3cmd s3fs mini-dinstall sudo devscripts dpkg-dev
+RUN pip install --break-system-packages -r /home/jenkins/requirements.txt && pip install --break-system-packages jenkins-job-builder
+
 RUN echo "%jenkins ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/jenkins
 RUN wget -O- https://apt.releases.hashicorp.com/gpg | \
     gpg --dearmor | \
@@ -42,7 +44,5 @@ RUN mkdir -p /opt/jitsi && git clone https://github.com/jitsi/token-generator.gi
     && cd /opt/jitsi/token-generator && npm install && npm run build
 
 USER jenkins
-RUN python -m venv venv && echo ". /home/jenkins/venv/bin/activate" >> /home/jenkins/.shinit && && echo "ENV=/home/jenkins/.shinit; export ENV" >> /home/jenkins/.profile && echo ". /home/jenkins/venv/bin/activate" >> /home/jenkins/.bashrc
-RUN . /home/jenkins/venv/bin/activate && pip install -r /home/jenkins/requirements.txt && pip install jenkins-job-builder
 RUN mkdir -p /home/jenkins/.ansible/cp
 #ENTRYPOINT ["/usr/local/bin/jenkins-agent"]
