@@ -47,8 +47,9 @@ pipeline {
                             string(credentialsId: 'jenkins-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
                             string(credentialsId: 'jenkins-aws-id', variable: 'AWS_ACCESS_KEY_ID')
                         ]) {
-                            sh "#!/bin/bash
-                            scripts/${image_script}"                        
+                            sh """#!/usr/bin/bash
+
+                            scripts/${image_script}"""                  
                         }
 
                     }
