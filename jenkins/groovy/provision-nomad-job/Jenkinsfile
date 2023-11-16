@@ -1,6 +1,6 @@
 def utils
 pipeline {
-    agent any
+    agent 'ops-agent-beta'
     options {
         ansiColor('xterm')
         timestamps()
