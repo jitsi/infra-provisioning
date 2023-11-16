@@ -11,21 +11,21 @@ COPY ./requirements.txt /home/jenkins/requirements.txt
 COPY ./s3cfg /home/jenkins/.s3cfg
 
 USER root
-RUN apt-get update && apt-get -y install procps dnsutils jq python3-pip rsync wget curl gpg unzip zip git python-is-python3 maven xvfb imagemagick s3cmd s3fs mini-dinstall sudo devscripts dpkg-dev && pip install -r /home/jenkins/requirements.txt && pip install jenkins-job-builder
+RUN apt-get update && apt-get -y install procps dnsutils jq python3-pip python3-venv rsync wget curl gpg unzip zip git python-is-python3 maven xvfb imagemagick s3cmd s3fs mini-dinstall sudo devscripts dpkg-dev
 RUN echo "%jenkins ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/jenkins
 RUN wget -O- https://apt.releases.hashicorp.com/gpg | \
     gpg --dearmor | \
     tee /usr/share/keyrings/hashicorp-archive-keyring.gpg
 RUN echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com bullseye main" | \
     tee /etc/apt/sources.list.d/hashicorp.list
-RUN apt-get update && apt-get -y install packer nomad && rm /etc/apt/sources.list.d/hashicorp.list
+RUN apt-get update && apt-get -y install packer nomad levant && rm /etc/apt/sources.list.d/hashicorp.list
 RUN if [ "$TARGETPLATFORM" = "linux/amd64" ]; then ARCHITECTURE="amd64"; elif [ "$TARGETPLATFORM" = "linux/arm64" ]; then ARCHITECTURE="arm64"; else ARCHITECTURE="amd64"; fi \
     && echo $ARCHITECTURE && \
     wget https://releases.hashicorp.com/terraform/1.3.6/terraform_1.3.6_linux_${ARCHITECTURE}.zip && unzip ./terraform*.zip && mv terraform /usr/bin/terraform
 RUN wget -O- https://deb.nodesource.com/gpgkey/nodesource.gpg.key | \
     gpg --dearmor | \
     tee /usr/share/keyrings/nodesource-archive-keyring.gpg
-RUN echo "deb [signed-by=/usr/share/keyrings/nodesource-archive-keyring.gpg] https://deb.nodesource.com/node_16.x bullseye main" | \
+RUN echo "deb [signed-by=/usr/share/keyrings/nodesource-archive-keyring.gpg] https://deb.nodesource.com/node_20.x bullseye main" | \
     tee /etc/apt/sources.list.d/nodesource.list
 RUN apt-get update && apt-get -y install nodejs && rm /etc/apt/sources.list.d/nodesource.list
 RUN wget -O-  https://download.docker.com/linux/debian/gpg | \
@@ -42,5 +42,7 @@ RUN mkdir -p /opt/jitsi && git clone https://github.com/jitsi/token-generator.gi
     && cd /opt/jitsi/token-generator && npm install && npm run build
 
 USER jenkins
+RUN python -m venv venv && echo ". /home/jenkins/venv/bin/activate" >> /home/jenkins/.shinit && && echo "ENV=/home/jenkins/.shinit; export ENV" >> /home/jenkins/.profile && echo ". /home/jenkins/venv/bin/activate" >> /home/jenkins/.bashrc
+RUN . /home/jenkins/venv/bin/activate && pip install -r /home/jenkins/requirements.txt && pip install jenkins-job-builder
 RUN mkdir -p /home/jenkins/.ansible/cp
 #ENTRYPOINT ["/usr/local/bin/jenkins-agent"]
