@@ -494,5 +494,7 @@ done
 
 export NOMAD_VAR_dc="$NOMAD_DC"
 
-sed -e "s/\[JOB_NAME\]/web-release-${RELEASE_NUMBER}/" "$NOMAD_JOB_PATH/jitsi-meet-web.hcl" | nomad job run -
-exit $?
+levant render -var "web_release.job_name=web-release-${RELEASE_NUMBER}" $NOMAD_JOB_PATH/jitsi-meet-web.hcl | nomad job run -
+
+# sed -e "s/\[JOB_NAME\]/web-release-${RELEASE_NUMBER}/" "$NOMAD_JOB_PATH/jitsi-meet-web.hcl" | nomad job run -
+# exit $?
