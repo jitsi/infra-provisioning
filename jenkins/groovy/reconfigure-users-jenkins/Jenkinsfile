@@ -23,7 +23,7 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                     utils.SetupRepos(env.VIDEO_INFRA_BRANCH)
 
                     // setup OCI credentials
-                    utils.SetupOCI()
+                    // utils.SetupOCI()
                 }
             }
         }
