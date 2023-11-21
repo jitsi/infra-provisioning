@@ -12,12 +12,17 @@ if [ -z "$JOB_NAME" ]; then
 fi
 
 JOB_PATH="$LOCAL_PATH/../jenkins/jobs"
-JOB_FILE="$JOB_PATH/$JOB_NAME.yaml"
-if [ ! -e "$JOB_FILE" ]; then
-    echo "No job file $JOB_FILE found, exiting"
-    exit 2
+if [[ "$JOB_NAME" == "ALL" ]]; then
+    echo "JOB_NAME set to 'ALL', applying all jobs in $JOB_PATH"
+    JOB_NAME=""
+    JOB_FILE="$JOB_PATH/*.yaml"
+else
+    JOB_FILE="$JOB_PATH/$JOB_NAME.yaml"
+    if [ ! -e "$JOB_FILE" ]; then
+        echo "No job file $JOB_FILE found, exiting"
+        exit 2
+    fi
 fi
-set -x
 [ -z "$PUBLIC_CUSTOMIZATIONS_REPO" ] && PUBLIC_CUSTOMIZATIONS_REPO="git@github.com:jitsi/infra-customizations.git"
 if [ -n "$PRIVATE_CUSTOMIZATIONS_REPO" ]; then
     echo "PRIVATE_CUSTOMIZATIONS_REPO is set, so updating $JOB_FILE with repo value"
