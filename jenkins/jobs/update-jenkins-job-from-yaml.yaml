@@ -1,0 +1,41 @@
+- job:
+    name: update-jenkins-job-from-yaml
+    display-name: update jenkins job from yaml
+    description: 'Update jenkins jobs from yaml'      
+    concurrent: true
+    parameters:
+      - string:
+          name: JJB_URL
+          description: "URL for the jenkins to use, defaults to jenkins-opsdev in the code."
+          trim: true
+      - string:
+          name: JOB_NAME
+          default: 'ALL'
+          description: "Name of the job to deploy, or 'ALL' if all jobs should be dated."
+          trim: true
+      - string:
+          name: VIDEO_INFRA_BRANCH
+          default: main
+          description: "Controls checkout branch for infra repos, defaults to 'main'."
+          trim: true
+      - string:
+          name: INFRA_CUSTOMIZATIONS_REPO
+          default: git@github.com:jitsi/infra-customizations.git
+          description: "Repo with customized configurations, defaults to 'git@github.com:jitsi/infra-customizations.git'."
+          trim: true
+ 
+    project-type: pipeline
+    sandbox: true
+    pipeline-scm:
+      scm:
+        - git:
+            url: git@github.com:jitsi/infra-provisioning.git
+            credentials-id: "video-infra"
+            branches:
+              - "origin/${VIDEO_INFRA_BRANCH}"
+            browser: githubweb
+            browser-url: https://github.com/jitsi/infra-provisioning
+            submodule:
+              recursive: true
+      script-path: jenkins/groovy/update-jenkins-job-from-yaml/Jenkinsfile
+      lightweight-checkout: true
