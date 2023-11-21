@@ -400,7 +400,7 @@ if [ -z "$LB_RULE_SET_ID" ]; then
     -backend-config="region=$ORACLE_REGION" \
     -backend-config="profile=$S3_PROFILE" \
     -backend-config="endpoint=$S3_ENDPOINT" \
-    -reconfigure $TF_POST_PARAMS_LBSG
+    -reconfigure $TF_POST_PARAMS_RS
 
   terraform $TF_GLOBALS_CHDIR_RS apply \
     -var="oracle_region=$ORACLE_REGION" \
