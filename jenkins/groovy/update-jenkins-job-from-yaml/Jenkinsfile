@@ -20,8 +20,7 @@ pipeline {
         stage('Run Script') {
             steps {
                 withCredentials([
-                    string(credentialsId: 'jjb-user', variable: 'JJB_USER'),
-                    string(credentialsId: 'jjb-password', variable: 'JJB_PASSWORD')
+                    usernamePassword(credentialsId: 'jjb-auth', passwordVariable: 'JJB_PASSWORD', usernameVariable: 'JJB_USER')
                 ]) {
                     sh 'scripts/update-jenkins-job-from-yaml.sh'
                 }
