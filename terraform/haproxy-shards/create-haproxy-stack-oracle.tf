@@ -172,34 +172,6 @@ resource "oci_load_balancer_backend_set" "oci_load_balancer_bs" {
   }
 }
 
-resource "oci_load_balancer_rule_set" "redirect_rule_set" {
-    #Required
-    items {
-        #Required
-        action = "REDIRECT"
-
-        conditions {
-            #Required
-            attribute_name = "PATH"
-            attribute_value = "/"
-            #Optional
-            operator = "PREFIX_MATCH"
-        }
-        description = "redirect http to https"
-        redirect_uri {
-            #Optional
-            host = "{host}"
-            path = "{path}"
-            port = 443
-            protocol = "https"
-            query = "{query}"
-        }
-        response_code = 301
-    }
-    load_balancer_id = oci_load_balancer.oci_load_balancer.id
-    name = "RedirectToHTTPS"
-}
-
 resource "oci_load_balancer_certificate" "main_certificate" {
     #Required
     certificate_name = var.certificate_certificate_name
@@ -276,16 +248,6 @@ resource "oci_load_balancer_hostname" "signal_api_hostnames" {
     lifecycle {
         create_before_destroy = true
     }
-}
-
-
-resource "oci_load_balancer_listener" "redirect_listener" {
-  load_balancer_id = oci_load_balancer.oci_load_balancer.id
-  name = "HAProxyHTTPListener"
-  port = 80
-  default_backend_set_name = oci_load_balancer_backend_set.oci_load_balancer_bs.name
-  rule_set_names = [oci_load_balancer_rule_set.redirect_rule_set.name]
-  protocol = "HTTP"
 }
 
 resource "oci_load_balancer_listener" "main_listener" {
@@ -406,6 +368,7 @@ data "oci_core_instance" "oci_instance_datasources" {
 locals {
   private_ips = data.oci_core_instance.oci_instance_datasources.*.private_ip
   lb_ip = oci_load_balancer.oci_load_balancer.ip_address_details[0].ip_address
+  lb_id = oci_load_balancer.oci_load_balancer.id
 }
 
 resource "oci_dns_rrset" "haproxy_dns_record" {
@@ -510,4 +473,8 @@ output "private_ips" {
 
 output "lb_ip" {
   value = local.lb_ip
+}
+
+output "lb_id" {
+  value = local.lb_id
 }
