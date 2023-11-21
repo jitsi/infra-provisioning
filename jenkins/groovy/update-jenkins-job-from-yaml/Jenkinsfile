@@ -1,0 +1,31 @@
+pipeline {
+    agent any
+    options {
+        ansiColor('xterm')
+        timestamps()
+        buildDiscarder(logRotator(numToKeepStr: '50', artifactNumToKeepStr: '50'))
+    }
+    stages {
+        stage('Prepare/Checkout') { // for display purposes
+            steps {
+                script {
+                    // load utility function
+                    def rootDir = pwd()
+                    utils = load "${rootDir}/jenkins/groovy/Utils.groovy"
+                    // checkout repos
+                    utils.SetupRepos(env.VIDEO_INFRA_BRANCH)
+                }
+            }
+        }
+        stage('Run Script') {
+            steps {
+                withCredentials([
+                    string(credentialsId: 'jjb-user', variable: 'JJB_USER'),
+                    string(credentialsId: 'jjb-password', variable: 'JJB_PASSWORD')
+                ]) {
+                    sh 'scripts/update-jenkins-job-from-yaml.sh'
+                }
+            }
+        }
+    }
+}
