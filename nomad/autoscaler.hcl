@@ -67,6 +67,9 @@ job "[JOB_NAME]" {
       port "http" {
         to = 8080
       }
+      port "metrics" {
+        to = 8081
+      }
     }
     task "autoscaler" {
       service {
@@ -75,9 +78,14 @@ job "[JOB_NAME]" {
         port = "http"
         check {
           name     = "alive"
-          type     = "tcp"
+          type     = "http"
+          path     = "/health"
+          port     = "metrics"
           interval = "10s"
           timeout  = "2s"
+        }
+        meta {
+          metrics_port = "${NOMAD_HOST_PORT_metrics}"
         }
       }
 
@@ -99,6 +107,7 @@ job "[JOB_NAME]" {
         DEFAULT_COMPARTMENT_ID = "ocid1.compartment.oc1..aaaaaaaakhr7wzxmpdmmsilwnsfrsv3hxvcg4s4mjbtjknvpjlz2f5d7m6eq"
         NODE_ENV = "development"
         PORT = "8080"
+        METRICS_PORT = "8081"
         INITIAL_WAIT_FOR_POOLING_MS = 120000
         CLOUD_PROVIDERS="nomad,oracle"
       }
@@ -141,7 +150,7 @@ TILLEND
       }
       config {
         image = "jitsi/autoscaler:${var.autoscaler_version}"
-        ports = ["http"]
+        ports = ["http","metrics"]
         volumes = [
           "local/groups.json:/config/groups.json",
           "/opt/jitsi/certs:/certs",
