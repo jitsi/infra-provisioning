@@ -65,8 +65,13 @@ locals {
     "Allow dynamic-group ${var.recovery_agent_dynamic_group_name} to manage object-family in compartment ${var.compartment_name} where all {target.bucket.name='failed-recordings-${var.compartment_name}-${region}',request.vcn.id='${vcn_id}'}",
     "Allow dynamic-group ${var.recovery_agent_dynamic_group_name} to manage object-family in compartment ${var.compartment_name} where all {target.bucket.name='dropbox-failed-recordings-${var.compartment_name}-${region}',request.vcn.id='${vcn_id}'}",
     "Allow dynamic-group ${var.recovery_agent_dynamic_group_name} to manage object-family in compartment ${var.compartment_name} where all {target.bucket.name='vpaas-failed-recordings-${var.compartment_name}-${region}',request.vcn.id='${vcn_id}'}",
+    # allow the nomad pool the same permissions
+    "Allow dynamic-group ${var.compartment_name}-nomad-pool-dynamic-group to manage object-family in compartment ${var.compartment_name} where all {target.bucket.name='failed-recordings-${var.compartment_name}-${region}',request.vcn.id='${vcn_id}'}",
+    "Allow dynamic-group ${var.compartment_name}-nomad-pool-dynamic-group to manage object-family in compartment ${var.compartment_name} where all {target.bucket.name='dropbox-failed-recordings-${var.compartment_name}-${region}',request.vcn.id='${vcn_id}'}",
+    "Allow dynamic-group ${var.compartment_name}-nomad-pool-dynamic-group to manage object-family in compartment ${var.compartment_name} where all {target.bucket.name='vpaas-failed-recordings-${var.compartment_name}-${region}',request.vcn.id='${vcn_id}'}",
     # Recovery agent generates PARs for both failed dropbox and vpaas recordings
-    "Allow dynamic-group ${var.recovery_agent_dynamic_group_name} to read objects in compartment ${var.compartment_name} where any {target.bucket.name='vpaas-failed-recordings-${var.compartment_name}-${region}',target.bucket.name='dropbox-failed-recordings-${var.compartment_name}-${region}'}"
+    "Allow dynamic-group ${var.recovery_agent_dynamic_group_name} to read objects in compartment ${var.compartment_name} where any {target.bucket.name='vpaas-failed-recordings-${var.compartment_name}-${region}',target.bucket.name='dropbox-failed-recordings-${var.compartment_name}-${region}'}",
+    "Allow dynamic-group ${var.compartment_name}-nomad-pool-dynamic-group to read objects in compartment ${var.compartment_name} where any {target.bucket.name='vpaas-failed-recordings-${var.compartment_name}-${region}',target.bucket.name='dropbox-failed-recordings-${var.compartment_name}-${region}'}"
   ]
   ])
 }
