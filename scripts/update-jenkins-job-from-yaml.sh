@@ -53,14 +53,19 @@ fi
 
 echo "Testing job definition for $JOB_NAME"
 jenkins-jobs --flush-cache --conf $ACTIVE_JJB_CONF_FILE test $JOB_PATH $JOB_NAME
+RET=$?
 
-if [ $? -eq 0 ]; then
+if [ $RET -eq 0 ]; then
     jenkins-jobs --flush-cache --conf $ACTIVE_JJB_CONF_FILE update $JOB_PATH $JOB_NAME
+    RET=$?
 else
     echo "Failed during job definition test, skipping update"
+    exit 2
 fi
 
 if [ -z "$JJB_CONF_FILE" ]; then
     # we created ACTIVE_JJB_CONF_FILE so delete it now
     rm $ACTIVE_JJB_CONF_FILE
 fi
+
+exit $RET
