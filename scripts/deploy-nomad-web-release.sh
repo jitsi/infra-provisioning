@@ -371,11 +371,6 @@ if [[ "$JAAS_TOKEN_URL" != "null" ]]; then
     export NOMAD_VAR_api_jaas_token_url="$JAAS_TOKEN_URL"
 fi
 
-JAAS_CONFERENCE_CREATOR_URL="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_api_jaas_conference_creator_url -)"
-if [[ "$JAAS_CONFERENCE_CREATOR_URL" != "null" ]]; then
-    export NOMAD_VAR_api_jaas_conference_creator_url="$JAAS_CONFERENCE_CREATOR_URL"
-fi
-
 JAAS_WEBHOOK_PROXY="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_api_jaas_webhook_proxy -)"
 if [[ "$JAAS_WEBHOOK_PROXY" != "null" ]]; then
     export NOMAD_VAR_api_jaas_webhook_proxy="$JAAS_WEBHOOK_PROXY"
