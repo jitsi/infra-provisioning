@@ -91,6 +91,9 @@ config.jaasActuatorUrl='${var.jaas_actuator_url}',
 {{ if ne "${var.api_jaas_token_url}" "" -}}
 config.jaasTokenUrl='${var.api_jaas_token_url}',
 {{ end -}}
+{{ if ne "${var.api_jaas_conference_creator_url}" "" -}}
+config.jaasConferenceCreatorUrl='${var.api_jaas_conference_creator_url}',
+{{ end -}}
 {{ if ne "${var.api_jaas_webhook_proxy}" "" -}}
 config.webhookProxyUrl='${var.api_jaas_webhook_proxy }';
 {{ end -}}

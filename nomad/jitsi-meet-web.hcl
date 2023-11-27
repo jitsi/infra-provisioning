@@ -263,6 +263,11 @@ variable api_jaas_token_url {
   default = ""
 }
 
+variable api_jaas_conference_creator_url {
+  type = string
+  default = ""
+}
+
 variable api_jaas_webhook_proxy {
   type = string
   default = ""
