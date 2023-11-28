@@ -426,44 +426,44 @@ data "oci_core_instance" "oci_instance_datasources" {
   instance_id = lookup(data.oci_core_instance_pool_instances.oci_instance_pool_instances[0].instances[count.index], "id")
 }
 
-resource "null_resource" "verify_cloud_init" {
-  count = var.instance_pool_size
-  depends_on = [
-    data.oci_core_instance.oci_instance_datasources]
+# resource "null_resource" "verify_cloud_init" {
+#   count = var.instance_pool_size
+#   depends_on = [
+#     data.oci_core_instance.oci_instance_datasources]
 
-  provisioner "remote-exec" {
-    inline = [
-      "cloud-init status --wait"
-    ]
-    connection {
-      type = "ssh"
-      host = element(data.oci_core_instance.oci_instance_datasources.*.private_ip, count.index)
-      user = var.user
-      private_key = file(var.user_private_key_path)
+#   provisioner "remote-exec" {
+#     inline = [
+#       "cloud-init status --wait"
+#     ]
+#     connection {
+#       type = "ssh"
+#       host = element(data.oci_core_instance.oci_instance_datasources.*.private_ip, count.index)
+#       user = var.user
+#       private_key = file(var.user_private_key_path)
 
-      script_path = "/home/${var.user}/script_%RAND%.sh"
+#       script_path = "/home/${var.user}/script_%RAND%.sh"
 
-      timeout = "10m"
-    }
-  }
-  triggers = {
-    always_run = "${timestamp()}"
-  }
+#       timeout = "10m"
+#     }
+#   }
+#   triggers = {
+#     always_run = "${timestamp()}"
+#   }
 
-}
+# }
 
-resource "null_resource" "cloud_init_output" {
-  count = var.instance_pool_size
-  depends_on = [
-    null_resource.verify_cloud_init]
+# resource "null_resource" "cloud_init_output" {
+#   count = var.instance_pool_size
+#   depends_on = [
+#     null_resource.verify_cloud_init]
 
-  provisioner "local-exec" {
-    command = "ssh -o StrictHostKeyChecking=no ${var.user}@${element(data.oci_core_instance.oci_instance_datasources.*.private_ip, count.index)} 'echo hostname: $HOSTNAME, privateIp: ${element(data.oci_core_instance.oci_instance_datasources.*.private_ip, count.index)} - $(cloud-init status)' >> ${var.coturns_postinstall_status_file}"
-  }
-  triggers = {
-    always_run = "${timestamp()}"
-  }
-}
+#   provisioner "local-exec" {
+#     command = "ssh -o StrictHostKeyChecking=no ${var.user}@${element(data.oci_core_instance.oci_instance_datasources.*.private_ip, count.index)} 'echo hostname: $HOSTNAME, privateIp: ${element(data.oci_core_instance.oci_instance_datasources.*.private_ip, count.index)} - $(cloud-init status)' >> ${var.coturns_postinstall_status_file}"
+#   }
+#   triggers = {
+#     always_run = "${timestamp()}"
+#   }
+# }
 
 output "private_ips" {
   value = [
