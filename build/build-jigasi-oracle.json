@@ -2,7 +2,7 @@
   "variables": {
     "build_id": "",
     "environment": "",
-    "ansible_build_path": "../../infra-configuration/ansible",
+    "ansible_build_path": "ansible",
     "ansible_ssh_user": "",
     "image_architecture": "x86_64",
     "base_image_type": "",

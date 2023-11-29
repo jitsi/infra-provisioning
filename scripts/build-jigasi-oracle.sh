@@ -17,7 +17,7 @@ fi
 
 [ -e ./sites/$ENVIRONMENT/stack-env.sh ] && . ./sites/$ENVIRONMENT/stack-env.sh
 
-LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
+LOCAL_PATH=$(realpath $(dirname "${BASH_SOURCE[0]}"))
 
 [ -z "$ANSIBLE_BUILD_PATH" ] && ANSIBLE_BUILD_PATH="$LOCAL_PATH/../../infra-configuration/ansible"
 
@@ -105,6 +105,9 @@ done
 # make sure to delete the cached facts, so they don't interfere with this run
 rm -f .facts/default
 
+# move to infra-configuration directory
+cd ../infra-configuration
+
 # support packer 1.8
 PACKER_VERSION=$(packer --version)
 if [[ $(echo $PACKER_VERSION | cut -d'.' -f1) -ge 1 ]] && [[ $(echo $PACKER_VERSION | cut -d'.' -f2) -gt 7 ]]; then
@@ -137,3 +140,5 @@ packer build \
   -var "ansible_deploy_tags=$DEPLOY_TAGS" \
   -var "ansible_skip_tags=failfast" \
   $LOCAL_PATH/../build/build-jigasi-oracle.json
+
+cd -
