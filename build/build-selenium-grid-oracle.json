@@ -63,6 +63,7 @@
       "playbook_file": "{{user `ansible_build_path`}}/build-selenium-grid-oracle.yml",
       "user": "{{user `ansible_ssh_user`}}",
       "extra_arguments": [
+        "--scp-extra-args", "'-O'",
         "-e",
         "ansible_ssh_user={{user `ansible_ssh_user`}}",
         "-e",
