@@ -2,7 +2,7 @@
   "variables": {
     "build_id": "",
     "environment": "",
-    "ansible_build_path": "ansible",
+    "ansible_build_path": "../../infra-configuration/ansible",
     "ansible_ssh_user": "",
     "image_architecture": "x86_64",
     "base_image_type": "",
@@ -63,6 +63,7 @@
       "user": "{{user `ansible_ssh_user`}}",
       "extra_arguments": [
         "-v",
+        "--scp-extra-args", "'-O'",
         "-e",
         "ansible_ssh_user={{user `ansible_ssh_user`}}",
         "-e",

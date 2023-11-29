@@ -105,9 +105,6 @@ done
 # make sure to delete the cached facts, so they don't interfere with this run
 rm -f .facts/default
 
-# move to infra-configuration directory
-cd ../infra-configuration
-
 # support packer 1.8
 PACKER_VERSION=$(packer --version)
 if [[ $(echo $PACKER_VERSION | cut -d'.' -f1) -ge 1 ]] && [[ $(echo $PACKER_VERSION | cut -d'.' -f2) -gt 7 ]]; then
@@ -140,5 +137,3 @@ packer build \
   -var "ansible_deploy_tags=$DEPLOY_TAGS" \
   -var "ansible_skip_tags=failfast" \
   $LOCAL_PATH/../build/build-jigasi-oracle.json
-
-cd -
