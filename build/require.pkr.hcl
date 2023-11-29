@@ -5,7 +5,7 @@ packer {
       source  = "github.com/hashicorp/oracle"
     }
     ansible = {
-      version = ">= 0.0.1"
+      version = ">= 1.1.1"
       source  = "github.com/hashicorp/ansible"
     }
   }
