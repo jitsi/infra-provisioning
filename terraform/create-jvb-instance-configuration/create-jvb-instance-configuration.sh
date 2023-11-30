@@ -100,6 +100,8 @@ fi
 [ -z "$JVB_AUTOSCALER_ENABLED" ] && JVB_AUTOSCALER_ENABLED="$JVB_DEFAULT_AUTOSCALER_ENABLED"
 [ -z "$JVB_AUTOSCALER_ENABLED" ] && JVB_AUTOSCALER_ENABLED="true"
 
+[ -z "$JVB_NOMAD_ENABLED" ] && JVB_NOMAD_ENABLED="false"
+
 [ -z "$JVB_POOL_MODE" ] && JVB_POOL_MODE="shard"
 
 [ -z "$INSTANCE_CONFIG_NAME" ] && INSTANCE_CONFIG_NAME="$SHARD-JVBInstanceConfig"
@@ -169,6 +171,7 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
   -var="user_public_key_path=$USER_PUBLIC_KEY_PATH" \
   -var="secondary_vnic_name=$SECONDARY_VNIC_NAME" \
   -var="use_eip=$USE_EIP" \
+  -var="nomad_flag=$JVB_NOMAD_ENABLED" \
   -var="autoscaler_sidecar_jvb_flag=$JVB_AUTOSCALER_ENABLED" \
   -var "infra_configuration_repo=$INFRA_CONFIGURATION_REPO" \
   -var "infra_customizations_repo=$INFRA_CUSTOMIZATIONS_REPO" \
