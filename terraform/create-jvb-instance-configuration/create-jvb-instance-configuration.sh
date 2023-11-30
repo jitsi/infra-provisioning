@@ -100,7 +100,27 @@ fi
 [ -z "$JVB_AUTOSCALER_ENABLED" ] && JVB_AUTOSCALER_ENABLED="$JVB_DEFAULT_AUTOSCALER_ENABLED"
 [ -z "$JVB_AUTOSCALER_ENABLED" ] && JVB_AUTOSCALER_ENABLED="true"
 
-[ -z "$JVB_NOMAD_ENABLED" ] && JVB_NOMAD_ENABLED="false"
+JVB_NOMAD_VARIABLE="jvb_enable_nomad"
+
+[ -z "$CONFIG_VARS_FILE" ] && CONFIG_VARS_FILE="$LOCAL_PATH/../config/vars.yml"
+[ -z "$ENVIRONMENT_VARS_FILE" ] && ENVIRONMENT_VARS_FILE="$LOCAL_PATH/../sites/$ENVIRONMENT/vars.yml"
+
+NOMAD_JVB_FLAG="$(cat $ENVIRONMENT_VARS_FILE | yq eval .${JVB_NOMAD_VARIABLE} -)"
+if [[ "$NOMAD_JVB_FLAG" == "null" ]]; then
+  NOMAD_JVB_FLAG="$(cat $CONFIG_VARS_FILE | yq eval .${JVB_NOMAD_VARIABLE} -)"
+fi
+if [[ "$NOMAD_JVB_FLAG" == "null" ]]; then
+  NOMAD_JVB_FLAG=
+fi
+
+[ -z "$NOMAD_JVB_FLAG" ] && NOMAD_JVB_FLAG="false"
+
+JVB_IMAGE_TYPE="JVB"
+
+if [[ "$NOMAD_JVB_FLAG" == "true" ]]; then
+  JVB_IMAGE_TYPE="JammyBase"
+  JVB_VERSION="latest"
+fi
 
 [ -z "$JVB_POOL_MODE" ] && JVB_POOL_MODE="shard"
 
@@ -112,7 +132,7 @@ fi
 
 arch_from_shape $SHAPE
 
-[ -z "$IMAGE_OCID" ] && IMAGE_OCID=$($LOCAL_PATH/../../scripts/oracle_custom_images.py --type JVB --version "$JVB_VERSION" --architecture "$IMAGE_ARCH" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
+[ -z "$IMAGE_OCID" ] && IMAGE_OCID=$($LOCAL_PATH/../../scripts/oracle_custom_images.py --type $JVB_IMAGE_TYPE --version "$JVB_VERSION" --architecture "$IMAGE_ARCH" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
 if [ -z "$IMAGE_OCID" ]; then
   echo "No IMAGE_OCID found.  Exiting..."
   exit 1
@@ -171,7 +191,7 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
   -var="user_public_key_path=$USER_PUBLIC_KEY_PATH" \
   -var="secondary_vnic_name=$SECONDARY_VNIC_NAME" \
   -var="use_eip=$USE_EIP" \
-  -var="nomad_flag=$JVB_NOMAD_ENABLED" \
+  -var="nomad_flag=$NOMAD_JVB_FLAG" \
   -var="autoscaler_sidecar_jvb_flag=$JVB_AUTOSCALER_ENABLED" \
   -var "infra_configuration_repo=$INFRA_CONFIGURATION_REPO" \
   -var "infra_customizations_repo=$INFRA_CUSTOMIZATIONS_REPO" \
