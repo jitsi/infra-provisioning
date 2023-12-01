@@ -46,7 +46,14 @@ fi
 [ -z "$JVB_VERSION" ] && JVB_VERSION='latest'
 
 #pull in cloud-specific variables, e.g. tenancy
+[ -e "$LOCAL_PATH/../../clouds/all.sh" ] && . $LOCAL_PATH/../../clouds/all.sh
 [ -e "$LOCAL_PATH/../../clouds/oracle.sh" ] && . $LOCAL_PATH/../../clouds/oracle.sh
+
+[ -z "$INFRA_CONFIGURATION_REPO" ] && INFRA_CONFIGURATION_REPO="$PRIVATE_CONFIGURATION_REPO"
+[ -z "$INFRA_CONFIGURATION_REPO" ] && INFRA_CONFIGURATION_REPO="https://github.com/jitsi/infra-configuration.git"
+
+[ -z "$INFRA_CUSTOMIZATIONS_REPO" ] && INFRA_CUSTOMIZATIONS_REPO="$PRIVATE_CUSTOMIZATIONS_REPO"
+[ -z "$INFRA_CUSTOMIZATIONS_REPO" ] && INFRA_CUSTOMIZATIONS_REPO="https://github.com/jitsi/infra-customizations.git"
 
 if [ -z "$ORACLE_REGION" ]; then
   echo "No ORACLE_REGION found.  Exiting..."
@@ -102,8 +109,8 @@ fi
 
 JVB_NOMAD_VARIABLE="jvb_enable_nomad"
 
-[ -z "$CONFIG_VARS_FILE" ] && CONFIG_VARS_FILE="$LOCAL_PATH/../config/vars.yml"
-[ -z "$ENVIRONMENT_VARS_FILE" ] && ENVIRONMENT_VARS_FILE="$LOCAL_PATH/../sites/$ENVIRONMENT/vars.yml"
+[ -z "$CONFIG_VARS_FILE" ] && CONFIG_VARS_FILE="$LOCAL_PATH/../../config/vars.yml"
+[ -z "$ENVIRONMENT_VARS_FILE" ] && ENVIRONMENT_VARS_FILE="$LOCAL_PATH/../../sites/$ENVIRONMENT/vars.yml"
 
 NOMAD_JVB_FLAG="$(cat $ENVIRONMENT_VARS_FILE | yq eval .${JVB_NOMAD_VARIABLE} -)"
 if [[ "$NOMAD_JVB_FLAG" == "null" ]]; then
@@ -162,6 +169,12 @@ terraform $TF_GLOBALS_CHDIR init \
   -reconfigure $TF_POST_PARAMS
 
 [ -z "$ACTION" ] && ACTION="apply"
+if [[ "$ACTION" == "apply" ]]; then
+  ACTION_POST_PARAMS="-auto-approve"
+fi
+if [[ "$ACTION" == "import" ]]; then
+  ACTION_POST_PARAMS="$1 $2"
+fi
 
 terraform $TF_GLOBALS_CHDIR $ACTION \
   -var="domain=$DOMAIN" \
@@ -195,7 +208,7 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
   -var="autoscaler_sidecar_jvb_flag=$JVB_AUTOSCALER_ENABLED" \
   -var "infra_configuration_repo=$INFRA_CONFIGURATION_REPO" \
   -var "infra_customizations_repo=$INFRA_CUSTOMIZATIONS_REPO" \
-  -auto-approve $TF_POST_PARAMS
+  $ACTION_POST_PARAMS $TF_POST_PARAMS
 
 if [[ "$ENVIRONMENT_TYPE" == "prod" ]]; then
   echo "Tagging JVB image as production"

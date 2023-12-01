@@ -116,6 +116,7 @@ resource "oci_core_instance_configuration" "oci_instance_configuration" {
           file("${path.cwd}/${var.user_data_lib_path}/postinstall-lib.sh"), # load the lib
           file("${path.cwd}/${var.user_data_lib_path}/postinstall-eip-lib.sh"), # load the EIP lib
           "\nexport INFRA_CONFIGURATION_REPO=${var.infra_configuration_repo}\nexport INFRA_CUSTOMIZATIONS_REPO=${var.infra_customizations_repo}\n", #repo variables
+          "\nexport NOMAD_FLAG=${var.nomad_flag}\n", # nomad variable
           file("${path.cwd}/${var.user_data_file}"), # load our customizations
           file("${path.cwd}/${var.user_data_lib_path}/postinstall-footer.sh") # load the footer
         ]))

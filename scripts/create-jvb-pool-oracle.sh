@@ -27,6 +27,33 @@ source $LOCAL_PATH/../clouds/"$CLOUD_NAME".sh
 
 [ -z "$ORACLE_GIT_BRANCH" ] && ORACLE_GIT_BRANCH="$RELEASE_BRANCH"
 
+
+
+JVB_NOMAD_VARIABLE="jvb_enable_nomad"
+
+[ -z "$CONFIG_VARS_FILE" ] && CONFIG_VARS_FILE="$LOCAL_PATH/../config/vars.yml"
+[ -z "$ENVIRONMENT_VARS_FILE" ] && ENVIRONMENT_VARS_FILE="$LOCAL_PATH/../sites/$ENVIRONMENT/vars.yml"
+
+NOMAD_JVB_FLAG="$(cat $ENVIRONMENT_VARS_FILE | yq eval .${JVB_NOMAD_VARIABLE} -)"
+if [[ "$NOMAD_JVB_FLAG" == "null" ]]; then
+  NOMAD_JVB_FLAG="$(cat $CONFIG_VARS_FILE | yq eval .${JVB_NOMAD_VARIABLE} -)"
+fi
+if [[ "$NOMAD_JVB_FLAG" == "null" ]]; then
+  NOMAD_JVB_FLAG=
+fi
+
+[ -z "$NOMAD_JVB_FLAG" ] && NOMAD_JVB_FLAG="false"
+
+
+if [[ "$NOMAD_JVB_FLAG" == "true" ]]; then
+  JVB_VERSION="latest"
+  export AUTOSCALER_TYPE="nomad"
+  export JVB_POOL_MODE="nomad"
+  echo "Using Nomad AUTOSCALER_URL"
+  export AUTOSCALER_BACKEND="${ENVIRONMENT}-${ORACLE_REGION}"
+  export AUTOSCALER_URL="https://${ENVIRONMENT}-${ORACLE_REGION}-autoscaler.$TOP_LEVEL_DNS_ZONE_NAME"
+fi
+
 [ -z "$JVB_POOL_MODE" ] && export JVB_POOL_MODE="global"
 
 [ -z "$JVB_POOL_STATUS" ] && export JVB_POOL_STATUS="ready"
@@ -62,40 +89,6 @@ export JVB_AUTOSCALER_ENABLED=true
 
 ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 [ -e "$LOCAL_PATH/../clouds/${ORACLE_CLOUD_NAME}.sh" ] && . $LOCAL_PATH/../clouds/${ORACLE_CLOUD_NAME}.sh
-
-
-
-JVB_NOMAD_VARIABLE="jvb_enable_nomad"
-
-[ -z "$CONFIG_VARS_FILE" ] && CONFIG_VARS_FILE="$LOCAL_PATH/../config/vars.yml"
-[ -z "$ENVIRONMENT_VARS_FILE" ] && ENVIRONMENT_VARS_FILE="$LOCAL_PATH/../sites/$ENVIRONMENT/vars.yml"
-
-NOMAD_JVB_FLAG="$(cat $ENVIRONMENT_VARS_FILE | yq eval .${JVB_NOMAD_VARIABLE} -)"
-if [[ "$NOMAD_JVB_FLAG" == "null" ]]; then
-  NOMAD_JVB_FLAG="$(cat $CONFIG_VARS_FILE | yq eval .${JVB_NOMAD_VARIABLE} -)"
-fi
-if [[ "$NOMAD_JVB_FLAG" == "null" ]]; then
-  NOMAD_JVB_FLAG=
-fi
-
-[ -z "$NOMAD_JVB_FLAG" ] && NOMAD_JVB_FLAG="false"
-
-if [[ "$NOMAD_JVB_FLAG" == "true" ]]; then
-  JVB_VERSION="latest"
-  AUTOSCALER_TYPE="nomad"
-  [ -z "$NAME_ROOT_SUFFIX" ] && NAME_ROOT_SUFFIX="NomadJVBCustomGroup"
-  echo "Using Nomad AUTOSCALER_URL"
-  AUTOSCALER_URL="https://${ENVIRONMENT}-${ORACLE_REGION}-autoscaler.$TOP_LEVEL_DNS_ZONE_NAME"
-  [ -z $JVB_MAX_COUNT ] && JVB_MAX_COUNT=2
-  [ -z $JVB_MIN_COUNT ] && JVB_MIN_COUNT=1
-  [ -z $JVB_DOWNSCALE_COUNT ] && JVB_DOWNSCALE_COUNT="0.4"
-  [ -z $JVB_SCALING_INCREASE_RATE ] && JVB_SCALING_INCREASE_RATE=1
-  [ -z $JVB_SCALING_DECREASE_RATE ] && JVB_SCALING_DECREASE_RATE=1
-  [ -z "$JVB_SCALE_UP_PERIODS_COUNT" ] && JVB_SCALE_UP_PERIODS_COUNT=2
-  [ -z "$JVB_SCALE_DOWN_PERIODS_COUNT" ] && JVB_SCALE_DOWN_PERIODS_COUNT=20
-  [ -z "$JVB_AVAILABLE_COUNT" ] && JVB_AVAILABLE_COUNT="0.65"
-
-fi
 
 echo "Creating Jvb Instance Configuration"
 $LOCAL_PATH/../terraform/create-jvb-instance-configuration/create-jvb-instance-configuration.sh $SSH_USER

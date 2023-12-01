@@ -8,12 +8,6 @@ export CLEAN_CREDENTIALS="false"
 
 if [[ "$NOMAD_FLAG" == "true" ]]; then
     . /usr/local/bin/oracle_cache.sh
-    [ -z "$CACHE_PATH" ] && CACHE_PATH=$(ls /tmp/oracle_cache-*)
-    export POOL_TYPE_TAG="pool_type"
-    export POOL_TYPE=$(cat $CACHE_PATH | jq -r --arg POOL_TYPE_TAG "$POOL_TYPE_TAG" ".[\"$POOL_TYPE_TAG\"]")
-    if [[ "$POOL_TYPE" == "null" ]]; then
-        export POOL_TYPE=
-    fi
     [ -z "$POOL_TYPE" ] && POOL_TYPE="JVB"
 
     export ANSIBLE_PLAYBOOK="nomad-client.yml"
