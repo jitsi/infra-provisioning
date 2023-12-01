@@ -366,7 +366,6 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
   -var "infra_customizations_repo=$INFRA_CUSTOMIZATIONS_REPO" \
   $ACTION_POST_PARAMS $TF_POST_PARAMS
 
-# TODO
 LOCAL_HAPROXY_KEY="terraform-haproxy.tfstate"
 
 oci os object get --bucket-name $S3_STATE_BUCKET --name $S3_STATE_KEY --region $ORACLE_REGION --file $LOCAL_HAPROXY_KEY
@@ -381,6 +380,8 @@ else
 fi
 
 # find or create the load balancer rule set for https redirect
+# this is a separate terraform template because updating the load balancer
+# ruleset causes the load balancer to drop active connections
 [ -z "$S3_STATE_LB_KEY_RS" ] && S3_STATE_LB_KEY_RS="$ENVIRONMENT/haproxy-components/terraform-lb-rs.tfstate"
 LOCAL_LB_KEY_RS="terraform-lb-rs.tfstate"
 
