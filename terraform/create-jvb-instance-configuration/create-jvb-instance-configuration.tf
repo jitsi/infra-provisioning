@@ -3,6 +3,7 @@ variable "compartment_ocid" {}
 variable "subnet_ocid" {}
 variable "private_subnet_ocid" {}
 variable "security_group_ocid" {}
+variable "nomad_security_group_ocid" {}
 variable "image_ocid" {}
 variable "oracle_region" {}
 variable "environment" {}
@@ -74,6 +75,7 @@ locals {
     "${var.tag_namespace}.use_eip" = var.use_eip
     "${var.tag_namespace}.autoscaler_sidecar_jvb_flag" = var.autoscaler_sidecar_jvb_flag
   }
+  nsg_ids = concat([var.security_group_ocid], var.nomad_flag == "true" ? var.nomad_security_group_ocid : [])
 }
 
 resource "oci_core_instance_configuration" "oci_instance_configuration" {
