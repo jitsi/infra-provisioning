@@ -1,3 +1,4 @@
+[[ define "config_deeplinking.js" -]]
 config.deeplinking={
     "desktop": {
       "appName": "Jitsi Meet"
@@ -29,3 +30,5 @@ config.deeplinking={
       "downloadLink": "https://play.google.com/store/apps/details?id=org.jitsi.meet"
     }
 };
+
+[[ end -]]

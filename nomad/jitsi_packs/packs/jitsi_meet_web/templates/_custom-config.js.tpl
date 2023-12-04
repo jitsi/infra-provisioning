@@ -1,5 +1,5 @@
 
-
+[[ define "custom-config.js" -]]
 var subdomainNoDot = '';
 if (subdomain.endsWith('.')) {
   subdomainNoDot = subdomain.substr(0,subdomain.length-1)
@@ -210,3 +210,4 @@ config.useTurnUdp=true;
 
 <!--#include virtual="config_legal.js" -->
 
+[[ end -]]

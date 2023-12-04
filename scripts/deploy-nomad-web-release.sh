@@ -493,8 +493,9 @@ for ORACLE_REGION in $REGIONS; do
 done
 
 export NOMAD_VAR_dc="$NOMAD_DC"
-
-levant render -var "web_release.job_name=web-release-${RELEASE_NUMBER}" $NOMAD_JOB_PATH/jitsi-meet-web.hcl | nomad job run -
+cd nomad/jitsi_packs/packs/jitsi_meet_web
+nomad-pack run . --name "web-release-${RELEASE_NUMBER}"  -var "job_name=web-release-${RELEASE_NUMBER}"
+#levant render -var "web_release.job_name=web-release-${RELEASE_NUMBER}" $NOMAD_JOB_PATH/jitsi-meet-web.hcl | nomad job run -
 
 # sed -e "s/\[JOB_NAME\]/web-release-${RELEASE_NUMBER}/" "$NOMAD_JOB_PATH/jitsi-meet-web.hcl" | nomad job run -
 # exit $?
