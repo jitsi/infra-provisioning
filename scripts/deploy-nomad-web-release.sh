@@ -494,7 +494,11 @@ done
 
 export NOMAD_VAR_dc="$NOMAD_DC"
 
-levant render -var "web_release.job_name=web-release-${RELEASE_NUMBER}" $NOMAD_JOB_PATH/jitsi-meet-web.hcl | nomad job run -
+PACKS_DIR="$LOCAL_PATH/../nomad/jitsi_packs/packs"
 
-# sed -e "s/\[JOB_NAME\]/web-release-${RELEASE_NUMBER}/" "$NOMAD_JOB_PATH/jitsi-meet-web.hcl" | nomad job run -
-# exit $?
+nomad-pack render \
+  --name "web-release-${RELEASE_NUMBER}" \
+  -var "job_name=web-release-${RELEASE_NUMBER}" \
+  $PACKS_DIR/jitsi_meet_web \
+ | tail -n+2 \
+ | nomad job run -
