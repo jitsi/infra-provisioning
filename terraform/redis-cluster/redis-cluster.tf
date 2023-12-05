@@ -67,7 +67,7 @@ data "oci_core_subnets" "nat_subnets" {
 resource "oci_redis_redis_cluster" "redis_cluster" {
     #Required
     compartment_id = var.compartment_ocid
-    display_name = "${var.resource_name_root}-RedisCluster"
+    display_name = "${var.resource_name_root}"
     node_count = var.redis_cluster_node_count
     node_memory_in_gbs = var.redis_cluster_node_memory_in_gbs
     software_version = var.redis_cluster_software_version
