@@ -11,11 +11,11 @@ job [[ template "job_name" . ]] {
   type        = "service"
 
   meta {
-    domain = "${var.domain}"
-    web_tag = "${var.web_tag}"
-    release_number = "${var.release_number}"
-    environment = "${var.environment}"
-    cloud_provider = "${var.cloud_provider}"
+    domain = "[[ env "CONFIG_domain" ]]"
+    web_tag = "[[ env "CONFIG_web_tag" ]]"
+    release_number = "[[ env "CONFIG_release_number" ]]"
+    environment = "[[ env "CONFIG_environment" ]]"
+    cloud_provider = "[[ or (env "CONFIG_cloud_provider") "oracle" ]]"
   }
 
   // must have linux for network mode
@@ -39,7 +39,7 @@ job [[ template "job_name" . ]] {
 
     constraint {
       attribute  = "${meta.pool_type}"
-      value     = "${var.pool_type}"
+      value     = "[[ or (env "CONFIG_pool_type") "general" ]]"
     }
 
     network {
@@ -56,17 +56,17 @@ job [[ template "job_name" . ]] {
 
     service {
       name = "jitsi-meet-web"
-      tags = ["release-${var.release_number}"]
+      tags = ["release-[[ env "CONFIG_release_number" ]]"]
 
       meta {
-        domain = "${var.domain}"
-        web_tag = "${var.web_tag}"
-        release_number = "${var.release_number}"
+        domain = "[[ env "CONFIG_domain" ]]"
+        web_tag = "[[ env "CONFIG_web_tag" ]]"
+        release_number = "[[ env "CONFIG_release_number" ]]"
         environment = "${meta.environment}"
         http_backend_port = "${NOMAD_HOST_PORT_http}"
         nginx_status_ip = "${NOMAD_IP_nginx_status}"
         nginx_status_port = "${NOMAD_HOST_PORT_nginx_status}"
-        signal_version = "${var.signal_version}"
+        signal_version = "[[ env "CONFIG_signal_version" ]]"
         nomad_allocation = "${NOMAD_ALLOC_ID}"
       }
 
@@ -85,12 +85,10 @@ job [[ template "job_name" . ]] {
     task "web" {
       driver = "docker"
       config {
-        image        = "${var.web_repo}:${var.web_tag}"
+        image        = "[[ env "CONFIG_web_repo" ]]:[[ env "CONFIG_web_tag" ]]"
         ports = ["http","https","nginx-status"]
         volumes = [
-          "local/_unlock:/usr/share/${var.branding_name}/_unlock",
-          "local/config_deeplinking.js:/usr/share/${var.branding_name}/config_deeplinking.js",
-          "local/config_legal.js:/usr/share/${var.branding_name}/config_legal.js",
+          "local/_unlock:/usr/share/[[ or (env "CONFIG_jitsi_meet_branding_override") "jitsi-meet" ]]/_unlock",
           "local/nginx.conf:/defaults/nginx.conf",
           "local/config:/config",
           "local/nginx-status.conf:/config/nginx/site-confs/status.conf"
@@ -98,52 +96,52 @@ job [[ template "job_name" . ]] {
       }
 
       env {
-        XMPP_DOMAIN = "${var.domain}"
-        JVB_PREFER_SCTP = "${var.jvb_prefer_sctp}"
-        PUBLIC_URL="https://${var.domain}/"
-        XMPP_AUTH_DOMAIN = "auth.${var.domain}"
+        XMPP_DOMAIN = "[[ env "CONFIG_domain" ]]"
+        JVB_PREFER_SCTP = "[[ or (env "CONFIG_jitsi_meet_prefer_sctp") "false" ]]"
+        PUBLIC_URL="https://[[ env "CONFIG_domain" ]]/"
+        XMPP_AUTH_DOMAIN = "auth.[[ env "CONFIG_domain" ]]"
         # XMPP domain for the MUC
-        XMPP_MUC_DOMAIN = "conference.${var.domain}"
+        XMPP_MUC_DOMAIN = "conference.[[ env "CONFIG_domain" ]]"
         # XMPP domain for unauthenticated users
-        XMPP_GUEST_DOMAIN = "guest.${var.domain}"
+        XMPP_GUEST_DOMAIN = "guest.[[ env "CONFIG_domain" ]]"
         # XMPP domain for the jibri recorder
-        XMPP_RECORDER_DOMAIN = "recorder.${var.domain}"
-        DEPLOYMENTINFO_ENVIRONMENT = "${var.environment}"
-        DEPLOYMENTINFO_SHARD = "release-${var.release_number}"
+        XMPP_RECORDER_DOMAIN = "recorder.[[ env "CONFIG_domain" ]]"
+        DEPLOYMENTINFO_ENVIRONMENT = "[[ env "CONFIG_environment" ]]"
+        DEPLOYMENTINFO_SHARD = "release-[[ env "CONFIG_release_number" ]]"
         DEPLOYMENTINFO_REGION = "${meta.cloud_region}"
         DEPLOYMENTINFO_USERREGION = "<!--# echo var=\"user_region\" default=\"\" -->"
-        DISABLE_LOCAL_RECORDING = "${var.local_recording_disabled}"
+        DISABLE_LOCAL_RECORDING = "[[ if eq (env "CONFIG_jitsi_meet_enable_local_recording") "true" ]]false[[ else ]]true[[ end ]]"
         ENABLE_SIMULCAST = "true"
         ENABLE_RECORDING = "true"
-        ENABLE_LIVESTREAMING = "${var.livestreaming_enabled}"
-        ENABLE_SERVICE_RECORDING = "${var.service_recording_enabled}"
-        ENABLE_FILE_RECORDING_SHARING = "${var.service_recording_sharing_enabled}"
+        ENABLE_LIVESTREAMING = "[[ or (env "CONFIG_jitsi_meet_enable_livestreaming") "false" ]]"
+        ENABLE_SERVICE_RECORDING = "[[ or (env "CONFIG_jitsi_meet_enable_file_recordings") "false" ]]"
+        ENABLE_FILE_RECORDING_SHARING = "[[ or (env "CONFIG_jitsi_meet_enable_file_recordings_sharing") "false" ]]"
         ENABLE_TALK_WHILE_MUTED = "true"
         ENABLE_CLOSE_PAGE = "true"
         ENABLE_GUESTS = "true"
         ENABLE_AUTH = "true"
         ENABLE_AUTH_DOMAIN = "false"
         ENABLE_IPV6 = "false"
-        ENABLE_TRANSCRIPTIONS = "${var.transcriptions_enabled}"
+        ENABLE_TRANSCRIPTIONS = "[[ or (env "CONFIG_jitsi_meet_enable_transcription") "false" ]]"
         ENABLE_LOCAL_RECORDING_NOTIFY_ALL_PARTICIPANTS = "true"
-        ENABLE_REQUIRE_DISPLAY_NAME = "${var.require_display_name}"
-        WEBSOCKET_KEEPALIVE_URL = "https://${var.domain}/_unlock"
-        ENABLE_CALENDAR = "${var.calendar_enabled}"
-        GOOGLE_API_APP_CLIENT_ID = "${var.google_api_app_client_id}"
-        MICROSOFT_API_APP_CLIENT_ID = "${var.microsoft_api_app_client_id}"
-        DROPBOX_APPKEY = "${var.dropbox_appkey}"
-        AMPLITUDE_ID = "${var.amplitude_api_key}"
-        GOOGLE_ANALYTICS_ID = "${var.google_analytics_id}"
-        INVITE_SERVICE_URL = "${var.invite_service_url}"
-        PEOPLE_SEARCH_URL = "${var.people_search_url}"
-        CONFCODE_URL = "${var.confcode_url}"
-        DIALIN_NUMBERS_URL = "${var.dialin_numbers_url}"
-        DIALOUT_AUTH_URL = "${var.dialout_auth_url}"
-        DIALOUT_CODES_URL = "${var.dialout_codes_url}"
-        START_VIDEO_MUTED = "${var.start_video_muted}"
-        START_AUDIO_MUTED = "${var.start_audio_muted}"
-        WHITEBOARD_ENABLED = "${var.whiteboard_enabled}"
-        WHITEBOARD_COLLAB_SERVER_PUBLIC_URL = "${var.whiteboard_server_url}"
+        ENABLE_REQUIRE_DISPLAY_NAME = "[[ or (env "CONFIG_jitsi_meet_require_displayname") "false" ]]"
+        WEBSOCKET_KEEPALIVE_URL = "https://[[ env "CONFIG_domain" ]]/_unlock"
+        ENABLE_CALENDAR = "[[ or (env "CONFIG_jitsi_meet_enable_calendar") "false" ]]"
+        GOOGLE_API_APP_CLIENT_ID = "[[ env "CONFIG_jitsi_meet_google_api_app_client_id" ]]"
+        MICROSOFT_API_APP_CLIENT_ID = "[[ env "CONFIG_jitsi_meet_microsoft_api_app_client_id" ]]"
+        DROPBOX_APPKEY = "[[ env "CONFIG_jitsi_meet_dropbox_app_key" ]]"
+        AMPLITUDE_ID = "[[ env "CONFIG_jitsi_meet_amplitude_api_key" ]]"
+        GOOGLE_ANALYTICS_ID = "[[ env "CONFIG_jitsi_meet_google_analytics_tracking_id" ]]"
+        INVITE_SERVICE_URL = "[[ env "CONFIG_jitsi_meet_api_conference_invite_url" ]]"
+        PEOPLE_SEARCH_URL = "[[ env "CONFIG_jitsi_meet_api_directory_search_url" ]]"
+        CONFCODE_URL = "[[ env "CONFIG_jitsi_meet_api_conference_mapper_url" ]]"
+        DIALIN_NUMBERS_URL = "[[ env "CONFIG_jitsi_meet_api_dialin_numbers_url" ]]"
+        DIALOUT_AUTH_URL = "[[ env "CONFIG_jitsi_meet_api_dialout_auth_url" ]]"
+        DIALOUT_CODES_URL = "[[ env "CONFIG_jitsi_meet_api_dialout_codes_url" ]]"
+        START_VIDEO_MUTED = "[[ or (env "CONFIG_jitsi_meet_start_video_muted_count") "25" ]]"
+        START_AUDIO_MUTED = "[[ or (env "CONFIG_jitsi_meet_start_audio_muted_count") "25" ]]"
+        WHITEBOARD_ENABLED = "[[ or (env "CONFIG_jitsi_meet_whiteboard_enabled") "false" ]]"
+        WHITEBOARD_COLLAB_SERVER_PUBLIC_URL = "[[ env "CONFIG_jitsi_meet_whiteboard_collab_server_base_url" ]]"
       }
       template {
         destination = "local/_unlock"
@@ -292,20 +290,6 @@ EOF
 [[ template  "custom-config.js" . ]]
 EOF
         destination = "local/config/custom-config.js"
-      }
-
-      template {
-        data = <<EOF
-[[ template "config_deeplinking.js" . ]]
-EOF
-        destination = "local/config_deeplinking.js"
-      }
-
-      template {
-        data = <<EOF
-[[ template "config_legal.js" . ]]
-EOF
-        destination = "local/config_legal.js"
       }
 
       template {

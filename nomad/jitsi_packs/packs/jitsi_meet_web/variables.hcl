@@ -4,3 +4,8 @@ variable "job_name" {
   type        = string
   default     = ""
 }
+
+variable "dc" {
+  description = "The datacenters to use"
+  type        = list(string)
+}
