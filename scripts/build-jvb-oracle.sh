@@ -52,7 +52,7 @@ fi
 
 [ -z "$SHAPE" ] && SHAPE="$SHAPE_E_4"
 [ -z "$OCPUS" ] && OCPUS="4"
-[ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS="16"
+[ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS="12"
 
 [ -z "$BASE_IMAGE_TYPE" ] && BASE_IMAGE_TYPE="$JVB_BASE_IMAGE_TYPE"
 [ -z "$BASE_IMAGE_TYPE" ] && BASE_IMAGE_TYPE="JammyBase"

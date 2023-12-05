@@ -76,13 +76,13 @@ fi
 
 if [[ "$SHAPE" == "VM.Standard.E3.Flex" ]]; then
   [ -z "$OCPUS" ] && OCPUS=4
-  [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=16
+  [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=12
 elif [[ "$SHAPE" == "VM.Standard.E4.Flex" ]]; then
   [ -z "$OCPUS" ] && OCPUS=4
-  [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=16
+  [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=12
 elif [[ "$SHAPE" == "VM.Standard.A1.Flex" ]]; then
   [ -z "$OCPUS" ] && OCPUS=8
-  [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=16
+  [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=12
 else
   [ -z "$OCPUS" ] && OCPUS=4
   [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=60
