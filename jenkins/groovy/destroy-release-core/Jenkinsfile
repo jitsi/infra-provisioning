@@ -135,7 +135,19 @@ pipeline {
                             sh """#!/bin/bash
                             for R in ${env.RELEASE_NUMBER}; do
                             echo \"Deleting release \$R\"
-                            scripts/nomad.sh job status web-release-\$R > /dev/null && scripts/nomad.sh job stop web-release-\$R || echo "No nomad release found for release \$R"
+                            scripts/nomad.sh job status web-release-\$R > /dev/null
+                            if [[ \$? -eq 0 ]]; then
+                              scripts/nomad-pack.sh status jitsi_meet_web --name web-release-\$R | egrep -q "no jobs found|dead"
+                              if [[ \$? -eq 1 ]]; then
+                                echo "nomad pack found for release \$R"
+                                scripts/nomad-pack.sh stop jitsi_meet_web --name web-release-\$R
+                              else
+                                echo "nomad pack not found for release \$R"
+                                scripts/nomad.sh job stop web-release-\$R
+                              fi
+                            else
+                              echo "No nomad release found for release \$R"
+                            fi
                             done
                             """
 
