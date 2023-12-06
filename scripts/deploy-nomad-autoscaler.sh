@@ -23,7 +23,15 @@ LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
 [ -z "$ENVIRONMENT_TYPE" ] && ENVIRONMENT_TYPE="stage"
 
-[ -z "$ENCRYPTED_WAVEFRONT_CREDENTIALS_FILE" ] && ENCRYPTED_WAVEFRONT_CREDENTIALS_FILE="$LOCAL_PATH/../ansible/secrets/wavefront.yml"
+if [ -z "$ASAP_BASE_URL" ]; then
+    if [ -n "$ASAP_PUBLIC_KEY_URL" ]; then 
+        ASAP_BASE_URL="$ASAP_PUBLIC_KEY_URL/server/$ENVIRONMENT_TYPE"
+    fi
+fi
+if [ -n "$ASAP_BASE_URL" ]; then
+    ASAP_BASE_URL_CONFIG="asap_base_url=\"$ASAP_BASE_URL\""
+fi
+
 [ -z "$ENCRYPTED_OCI_CREDENTIALS_FILE" ] && ENCRYPTED_OCI_CREDENTIALS_FILE="$LOCAL_PATH/../ansible/secrets/oci-certificates.yml"
 OCI_API_USER_VARIABLE="oci_api_user"
 OCI_API_PASSPHRASE_VARIABLE="oci_api_pass_phrase"
@@ -31,14 +39,12 @@ OCI_API_KEY_FINGERPRINT_VARIABLE="oci_api_key_fingerprint"
 OCI_API_TENANCY_VARIABLE="oci_api_tenancy"
 OCI_API_REGION_VARIABLE="oci_api_region"
 
-
-WAVEFRONT_TOKEN_VARIABLE="wavefront_api_token"
+[ -z "$ENVIRONMENT_CONFIGURATION_FILE" ] && ENVIRONMENT_CONFIGURATION_FILE="$LOCAL_PATH/../sites/$ENVIRONMENT/vars.yml"
 
 # ensure no output for ansible vault contents and fail if ansible-vault fails
 set +x
 set -e
 set -o pipefail
-export NOMAD_VAR_wavefront_token="$(ansible-vault view $ENCRYPTED_WAVEFRONT_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${WAVEFRONT_TOKEN_VARIABLE}" -)"
 export NOMAD_VAR_oci_user="$(ansible-vault view $ENCRYPTED_OCI_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${OCI_API_USER_VARIABLE}" -)"
 export NOMAD_VAR_oci_passphrase="$(ansible-vault view $ENCRYPTED_OCI_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${OCI_API_PASSPHRASE_VARIABLE}" -)"
 export NOMAD_VAR_oci_fingerprint="$(ansible-vault view $ENCRYPTED_OCI_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${OCI_API_KEY_FINGERPRINT_VARIABLE}" -)"
@@ -47,7 +53,15 @@ export NOMAD_VAR_oci_key_region="$(ansible-vault view $ENCRYPTED_OCI_CREDENTIALS
 
 set -x
 
-NOMAD_JOB_PATH="$LOCAL_PATH/../nomad"
+REDIS_FROM_CONSUL="true"
+REDIS_HOST="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval ".autoscaler_redis_host_by_region.$ORACLE_REGION" -)"
+if [[ "$REDIS_HOST" == "null" ]]; then
+    REDIS_HOST="localhost"
+else
+    # redis host set, so do not use consul
+    REDIS_FROM_CONSUL="false"
+fi
+
 NOMAD_DC="$ENVIRONMENT-$ORACLE_REGION"
 # for ORACLE_REGION in $REGIONS; do
 #     NOMAD_DC="$( echo "$NOMAD_DC" "[\"$ENVIRONMENT-$ORACLE_REGION\"]" | jq -c -s '.|add')"
@@ -64,14 +78,55 @@ fi
 
 export RESOURCE_NAME_ROOT="${ENVIRONMENT}-${ORACLE_REGION}-autoscaler"
 
-export NOMAD_VAR_dc="$NOMAD_DC"
-export NOMAD_VAR_autoscaler_hostname="${RESOURCE_NAME_ROOT}.${TOP_LEVEL_DNS_ZONE_NAME}"
-export NOMAD_VAR_autoscaler_version="${AUTOSCALER_VERSION}"
-export NOMAD_VAR_environment_type="${ENVIRONMENT_TYPE}"
+set +x
 
-JOB_NAME="autoscaler-$ORACLE_REGION"
+cat > "./autoscaler.hcl" <<EOF
+datacenters=["$NOMAD_DC"]
+hostname="${RESOURCE_NAME_ROOT}.${TOP_LEVEL_DNS_ZONE_NAME}"
+version="$AUTOSCALER_VERSION"
+$ASAP_BASE_URL_CONFIG
+oci={
+  user="$NOMAD_VAR_oci_user"
+  passphrase="$NOMAD_VAR_oci_passphrase"
+  fingerprint="$NOMAD_VAR_oci_fingerprint"
+  tenancy="$NOMAD_VAR_oci_tenancy"
+  region="$NOMAD_VAR_oci_key_region"
+  compartment_id="$COMPARTMENT_OCID"
+  default_instance_configuration_id="ocid1.instanceconfiguration.oc1.phx.aaaaaaaawbzx774dlgfhvo4ahvrfiidhejzcuzh7uej67ez27k5lcg3nohra"
+}
+redis_from_consul=$REDIS_FROM_CONSUL
+redis_host="$REDIS_HOST"
+EOF
 
-sed -e "s/\[JOB_NAME\]/$JOB_NAME/" "$NOMAD_JOB_PATH/autoscaler.hcl" | nomad job run -
+set -x
+set +e
+
+JOB_NAME="autoscalerr-$ORACLE_REGION"
+PACKS_DIR="$LOCAL_PATH/../nomad/jitsi_packs/packs"
+
+nomad-pack plan --name "$JOB_NAME" \
+  -var "job_name=$JOB_NAME" \
+  -var-file "./autoscaler.hcl" \
+  $PACKS_DIR/jitsi_autoscaler
+
+PLAN_RET=$?
+
+if [ $PLAN_RET -gt 1 ]; then
+    echo "Failed planning nomad autoscaler job, exiting"
+    exit 4
+else
+    if [ $PLAN_RET -eq 1 ]; then
+        echo "Plan was successful, will make changes"
+    fi
+    if [ $PLAN_RET -eq 0 ]; then
+        echo "Plan was successful, no changes needed"
+    fi
+fi
+
+nomad-pack render --name "$JOB_NAME" \
+  -var "job_name=$JOB_NAME" \
+  -var-file "./autoscaler.hcl" \
+  $PACKS_DIR/jitsi_autoscaler
 
 if [ $? -ne 0 ]; then
     echo "Failed to run nomad autoscaler job, exiting"
