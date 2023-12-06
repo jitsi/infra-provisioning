@@ -113,6 +113,7 @@ PLAN_RET=$?
 
 if [ $PLAN_RET -gt 1 ]; then
     echo "Failed planning nomad autoscaler job, exiting"
+    rm ./autoscaler.hcl
     exit 4
 else
     if [ $PLAN_RET -eq 1 ]; then
@@ -123,15 +124,18 @@ else
     fi
 fi
 
-nomad-pack render --name "$JOB_NAME" \
+nomad-pack run --name "$JOB_NAME" \
   -var "job_name=$JOB_NAME" \
   -var-file "./autoscaler.hcl" \
   $PACKS_DIR/jitsi_autoscaler
 
 if [ $? -ne 0 ]; then
     echo "Failed to run nomad autoscaler job, exiting"
+    rm ./autoscaler.hcl
     exit 5
 fi
+
+rm ./autoscaler.hcl
 
 export CNAME_VALUE="$RESOURCE_NAME_ROOT"
 export STACK_NAME="${RESOURCE_NAME_ROOT}-cname"
