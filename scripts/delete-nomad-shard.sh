@@ -35,5 +35,14 @@ if [ -z "$NOMAD_ADDR" ]; then
     export NOMAD_ADDR="https://$ENVIRONMENT-$LOCAL_REGION-nomad.$TOP_LEVEL_DNS_ZONE_NAME"
 fi
 
+nomad-pack status jitsi_meet_backend --name shard-$SHARD | egrep -q "no jobs found|dead"
+if [[ $? -eq 1 ]]; then
+    echo "nomad pack found for shard $SHARD"
+    nomad-pack stop jitsi_meet_backend --name shard-$SHARD
+else
+    echo "nomad pack not found for shard $SHARD"
+    nomad job stop "shard-$SHARD"
+fi
+
 nomad job stop "shard-$SHARD"
 exit $?
