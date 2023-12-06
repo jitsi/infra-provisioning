@@ -441,7 +441,7 @@ VISITORS_XMPP_SERVER={{ range $i, $e := scratch.MapValues "vnodes" }}{{ if gt $i
 #
 
 GLOBAL_CONFIG="statistics = \"internal\"\nstatistics_interval = \"manual\"\nopenmetrics_allow_cidr = \"0.0.0.0/0\";\ntoken_verification_allowlist = { \"recorder.[[ env "CONFIG_domain" ]]\" };\n
-[[ if eq (env "CONFIG_prosody_disable_required_room_claim") "true" -]]
+[[- if eq (env "CONFIG_prosody_disable_required_room_claim") "true" -]]
 asap_require_room_claim = false;\n
 [[- end -]]
 [[- if eq (env "CONFIG_prosody_enable_password_waiting_for_host") "true" -]]
