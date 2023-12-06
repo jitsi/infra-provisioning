@@ -65,7 +65,7 @@ config.analytics.whiteListedEvents=[[ env "CONFIG_jitsi_meet_analytics_whitelist
 config.analytics.rtcstatsEnabled=[[ or (env "CONFIG_jitsi_meet_rtcstats_enabled") "false" ]];
 config.analytics.rtcstatsStoreLogs=[[ or (env "CONFIG_jitsi_meet_rtcstats_store_logs") "false" ]];
 config.analytics.rtcstatsUseLegacy=[[ or (env "CONFIG_jitsi_meet_rtcstats_use_legacy") "false" ]];
-config.analytics.rtcstatsEndpoint="[[ env "CONFIG_jitsi_meet_rtcstats_endpoint" ]];";
+config.analytics.rtcstatsEndpoint="[[ env "CONFIG_jitsi_meet_rtcstats_endpoint" ]]";
 config.analytics.rtcstatsPollInterval=[[ or (env "CONFIG_jitsi_meet_rtcstats_poll_interval") "10000" ]];
 config.analytics.rtcstatsSendSdp=[[ or (env "CONFIG_jitsi_meet_rtcstats_log_sdp") "false" ]];
 
