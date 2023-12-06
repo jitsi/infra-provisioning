@@ -71,6 +71,12 @@ variable "redis_port" {
   default     = "6379"
 }
 
+variable "redis_tls" {
+  description = "If you want to use TLS to connect to Redis"
+  type        = bool
+  default     = false
+}
+
 variable "asap_base_url" {
   description = "The base URL for the ASAP API"
   type        = string

@@ -54,12 +54,14 @@ export NOMAD_VAR_oci_key_region="$(ansible-vault view $ENCRYPTED_OCI_CREDENTIALS
 set -x
 
 REDIS_FROM_CONSUL="true"
+REDIS_TLS="false"
 REDIS_HOST="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval ".autoscaler_redis_host_by_region.$ORACLE_REGION" -)"
 if [[ "$REDIS_HOST" == "null" ]]; then
     REDIS_HOST="localhost"
 else
     # redis host set, so do not use consul
     REDIS_FROM_CONSUL="false"
+    REDIS_TLS="true"
 fi
 
 NOMAD_DC="$ENVIRONMENT-$ORACLE_REGION"
@@ -96,6 +98,7 @@ oci={
 }
 redis_from_consul=$REDIS_FROM_CONSUL
 redis_host="$REDIS_HOST"
+redis_tls=$REDIS_TLS
 EOF
 
 set -x

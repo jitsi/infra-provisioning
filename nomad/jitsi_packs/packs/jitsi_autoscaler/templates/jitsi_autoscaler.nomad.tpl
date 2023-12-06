@@ -87,7 +87,7 @@ job [[ template "job_name" . ]] {
         REDIS_HOST = "[[ var "redis_host" . ]]"
         REDIS_PORT = "[[ var "redis_port" . ]]"
         [[- end ]]
-        REDIS_TLS = false
+        REDIS_TLS = [[ var "redis_tls" . ]]
         REDIS_DB = 1
         PROTECTED_API = "true"
         DRY_RUN = "false"
