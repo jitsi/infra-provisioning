@@ -474,3 +474,12 @@ server {
         add_header 'X-Jitsi-Release' '[[ env "CONFIG_release_number" ]]';
         add_header "Cache-Control" "no-cache, no-store";
 [[ end -]]
+[[ define "nginx-reload" -]]
+        change_mode = "script"
+        change_script {
+          command = "/usr/sbin/nginx"
+          args = ["-s", "reload"]
+          timeout = "30s"
+          fail_on_error = true
+        }
+[[ end -]]

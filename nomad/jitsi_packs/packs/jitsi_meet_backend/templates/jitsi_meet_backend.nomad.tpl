@@ -716,6 +716,7 @@ EOF
 EOF
     }
 
+      # template file for nginx status server
       template {
         data = <<EOF
 [[ template "nginx-status.conf" . ]]
@@ -723,19 +724,33 @@ EOF
         destination = "local/conf.d/nginx-status.conf"
       }
 
+      # template file for nginx stream configuration
       template {
         data = <<EOF
 [[ template "nginx-streams.conf" . ]]
 EOF
         destination = "local/conf.stream/nginx-streams.conf"
-        change_mode = "script"
-        change_script {
-          command = "/usr/sbin/nginx"
-          args = ["-s", "reload"]
-          timeout = "30s"
-          fail_on_error = true
-        }
+[[ template "nginx-reload" . ]]
       }
+
+      # template file for main nginx site configuration
+      template {
+        data = <<EOF
+[[ template "nginx-site.conf" . ]]
+EOF
+        destination = "local/conf.d/default.conf"
+[[ template "nginx-reload" . ]]
+      }
+
+      # template file for _unlock contents
+      template {
+        destination = "local/_unlock"
+  data = <<EOF
+OK
+EOF
+      }
+
+      # use consul DNS for name resolution in nginx container
       template {
         destination = "local/consul-resolved.conf"
         data = <<EOF
@@ -743,26 +758,6 @@ EOF
 DNS={{ env "attr.unique.network.ip-address" }}:8600
 DNSSEC=false
 Domains=~consul
-EOF
-      }
-
-      template {
-        data = <<EOF
-[[ template "nginx-site.conf" . ]]
-EOF
-        destination = "local/conf.d/default.conf"
-        change_mode = "script"
-        change_script {
-          command = "/usr/sbin/nginx"
-          args = ["-s", "reload"]
-          timeout = "30s"
-          fail_on_error = true
-        }
-      }
-      template {
-        destination = "local/_unlock"
-  data = <<EOF
-OK
 EOF
       }
     }
