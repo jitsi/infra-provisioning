@@ -113,47 +113,6 @@ XMPP_INTERNAL_MUC_MODULES=
 XMPP_MUC_MODULES=
 XMPP_PORT={{  env "NOMAD_HOST_PORT_prosody_client" }}
 
-CONFIG=~/.jitsi-meet-cfg
-TZ=UTC
-ENABLE_LETSENCRYPT=0
-ENABLE_XMPP_WEBSOCKET=1
-DISABLE_HTTPS=1
-
-# MUC for the JVB pool
-JVB_BREWERY_MUC=jvbbrewery
-
-# XMPP user for JVB client connections
-JVB_AUTH_USER=jvb
-
-# XMPP user for Jicofo client connections.
-# NOTE: this option doesn't currently work due to a bug
-JICOFO_AUTH_USER=focus
-
-# XMPP user for Jigasi MUC client connections
-JIGASI_XMPP_USER=jigasi
-
-# MUC name for the Jigasi pool
-JIGASI_BREWERY_MUC=jigasibrewery
-
-# XMPP recorder user for Jibri client connections
-JIBRI_RECORDER_USER=recorder
-
-# Directory for recordings inside Jibri container
-JIBRI_RECORDING_DIR=/config/recordings
-
-# The finalizing script. Will run after recording is complete
-#JIBRI_FINALIZE_RECORDING_SCRIPT_PATH=/config/finalize.sh
-
-# XMPP user for Jibri client connections
-JIBRI_XMPP_USER=jibri
-
-# MUC name for the Jibri pool
-JIBRI_BREWERY_MUC=jibribrewery
-
-# Container restart policy
-# Defaults to unless-stopped
-RESTART_POLICY=unless-stopped
-
 EOF
 
         destination = "local/prosody.env"
