@@ -101,7 +101,7 @@ EOF
 set -x
 set +e
 
-JOB_NAME="autoscalerr-$ORACLE_REGION"
+JOB_NAME="autoscaler-$ORACLE_REGION"
 PACKS_DIR="$LOCAL_PATH/../nomad/jitsi_packs/packs"
 
 nomad-pack plan --name "$JOB_NAME" \
