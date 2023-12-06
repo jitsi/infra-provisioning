@@ -58,20 +58,14 @@ if [ -n "$JICOFO_VERSION" ]; then
     [ -z "$JICOFO_TAG" ] && JICOFO_TAG="jicofo-1.0-$JICOFO_VERSION-1"
 fi
 
-if [ -n "$JITSI_MEET_VERSION" ]; then
-    [ -z "$WEB_TAG" ] && WEB_TAG="web-1.0.$JITSI_MEET_VERSION-1"
-fi
-
 if [ -n "$PROSODY_VERSION" ]; then
     [ -z "$PROSODY_TAG" ] && PROSODY_TAG="prosody-$PROSODY_VERSION"
 fi
 
 
 [ -z "$JICOFO_TAG" ] && JICOFO_TAG="$DOCKER_TAG"
-[ -z "$WEB_TAG" ] && WEB_TAG="$DOCKER_TAG"
 [ -z "$PROSODY_TAG" ] && PROSODY_TAG="$DOCKER_TAG"
 
-NOMAD_JOB_PATH="$LOCAL_PATH/../nomad"
 NOMAD_DC="$ENVIRONMENT-$ORACLE_REGION"
 
 [ -z "$ENVIRONMENT_TYPE" ] && ENVIRONMENT_TYPE="stage"
@@ -196,9 +190,7 @@ export CONFIG_release_number="$RELEASE_NUMBER"
 export CONFIG_signal_version="$SIGNAL_VERSION"
 export CONFIG_jicofo_tag="$JICOFO_TAG"
 export CONFIG_prosody_tag="$PROSODY_TAG"
-export CONFIG_web_tag="$WEB_TAG"
 export CONFIG_pool_type="$NOMAD_POOL_TYPE"
-export CONFIG_branding_name="$BRANDING_NAME"
 export CONFIG_signal_api_hostname="$SIGNAL_API_HOSTNAME"
 
 export JOB_NAME="shard-${SHARD}"
