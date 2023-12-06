@@ -199,7 +199,7 @@ export CONFIG_prosody_tag="$PROSODY_TAG"
 export CONFIG_web_tag="$WEB_TAG"
 export CONFIG_pool_type="$NOMAD_POOL_TYPE"
 export CONFIG_branding_name="$BRANDING_NAME"
-export CONFIG_signal_api_domain_name="$SIGNAL_API_HOSTNAME"
+export CONFIG_signal_api_hostname="$SIGNAL_API_HOSTNAME"
 
 export JOB_NAME="shard-${SHARD}"
 
@@ -233,4 +233,6 @@ nomad-pack run --name "$JOB_NAME" \
 if [ $? -ne 0 ]; then
     echo "Failed to run shard backend job, exiting"
     exit 5
+else
+    scripts/nomad-pack.sh status jitsi_meet_backend --name "$JOB_NAME"
 fi
