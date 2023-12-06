@@ -450,8 +450,8 @@ enable_password_waiting_for_host = true;\n
 [[- if eq (env "CONFIG_prosody_enable_muc_events") "true" -]]
 asap_key_path = \"/opt/jitsi/keys/[[ env "CONFIG_environment_type" ]].key\";\nasap_key_id = \"[[ env "CONFIG_asap_jwt_kid" ]]\";\nasap_issuer = \"[[ env "CONFIG_asap_jwt_iss" ]]\";\nasap_audience = \"[[ env "CONFIG_asap_jwt_aud" ]]\";\n
 [[- end -]]
-[[- if (env "CONFIG_jitsi_meet_amplitude_api_key") -]]
-amplitude_api_key = \"[[ env "CONFIG_jitsi_meet_amplitude_api_key" ]]\";\n
+[[- if (env "CONFIG_prosody_amplitude_api_key") -]]
+amplitude_api_key = \"[[ env "CONFIG_prosody_amplitude_api_key" ]]\";\n
 [[- end -]]
 debug_traceback_filename = \"traceback.txt\";\nc2s_stanza_size_limit = 512*1024;\ncross_domain_websocket =  true;\ncross_domain_bosh = false;\nbosh_max_inactivity = 60;\n
 [[- if (env "CONFIG_prosody_limit_messages") -]]
