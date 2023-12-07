@@ -27,7 +27,7 @@ if (!config.hasOwnProperty('videoQuality')) config.videoQuality = {};
 config.videoQuality.codecPreferenceOrder=[[ env "CONFIG_jitsi_meet_jvb_preferred_codecs" ]];
 [[- end ]]
 
-config.audioQuality.enableOpusDtx=[[ env "CONFIG_jitsi_meet_enable_dtx" ]];
+config.audioQuality.enableOpusDtx=[[ or (env "CONFIG_jitsi_meet_enable_dtx") "false" ]];
 
 [[ if eq (env "CONFIG_jitsi_meet_hidden_from_recorder_feature") "true" -]]
 config.hiddenFromRecorderFeatureEnabled=true;
@@ -59,7 +59,7 @@ if (!config.hasOwnProperty('analytics')) config.analytics = {};
 [[ if env "CONFIG_jitsi_meet_amplitude_api_key" -]]
 config.analytics.amplitudeAPPKey="[[ env "CONFIG_jitsi_meet_amplitude_api_key" ]]";
 config.analytics.amplitudeIncludeUTM=[[ or (env "CONFIG_jitsi_meet_amplitude_include_utm") "false" ]];
-config.analytics.whiteListedEvents=[[ env "CONFIG_jitsi_meet_analytics_whitelist" ]];
+config.analytics.whiteListedEvents=[[ or (env "CONFIG_jitsi_meet_analytics_whitelist") "[]" ]];
 [[- end ]]
 
 config.analytics.rtcstatsEnabled=[[ or (env "CONFIG_jitsi_meet_rtcstats_enabled") "false" ]];
