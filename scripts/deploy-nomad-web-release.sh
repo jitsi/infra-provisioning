@@ -87,6 +87,8 @@ else
     done
 fi
 
+export CONFIG_legal_urls="$(yq eval -o json '.legal_urls' $ENVIRONMENT_CONFIGURATION_FILE)"
+
 # evaluate each string, integer and boolean in the environment configuration file and export it as a CONFIG_ environment variable
 eval $(yq '.. | select(tag == "!!int" or tag == "!!str" or tag == "!!bool") |  "export CONFIG_"+(path | join("_")) + "=\"" + . + "\""' $ENVIRONMENT_CONFIGURATION_FILE)
 
@@ -106,6 +108,27 @@ for ORACLE_REGION in $REGIONS; do
 done
 
 PACKS_DIR="$LOCAL_PATH/../nomad/jitsi_packs/packs"
+
+
+nomad-pack plan \
+  --name "web-release-${RELEASE_NUMBER}" \
+  -var "job_name=web-release-${RELEASE_NUMBER}" \
+  -var "dc=$NOMAD_DC" \
+  $PACKS_DIR/jitsi_meet_web
+
+PLAN_RET=$?
+
+if [ $PLAN_RET -gt 1 ]; then
+    echo "Failed planning web release job, exiting"
+    exit 4
+else
+    if [ $PLAN_RET -eq 1 ]; then
+        echo "Plan was successful, will make changes"
+    fi
+    if [ $PLAN_RET -eq 0 ]; then
+        echo "Plan was successful, no changes needed"
+    fi
+fi
 
 nomad-pack run \
   --name "web-release-${RELEASE_NUMBER}" \

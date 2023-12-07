@@ -444,6 +444,11 @@ server {
         rewrite ^/(.*)$ /_unlock;
     }
 
+[[ if ne (or (env "CONFIG_jitsi_meet_close_page_redirect_url") "false") "false" -]]
+    rewrite ^.*/static/close.html$ [[ env "CONFIG_jitsi_meet_close_page_redirect_url" ]] redirect;
+    rewrite ^.*/static/close2.html$ [[ env "CONFIG_jitsi_meet_close_page_redirect_url" ]] redirect;
+[[ end -]]
+
     location / {
         add_header Strict-Transport-Security 'max-age=63072000; includeSubDomains';
         proxy_set_header X-Jitsi-Shard '[[ env "CONFIG_shard" ]]';

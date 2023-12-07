@@ -52,6 +52,8 @@ config.sso=[[ env "CONFIG_jitsi_meet_token_sso" ]];
 
 [[ if eq (env "CONFIG_jitsi_meet_enable_unsafe_room_warning") "true" -]]
 config.enableInsecureRoomNameWarning=true;
+[[- else ]]
+config.enableInsecureRoomNameWarning=false;
 [[- end ]]
 
 if (!config.hasOwnProperty('analytics')) config.analytics = {};
@@ -186,7 +188,7 @@ config.toolbarConfig={
         initialTimeout: 20000
 };
 
-[[ if eq (env "CONFIG_jitsi_meet_enable_webhid_feature") "true" -]]
+[[ if eq (or (env "CONFIG_jitsi_meet_enable_webhid_feature") "true") "true" -]]
 config.enableWebHIDFeature=true;
 [[- end ]]
 
@@ -211,8 +213,48 @@ config.disableReactionsModeration=true;
 config.useTurnUdp=true;
 [[- end ]]
 
+[[ if and (env "CONFIG_jitsi_meet_cors_avatar_urls") (ne (env "CONFIG_jitsi_meet_cors_avatar_urls") "false") ]]
+config.corsAvatarURLs=[[ env "CONFIG_jitsi_meet_cors_avatar_urls" ]],
+[[- end ]]
+
+[[ if eq (env "CONFIG_jitsi_meet_enable_lock_room_ten_digits") "true"]]
+config.roomPasswordNumberOfDigits=10;
+[[- end ]]
+
+[[ if (env "CONFIG_jitsi_meet_api_screenshot_history_url") -]]
+config._screenshotHistoryUrl='[[ env "CONFIG_jitsi_meet_api_screenshot_history_url" ]]';
+[[- end ]]
+[[ if (env "CONFIG_jitsi_meet_api_screenshot_history_region_url") -]]
+config._screenshotHistoryRegionUrl='[[ env "CONFIG_jitsi_meet_api_screenshot_history_region_url" ]]';
+[[- end ]]
+[[ if (env "CONFIG_jitsi_meet_api_sip_invite_url") -]]
+config.sipInviteUrl='[[ env "CONFIG_jitsi_meet_api_sip_invite_url" ]]';
+[[- end ]]
+
+[[ if eq (env "CONFIG_jitsi_meet_conference_info_overwrite") "true" -]]
+config.conferenceInfo = {
+        alwaysVisible: [[ or (env "CONFIG_jitsi_meet_conference_info_visible") "[ 'recording', 'local-recording', 'raised-hands-count' ]" ]],
+        autoHide: [[ or (env "CONFIG_jitsi_meet_conference_info_autohide") "[ 'highlight-moment', 'subject', 'conference-timer', 'participants-count', 'e2ee', 'transcribing', 'video-quality', 'insecure-room' ]" ]]
+};
+[[- end ]]
+
+[[ if (env "CONFIG_jaas_feedback_metadata_url") -]]
+config.jaasFeedbackMetadataURL='[[ env "CONFIG_jaas_feedback_metadata_url" ]]';
+[[- end ]]
+
+config.speakerStats = {
+    disableSearch: [[ if eq (env "CONFIG_jitsi_meet_disable_speaker_stats_search") "true" ]]true[[ else ]]false[[ end ]]
+};
+
+if (!config.hasOwnProperty('whiteboard')) config.whiteboard = {};
+config.whiteboard.userLimit = [[ or (env "CONFIG_jitsi_meet_whiteboard_user_limit") "25" ]];
+
 [[ template "config_deeplinking.js" . ]]
 
+[[ if (env "CONFIG_legal_urls") -]]
+config.legalUrls = [[ env "CONFIG_legal_urls" ]];
+[[ else -]]
 [[ template "config_legal.js" . ]]
+[[ end -]]
 
 [[ end -]]
