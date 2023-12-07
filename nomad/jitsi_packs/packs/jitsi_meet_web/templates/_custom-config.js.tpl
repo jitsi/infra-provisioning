@@ -15,7 +15,7 @@ config.useStunTurn=true;
 config.enableSaveLogs=true;
 config.disableRtx=false;
 config.channelLastN=[[ or (env "CONFIG_jitsi_meet_channel_last_n") "-1" ]];
-config.flags.ssrcRewritingEnabled=[[ env "CONFIG_jitsi_meet_enable_ssrc_rewriting" ]];
+config.flags.ssrcRewritingEnabled=[[ or (env "CONFIG_jitsi_meet_enable_ssrc_rewriting") "false" ]];
 
 [[ if eq (env "CONFIG_jitsi_meet_restrict_HD_tile_view_jvb") "true" ]]
 config.maxFullResolutionParticipants = 1;
