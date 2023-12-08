@@ -45,7 +45,7 @@ job "[JOB_NAME]" {
 
       volume_mount {
         volume      = "prometheus"
-        destination = "/data"
+        destination = "/prometheus"
         read_only   = false
       }
 
