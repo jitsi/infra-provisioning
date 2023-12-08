@@ -192,6 +192,21 @@ resource "oci_core_network_security_group_security_rule" "nsg_rule_ingress_nomad
   }
 }
 
+resource "oci_core_network_security_group_security_rule" "nsg_rule_telegraf_prometheus_tcp" {
+  network_security_group_id = oci_core_network_security_group.security_group.id
+  direction = "INGRESS"
+  protocol = "6"
+  source = data.oci_core_vcns.vcns.virtual_networks[0].cidr_block
+  stateless = false
+
+  tcp_options {
+    destination_port_range {
+      max = 9126
+      min = 9126
+    }
+  }
+}
+
 resource "oci_core_network_security_group_security_rule" "nsg_rule_ingress_consul_serf_tcp" {
   network_security_group_id = oci_core_network_security_group.security_group_node.id
   direction = "INGRESS"

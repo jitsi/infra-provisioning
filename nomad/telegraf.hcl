@@ -42,6 +42,9 @@ job "[JOB_NAME]" {
       port "telegraf-statsd" {
         static = 8125
       }
+      port "telegraf-prometheus" {
+        static = 9126
+      }
     }
     # docker socket volume
     volume "root-ro" {
@@ -65,7 +68,7 @@ job "[JOB_NAME]" {
         network_mode = "host"
         privileged = true
         image        = "telegraf:latest"
-        ports = ["telegraf-statsd"]
+        ports = ["telegraf-statsd","telegraf-prometheus"]
         volumes = ["local/telegraf.conf:/etc/telegraf/telegraf.conf", "local/consul-resolved.conf:/etc/systemd/resolved.conf.d/consul.conf", "/var/run/docker.sock:/var/run/docker.sock"]
       }
       env {
@@ -282,6 +285,10 @@ EOF
         host = "{{"{{"}}.Node}}"
         shard-role = "gpu"
         role = "gpu"
+
+[[outputs.prometheus_client]]
+  listen = ":9126"
+  path = "/metrics"
 
 [[outputs.wavefront]]
   url = "${var.wavefront_proxy_url}"
