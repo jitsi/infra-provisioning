@@ -60,7 +60,7 @@ job "[JOB_NAME]" {
         data = <<EOH
 ---
 global:
-  scrape_interval:     5s
+  scrape_interval:     10s
   evaluation_interval: 5s
 
 
@@ -110,27 +110,9 @@ scrape_configs:
 
     consul_sd_configs:
     - server: '{{ env "NOMAD_IP_prometheus_ui" }}:8500'
-      services: ['nomad-clients']
+      services: ['telegraf']
 
-    relabel_configs:
-    - source_labels: ['__address__']
-      separator:     ':'
-      regex:         '(.*):(4646)'
-      target_label:  '__address__'
-      replacement:   '$${1}:9126'
-
-    - source_labels: ['__address__']
-      separator:     ':'
-      regex:         '(.*):(4648)'
-      target_label:  '__address__'
-      replacement:   '$${1}:9126'
-
-    - source_labels: ['__address__']
-      separator:     ':'
-      regex:         '(.*):(4647)'
-      target_label:  '__address__'
-      replacement:   '$${1}:9126'
-
+    scrape_interval:     30s
     metrics_path: /metrics
 
 
