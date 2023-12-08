@@ -34,27 +34,80 @@ if [ -z "$NOMAD_ADDR" ]; then
     export NOMAD_ADDR="https://$ENVIRONMENT-$LOCAL_REGION-nomad.$TOP_LEVEL_DNS_ZONE_NAME"
 fi
 
-NOMAD_JOB_PATH="$LOCAL_PATH/../nomad"
 NOMAD_DC="$ENVIRONMENT-$ORACLE_REGION"
 
 JOB_NAME="oscar-$ORACLE_REGION"
+PACKS_DIR="$LOCAL_PATH/../nomad/jitsi_packs/packs"
 
 export RESOURCE_NAME_ROOT="${ENVIRONMENT}-${ORACLE_REGION}-oscar"
 
-export NOMAD_VAR_dc="$NOMAD_DC"
-export NOMAD_VAR_oscar_hostname="${RESOURCE_NAME_ROOT}.${TOP_LEVEL_DNS_ZONE_NAME}"
-export NOMAD_VAR_cloudprober_version="latest"
-export NOMAD_VAR_domain="$DOMAIN"
-export NOMAD_VAR_environment="$ENVIRONMENT"
-export NOMAD_VAR_top_level_domain="$TOP_LEVEL_DNS_ZONE_NAME"
-export NOMAD_VAR_region="$ORACLE_REGION"
+OSCAR_ENABLE_WAVEFRONT_PROXY="true"
 
-sed -e "s/\[JOB_NAME\]/$JOB_NAME/" "$NOMAD_JOB_PATH/templates/oscar-head.hcl" | cat - $NOMAD_JOB_PATH/templates/oscar-${OSCAR_TEMPLATE_TYPE}-foot.hcl | nomad job run -verbose -var="dc=$NOMAD_DC" -var="domain=$DOMAIN" -var="cloudprober_version=latest" -
+if [[ "$OSCAR_TEMPLATE_TYPE" == "core" ]]; then
+    OSCAR_ENABLE_OPS_REPO="false"
+    OSCAR_ENABLE_COTURN="true"
+    OSCAR_ENABLE_SITE_INGRESS="true"
+    OSCAR_ENABLE_HAPROXY_REGION="true"
+    OSCAR_ENABLE_AUTOSCALER="true"
+fi
+if [[ "$OSCAR_TEMPLATE_TYPE" == "ops" ]]; then
+    OSCAR_ENABLE_OPS_REPO="true"
+    OSCAR_ENABLE_COTURN="false"
+    OSCAR_ENABLE_SITE_INGRESS="false"
+    OSCAR_ENABLE_HAPROXY_REGION="false"
+    OSCAR_ENABLE_AUTOSCALER="false"
+fi
+
+[ -z "$CLOUDPROBER_VERSION" ] && CLOUDPROBER_VERSION="latest"
+
+cat > "./oscar.hcl" <<EOF
+datacenters=["$NOMAD_DC"]
+oscar_hostname="${RESOURCE_NAME_ROOT}.${TOP_LEVEL_DNS_ZONE_NAME}"
+cloudprober_version="$CLOUDPROBER_VERSION"
+oracle_region="$ORACLE_REGION"
+top_level_domain="$TOP_LEVEL_DNS_ZONE_NAME"
+domain="$DOMAIN"
+environment="$ENVIRONMENT"
+enable_ops_repo=$OSCAR_ENABLE_OPS_REPO
+enable_site_ingress=$OSCAR_ENABLE_SITE_INGRESS
+enable_haproxy_region=$OSCAR_ENABLE_HAPROXY_REGION
+enable_coturn=$OSCAR_ENABLE_COTURN
+enable_autoscaler=$OSCAR_ENABLE_AUTOSCALER
+enable_wavefront_proxy=$OSCAR_ENABLE_WAVEFRONT_PROXY
+EOF
+
+nomad-pack plan --name "$JOB_NAME" \
+  -var "job_name=$JOB_NAME" \
+  -var-file "./oscar.hcl" \
+  $PACKS_DIR/jitsi_oscar
+
+PLAN_RET=$?
+
+if [ $PLAN_RET -gt 1 ]; then
+    echo "Failed planning nomad oscar job, exiting"
+    rm ./oscar.hcl
+    exit 4
+else
+    if [ $PLAN_RET -eq 1 ]; then
+        echo "Plan was successful, will make changes"
+    fi
+    if [ $PLAN_RET -eq 0 ]; then
+        echo "Plan was successful, no changes needed"
+    fi
+fi
+
+nomad-pack run --name "$JOB_NAME" \
+  -var "job_name=$JOB_NAME" \
+  -var-file "./oscar.hcl" \
+  $PACKS_DIR/jitsi_oscar
 
 if [ $? -ne 0 ]; then
     echo "Failed to run nomad oscar job, exiting"
+    rm ./oscar.hcl
     exit 5
 fi
+
+rm ./oscar.hcl
 
 export CNAME_VALUE="$RESOURCE_NAME_ROOT"
 export STACK_NAME="${RESOURCE_NAME_ROOT}-cname"
