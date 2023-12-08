@@ -43,7 +43,6 @@ job "[JOB_NAME]" {
         static = 8125
       }
       port "telegraf-prometheus" {
-        static = 9126
       }
     }
     # docker socket volume
@@ -54,6 +53,20 @@ job "[JOB_NAME]" {
     }
 
     task "telegraf" {
+      service {
+        name = "telegraf"
+        tags = ["ip-${attr.unique.network.ip-address}"]
+        port = "telegraf-prometheus"
+        check {
+          name     = "alive"
+          type     = "http"
+          path     = "/"
+          port     = "telegraf-prometheus"
+          interval = "10s"
+          timeout  = "2s"
+        }
+      }
+
       user = "telegraf:999"
       driver = "docker"
       meta {
@@ -287,7 +300,7 @@ EOF
         role = "gpu"
 
 [[outputs.prometheus_client]]
-  listen = ":9126"
+  listen = ":{{ env "NOMAD_HOST_PORT_telegraf_prometheus" }}"
   path = "/metrics"
 
 [[outputs.wavefront]]
