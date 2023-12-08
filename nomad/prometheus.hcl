@@ -76,11 +76,10 @@ scrape_configs:
       regex: '(.*)http(.*)'
       action: keep
 
-    scrape_interval: 5s
-    metrics_path: /v1/metrics
+    scrape_interval: 30s
+    metrics_path: /v1/agent/metrics
     params:
       format: ['prometheus']
-
 
   - job_name: 'nomad_metrics'
 
@@ -93,10 +92,24 @@ scrape_configs:
       regex: '(.*)http(.*)'
       action: keep
 
-    scrape_interval: 5s
+    scrape_interval: 30s
     metrics_path: /v1/metrics
     params:
       format: ['prometheus']
+  - job_name: 'prometheus_metrics'
+
+    consul_sd_configs:
+    - server: '{{ env "NOMAD_IP_prometheus_ui" }}:8500'
+      services: ['prometheus']
+
+    relabel_configs:
+    - source_labels: ['__meta_consul_tags']
+      regex: '(.*)http(.*)'
+      action: keep
+
+    scrape_interval: 30s
+    metrics_path: /metrics
+
 EOH
     }
 
