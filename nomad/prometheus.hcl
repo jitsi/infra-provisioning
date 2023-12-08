@@ -63,6 +63,7 @@ global:
   scrape_interval:     5s
   evaluation_interval: 5s
 
+
 scrape_configs:
 
   - job_name: 'consul_metrics'
@@ -72,11 +73,12 @@ scrape_configs:
       services: ['consul']
 
     relabel_configs:
-    - source_labels: ['__meta_consul_tags']
-      regex: '(.*)http(.*)'
-      action: keep
+    - source_labels: ['__address__']
+      separator:     ':'
+      regex:         '(.*):(8300)'
+      target_label:  '__address__'
+      replacement:   '$${1}:8500'
 
-    scrape_interval: 30s
     metrics_path: /v1/agent/metrics
     params:
       format: ['prometheus']
@@ -85,31 +87,61 @@ scrape_configs:
 
     consul_sd_configs:
     - server: '{{ env "NOMAD_IP_prometheus_ui" }}:8500'
-      services: ['nomad-client', 'nomad']
+      services: ['nomad-clients', 'nomad-servers']
 
     relabel_configs:
-    - source_labels: ['__meta_consul_tags']
-      regex: '(.*)http(.*)'
-      action: keep
+    - source_labels: ['__address__']
+      separator:     ':'
+      regex:         '(.*):(4647)'
+      target_label:  '__address__'
+      replacement:   '$${1}:4646'
 
-    scrape_interval: 30s
+    - source_labels: ['__address__']
+      separator:     ':'
+      regex:         '(.*):(4648)'
+      target_label:  '__address__'
+      replacement:   '$${1}:4646'
+
     metrics_path: /v1/metrics
     params:
       format: ['prometheus']
-  - job_name: 'prometheus_metrics'
+
+  - job_name: 'telegraf_metrics'
 
     consul_sd_configs:
     - server: '{{ env "NOMAD_IP_prometheus_ui" }}:8500'
-      services: ['prometheus']
+      services: ['nomad-clients']
 
     relabel_configs:
-    - source_labels: ['__meta_consul_tags']
-      regex: '(.*)http(.*)'
-      action: keep
+    - source_labels: ['__address__']
+      separator:     ':'
+      regex:         '(.*):(4646)'
+      target_label:  '__address__'
+      replacement:   '$${1}:9126'
 
-    scrape_interval: 30s
+    - source_labels: ['__address__']
+      separator:     ':'
+      regex:         '(.*):(4648)'
+      target_label:  '__address__'
+      replacement:   '$${1}:9126'
+
+    - source_labels: ['__address__']
+      separator:     ':'
+      regex:         '(.*):(4647)'
+      target_label:  '__address__'
+      replacement:   '$${1}:9126'
+
     metrics_path: /metrics
 
+
+  # The job name is added as a label `job=<job_name>` to any timeseries scraped from this config.
+  - job_name: 'prometheus'
+
+    # Override the global default and scrape targets from this job every 5 seconds.
+    scrape_interval: 5s
+
+    static_configs:
+      - targets: ['localhost:9090']
 EOH
     }
 
