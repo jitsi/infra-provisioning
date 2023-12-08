@@ -2,65 +2,58 @@ variable "dc" {
   type = string
 }
 
-variable "availability_domain" {
-  type = string
-}
-
 job "[JOB_NAME]" {
   region = "global"
 
   datacenters = ["${var.dc}"]
   type        = "service"
 
-  # TODO: pick the availability domain based on where the volume is located
-  spread {
-    attribute = "${node.unique.id}"
-  }
-
   update {
     max_parallel = 1
     stagger      = "10s"
   }
 
-  constraint {
-    attribute  = "${meta.pool_type}"
-    value     = "consul"
-  }
+  group "prometheus" {
 
-  network {
-    port "prometheus_ui" {
-    static = 9090
-    }
-  }
-
-  volume "prometheus" {
-    type      = "host"
-    read_only = false
-    source    = "prometheus"
-  }
-
-  task "prometheus" {
-    driver = "docker"
-
-    config {
-      image = "prom/prometheus:latest"
-      ports = ["prometheus_ui"]
-      volumes = [
-        "local/prometheus.yml:/etc/prometheus/prometheus.yml"
-      ]
+    constraint {
+      attribute  = "${meta.pool_type}"
+      value     = "consul"
     }
 
-    volume_mount {
-      volume      = "prometheus"
-      destination = "/data"
-      read_only   = false
+    network {
+      port "prometheus_ui" {
+      static = 9090
+      }
     }
 
-    template {
-      change_mode = "noop"
-      destination = "local/prometheus.yml"
+    volume "prometheus" {
+      type      = "host"
+      read_only = false
+      source    = "prometheus"
+    }
 
-      data = <<EOH
+    task "prometheus" {
+      driver = "docker"
+
+      config {
+        image = "prom/prometheus:latest"
+        ports = ["prometheus_ui"]
+        volumes = [
+          "local/prometheus.yml:/etc/prometheus/prometheus.yml"
+        ]
+      }
+
+      volume_mount {
+        volume      = "prometheus"
+        destination = "/data"
+        read_only   = false
+      }
+
+      template {
+        change_mode = "noop"
+        destination = "local/prometheus.yml"
+
+        data = <<EOH
 ---
 global:
   scrape_interval:     5s
@@ -86,22 +79,23 @@ scrape_configs:
 EOH
     }
 
-    resources {
-      cpu    = 500
-      memory = 256
-    }
+      resources {
+        cpu    = 500
+        memory = 256
+      }
         
-    service {
-      name = "prometheus"
-      tags = ["urlprefix-/"]
-    port = "prometheus_ui"
+      service {
+        name = "prometheus"
+        tags = ["urlprefix-/"]
+        port = "prometheus_ui"
 
-      check {
-        name     = "prometheus_ui port alive"
-        type     = "http"
-        path     = "/-/healthy"
-        interval = "10s"
-        timeout  = "2s"
+        check {
+          name     = "prometheus_ui port alive"
+          type     = "http"
+          path     = "/-/healthy"
+          interval = "10s"
+          timeout  = "2s"
+        }
       }
     }
   }
