@@ -1,7 +1,58 @@
+job [[ template "job_name" . ]] {
+  [[ template "region" . ]]
+  datacenters = [[ var "datacenters" . | toStringList ]]
+  type = "service"
+
+  update {
+    max_parallel      = 1
+    health_check      = "checks"
+    min_healthy_time  = "10s"
+    healthy_deadline  = "3m"
+    progress_deadline = "5m"
+  }
+
+  reschedule {
+    delay          = "30s"
+    delay_function = "exponential"
+    max_delay      = "1h"
+    unlimited      = true
+  }
+
+  // must have linux for network mode
+  constraint {
+    attribute = "${attr.kernel.name}"
+    value     = "linux"
+  }
+
+  meta {
+    cloudprober_version = "[[ var "cloudprober_version" . ]]"
+  }
+
+  group "synthetics" {
+    constraint {
+      attribute  = "${meta.pool_type}"
+      value     = "[[ var "pool_type" . ]]"
+    }
+
+    count = 1
+
+    restart {
+      attempts = 3
+      interval = "5m"
+      delay    = "25s"
+      mode     = "delay"
+    }
+
+    network {
+      port "http" {
+        to = 9313 
+      }
+    }
+
     task "ingress-cloudprober" {
       service {
         name = "oscar"
-        tags = ["int-urlprefix-${var.oscar_hostname}/","ip-${attr.unique.network.ip-address}"]
+        tags = ["int-urlprefix-[[ var "oscar_hostname" . ]]/","ip-${attr.unique.network.ip-address}"]
         port = "http"
         check {
           name     = "alive"
@@ -14,22 +65,42 @@
       driver = "docker"
       template {
           data = <<EOH
+[[ if var "enable_ops_repo" . -]]
+# probes ops-repo health
+probe {
+  name: "ops-repo"
+  type: HTTP
+  targets {
+    host_names: "ops-repo.jitsi.net"
+  }
+  interval_msec: 5000
+  timeout_msec: 2000
+
+  http_probe {
+    protocol: HTTPS
+    relative_url: "/health"
+  }
+}
+[[ end -]]
+[[ if var "enable_site_ingress" . -]]
 # probes site ingress health from this datacenter
 probe {
   name: "site"
   type: HTTP
   targets {
-    host_names: "${var.domain}"
+    host_names: "[[ var "domain" . ]]"
   }
   interval_msec: 5000
   timeout_msec: 2000
 }
+[[ end -]]
+[[ if var "enable_haproxy_region" . -]]
 # probe to validate that the ingress haproxy reached is in the local datacenter
 probe {
   name: "haproxy_region"
   type: EXTERNAL
   targets {
-    host_names: "${var.domain}"
+    host_names: "[[ var "domain" . ]]"
   }
   external_probe {
     mode: ONCE 
@@ -38,12 +109,14 @@ probe {
   interval_msec: 5000
   timeout_msec: 2000
 }
+[[ end -]]
+[[ if var "enable_autoscaler" . -]]
 # probes autoscaler health in the local datacenter
 probe {
   name: "autoscaler"
   type: HTTP
   targets {
-    host_names: "${var.environment}-${var.region}-autoscaler.${var.top_level_domain}"
+    host_names: "[[ var "environment" . ]]-[[ var "oracle_region" . ]]-autoscaler.[[ var "top_level_domain" . ]]"
   }
   http_probe {
     protocol: HTTPS
@@ -52,12 +125,14 @@ probe {
   interval_msec: 60000
   timeout_msec: 2000
 }
+[[ end -]]
+[[ if var "enable_wavefront_proxy" . -]]
 # probes wavefront-proxy health in the local datacenter
 probe {
   name: "wfproxy"
   type: HTTP
   targets {
-    host_names: "${var.environment}-${var.region}-wfproxy.${var.top_level_domain}"
+    host_names: "[[ var "environment" . ]]-[[ var "oracle_region" . ]]-wfproxy.[[ var "top_level_domain" . ]]"
   }
   http_probe {
     protocol: HTTPS
@@ -66,6 +141,8 @@ probe {
   interval_msec: 60000
   timeout_msec: 2000
 }
+[[ end -]]
+[[ if var "enable_coturn" . -]]
 # probes coturn health in the local datacenter using public IP
 probe {
   name: "coturn"
@@ -80,6 +157,7 @@ probe {
   interval_msec: 60000
   timeout_msec: 2000
 }
+[[ end -]]
 EOH
           destination = "local/cloudprober.cfg"
       }
@@ -99,7 +177,7 @@ EOH
         data = <<EOH
 #!/bin/sh
 
-DOMAIN=${var.domain} REGION=${var.region} /usr/bin/python3 /bin/oscar_haproxy_probe.py
+DOMAIN=[[ var "domain" . ]] REGION=[[ var "oracle_region" . ]] /usr/bin/python3 /bin/oscar_haproxy_probe.py
 EOH
         destination = "local/oscar_haproxy_probe.sh"
         perms = "755"
@@ -128,7 +206,7 @@ if [ -z $1 ]; then
   exit 1
 fi
 
-OUT=$(curl -s https://${var.environment}-turnrelay-oracle.jitsi.net/ --resolve "${var.environment}-turnrelay-oracle.jitsi.net:443:$1")
+OUT=$(curl -s https://[[ var "environment" . ]]-turnrelay-oracle.jitsi.net/ --resolve "[[ var "environment" . ]]-turnrelay-oracle.jitsi.net:443:$1")
 if [ $? -ne 52 ]; then
   echo "coturn probe failed: CODE $1 OUT $OUT" 1>&2
   echo "coturn_check_passed 0"
@@ -140,7 +218,7 @@ EOH
         perms = "755"
       }
       config {
-        image = "cloudprober/cloudprober:${var.cloudprober_version}"
+        image = "cloudprober/cloudprober:[[ var "cloudprober_version" . ]]"
         ports = ["http"]
         entrypoint = ["/bin/custom_init.sh"]
         volumes = [
