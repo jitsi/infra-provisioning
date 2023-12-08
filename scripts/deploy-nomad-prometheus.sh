@@ -19,10 +19,6 @@ LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 [ -e "$LOCAL_PATH/../clouds/all.sh" ] && . "$LOCAL_PATH/../clouds/all.sh"
 [ -e "$LOCAL_PATH/../clouds/oracle.sh" ] && . "$LOCAL_PATH/../clouds/oracle.sh"
 
-[ -z "$VAULT_PASSWORD_FILE" ] && VAULT_PASSWORD_FILE="$LOCAL_PATH/../.vault-password.txt"
-
-[ -z "$ENVIRONMENT_CONFIGURATION_FILE" ] && ENVIRONMENT_CONFIGURATION_FILE="$LOCAL_PATH/../sites/$ENVIRONMENT/vars.yml"
-
 NOMAD_DC="$ENVIRONMENT-$ORACLE_REGION"
 
 [ -z "$LOCAL_REGION" ] && LOCAL_REGION="$OCI_LOCAL_REGION"
@@ -65,8 +61,6 @@ set +e
 JOB_NAME="prometheus-$ORACLE_REGION"
 
 nomad-pack registry add community github.com/hashicorp/nomad-pack-community-registry
-
-cat prometheus.hcl
 
 nomad-pack plan --registry=community --parser-v1 \
   --name "$JOB_NAME" \
