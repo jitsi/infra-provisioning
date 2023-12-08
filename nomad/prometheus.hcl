@@ -2,6 +2,10 @@ variable "dc" {
   type = string
 }
 
+variable "prometheus_hostname" {
+  type = string
+}
+
 job "[JOB_NAME]" {
   region = "global"
 
@@ -22,7 +26,7 @@ job "[JOB_NAME]" {
 
     network {
       port "prometheus_ui" {
-      static = 9090
+        to = 9090
       }
     }
 
@@ -61,6 +65,23 @@ global:
 
 scrape_configs:
 
+  - job_name: 'consul_metrics'
+
+    consul_sd_configs:
+    - server: '{{ env "NOMAD_IP_prometheus_ui" }}:8500'
+      services: ['consul']
+
+    relabel_configs:
+    - source_labels: ['__meta_consul_tags']
+      regex: '(.*)http(.*)'
+      action: keep
+
+    scrape_interval: 5s
+    metrics_path: /v1/metrics
+    params:
+      format: ['prometheus']
+
+
   - job_name: 'nomad_metrics'
 
     consul_sd_configs:
@@ -86,7 +107,7 @@ EOH
         
       service {
         name = "prometheus"
-        tags = ["urlprefix-/"]
+        tags = ["int-urlprefix-${var.prometheus_hostname}/"]
         port = "prometheus_ui"
 
         check {
