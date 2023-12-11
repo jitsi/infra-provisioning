@@ -694,7 +694,7 @@ EOF
     task "web" {
       driver = "docker"
       config {
-        image        = "nginx:latest"
+        image        = "nginx:1.25.3"
         ports = ["http","nginx-status"]
         volumes = [
           "local/_unlock:/usr/share/nginx/html/_unlock",
