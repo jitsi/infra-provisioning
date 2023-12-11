@@ -18,114 +18,7 @@ job [[ template "job_name" . ]] {
     value     = "linux"
   }
 
-  group "vnodes" {
-    count = [[ or (env "CONFIG_visitors_count") "0" ]]
-
-    update {
-      max_parallel = [[ or (env "CONFIG_visitors_count") "0" ]]
-      health_check      = "checks"
-    }
-
-    constraint {
-      attribute  = "${meta.pool_type}"
-      value     = "[[ env "CONFIG_pool_type" ]]"
-    }
-
-    network {
-      port "prosody-http" {
-        to = 5280
-      }
-      port "prosody-client" {
-      }
-      port "prosody-s2s" {
-        to = 5269
-      }
-    }
-
-    service {
-      name = "prosody-vnode"
-      tags = ["[[ env "CONFIG_shard" ]]","v-${NOMAD_ALLOC_INDEX}","ip-${attr.unique.network.ip-address}"]
-      port = "prosody-http"
-      meta {
-        domain = "[[ env "CONFIG_domain" ]]"
-        shard = "[[ env "CONFIG_shard" ]]"
-        release_number = "[[ env "CONFIG_release_number" ]]"
-        prosody_client_port = "${NOMAD_HOST_PORT_prosody_client}"
-        prosody_s2s_port = "${NOMAD_HOST_PORT_prosody_s2s}"
-        environment = "${meta.environment}"
-        vindex = "${NOMAD_ALLOC_INDEX}"
-      }
-
-      check {
-        name     = "health"
-        type     = "http"
-        path     = "/http-bind"
-        port     = "prosody-http"
-        interval = "10s"
-        timeout  = "2s"
-      }
-    }
-
-    task "prosody" {
-      driver = "docker"
-
-      config {
-        image        = "jitsi/prosody:[[ env "CONFIG_prosody_tag" ]]"
-        ports = ["prosody-http","prosody-client","prosody-s2s"]
-        volumes = ["local/prosody-plugins-custom:/prosody-plugins-custom","local/config:/config"]
-      }
-
-      env {
-        PROSODY_MODE="visitors"
-        VISITORS_MAX_PARTICIPANTS=5
-        VISITORS_MAX_VISITORS_PER_NODE=250
-[[ template "common-env" . ]]
-        ENABLE_VISITORS="true"
-        ENABLE_GUESTS="true"
-        ENABLE_AUTH="true"
-#        LOG_LEVEL="debug"
-        PROSODY_VISITOR_INDEX="${NOMAD_ALLOC_INDEX}"
-        PROSODY_ENABLE_RATE_LIMITS="1"
-        PROSODY_RATE_LIMIT_ALLOW_RANGES="[[ env "CONFIG_prosody_rate_limit_allow_ranges" ]]"
-        PROSODY_REGION_NAME="[[ env "CONFIG_octo_region" ]]"
-        MAX_PARTICIPANTS=500
-      }
-[[ template "prosody_artifacts" . ]]
-
-      template {
-        data = <<EOF
-{{ range service "shard-[[ env "CONFIG_shard" ]].signal" -}}
-    {{ scratch.SetX "xmpp_server" . -}}
-{{ end -}}
-
-#
-# prosody vnode configuration options
-#
-
-{{ with scratch.Get "xmpp_server"  }}
-XMPP_SERVER={{ .ServiceMeta.prosody_client_ip }}
-XMPP_SERVER_S2S_PORT={{ .ServiceMeta.prosody_s2s_port }}
-{{ end -}}
-GLOBAL_CONFIG="statistics = \"internal\"\nstatistics_interval = \"manual\"\nopenmetrics_allow_cidr = \"0.0.0.0/0\";\n"
-GLOBAL_MODULES="admin_telnet,http_openmetrics,measure_stanza_counts,log_ringbuffer,firewall,muc_census,secure_interfaces,external_services,turncredentials_http"
-XMPP_MODULES="jiconop"
-XMPP_INTERNAL_MUC_MODULES=
-XMPP_MUC_MODULES=
-XMPP_PORT={{  env "NOMAD_HOST_PORT_prosody_client" }}
-
-EOF
-
-        destination = "local/prosody.env"
-        env = true
-      }
-
-      resources {
-        cpu    = 1000
-        memory = 512
-      }
-    }
-
-  }
+[[ $VNODE_COUNT := (or (var "visitors_count" .) 0) ]]
 
   group "signal" {
     count = 1
@@ -162,6 +55,20 @@ EOF
       port "jicofo-http" {
         to = 8888
       }
+[[ if gt $VNODE_COUNT 0 -]]
+
+[[ range $index, $i := split " "  (seq 0 ((sub $VNODE_COUNT 1)|int)) ]]
+      port "prosody-vnode-[[ $i ]]-http" {
+        to = 5280
+      }
+      port "prosody-vnode-[[ $i ]]-client" {
+      }
+      port "prosody-vnode-[[ $i ]]-s2s" {
+        to = 5269
+      }
+[[ end ]]
+[[ end ]]
+
     }
 
     service {
@@ -318,6 +225,87 @@ EOF
       }
     }
 
+[[ if gt $VNODE_COUNT 0 -]]
+[[ range $index, $i := split " "  (seq 0 ((sub $VNODE_COUNT 1)|int)) ]]
+    service {
+      name = "prosody-vnode"
+      tags = ["[[ env "CONFIG_shard" ]]","v-[[ $i ]]","ip-${attr.unique.network.ip-address}"]
+      port = "prosody-vnode-[[ $i ]]-http"
+      meta {
+        domain = "[[ env "CONFIG_domain" ]]"
+        shard = "[[ env "CONFIG_shard" ]]"
+        release_number = "[[ env "CONFIG_release_number" ]]"
+        prosody_client_port = "${NOMAD_HOST_PORT_prosody_vnode_[[ $i ]]_client}"
+        prosody_s2s_port = "${NOMAD_HOST_PORT_prosody_vnode_[[ $i ]]_s2s}"
+        environment = "${meta.environment}"
+        vindex = "[[ $i ]]"
+      }
+
+      check {
+        name     = "health"
+        type     = "http"
+        path     = "/http-bind"
+        port     = "prosody-vnode-[[ $i ]]-http"
+        interval = "10s"
+        timeout  = "2s"
+      }
+    }
+
+    task "prosody-vnode-[[ $i ]]" {
+      driver = "docker"
+
+      config {
+        image        = "jitsi/prosody:[[ env "CONFIG_prosody_tag" ]]"
+        ports = ["prosody-vnode-[[ $i ]]-http","prosody-vnode-[[ $i ]]-client","prosody-vnode-[[ $i ]]-s2s"]
+        volumes = ["local/prosody-plugins-custom:/prosody-plugins-custom","local/config:/config"]
+      }
+
+      env {
+        PROSODY_MODE="visitors"
+        VISITORS_MAX_PARTICIPANTS=5
+        VISITORS_MAX_VISITORS_PER_NODE=250
+[[ template "common-env" . ]]
+        ENABLE_VISITORS="true"
+        ENABLE_GUESTS="true"
+        ENABLE_AUTH="true"
+#        LOG_LEVEL="debug"
+        PROSODY_VISITOR_INDEX="[[ $i ]]"
+        PROSODY_ENABLE_RATE_LIMITS="1"
+        PROSODY_RATE_LIMIT_ALLOW_RANGES="[[ env "CONFIG_prosody_rate_limit_allow_ranges" ]]"
+        PROSODY_REGION_NAME="[[ env "CONFIG_octo_region" ]]"
+        MAX_PARTICIPANTS=500
+      }
+[[ template "prosody_artifacts" . ]]
+
+      template {
+        data = <<EOF
+#
+# prosody vnode configuration options
+#
+XMPP_SERVER={{ env "NOMAD_IP_prosody_s2s" }}
+XMPP_PORT={{  env "NOMAD_HOST_PORT_prosody_s2s" }}
+GLOBAL_CONFIG="statistics = \"internal\"\nstatistics_interval = \"manual\"\nopenmetrics_allow_cidr = \"0.0.0.0/0\";\n"
+GLOBAL_MODULES="admin_telnet,http_openmetrics,measure_stanza_counts,log_ringbuffer,firewall,muc_census,secure_interfaces,external_services,turncredentials_http"
+XMPP_MODULES="jiconop"
+XMPP_INTERNAL_MUC_MODULES=
+XMPP_MUC_MODULES=
+XMPP_PORT={{  env "NOMAD_HOST_PORT_prosody_vnode_[[ $i ]]_client" }}
+
+EOF
+
+        destination = "local/prosody.env"
+        env = true
+      }
+
+      resources {
+        cpu    = 1000
+        memory = 512
+      }
+    }
+
+[[ end -]]
+[[ end -]]
+
     task "signal-sidecar" {
       driver = "docker"
       config {
@@ -390,11 +378,8 @@ EOF
 
       template {
         data = <<EOF
-{{ range service "[[ env "CONFIG_shard" ]].prosody-vnode" -}}
-    {{ scratch.MapSetX "vnodes" .ServiceMeta.vindex . -}}
-{{ end -}}
+VISITORS_XMPP_SERVER=[[ range $index, $i := split " "  (seq 0 ((sub $VNODE_COUNT 1)|int)) ]][[ if gt ($i|int) 0 ]],[[ end ]]{{ env "NOMAD_IP_prosody_vnode_[[ $i ]]_s2s" }}:{{ env "NOMAD_HOST_PORT_prosody_vnode_[[ $i ]]_s2s" }}[[ end ]]  
 
-VISITORS_XMPP_SERVER={{ range $i, $e := scratch.MapValues "vnodes" }}{{ if gt $i 0 }},{{ end }}{{ $e.Address }}:{{ $e.ServiceMeta.prosody_s2s_port}}{{ end }}
 #
 # prosody main configuration options
 #
@@ -647,11 +632,7 @@ EOF
 
       template {
         data = <<EOF
-{{ range service "[[ env "CONFIG_shard" ]].prosody-vnode" -}}
-    {{ scratch.MapSetX "vnodes" .ServiceMeta.vindex . -}}
-{{ end -}}
-
-VISITORS_XMPP_SERVER={{ range $i, $e := scratch.MapValues "vnodes" }}{{ if gt $i 0 }},{{ end }}{{ $e.Address }}:{{ $e.ServiceMeta.prosody_client_port}}{{ end }}
+VISITORS_XMPP_SERVER=[[ range $index, $i := split " "  (seq 0 ((sub $VNODE_COUNT 1)|int)) ]][[ if gt ($i|int) 0 ]],[[ end ]]{{ env "NOMAD_IP_prosody_vnode_[[ $i ]]_s2s" }}:{{ env "NOMAD_HOST_PORT_prosody_vnode_[[ $i ]]_s2s" }}[[ end ]]  
 #
 # Basic configuration options
 #
