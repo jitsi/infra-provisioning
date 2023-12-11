@@ -84,6 +84,12 @@ data "oci_core_security_lists" "private_security_list" {
   display_name = "${var.resource_name_root}-PrivateSecurityList"
 }
 
+data "oci_core_security_lists" "ops_security_lists" {
+  compartment_id = var.compartment_ocid
+  vcn_id         = data.oci_core_vcns.vcns.virtual_networks[0].id
+  display_name = "${var.resource_name_root}-OpsSecurityList"
+}
+
 // ============ SUBNETS ============
 
 resource "oci_core_subnet" "nat_subnet" {
@@ -93,7 +99,9 @@ resource "oci_core_subnet" "nat_subnet" {
   compartment_id      = var.compartment_ocid
   vcn_id              = data.oci_core_vcns.vcns.virtual_networks[0].id
   security_list_ids   = [
-    data.oci_core_security_lists.private_security_list.security_lists[0].id]
+                            data.oci_core_security_lists.private_security_lists.security_lists[0].id,
+                            data.oci_core_security_lists.ops_security_lists.security_lists[0].id
+                        ]
   route_table_id      = oci_core_route_table.private_route_table.id
   prohibit_public_ip_on_vnic = true
 }
