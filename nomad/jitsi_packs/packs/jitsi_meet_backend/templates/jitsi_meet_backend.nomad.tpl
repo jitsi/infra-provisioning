@@ -692,6 +692,12 @@ EOF
     }
 
     task "web" {
+      # wait until everything else is started before nginx
+      lifecycle {
+        hook = "poststart"
+        sidecar = true
+      }
+
       driver = "docker"
       config {
         image        = "nginx:1.25.3"
