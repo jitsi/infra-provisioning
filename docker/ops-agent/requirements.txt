@@ -37,4 +37,4 @@ six
 troposphere
 urllib3
 oci-cli
-nomad-watch
+nomad-tools
