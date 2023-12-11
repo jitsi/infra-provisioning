@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#set -x
+set -x
 
 [ -e ./stack-env.sh ] && . ./stack-env.sh
 
@@ -38,9 +38,15 @@ for SHARD in $SHARDS; do
       else
         if [[ "$SHARD_CORE_PROVIDER" == "nomad" ]]; then
           SHARD_META="$(SHARD=$SHARD ENVIRONMENT=$ENVIRONMENT DISPLAY="service_meta" $LOCAL_PATH/consul-search.sh $SSH_USER | jq -r '.[0]')"
-          SHARD_IPS+=( "$(echo "$SHARD_META" | jq -r '.signal_sidecar_http_ip')" )
-          SHARD_CURL_IPS+=( "$(echo "$SHARD_META" | jq -r '.signal_sidecar_http_ip')" )
-          SHARD_CURL_PORTS+=( "$(echo "$SHARD_META" | jq -r '.signal_sidecar_http_port')" )
+          SHARD_IP="$(echo "$SHARD_META" | jq -r '.signal_sidecar_http_ip')"
+          if [[ -z "$SHARD_IP" ]]; then
+            echo "No SHARD_IP found for $SHARD"
+            FOUND_SHARDS=false
+          else
+            SHARD_IPS+=( "$SHARD_IP" )
+            SHARD_CURL_IPS+=( "$(echo "$SHARD_META" | jq -r '.signal_sidecar_http_ip')" )
+            SHARD_CURL_PORTS+=( "$(echo "$SHARD_META" | jq -r '.signal_sidecar_http_port')" )
+          fi
         else
           SHARD_IP="$(IP_TYPE="internal" SHARD=$SHARD ENVIRONMENT=$ENVIRONMENT $LOCAL_PATH/shard.sh shard_ip $SSH_USER)"
           if [ $? -eq 0 ]; then
