@@ -15,9 +15,3 @@ variable "datacenter" {
   description = "The datacenter to place the task"
   type        = string
 }
-
-variable "prosody_modules_commit_id" {
-  description = "The commit id of the prosody modules to use"
-  type        = string
-  default = "6696075e26e2"
-}

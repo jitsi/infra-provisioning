@@ -145,46 +145,6 @@ block
 
 [[ define "prosody_artifacts" -]]
       artifact {
-        source      = "https://hg.prosody.im/prosody-modules/raw-file/[[ var "prosody_modules_commit_id" . ]]/mod_measure_stanza_counts/mod_measure_stanza_counts.lua"
-        destination = "local/prosody-plugins-custom"
-      }
-      artifact {
-        source      = "https://hg.prosody.im/prosody-modules/raw-file/[[ var "prosody_modules_commit_id" . ]]/mod_debug_traceback/mod_debug_traceback.lua"
-        destination = "local/prosody-plugins-custom"
-      }
-      artifact {
-        source      = "https://hg.prosody.im/prosody-modules/raw-file/[[ var "prosody_modules_commit_id" . ]]/mod_secure_interfaces/mod_secure_interfaces.lua"
-        destination = "local/prosody-plugins-custom"
-      }
-      artifact {
-        source      = "https://hg.prosody.im/prosody-modules/raw-file/[[ var "prosody_modules_commit_id" . ]]/mod_firewall/mod_firewall.lua"
-        destination = "local/prosody-plugins-custom/mod_firewall"
-      }
-      artifact {
-        source      = "https://hg.prosody.im/prosody-modules/raw-file/[[ var "prosody_modules_commit_id" . ]]/mod_firewall/definitions.lib.lua"
-        destination = "local/prosody-plugins-custom/mod_firewall"
-      }
-      artifact {
-        source      = "https://hg.prosody.im/prosody-modules/raw-file/[[ var "prosody_modules_commit_id" . ]]/mod_firewall/actions.lib.lua"
-        destination = "local/prosody-plugins-custom/mod_firewall"
-      }
-      artifact {
-        source      = "https://hg.prosody.im/prosody-modules/raw-file/[[ var "prosody_modules_commit_id" . ]]/mod_firewall/marks.lib.lua"
-        destination = "local/prosody-plugins-custom/mod_firewall"
-      }
-      artifact {
-        source      = "https://hg.prosody.im/prosody-modules/raw-file/[[ var "prosody_modules_commit_id" . ]]/mod_firewall/conditions.lib.lua"
-        destination = "local/prosody-plugins-custom/mod_firewall"
-      }
-      artifact {
-        source      = "https://hg.prosody.im/prosody-modules/raw-file/[[ var "prosody_modules_commit_id" . ]]/mod_firewall/test.lib.lua"
-        destination = "local/prosody-plugins-custom/mod_firewall"
-      }
-      artifact {
-        source      = "https://hg.prosody.im/prosody-modules/raw-file/[[ var "prosody_modules_commit_id" . ]]/mod_log_ringbuffer/mod_log_ringbuffer.lua"
-        destination = "local/prosody-plugins-custom"
-      }
-      artifact {
         source      = "https://raw.githubusercontent.com/jitsi/infra-configuration/main/ansible/roles/prosody/files/mod_muc_webhooks.lua"
         destination = "local/prosody-plugins-custom"
       }
