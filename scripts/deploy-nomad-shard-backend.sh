@@ -227,4 +227,15 @@ if [ $? -ne 0 ]; then
     exit 5
 else
     scripts/nomad-pack.sh status jitsi_meet_backend --name "$JOB_NAME"
+    if [ $? -ne 0 ]; then
+        echo "Failed to get status for shard backend job, exiting"
+        exit 6
+    fi
+    nomad-watch --out "deployment" started "$JOB_NAME"
+    WATCH_RET=$?
+    if [ $WATCH_RET -ne 0 ]; then
+        echo "Failed starting job, dumping logs and exiting"
+        nomad-watch started "$JOB_NAME"
+    fi
+    exit $WATCH_RET
 fi
