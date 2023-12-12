@@ -212,7 +212,7 @@ upstream prosodylimited[[ $i ]] {
 
 [[ range $index, $i := split " "  (seq 0 ((sub (var "visitors_count" .) 1)|int)) -]]
 # upstream visitor prosody [[ $i ]]
-upstream v[[ $i ]]
+upstream v[[ $i ]] {
     server {{ env "NOMAD_IP_prosody_vnode_[[ $i ]]_http" }}:{{ env "NOMAD_HOST_PORT_prosody_vnode_[[ $i ]]_http" }};
 }
 [[ end -]]
