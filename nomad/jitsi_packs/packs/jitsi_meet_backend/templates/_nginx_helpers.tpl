@@ -219,9 +219,9 @@ upstream v[[ $i ]] {
 
 map $arg_vnode $prosody_node {
     default prosody;
-[[ range $index, $i := split " "  (seq 0 ((sub (var "visitors_count" .) 1)|int)) -]]
+[[ range $index, $i := split " "  (seq 0 ((sub (var "visitors_count" .) 1)|int)) ]]
     v[[ $i ]] v[[ $i ]];
-[[ end -]]
+[[ end ]]
 }
 
 # map to determine which prosody to proxy based on query param 'vnode'
