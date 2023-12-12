@@ -201,6 +201,7 @@ PACKS_DIR="$LOCAL_PATH/../nomad/jitsi_packs/packs"
 nomad-pack plan --name "$JOB_NAME" \
   -var "job_name=$JOB_NAME" \
   -var "datacenter=$NOMAD_DC" \
+  -var "visitors_count=$CONFIG_visitors_count" \
   $PACKS_DIR/jitsi_meet_backend
 
 PLAN_RET=$?
@@ -220,6 +221,7 @@ fi
 nomad-pack run --name "$JOB_NAME" \
   -var "job_name=$JOB_NAME" \
   -var "datacenter=$NOMAD_DC" \
+  -var "visitors_count=$CONFIG_visitors_count" \
   $PACKS_DIR/jitsi_meet_backend
 
 if [ $? -ne 0 ]; then

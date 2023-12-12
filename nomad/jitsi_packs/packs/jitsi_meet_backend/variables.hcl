@@ -15,3 +15,8 @@ variable "datacenter" {
   description = "The datacenter to place the task"
   type        = string
 }
+
+variable "visitors_count" {
+  type = number
+  default = 0
+}
