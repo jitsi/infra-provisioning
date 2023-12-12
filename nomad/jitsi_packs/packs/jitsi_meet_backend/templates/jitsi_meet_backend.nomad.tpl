@@ -534,7 +534,7 @@ EOF
         JICOFO_ENABLE_REST="1"
         JICOFO_ENABLE_BRIDGE_HEALTH_CHECKS="1"
         JICOFO_HEALTH_CHECKS_USE_PRESENCE="1"
-        ENABLE_AUTO_OWNER="[[ env "CONFIG_enable_auto_owner" ]]"
+        ENABLE_AUTO_OWNER="[[ if eq (or (env "CONFIG_jicofo_disable_auto_owner") "false") "true" ]]false[[ else ]]true[[ end ]]"
         OCTO_BRIDGE_SELECTION_STRATEGY="RegionBasedBridgeSelectionStrategy"
         // BRIDGE_STRESS_THRESHOLD=""
         BRIDGE_AVG_PARTICIPANT_STRESS="0.005"
