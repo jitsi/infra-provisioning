@@ -146,23 +146,19 @@ server {
     proxy_pass prosodylimitedupstream;
 }
 
-{{ range service "[[ env "CONFIG_shard" ]].prosody-vnode" -}}
-    {{ scratch.MapSetX "vnodes" .ServiceMeta.vindex . -}}
-{{ end -}}
-
-{{ range $i, $e := scratch.MapValues "vnodes" -}}
-# upstream visitor prosody {{ $i }}
-upstream prosodylimitedupstream{{ $i }} {
-    server {{ $e.Address }}:{{ $e.Port }};
+[[ range $index, $i := split " "  (seq 0 ((sub (var "visitors_count" .) 1)|int)) -]]
+# upstream visitor prosody [[ $i ]]
+upstream prosodylimitedupstream[[ $i ]] {
+    server {{ env "NOMAD_IP_prosody_vnode_[[ $i ]]_http" }}:{{ env "NOMAD_HOST_PORT_prosody_vnode_[[ $i ]]_http" }};
 }
-# local rate-limited proxy for visitor prosody {{ $i }}
+# local rate-limited proxy for visitor prosody [[ $i ]]
 server {
-{{ $port := add 25280 $i -}}
+{{ $port := add 25280 [[ $i ]] -}}
     listen    {{ $port }};
     proxy_upload_rate 10k;
-    proxy_pass prosodylimitedupstream{{ $i }};
+    proxy_pass prosodylimitedupstream[[ $i ]];
 }
-{{ end -}}
+[[ end -]]
 [[ end -]]
 
 [[ define "nginx-site.conf" -]]
@@ -202,41 +198,38 @@ upstream jicofo {
     keepalive 2;
 }
 
-{{ range loop [[ or (env "CONFIG_visitors_count") "0" ]] -}}
-# local upstream for visitor prosody {{ . }} used in final proxy_pass directive
-upstream prosodylimited{{ . }} {
+[[ range $index, $i := split " "  (seq 0 ((sub (var "visitors_count" .) 1)|int)) -]]
+
+# local upstream for visitor prosody [[ $i ]] used in final proxy_pass directive
+upstream prosodylimited[[ $i ]] {
     zone upstreams 64K;
-{{ $port := add 25280 . -}}
+{{ $port := add 25280 [[ $i ]] -}}
     server 127.0.0.1:{{ $port }};
     keepalive 2;
 }
-{{ end -}}
+[[ end -]]
 
 
-{{ range service "[[ env "CONFIG_shard" ]].prosody-vnode" -}}
-    {{ scratch.MapSetX "vnodes" .ServiceMeta.vindex . -}}
-{{ end -}}
-
-{{ range $i, $e := scratch.MapValues "vnodes" -}}
-# upstream visitor prosody {{ $i }}
-upstream v{{ $i }} {
+[[ range $index, $i := split " "  (seq 0 ((sub (var "visitors_count" .) 1)|int)) -]]
+# upstream visitor prosody [[ $i ]]
+upstream v[[ $i ]]
     server {{ $e.Address }}:{{ $e.Port }};
 }
-{{ end -}}
+[[ end -]]
 
 map $arg_vnode $prosody_node {
     default prosody;
-{{ range loop [[ or (env "CONFIG_visitors_count") "0" ]] -}}
-    v{{ . }} v{{ . }};
-{{ end -}}
+[[ range $index, $i := split " "  (seq 0 ((sub (var "visitors_count" .) 1)|int)) -]]
+    v[[ $i ]] v[[ $i ]];
+[[ end -]]
 }
 
 # map to determine which prosody to proxy based on query param 'vnode'
 map $arg_vnode $prosody_bosh_node {
     default prosodylimited;
-{{ range loop [[ or (env "CONFIG_visitors_count") "0" ]] -}}
-    v{{ . }} prosodylimited{{ . }};
-{{ end -}}
+[[ range $index, $i := split " "  (seq 0 ((sub (var "visitors_count" .) 1)|int)) -]]
+    v[[ $i ]] prosodylimited[[ $i ]];
+[[ end -]]
 }
 
 limit_req_zone $remote_addr zone=conference-request:10m rate=5r/s;
