@@ -283,7 +283,7 @@ job [[ template "job_name" . ]] {
 # prosody vnode configuration options
 #
 XMPP_SERVER={{ env "NOMAD_IP_prosody_s2s" }}
-XMPP_PORT={{  env "NOMAD_HOST_PORT_prosody_s2s" }}
+XMPP_SERVER_S2S_PORT={{  env "NOMAD_HOST_PORT_prosody_s2s" }}
 GLOBAL_CONFIG="statistics = \"internal\"\nstatistics_interval = \"manual\"\nopenmetrics_allow_cidr = \"0.0.0.0/0\";\n"
 GLOBAL_MODULES="admin_telnet,http_openmetrics,measure_stanza_counts,log_ringbuffer,firewall,muc_census,secure_interfaces,external_services,turncredentials_http"
 XMPP_MODULES="jiconop"
