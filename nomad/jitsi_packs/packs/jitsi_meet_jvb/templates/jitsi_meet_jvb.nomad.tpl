@@ -63,6 +63,8 @@ job [[ template "job_name" . ]] {
       }
 
       env {
+        JVB_PORT="${NOMAD_HOST_PORT_media}"
+        DOCKER_HOST_ADDRESS="${meta.public_ip}"
         XMPP_ENV_NAME = "[[ env "CONFIG_environment" ]]"
         XMPP_DOMAIN = "[[ env "CONFIG_domain" ]]"
         PUBLIC_URL="https://[[ env "CONFIG_domain" ]]/"
