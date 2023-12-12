@@ -632,7 +632,7 @@ EOF
 
       template {
         data = <<EOF
-VISITORS_XMPP_SERVER=[[ range $index, $i := split " "  (seq 0 ((sub $VNODE_COUNT 1)|int)) ]][[ if gt ($i|int) 0 ]],[[ end ]]{{ env "NOMAD_IP_prosody_vnode_[[ $i ]]_s2s" }}:{{ env "NOMAD_HOST_PORT_prosody_vnode_[[ $i ]]_s2s" }}[[ end ]]  
+VISITORS_XMPP_SERVER=[[ range $index, $i := split " "  (seq 0 ((sub $VNODE_COUNT 1)|int)) ]][[ if gt ($i|int) 0 ]],[[ end ]]{{ env "NOMAD_IP_prosody_vnode_[[ $i ]]_client" }}:{{ env "NOMAD_HOST_PORT_prosody_vnode_[[ $i ]]_client" }}[[ end ]]  
 #
 # Basic configuration options
 #
