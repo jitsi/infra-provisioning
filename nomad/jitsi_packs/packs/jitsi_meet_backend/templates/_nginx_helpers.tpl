@@ -227,9 +227,9 @@ map $arg_vnode $prosody_node {
 # map to determine which prosody to proxy based on query param 'vnode'
 map $arg_vnode $prosody_bosh_node {
     default prosodylimited;
-[[ range $index, $i := split " "  (seq 0 ((sub (var "visitors_count" .) 1)|int)) -]]
+[[ range $index, $i := split " "  (seq 0 ((sub (var "visitors_count" .) 1)|int)) ]]
     v[[ $i ]] prosodylimited[[ $i ]];
-[[ end -]]
+[[ end ]]
 }
 
 limit_req_zone $remote_addr zone=conference-request:10m rate=5r/s;
