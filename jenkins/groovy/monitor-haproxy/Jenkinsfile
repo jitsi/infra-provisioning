@@ -19,12 +19,17 @@ def putStickTableFixesInBucket() {
         STICK_TABLE_FIXES="haproxy-status/\${ENVIRONMENT}/stick-table-fixes.json"
         if [ -e \$STICK_TABLE_FIXES ]; then
           oci os object put --bucket-name dump-logs-ops-prod --name monitor-haproxy/\${ENVIRONMENT}/\$(date +%F_%T)_stick-table-fixes.json --file \$STICK_TABLE_FIXES --region us-phoenix-1
-          exit 1
+          export STICK_TABLE_FIXED=true
         else
           echo "no stick table fixes to put in bucket"
         fi
         """
     )
+    script {
+        if (env.STICK_TABLE_FIXED == 'true') {
+            slackSend color: "good", message: "${env.JOB_NAME} ${env.BUILD_NUMBER} repaired stick tables in ${env.ENVIRONMENT}."
+        }
+    }
 }
 
 def utils
@@ -94,9 +99,6 @@ pipeline {
             archiveArtifacts artifacts: 'haproxy-status/**', allowEmptyArchive: false
             putStickTableFixesInBucket()
             cleanWs() // clean up
-        }
-        failure {
-            slackSend color: "danger", message: "${env.JOB_NAME} ${env.BUILD_NUMBER} repaired stick tables in ${env.ENVIRONMENT}."
         }
     }
 }
