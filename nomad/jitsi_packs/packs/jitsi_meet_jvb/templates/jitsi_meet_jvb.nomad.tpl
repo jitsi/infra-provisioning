@@ -1,3 +1,5 @@
+[[ $pool_mode := or (env "CONFIG_jvb_pool_mode") "shard" -]]
+
 job [[ template "job_name" . ]] {
   [[ template "region" . ]]
   datacenters = [ "[[ var "datacenter" . ]]" ]
@@ -86,15 +88,17 @@ job [[ template "job_name" . ]] {
           "local/01-xmpp-servers:/etc/cont-init.d/01-xmpp-servers",
           // "local/11-status-cron:/etc/cont-init.d/11-status-cron",
           "local/reload-config.sh:/opt/jitsi/scripts/reload-config.sh",
+          "local/reload-shards.sh:/opt/jitsi/scripts/reload-shards.sh",
           "local/jvb-status.sh:/opt/jitsi/scripts/jvb-status.sh",
           // "local/cron-service-run:/etc/services.d/60-cron/run"
           "local/config:/config",
+          "local/jvb.conf:/defaults/jvb.conf",
     	  ]
       }
 
       env {
         JVB_PORT="${NOMAD_HOST_PORT_media}"
-        DOCKER_HOST_ADDRESS="${meta.public_ip}"
+        JVB_ADVERTISE_IPS="${meta.public_ip}"
         XMPP_ENV_NAME = "[[ env "CONFIG_environment" ]]"
         XMPP_DOMAIN = "[[ env "CONFIG_domain" ]]"
         PUBLIC_URL="https://[[ env "CONFIG_domain" ]]/"
@@ -109,7 +113,7 @@ job [[ template "job_name" . ]] {
         ENABLE_JVB_XMPP_SERVER="1"
         ENABLE_COLIBRI_WEBSOCKET="1"
         JVB_WS_SERVER_ID="jvb-${NOMAD_ALLOC_ID}"
-
+        JVB_MUC_NICKNAME="jvb-${NOMAD_ALLOC_ID}"
         # Internal XMPP domain for authenticated services
         XMPP_AUTH_DOMAIN = "auth.[[ env "CONFIG_domain" ]]"
         # XMPP domain for the MUC
@@ -134,6 +138,14 @@ job [[ template "job_name" . ]] {
       }
 
       template {
+        destination = "local/jvb.conf"
+        change_mode = "noop"
+        data = <<EOF
+[[ template "jvb-config" . ]]
+EOF
+      }
+
+      template {
         data = <<EOF
 #!/usr/bin/with-contenv bash
 export JVB_VERSION="$(dpkg -s jitsi-videobridge2 | grep Version | awk '{print $2}' | sed 's/..$//')"
@@ -148,42 +160,157 @@ EOF
 
       template {
         data = <<EOF
-[[ $pool_mode := or (env "CONFIG_jvb_pool_mode") "shard" -]]
-[[ if eq $pool_mode "remote" "global" -]]
-{{ range $dcidx, $dc := datacenters -}}
-  [[ if eq $pool_mode "remote" -]]
-  {{ if ne $dc "[[ var "datacenter" . ]]" -}}
-  [[ end -]]
-  {{ $service := print "release-" (envOrDefault "RELEASE_NUMBER" "0") ".signal@" $dc -}}
-  {{range $index, $item := service $service -}}
-    {{ scratch.MapSetX "shards" .ServiceMeta.shard $item  -}}
-  {{ end -}}
-  [[ if eq $pool_mode "remote" -]]
-  {{ end -}}
-  [[ end -]]
+[[ template "shard-lookup" . ]]
+{
+  "shards": {
+{{ range $sindex, $item := scratch.MapValues "shards" -}}
+  {{ scratch.SetX "domain" .ServiceMeta.domain -}}
+  {{ if ne $sindex 0}},{{ end }}
+    "{{.ServiceMeta.shard}}": {
+      "shard":"{{.ServiceMeta.shard}}",
+      "domain":"{{ .ServiceMeta.domain }}",
+      "address":"{{.Address}}",
+      "xmpp_host_private_ip_address":"{{.Address}}",
+      "host_port":"{{ with .ServiceMeta.prosody_jvb_client_port}}{{.}}{{ else }}6222{{ end }}"
+    }
 {{ end -}}
-[[ else -]]
-  [[ if eq $pool_mode "local" -]]
-{{ $service := print "release-" (envOrDefault "RELEASE_NUMBER" "0") ".signal" -}}
-  [[ else -]]
-{{ $service := print "shard-" (env "SHARD") ".signal" -}}
-  [[ end -]]
-{{range $index, $item := service $service -}}
-  {{ scratch.MapSetX "shards" .ServiceMeta.shard $item  -}}
+  },
+  "drain_mode":"false",
+  "port": 6222,
+  "domain":"auth.jvb.{{ scratch.Get "domain" }}",
+  "muc_jids":"jvbbrewery@muc.jvb.{{ scratch.Get "domain" }}",
+  "username":"[[ or (env "CONFIG_jvb_auth_username") "jvb" ]]",
+  "password":"[[ env "CONFIG_jvb_auth_password" ]]",
+  "muc_nickname":"jvb-{{ env "NOMAD_ALLOC_ID" }}",
+  "iq_handler_mode":"[[ or (env "CONFIG_jvb_iq_handler_mode") "sync" ]]"
+}
+EOF
+        destination = "local/config/shards.json"
+        # instead of restarting, JVB will graceful shutdown when shard list changes
+        change_mode = "script"
+        change_script {
+          command = "/opt/jitsi/scripts/reload-shards.sh"
+          timeout = "6h"
+          fail_on_error = true
+        }
+      }
+
+      template {
+        destination = "local/config/xmpp.conf"
+        # instead of restarting, JVB will graceful shutdown when shard list changes
+        change_mode = "noop"
+        data = <<EOF
+[[ template "shard-lookup" . ]]
+videobridge.apis.xmpp-client.configs {
+{{ range $sindex, $item := scratch.MapValues "shards" -}}
+    # SHARD {{ .ServiceMeta.shard }}
+    {{ .ServiceMeta.shard }} {
+        HOSTNAME={{ .Address }}
+        PORT={{ with .ServiceMeta.prosody_jvb_client_port}}{{.}}{{ else }}6222{{ end }}
+        DOMAIN=auth.jvb.{{ .ServiceMeta.domain }}
+        MUC_JIDS="jvbbrewery@muc.jvb.{{ .ServiceMeta.domain }}"
+        USERNAME=[[ or (env "CONFIG_jvb_auth_username") "jvb" ]]
+        PASSWORD=[[ env "CONFIG_jvb_auth_password" ]]
+        MUC_NICKNAME=jvb-{{ env "NOMAD_ALLOC_ID" }}
+        IQ_HANDLER_MODE=[[ or (env "CONFIG_jvb_iq_handler_mode") "sync" ]]
+        # TODO: don't disable :(
+        DISABLE_CERTIFICATE_VERIFICATION=true
+    }
 {{ end -}}
-[[ end -]]
+}
+EOF
+      }
+
+      template {
+        data = <<EOF
+[[ template "shard-lookup" . ]]
 {{ range $sindex, $item := scratch.MapValues "shards" -}}{{ if gt $sindex 0 -}},{{end}}{{ .Address }}:{{ with .ServiceMeta.prosody_jvb_client_port}}{{.}}{{ else }}6222{{ end }}{{ end -}}
 EOF
 
         destination = "local/xmpp-servers/servers"
         # instead of restarting, JVB will graceful shutdown when shard list changes
-        change_mode = "script"
-        change_script {
-          command = "/opt/jitsi/scripts/reload-config.sh"
-          timeout = "6h"
-          fail_on_error = true
-        }
+        change_mode = "noop"
       }
+
+      template {
+        data = <<EOF
+#!/usr/bin/with-contenv bash
+
+#!/bin/bash
+
+SHARD_FILE=/config/shards.json
+UPLOAD_FILE=/config/upload.json
+DRAIN_URL="http://localhost:8080/colibri/drain"
+LIST_URL="http://localhost:8080/colibri/muc-client/list"
+ADD_URL="http://localhost:8080/colibri/muc-client/add"
+REMOVE_URL="http://localhost:8080/colibri/muc-client/remove"
+
+DRAIN_MODE=$(cat $SHARD_FILE | jq -r ".drain_mode")
+DOMAIN=$(cat $SHARD_FILE | jq -r ".domain")
+USERNAME=$(cat $SHARD_FILE | jq -r ".username")
+PASSWORD=$(cat $SHARD_FILE | jq -r ".password")
+MUC_JIDS=$(cat $SHARD_FILE | jq -r ".muc_jids")
+MUC_NICKNAME=$(cat $SHARD_FILE | jq -r ".muc_nickname")
+IQ_HANDLER_MODE=$(cat $SHARD_FILE | jq -r ".iq_handler_mode")
+DISABLE_CERT_VERIFY="true"
+XMPP_PORT=$(cat $SHARD_FILE | jq -r ".port")
+
+SHARDS=$(cat $SHARD_FILE | jq -r ".shards|keys|.[]")
+for SHARD in $SHARDS; do
+    echo "Adding shard $SHARD"
+    SHARD_IP=$(cat $SHARD_FILE | jq -r ".shards.\"$SHARD\".xmpp_host_private_ip_address")
+    SHARD_PORT=$(cat $SHARD_FILE | jq -r ".shards.\"$SHARD\".host_port")
+    if [[ "[[" ]] "$SHARD_PORT" == "null" ]]; then
+        SHARD_PORT=$XMPP_PORT
+    fi
+    T="
+{
+    \"id\":\"$SHARD\",
+    \"domain\":\"$DOMAIN\",
+    \"hostname\":\"$SHARD_IP\",
+    \"port\":\"$SHARD_PORT\",
+    \"username\":\"$USERNAME\",
+    \"password\":\"$PASSWORD\",
+    \"muc_jids\":\"$MUC_JIDS\",
+    \"muc_nickname\":\"$MUC_NICKNAME\",
+    \"iq_handler_mode\":\"$IQ_HANDLER_MODE\",
+    \"disable_certificate_verification\":\"$DISABLE_CERT_VERIFY\"
+}"
+
+    #configure JVB to know about shard via POST
+    echo $T > $UPLOAD_FILE
+    curl --data-binary "@$UPLOAD_FILE" -H "Content-Type: application/json" $ADD_URL
+    rm $UPLOAD_FILE
+done
+
+LIVE_DRAIN_MODE="$(curl $DRAIN_URL | jq '.drain')"
+if [[ "[[" ]] "$DRAIN_MODE" == "true" ]]; then
+    if [[ "[[" ]] "$LIVE_DRAIN_MODE" == "false" ]]; then
+        echo "Drain mode is requested, draining JVB"
+        curl -d "" "$DRAIN_URL/enable"
+    fi
+fi
+if [[ "[[" ]] "$DRAIN_MODE" == "false" ]]; then
+    if [[ "[[" ]] "$LIVE_DRAIN_MODE" == "true" ]]; then
+        echo "Drain mode is disabled, setting JVB to ready"
+        curl -d "" "$DRAIN_URL/disable"
+    fi
+fi
+
+LIVE_SHARD_ARR="$(curl $LIST_URL)"
+FILE_SHARD_ARR="$(cat $SHARD_FILE | jq ".shards|keys")"
+REMOVE_SHARDS=$(jq -r -n --argjson FILE_SHARD_ARR "$FILE_SHARD_ARR" --argjson LIVE_SHARD_ARR "$LIVE_SHARD_ARR" '{"live": $LIVE_SHARD_ARR,"file":$FILE_SHARD_ARR} | .live-.file | .[]')
+
+for SHARD in $REMOVE_SHARDS; do
+    echo "Removing shard $SHARD"
+    curl -H "Content-Type: application/json" -X POST -d "{\"id\":\"$SHARD\"}" $REMOVE_URL 
+done
+
+EOF
+        destination = "local/reload-shards.sh"
+        perms = "755"
+      }
+
       template {
         data = <<EOF
 #!/usr/bin/with-contenv bash
@@ -195,6 +322,8 @@ EOF
         destination = "local/reload-config.sh"
         perms = "755"
       }
+
+
 
 //       template {
 //         data = <<EOF
