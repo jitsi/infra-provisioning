@@ -58,6 +58,7 @@ job [[ template "job_name" . ]] {
         jvb_version = "[[ env "CONFIG_jvb_version" ]]"
         nomad_allocation = "${NOMAD_ALLOC_ID}"
         public_ip = "${meta.public_ip}"
+        group = "${NOMAD_META_group}"
       }
 
       port = "http"
