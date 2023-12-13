@@ -145,7 +145,7 @@ server {
     proxy_upload_rate 10k;
     proxy_pass prosodylimitedupstream;
 }
-
+[[ if gt (var "visitors_count" .) 0 -]]
 [[ range $index, $i := split " "  (seq 0 ((sub (var "visitors_count" .) 1)|int)) -]]
 # upstream visitor prosody [[ $i ]]
 upstream prosodylimitedupstream[[ $i ]] {
@@ -158,6 +158,7 @@ server {
     proxy_upload_rate 10k;
     proxy_pass prosodylimitedupstream[[ $i ]];
 }
+[[ end -]]
 [[ end -]]
 [[ end -]]
 
@@ -198,6 +199,7 @@ upstream jicofo {
     keepalive 2;
 }
 
+[[ if gt (var "visitors_count" .) 0 -]]
 [[ range $index, $i := split " "  (seq 0 ((sub (var "visitors_count" .) 1)|int)) -]]
 
 # local upstream for visitor prosody [[ $i ]] used in final proxy_pass directive
@@ -209,27 +211,31 @@ upstream prosodylimited[[ $i ]] {
 }
 [[ end -]]
 
-
 [[ range $index, $i := split " "  (seq 0 ((sub (var "visitors_count" .) 1)|int)) -]]
 # upstream visitor prosody [[ $i ]]
 upstream v[[ $i ]] {
     server {{ env "NOMAD_IP_prosody_vnode_[[ $i ]]_http" }}:{{ env "NOMAD_HOST_PORT_prosody_vnode_[[ $i ]]_http" }};
 }
 [[ end -]]
+[[ end -]]
 
 map $arg_vnode $prosody_node {
     default prosody;
+[[ if gt (var "visitors_count" .) 0 -]]
 [[ range $index, $i := split " "  (seq 0 ((sub (var "visitors_count" .) 1)|int)) ]]
     v[[ $i ]] v[[ $i ]];
 [[ end ]]
+[[ end -]]
 }
 
 # map to determine which prosody to proxy based on query param 'vnode'
 map $arg_vnode $prosody_bosh_node {
     default prosodylimited;
+[[ if gt (var "visitors_count" .) 0 -]]
 [[ range $index, $i := split " "  (seq 0 ((sub (var "visitors_count" .) 1)|int)) ]]
     v[[ $i ]] prosodylimited[[ $i ]];
 [[ end ]]
+[[ end -]]
 }
 
 limit_req_zone $remote_addr zone=conference-request:10m rate=5r/s;
