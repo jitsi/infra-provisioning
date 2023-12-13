@@ -125,9 +125,9 @@ map $http_upgrade $connection_upgrade {
 {{ $service := print "jvb@" $dc -}}
 {{ range $index, $item := service $service -}}
 {{ with $item.ServiceMeta.nomad_allocation -}}
-upstream jvb-{{ . }} {
+upstream 'jvb-{{ . }}' {
     zone upstreams 64K;
-    server {{ $item.Address }}:{{ $item.Port }};
+    server {{ $item.Address }}:{{ $item.ServiceMeta.colibri_port }};
     keepalive 2;
 }
 {{ end -}}
@@ -162,8 +162,8 @@ server {
         tcp_nodelay on;
     }
 
-    location ~ '^/colibri-ws/jvb-([a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12})(/?)(.*)' {
-        proxy_pass jvb-$1/colibri-ws/jvb-$1/$3$is_args$args;
+    location ~ '^/colibri-ws/(jvb-[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12})(/?)(.*)' {
+        proxy_pass http://$1/colibri-ws/$1/$3$is_args$args;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection $connection_upgrade;
@@ -171,8 +171,8 @@ server {
         tcp_nodelay on;
     }
 
-    location ~ '^/colibri-relay-ws/jvb-([a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12})(/?)(.*)' {
-        proxy_pass jvb-$1/colibri-relay-ws/jvb-$1/$3$is_args$args;
+    location ~ '^/colibri-relay-ws/(jvb-[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12})(/?)(.*)' {
+        proxy_pass http://$1/colibri-relay-ws/$1/$3$is_args$args;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection $connection_upgrade;

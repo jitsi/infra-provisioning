@@ -414,7 +414,7 @@ server {
 
 {{ with scratch.Get "colibri-proxy" -}}
     location ~ '^/colibri-ws/jvb-([a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12})(/?)(.*)' {
-        proxy_pass colibri-proxy/colibri-ws/jvb-$1/$3$is_args$args;
+        proxy_pass http://colibri-proxy/colibri-ws/jvb-$1/$3$is_args$args;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection $connection_upgrade;
@@ -423,7 +423,7 @@ server {
     }
 
     location ~ '^/colibri-relay-ws/jvb-([a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12})(/?)(.*)' {
-        proxy_pass colibri-proxy/colibri-relay-ws/jvb-$1/$3$is_args$args;
+        proxy_pass http://colibri-proxy/colibri-relay-ws/jvb-$1/$3$is_args$args;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection $connection_upgrade;
