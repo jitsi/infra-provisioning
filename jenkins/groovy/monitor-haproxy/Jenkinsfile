@@ -26,10 +26,9 @@ def putStickTableFixesInBucket() {
         fi
         """
     ).trim()
-    script {
-        if (fixes_needed == "stick table fixes were needed") {
-            slackSend color: "danger", message: "${env.JOB_NAME} ${env.BUILD_NUMBER} repaired stick tables in ${env.ENVIRONMENT}."
-        }
+
+    if (fixes_needed == "stick table fixes were needed") {
+        slackSend color: "danger", message: "${env.JOB_NAME} ${env.BUILD_NUMBER} repaired stick tables in ${env.ENVIRONMENT}."
     }
 }
 
