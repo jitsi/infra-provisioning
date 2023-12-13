@@ -22,7 +22,7 @@ def putStickTableFixesInBucket() {
           oci os object put --bucket-name dump-logs-ops-prod --name monitor-haproxy/\${ENVIRONMENT}/\$(date +%F_%T)_stick-table-fixes.json --file \$STICK_TABLE_FIXES --region us-phoenix-1
           echo "stick table fixes were needed"
         else
-          echo "no stick table fixes to put in bucket"
+          echo "stick table fixes were needed"
         fi
         """
     ).trim()
