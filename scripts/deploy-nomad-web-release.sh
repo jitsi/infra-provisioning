@@ -45,11 +45,13 @@ fi
 [ -z "$ENVIRONMENT_CONFIGURATION_FILE" ] && ENVIRONMENT_CONFIGURATION_FILE="$LOCAL_PATH/../sites/$ENVIRONMENT/vars.yml"
 [ -z "$MAIN_CONFIGURATION_FILE" ] && MAIN_CONFIGURATION_FILE="$LOCAL_PATH/../config/vars.yml"
 
+
 BRANDING_NAME="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_branding_override -)"
 if [[ "$BRANDING_NAME" != "null" ]]; then
     export CONFIG_web_repo="$AWS_ECR_REPO_HOST/jitsi/$BRANDING_NAME"
     WEB_TAG="$JITSI_MEET_VERSION"
 else
+    export CONFIG_web_repo="jitsi/web"
     BRANDING_NAME="jitsi-meet"
 fi
 
