@@ -14,7 +14,7 @@ def putAllLogResultsInBucket() {
 }
 
 def putStickTableFixesInBucket() {
-    fixes_needed sh(
+    def fixes_needed = sh(
         returnStdout: true,
         script: """#!/bin/bash
         STICK_TABLE_FIXES="haproxy-status/\${ENVIRONMENT}/stick-table-fixes.json"
