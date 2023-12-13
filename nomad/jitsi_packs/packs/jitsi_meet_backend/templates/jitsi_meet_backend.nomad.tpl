@@ -73,7 +73,15 @@ job [[ template "job_name" . ]] {
 
     service {
       name = "signal"
-      tags = ["[[ env "CONFIG_domain" ]]","shard-[[ env "CONFIG_shard" ]]","release-[[ env "CONFIG_release_number" ]]","urlprefix-/[[ env "CONFIG_shard" ]]/"]
+      tags = [
+        "[[ env "CONFIG_domain" ]]",
+        "shard-[[ env "CONFIG_shard" ]]",
+        "release-[[ env "CONFIG_release_number" ]]",
+[[ if (var "fabio_domain_enabled" .) ]]
+        "urlprefix-[[ env "CONFIG_domain" ]]/",
+[[ end ]]
+        "urlprefix-/[[ env "CONFIG_shard" ]]/"
+      ]
 
       meta {
         domain = "[[ env "CONFIG_domain" ]]"
