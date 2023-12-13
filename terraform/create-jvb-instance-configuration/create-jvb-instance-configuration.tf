@@ -3,7 +3,6 @@ variable "compartment_ocid" {}
 variable "subnet_ocid" {}
 variable "private_subnet_ocid" {}
 variable "security_group_ocid" {}
-variable "nomad_security_group_ocid" {}
 variable "image_ocid" {}
 variable "oracle_region" {}
 variable "environment" {}
@@ -37,6 +36,9 @@ variable "infra_configuration_repo" {}
 variable "infra_customizations_repo" {}
 variable "nomad_flag" {
   default = "false"
+}
+variable "ephemeral_ingress_cidr" {
+  default = "0.0.0.0/0"
 }
 
 provider "oci" {
@@ -75,7 +77,60 @@ locals {
     "${var.tag_namespace}.use_eip" = var.use_eip
     "${var.tag_namespace}.autoscaler_sidecar_jvb_flag" = var.autoscaler_sidecar_jvb_flag
   }
-  nsg_ids = concat([var.security_group_ocid], var.nomad_flag == "true" ? var.nomad_security_group_ocid : [])
+}
+
+data "oci_core_vcns" "vcns" {
+  compartment_id = var.compartment_ocid
+  display_name = "${var.oracle_region}-${var.environment}-vcn"
+}
+
+resource "oci_core_network_security_group" "security_group" {
+  count = var.nomad_flag == "true" ? 1 : 0
+  compartment_id = var.compartment_ocid
+  vcn_id = data.oci_core_vcns.vcns.virtual_networks[0].id
+  display_name = "${var.shard}-SecurityGroup"
+}
+
+
+resource "oci_core_network_security_group_security_rule" "nsg_rule_egress" {
+  count = var.nomad_flag == "true" ? 1 : 0
+  network_security_group_id = oci_core_network_security_group.security_group[0].id
+  direction = "EGRESS"
+  destination = "0.0.0.0/0"
+  protocol = "all"
+}
+
+
+resource "oci_core_network_security_group_security_rule" "nsg_rule_ingress_nomad_ephemeral_tcp" {
+  count = var.nomad_flag == "true" ? 1 : 0
+  network_security_group_id = oci_core_network_security_group.security_group[0].id
+  direction = "INGRESS"
+  protocol = "6"
+  source = var.ephemeral_ingress_cidr
+  stateless = false
+
+  tcp_options {
+    destination_port_range {
+      min = 20000
+      max = 32000
+    }
+  }
+}
+
+resource "oci_core_network_security_group_security_rule" "nsg_rule_ingress_nomad_ephemeral_udp" {
+  count = var.nomad_flag == "true" ? 1 : 0
+  network_security_group_id = oci_core_network_security_group.security_group[0].id
+  direction = "INGRESS"
+  protocol = "17"
+  source = var.ephemeral_ingress_cidr
+  stateless = false
+
+  udp_options {
+    destination_port_range {
+      min = 20000
+      max = 32000
+    }
+  }
 }
 
 resource "oci_core_instance_configuration" "oci_instance_configuration" {
@@ -103,8 +158,10 @@ resource "oci_core_instance_configuration" "oci_instance_configuration" {
 
       create_vnic_details {
         subnet_id = var.subnet_ocid
-        nsg_ids = [
-          var.security_group_ocid]
+        nsg_ids = concat(
+          [var.security_group_ocid],
+          var.nomad_flag == "true" ? [oci_core_network_security_group.security_group[0].id] : []
+        )
       }
 
       source_details {

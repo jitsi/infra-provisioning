@@ -137,9 +137,6 @@ fi
 
 [ -z "$USER_PUBLIC_KEY_PATH" ] && USER_PUBLIC_KEY_PATH="~/.ssh/id_ed25519.pub"
 
-# run oci shell command to look up nomad security group by name
-[ -z "$NOMAD_SECURITY_GROUP_OCID" ] && NOMAD_SECURITY_GROUP_OCID=$(oci network nsg list --region "$ORACLE_REGION" --compartment-id "$COMPARTMENT_OCID" --query "data[?\"display-name\"=='$ENVIRONMENT-$ORACLE_REGION-nomad-pool-general-SecurityGroup'].id | [0]" --raw-output)
-
 arch_from_shape $SHAPE
 
 [ -z "$IMAGE_OCID" ] && IMAGE_OCID=$($LOCAL_PATH/../../scripts/oracle_custom_images.py --type $JVB_IMAGE_TYPE --version "$JVB_VERSION" --architecture "$IMAGE_ARCH" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
@@ -195,7 +192,6 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
   -var="subnet_ocid=$JVB_SUBNET_OCID" \
   -var="private_subnet_ocid=$NAT_SUBNET_OCID" \
   -var="security_group_ocid=$JVB_SECURITY_GROUP_OCID" \
-  -var="nomad_security_group_ocid=$NOMAD_SECURITY_GROUP_OCID" \
   -var="image_ocid=$IMAGE_OCID" \
   -var="release_number=$RELEASE_NUMBER" \
   -var="jvb_release_number=$JVB_RELEASE_NUMBER" \
@@ -213,8 +209,11 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
   -var "infra_configuration_repo=$INFRA_CONFIGURATION_REPO" \
   -var "infra_customizations_repo=$INFRA_CUSTOMIZATIONS_REPO" \
   $ACTION_POST_PARAMS $TF_POST_PARAMS
+RET=$?
 
 if [[ "$ENVIRONMENT_TYPE" == "prod" ]]; then
   echo "Tagging JVB image as production"
   $LOCAL_PATH/../../scripts/oracle_custom_images.py --tag_production --image_id $IMAGE_OCID --region $ORACLE_REGION
 fi
+
+exit $RET

@@ -28,18 +28,19 @@ source $LOCAL_PATH/../clouds/"$CLOUD_NAME".sh
 [ -z "$ORACLE_GIT_BRANCH" ] && ORACLE_GIT_BRANCH="$RELEASE_BRANCH"
 
 
-
-JVB_NOMAD_VARIABLE="jvb_enable_nomad"
-
 [ -z "$CONFIG_VARS_FILE" ] && CONFIG_VARS_FILE="$LOCAL_PATH/../config/vars.yml"
 [ -z "$ENVIRONMENT_VARS_FILE" ] && ENVIRONMENT_VARS_FILE="$LOCAL_PATH/../sites/$ENVIRONMENT/vars.yml"
 
-NOMAD_JVB_FLAG="$(cat $ENVIRONMENT_VARS_FILE | yq eval .${JVB_NOMAD_VARIABLE} -)"
-if [[ "$NOMAD_JVB_FLAG" == "null" ]]; then
-  NOMAD_JVB_FLAG="$(cat $CONFIG_VARS_FILE | yq eval .${JVB_NOMAD_VARIABLE} -)"
-fi
-if [[ "$NOMAD_JVB_FLAG" == "null" ]]; then
-  NOMAD_JVB_FLAG=
+if [ -z "$NOMAD_JVB_FLAG" ]; then
+  JVB_NOMAD_VARIABLE="jvb_enable_nomad"
+
+  NOMAD_JVB_FLAG="$(cat $ENVIRONMENT_VARS_FILE | yq eval .${JVB_NOMAD_VARIABLE} -)"
+  if [[ "$NOMAD_JVB_FLAG" == "null" ]]; then
+    NOMAD_JVB_FLAG="$(cat $CONFIG_VARS_FILE | yq eval .${JVB_NOMAD_VARIABLE} -)"
+  fi
+  if [[ "$NOMAD_JVB_FLAG" == "null" ]]; then
+    NOMAD_JVB_FLAG=
+  fi
 fi
 
 [ -z "$NOMAD_JVB_FLAG" ] && NOMAD_JVB_FLAG="false"
@@ -47,7 +48,7 @@ fi
 
 if [[ "$NOMAD_JVB_FLAG" == "true" ]]; then
   JVB_VERSION="latest"
-  export AUTOSCALER_TYPE="nomad"
+  export AUTOSALER_TYPE="nomad"
   export JVB_POOL_MODE="nomad"
   echo "Using Nomad AUTOSCALER_URL"
   export AUTOSCALER_BACKEND="${ENVIRONMENT}-${ORACLE_REGION}"
