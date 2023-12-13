@@ -27,7 +27,7 @@ def putStickTableFixesInBucket() {
         """
     )
     script {
-        if (env.STICK_TABLE_FIXED == 'true') {
+        if (env.STICK_TABLE_FIXED) {
             slackSend color: "good", message: "${env.JOB_NAME} ${env.BUILD_NUMBER} repaired stick tables in ${env.ENVIRONMENT}."
         }
     }
