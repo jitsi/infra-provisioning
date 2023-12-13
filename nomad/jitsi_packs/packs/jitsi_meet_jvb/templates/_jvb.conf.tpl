@@ -126,8 +126,13 @@ videobridge {
   }
 
   http-servers {
+    private {
+        host = 0.0.0.0
+        send-server-version = false
+    }
     public {
 [[ if eq (or (env "CONFIG_jvb_enable_websockets") "true") "true" ]]
+      host = 0.0.0.0
       port=9090
 [[ if eq (or (env "CONFIG_jvb_enable_websockets_ssl") "false") "true" ]]
       tls-port=9091
