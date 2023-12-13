@@ -57,6 +57,7 @@ job [[ template "job_name" . ]] {
         media_port = "${NOMAD_HOST_PORT_media}"
         jvb_version = "[[ env "CONFIG_jvb_version" ]]"
         nomad_allocation = "${NOMAD_ALLOC_ID}"
+        public_ip = "${meta.public_ip}"
       }
 
       port = "http"
