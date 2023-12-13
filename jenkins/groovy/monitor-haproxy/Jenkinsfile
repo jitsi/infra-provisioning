@@ -22,13 +22,13 @@ def putStickTableFixesInBucket() {
           oci os object put --bucket-name dump-logs-ops-prod --name monitor-haproxy/\${ENVIRONMENT}/\$(date +%F_%T)_stick-table-fixes.json --file \$STICK_TABLE_FIXES --region us-phoenix-1
           echo "stick table fixes were needed"
         else
-          echo "stick table fixes were needed"
+          echo "no stick table fixes to put in bucket"
         fi
         """
     ).trim()
 
     if (fixes_needed == "stick table fixes were needed") {
-        slackSend color: "danger", message: "${env.JOB_NAME} ${env.BUILD_NUMBER} repaired stick tables in ${env.ENVIRONMENT}."
+        slackSend color: "danger", message: "stick table repairs were needed in ${env.ENVIRONMENT} - ${env.JOB_NAME} build ${env.BUILD_NUMBER}."
     }
 }
 
