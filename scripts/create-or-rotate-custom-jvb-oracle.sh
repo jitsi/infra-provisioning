@@ -64,8 +64,44 @@ fi
 
 arch_from_shape $SHAPE
 
+
+JVB_NOMAD_VARIABLE="jvb_enable_nomad"
+
+[ -z "$CONFIG_VARS_FILE" ] && CONFIG_VARS_FILE="$LOCAL_PATH/../config/vars.yml"
+[ -z "$ENVIRONMENT_VARS_FILE" ] && ENVIRONMENT_VARS_FILE="$LOCAL_PATH/../sites/$ENVIRONMENT/vars.yml"
+
+NOMAD_JVB_FLAG="$(cat $ENVIRONMENT_VARS_FILE | yq eval .${JVB_NOMAD_VARIABLE} -)"
+if [[ "$NOMAD_JVB_FLAG" == "null" ]]; then
+  NOMAD_JVB_FLAG="$(cat $CONFIG_VARS_FILE | yq eval .${JVB_NOMAD_VARIABLE} -)"
+fi
+if [[ "$NOMAD_JVB_FLAG" == "null" ]]; then
+  NOMAD_JVB_FLAG=
+fi
+
+[ -z "$NOMAD_JVB_FLAG" ] && NOMAD_JVB_FLAG="false"
+
+JVB_IMAGE_TYPE="JVB"
+
+if [[ "$NOMAD_JVB_FLAG" == "true" ]]; then
+  JVB_IMAGE_TYPE="JammyBase"
+  JVB_VERSION="latest"
+  AUTOSCALER_TYPE="nomad"
+  [ -z "$NAME_ROOT_SUFFIX" ] && NAME_ROOT_SUFFIX="NomadJVBCustomGroup"
+  echo "Using Nomad AUTOSCALER_URL"
+  AUTOSCALER_URL="https://${ENVIRONMENT}-${ORACLE_REGION}-autoscaler.$TOP_LEVEL_DNS_ZONE_NAME"
+  [ -z $JVB_MAX_COUNT ] && JVB_MAX_COUNT=2
+  [ -z $JVB_MIN_COUNT ] && JVB_MIN_COUNT=1
+  [ -z $JVB_DOWNSCALE_COUNT ] && JVB_DOWNSCALE_COUNT="0.4"
+  [ -z $JVB_SCALING_INCREASE_RATE ] && JVB_SCALING_INCREASE_RATE=1
+  [ -z $JVB_SCALING_DECREASE_RATE ] && JVB_SCALING_DECREASE_RATE=1
+  [ -z "$JVB_SCALE_UP_PERIODS_COUNT" ] && JVB_SCALE_UP_PERIODS_COUNT=2
+  [ -z "$JVB_SCALE_DOWN_PERIODS_COUNT" ] && JVB_SCALE_DOWN_PERIODS_COUNT=20
+  [ -z "$JVB_AVAILABLE_COUNT" ] && JVB_AVAILABLE_COUNT="0.65"
+
+fi
+
 #Look up images based on version, or default to latest
-[ -z "$JVB_IMAGE_OCID" ] && JVB_IMAGE_OCID=$($LOCAL_PATH/oracle_custom_images.py --type JVB --version "$JVB_VERSION" --architecture "$IMAGE_ARCH" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
+[ -z "$JVB_IMAGE_OCID" ] && JVB_IMAGE_OCID=$($LOCAL_PATH/oracle_custom_images.py --type $JVB_IMAGE_TYPE --version "$JVB_VERSION" --architecture "$IMAGE_ARCH" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
 
 #No image was found, probably not built yet?
 if [ -z "$JVB_IMAGE_OCID" ]; then
@@ -127,7 +163,6 @@ if [[ "$SHAPE" == "VM.Standard.E3.Flex" ]]; then
   [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=12
 fi
 
-
 echo "Retrieve instance group details for group $GROUP_NAME"
 instanceGroupGetResponse=$(curl -s -w "\n %{http_code}" -X GET \
   "$AUTOSCALER_URL"/groups/"$GROUP_NAME" \
@@ -174,6 +209,7 @@ elif [ "$getGroupHttpCode" == 200 ]; then
     --jvb_release_number "$JVB_RELEASE_NUMBER"  --release_number "$RELEASE_NUMBER" --git_branch "$ORACLE_GIT_BRANCH" \
     --infra_customizations_repo "$INFRA_CUSTOMIZATIONS_REPO" --infra_configuration_repo "$INFRA_CONFIGURATION_REPO" \
     --instance_configuration_id "$EXISTING_INSTANCE_CONFIGURATION_ID" --tag_namespace "$TAG_NAMESPACE" --user_public_key_path "$USER_PUBLIC_KEY_PATH" --metadata_eip --metadata_lib_path "$METADATA_LIB_PATH" --metadata_path "$METADATA_PATH" --custom_autoscaler \
+    --metadata_extras="export NOMAD_FLAG=$NOMAD_JVB_FLAG" \
     $SHAPE_PARAMS)
 
   if [ -z "$NEW_INSTANCE_CONFIGURATION_ID" ] || [ "$NEW_INSTANCE_CONFIGURATION_ID" == "null" ]; then

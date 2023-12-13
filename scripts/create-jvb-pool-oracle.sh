@@ -27,6 +27,34 @@ source $LOCAL_PATH/../clouds/"$CLOUD_NAME".sh
 
 [ -z "$ORACLE_GIT_BRANCH" ] && ORACLE_GIT_BRANCH="$RELEASE_BRANCH"
 
+
+[ -z "$CONFIG_VARS_FILE" ] && CONFIG_VARS_FILE="$LOCAL_PATH/../config/vars.yml"
+[ -z "$ENVIRONMENT_VARS_FILE" ] && ENVIRONMENT_VARS_FILE="$LOCAL_PATH/../sites/$ENVIRONMENT/vars.yml"
+
+if [ -z "$NOMAD_JVB_FLAG" ]; then
+  JVB_NOMAD_VARIABLE="jvb_enable_nomad"
+
+  NOMAD_JVB_FLAG="$(cat $ENVIRONMENT_VARS_FILE | yq eval .${JVB_NOMAD_VARIABLE} -)"
+  if [[ "$NOMAD_JVB_FLAG" == "null" ]]; then
+    NOMAD_JVB_FLAG="$(cat $CONFIG_VARS_FILE | yq eval .${JVB_NOMAD_VARIABLE} -)"
+  fi
+  if [[ "$NOMAD_JVB_FLAG" == "null" ]]; then
+    NOMAD_JVB_FLAG=
+  fi
+fi
+
+[ -z "$NOMAD_JVB_FLAG" ] && NOMAD_JVB_FLAG="false"
+
+
+if [[ "$NOMAD_JVB_FLAG" == "true" ]]; then
+  JVB_VERSION="latest"
+  export AUTOSALER_TYPE="nomad"
+  export JVB_POOL_MODE="nomad"
+  echo "Using Nomad AUTOSCALER_URL"
+  export AUTOSCALER_BACKEND="${ENVIRONMENT}-${ORACLE_REGION}"
+  export AUTOSCALER_URL="https://${ENVIRONMENT}-${ORACLE_REGION}-autoscaler.$TOP_LEVEL_DNS_ZONE_NAME"
+fi
+
 [ -z "$JVB_POOL_MODE" ] && export JVB_POOL_MODE="global"
 
 [ -z "$JVB_POOL_STATUS" ] && export JVB_POOL_STATUS="ready"
@@ -166,9 +194,10 @@ fi
 [ -z "$JVB_SCALE_PERIOD" ] && JVB_SCALE_PERIOD=60
 [ -z "$JVB_SCALE_UP_PERIODS_COUNT" ] && JVB_SCALE_UP_PERIODS_COUNT=2
 [ -z "$JVB_SCALE_DOWN_PERIODS_COUNT" ] && JVB_SCALE_DOWN_PERIODS_COUNT=10
+[ -z "$AUTOSCALER_TYPE" ] && AUTOSCALER_TYPE="JVB"
 
 export CLOUD_PROVIDER="oracle"
-export TYPE="JVB"
+export TYPE="$AUTOSCALER_TYPE"
 export INSTANCE_CONFIGURATION_ID=$INSTANCE_CONFIGURATION_ID
 export TAG_RELEASE_NUMBER=$INSTANCE_CONFIG_RELEASE_NUMBER
 export GROUP_NAME=${JVB_POOL_NAME}-"JVBCustomGroup"

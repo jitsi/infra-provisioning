@@ -34,6 +34,12 @@ variable "user_data_lib_path" {
 }
 variable "infra_configuration_repo" {}
 variable "infra_customizations_repo" {}
+variable "nomad_flag" {
+  default = "false"
+}
+variable "ephemeral_ingress_cidr" {
+  default = "0.0.0.0/0"
+}
 
 provider "oci" {
   region = var.oracle_region
@@ -73,6 +79,60 @@ locals {
   }
 }
 
+data "oci_core_vcns" "vcns" {
+  compartment_id = var.compartment_ocid
+  display_name = "${var.oracle_region}-${var.environment}-vcn"
+}
+
+resource "oci_core_network_security_group" "security_group" {
+  count = var.nomad_flag == "true" ? 1 : 0
+  compartment_id = var.compartment_ocid
+  vcn_id = data.oci_core_vcns.vcns.virtual_networks[0].id
+  display_name = "${var.shard}-SecurityGroup"
+}
+
+
+resource "oci_core_network_security_group_security_rule" "nsg_rule_egress" {
+  count = var.nomad_flag == "true" ? 1 : 0
+  network_security_group_id = oci_core_network_security_group.security_group[0].id
+  direction = "EGRESS"
+  destination = "0.0.0.0/0"
+  protocol = "all"
+}
+
+
+resource "oci_core_network_security_group_security_rule" "nsg_rule_ingress_nomad_ephemeral_tcp" {
+  count = var.nomad_flag == "true" ? 1 : 0
+  network_security_group_id = oci_core_network_security_group.security_group[0].id
+  direction = "INGRESS"
+  protocol = "6"
+  source = var.ephemeral_ingress_cidr
+  stateless = false
+
+  tcp_options {
+    destination_port_range {
+      min = 20000
+      max = 32000
+    }
+  }
+}
+
+resource "oci_core_network_security_group_security_rule" "nsg_rule_ingress_nomad_ephemeral_udp" {
+  count = var.nomad_flag == "true" ? 1 : 0
+  network_security_group_id = oci_core_network_security_group.security_group[0].id
+  direction = "INGRESS"
+  protocol = "17"
+  source = var.ephemeral_ingress_cidr
+  stateless = false
+
+  udp_options {
+    destination_port_range {
+      min = 20000
+      max = 32000
+    }
+  }
+}
+
 resource "oci_core_instance_configuration" "oci_instance_configuration" {
   count = var.use_eip ? 0:1
   compartment_id = var.compartment_ocid
@@ -98,8 +158,10 @@ resource "oci_core_instance_configuration" "oci_instance_configuration" {
 
       create_vnic_details {
         subnet_id = var.subnet_ocid
-        nsg_ids = [
-          var.security_group_ocid]
+        nsg_ids = concat(
+          [var.security_group_ocid],
+          var.nomad_flag == "true" ? [oci_core_network_security_group.security_group[0].id] : []
+        )
       }
 
       source_details {
@@ -113,6 +175,7 @@ resource "oci_core_instance_configuration" "oci_instance_configuration" {
           file("${path.cwd}/${var.user_data_lib_path}/postinstall-lib.sh"), # load the lib
           file("${path.cwd}/${var.user_data_lib_path}/postinstall-eip-lib.sh"), # load the EIP lib
           "\nexport INFRA_CONFIGURATION_REPO=${var.infra_configuration_repo}\nexport INFRA_CUSTOMIZATIONS_REPO=${var.infra_customizations_repo}\n", #repo variables
+          "\nexport NOMAD_FLAG=${var.nomad_flag}\n", # nomad variable
           file("${path.cwd}/${var.user_data_file}"), # load our customizations
           file("${path.cwd}/${var.user_data_lib_path}/postinstall-footer.sh") # load the footer
         ]))
@@ -171,6 +234,7 @@ resource "oci_core_instance_configuration" "oci_instance_configuration_use_eip" 
           file("${path.cwd}/${var.user_data_lib_path}/postinstall-lib.sh"), # load the lib
           file("${path.cwd}/${var.user_data_lib_path}/postinstall-eip-lib.sh"), # load the EIP lib
           "\nexport INFRA_CONFIGURATION_REPO=${var.infra_configuration_repo}\nexport INFRA_CUSTOMIZATIONS_REPO=${var.infra_customizations_repo}\n", #repo variables
+          "\nexport NOMAD_FLAG=${var.nomad_flag}\n", # nomad variable
           file("${path.cwd}/${var.user_data_file}"), # load our customizations
           file("${path.cwd}/${var.user_data_lib_path}/postinstall-footer.sh") # load the footer
         ]))
