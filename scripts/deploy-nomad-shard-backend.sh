@@ -193,6 +193,8 @@ export CONFIG_prosody_tag="$PROSODY_TAG"
 export CONFIG_pool_type="$NOMAD_POOL_TYPE"
 export CONFIG_signal_api_hostname="$SIGNAL_API_HOSTNAME"
 
+[ -z "$CONFIG_visitors_count" ] && CONFIG_visitors_count=0
+
 export JOB_NAME="shard-${SHARD}"
 
 PACKS_DIR="$LOCAL_PATH/../nomad/jitsi_packs/packs"
