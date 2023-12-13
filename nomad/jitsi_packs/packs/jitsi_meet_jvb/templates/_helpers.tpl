@@ -142,3 +142,30 @@ block
         memory = [[ $resources.memory ]]
       }
 [[- end ]]
+
+[[ define "shard-lookup" -]]
+[[ $pool_mode := or (env "CONFIG_jvb_pool_mode") "shard" -]]
+[[ if eq $pool_mode "remote" "global" -]]
+{{ range $dcidx, $dc := datacenters -}}
+  [[ if eq $pool_mode "remote" -]]
+  {{ if ne $dc "[[ var "datacenter" . ]]" -}}
+  [[ end -]]
+  {{ $service := print "release-" (envOrDefault "RELEASE_NUMBER" "0") ".signal@" $dc -}}
+  {{range $index, $item := service $service -}}
+    {{ scratch.MapSetX "shards" .ServiceMeta.shard $item  -}}
+  {{ end -}}
+  [[ if eq $pool_mode "remote" -]]
+  {{ end -}}
+  [[ end -]]
+{{ end -}}
+[[ else -]]
+  [[ if eq $pool_mode "local" -]]
+{{ $service := print "release-" (envOrDefault "RELEASE_NUMBER" "0") ".signal" -}}
+  [[ else -]]
+{{ $service := print "shard-" (env "SHARD") ".signal" -}}
+  [[ end -]]
+{{range $index, $item := service $service -}}
+  {{ scratch.MapSetX "shards" .ServiceMeta.shard $item  -}}
+{{ end -}}
+[[ end -]]
+[[- end ]]
