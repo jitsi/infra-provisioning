@@ -22,6 +22,7 @@ def putStickTableFixesInBucket() {
           export STICK_TABLE_FIXED=true
         else
           echo "no stick table fixes to put in bucket"
+          export STICK_TABLE_FIXED=true
         fi
         """
     )
