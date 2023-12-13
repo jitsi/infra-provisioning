@@ -162,7 +162,7 @@ server {
         tcp_nodelay on;
     }
 
-    location ~ '^/colibri-ws/jvb-([a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12})(/?)(.*)' {
+    location ~ '^/colibri-ws/jvb-([a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12})(/?)(.*)' {
         proxy_pass jvb-$1/colibri-ws/jvb-$1/$3$is_args$args;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
@@ -171,7 +171,7 @@ server {
         tcp_nodelay on;
     }
 
-    location ~ '^/colibri-relay-ws/jvb-([a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12})(/?)(.*)' {
+    location ~ '^/colibri-relay-ws/jvb-([a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12})(/?)(.*)' {
         proxy_pass jvb-$1/colibri-relay-ws/jvb-$1/$3$is_args$args;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
