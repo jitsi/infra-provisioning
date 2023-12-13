@@ -30,6 +30,21 @@ job "[JOB_NAME]" {
   datacenters = var.dc
 
   type        = "service"
+  update {
+    max_parallel      = 1
+    health_check      = "checks"
+    min_healthy_time  = "10s"
+    healthy_deadline  = "5m"
+    progress_deadline = "10m"
+    auto_revert       = true
+    auto_promote      = true
+    canary            = 1
+    stagger           = "30s"
+  }
+
+  spread {
+    attribute = "${node.unique.id}"
+  }
 
   spread {
     attribute = "${node.datacenter}"
@@ -48,7 +63,7 @@ job "[JOB_NAME]" {
   }
 
   group "colibri-proxy" {
-    count = length(var.dc)
+    count = 2 * length(var.dc)
 
     constraint {
       attribute  = "${meta.pool_type}"
@@ -90,12 +105,34 @@ job "[JOB_NAME]" {
       }
 
       template {
+        destination = "local/nginx-conf.d/default.conf"
+        change_mode = "script"
+        change_script {
+          command = "/usr/sbin/nginx"
+          args = ["-s", "reload"]
+          timeout = "30s"
+          fail_on_error = true
+        }
+
         data = <<EOF
 
 map $http_upgrade $connection_upgrade {
     default upgrade;
     ''      close;
 }
+
+{{ range $dcidx, $dc := datacenters -}}
+{{ $service := print "jvb@" $dc -}}
+{{ range $index, $item := service $service -}}
+{{ with $item.ServiceMeta.nomad_allocation -}}
+upstream 'jvb-{{ . }}' {
+    zone upstreams 64K;
+    server {{ $item.Address }}:{{ $item.ServiceMeta.colibri_port }};
+    keepalive 2;
+}
+{{ end -}}
+{{ end -}}
+{{ end -}}
 
 server {
     listen {{ env "NOMAD_HOST_PORT_nginx_colibri_proxy" }} default_server;
@@ -124,9 +161,26 @@ server {
         proxy_set_header Host {{ env "NOMAD_META_domain" }};
         tcp_nodelay on;
     }
+
+    location ~ '^/colibri-ws/(jvb-[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12})(/?)(.*)' {
+        proxy_pass http://$1/colibri-ws/$1/$3$is_args$args;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+        proxy_set_header Host {{ env "NOMAD_META_domain" }};
+        tcp_nodelay on;
+    }
+
+    location ~ '^/colibri-relay-ws/(jvb-[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12})(/?)(.*)' {
+        proxy_pass http://$1/colibri-relay-ws/$1/$3$is_args$args;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+        proxy_set_header Host {{ env "NOMAD_META_domain" }};
+        tcp_nodelay on;
+    }
 }
 EOF
-        destination = "local/nginx-conf.d/default.conf"
         }
     }
   }

@@ -194,6 +194,8 @@ export CONFIG_pool_type="$NOMAD_POOL_TYPE"
 export CONFIG_signal_api_hostname="$SIGNAL_API_HOSTNAME"
 
 [ -z "$CONFIG_visitors_count" ] && CONFIG_visitors_count=0
+[ -z "$CONFIG_visitors_count" ] && CONFIG_visitors_count=0
+[ -z "$CONFIG_nomad_enable_fabio_domain" ] && CONFIG_nomad_enable_fabio_domain="false"
 
 export JOB_NAME="shard-${SHARD}"
 
@@ -204,6 +206,7 @@ nomad-pack plan --name "$JOB_NAME" \
   -var "job_name=$JOB_NAME" \
   -var "datacenter=$NOMAD_DC" \
   -var "visitors_count=$CONFIG_visitors_count" \
+  -var "fabio_domain_enabled=$CONFIG_nomad_enable_fabio_domain" \
   $PACKS_DIR/jitsi_meet_backend
 
 PLAN_RET=$?
@@ -224,6 +227,7 @@ nomad-pack run --name "$JOB_NAME" \
   -var "job_name=$JOB_NAME" \
   -var "datacenter=$NOMAD_DC" \
   -var "visitors_count=$CONFIG_visitors_count" \
+  -var "fabio_domain_enabled=$CONFIG_nomad_enable_fabio_domain" \
   $PACKS_DIR/jitsi_meet_backend
 
 if [ $? -ne 0 ]; then

@@ -12,17 +12,6 @@ variable "region" {
 }
 
 variable "datacenter" {
-  description = "The datacenter to place the task"
+  description = "A datacenter in the region which are eligible for task placement"
   type        = string
-}
-
-variable "fabio_domain_enabled" {
-  description = "Whether to enable the full domain as a urlprefix for fabio"
-  type        = bool
-  default     = false
-}
-
-variable "visitors_count" {
-  type = number
-  default = 0
 }
