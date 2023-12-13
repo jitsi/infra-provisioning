@@ -168,6 +168,10 @@ server {
     {{ scratch.SetX "web" .  -}}
 {{ end -}}
 
+{{ range service "colibri-proxy" -}}
+    {{ scratch.SetX "colibri-proxy" .  -}}
+{{ end -}}
+
 upstream prosody {
     zone upstreams 64K;
     server {{ env "NOMAD_IP_prosody_http" }}:{{ env "NOMAD_HOST_PORT_prosody_http" }};
@@ -191,6 +195,15 @@ upstream web {
 {{ end -}}
     keepalive 2;
 }
+
+{{ with scratch.Get "colibri-proxy" -}}
+# local upstream for proxying to JVB
+upstream colibri-proxy {
+    zone upstreams 64K;
+    server {{ .Address }}:{{ .Port }};
+    keepalive 2;
+}
+{{ end -}}
 
 # local upstream for jicofo connection
 upstream jicofo {
@@ -399,6 +412,25 @@ server {
             rewrite ^/([^/?&:'"]+)/conference-request/v1(\/.*)?$ /conference-request/v1$2;
     }
 
+{{ with scratch.Get "colibri-proxy" -}}
+    location ~ '^/colibri-ws/jvb-([a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12})(/?)(.*)' {
+        proxy_pass colibri-proxy/colibri-ws/jvb-$1/$3$is_args$args;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+        proxy_set_header Host {{ env "NOMAD_META_domain" }};
+        tcp_nodelay on;
+    }
+
+    location ~ '^/colibri-relay-ws/jvb-([a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12})(/?)(.*)' {
+        proxy_pass colibri-proxy/colibri-relay-ws/jvb-$1/$3$is_args$args;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+        proxy_set_header Host {{ env "NOMAD_META_domain" }};
+        tcp_nodelay on;
+    }
+{{ end -}}
 
     # BOSH for subdomains
     location ~ ^/([^/?&:'"]+)/http-bind {
