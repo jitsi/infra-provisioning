@@ -84,13 +84,7 @@ job [[ template "job_name" . ]] {
         ports = ["http","media","colibri"]
         volumes = [
           "/opt/jitsi/keys:/opt/jitsi/keys",
-          "local/xmpp-servers:/opt/jitsi/xmpp-servers",
-          "local/01-xmpp-servers:/etc/cont-init.d/01-xmpp-servers",
-          // "local/11-status-cron:/etc/cont-init.d/11-status-cron",
-          "local/reload-config.sh:/opt/jitsi/scripts/reload-config.sh",
           "local/reload-shards.sh:/opt/jitsi/scripts/reload-shards.sh",
-          "local/jvb-status.sh:/opt/jitsi/scripts/jvb-status.sh",
-          // "local/cron-service-run:/etc/services.d/60-cron/run"
           "local/config:/config",
           "local/jvb.conf:/defaults/jvb.conf",
     	  ]
@@ -145,18 +139,6 @@ job [[ template "job_name" . ]] {
 EOF
       }
 
-      template {
-        data = <<EOF
-#!/usr/bin/with-contenv bash
-export JVB_VERSION="$(dpkg -s jitsi-videobridge2 | grep Version | awk '{print $2}' | sed 's/..$//')"
-echo -n "$JVB_VERSION" > /var/run/s6/container_environment/JVB_VERSION
-
-export JVB_XMPP_SERVER="$(cat /opt/jitsi/xmpp-servers/servers)"
-echo -n "$JVB_XMPP_SERVER" > /var/run/s6/container_environment/JVB_XMPP_SERVER
-EOF
-        destination = "local/01-xmpp-servers"
-        perms = "755"
-      }
 
       template {
         data = <<EOF
@@ -219,17 +201,6 @@ videobridge.apis.xmpp-client.configs {
 {{ end -}}
 }
 EOF
-      }
-
-      template {
-        data = <<EOF
-[[ template "shard-lookup" . ]]
-{{ range $sindex, $item := scratch.MapValues "shards" -}}{{ if gt $sindex 0 -}},{{end}}{{ .Address }}:{{ with .ServiceMeta.prosody_jvb_client_port}}{{.}}{{ else }}6222{{ end }}{{ end -}}
-EOF
-
-        destination = "local/xmpp-servers/servers"
-        # instead of restarting, JVB will graceful shutdown when shard list changes
-        change_mode = "noop"
       }
 
       template {
@@ -310,55 +281,6 @@ EOF
         destination = "local/reload-shards.sh"
         perms = "755"
       }
-
-      template {
-        data = <<EOF
-#!/usr/bin/with-contenv bash
-
-. /etc/cont-init.d/01-xmpp-servers
-/etc/cont-init.d/10-config
-/opt/jitsi/jvb/reload.sh
-EOF
-        destination = "local/reload-config.sh"
-        perms = "755"
-      }
-
-
-
-//       template {
-//         data = <<EOF
-// #!/usr/bin/with-contenv bash
-
-// apt-get update && apt-get -y install cron netcat
-
-// echo '* * * * * /opt/jitsi/scripts/jvb-status.sh' | crontab 
-
-// EOF
-//         destination = "local/11-status-cron"
-//         perms = "755"
-//       }
-
-//       template {
-//         data = <<EOF
-// #!/usr/bin/with-contenv bash
-
-// exec cron -f
-
-// EOF
-//         destination = "local/cron-service-run"
-//         perms = "755"
-
-//       }
-
-//       template {
-//         data = <<EOF
-// #!/usr/bin/with-contenv bash
-
-// # TODO: implement jvb stats here
-// EOF
-//         destination = "local/jvb-status.sh"
-//         perms = "755"
-//       }
 
       resources {
         cpu    = 4000
