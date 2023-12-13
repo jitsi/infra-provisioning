@@ -43,6 +43,34 @@ job [[ template "job_name" . ]] {
       }
     }
 
+    service {
+      name = "jvb"
+      tags = ["pool-[[ env "CONFIG_shard" ]]","release-[[ env "CONFIG_release_number" ]]","jvb-${NOMAD_ALLOC_ID}"]
+
+      meta {
+        domain = "[[ env "CONFIG_domain" ]]"
+        shard = "[[ env "CONFIG_shard" ]]"
+        release_number = "[[ env "CONFIG_release_number" ]]"
+        environment = "${meta.environment}"
+        http_port = "${NOMAD_HOST_PORT_http}"
+        colibri_port = "${NOMAD_HOST_PORT_colibri}"
+        media_port = "${NOMAD_HOST_PORT_media}"
+        jvb_version = "[[ env "CONFIG_jvb_version" ]]"
+        nomad_allocation = "${NOMAD_ALLOC_ID}"
+      }
+
+      port = "http"
+
+      check {
+        name     = "health"
+        type     = "http"
+        path     = "/about/health"
+        port     = "http"
+        interval = "10s"
+        timeout  = "2s"
+      }
+    }
+
     task "jvb" {
       driver = "docker"
 
@@ -77,6 +105,8 @@ job [[ template "job_name" . ]] {
         JVB_XMPP_INTERNAL_MUC_DOMAIN = "muc.jvb.[[ env "CONFIG_domain" ]]"
         JVB_XMPP_AUTH_DOMAIN = "auth.jvb.[[ env "CONFIG_domain" ]]"
         ENABLE_JVB_XMPP_SERVER="1"
+        ENABLE_COLIBRI_WEBSOCKET="1"
+        JVB_WS_SERVER_ID="jvb-${NOMAD_ALLOC_ID}"
 
         # Internal XMPP domain for authenticated services
         XMPP_AUTH_DOMAIN = "auth.[[ env "CONFIG_domain" ]]"
