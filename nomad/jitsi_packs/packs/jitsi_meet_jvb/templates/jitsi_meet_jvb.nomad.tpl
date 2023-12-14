@@ -112,6 +112,36 @@ EOF
       }
     }
 
+    task "clean-a-port" {
+      lifecycle {
+        hook = "poststop"
+        sidecar = false
+      }
+
+      template {
+        data = <<EOF
+#!/bin/bash
+JVB_NAT_PORT="$(cat $NOMAD_ALLOC_DIR/data/JVB_NAT_PORT)"
+iptables --list -t nat | grep udp | grep $JVB_NAT_PORT
+
+iptables -t nat -D PREROUTING -p UDP --dport $JVB_NAT_PORT -j DNAT --to-destination {{ env "NOMAD_ADDR_media" }}
+iptables -D FORWARD -p UDP -d {{ env "NOMAD_IP_media" }} --dport $JVB_NAT_PORT -j ACCEPT
+
+iptables --list > $NOMAD_ALLOC_DIR/data/iptables.txt
+iptables --list -t nat > $NOMAD_ALLOC_DIR/data/iptables-nat.txt
+
+echo $JVB_NAT_PORT > 
+EOF
+        destination = "alloc/data/clean-a-port.sh"
+        perms = "755"
+      }
+
+      driver = "raw_exec"
+      config {
+        command = "alloc/data/clean-a-port.sh"
+      }
+    }
+
     task "jvb" {
       driver = "docker"
 
