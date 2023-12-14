@@ -75,6 +75,43 @@ job [[ template "job_name" . ]] {
       }
     }
 
+
+    task "pick-a-port" {
+      lifecycle {
+        hook = "prestart"
+        sidecar = false
+      }
+
+      template {
+        data = <<EOF
+#!/bin/bash
+MIN_NAT_PORT=10001
+MAX_NAT_PORT=12000
+
+FOUND_PORT=true
+while $FOUND_PORT; do
+  JVB_NAT_PORT=$(shuf -i $MIN_NAT_PORT-$MAX_NAT_PORT -n 1)
+  iptables --list -t nat | grep udp | grep -q $JVB_NAT_PORT || FOUND_PORT=false
+done
+
+iptables -t nat -A PREROUTING -p UDP --dport $JVB_NAT_PORT -j DNAT --to-destination {{ env "NOMAD_ADDR_media" }}
+iptables -A FORWARD -p UDP -d {{ env "NOMAD_IP_media" }} --dport $JVB_NAT_PORT -j ACCEPT
+
+iptables --list > $NOMAD_ALLOC_DIR/data/iptables.txt
+iptables --list -t nat > $NOMAD_ALLOC_DIR/data/iptables-nat.txt
+
+echo $JVB_NAT_PORT > $NOMAD_ALLOC_DIR/data/JVB_NAT_PORT
+EOF
+        destination = "alloc/data/pick-a-port.sh"
+        perms = "755"
+      }
+
+      driver = "raw_exec"
+      config {
+        command = "alloc/data/pick-a-port.sh"
+      }
+    }
+
     task "jvb" {
       driver = "docker"
 
@@ -85,6 +122,7 @@ job [[ template "job_name" . ]] {
         volumes = [
           "/opt/jitsi/keys:/opt/jitsi/keys",
           "local/reload-shards.sh:/opt/jitsi/scripts/reload-shards.sh",
+          "local/01-jvb-env:/etc/cont-init.d/01-jvb-env",
           "local/config:/config",
           "local/jvb.conf:/defaults/jvb.conf",
     	  ]
@@ -131,9 +169,26 @@ job [[ template "job_name" . ]] {
 #        CHROMIUM_FLAGS="--start-maximized,--kiosk,--enabled,--autoplay-policy=no-user-gesture-required,--use-fake-ui-for-media-stream,--enable-logging,--v=1"
       }
 
+
+      template {
+        data = <<EOF
+#!/usr/bin/with-contenv bash
+export JVB_VERSION="$(dpkg -s jitsi-videobridge2 | grep Version | awk '{print $2}' | sed 's/..$//')"
+echo -n "$JVB_VERSION" > /var/run/s6/container_environment/JVB_VERSION
+
+export JVB_NAT_PORT="$(cat /alloc/data/JVB_NAT_PORT)"
+echo -n "$JVB_NAT_PORT" > /var/run/s6/container_environment/JVB_NAT_PORT
+EOF
+        destination = "local/01-jvb-env"
+        perms = "755"
+      }
+
+
       template {
         destination = "local/jvb.conf"
         change_mode = "noop"
+        left_delimiter = "[{"
+        right_delimiter = "}]"
         data = <<EOF
 [[ template "jvb-config" . ]]
 EOF

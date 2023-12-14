@@ -66,11 +66,11 @@ videobridge {
     }
     
     udp {
-      port = {{ env "NOMAD_HOST_PORT_media" }}
+      port = [{ env "NOMAD_HOST_PORT_media" }]
     }
 
 [[ if eq (or (env "CONFIG_jvb_enable_ufrag_prefix") "false") "true" ]]
-    ufrag-prefix="{{ env "NOMAD_SHORT_ALLOC_ID" }}"
+    ufrag-prefix="[{ env "NOMAD_SHORT_ALLOC_ID" }]"
 [[ end ]]
 
 [[ if ne (or (env "CONFIG_jvb_nomination_strategy") "NominateFirstHostOrReflexiveValid") "false" ]]
@@ -115,7 +115,7 @@ videobridge {
         "[[ env "CONFIG_jvb_ws_additional_domain" ]]:443"
     ]
     [[ end ]]
-    server-id = "jvb-{{ env "NOMAD_ALLOC_ID" }}"
+    server-id = "jvb-[{ env "NOMAD_ALLOC_ID" }]"
 
     [[ if ne (or (env "CONFIG_jvb_ws_relay_domain") "false") "false" ]]
     relay-domain = "[[ env "CONFIG_jvb_ws_relay_domain" ]]:443"
@@ -153,7 +153,7 @@ videobridge {
 [[ if eq (or (env "CONFIG_jvb_enable_octo") "true") "true" ]]
     enabled = true
     region = [[ env "CONFIG_octo_region" ]]
-    relay-id = "{{ env "NOMAD_ALLOC_ID" }}"
+    relay-id = "[{ env "NOMAD_ALLOC_ID" }]"
 [[ else ]]
     enabled = false
 [[ end ]]
@@ -219,15 +219,35 @@ jmt {
 [[ end ]]
 }
 
+{{/* assign env from context, preserve during range when . is re-assigned */}}
+{{ $ENV := .Env -}}
+{{ $JVB_ADVERTISE_IPS := .Env.JVB_ADVERTISE_IPS | default "" -}}
+{{ $JVB_IPS := splitList "," $JVB_ADVERTISE_IPS -}}
+{{ $JVB_NAT_PORT := .Env.JVB_NAT_PORT | default .Env.JVB_PORT -}}
+
 ice4j {
   harvest {
     udp.receive-buffer-size = [[ or (env "CONFIG_jvb_udp_buffer_size") "104857600" ]]
-    mapping.aws.enabled = false
+    mapping {
+        aws.enabled = false
 [[ if eq (or (env "CONFIG_jvb_stun_mapping_enabled") "true") "true" ]]
-    mapping.stun.addresses = [ "meet-jit-si-turnrelay.jitsi.net:443" ]
+        stun.addresses = [ "meet-jit-si-turnrelay.jitsi.net:443" ]
 [[ else ]]
-    mapping.stun.enabled = false
+        stun.enabled = false
 [[ end ]]
+            static-mappings = [
+{{ range $index, $element := $JVB_IPS }}
+{{ if ne $index 0 }},{{ end }}
+                {
+                    local-address = "{{ $ENV.LOCAL_ADDRESS }}"
+                    local-port = [{ env "NOMAD_HOST_PORT_media" }]
+                    public-address = "{{ $element }}"
+                    public-port = "{{ $JVB_NAT_PORT }}"
+                    name = "ip-{{ $index }}"
+                }
+{{ end }}
+            ]
+    }
   }
 }
 
