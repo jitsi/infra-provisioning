@@ -37,8 +37,14 @@ variable "infra_customizations_repo" {}
 variable "nomad_flag" {
   default = "false"
 }
-variable "ephemeral_ingress_cidr" {
+variable "jvb_ingress_cidr" {
   default = "0.0.0.0/0"
+}
+variable "jvb_min_port" {
+  default = 10000
+}
+variable "jvb_max_port" {
+  default = 12000
 }
 
 provider "oci" {
@@ -106,7 +112,7 @@ resource "oci_core_network_security_group_security_rule" "nsg_rule_ingress_nomad
   network_security_group_id = oci_core_network_security_group.security_group[0].id
   direction = "INGRESS"
   protocol = "6"
-  source = var.ephemeral_ingress_cidr
+  source = "10.0.0.0/8"
   stateless = false
 
   tcp_options {
@@ -122,13 +128,29 @@ resource "oci_core_network_security_group_security_rule" "nsg_rule_ingress_nomad
   network_security_group_id = oci_core_network_security_group.security_group[0].id
   direction = "INGRESS"
   protocol = "17"
-  source = var.ephemeral_ingress_cidr
+  source = "10.0.0.0/8"
   stateless = false
 
   udp_options {
     destination_port_range {
       min = 20000
       max = 32000
+    }
+  }
+}
+
+resource "oci_core_network_security_group_security_rule" "nsg_rule_ingress_jvb_ephemeral_udp" {
+  count = var.nomad_flag == "true" ? 1 : 0
+  network_security_group_id = oci_core_network_security_group.security_group[0].id
+  direction = "INGRESS"
+  protocol = "17"
+  source = var.jvb_ingress_cidr
+  stateless = false
+
+  udp_options {
+    destination_port_range {
+      min = var.jvb_min_port
+      max = var.jvb_max_port
     }
   }
 }
