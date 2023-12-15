@@ -191,7 +191,7 @@ EOF
         LOCAL_ADDRESS = "${attr.unique.network.ip-address}"
         AUTOSCALER_SIDECAR_PORT = "6000"
         AUTOSCALER_SIDECAR_KEY_ID = "[[ env "CONFIG_asap_jwt_kid" ]]"
-        // AUTOSCALER_URL = "https://${meta.cloud_name}-autoscaler.jitsi.net"
+        AUTOSCALER_URL = "https://${meta.cloud_name}-autoscaler.jitsi.net"
         AUTOSCALER_SIDECAR_KEY_FILE = "/opt/jitsi/keys/[[ env "CONFIG_environment_type" ]].key"
         AUTOSCALER_SIDECAR_REGION = "${meta.cloud_region}"
         AUTOSCALER_SIDECAR_GROUP_NAME = "${NOMAD_META_group}"
