@@ -155,6 +155,10 @@ EOF
           "local/01-jvb-env:/etc/cont-init.d/01-jvb-env",
           "local/config:/config",
           "local/jvb.conf:/defaults/jvb.conf",
+          "local/jvb-service-run:/etc/services.d/jvb/run",
+          "local/11-jvb-rtcstats-push:/etc/cont-init.d/11-jvb-rtcstats-push",
+          "local/jvb-rtcstats-push-service-run:/etc/services.d/60-jvb-rtcstats-push/run"
+
     	  ]
       }
 
@@ -170,6 +174,7 @@ EOF
         # JVB auth password
         JVB_AUTH_USER="jvb"
         JVB_AUTH_PASSWORD = "[[ env "CONFIG_jvb_auth_password" ]]"
+        JVB_LOG_FILE="/local/jvb.log"
         JVB_XMPP_INTERNAL_MUC_DOMAIN = "muc.jvb.[[ env "CONFIG_domain" ]]"
         JVB_XMPP_AUTH_DOMAIN = "auth.jvb.[[ env "CONFIG_domain" ]]"
         ENABLE_JVB_XMPP_SERVER="1"
@@ -196,9 +201,80 @@ EOF
         AUTOSCALER_SIDECAR_REGION = "${meta.cloud_region}"
         AUTOSCALER_SIDECAR_GROUP_NAME = "${NOMAD_META_group}"
         AUTOSCALER_SIDECAR_INSTANCE_ID = "${NOMAD_JOB_ID}"
+        JVB_ADDRESS = "http://127.0.0.1:8080"
+        RTCSTATS_SERVER="[[ env "CONFIG_jvb_rtcstats_push_rtcstats_server" ]]"
 #        CHROMIUM_FLAGS="--start-maximized,--kiosk,--enabled,--autoplay-policy=no-user-gesture-required,--use-fake-ui-for-media-stream,--enable-logging,--v=1"
       }
 
+      artifact {
+        source      = "https://github.com/jitsi/jvb-rtcstats-push/releases/download/0.0.1/jvb-rtcstats-push.zip"
+        mode = "file"
+        destination = "local/jvb-rtcstats-push.zip"
+        options {
+          archive = false
+        }
+      }
+
+      template {
+        data = <<EOF
+#!/usr/bin/with-contenv bash
+
+export JAVA_SYS_PROPS="-Dnet.java.sip.communicator.SC_HOME_DIR_LOCATION=/ -Dnet.java.sip.communicator.SC_HOME_DIR_NAME=config -Djava.util.logging.config.file=/config/logging.properties -Dconfig.file=/config/jvb.conf"
+
+DAEMON=/usr/share/jitsi-videobridge/jvb.sh
+
+JVB_CMD="exec $DAEMON"
+[ -n "$JVB_LOG_FILE" ] && JVB_CMD="$JVB_CMD 2>&1 | tee $JVB_LOG_FILE"
+
+exec s6-setuidgid jvb /bin/bash -c "$JVB_CMD"
+EOF
+        destination = "local/jvb-service-run"
+        perms = "755"
+      }
+
+      template {
+        data = <<EOF
+#!/usr/bin/with-contenv bash
+
+apt-get update && apt-get -y install unzip ca-certificates curl gnupg cron
+mkdir -p /etc/apt/keyrings/
+curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
+NODE_MAJOR=20
+echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_$NODE_MAJOR.x nodistro main" | tee /etc/apt/sources.list.d/nodesource.list
+apt-get update && apt-get install nodejs -y
+
+mkdir -p /jvb-rtcstats-push
+cd /jvb-rtcstats-push
+unzip /local/jvb-rtcstats-push.zip
+
+echo '0 * * * * /local/jvb-log-truncate.sh' | crontab 
+
+EOF
+        destination = "local/11-jvb-rtcstats-push"
+        perms = "755"
+      }
+
+      template {
+        data = <<EOF
+#!/usr/bin/with-contenv bash
+
+echo > $JVB_LOG_FILE
+EOF
+        destination = "local/jvb-log-truncate.sh"
+        perms = "755"
+      }
+
+      template {
+        data = <<EOF
+#!/usr/bin/with-contenv bash
+
+exec node /jvb-rtcstats-push/app.js
+
+EOF
+        destination = "local/jvb-rtcstats-push-service-run"
+        perms = "755"
+
+      }
 
       template {
         data = <<EOF
