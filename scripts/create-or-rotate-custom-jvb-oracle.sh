@@ -29,6 +29,7 @@ if [ -z "$CLOUD_NAME" ]; then
   exit 204
 fi
 
+[ -e "$LOCAL_PATH/../clouds/all.sh" ] && . $LOCAL_PATH/../clouds/all.sh
 [ -e "$LOCAL_PATH/../clouds/${CLOUD_NAME}.sh" ] && . $LOCAL_PATH/../clouds/${CLOUD_NAME}.sh
 
 #pull in cloud-specific variables, e.g. tenancy
@@ -199,29 +200,45 @@ elif [ "$getGroupHttpCode" == 200 ]; then
     PROTECTED_INSTANCES_COUNT=0
   fi
 
-  echo "Creating new Instance Configuration for group $GROUP_NAME based on the existing one"
-  SHAPE_PARAMS=""
-  [ ! -z "$SHAPE" ] && SHAPE_PARAMS="$SHAPE_PARAMS --shape $SHAPE"
-  [ ! -z "$OCPUS" ] && SHAPE_PARAMS="$SHAPE_PARAMS --ocpus $OCPUS"
-  [ ! -z "$MEMORY_IN_GBS" ] && SHAPE_PARAMS="$SHAPE_PARAMS --memory $MEMORY_IN_GBS"
+  if [[ "$CLOUD_PROVIDER" == "oracle" ]]; then
+    echo "Creating new Instance Configuration for group $GROUP_NAME based on the existing one"
+    SHAPE_PARAMS=""
+    [ ! -z "$SHAPE" ] && SHAPE_PARAMS="$SHAPE_PARAMS --shape $SHAPE"
+    [ ! -z "$OCPUS" ] && SHAPE_PARAMS="$SHAPE_PARAMS --ocpus $OCPUS"
+    [ ! -z "$MEMORY_IN_GBS" ] && SHAPE_PARAMS="$SHAPE_PARAMS --memory $MEMORY_IN_GBS"
 
-  NEW_INSTANCE_CONFIGURATION_ID=$($LOCAL_PATH/rotate_instance_configuration_oracle.py --region "$ORACLE_REGION" --display_name "$INSTANCE_CONFIG_NAME" --image_id "$JVB_IMAGE_OCID" \
-    --jvb_release_number "$JVB_RELEASE_NUMBER"  --release_number "$RELEASE_NUMBER" --git_branch "$ORACLE_GIT_BRANCH" \
-    --infra_customizations_repo "$INFRA_CUSTOMIZATIONS_REPO" --infra_configuration_repo "$INFRA_CONFIGURATION_REPO" \
-    --instance_configuration_id "$EXISTING_INSTANCE_CONFIGURATION_ID" --tag_namespace "$TAG_NAMESPACE" --user_public_key_path "$USER_PUBLIC_KEY_PATH" --metadata_eip --metadata_lib_path "$METADATA_LIB_PATH" --metadata_path "$METADATA_PATH" --custom_autoscaler \
-    --metadata_extras="export NOMAD_FLAG=$NOMAD_JVB_FLAG" \
-    $SHAPE_PARAMS)
+    NEW_INSTANCE_CONFIGURATION_ID=$($LOCAL_PATH/rotate_instance_configuration_oracle.py --region "$ORACLE_REGION" --display_name "$INSTANCE_CONFIG_NAME" --image_id "$JVB_IMAGE_OCID" \
+      --jvb_release_number "$JVB_RELEASE_NUMBER"  --release_number "$RELEASE_NUMBER" --git_branch "$ORACLE_GIT_BRANCH" \
+      --infra_customizations_repo "$INFRA_CUSTOMIZATIONS_REPO" --infra_configuration_repo "$INFRA_CONFIGURATION_REPO" \
+      --instance_configuration_id "$EXISTING_INSTANCE_CONFIGURATION_ID" --tag_namespace "$TAG_NAMESPACE" --user_public_key_path "$USER_PUBLIC_KEY_PATH" --metadata_eip --metadata_lib_path "$METADATA_LIB_PATH" --metadata_path "$METADATA_PATH" --custom_autoscaler \
+      --metadata_extras="export NOMAD_FLAG=$NOMAD_JVB_FLAG" \
+      $SHAPE_PARAMS)
 
-  if [ -z "$NEW_INSTANCE_CONFIGURATION_ID" ] || [ "$NEW_INSTANCE_CONFIGURATION_ID" == "null" ]; then
-    echo "No Instance Configuration was created for group $GROUP_NAME. Exiting.."
-    exit 207
+    if [ -z "$NEW_INSTANCE_CONFIGURATION_ID" ] || [ "$NEW_INSTANCE_CONFIGURATION_ID" == "null" ]; then
+      echo "No Instance Configuration was created for group $GROUP_NAME. Exiting.."
+      exit 207
+    fi
+    echo "Old Instance Configuration id is $EXISTING_INSTANCE_CONFIGURATION_ID;
+          New Instance Configuration id is $NEW_INSTANCE_CONFIGURATION_ID"
+
+    if [[ "$ENVIRONMENT_TYPE" == "prod" ]]; then
+      echo "Tagging JVB image as production"
+      $LOCAL_PATH/oracle_custom_images.py --tag_production --image_id $JVB_IMAGE_OCID --region $ORACLE_REGION
+    fi
   fi
-  echo "Old Instance Configuration id is $EXISTING_INSTANCE_CONFIGURATION_ID;
-        New Instance Configuration id is $NEW_INSTANCE_CONFIGURATION_ID"
+  if [[ "$CLOUD_PROVIDER" == "nomad" ]]; then
+    # re-deploy nomad job definition for pool
+    $LOCAL_PATH/deploy-nomad-jvb.sh
 
-  if [[ "$ENVIRONMENT_TYPE" == "prod" ]]; then
-    echo "Tagging JVB image as production"
-    $LOCAL_PATH/oracle_custom_images.py --tag_production --image_id $JVB_IMAGE_OCID --region $ORACLE_REGION
+    if [ $? -gt 0 ]; then
+        echo "Failed to deploy nomad job, exiting..."
+        exit 222
+    fi
+
+    # re-use existing configuration id
+    echo "Re-using existing Instance Configuration for nomad group $GROUP_NAME"
+    NEW_INSTANCE_CONFIGURATION_ID="$EXISTING_INSTANCE_CONFIGURATION_ID"
+    export AUTOSCALER_URL="https://${ENVIRONMENT}-${ORACLE_REGION}-autoscaler.${TOP_LEVEL_DNS_ZONE_NAME}"
   fi
 
   echo "Will launch $PROTECTED_INSTANCES_COUNT protected instances (new max $NEW_MAXIMUM_DESIRED) in group $GROUP_NAME"

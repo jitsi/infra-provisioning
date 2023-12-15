@@ -27,6 +27,10 @@
           description: "Oracle Region to build in"
           trim: true
       - string:
+          name: AUTOSCALER_BACKEND
+          description: "Used to control which autoscaler to reconfigure"
+          trim: true
+      - string:
           name: INFRA_CONFIGURATION_REPO
           default: git@github.com:jitsi/infra-configuration.git
           description: "Repo for configuration code (ansible etc), defaults to 'git@github.com:jitsi/infra-configuration.git'."

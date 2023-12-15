@@ -15,10 +15,11 @@ def poolModes() {
 
 
 // trigger create shard JVBs job with appropriate parameters
-def createJVBPool(hcv_environment,cloud_name,oracle_region,jvb_version,release_branch,release_number,jvb_pool_mode,video_infra_branch,jvb_shape) {
+def createJVBPool(hcv_environment,cloud_name,cloud_provider,oracle_region,jvb_version,release_branch,release_number,jvb_pool_mode,video_infra_branch,jvb_shape) {
     def createPool = build job: 'provision-jvb-pool',parameters: [
         [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: hcv_environment],
         [$class: 'StringParameterValue', name: 'CLOUD_NAME', value: cloud_name],
+        [$class: 'StringParameterValue', name: 'CLOUD_PROVIDER', value: cloud_provider],
         [$class: 'StringParameterValue', name: 'ORACLE_REGION', value: oracle_region],
         [$class: 'StringParameterValue', name: 'JVB_VERSION', value: jvb_version],
         [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: release_branch],
@@ -72,6 +73,7 @@ pipeline {
                                     createJVBPool(
                                         env.ENVIRONMENT,
                                         env.CLOUD_NAME,
+                                        env.CLOUD_PROVIDER,
                                         env.ORACLE_REGION,
                                         env.JVB_VERSION,
                                         env.RELEASE_BRANCH,
