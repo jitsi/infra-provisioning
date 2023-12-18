@@ -111,13 +111,8 @@ if [[ "$CLOUD_PROVIDER" == "nomad" ]]; then
 
   export NOMAD_JOB_NAME="jvb-${SHARD}"
 
-  if [ -z "$NOMAD_URL" ] || [ -z "$NOMAD_JOB_NAME" ]; then
-      echo "Failed to find NOMAD_URL or NOMAD_JOB_NAME after deploying nomad job"
-      exit 223
-  else
-      export INSTANCE_CONFIGURATION_ID="${NOMAD_URL}|${NOMAD_JOB_NAME}"
-      export AUTOSCALER_URL="https://${ENVIRONMENT}-${ORACLE_REGION}-autoscaler.${TOP_LEVEL_DNS_ZONE_NAME}"
-  fi
+  export INSTANCE_CONFIGURATION_ID="${NOMAD_URL}|${NOMAD_JOB_NAME}"
+  export AUTOSCALER_URL="https://${ENVIRONMENT}-${ORACLE_REGION}-autoscaler.${TOP_LEVEL_DNS_ZONE_NAME}"
 fi
 
 
