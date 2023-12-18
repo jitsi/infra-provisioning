@@ -69,6 +69,15 @@ fi
 [ -z "$ENCRYPTED_CREDENTIALS_FILE" ] && ENCRYPTED_CREDENTIALS_FILE="$LOCAL_PATH/../../ansible/secrets/ssl-certificates.yml"
 [ -z "$VAULT_PASSWORD_FILE" ] && VAULT_PASSWORD_FILE="$LOCAL_PATH/../../.vault-password.txt"
 
+# look up instance pool. If it exists, find its curent size and set INSTANCE_POOL_SIZE appropriately
+INSTANCE_POOL_DETAILS=$(oci compute-management instance-pool list --region "$ORACLE_REGION" -c "$COMPARTMENT_OCID" --lifecycle-state RUNNING --all --display-name "$INSTANCE_POOL_NAME" | jq .data[0])
+
+if [ -z "$INSTANCE_POOL_DETAILS" ] || [ "$INSTANCE_POOL_DETAILS" == "null" ]; then
+  echo "No instance pool found with name $INSTANCE_POOL_NAME. Using default size $INSTANCE_POOL_SIZE..."
+else
+  export INSTANCE_POOL_SIZE=$(echo "$INSTANCE_POOL_DETAILS" | jq -r '.size')
+  echo "Found existing instance pool with name $INSTANCE_POOL_NAME.  Using existing size $INSTANCE_POOL_SIZE"
+fi
 
 # run as user
 if [ -z "$1" ]; then
