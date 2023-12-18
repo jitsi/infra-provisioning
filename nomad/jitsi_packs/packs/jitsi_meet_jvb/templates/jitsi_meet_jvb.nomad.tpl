@@ -130,7 +130,7 @@ iptables -D FORWARD -p UDP -d {{ env "NOMAD_IP_media" }} --dport $JVB_NAT_PORT -
 iptables --list > $NOMAD_ALLOC_DIR/data/iptables.txt
 iptables --list -t nat > $NOMAD_ALLOC_DIR/data/iptables-nat.txt
 
-echo $JVB_NAT_PORT > 
+echo $JVB_NAT_PORT > $NOMAD_ALLOC_DIR/data/JVB_NAT_PORT
 EOF
         destination = "alloc/data/clean-a-port.sh"
         perms = "755"
