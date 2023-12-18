@@ -14,16 +14,22 @@ def putAllLogResultsInBucket() {
 }
 
 def putStickTableFixesInBucket() {
-    sh(
+    def fixes_needed = sh(
+        returnStdout: true,
         script: """#!/bin/bash
         STICK_TABLE_FIXES="haproxy-status/\${ENVIRONMENT}/stick-table-fixes.json"
         if [ -e \$STICK_TABLE_FIXES ]; then
           oci os object put --bucket-name dump-logs-ops-prod --name monitor-haproxy/\${ENVIRONMENT}/\$(date +%F_%T)_stick-table-fixes.json --file \$STICK_TABLE_FIXES --region us-phoenix-1
+          echo "stick table fixes were needed"
         else
           echo "no stick table fixes to put in bucket"
         fi
         """
-    )
+    ).trim()
+
+    if (fixes_needed == "stick table fixes were needed") {
+        slackSend color: "danger", message: "stick table repairs were needed in ${env.ENVIRONMENT} - ${env.JOB_NAME} build ${env.BUILD_NUMBER}."
+    }
 }
 
 def utils
