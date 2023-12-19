@@ -190,7 +190,7 @@ if [[ "$CLOUD_PROVIDER" == "oracle" ]]; then
 fi
 
 if [[ "$CLOUD_PROVIDER" == "nomad" ]]; then
-    $LOCAL_PATH/scripts/nomad-pack.sh stop jitsi_meet_jvb --name jvb-$SHARD
+    $LOCAL_PATH/nomad-pack.sh stop jitsi_meet_jvb --name jvb-$SHARD
 fi
 
 # INSTANCE_CONFIGURATIONS=$(oci compute-management instance-configuration list --region "$ORACLE_REGION" -c "$COMPARTMENT_OCID" --sort-by TIMECREATED --sort-order DESC --all --query 'data[?"defined-tags".'\"$TAG_NAMESPACE\"'."shard" == `'"$SHARD"'`]' | jq -r .[].id)
