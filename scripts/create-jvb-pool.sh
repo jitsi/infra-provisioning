@@ -126,6 +126,9 @@ elif [[ "$CLOUD_PROVIDER" == "nomad" ]]; then
       exit 222
   fi
 
+  # wait 90 seconds before checking postinstall
+  export SLEEP_SECONDS_BEFORE_POSTINSTALL_CHECKS=90
+
   export NOMAD_JOB_NAME="jvb-${SHARD}"
   export NOMAD_URL="https://${ENVIRONMENT}-${ORACLE_REGION}-nomad.$TOP_LEVEL_DNS_ZONE_NAME"
   export INSTANCE_CONFIGURATION_ID="${NOMAD_URL}|${NOMAD_JOB_NAME}"
