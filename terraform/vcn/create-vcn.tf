@@ -172,7 +172,7 @@ resource "oci_core_security_list" "private_security_list" {
 
     // allow consul UDP gossip traffic internally
     ingress_security_rules {
-        protocol  = "6"         // tcp
+        protocol  = "17"         // udp
         source    = "10.0.0.0/8"
         stateless = false
 
@@ -301,13 +301,13 @@ resource "oci_core_subnet" "public_subnet" {
 }
 
 resource "oci_core_subnet" "jvb_subnet" {
-  depends_on          = [oci_core_network_security_group.jvb_network_security_group, oci_core_security_list.private_security_list]
+  depends_on          = [oci_core_network_security_group.jvb_network_security_group, oci_core_security_list.private_security_list, oci_core_security_list.ops_security_list]
   cidr_block          = var.jvb_subnet_cidr
   display_name        = "${var.resource_name_root}-JVBSubnet64"
   dns_label           = "jvbsubnet64"
   compartment_id      = var.compartment_ocid
   vcn_id              = oci_core_vcn.vcn.id
-  security_list_ids   = ["${oci_core_security_list.private_security_list.id}"]
+  security_list_ids   = ["${oci_core_security_list.private_security_list.id}", "${oci_core_security_list.ops_security_list.id}"]
   route_table_id      = oci_core_route_table.route_table.id
 }
 
