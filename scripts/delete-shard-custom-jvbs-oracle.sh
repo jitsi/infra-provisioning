@@ -73,6 +73,10 @@ if [ -n "$AUTOSCALER_BACKEND" ]; then
   fi
 fi
 
+if [[ "$CLOUD_PROVIDER" == "nomad" ]]; then
+  export AUTOSCALER_URL="https://${ENVIRONMENT}-${ORACLE_REGION}-autoscaler.${TOP_LEVEL_DNS_ZONE_NAME}"
+fi
+
 echo "Retrieve instance group details for group $GROUP_NAME"
 instanceGroupGetResponse=$(curl -s -w "\n %{http_code}" -X GET \
   "$AUTOSCALER_URL"/groups/"$GROUP_NAME" \
