@@ -13,14 +13,24 @@ else
     . $LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh
 fi
 
-if [ -n "$1" ]; then
-    CONFERENCE=$1
+if [ -n "$2" ]; then
+    TENANT=$2
+    ROOM=$1
+elif [ -n "$1" ]; then
+    ROOM=$1
 else
-    if [ -z "$CONFERENCE" ]; then
-        echo "No CONFERENCE set or passed in.  Exiting..."
+    if [ -z "$ROOM" ]; then
+        echo "No ROOM set or passed in.  Exiting..."
         exit 2
     fi
 fi
+
+if [ -n "$TENANT" ]; then
+    TENANT_PART=".$TENANT"
+    TENANT_URL="$TENANT/"
+fi
+
+CONFERENCE="$ROOM@conference${TENANT_PART}.$DOMAIN"
 
 [ -e "$LOCAL_PATH/../clouds/all.sh" ] && . "$LOCAL_PATH/../clouds/all.sh"
 
@@ -35,9 +45,14 @@ if [ -z "$JWT_ENV_FILE" ]; then
   JWT_ENV_FILE="/etc/jitsi/token-generator/$TOKEN_GENERATOR_ENV_VARIABLES"
 fi
 
-[ -z "$TOKEN" ] && TOKEN=$(JWT_ENV_FILE="/etc/jitsi/token-generator/$TOKEN_GENERATOR_ENV_VARIABLES" ASAP_JWT_SUB="*" ASAP_JWT_ISS="jitsi" ASAP_JWT_AUD="jitsi" /opt/jitsi/token-generator/scripts/jwt.sh | tail -n1)
+[ -z "$TOKEN" ] && TOKEN=$(JWT_ENV_FILE="/etc/jitsi/token-generator/$TOKEN_GENERATOR_ENV_VARIABLES" \
+    ASAP_JWT_SUB="*" \
+    ASAP_JWT_ISS="jitsi" \
+    ASAP_PAYLOAD='{"room":"*"}' \
+    ASAP_JWT_AUD="jitsi" /opt/jitsi/token-generator/scripts/jwt.sh | tail -n1
+    )
 
-END_MEETING_URL="https://$SIGNAL_API_HOSTNAME/end-meeting?conference=$CONFERENCE"
+END_MEETING_URL="https://$SIGNAL_API_HOSTNAME/${TENANT_URL}end-meeting?room=$ROOM&conference=$CONFERENCE"
 
 set -x
 
