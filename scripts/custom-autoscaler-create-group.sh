@@ -149,6 +149,11 @@ if [ -z "$CLOUD_PROVIDER" ]; then
   exit 230
 fi
 
+# use local autoscaler if nomad is the cloud provider
+if [[ "$CLOUD_PROVIDER" == "nomad" ]]; then
+  export AUTOSCALER_URL="https://${ENVIRONMENT}-${ORACLE_REGION}-autoscaler.${TOP_LEVEL_DNS_ZONE_NAME}"
+fi
+
 REQUEST_BODY='{
             "name": "'"$GROUP_NAME"'",
             "type": "'$TYPE'",
