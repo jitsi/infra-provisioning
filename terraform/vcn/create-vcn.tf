@@ -157,7 +157,45 @@ resource "oci_core_security_list" "private_security_list" {
             type = 3
         }
     }
+
+    // allow consul TCP gossip traffic internally
+    ingress_security_rules {
+        protocol  = "6"         // tcp
+        source    = "10.0.0.0/8"
+        stateless = false
+
+        tcp_options {
+            min = 8301
+            max = 8301
+        }
+    }
+
+    // allow consul UDP gossip traffic internally
+    ingress_security_rules {
+        protocol  = "6"         // tcp
+        source    = "10.0.0.0/8"
+        stateless = false
+
+        udp_options {
+            min = 8301
+            max = 8301
+        }
+    }
+
+    // allow consul http traffic internally
+    ingress_security_rules {
+        protocol  = "6"         // tcp
+        source    = var.vcn_cidr
+        stateless = false
+
+        tcp_options {
+            min = 8500
+            max = 8500
+        }
+    }
+
 }
+
 
 // ============ NETWORKS SECURITY GROUPS ============
 
@@ -252,24 +290,24 @@ resource "oci_core_network_security_group_security_rule" "jvb_network_security_g
 // ============ SUBNETS ============
 
 resource "oci_core_subnet" "public_subnet" {
-  depends_on          = [oci_core_network_security_group.public_network_security_group, oci_core_security_list.private_security_list]
+  depends_on          = [oci_core_network_security_group.public_network_security_group, oci_core_security_list.private_security_list, oci_core_security_list.ops_security_list]
   cidr_block          = var.public_subnet_cidr
   display_name        = "${var.resource_name_root}-PublicSubnet1"
   dns_label           = "pubsubnet1"
   compartment_id      = var.compartment_ocid
   vcn_id              = oci_core_vcn.vcn.id
-  security_list_ids   = ["${oci_core_security_list.private_security_list.id}"]
+  security_list_ids   = ["${oci_core_security_list.private_security_list.id}","${oci_core_security_list.ops_security_list.id}"]
   route_table_id      = oci_core_route_table.route_table.id
 }
 
 resource "oci_core_subnet" "jvb_subnet" {
-  depends_on          = [oci_core_network_security_group.jvb_network_security_group, oci_core_security_list.private_security_list]
+  depends_on          = [oci_core_network_security_group.jvb_network_security_group, oci_core_security_list.private_security_list, oci_core_security_list.ops_security_list]
   cidr_block          = var.jvb_subnet_cidr
   display_name        = "${var.resource_name_root}-JVBSubnet64"
   dns_label           = "jvbsubnet64"
   compartment_id      = var.compartment_ocid
   vcn_id              = oci_core_vcn.vcn.id
-  security_list_ids   = ["${oci_core_security_list.private_security_list.id}"]
+  security_list_ids   = ["${oci_core_security_list.private_security_list.id}", "${oci_core_security_list.ops_security_list.id}"]
   route_table_id      = oci_core_route_table.route_table.id
 }
 
