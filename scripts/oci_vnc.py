@@ -212,7 +212,7 @@ def build_ingress_security_rule(description: str, source: str, source_type: str,
             source=source,
             source_type=source_type,
             is_stateless=stateless,
-            tcp_options=oci.core.models.UdpOptions(
+            udp_options=oci.core.models.UdpOptions(
                 destination_port_range=dest_port_range,
                 source_port_range=source_port_range
             )
