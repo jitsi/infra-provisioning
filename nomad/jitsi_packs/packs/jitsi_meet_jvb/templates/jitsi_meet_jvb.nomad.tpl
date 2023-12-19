@@ -47,7 +47,7 @@ job [[ template "job_name" . ]] {
 
     service {
       name = "jvb"
-      tags = ["pool-[[ env "CONFIG_shard" ]]","release-[[ env "CONFIG_release_number" ]]","jvb-${NOMAD_ALLOC_ID}"]
+      tags = ["pool-[[ env "CONFIG_shard" ]]","release-[[ env "CONFIG_release_number" ]]","jvb-${NOMAD_ALLOC_ID}", "ip-${attr.unique.network.ip-address}"]
 
       meta {
         domain = "[[ env "CONFIG_domain" ]]"
