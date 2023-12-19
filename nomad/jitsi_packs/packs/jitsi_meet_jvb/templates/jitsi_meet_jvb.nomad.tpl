@@ -101,6 +101,7 @@ iptables --list > $NOMAD_ALLOC_DIR/data/iptables.txt
 iptables --list -t nat > $NOMAD_ALLOC_DIR/data/iptables-nat.txt
 
 echo $JVB_NAT_PORT > $NOMAD_ALLOC_DIR/data/JVB_NAT_PORT
+consul kv put jvb_nat_ports/[[ env "CONFIG_environment" ]]/[[ env "CONFIG_shard" ]]/$NOMAD_ALLOC_ID $JVB_NAT_PORT
 EOF
         destination = "alloc/data/pick-a-port.sh"
         perms = "755"
@@ -130,7 +131,7 @@ iptables -D FORWARD -p UDP -d {{ env "NOMAD_IP_media" }} --dport $JVB_NAT_PORT -
 iptables --list > $NOMAD_ALLOC_DIR/data/iptables.txt
 iptables --list -t nat > $NOMAD_ALLOC_DIR/data/iptables-nat.txt
 
-echo $JVB_NAT_PORT > $NOMAD_ALLOC_DIR/data/JVB_NAT_PORT
+consul kv delete jvb_nat_ports/[[ env "CONFIG_environment" ]]/[[ env "CONFIG_shard" ]]/$NOMAD_ALLOC_ID
 EOF
         destination = "alloc/data/clean-a-port.sh"
         perms = "755"

@@ -110,7 +110,7 @@ if [[ "$CLOUD_PROVIDER" == "nomad" ]]; then
   fi
 
   export NOMAD_JOB_NAME="jvb-${SHARD}"
-
+  export NOMAD_URL="https://${ENVIRONMENT}-${ORACLE_REGION}-nomad.$TOP_LEVEL_DNS_ZONE_NAME"
   export INSTANCE_CONFIGURATION_ID="${NOMAD_URL}|${NOMAD_JOB_NAME}"
   export AUTOSCALER_URL="https://${ENVIRONMENT}-${ORACLE_REGION}-autoscaler.${TOP_LEVEL_DNS_ZONE_NAME}"
 fi
