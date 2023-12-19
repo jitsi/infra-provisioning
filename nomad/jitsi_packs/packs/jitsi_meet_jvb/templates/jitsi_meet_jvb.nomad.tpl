@@ -304,33 +304,10 @@ EOF
 
       template {
         data = <<EOF
-[[ template "shard-lookup" . ]]
-{
-  "shards": {
-{{ range $sindex, $item := scratch.MapValues "shards" -}}
-  {{ scratch.SetX "domain" .ServiceMeta.domain -}}
-  {{ if ne $sindex 0}},{{ end }}
-    "{{.ServiceMeta.shard}}": {
-      "shard":"{{.ServiceMeta.shard}}",
-      "domain":"{{ .ServiceMeta.domain }}",
-      "address":"{{.Address}}",
-      "xmpp_host_private_ip_address":"{{.Address}}",
-      "host_port":"{{ with .ServiceMeta.prosody_jvb_client_port}}{{.}}{{ else }}6222{{ end }}"
-    }
-{{ end -}}
-  },
-  "drain_mode":"false",
-  "port": 6222,
-  "domain":"auth.jvb.{{ scratch.Get "domain" }}",
-  "muc_jids":"jvbbrewery@muc.jvb.{{ scratch.Get "domain" }}",
-  "username":"[[ or (env "CONFIG_jvb_auth_username") "jvb" ]]",
-  "password":"[[ env "CONFIG_jvb_auth_password" ]]",
-  "muc_nickname":"jvb-{{ env "NOMAD_ALLOC_ID" }}",
-  "iq_handler_mode":"[[ or (env "CONFIG_jvb_iq_handler_mode") "sync" ]]"
-}
+[[ template "shards-json" . ]]
 EOF
         destination = "local/config/shards.json"
-        # instead of restarting, JVB will graceful shutdown when shard list changes
+        # instead of restarting, JVB will reconfigure when shard list changes
         change_mode = "script"
         change_script {
           command = "/opt/jitsi/scripts/reload-shards.sh"
@@ -341,104 +318,16 @@ EOF
 
       template {
         destination = "local/config/xmpp.conf"
-        # instead of restarting, JVB will graceful shutdown when shard list changes
+        # instead of restarting, JVB will reconfigure when shard list changes
         change_mode = "noop"
         data = <<EOF
-[[ template "shard-lookup" . ]]
-videobridge.apis.xmpp-client.configs {
-{{ range $sindex, $item := scratch.MapValues "shards" -}}
-    # SHARD {{ .ServiceMeta.shard }}
-    {{ .ServiceMeta.shard }} {
-        HOSTNAME={{ .Address }}
-        PORT={{ with .ServiceMeta.prosody_jvb_client_port}}{{.}}{{ else }}6222{{ end }}
-        DOMAIN=auth.jvb.{{ .ServiceMeta.domain }}
-        MUC_JIDS="jvbbrewery@muc.jvb.{{ .ServiceMeta.domain }}"
-        USERNAME=[[ or (env "CONFIG_jvb_auth_username") "jvb" ]]
-        PASSWORD=[[ env "CONFIG_jvb_auth_password" ]]
-        MUC_NICKNAME=jvb-{{ env "NOMAD_ALLOC_ID" }}
-        IQ_HANDLER_MODE=[[ or (env "CONFIG_jvb_iq_handler_mode") "sync" ]]
-        # TODO: don't disable :(
-        DISABLE_CERTIFICATE_VERIFICATION=true
-    }
-{{ end -}}
-}
+[[ template "xmpp-config" . ]]
 EOF
       }
 
       template {
         data = <<EOF
-#!/usr/bin/with-contenv bash
-
-#!/bin/bash
-
-SHARD_FILE=/config/shards.json
-UPLOAD_FILE=/config/upload.json
-DRAIN_URL="http://localhost:8080/colibri/drain"
-LIST_URL="http://localhost:8080/colibri/muc-client/list"
-ADD_URL="http://localhost:8080/colibri/muc-client/add"
-REMOVE_URL="http://localhost:8080/colibri/muc-client/remove"
-
-DRAIN_MODE=$(cat $SHARD_FILE | jq -r ".drain_mode")
-DOMAIN=$(cat $SHARD_FILE | jq -r ".domain")
-USERNAME=$(cat $SHARD_FILE | jq -r ".username")
-PASSWORD=$(cat $SHARD_FILE | jq -r ".password")
-MUC_JIDS=$(cat $SHARD_FILE | jq -r ".muc_jids")
-MUC_NICKNAME=$(cat $SHARD_FILE | jq -r ".muc_nickname")
-IQ_HANDLER_MODE=$(cat $SHARD_FILE | jq -r ".iq_handler_mode")
-DISABLE_CERT_VERIFY="true"
-XMPP_PORT=$(cat $SHARD_FILE | jq -r ".port")
-
-SHARDS=$(cat $SHARD_FILE | jq -r ".shards|keys|.[]")
-for SHARD in $SHARDS; do
-    echo "Adding shard $SHARD"
-    SHARD_IP=$(cat $SHARD_FILE | jq -r ".shards.\"$SHARD\".xmpp_host_private_ip_address")
-    SHARD_PORT=$(cat $SHARD_FILE | jq -r ".shards.\"$SHARD\".host_port")
-    if [[ "[[" ]] "$SHARD_PORT" == "null" ]]; then
-        SHARD_PORT=$XMPP_PORT
-    fi
-    T="
-{
-    \"id\":\"$SHARD\",
-    \"domain\":\"$DOMAIN\",
-    \"hostname\":\"$SHARD_IP\",
-    \"port\":\"$SHARD_PORT\",
-    \"username\":\"$USERNAME\",
-    \"password\":\"$PASSWORD\",
-    \"muc_jids\":\"$MUC_JIDS\",
-    \"muc_nickname\":\"$MUC_NICKNAME\",
-    \"iq_handler_mode\":\"$IQ_HANDLER_MODE\",
-    \"disable_certificate_verification\":\"$DISABLE_CERT_VERIFY\"
-}"
-
-    #configure JVB to know about shard via POST
-    echo $T > $UPLOAD_FILE
-    curl --data-binary "@$UPLOAD_FILE" -H "Content-Type: application/json" $ADD_URL
-    rm $UPLOAD_FILE
-done
-
-LIVE_DRAIN_MODE="$(curl $DRAIN_URL | jq '.drain')"
-if [[ "[[" ]] "$DRAIN_MODE" == "true" ]]; then
-    if [[ "[[" ]] "$LIVE_DRAIN_MODE" == "false" ]]; then
-        echo "Drain mode is requested, draining JVB"
-        curl -d "" "$DRAIN_URL/enable"
-    fi
-fi
-if [[ "[[" ]] "$DRAIN_MODE" == "false" ]]; then
-    if [[ "[[" ]] "$LIVE_DRAIN_MODE" == "true" ]]; then
-        echo "Drain mode is disabled, setting JVB to ready"
-        curl -d "" "$DRAIN_URL/disable"
-    fi
-fi
-
-LIVE_SHARD_ARR="$(curl $LIST_URL)"
-FILE_SHARD_ARR="$(cat $SHARD_FILE | jq ".shards|keys")"
-REMOVE_SHARDS=$(jq -r -n --argjson FILE_SHARD_ARR "$FILE_SHARD_ARR" --argjson LIVE_SHARD_ARR "$LIVE_SHARD_ARR" '{"live": $LIVE_SHARD_ARR,"file":$FILE_SHARD_ARR} | .live-.file | .[]')
-
-for SHARD in $REMOVE_SHARDS; do
-    echo "Removing shard $SHARD"
-    curl -H "Content-Type: application/json" -X POST -d "{\"id\":\"$SHARD\"}" $REMOVE_URL 
-done
-
+[[ template "reload-shards" . ]]
 EOF
         destination = "local/reload-shards.sh"
         perms = "755"
