@@ -461,7 +461,7 @@ resource "oci_load_balancer_backend_set" "oci_load_balancer_bs" {
     protocol = "HTTP"
     port = 8500
     retries = 3
-    url_path = "/"
+    url_path = "/v1/agent/metrics"
   }
 }
 
