@@ -28,8 +28,9 @@ source $LOCAL_PATH/../clouds/$CLOUD_NAME.sh
 [ -e $NEW_SHARDS_FILE ] && rm $NEW_SHARDS_FILE
 
 $LOCAL_PATH/new-shards.sh $1
+RET=$?
 
-if [ $? -eq 0 ]; then
+if [ $RET -eq 0 ]; then
   #if successful, build a properties file with a list of the new shards in the SHARDS variable, for use in other jobs
   $LOCAL_PATH/make-shard-properties.sh $SHARD_CREATE_OUTPUT_FILE > $NEW_SHARDS_FILE
 
@@ -38,9 +39,7 @@ if [ $? -eq 0 ]; then
   if [ "$CORE_CLOUD_PROVIDER" == "aws" ]; then
     #Now wait on the shards and end based on their success/failure
     $LOCAL_PATH/wait-new-shards.sh $SHARD_CREATE_OUTPUT_FILE
-
-    exit $?
   fi
-else
-  exit $?
 fi
+
+exit $RET
