@@ -251,7 +251,22 @@ map $arg_vnode $prosody_bosh_node {
 [[ end -]]
 }
 
-limit_req_zone $remote_addr zone=conference-request:10m rate=5r/s;
+[[ if eq (or (env "CONFIG_jitsi_meet_enable_conference_request_http") "false") "true" ]]
+geo $limit {
+    default 1;
+[[ range $index, $i := split "," (or (env "CONFIG_nginx_rate_limit_whitelist") "127.0.0.1,10.0.0.0/8") ]]
+     [[ $i ]] 0;
+[[ end ]]
+}
+
+map $limit $limit_key {
+    0 "";
+    1 $binary_remote_addr;
+}
+
+limit_req_zone $limit_key zone=conference-request:10m rate=5r/s;
+limit_req_zone "global" zone=conference-request-global:10m rate=[[ or (env "CONFIG_jitsi_meet_conference_request_global_rate") "50" ]]r/s;
+[[ end ]]
 
 # Set $remote_addr by scanning X-Forwarded-For, while only trusting the defined list of trusted proxies.
 # public ips below are ranges of Cloudflare IPs
@@ -402,15 +417,18 @@ server {
         proxy_pass http://$prosody_node/xmpp-websocket?prefix=$prefix&$args;
     }
 
+[[ if eq (or (env "CONFIG_jitsi_meet_enable_conference_request_http") "false") "true" ]]
     location ~ ^/conference-request/v1(\/.*)?$ {
         proxy_pass http://jicofo/conference-request/v1$1;
-        limit_req zone=conference-request burst=5;
+        limit_req zone=conference-request burst=100;
+        limit_req zone=conference-request-global burst=2000;
 [[ template "nginx-headers" . ]]
 
     }
     location ~ ^/([^/?&:'"]+)/conference-request/v1(\/.*)?$ {
             rewrite ^/([^/?&:'"]+)/conference-request/v1(\/.*)?$ /conference-request/v1$2;
     }
+[[ end ]]
 
 {{ with scratch.Get "colibri-proxy" -}}
     location ~ '^/colibri-ws/jvb-([a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12})(/?)(.*)' {
