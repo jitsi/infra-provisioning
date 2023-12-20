@@ -36,6 +36,10 @@
           description: "Name of cloud to provision in"
           trim: true
       - string:
+          name: NOMAD_JVB_FLAG
+          description: "Flag for oracle pool for nomad JVBs"
+          trim: true
+      - string:
           name: RELEASE_NUMBER
           description: "Release number with which to tag all JVB instances"
       - string:
