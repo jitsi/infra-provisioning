@@ -33,6 +33,10 @@ if [ -n "$AUTOSCALER_BACKEND" ]; then
   fi
 fi
 
+if [[ "$CLOUD_PROVIDER" == "nomad" ]]; then
+  export AUTOSCALER_URL="https://${ENVIRONMENT}-${ORACLE_REGION}-autoscaler.${TOP_LEVEL_DNS_ZONE_NAME}"
+fi
+
 if [ -z "$AUTOSCALER_URL" ]; then
   echo "No AUTOSCALER_URL provided or found. Exiting.. "
   exit 212
