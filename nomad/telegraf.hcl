@@ -196,6 +196,20 @@ EOF
         shard-role = "core"
         role = "core"
     [[inputs.prometheus.consul.query]]
+      name = "jvb"
+      tag = "ip-{{ env "attr.unique.network.ip-address" }}"
+      url = 'http://{{"{{"}}if ne .ServiceAddress ""}}{{"{{"}}.ServiceAddress}}{{"{{"}}else}}{{"{{"}}.Address}}{{"{{"}}end}}:{{"{{"}}.ServicePort}}/{{"{{"}}with .ServiceMeta.metrics_path}}{{"{{"}}.}}{{"{{"}}else}}metrics{{"{{"}}end}}'
+      [inputs.prometheus.consul.query.tags]
+        host = "{{"{{"}}.Node}}"
+        shard = "{{"{{"}}with .ServiceMeta.shard}}{{"{{"}}.}}{{"{{"}}else}}shard{{"{{"}}end}}"
+        release_number = "{{"{{"}}with .ServiceMeta.release_number}}{{"{{"}}.}}{{"{{"}}else}}0{{"{{"}}end}}"
+        jvb_release_number = "{{"{{"}}with .ServiceMeta.jvb_release_number}}{{"{{"}}.}}{{"{{"}}else}}0{{"{{"}}end}}"
+        shard-role = "JVB"
+        role = "JVB"
+        region = "{{ env "meta.cloud_region" }}"
+        oracle_region = "{{ env "meta.cloud_region" }}"
+        jvb_version = "{{"{{"}}with .ServiceMeta.jvb_version}}{{"{{"}}.}}{{"{{"}}else}}0{{"{{"}}end}}"
+    [[inputs.prometheus.consul.query]]
       name = "prosody-http"
       tag = "ip-{{ env "attr.unique.network.ip-address" }}"
       url = 'http://{{"{{"}}if ne .ServiceAddress ""}}{{"{{"}}.ServiceAddress}}{{"{{"}}else}}{{"{{"}}.Address}}{{"{{"}}end}}:{{"{{"}}.ServicePort}}/{{"{{"}}with .ServiceMeta.metrics_path}}{{"{{"}}.}}{{"{{"}}else}}metrics{{"{{"}}end}}'

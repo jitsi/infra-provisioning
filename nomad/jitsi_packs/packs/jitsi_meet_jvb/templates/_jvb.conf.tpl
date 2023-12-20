@@ -253,3 +253,24 @@ ice4j {
 
 include "xmpp.conf"
 [[ end -]]
+
+[[ define "xmpp-config" ]]
+[[ template "shard-lookup" . ]]
+videobridge.apis.xmpp-client.configs {
+{{ range $sindex, $item := scratch.MapValues "shards" -}}
+    # SHARD {{ .ServiceMeta.shard }}
+    {{ .ServiceMeta.shard }} {
+        HOSTNAME={{ .Address }}
+        PORT={{ with .ServiceMeta.prosody_jvb_client_port}}{{.}}{{ else }}6222{{ end }}
+        DOMAIN=auth.jvb.{{ .ServiceMeta.domain }}
+        MUC_JIDS="jvbbrewery@muc.jvb.{{ .ServiceMeta.domain }}"
+        USERNAME=[[ or (env "CONFIG_jvb_auth_username") "jvb" ]]
+        PASSWORD=[[ env "CONFIG_jvb_auth_password" ]]
+        MUC_NICKNAME=jvb-{{ env "NOMAD_ALLOC_ID" }}
+        IQ_HANDLER_MODE=[[ or (env "CONFIG_jvb_iq_handler_mode") "sync" ]]
+        # TODO: don't disable :(
+        DISABLE_CERTIFICATE_VERIFICATION=true
+    }
+{{ end -}}
+}
+[[ end -]]

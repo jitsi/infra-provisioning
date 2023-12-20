@@ -28,6 +28,8 @@ source $LOCAL_PATH/../clouds/"$CLOUD_NAME".sh
 #pull in cloud-specific variables, e.g. tenancy
 [ -e "$LOCAL_PATH/../clouds/oracle.sh" ] && . "$LOCAL_PATH/../clouds/oracle.sh"
 
+[ -z "$CLOUD_PROVIDER" ] && export CLOUD_PROVIDER="oracle"
+
 if [ ! -z "$STACK_ID" ]; then
   if [[ "$(echo $STACK_ID | cut -d '/' -f1)" == "oracle" ]]; then
     # no STACK_ID provided so assume oracle shard
@@ -70,30 +72,49 @@ export JVB_AUTOSCALER_ENABLED=true
 ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 [ -e "$LOCAL_PATH/../clouds/${ORACLE_CLOUD_NAME}.sh" ] && . $LOCAL_PATH/../clouds/${ORACLE_CLOUD_NAME}.sh
 
-echo "Creating Jvb Instance Configuration"
-$LOCAL_PATH/../terraform/create-jvb-instance-configuration/create-jvb-instance-configuration.sh ubuntu
-if [ $? == 0 ]; then
-  echo "Jvb Instance Configuration was created successfully"
-else
-  echo "Jvb Instance Configuration failed to create correctly"
-  exit 214
+if [[ "$CLOUD_PROVIDER" == "oracle" ]]; then
+  echo "Creating Jvb Instance Configuration"
+  $LOCAL_PATH/../terraform/create-jvb-instance-configuration/create-jvb-instance-configuration.sh ubuntu
+  if [ $? == 0 ]; then
+    echo "Jvb Instance Configuration was created successfully"
+  else
+    echo "Jvb Instance Configuration failed to create correctly"
+    exit 214
+  fi
+
+  INSTANCE_CONFIGURATION=$(oci compute-management instance-configuration list --region "$ORACLE_REGION" -c "$COMPARTMENT_OCID" --sort-by TIMECREATED --sort-order DESC --all --query 'data[?"defined-tags".'\"$TAG_NAMESPACE\"'."shard" == `'"$SHARD_NAME"'`]' | jq .[0])
+
+  if [ -z "$INSTANCE_CONFIGURATION" ]; then
+    echo "No Instance configuration was found. Exiting ..."
+    exit 201
+  fi
+
+  INSTANCE_CONFIGURATION_ID=$(echo "$INSTANCE_CONFIGURATION" | jq -r '.id')
+  if [ -z "$INSTANCE_CONFIGURATION_ID" ]; then
+    echo "No Instance configuration id was found. Exiting.."
+    exit 215
+  fi
+  echo "Instance configuration id is: $INSTANCE_CONFIGURATION_ID"
+
+  INSTANCE_CONFIG_RELEASE_NUMBER=$(echo "$INSTANCE_CONFIGURATION" | jq -r '."defined-tags".'\""$TAG_NAMESPACE"\"'."release_number"')
+
 fi
 
-INSTANCE_CONFIGURATION=$(oci compute-management instance-configuration list --region "$ORACLE_REGION" -c "$COMPARTMENT_OCID" --sort-by TIMECREATED --sort-order DESC --all --query 'data[?"defined-tags".'\"$TAG_NAMESPACE\"'."shard" == `'"$SHARD_NAME"'`]' | jq .[0])
+if [[ "$CLOUD_PROVIDER" == "nomad" ]]; then
+  # deploy nomad job definition for pool
+  $LOCAL_PATH/deploy-nomad-jvb.sh
 
-if [ -z "$INSTANCE_CONFIGURATION" ]; then
-  echo "No Instance configuration was found. Exiting ..."
-  exit 201
+  if [ $? -gt 0 ]; then
+      echo "Failed to deploy nomad job, exiting..."
+      exit 222
+  fi
+
+  export NOMAD_JOB_NAME="jvb-${SHARD}"
+  export NOMAD_URL="https://${ENVIRONMENT}-${ORACLE_REGION}-nomad.$TOP_LEVEL_DNS_ZONE_NAME"
+  export INSTANCE_CONFIGURATION_ID="${NOMAD_URL}|${NOMAD_JOB_NAME}"
+  export AUTOSCALER_URL="https://${ENVIRONMENT}-${ORACLE_REGION}-autoscaler.${TOP_LEVEL_DNS_ZONE_NAME}"
 fi
 
-INSTANCE_CONFIGURATION_ID=$(echo "$INSTANCE_CONFIGURATION" | jq -r '.id')
-if [ -z "$INSTANCE_CONFIGURATION_ID" ]; then
-  echo "No Instance configuration id was found. Exiting.."
-  exit 215
-fi
-echo "Instance configuration id is: $INSTANCE_CONFIGURATION_ID"
-
-INSTANCE_CONFIG_RELEASE_NUMBER=$(echo "$INSTANCE_CONFIGURATION" | jq -r '."defined-tags".'\""$TAG_NAMESPACE"\"'."release_number"')
 
 #### Custom autoscaler properties
 [ -z "$JVB_ENABLE_AUTO_SCALE" ] && JVB_ENABLE_AUTO_SCALE=true
@@ -135,7 +156,6 @@ fi
 [ -z "$JVB_SCALE_UP_PERIODS_COUNT" ] && JVB_SCALE_UP_PERIODS_COUNT=2
 [ -z "$JVB_SCALE_DOWN_PERIODS_COUNT" ] && JVB_SCALE_DOWN_PERIODS_COUNT=10
 
-export CLOUD_PROVIDER="oracle"
 export TYPE="JVB"
 export INSTANCE_CONFIGURATION_ID=$INSTANCE_CONFIGURATION_ID
 export TAG_RELEASE_NUMBER=$INSTANCE_CONFIG_RELEASE_NUMBER

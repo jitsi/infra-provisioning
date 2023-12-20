@@ -57,6 +57,7 @@ if [ -z "$ORACLE_REGION" ]; then
 fi
 
 #pull in cloud-specific variables, e.g. tenancy
+[ -e "$LOCAL_PATH/../clouds/all.sh" ] && . "$LOCAL_PATH/../clouds/all.sh"
 [ -e "$LOCAL_PATH/../clouds/oracle.sh" ] && . "$LOCAL_PATH/../clouds/oracle.sh"
 
 ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
@@ -65,6 +66,31 @@ ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 [ -z "$GROUP_NAME" ] && GROUP_NAME="$SHARD-JVBCustomGroup"
 [ -z "$INSTANCE_CONFIG_NAME" ] && INSTANCE_CONFIG_NAME="$SHARD-JVBInstanceConfig"
 
+function findGroup() {
+  instanceGroupGetResponse=$(curl -s -w "\n %{http_code}" -X GET \
+    "$AUTOSCALER_URL"/groups/"$GROUP_NAME" \
+    -H "Authorization: Bearer $TOKEN")
+
+  getGroupHttpCode=$(tail -n1 <<<"$instanceGroupGetResponse" | sed 's/[^0-9]*//g') # get the last line
+  instanceGroupDetails=$(sed '$ d' <<<"$instanceGroupGetResponse")                 # get all but the last line which contains the status code
+}
+
+echo "Retrieve instance group details for group $GROUP_NAME"
+findGroup
+if [ "$getGroupHttpCode" == 404 ]; then
+  echo "No group $GROUP_NAME found at $AUTOSCALER_URL. Trying local autoscaler"
+  export AUTOSCALER_URL="https://${ENVIRONMENT}-${ORACLE_REGION}-autoscaler.${TOP_LEVEL_DNS_ZONE_NAME}"
+  findGroup
+  if [ "$getGroupHttpCode" == 404 ]; then
+    echo "No group $GROUP_NAME found at $AUTOSCALER_URL. Assuming no more work to do"
+  elif [ "$getGroupHttpCode" == 200 ]; then
+    echo "Group $GROUP_NAME was found in the autoscaler"
+    export CLOUD_PROVIDER="$(echo "$instanceGroupDetails" | jq -r ."instanceGroup.cloud")"
+  fi
+elif [ "$getGroupHttpCode" == 200 ]; then
+  echo "Group $GROUP_NAME was found in the autoScaler"
+  export CLOUD_PROVIDER="$(echo "$instanceGroupDetails" | jq -r ."instanceGroup.cloud")"
+fi
 
 export GROUP_NAME
 export ORACLE_REGION
@@ -158,7 +184,17 @@ fi
 
 # Delete instance configuration(s) for that shard
 ##################################
-$LOCAL_PATH/../terraform/create-jvb-instance-configuration/delete-jvb-instance-configuration.sh
+if [[ "$CLOUD_PROVIDER" == "oracle" ]]; then
+  $LOCAL_PATH/../terraform/create-jvb-instance-configuration/delete-jvb-instance-configuration.sh
+fi
+
+if [[ "$CLOUD_PROVIDER" == "nomad" ]]; then
+  # find all running jobs matching prefix and stop them
+  $LOCAL_PATH/nomad.sh status jvb-$SHARD | grep "dispatch-" | grep -v 'dead' | awk '{print $1}' | xargs -n1 $LOCAL_PATH/nomad.sh job stop
+  $LOCAL_PATH/nomad.sh system gc
+  sleep 30
+  $LOCAL_PATH/nomad-pack.sh stop jitsi_meet_jvb --name jvb-$SHARD
+fi
 
 # INSTANCE_CONFIGURATIONS=$(oci compute-management instance-configuration list --region "$ORACLE_REGION" -c "$COMPARTMENT_OCID" --sort-by TIMECREATED --sort-order DESC --all --query 'data[?"defined-tags".'\"$TAG_NAMESPACE\"'."shard" == `'"$SHARD"'`]' | jq -r .[].id)
 

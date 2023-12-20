@@ -17,18 +17,26 @@ fi
 LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 [ -e "$LOCAL_PATH/../clouds/all.sh" ] && . $LOCAL_PATH/../clouds/all.sh
 
-# use custom backend if provided, otherwise use default URL for environment
-if [ -n "$AUTOSCALER_BACKEND" ]; then
-  if [[ "$AUTOSCALER_BACKEND" != "prod" ]] && [[ "$AUTOSCALER_BACKEND" != "pilot" ]]; then
-    AUTOSCALER_URL="https://$AUTOSCALER_BACKEND-autoscaler.$TOP_LEVEL_DNS_ZONE_NAME"
-  fi
-fi
+AUTOSCALER_LIST="jitsi-autoscaler-pilot jitsi-autoscaler-prod"
+# # use custom backend if provided, otherwise use default URL for environment
+# if [ -n "$AUTOSCALER_BACKEND" ]; then
+#   if [[ "$AUTOSCALER_BACKEND" != "prod" ]] && [[ "$AUTOSCALER_BACKEND" != "pilot" ]]; then
+#     AUTOSCALER_URL="https://$AUTOSCALER_BACKEND-autoscaler.$TOP_LEVEL_DNS_ZONE_NAME"
+#   fi
+# fi
 
-if [ -z "$AUTOSCALER_URL" ]; then
-  echo "No AUTOSCALER_URL provided or found. Exiting.. "
-  exit 212
-fi
+# if [ -z "$AUTOSCALER_URL" ]; then
+#   echo "No AUTOSCALER_URL provided or found. Exiting.. "
+#   exit 212
+# fi
+CLOUDS="$($LOCAL_PATH/release_clouds.sh $ENVIRONMENT)"
 
+OLD_ORACLE_REGION="$ORACLE_REGION"
+for CLOUD in $CLOUDS; do
+  . $LOCAL_PATH/../clouds/$CLOUD.sh
+  AUTOSCALER_LIST="$AUTOSCALER_LIST $ENVIRONMENT-$ORACLE_REGION-autoscaler"
+done
+ORACLE_REGION="$OLD_ORACLE_REGION"
 
 if [ -z "$JWT_ENV_FILE" ]; then 
   if [ -z "$SIDECAR_ENV_VARIABLES" ]; then
@@ -91,28 +99,39 @@ function AutoscalerRequest() {
 GET_PATH="/groups"
 FULL_SCALING_PATH="/groups/options/full-scaling"
 
+FINAL_RET=0
 
-AutoscalerRequest "$GET_PATH?environment=$ENVIRONMENT$RELEASE_PARAM"
+for AUTOSCALER in $AUTOSCALER_LIST; do
+  AUTOSCALER_URL="https://$AUTOSCALER.$TOP_LEVEL_DNS_ZONE_NAME"
+  AutoscalerRequest "$GET_PATH?environment=$ENVIRONMENT$RELEASE_PARAM"
 
 
-if [ "$RESPONSE_HTTP_CODE" == 200 ]; then
-    AUTOSCALER_GROUPS_JSON="$RESPONSE_BODY"
-
-    SELECT_QUERY="select(.environment==\"$ENVIRONMENT\")|select(.type==\"$GROUP_TYPE\")"
-    if [ ! -z "$ORACLE_REGION" ]; then
-      SELECT_QUERY="$SELECT_QUERY|select(.region==\"$ORACLE_REGION\")"
-    fi
-
-    if [ ! -z "$GROUP_RECONFIGURATION_ENABLED" ]; then
-      SELECT_QUERY="$SELECT_QUERY|select(.enableReconfiguration==$GROUP_RECONFIGURATION_ENABLED)"
-    fi
-
-    GROUP_NAMES=$(echo $AUTOSCALER_GROUPS_JSON | jq -r ".instanceGroups[]|$SELECT_QUERY|.name")
+  if [ "$RESPONSE_HTTP_CODE" == 200 ]; then
+    # check if jq can even parse the response body
+    echo "$RESPONSE_BODY" | jq . >/dev/null 2>&1
     if [ $? -eq 0 ]; then
-        echo $GROUP_NAMES
+      AUTOSCALER_GROUPS_JSON="$RESPONSE_BODY"
+
+      SELECT_QUERY="select(.environment==\"$ENVIRONMENT\")|select(.type==\"$GROUP_TYPE\")"
+      if [ ! -z "$ORACLE_REGION" ]; then
+        SELECT_QUERY="$SELECT_QUERY|select(.region==\"$ORACLE_REGION\")"
+      fi
+
+      if [ ! -z "$GROUP_RECONFIGURATION_ENABLED" ]; then
+        SELECT_QUERY="$SELECT_QUERY|select(.enableReconfiguration==$GROUP_RECONFIGURATION_ENABLED)"
+      fi
+
+      GROUP_NAMES=$(echo $AUTOSCALER_GROUPS_JSON | jq -r ".instanceGroups[]|$SELECT_QUERY|.name")
+      if [ $? -eq 0 ]; then
+        if [ -z "$FULL_GROUP_NAMES" ]; then FULL_GROUP_NAMES="$GROUP_NAMES"
+        else FULL_GROUP_NAMES="$FULL_GROUP_NAMES $GROUP_NAMES"; fi
+      fi
     fi
-else
-    echo "Error from HTTP REQUEST code: $RESPONSE_HTTP_CODE"
-    echo $RESPONSE_BODY
-    exit 12
-fi
+  else
+      echo "Error from HTTP REQUEST code: $RESPONSE_HTTP_CODE"
+      echo $RESPONSE_BODY
+  fi
+done
+
+echo $FULL_GROUP_NAMES
+exit $FINAL_RET

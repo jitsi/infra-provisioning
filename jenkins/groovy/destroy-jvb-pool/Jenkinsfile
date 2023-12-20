@@ -38,7 +38,7 @@ pipeline {
                         ]) {
                           sshagent (credentials: ['ssh-ubuntu']) {
                             sh '''#!/bin/bash
-                            scripts/delete-jvb-pool-oracle.sh ubuntu'''
+                            scripts/delete-jvb-pool.sh ubuntu'''
                           }
                         }
                     }

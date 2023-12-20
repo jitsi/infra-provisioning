@@ -39,7 +39,7 @@ pipeline {
                 sh '''#!/bin/bash
                     export USER_PUBLIC_KEY_PATH=~/.ssh/ssh_key.pub
                     export ORACLE_GIT_BRANCH=$RELEASE_BRANCH
-                    scripts/create-jvb-pool-oracle.sh $SSH_USERNAME'''
+                    scripts/create-jvb-pool.sh $SSH_USERNAME'''
             }
           }
         }

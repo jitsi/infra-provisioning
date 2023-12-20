@@ -378,7 +378,7 @@ EOF
         JWT_ENABLE_DOMAIN_VERIFICATION="true"
         JWT_ACCEPTED_ISSUERS="[[ env "CONFIG_jwt_accepted_issuers" ]]"
         JWT_ACCEPTED_AUDIENCES="[[ env "CONFIG_jwt_accepted_audiences" ]]"
-        JWT_ASAP_KEYSERVER="[[ env "CONFIG_jwt_asap_keyserver" ]]"
+        JWT_ASAP_KEYSERVER="[[ env "CONFIG_prosody_public_key_repo_url" ]]"
         JWT_APP_ID="jitsi"
         MAX_PARTICIPANTS=500
       }
@@ -400,7 +400,7 @@ asap_require_room_claim = false;\n
 enable_password_waiting_for_host = true;\n
 [[- end -]]
 [[- if eq (env "CONFIG_prosody_enable_muc_events") "true" -]]
-asap_key_path = \"/opt/jitsi/keys/[[ env "CONFIG_environment_type" ]].key\";\nasap_key_id = \"[[ env "CONFIG_asap_jwt_kid" ]]\";\nasap_issuer = \"[[ env "CONFIG_asap_jwt_iss" ]]\";\nasap_audience = \"[[ env "CONFIG_asap_jwt_aud" ]]\";\n
+asap_key_path = \"/opt/jitsi/keys/[[ env "CONFIG_environment_type" ]].key\";\nasap_key_id = \"[[ env "CONFIG_asap_jwt_kid" ]]\";\nasap_issuer = \"[[ or (env "CONFIG_prosody_asap_issuer") "jitsi" ]]\";\nasap_audience = \"[[ or (env "CONFIG_prosody_asap_audience") "jitsi" ]]\";\n
 [[- end -]]
 [[- if (env "CONFIG_prosody_amplitude_api_key") -]]
 amplitude_api_key = \"[[ env "CONFIG_prosody_amplitude_api_key" ]]\";\n
@@ -421,7 +421,7 @@ XMPP_MODULES="[[ if eq (env "CONFIG_prosody_enable_filter_iq_rayo") "true" ]]fil
 XMPP_INTERNAL_MUC_MODULES=
 # hack to avoid token_verification when firebase auth is on
 JWT_TOKEN_AUTH_MODULE=muc_hide_all
-XMPP_CONFIGURATION="cache_keys_url=\"[[ env "CONFIG_prosody_cache_keys_url" ]]\",shard_name=\"[[ env "CONFIG_shard" ]]\",region_name=\"{{ env "meta.cloud_region" }}\",release_number=\"[[ env "CONFIG_release_number" ]]\",max_number_outgoing_calls=[[ env "CONFIG_max_outgoing_calls" ]]"
+XMPP_CONFIGURATION="[[ if ne (or (env "CONFIG_prosody_cache_keys_url") "false") "false" ]]cache_keys_url=\"[[ env "CONFIG_prosody_cache_keys_url" ]]\",[[ end ]]shard_name=\"[[ env "CONFIG_shard" ]]\",region_name=\"{{ env "meta.cloud_region" }}\",release_number=\"[[ env "CONFIG_release_number" ]]\",max_number_outgoing_calls=[[ or (env "CONFIG_prosody_max_number_outgoing_calls") "3" ]]"
 XMPP_MUC_CONFIGURATION="muc_room_allow_persistent = false,allowners_moderated_subdomains = {\n [[ range (env "CONFIG_muc_moderated_subdomains" | split ",") ]]    \"[[ . ]]\";\n[[ end ]]    },allowners_moderated_rooms = {\n [[ range (env "CONFIG_muc_moderated_rooms" | split ",") ]]    \"[[ . ]]\";\n[[ end ]]    }"
 XMPP_MUC_MODULES="[[ if eq (env "CONFIG_prosody_meet_webhooks_enabled") "true" ]]muc_webhooks,[[ end ]][[ if eq (env "CONFIG_prosody_muc_allowners") "true" ]]muc_allowners,[[ end ]][[ if eq (env "CONFIG_prosody_enable_wait_for_host") "true" ]]muc_wait_for_host,[[ end ]]muc_hide_all,measure_message_count"
 XMPP_LOBBY_MUC_MODULES="[[ if eq (env "CONFIG_prosody_meet_webhooks_enabled") "true" ]]muc_webhooks,[[ end ]]muc_hide_all,measure_message_count"

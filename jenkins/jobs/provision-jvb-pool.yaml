@@ -17,11 +17,11 @@
           default: lonely
           description: "Environment to build in, defaults to 'lonely'."
           trim: true
-    #   - string:
-    #       name: CLOUD_PROVIDER
-    #       default: oracle
-    #       description: "Cloud Provider, defaults to 'oracle'"
-    #       trim: true
+      - string:
+          name: CLOUD_PROVIDER
+          default: oracle
+          description: "Cloud Provider, defaults to 'oracle'"
+          trim: true
       - string:
           name: RELEASE_BRANCH
           default: main

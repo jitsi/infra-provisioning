@@ -48,7 +48,7 @@ fi
 
 if [[ "$NOMAD_JVB_FLAG" == "true" ]]; then
   JVB_VERSION="latest"
-  export AUTOSALER_TYPE="nomad"
+  export AUTOSCALER_TYPE="nomad"
   export JVB_POOL_MODE="nomad"
   echo "Using Nomad AUTOSCALER_URL"
   export AUTOSCALER_BACKEND="${ENVIRONMENT}-${ORACLE_REGION}"
@@ -88,33 +88,59 @@ export JVB_VERSION=${JVB_VERSION}
 export CLOUD_NAME=${CLOUD_NAME}
 export JVB_AUTOSCALER_ENABLED=true
 
+[ -z "$CLOUD_PROVIDER" ] && CLOUD_PROVIDER="oracle"
+
 ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 [ -e "$LOCAL_PATH/../clouds/${ORACLE_CLOUD_NAME}.sh" ] && . $LOCAL_PATH/../clouds/${ORACLE_CLOUD_NAME}.sh
 
-echo "Creating Jvb Instance Configuration"
-$LOCAL_PATH/../terraform/create-jvb-instance-configuration/create-jvb-instance-configuration.sh $SSH_USER
-if [ $? == 0 ]; then
-  echo "Jvb Instance Configuration was created successfully"
+if [[ "$CLOUD_PROVIDER" == "oracle" ]]; then
+  echo "Creating Jvb Instance Configuration"
+  $LOCAL_PATH/../terraform/create-jvb-instance-configuration/create-jvb-instance-configuration.sh $SSH_USER
+  if [ $? == 0 ]; then
+    echo "Jvb Instance Configuration was created successfully"
+  else
+    echo "Jvb Instance Configuration failed to create correctly"
+    exit 214
+  fi
+
+  INSTANCE_CONFIGURATION=$(oci compute-management instance-configuration list --region "$ORACLE_REGION" -c "$COMPARTMENT_OCID" --sort-by TIMECREATED --sort-order DESC --all --query 'data[?"defined-tags".'\"$TAG_NAMESPACE\"'."shard" == `'"$SHARD_NAME"'`]' | jq .[0])
+
+  if [ -z "$INSTANCE_CONFIGURATION" ]; then
+    echo "No Instance configuration was found. Exiting ..."
+    exit 201
+  fi
+
+  INSTANCE_CONFIGURATION_ID=$(echo "$INSTANCE_CONFIGURATION" | jq -r '.id')
+  if [ -z "$INSTANCE_CONFIGURATION_ID" ]; then
+    echo "No Instance configuration id was found. Exiting.."
+    exit 215
+  fi
+  INSTANCE_CONFIG_RELEASE_NUMBER=$(echo "$INSTANCE_CONFIGURATION" | jq -r '."defined-tags".'\""$TAG_NAMESPACE"\"'."release_number"')
+
+elif [[ "$CLOUD_PROVIDER" == "nomad" ]]; then
+  # deploy nomad job definition for pool
+  $LOCAL_PATH/deploy-nomad-jvb.sh
+
+  if [ $? -gt 0 ]; then
+      echo "Failed to deploy nomad job, exiting..."
+      exit 222
+  fi
+
+  # wait 90 seconds before checking postinstall
+  export SLEEP_SECONDS_BEFORE_POSTINSTALL_CHECKS=90
+
+  export NOMAD_JOB_NAME="jvb-${SHARD}"
+  export NOMAD_URL="https://${ENVIRONMENT}-${ORACLE_REGION}-nomad.$TOP_LEVEL_DNS_ZONE_NAME"
+  export INSTANCE_CONFIGURATION_ID="${NOMAD_URL}|${NOMAD_JOB_NAME}"
+  export AUTOSCALER_URL="https://${ENVIRONMENT}-${ORACLE_REGION}-autoscaler.${TOP_LEVEL_DNS_ZONE_NAME}"
+  INSTANCE_CONFIG_RELEASE_NUMBER=$RELEASE_NUMBER
 else
-  echo "Jvb Instance Configuration failed to create correctly"
-  exit 214
+  echo "No valid CLOUD_PROVIDER found. Exiting..."
+  exit 203
 fi
 
-INSTANCE_CONFIGURATION=$(oci compute-management instance-configuration list --region "$ORACLE_REGION" -c "$COMPARTMENT_OCID" --sort-by TIMECREATED --sort-order DESC --all --query 'data[?"defined-tags".'\"$TAG_NAMESPACE\"'."shard" == `'"$SHARD_NAME"'`]' | jq .[0])
-
-if [ -z "$INSTANCE_CONFIGURATION" ]; then
-  echo "No Instance configuration was found. Exiting ..."
-  exit 201
-fi
-
-INSTANCE_CONFIGURATION_ID=$(echo "$INSTANCE_CONFIGURATION" | jq -r '.id')
-if [ -z "$INSTANCE_CONFIGURATION_ID" ]; then
-  echo "No Instance configuration id was found. Exiting.."
-  exit 215
-fi
 echo "Instance configuration id is: $INSTANCE_CONFIGURATION_ID"
 
-INSTANCE_CONFIG_RELEASE_NUMBER=$(echo "$INSTANCE_CONFIGURATION" | jq -r '."defined-tags".'\""$TAG_NAMESPACE"\"'."release_number"')
 
 # set jvb pool consul k/v status
 JVB_POOL_NAME="$JVB_POOL_NAME" $LOCAL_PATH/consul-set-jvb-pool-status.sh $JVB_POOL_STATUS $SSH_USER
@@ -196,7 +222,6 @@ fi
 [ -z "$JVB_SCALE_DOWN_PERIODS_COUNT" ] && JVB_SCALE_DOWN_PERIODS_COUNT=10
 [ -z "$AUTOSCALER_TYPE" ] && AUTOSCALER_TYPE="JVB"
 
-export CLOUD_PROVIDER="oracle"
 export TYPE="$AUTOSCALER_TYPE"
 export INSTANCE_CONFIGURATION_ID=$INSTANCE_CONFIGURATION_ID
 export TAG_RELEASE_NUMBER=$INSTANCE_CONFIG_RELEASE_NUMBER
