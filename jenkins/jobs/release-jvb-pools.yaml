@@ -50,6 +50,10 @@
           description: "Cloud to build JVBs in, defaults to 'oracle'."
           trim: true
       - string:
+          name: NOMAD_JVB_FLAG
+          description: "Flag for oracle pool for nomad JVBs"
+          trim: true
+      - string:
           name: INFRA_CONFIGURATION_REPO
           default: git@github.com:jitsi/infra-configuration.git
           description: "Repo for configuration code (ansible etc), defaults to 'git@github.com:jitsi/infra-configuration.git'."
