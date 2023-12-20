@@ -112,14 +112,15 @@ JVB_NOMAD_VARIABLE="jvb_enable_nomad"
 [ -z "$CONFIG_VARS_FILE" ] && CONFIG_VARS_FILE="$LOCAL_PATH/../../config/vars.yml"
 [ -z "$ENVIRONMENT_VARS_FILE" ] && ENVIRONMENT_VARS_FILE="$LOCAL_PATH/../../sites/$ENVIRONMENT/vars.yml"
 
-NOMAD_JVB_FLAG="$(cat $ENVIRONMENT_VARS_FILE | yq eval .${JVB_NOMAD_VARIABLE} -)"
-if [[ "$NOMAD_JVB_FLAG" == "null" ]]; then
-  NOMAD_JVB_FLAG="$(cat $CONFIG_VARS_FILE | yq eval .${JVB_NOMAD_VARIABLE} -)"
+if [ -z "$NOMAD_JVB_FLAG" ]; then
+  NOMAD_JVB_FLAG="$(cat $ENVIRONMENT_VARS_FILE | yq eval .${JVB_NOMAD_VARIABLE} -)"
+  if [[ "$NOMAD_JVB_FLAG" == "null" ]]; then
+    NOMAD_JVB_FLAG="$(cat $CONFIG_VARS_FILE | yq eval .${JVB_NOMAD_VARIABLE} -)"
+  fi
+  if [[ "$NOMAD_JVB_FLAG" == "null" ]]; then
+    NOMAD_JVB_FLAG=
+  fi
 fi
-if [[ "$NOMAD_JVB_FLAG" == "null" ]]; then
-  NOMAD_JVB_FLAG=
-fi
-
 [ -z "$NOMAD_JVB_FLAG" ] && NOMAD_JVB_FLAG="false"
 
 JVB_IMAGE_TYPE="JVB"
