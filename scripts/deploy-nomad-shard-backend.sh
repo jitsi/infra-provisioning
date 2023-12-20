@@ -177,6 +177,22 @@ if [ -n "$PROSODY_RATE_LIMIT_ALLOW_RANGES" ]; then
     fi
 fi
 
+# check main configuration file for nginx rate limit whitelist
+export NGINX_RATE_LIMIT_ALLOW_RANGES="$(cat $MAIN_CONFIGURATION_FILE | yq eval '.nginx_rate_limit_whitelist| @csv' -)"
+if [ -n "$NGINX_RATE_LIMIT_ALLOW_RANGES" ]; then
+    if [[ "$NGINX_RATE_LIMIT_ALLOW_RANGES" != "null" ]]; then
+        export CONFIG_nginx_rate_limit_whitelist="$NGINX_RATE_LIMIT_ALLOW_RANGES"
+    fi
+fi
+
+# check environment configuration file for nginx rate limit whitelist
+export NGINX_RATE_LIMIT_ALLOW_RANGES="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval '.nginx_rate_limit_whitelist | @csv' -)"
+if [ -n "$NGINX_RATE_LIMIT_ALLOW_RANGES" ]; then
+    if [[ "$NGINX_RATE_LIMIT_ALLOW_RANGES" != "null" ]]; then
+        export CONFIG_nginx_rate_limit_whitelist="$NGINX_RATE_LIMIT_ALLOW_RANGES"
+    fi
+fi
+
 # evaluate each string, integer and boolean in the environment configuration file and export it as a CONFIG_ environment variable
 eval $(yq '.. | select(tag == "!!int" or tag == "!!str" or tag == "!!bool") |  "export CONFIG_"+(path | join("_")) + "=\"" + . + "\""' $ENVIRONMENT_CONFIGURATION_FILE)
 
