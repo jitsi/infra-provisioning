@@ -37,6 +37,7 @@ job "[JOB_NAME]" {
     }
 
     task "prometheus" {
+      user = "root"
       driver = "docker"
 
       config {
