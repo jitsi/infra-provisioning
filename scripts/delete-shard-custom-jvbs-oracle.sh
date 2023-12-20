@@ -66,28 +66,27 @@ ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 [ -z "$GROUP_NAME" ] && GROUP_NAME="$SHARD-JVBCustomGroup"
 [ -z "$INSTANCE_CONFIG_NAME" ] && INSTANCE_CONFIG_NAME="$SHARD-JVBInstanceConfig"
 
-# use custom backend if provided, otherwise use default URL for environment
-if [ -n "$AUTOSCALER_BACKEND" ]; then
-  if [[ "$AUTOSCALER_BACKEND" != "prod" ]] && [[ "$AUTOSCALER_BACKEND" != "pilot" ]]; then
-    export AUTOSCALER_URL="https://$AUTOSCALER_BACKEND-autoscaler.$TOP_LEVEL_DNS_ZONE_NAME"
-  fi
-fi
+function findGroup() {
+  instanceGroupGetResponse=$(curl -s -w "\n %{http_code}" -X GET \
+    "$AUTOSCALER_URL"/groups/"$GROUP_NAME" \
+    -H "Authorization: Bearer $TOKEN")
 
-if [[ "$CLOUD_PROVIDER" == "nomad" ]]; then
-  export AUTOSCALER_URL="https://${ENVIRONMENT}-${ORACLE_REGION}-autoscaler.${TOP_LEVEL_DNS_ZONE_NAME}"
-fi
+  getGroupHttpCode=$(tail -n1 <<<"$instanceGroupGetResponse" | sed 's/[^0-9]*//g') # get the last line
+  instanceGroupDetails=$(sed '$ d' <<<"$instanceGroupGetResponse")                 # get all but the last line which contains the status code
+}
 
 echo "Retrieve instance group details for group $GROUP_NAME"
-instanceGroupGetResponse=$(curl -s -w "\n %{http_code}" -X GET \
-  "$AUTOSCALER_URL"/groups/"$GROUP_NAME" \
-  -H "Authorization: Bearer $TOKEN")
-
-getGroupHttpCode=$(tail -n1 <<<"$instanceGroupGetResponse" | sed 's/[^0-9]*//g') # get the last line
-instanceGroupDetails=$(sed '$ d' <<<"$instanceGroupGetResponse")                 # get all but the last line which contains the status code
-
+findGroup
 if [ "$getGroupHttpCode" == 404 ]; then
-  echo "No group $GROUP_NAME found at $AUTOSCALER_URL.  No need to do any more group work."
-
+  echo "No group $GROUP_NAME found at $AUTOSCALER_URL. Trying local autoscaler"
+  export AUTOSCALER_URL="https://${ENVIRONMENT}-${ORACLE_REGION}-autoscaler.${TOP_LEVEL_DNS_ZONE_NAME}"
+  findGroup
+  if [ "$getGroupHttpCode" == 404 ]; then
+    echo "No group $GROUP_NAME found at $AUTOSCALER_URL. Assuming no more work to do"
+  elif [ "$getGroupHttpCode" == 200 ]; then
+    echo "Group $GROUP_NAME was found in the autoscaler"
+    export CLOUD_PROVIDER="$(echo "$instanceGroupDetails" | jq -r ."instanceGroup.cloud")"
+  fi
 elif [ "$getGroupHttpCode" == 200 ]; then
   echo "Group $GROUP_NAME was found in the autoScaler"
   export CLOUD_PROVIDER="$(echo "$instanceGroupDetails" | jq -r ."instanceGroup.cloud")"

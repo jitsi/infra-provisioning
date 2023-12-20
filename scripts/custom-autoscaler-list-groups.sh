@@ -107,6 +107,9 @@ for AUTOSCALER in $AUTOSCALER_LIST; do
 
 
   if [ "$RESPONSE_HTTP_CODE" == 200 ]; then
+    # check if jq can even parse the response body
+    echo "$RESPONSE_BODY" | jq . >/dev/null 2>&1
+    if [ $? -eq 0 ]; then
       AUTOSCALER_GROUPS_JSON="$RESPONSE_BODY"
 
       SELECT_QUERY="select(.environment==\"$ENVIRONMENT\")|select(.type==\"$GROUP_TYPE\")"
@@ -123,6 +126,7 @@ for AUTOSCALER in $AUTOSCALER_LIST; do
         if [ -z "$FULL_GROUP_NAMES" ]; then FULL_GROUP_NAMES="$GROUP_NAMES"
         else FULL_GROUP_NAMES="$FULL_GROUP_NAMES $GROUP_NAMES"; fi
       fi
+    fi
   else
       echo "Error from HTTP REQUEST code: $RESPONSE_HTTP_CODE"
       echo $RESPONSE_BODY
