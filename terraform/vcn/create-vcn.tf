@@ -192,11 +192,11 @@ resource "oci_core_security_list" "private_security_list" {
         protocol  = "6"         // tcp
         source    = var.vcn_cidr
         stateless = false
-        description = "allow consul http traffic internally"
+        description = "allow telegraf scrapes"
 
         tcp_options {
-            min = 8500
-            max = 8500
+            min = 9126
+            max = 9126
         }
     }
 
