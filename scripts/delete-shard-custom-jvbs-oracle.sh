@@ -146,10 +146,16 @@ if [ "$RESULT" -eq 0 ]; then
   GROUP_REPORT_VALUE=$(sed '$ d' <<<"$instanceGroupGetResponse")                 # get all but the last line which contains the status code
 
   if [ "$GROUP_REPORT_STATUS_CODE" == 200 ]; then
-    INSTANCES=$(echo $GROUP_REPORT_VALUE | jq -r '.groupReport.instances[].instanceId')
+    GROUP_REPORT_INSTANCES="$(echo "$GROUP_REPORT_VALUE" | jq '.groupReport.instances | map(select(.cloudStatus!="SHUTDOWN"))')"
+    INSTANCES=$(echo "$GROUP_REPORT_INSTANCES" | jq -r '.[].instanceId')
     for INSTANCE_ID in $INSTANCES; do
-      echo "Terminating JVB instance $INSTANCE_ID"
-      oci --region $ORACLE_REGION compute instance terminate --force --instance-id $INSTANCE_ID
+      if (echo "$INSTANCE_ID" | grep -q "/dispatch-"); then
+        echo "Terminating nomad instance $INSTANCE_ID"
+        $LOCAL_PATH/nomad.sh job stop $INSTANCE_ID
+      else
+        echo "Terminating JVB instance $INSTANCE_ID"
+        oci --region $ORACLE_REGION compute instance terminate --force --instance-id $INSTANCE_ID
+      fi
     done
   else
     echo "Failed to get remaining group report instances. Please retry the script"

@@ -53,11 +53,11 @@ while true; do
     COUNT=$(echo "$GROUP_REPORT_VALUE" | jq -r '.groupReport.count')
     PROVISIONING_COUNT=$(echo "$GROUP_REPORT_VALUE" | jq -r '.groupReport.provisioningCount')
     SHUTTING_DOWN_COUNT=$(echo "$GROUP_REPORT_VALUE" | jq -r '.groupReport.shuttingDownCount')
-
-    COUNT_TO_CHECK="$COUNT"
+    SHUTDOWN_COUNT=$(echo "$GROUP_REPORT_VALUE" | jq -r '.groupReport.instances|map(select(.cloudStatus=="SHUTDOWN"))|length')
+    COUNT_TO_CHECK="$((COUNT - SHUTDOWN_COUNT))"
 
     if [ "$CHECK_SCALE_UP" == "true" ]; then
-      COUNT_TO_CHECK=$(( $COUNT - $PROVISIONING_COUNT - $SHUTTING_DOWN_COUNT ))
+      COUNT_TO_CHECK=$(( COUNT - PROVISIONING_COUNT - SHUTTING_DOWN_COUNT - SHUTDOWN_COUNT ))
       if [ "$COUNT_TO_CHECK" -ge "$EXPECTED_COUNT" ]; then
           echo "There are now $COUNT_TO_CHECK instances running in group $GROUP_NAME."
           exit 0
