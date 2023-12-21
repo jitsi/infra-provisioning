@@ -87,7 +87,7 @@ config.constraints.video.frameRate={max: 30, min: 15};
 [[- end ]]
 
 [[ if eq (env "CONFIG_jitsi_meet_enable_conference_request_http") "true" -]]
-config.conferenceRequestUrl='https://<!--# echo var="http_host" default="[[ env "CONFIG_domain" ]]" -->/<!--# echo var="subdir" default="" -->conference-request/v1',
+config.conferenceRequestUrl='https://<!--# echo var="http_host" default="[[ env "CONFIG_domain" ]]" -->/<!--# echo var="subdir" default="" -->conference-request/v1';
 [[ end -]]
 
 
