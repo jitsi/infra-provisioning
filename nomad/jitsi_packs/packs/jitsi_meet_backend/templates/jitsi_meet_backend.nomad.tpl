@@ -306,8 +306,8 @@ EOF
       }
 
       resources {
-        cpu    = 1000
-        memory = 512
+        cpu    = [[ or (env "CONFIG_nomad_prosody_vnode_cpu") "500" ]]
+        memory    = [[ or (env "CONFIG_nomad_prosody_vnode_memory") "512" ]]
       }
     }
 
@@ -343,6 +343,10 @@ EOF
 
         destination = "local/signal-sidecar.env"
         env = true
+      }
+      resources {
+        cpu    = [[ or (env "CONFIG_nomad_signal_sidecar_cpu") "100" ]]
+        memory    = [[ or (env "CONFIG_nomad_signal_sidecar_memory") "300" ]]
       }
     }
 
@@ -463,8 +467,8 @@ EOH
       }
 
       resources {
-        cpu    = 1000
-        memory = 2048
+        cpu    = [[ or (env "CONFIG_nomad_prosody_cpu") "500" ]]
+        memory    = [[ or (env "CONFIG_nomad_prosody_memory") "1024" ]]
       }
     }
 
@@ -517,8 +521,8 @@ EOF
       }
 
       resources {
-        cpu    = 1000
-        memory = 512
+        cpu    = [[ or (env "CONFIG_nomad_prosody_jvb_cpu") "500" ]]
+        memory    = [[ or (env "CONFIG_nomad_prosody_jvb_memory") "512" ]]
       }
     }
 
@@ -675,8 +679,8 @@ EOF
       }
 
       resources {
-        cpu    = 1000
-        memory = 2048
+        cpu    = [[ or (env "CONFIG_nomad_jicofo_cpu") "500" ]]
+        memory    = [[ or (env "CONFIG_nomad_jicofo_memory") "2048" ]]
       }
     }
 
@@ -754,6 +758,10 @@ DNS={{ env "attr.unique.network.ip-address" }}:8600
 DNSSEC=false
 Domains=~consul
 EOF
+      }
+      resources {
+        cpu    = [[ or (env "CONFIG_nomad_web_cpu") "100" ]]
+        memory    = [[ or (env "CONFIG_nomad_web_memory") "300" ]]
       }
     }
   }
