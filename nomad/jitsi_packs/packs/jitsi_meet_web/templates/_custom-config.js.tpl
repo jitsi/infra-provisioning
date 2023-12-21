@@ -99,6 +99,19 @@ config.deploymentUrls.userDocumentationURL='[[ env "CONFIG_jitsi_meet_user_docum
 config.deploymentUrls.downloadAppsUrl='[[ env "CONFIG_jitsi_meet_download_apps_url" ]]'; 
 [[- end ]]
 
+[[ if ne (or (env "CONFIG_jitsi_meet_chrome_extension_banner_url") "false") "false" -]]
+config.chromeExtensionBanner = {
+        url: "[[ env "CONFIG_jitsi_meet_chrome_extension_banner_url" ]]",
+    {% if jitsi_meet_edge_extension_banner_url %}
+[[ if ne (or (env "CONFIG_jitsi_meet_edge_extension_banner_url") "false") "false" -]]
+        edgeUrl: "[[ env "CONFIG_jitsi_meet_edge_extension_banner_url" ]]",
+[[- end ]]
+[[ if ne (or (env "CONFIG_jitsi_meet_chrome_extension_info") "false") "false" -]]
+        chromeExtensionsInfo: [[ env "CONFIG_jitsi_meet_chrome_extension_info" ]]
+[[- end ]]
+    };
+[[- end ]]
+
 [[ if env "CONFIG_prosody_jaas_actuator_url" -]]
 config.jaasActuatorUrl='[[ env "CONFIG_prosody_jaas_actuator_url" ]]',
 [[ end -]]
