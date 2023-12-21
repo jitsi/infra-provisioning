@@ -56,6 +56,7 @@ videobridge {
 
   health {
     sticky-failures = true
+    require-stun = [[ or (env "CONFIG_jvb_require_stun") "true" ]]
   }
 
   ice {
