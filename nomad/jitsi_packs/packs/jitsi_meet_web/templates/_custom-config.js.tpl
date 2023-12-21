@@ -102,7 +102,6 @@ config.deploymentUrls.downloadAppsUrl='[[ env "CONFIG_jitsi_meet_download_apps_u
 [[ if ne (or (env "CONFIG_jitsi_meet_chrome_extension_banner_url") "false") "false" -]]
 config.chromeExtensionBanner = {
         url: "[[ env "CONFIG_jitsi_meet_chrome_extension_banner_url" ]]",
-    {% if jitsi_meet_edge_extension_banner_url %}
 [[ if ne (or (env "CONFIG_jitsi_meet_edge_extension_banner_url") "false") "false" -]]
         edgeUrl: "[[ env "CONFIG_jitsi_meet_edge_extension_banner_url" ]]",
 [[- end ]]
