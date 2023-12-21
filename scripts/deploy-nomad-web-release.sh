@@ -90,6 +90,9 @@ else
 fi
 
 export CONFIG_legal_urls="$(yq eval -o json '.legal_urls' $ENVIRONMENT_CONFIGURATION_FILE)"
+if [[ "$CONFIG_legal_urls" == "null" ]]; then
+    export CONFIG_legal_urls=
+fi
 
 # evaluate each string, integer and boolean in the environment configuration file and export it as a CONFIG_ environment variable
 eval $(yq '.. | select(tag == "!!int" or tag == "!!str" or tag == "!!bool") |  "export CONFIG_"+(path | join("_")) + "=\"" + . + "\""' $ENVIRONMENT_CONFIGURATION_FILE)
