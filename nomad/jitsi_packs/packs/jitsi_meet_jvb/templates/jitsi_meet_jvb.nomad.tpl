@@ -61,6 +61,7 @@ job [[ template "job_name" . ]] {
         nomad_allocation = "${NOMAD_ALLOC_ID}"
         public_ip = "${meta.public_ip}"
         group = "${NOMAD_META_group}"
+        jvb_pool_mode = "[[ or (env "CONFIG_jvb_pool_mode") "shard" ]]"
       }
 
       port = "http"
