@@ -90,6 +90,15 @@ config.constraints.video.frameRate={max: 30, min: 15};
 config.conferenceRequestUrl='https://<!--# echo var="http_host" default="[[ env "CONFIG_domain" ]]" -->/<!--# echo var="subdir" default="" -->conference-request/v1',
 [[ end -]]
 
+
+if (!config.hasOwnProperty('deploymentUrls')) config.deploymentUrls = {};
+[[ if env "CONFIG_jitsi_meet_user_documentation_url" -]]
+config.deploymentUrls.userDocumentationURL='[[ env "CONFIG_jitsi_meet_user_documentation_url" ]]';
+[[ end -]]
+[[ if env "CONFIG_jitsi_meet_download_apps_url" -]]
+config.deploymentUrls.downloadAppsUrl='[[ env "CONFIG_jitsi_meet_download_apps_url" ]]'; 
+[[- end ]]
+
 [[ if env "CONFIG_prosody_jaas_actuator_url" -]]
 config.jaasActuatorUrl='[[ env "CONFIG_prosody_jaas_actuator_url" ]]',
 [[ end -]]
