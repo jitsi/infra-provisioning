@@ -44,10 +44,10 @@ if [ -z "$ORACLE_REGION" ]; then
     [ -e "$LOCAL_PATH/../regions/${EC2_REGION}.sh" ] && . "$LOCAL_PATH/../regions/${EC2_REGION}.sh"
   fi
   if [[ "$SHARD_CORE_CLOUD_PROVIDER" == "oracle" ]]; then
-    ORACLE_REGION=$($LOCAL_PATH/shard.py  --shard_region --environment=$ENVIRONMENT --shard=$SHARD)
+    ORACLE_REGION=$($LOCAL_PATH/shard.py  --shard_region --environment=$ENVIRONMENT --shard=$SHARD --oracle)
   fi
   if [[ "$SHARD_CORE_CLOUD_PROVIDER" == "nomad" ]]; then
-    ORACLE_REGION=$($LOCAL_PATH/shard.py  --shard_region --environment=$ENVIRONMENT --shard=$SHARD)
+    ORACLE_REGION=$($LOCAL_PATH/shard.py  --shard_region --environment=$ENVIRONMENT --shard=$SHARD --oracle)
   fi
 fi
 

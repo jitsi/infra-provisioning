@@ -20,7 +20,7 @@ LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
 if [ -z "$ORACLE_REGION" ]; then
   # Extract EC2_REGION from the shard name and use it to get the ORACLE_REGION
-  ORACLE_REGION=$($LOCAL_PATH/shard.py --shard_region --environment=$ENVIRONMENT --shard=$SHARD)
+  ORACLE_REGION=$($LOCAL_PATH/shard.py --shard_region --environment=$ENVIRONMENT --shard=$SHARD --oracle)
 fi
 
 if [ -z "$ORACLE_REGION" ]; then
