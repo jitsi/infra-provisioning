@@ -88,6 +88,8 @@ function findGroup() {
   instanceGroupDetails=$(sed '$ d' <<<"$instanceGroupGetResponse")                 # get all but the last line which contains the status code
 }
 
+[ -z "$ORACLE_REGION" ] && ORACLE_REGION="$($LOCAL_PATH/shard.py --shard_region --environment=$ENVIRONMENT --shard=$GROUP_NAME)"
+
 echo "Retrieve instance group details for group $GROUP_NAME"
 findGroup
 if [ "$getGroupHttpCode" == 404 ]; then
