@@ -131,7 +131,7 @@ job [[ template "job_name" . ]] {
         MICROSOFT_API_APP_CLIENT_ID = "[[ env "CONFIG_jitsi_meet_microsoft_api_app_client_id" ]]"
         DROPBOX_APPKEY = "[[ env "CONFIG_jitsi_meet_dropbox_app_key" ]]"
         AMPLITUDE_ID = "[[ env "CONFIG_jitsi_meet_amplitude_api_key" ]]"
-        GOOGLE_ANALYTICS_ID = "[[ env "CONFIG_jitsi_meet_google_analytics_tracking_id" ]]"
+        GOOGLE_ANALYTICS_ID = "[[ if ne (or (env "CONFIG_jitsi_meet_google_analytics_flag") "false") "false" ]][[ env "CONFIG_jitsi_meet_google_analytics_tracking_id" ]][[ end ]]"
         INVITE_SERVICE_URL = "[[ env "CONFIG_jitsi_meet_api_conference_invite_url" ]]"
         PEOPLE_SEARCH_URL = "[[ env "CONFIG_jitsi_meet_api_directory_search_url" ]]"
         CONFCODE_URL = "[[ env "CONFIG_jitsi_meet_api_conference_mapper_url" ]]"
