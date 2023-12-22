@@ -12,7 +12,7 @@ config.p2p.codecPreferenceOrder=[[ env "CONFIG_jitsi_meet_p2p_preferred_codecs" 
 [[- end ]]
 
 config.useStunTurn=true;
-config.enableSaveLogs=true;
+config.enableSaveLogs=[[ or (env "CONFIG_jitsi_meet_enable_save_logs") "true" ]];
 config.disableRtx=false;
 config.channelLastN=[[ or (env "CONFIG_jitsi_meet_channel_last_n") "-1" ]];
 config.flags.ssrcRewritingEnabled=[[ or (env "CONFIG_jitsi_meet_enable_ssrc_rewriting") "false" ]];
@@ -87,8 +87,29 @@ config.constraints.video.frameRate={max: 30, min: 15};
 [[- end ]]
 
 [[ if eq (env "CONFIG_jitsi_meet_enable_conference_request_http") "true" -]]
-config.conferenceRequestUrl='https://<!--# echo var="http_host" default="[[ env "CONFIG_domain" ]]" -->/<!--# echo var="subdir" default="" -->conference-request/v1',
+config.conferenceRequestUrl='https://<!--# echo var="http_host" default="[[ env "CONFIG_domain" ]]" -->/<!--# echo var="subdir" default="" -->conference-request/v1';
 [[ end -]]
+
+
+if (!config.hasOwnProperty('deploymentUrls')) config.deploymentUrls = {};
+[[ if env "CONFIG_jitsi_meet_user_documentation_url" -]]
+config.deploymentUrls.userDocumentationURL='[[ env "CONFIG_jitsi_meet_user_documentation_url" ]]';
+[[ end -]]
+[[ if env "CONFIG_jitsi_meet_download_apps_url" -]]
+config.deploymentUrls.downloadAppsUrl='[[ env "CONFIG_jitsi_meet_download_apps_url" ]]'; 
+[[- end ]]
+
+[[ if ne (or (env "CONFIG_jitsi_meet_chrome_extension_banner_url") "false") "false" -]]
+config.chromeExtensionBanner = {
+        url: "[[ env "CONFIG_jitsi_meet_chrome_extension_banner_url" ]]",
+[[ if ne (or (env "CONFIG_jitsi_meet_edge_extension_banner_url") "false") "false" -]]
+        edgeUrl: "[[ env "CONFIG_jitsi_meet_edge_extension_banner_url" ]]",
+[[- end ]]
+[[ if ne (or (env "CONFIG_jitsi_meet_chrome_extension_info") "false") "false" -]]
+        chromeExtensionsInfo: [[ env "CONFIG_jitsi_meet_chrome_extension_info" ]]
+[[- end ]]
+    };
+[[- end ]]
 
 [[ if env "CONFIG_prosody_jaas_actuator_url" -]]
 config.jaasActuatorUrl='[[ env "CONFIG_prosody_jaas_actuator_url" ]]',
@@ -108,27 +129,27 @@ config.billingCounterUrl='[[ env "CONFIG_jitsi_meet_api_billing_counter" ]]';
 [[ if env "CONFIG_jitsi_meet_api_branding_data_url" -]]
 config.brandingDataUrl='[[ env "CONFIG_jitsi_meet_api_branding_data_url" ]]';
 [[- end ]]
-config.dialInNumbersUrl='[[ env "CONFIG_jitsi_meet_api_dialin_numbers_url" ]]';
-config.dialInConfCodeUrl= '[[ env "CONFIG_jitsi_meet_api_conference_mapper_url" ]]';
+config.dialInNumbersUrl='[[ or (env "CONFIG_jitsi_meet_api_dialin_numbers_url") "https://api.jitsi.net/phoneNumberList" ]]';
+config.dialInConfCodeUrl= '[[ or (env "CONFIG_jitsi_meet_api_conference_mapper_url") "https://api.jitsi.net/conferenceMapper" ]]';
 
-[[ if env "CONFIG_jitsi_meet_api_dialout_codes_url" -]]
-config.dialOutCodesUrl= '[[ env "CONFIG_jitsi_meet_api_dialout_codes_url" ]]';
+[[ if ne (env "CONFIG_jitsi_meet_api_dialout_codes_url") "false" -]]
+config.dialOutCodesUrl= '[[ or (env "CONFIG_jitsi_meet_api_dialout_codes_url") "https://api.jitsi.net/countrycodes" ]]';
 [[- end ]]
 
-[[ if env "CONFIG_jitsi_meet_api_dialout_auth_url" -]]
-config.dialOutAuthUrl='[[ env "CONFIG_jitsi_meet_api_dialout_auth_url" ]]';
+[[ if ne (env "CONFIG_jitsi_meet_api_dialout_auth_url") "false" -]]
+config.dialOutAuthUrl='[[ or (env "CONFIG_jitsi_meet_api_dialout_auth_url") "https://api.jitsi.net/authorizephone" ]]';
 [[- end ]]
-[[ if env "CONFIG_jitsi_meet_api_dialout_region_url" -]]
-config.dialOutRegionUrl='[[ env "CONFIG_jitsi_meet_api_dialout_region_url" ]]';
+[[ if ne (env "CONFIG_jitsi_meet_api_dialout_region_url") "false" -]]
+config.dialOutRegionUrl='[[ or (env "CONFIG_jitsi_meet_api_dialout_region_url") "https://api.jitsi.net/outbounddestination" ]]';
 [[- end ]]
-[[ if env "CONFIG_jitsi_meet_api_directory_search_url" -]]
-config.peopleSearchUrl='[[ env "CONFIG_jitsi_meet_api_directory_search_url" ]]';
+[[ if ne (env "CONFIG_jitsi_meet_api_directory_search_url") "false" -]]
+config.peopleSearchUrl='[[ or (env "CONFIG_jitsi_meet_api_directory_search_url") "https://api.jitsi.net/directorySearch" ]]';
 [[- end ]]
-[[ if env "CONFIG_jitsi_meet_api_conference_invite_url" -]]
-config.inviteServiceUrl='[[ env "CONFIG_jitsi_meet_api_conference_invite_url" ]]';
+[[ if ne (env "CONFIG_jitsi_meet_api_conference_invite_url") "false" -]]
+config.inviteServiceUrl='[[ or (env "CONFIG_jitsi_meet_api_conference_invite_url") "https://api.jitsi.net/conferenceInvite" ]]';
 [[- end ]]
-[[ if env "CONFIG_jitsi_meet_api_conference_invite_callflows_url" -]]
-config.inviteServiceCallFlowsUrl='[[ env "CONFIG_jitsi_meet_api_conference_invite_callflows_url" ]]';
+[[ if ne (env "CONFIG_jitsi_meet_api_conference_invite_callflows_url") "false" -]]
+config.inviteServiceCallFlowsUrl='[[ or (env "CONFIG_jitsi_meet_api_conference_invite_callflows_url") "https://api.jitsi.net/conferenceinvitecallflows" ]]';
 [[- end ]]
 [[ if and (env "CONFIG_jitsi_meet_api_guest_dial_out_url") (ne (env "CONFIG_jitsi_meet_api_guest_dial_out_url") "false") -]]
 config.guestDialOutUrl='[[ env "CONFIG_jitsi_meet_api_guest_dial_out_url" ]]';
@@ -136,8 +157,7 @@ config.guestDialOutUrl='[[ env "CONFIG_jitsi_meet_api_guest_dial_out_url" ]]';
 [[ if and (env "CONFIG_jitsi_meet_api_guest_dial_out_status_url") (ne (env "CONFIG_jitsi_meet_api_guest_dial_out_status_url") "false") -]]
 config.guestDialOutStatusUrl='[[ env "CONFIG_jitsi_meet_api_guest_dial_out_status_url" ]]';
 [[- end ]]
-
-[[ if env "CONFIG_jitsi_meet_api_recoding_sharing_url" -]]
+[[ if and (env "CONFIG_jitsi_meet_api_recoding_sharing_url") (ne (env "CONFIG_jitsi_meet_api_recoding_sharing_url") "false")  -]]
 config.recordingSharingUrl='[[ env "CONFIG_jitsi_meet_api_recoding_sharing_url" ]]';
 [[- end ]]
 
