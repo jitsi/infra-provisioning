@@ -213,9 +213,9 @@ export CONFIG_signal_api_hostname="$SIGNAL_API_HOSTNAME"
 [ -z "$CONFIG_nomad_enable_fabio_domain" ] && CONFIG_nomad_enable_fabio_domain="false"
 
 if [[ "$ENVIRONMENT_TYPE" == "prod" ]]; then
-    CONFIG_force_pull="false"
+    export CONFIG_force_pull="false"
 else
-    [ -z "$CONFIG_force_pull" ] && CONFIG_force_pull="true"
+    [ -z "$CONFIG_force_pull" ] && export CONFIG_force_pull="true"
 fi
 
 export JOB_NAME="shard-${SHARD}"
