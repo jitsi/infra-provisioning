@@ -580,6 +580,7 @@ EOF
         RTCSTATS_SERVER="[[ env "CONFIG_jicofo_rtcstats_push_rtcstats_server" ]]"
         INTERVAL=10000
         JICOFO_LOG_FILE = "/local/jicofo.log"
+        VISITORS_XMPP_AUTH_DOMAIN="auth.[[ env "CONFIG_domain" ]]"
       }
 
       artifact {
