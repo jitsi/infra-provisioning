@@ -543,6 +543,7 @@ EOF
       env {
 [[ template "common-env" . ]]
         ENABLE_VISITORS = "[[ env "CONFIG_visitors_enabled" ]]"
+        JIBRI_SIP_BREWERY_MUC="[[ env "CONFIG_jicofo_sipjibri_brewery_muc" ]]"
         JICOFO_ENABLE_REST="1"
         JICOFO_ENABLE_BRIDGE_HEALTH_CHECKS="1"
         JICOFO_HEALTH_CHECKS_USE_PRESENCE="[[ or (env "CONFIG_jicofo_use_presence_for_jvb_health") "false" ]]"
