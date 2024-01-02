@@ -560,6 +560,7 @@ EOF
         JICOFO_CONF_MAX_AUDIO_SENDERS="[[ env "CONFIG_jicofo_max_audio_senders" ]]"
         JICOFO_CONF_MAX_VIDEO_SENDERS="[[ env "CONFIG_jicofo_max_video_senders" ]]"
         JICOFO_CONF_STRIP_SIMULCAST="[[ env "CONFIG_jicofo_strip_simulcast" ]]"
+        JICOFO_MULTI_STREAM_BACKWARD_COMPAT="1"
         JICOFO_SOURCE_SIGNALING_DELAYS="{ 50: 1000, 100: 2000 }"
         JIBRI_PENDING_TIMEOUT="[[ env "CONFIG_jicofo_jibri_pending_timeout" ]] seconds"
         JICOFO_MAX_MEMORY="1536m"
