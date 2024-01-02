@@ -182,7 +182,6 @@ block
         ENABLE_XMPP_WEBSOCKET = "1"
         DISABLE_HTTPS = "1"
         ENABLE_SCTP = "[[ env "CONFIG_jicofo_enable_sctp" ]]"
-        ENABLE_SCTP_RELAY = "[[ env "CONFIG_jicofo_enable_sctp_relay" ]]"
         PROSODY_VISITORS_MUC_PREFIX = "conference"
         AUTH_TYPE = "jwt"
         XMPP_DOMAIN = "[[ env "CONFIG_domain" ]]"
