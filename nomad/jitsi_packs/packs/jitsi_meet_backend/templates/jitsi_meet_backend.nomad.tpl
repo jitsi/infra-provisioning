@@ -571,7 +571,7 @@ EOF
         JICOFO_CONF_STRIP_SIMULCAST="[[ env "CONFIG_jicofo_strip_simulcast" ]]"
         JICOFO_MULTI_STREAM_BACKWARD_COMPAT="1"
         JICOFO_CONF_SOURCE_SIGNALING_DELAYS="[[ or (env "CONFIG_jicofo_source_signaling_delay") "{ 50: 1000, 100: 2000 }" ]]"
-        JIBRI_PENDING_TIMEOUT="[[ env "CONFIG_jicofo_jibri_pending_timeout" ]] seconds"
+        JIBRI_PENDING_TIMEOUT="[[ or (env "CONFIG_jicofo_jibri_pending_timeout") "90" ]] seconds"
         JICOFO_MAX_MEMORY="1536m"
         JICOFO_BRIDGE_REGION_GROUPS = "[\"eu-central-1\", \"eu-west-1\", \"eu-west-2\", \"eu-west-3\", \"uk-london-1\", \"eu-amsterdam-1\", \"eu-frankfurt-1\"],[\"us-east-1\", \"us-west-2\", \"us-ashburn-1\", \"us-phoenix-1\"],[\"ap-mumbai-1\", \"ap-tokyo-1\", \"ap-south-1\", \"ap-northeast-1\"],[\"ap-sydney-1\", \"ap-southeast-2\"],[\"ca-toronto-1\", \"ca-central-1\"],[\"me-jeddah-1\", \"me-south-1\"],[\"sa-saopaulo-1\", \"sa-east-1\"]"
         JICOFO_ENABLE_HEALTH_CHECKS="1"
