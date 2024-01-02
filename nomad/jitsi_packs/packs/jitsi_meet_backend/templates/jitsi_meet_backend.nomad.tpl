@@ -427,9 +427,9 @@ XMPP_INTERNAL_MUC_MODULES=
 JWT_TOKEN_AUTH_MODULE=muc_hide_all
 XMPP_CONFIGURATION="[[ if ne (or (env "CONFIG_prosody_cache_keys_url") "false") "false" ]]cache_keys_url=\"[[ env "CONFIG_prosody_cache_keys_url" ]]\",[[ end ]]shard_name=\"[[ env "CONFIG_shard" ]]\",region_name=\"{{ env "meta.cloud_region" }}\",release_number=\"[[ env "CONFIG_release_number" ]]\",max_number_outgoing_calls=[[ or (env "CONFIG_prosody_max_number_outgoing_calls") "3" ]]"
 XMPP_MUC_CONFIGURATION="muc_room_allow_persistent = false,allowners_moderated_subdomains = {\n [[ range (env "CONFIG_muc_moderated_subdomains" | split ",") ]]    \"[[ . ]]\";\n[[ end ]]    },allowners_moderated_rooms = {\n [[ range (env "CONFIG_muc_moderated_rooms" | split ",") ]]    \"[[ . ]]\";\n[[ end ]]    }"
-XMPP_MUC_MODULES="[[ if eq (env "CONFIG_prosody_meet_webhooks_enabled") "true" ]]muc_webhooks,[[ end ]][[ if eq (env "CONFIG_prosody_muc_allowners") "true" ]]muc_allowners,[[ end ]][[ if eq (env "CONFIG_prosody_enable_wait_for_host") "true" ]]muc_wait_for_host,[[ end ]]muc_hide_all,measure_message_count"
-XMPP_LOBBY_MUC_MODULES="[[ if eq (env "CONFIG_prosody_meet_webhooks_enabled") "true" ]]muc_webhooks,[[ end ]]muc_hide_all,measure_message_count"
-XMPP_BREAKOUT_MUC_MODULES="[[ if eq (env "CONFIG_prosody_meet_webhooks_enabled") "true" ]]muc_webhooks,[[ end ]]muc_hide_all,measure_message_count"
+XMPP_MUC_MODULES="[[ if eq (env "CONFIG_prosody_meet_webhooks_enabled") "true" ]]muc_webhooks,[[ end ]][[ if eq (env "CONFIG_prosody_muc_allowners") "true" ]]muc_allowners,[[ end ]][[ if eq (env "CONFIG_prosody_enable_wait_for_host") "true" ]]muc_wait_for_host,[[ end ]][[ if eq (env "CONFIG_prosody_enable_mod_measure_message_count") "true" ]]measure_message_count,[[ end ]]muc_hide_all"
+XMPP_LOBBY_MUC_MODULES="[[ if eq (env "CONFIG_prosody_meet_webhooks_enabled") "true" ]]muc_webhooks,[[ end ]][[ if eq (env "CONFIG_prosody_enable_mod_measure_message_count") "true" ]]measure_message_count,[[ end ]]muc_hide_all"
+XMPP_BREAKOUT_MUC_MODULES="[[ if eq (env "CONFIG_prosody_meet_webhooks_enabled") "true" ]]muc_webhooks,[[ end ]][[ if eq (env "CONFIG_prosody_enable_mod_measure_message_count") "true" ]]measure_message_count,[[ end ]]muc_hide_all"
 XMPP_SERVER={{ env "NOMAD_IP_prosody_client" }}
 XMPP_PORT={{  env "NOMAD_HOST_PORT_prosody_client" }}
 XMPP_BOSH_URL_BASE=http://{{ env "NOMAD_IP_prosody_http" }}:{{ env "NOMAD_HOST_PORT_prosody_http" }}
