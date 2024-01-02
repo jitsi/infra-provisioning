@@ -44,7 +44,7 @@ job "[JOB_NAME]" {
         image = "prom/prometheus:latest"
         ports = ["prometheus_ui"]
         volumes = [
-          "local/oscar_alerts.yml:/etc/prometheus/oscar_alerts.yml",
+          "local/prometheus_alerts.yml:/etc/prometheus/prometheus_alerts.yml",
           "local/prometheus.yml:/etc/prometheus/prometheus.yml"
         ]
       }
@@ -72,7 +72,7 @@ alerting:
       services: ['alertmanager']
 
 rule_files:
-  - "oscar_alerts.yml"
+  - "prometheus_alerts.yml"
 
 scrape_configs:
 
@@ -150,7 +150,7 @@ EOH
 
     template {
         change_mode = "noop"
-        destination = "local/oscar_alerts.yml"
+        destination = "local/prometheus_alerts.yml"
         data = <<EOH
 ---
 groups:
