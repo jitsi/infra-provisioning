@@ -44,6 +44,7 @@ job "[JOB_NAME]" {
         image = "prom/prometheus:latest"
         ports = ["prometheus_ui"]
         volumes = [
+          "local/oscar_alerts.yml:/etc/prometheus/oscar_alerts.yml",
           "local/prometheus.yml:/etc/prometheus/prometheus.yml"
         ]
       }
@@ -64,8 +65,21 @@ global:
   scrape_interval:     10s
   evaluation_interval: 5s
 
+alerting:
+  alertmanagers:
+  - consul_sd_configs:
+    - server: '{{ env "NOMAD_IP_prometheus_ui" }}:8500'
+      services: ['alertmanager']
+
+rule_files:
+  - "oscar_alerts.yml"
 
 scrape_configs:
+
+  - job_name: 'alertmanager'
+    consul_sd_configs:
+    - server: '{{ env "NOMAD_IP_prometheus_ui" }}:8500'
+      services: ['alertmanager']
 
   - job_name: 'consul_metrics'
 
@@ -107,6 +121,7 @@ scrape_configs:
     params:
       format: ['prometheus']
 
+
   - job_name: 'telegraf_metrics'
 
     consul_sd_configs:
@@ -117,14 +132,48 @@ scrape_configs:
     metrics_path: /metrics
 
 
-  # The job name is added as a label `job=<job_name>` to any timeseries scraped from this config.
   - job_name: 'prometheus'
-
     # Override the global default and scrape targets from this job every 5 seconds.
     scrape_interval: 5s
 
     static_configs:
       - targets: ['localhost:9090']
+
+
+  - job_name: 'wavefront-proxy'
+
+    consul_sd_configs:
+    - server: '{{ env "NOMAD_IP_prometheus_ui" }}:8500'
+      services: ['wavefront-proxy']
+EOH
+    }
+
+    template {
+        change_mode = "noop"
+        destination = "local/oscar_alerts.yml"
+        data = <<EOH
+---
+groups:
+
+- name: prometheus_alerts
+  rules:
+  - alert: wavefront-proxy is down
+    expr: absent(up{job="wavefront-proxy"})
+    for: 30s
+    labels:
+      severity: critical
+    annotations:
+      description: "wavefront-proxy is down"
+
+- name: oscar_alerts
+  rules:
+  - alert: haproxy region mismatch
+    expr: jitsi_oscar_haproxy_region_mismatch < 1
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      description: "an oscar probe to the domain has hit an haproxy in the incorrect region."
 EOH
     }
 
