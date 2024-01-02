@@ -556,6 +556,7 @@ EOF
         ENABLE_CODEC_VP9="[[ or (env "CONFIG_jicofo_enable_vp9") "true" ]]"
         ENABLE_CODEC_H264="[[ or (env "CONFIG_jicofo_enable_h264") "true" ]]"
         ENABLE_CODEC_OPUS_RED="[[ env "CONFIG_jicofo_enable_opus_red" ]]"
+        ENABLE_OCTO_SCTP="[[ env "CONFIG_jicofo_enable_sctp_relay" ]]"
         JICOFO_CONF_SSRC_REWRITING="[[ env "CONFIG_jicofo_ssrc_rewriting" ]]"
         JICOFO_CONF_MAX_AUDIO_SENDERS="[[ env "CONFIG_jicofo_max_audio_senders" ]]"
         JICOFO_CONF_MAX_VIDEO_SENDERS="[[ env "CONFIG_jicofo_max_video_senders" ]]"
