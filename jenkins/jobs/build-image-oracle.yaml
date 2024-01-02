@@ -50,6 +50,10 @@
           name: JIBRI_VERSION
           description: "Jibri Version"
           trim: true
+      - string:
+          name: BASE_SIGNAL_VERSION
+          description: "Base Signal Image for JicofoHotfix image"
+          trim: true
       - bool:
           name: FORCE_BUILD_IMAGE
           default: false
