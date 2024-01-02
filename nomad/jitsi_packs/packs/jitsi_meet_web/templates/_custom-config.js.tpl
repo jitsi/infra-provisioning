@@ -13,7 +13,6 @@ config.p2p.codecPreferenceOrder=[[ env "CONFIG_jitsi_meet_p2p_preferred_codecs" 
 
 config.useStunTurn=true;
 config.enableSaveLogs=[[ or (env "CONFIG_jitsi_meet_enable_save_logs") "true" ]];
-config.disableRtx=false;
 config.channelLastN=[[ or (env "CONFIG_jitsi_meet_channel_last_n") "-1" ]];
 config.flags.ssrcRewritingEnabled=[[ or (env "CONFIG_jitsi_meet_enable_ssrc_rewriting") "false" ]];
 
