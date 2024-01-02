@@ -263,6 +263,7 @@ job [[ template "job_name" . ]] {
       driver = "docker"
 
       config {
+        force_pull = [[ or (env "CONFIG_force_pull") "false" ]]
         image        = "jitsi/prosody:[[ env "CONFIG_prosody_tag" ]]"
         ports = ["prosody-vnode-[[ $i ]]-http","prosody-vnode-[[ $i ]]-client","prosody-vnode-[[ $i ]]-s2s"]
         volumes = ["local/prosody-plugins-custom:/prosody-plugins-custom","local/config:/config"]
@@ -317,6 +318,7 @@ EOF
     task "signal-sidecar" {
       driver = "docker"
       config {
+        force_pull = [[ or (env "CONFIG_force_pull") "false" ]]
         image        = "jitsi/signal-sidecar:latest"
         ports = ["signal-sidecar-agent","signal-sidecar-http"]
       }
@@ -354,6 +356,7 @@ EOF
       driver = "docker"
 
       config {
+        force_pull = [[ or (env "CONFIG_force_pull") "false" ]]
         image        = "jitsi/prosody:[[ env "CONFIG_prosody_tag" ]]"
         ports = ["prosody-http","prosody-client","prosody-s2s"]
         volumes = [
@@ -476,6 +479,7 @@ EOH
       driver = "docker"
 
       config {
+        force_pull = [[ or (env "CONFIG_force_pull") "false" ]]
         image        = "jitsi/prosody:[[ env "CONFIG_prosody_tag" ]]"
         ports = ["prosody-jvb-client","prosody-jvb-http"]
         volumes = ["local/prosody-plugins-custom:/prosody-plugins-custom","local/config:/config"]
@@ -530,6 +534,7 @@ EOF
       driver = "docker"
 
       config {
+        force_pull = [[ or (env "CONFIG_force_pull") "false" ]]
         image        = "jitsi/jicofo:[[ env "CONFIG_jicofo_tag" ]]"
         ports = ["jicofo-http"]
         volumes = [
@@ -694,6 +699,7 @@ EOF
 
       driver = "docker"
       config {
+        force_pull = [[ or (env "CONFIG_force_pull") "false" ]]
         image        = "nginx:1.25.3"
         ports = ["http","nginx-status"]
         volumes = [
