@@ -125,6 +125,12 @@ job [[ template "job_name" . ]] {
         ENABLE_TRANSCRIPTIONS = "[[ or (env "CONFIG_jitsi_meet_enable_transcription") "false" ]]"
         ENABLE_LOCAL_RECORDING_NOTIFY_ALL_PARTICIPANTS = "true"
         ENABLE_REQUIRE_DISPLAY_NAME = "[[ or (env "CONFIG_jitsi_meet_require_displayname") "false" ]]"
+[[- if env "CONFIG_jitsi_meet_resolution" ]]
+        RESOLUTION = "[[ or (env "CONFIG_jitsi_meet_resolution") "720" ]]"
+        RESOLUTION_MIN = "[[ or (env "CONFIG_jitsi_meet_resolution_min") "180" ]]"
+        RESOLUTION_WIDTH = "[[ or (env "CONFIG_jitsi_meet_resolution_width") "1280" ]]"
+        RESOLUTION_WIDTH_MIN = "[[ or (env "CONFIG_jitsi_meet_resolution_width_min") "320" ]]"
+[[- end ]]
         WEBSOCKET_KEEPALIVE_URL = "https://[[ env "CONFIG_domain" ]]/_unlock"
         ENABLE_CALENDAR = "[[ or (env "CONFIG_jitsi_meet_enable_calendar") "false" ]]"
         GOOGLE_API_APP_CLIENT_ID = "[[ env "CONFIG_jitsi_meet_google_api_app_client_id" ]]"

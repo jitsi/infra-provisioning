@@ -20,9 +20,8 @@ config.flags.ssrcRewritingEnabled=[[ or (env "CONFIG_jitsi_meet_enable_ssrc_rewr
 config.maxFullResolutionParticipants = 1;
 [[- end ]]
 
-if (!config.hasOwnProperty('videoQuality')) config.videoQuality = {};
-
 [[ if env "CONFIG_jitsi_meet_jvb_preferred_codecs" -]]
+if (!config.hasOwnProperty('videoQuality')) config.videoQuality = {};
 config.videoQuality.codecPreferenceOrder=[[ env "CONFIG_jitsi_meet_jvb_preferred_codecs" ]];
 [[- end ]]
 
@@ -70,20 +69,8 @@ config.analytics.rtcstatsEndpoint="[[ env "CONFIG_jitsi_meet_rtcstats_endpoint" 
 config.analytics.rtcstatsPollInterval=[[ or (env "CONFIG_jitsi_meet_rtcstats_poll_interval") "10000" ]];
 config.analytics.rtcstatsSendSdp=[[ or (env "CONFIG_jitsi_meet_rtcstats_log_sdp") "false" ]];
 
-[[ if env "CONFIG_jitsi_meet_resolution" -]]
 config.constraints.video.aspectRatio=16/9;
-config.constraints.video.height={
-  ideal: [[ env "CONFIG_jitsi_meet_resolution" ]],
-  max: [[ env "CONFIG_jitsi_meet_resolution" ]],
-  min: 180
-};
-config.constraints.video.width={
-  ideal: {{ sprig_round (multiply [[ env "CONFIG_jitsi_meet_resolution" ]] (divide 9.0 16.0)) 0 }},
-  max: {{ sprig_round (multiply [[ env "CONFIG_jitsi_meet_resolution" ]] (divide 9.0 16.0)) 0 }},
-  min: 320
-};
 config.constraints.video.frameRate={max: 30, min: 15};
-[[- end ]]
 
 [[ if eq (env "CONFIG_jitsi_meet_enable_conference_request_http") "true" -]]
 config.conferenceRequestUrl='https://<!--# echo var="http_host" default="[[ env "CONFIG_domain" ]]" -->/<!--# echo var="subdir" default="" -->conference-request/v1';
