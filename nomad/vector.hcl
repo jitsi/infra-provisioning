@@ -73,17 +73,24 @@ job "vector" {
             playground = true
           [sources.logs]
             type = "docker_logs"
-          [transforms.message_to_json]
+          [transforms.message_to_structure]
             type = "remap"
             inputs = ["logs"]
-            source = ".message = parse_json!(.message)"
+            source = """
+            structured =
+              parse_json(.message) ??
+              parse_syslog(.message) ??
+              parse_common_log(.message) ??
+              parse_regex(.message, r'^(?P<timestamp>\\d+/\\d+/\\d+ \\d+:\\d+:\\d+) \\[(?P<severity>\\w+)\\] (?P<pid>\\d+)#(?P<tid>\\d+):(?: \\*(?P<connid>\\d+))? (?P<message>.*)$') ??
+              {}
+            . = merge(., structured) ?? ."""
           [sinks.out]
             type = "console"
-            inputs = [ "message_to_json" ]
+            inputs = [ "message_to_structure" ]
             encoding.codec = "json"
           [sinks.loki]
             type = "loki"
-            inputs = ["message_to_json"]
+            inputs = ["message_to_structure"]
             endpoint = "http://[[ range service "loki" ]][[ .Address ]]:[[ .Port ]][[ end ]]"
             encoding.codec = "json"
             healthcheck.enabled = true
