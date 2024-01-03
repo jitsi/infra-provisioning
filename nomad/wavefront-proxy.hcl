@@ -37,10 +37,14 @@ job "[JOB_NAME]" {
       service {
         name = "wavefront-proxy"
         tags = ["int-urlprefix-${var.wavefront_proxy_hostname}/","int-urlprefix-${var.wavefront_proxy_hostname}:443/"]
+
         port = "http"
+
         check {
           name     = "alive"
-          type     = "tcp"
+          type     = "http"
+          path     = "/status"
+          port     = "http"
           interval = "10s"
           timeout  = "2s"
         }
