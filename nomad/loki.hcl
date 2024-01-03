@@ -109,8 +109,8 @@ EOH
         destination = "local/loki/local-config.yaml"
       }
       resources {
-        cpu    = 512
-        memory = 256
+        cpu    = 1024
+        memory = 512
       }
       service {
         name = "loki"
