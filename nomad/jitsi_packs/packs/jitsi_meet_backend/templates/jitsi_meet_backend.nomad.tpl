@@ -487,6 +487,7 @@ EOH
 
 
       env {
+        PROSODY_MODE="brewery"
         XMPP_DOMAIN = "[[ env "CONFIG_domain" ]]"
         PUBLIC_URL="https://[[ env "CONFIG_domain" ]]/"
         JICOFO_AUTH_PASSWORD = "[[ env "CONFIG_jicofo_auth_password" ]]"
@@ -504,8 +505,9 @@ EOH
         XMPP_GUEST_DOMAIN = "guest.[[ env "CONFIG_domain" ]]"
         # XMPP domain for the jibri recorder
         XMPP_RECORDER_DOMAIN = "recorder.[[ env "CONFIG_domain" ]]"
-        GLOBAL_CONFIG = "statistics = \"internal\"\nstatistics_interval = \"manual\"\nopenmetrics_allow_cidr = \"0.0.0.0/0\""
-        GLOBAL_MODULES = "admin_telnet,http_openmetrics,measure_stanza_counts,log_ringbuffer,firewall,log_ringbuffer"
+        GLOBAL_CONFIG = "statistics = \"internal\";\nstatistics_interval = \"manual\";\nopenmetrics_allow_cidr = \"0.0.0.0/0\";\ndebug_traceback_filename = \"traceback.txt\";\nc2s_stanza_size_limit = 10*1024*1024;\n"
+        GLOBAL_MODULES = "admin_telnet,http_openmetrics,measure_stanza_counts,log_ringbuffer,firewall"
+        PROSODY_LOG_CONFIG="{level = \"debug\", to = \"ringbuffer\",size = 1024*1024*400, filename_template = \"traceback.txt\", event = \"debug_traceback/triggered\";};"
         TZ = "UTC"
       }
 [[ template "prosody_artifacts" . ]]
