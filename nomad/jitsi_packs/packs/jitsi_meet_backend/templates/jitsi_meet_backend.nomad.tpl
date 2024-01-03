@@ -487,6 +487,7 @@ EOH
 
 
       env {
+        PROSODY_MODE="brewery"
         XMPP_DOMAIN = "[[ env "CONFIG_domain" ]]"
         PUBLIC_URL="https://[[ env "CONFIG_domain" ]]/"
         JICOFO_AUTH_PASSWORD = "[[ env "CONFIG_jicofo_auth_password" ]]"
@@ -494,18 +495,11 @@ EOH
         JIGASI_XMPP_PASSWORD = "[[ env "CONFIG_jigasi_xmpp_password" ]]"
         JIBRI_RECORDER_PASSWORD = "[[ env "CONFIG_jibri_recorder_password" ]]"
         JIBRI_XMPP_PASSWORD = "[[ env "CONFIG_jibri_xmpp_password" ]]"
-        # Internal XMPP domain for authenticated services
-        XMPP_AUTH_DOMAIN = "auth.jvb.[[ env "CONFIG_domain" ]]"
-        # XMPP domain for the MUC
-        XMPP_MUC_DOMAIN = "conference.[[ env "CONFIG_domain" ]]"
-        # XMPP domain for the internal MUC used for jibri, jigasi and jvb pools
-        XMPP_INTERNAL_MUC_DOMAIN = "muc.jvb.[[ env "CONFIG_domain" ]]"
-        # XMPP domain for unauthenticated users
-        XMPP_GUEST_DOMAIN = "guest.[[ env "CONFIG_domain" ]]"
-        # XMPP domain for the jibri recorder
-        XMPP_RECORDER_DOMAIN = "recorder.[[ env "CONFIG_domain" ]]"
-        GLOBAL_CONFIG = "statistics = \"internal\"\nstatistics_interval = \"manual\"\nopenmetrics_allow_cidr = \"0.0.0.0/0\""
-        GLOBAL_MODULES = "admin_telnet,http_openmetrics,measure_stanza_counts,log_ringbuffer,firewall,log_ringbuffer"
+        JVB_XMPP_AUTH_DOMAIN = "auth.jvb.[[ env "CONFIG_domain" ]]"
+        JVB_XMPP_INTERNAL_MUC_DOMAIN = "muc.jvb.[[ env "CONFIG_domain" ]]"
+        GLOBAL_CONFIG = "statistics = \"internal\";\nstatistics_interval = \"manual\";\nopenmetrics_allow_cidr = \"0.0.0.0/0\";\ndebug_traceback_filename = \"traceback.txt\";\nc2s_stanza_size_limit = 10*1024*1024;\n"
+        GLOBAL_MODULES = "admin_telnet,http_openmetrics,measure_stanza_counts,log_ringbuffer"
+        PROSODY_LOG_CONFIG="{level = \"debug\", to = \"ringbuffer\",size = 1024*1024*400, filename_template = \"traceback.txt\", event = \"debug_traceback/triggered\";};"
         TZ = "UTC"
       }
 [[ template "prosody_artifacts" . ]]
