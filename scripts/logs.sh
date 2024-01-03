@@ -25,6 +25,15 @@ fi
 JOB=$1
 SEARCH=$2
 
+if [ -z "$JOB" ]; then
+    echo "Not enough parameters provided, exiting.."
+    exit 5
+fi
+if [ -z "$SEARCH" ]; then
+    echo "Not enough parameters provided, exiting.."
+    exit 6
+fi
+
 
 function log_search() {
     local job="$1"
