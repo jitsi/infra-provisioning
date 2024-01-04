@@ -44,7 +44,7 @@ job "[JOB_NAME]" {
         image = "prom/prometheus:latest"
         ports = ["prometheus_ui"]
         volumes = [
-          "local/prometheus_alerts.yml:/etc/prometheus/prometheus_alerts.yml",
+          "local/alerts.yml:/etc/prometheus/alerts.yml",
           "local/prometheus.yml:/etc/prometheus/prometheus.yml"
         ]
       }
@@ -72,7 +72,7 @@ alerting:
       services: ['alertmanager']
 
 rule_files:
-  - "prometheus_alerts.yml"
+  - "alerts.yml"
 
 scrape_configs:
 
@@ -150,30 +150,98 @@ EOH
 
     template {
         change_mode = "noop"
-        destination = "local/prometheus_alerts.yml"
+        destination = "local/alerts.yml"
         data = <<EOH
 ---
 groups:
 
-- name: prometheus_alerts
+- name: service_alerts
   rules:
-  - alert: wavefront-proxy is down
+  - alert: FabioDown
+    expr: absent(up{job="fabio"})
+    for: 30s
+    labels:
+      type: infra
+      severity: critical
+    annotations:
+      summary: 'fabio service is down in ${var.dc}'
+      description: 'All fabio services are failing internal health checks. This means that traffic is not being forwarded to many services."
+      runbook: 'https://example.com/runbook-placeholder'
+      dashboard: 'https://example.com/dashboard-placeholder'
+
+  - alert: LokiDown
+    expr: absent(up{job="loki"})
+    for: 30s
+    labels:
+      type: infra
+      severity: critical
+    annotations:
+      summary: 'loki service is down in ${var.dc}'
+      description: 'All loki services are failing internal health checks. This means that no logs are being sent to Loki.'
+      runbook: 'https://example.com/runbook-placeholder'
+      dashboard: 'https://example.com/dashboard-placeholder'
+
+  - alert: OscarDown
+    expr: absent(up{job="oscar"})
+    for: 30s
+    labels:
+      type: infra
+      severity: critical
+    annotations:
+      summary: 'oscar service is down in ${var.dc}'
+      description: 'All oscar services are failing internal health checks. This means that synthetic probes are not running in this datacenter.'
+      runbook: 'https://example.com/runbook-placeholder'
+      dashboard: 'https://example.com/dashboard-placeholder'
+
+  - alert: TelegrafDown
+    expr: absent(up{job="telegraf"})
+    for: 30s
+    labels:
+      type: infra
+      severity: critical
+    annotations:
+      summary: 'telegraf service is down in ${var.dc}'
+      description: 'All telegraf services are failing internal health checks. This means that no metrics are being sent to wavefront-proxy or prometheus.'
+      runbook: 'https://example.com/runbook-placeholder'
+      dashboard: 'https://example.com/dashboard-placeholder'
+
+  - alert: VectorDown
+    expr: absent(up{job="vector"})
+    for: 30s
+    labels:
+      type: infra
+      severity: critical
+    annotations:
+      summary: 'vector service is down in ${var.dc}'
+      description: 'All vector services are failing internal health checks. This means that no logs are being sent to Loki.'
+      runbook: 'https://example.com/runbook-placeholder'
+      dashboard: 'https://example.com/dashboard-placeholder'
+
+  - alert: WFProxyDown
     expr: absent(up{job="wavefront-proxy"})
     for: 30s
     labels:
+      type: infra
       severity: critical
     annotations:
-      description: "wavefront-proxy is down"
+      summary: 'wavefront-proxy service is down in ${var.dc}'
+      description: 'All wavefront-proxy services are failing internal health checks. This means that no metrics are being sent to Wavefront.'
+      runbook: 'https://example.com/runbook-placeholder'
+      dashboard: 'https://example.com/dashboard-placeholder'
 
 - name: oscar_alerts
   rules:
-  - alert: haproxy region mismatch
+  - alert: HAProxyRegionMismatch
     expr: jitsi_oscar_haproxy_region_mismatch < 1
     for: 1m
     labels:
+      type: infra
       severity: critical
     annotations:
-      description: "an oscar probe to the domain has hit an haproxy in the incorrect region."
+      summary: 'probe reached HAProxy in the incorrect region'
+      description: 'An oscar probe to the domain has hit an haproxy outside of the local. This means that CloudFlare is not routing the request to the local region.'
+      runbook: 'https://example.com/runbook-placeholder'
+      dashboard: 'https://example.com/dashboard-placeholder'
 EOH
     }
 
