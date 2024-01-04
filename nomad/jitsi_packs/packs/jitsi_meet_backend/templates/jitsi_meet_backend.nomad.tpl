@@ -162,14 +162,14 @@ job [[ template "job_name" . ]] {
         environment = "${meta.environment}"
       }
 
-      // check {
-      //   name     = "health"
-      //   type     = "http"
-      //   path     = "/metrics"
-      //   port     = "prosody-jvb-http"
-      //   interval = "10s"
-      //   timeout  = "2s"
-      // }
+      check {
+        name     = "health"
+        type     = "http"
+        path     = "/metrics"
+        port     = "prosody-jvb-http"
+        interval = "10s"
+        timeout  = "2s"
+      }
     }
 
     service {
@@ -226,7 +226,7 @@ job [[ template "job_name" . ]] {
       check {
         name     = "health"
         type     = "http"
-        path     = "/http-bind"
+        path     = "/metrics"
         port     = "prosody-jvb-http"
         interval = "10s"
         timeout  = "2s"
