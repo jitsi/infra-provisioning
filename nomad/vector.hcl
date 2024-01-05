@@ -60,8 +60,8 @@ job "vector" {
       # template with Vector's configuration
       template {
         destination = "local/vector.toml"
-        change_mode   = "signal"
-        change_signal = "SIGHUP"
+        // change_mode   = "signal"
+        // change_signal = "SIGHUP"
         # overriding the delimiters to [[ ]] to avoid conflicts with Vector's native templating, which also uses {{ }}
         left_delimiter = "[["
         right_delimiter = "]]"
