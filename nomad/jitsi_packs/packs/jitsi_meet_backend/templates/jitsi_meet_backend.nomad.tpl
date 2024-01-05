@@ -376,7 +376,6 @@ EOF
         ENABLE_GUESTS="1"
         ENABLE_END_CONFERENCE="0"
         PROSODY_ENABLE_RATE_LIMITS="1"
-        PROSODY_GUEST_AUTH_TYPE="anonymous"
         PROSODY_RATE_LIMIT_ALLOW_RANGES="[[ env "CONFIG_prosody_rate_limit_allow_ranges" ]]"
         PROSODY_C2S_LIMIT="512kb/s"
         PROSODY_S2S_LIMIT=""
