@@ -362,7 +362,9 @@ EOF
         volumes = [
 	        "/opt/jitsi/keys:/opt/jitsi/keys",
           "local/prosody-plugins-custom:/prosody-plugins-custom",
-          "local/config:/config"
+          "local/config:/config",
+#          "local/prosody.cfg.lua:/defaults/prosody.cfg.lua",
+          "local/jitsi-meet.cfg.lua:/defaults/conf.d/jitsi-meet.cfg.lua"
         ]
       }
 
@@ -389,6 +391,14 @@ EOF
         MAX_PARTICIPANTS=500
       }
 [[ template "prosody_artifacts" . ]]
+
+      template {
+        data = <<EOF
+[[ template "prosody_meet_cfg" . ]]
+EOF
+  
+          destination = "local/jitsi-meet.cfg.lua"
+      }
 
       template {
         data = <<EOF
