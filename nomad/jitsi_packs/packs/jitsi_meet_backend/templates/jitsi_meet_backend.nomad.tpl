@@ -393,9 +393,9 @@ EOF
 [[ template "prosody_artifacts" . ]]
 
       template {
-        data = <<EOF
         left_delimiter = "[{"
         right_delimiter = "}]"
+        data = <<EOF
 
 [[ template "prosody_meet_cfg" . ]]
 EOF
