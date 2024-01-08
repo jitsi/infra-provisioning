@@ -43,14 +43,13 @@ job "[JOB_NAME]" {
     }
     constraint {
       attribute  = "${meta.pool_type}"
-      value     = "consul"
+      value     = "general"
     }
     volume "loki" {
       type      = "host"
       read_only = false
       source    = "loki"
     }
-
     task "loki" {
       driver = "docker"
       user = "root"
@@ -72,15 +71,6 @@ job "[JOB_NAME]" {
 auth_enabled: false
 server:
   http_listen_port: 3100
-
-common:
-  ring:
-    instance_addr: 127.0.0.1
-    kvstore:
-        store: inmemory
-  replication_factor: 1
-  path_prefix: /loki # Update this accordingly, data will be stored here.
-
 ingester:
   lifecycler:
     address: 127.0.0.1
