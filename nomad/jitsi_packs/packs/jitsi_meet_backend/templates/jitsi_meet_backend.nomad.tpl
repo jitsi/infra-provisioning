@@ -634,11 +634,10 @@ local function equal_metric_family(mf1, mf2)
         -- So either the unit was moved into/out of the name (which is a valid)
         -- thing to do on an upgrade or we would expect not to see any conflicts
         -- anyway.
-        --[[
+        --
         if mf1.unit ~= mf2.unit then
                 return false
         end
-        ]]
         for i, key in ipairs(mf1.label_keys) do
                 if key ~= mf2.label_keys[i] then
                         return false
