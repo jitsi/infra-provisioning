@@ -88,3 +88,9 @@ variable "enable_coturn" {
   type        = bool
   default     = false
 }
+
+variable "enable_shard" {
+  description = "Whether to enable the cross-region shard monitoring."
+  type        = bool
+  default     = false
+}

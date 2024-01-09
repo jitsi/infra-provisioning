@@ -92,4 +92,20 @@ probe {
   timeout_msec: 2000
 }
 [[ end -]]
+[[ if var "enable_shard" . -]]
+# probes health of all shards in all datacenters using public IP
+probe {
+  name: "shard"
+  type: HTTP
+  targets {
+    {{ range $dc := datacenters }}{{ range $service := print "signal-sidecar@" $dc -}}
+    endpoint {
+      name: "{{ .ServiceMeta.shard }}"
+      url: "https://{{ .ServiceAddress }}:{{ .ServicePort }}/about/health"
+    }
+    {{ end }}{{ end }}
+  }
+  interval_msec: 20000
+  timeout_msec: 2000
+[[ end -]]
 [[ end -]]
