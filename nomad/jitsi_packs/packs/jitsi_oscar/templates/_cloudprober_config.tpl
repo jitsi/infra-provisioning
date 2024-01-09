@@ -106,10 +106,8 @@ probe {
     {{ end }}{{ end }}
   }
 
-### FIX 
-### Template failed: (dynamic): execute: template: :76:23: executing "" at <.ServiceAddress>: can't evaluate field ServiceAddress in type *dependency.HealthService
-
   interval_msec: 20000
   timeout_msec: 2000
+}
 [[ end -]]
 [[ end -]]
