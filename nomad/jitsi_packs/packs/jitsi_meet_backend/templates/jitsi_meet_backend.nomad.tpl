@@ -110,8 +110,8 @@ job [[ template "job_name" . ]] {
       check {
         name     = "health"
         type     = "http"
-        path     = "/nginx_status"
-        port     = "nginx-status"
+        path     = "/signal/report"
+        port     = "signal-sidecar-http"
         interval = "10s"
         timeout  = "2s"
       }
@@ -393,24 +393,7 @@ EOF
 
       template {
         data = <<EOF
---[[
-This module implements a subset of the OpenMetrics Internet Draft version 00.
 
-URL: https://tools.ietf.org/html/draft-richih-opsawg-openmetrics-00
-
-The following metric types are supported:
-
-- Counter
-- Gauge
-- Histogram
-- Summary
-
-It is used by util.statsd and util.statistics to provide the OpenMetrics API.
-
-To understand what this module is about, it is useful to familiarize oneself
-with the terms MetricFamily, Metric, LabelSet, Label and MetricPoint as
-defined in the I-D linked above.
---]]
 -- metric constructor interface:
 -- metric_ctor(..., family_name, labels, extra)
 
@@ -1086,7 +1069,7 @@ EOF
 
       resources {
         cpu    = [[ or (env "CONFIG_nomad_jicofo_cpu") "500" ]]
-        memory    = [[ or (env "CONFIG_nomad_jicofo_memory") "2048" ]]
+        memory    = [[ or (env "CONFIG_nomad_jicofo_memory") "3072" ]]
       }
     }
 
