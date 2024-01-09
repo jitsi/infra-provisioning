@@ -98,12 +98,12 @@ probe {
   name: "shard"
   type: HTTP
   targets {
-    {{ range $dc := datacenters }}{{ range $service := print "signal-sidecar@" $dc -}}
+    {{ range $dc := datacenters }}{{ $dc_shards := print "signal-sidecar@" $dc }}{{ range $shard := service $dc_shards -}}
     endpoint {
       name: "{{ .ServiceMeta.shard }}"
       url: "https://{{ .ServiceAddress }}:{{ .ServicePort }}/about/health"
     }
-    {{ end }}{{ end }}
+    {{ end }}{{ end }}{{ end }}
   }
   interval_msec: 20000
   timeout_msec: 2000
