@@ -265,11 +265,21 @@ function shard_log_search() {
     else
         set -x
         SHARD_REGION=$(shard_region $shard)
+        # from and to date need to be exactly like '2024-01-06T00:00:00.999999999-06:00'
         [ -z "$SEARCH_PERIOD" ] && SEARCH_PERIOD="1h"
+        [ -z "$SEARCH_LIMIT" ] && SEARCH_LIMIT="30"
+        [ -n "$SEARCH_FROM" ] && FROM_PARAM="--from $SEARCH_FROM"
+        [ -n "$SEARCH_TO" ] && TO_PARAM="--to $SEARCH_TO"
+        if [ -n "$FROM_PARAM" ]; then
+            SEARCH_PARAM="$FROM_PARAM $TO_PARAM"
+        else
+            SEARCH_PARAM="--since=$SEARCH_PERIOD"
+        fi
         LOKI_ADDR="https://${ENVIRONMENT}-${SHARD_REGION}-loki.${TOP_LEVEL_DNS_ZONE_NAME}"
         logcli query -q --addr $LOKI_ADDR \
          --output=jsonl \
-         --since="$SEARCH_PERIOD" \
+         --limit=$SEARCH_LIMIT \
+         $SEARCH_PARAM \
         "{job=\"shard-$shard\"} |~ \"(?i)$search\"" | jq -r -s '.[]|"\(.timestamp): \(.labels.task) \(.line|fromjson|.message)"'
     fi
 }

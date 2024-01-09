@@ -71,6 +71,7 @@ job "[JOB_NAME]" {
 auth_enabled: false
 server:
   http_listen_port: 3100
+
 ingester:
   lifecycler:
     address: 127.0.0.1
@@ -141,7 +142,7 @@ EOH
           timeout  = "5s"
           check_restart {
             limit           = 3
-            grace           = "60s"
+            grace           = "300s"
             ignore_warnings = false
           }
         }
