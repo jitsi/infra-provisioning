@@ -101,7 +101,7 @@ probe {
     {{ range $dc := datacenters }}{{ $dc_shards := print "signal-sidecar@" $dc }}{{ range $shard := service $dc_shards -}}
     endpoint {
       name: "{{ .Name }}"
-      url: "https://{{ .Address }}:{{ .Port }}/about/health"
+      url: "http://{{ .Address }}:{{ .Port }}/about/health"
     }
     {{ end }}{{ end }}
   }
