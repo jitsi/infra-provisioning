@@ -73,9 +73,8 @@ EOH
         data = <<EOH
 #!bin/sh
 
-apk add python3 curl
+apk add curl python3 py3-requests
 /usr/bin/python3 -m ensurepip --default-pip
-/usr/bin/python3 -m pip install requests
 /cloudprober --logtostderr
 EOH
         destination = "local/custom_init.sh"
