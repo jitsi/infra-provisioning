@@ -283,7 +283,7 @@ job [[ template "job_name" . ]] {
         PROSODY_RATE_LIMIT_ALLOW_RANGES="[[ env "CONFIG_prosody_rate_limit_allow_ranges" ]]"
         PROSODY_REGION_NAME="[[ env "CONFIG_octo_region" ]]"
         MAX_PARTICIPANTS=500
-        TURN_TRANSPORT="tcp,udp"
+        TURN_TRANSPORT="udp"
       }
 [[ template "prosody_artifacts" . ]]
 
@@ -381,7 +381,7 @@ EOF
         PROSODY_C2S_LIMIT="512kb/s"
         PROSODY_S2S_LIMIT=""
         PROSODY_RATE_LIMIT_SESSION_RATE="2000"
-        TURN_TRANSPORT="tcp,udp"
+        TURN_TRANSPORT="udp"
         JWT_ALLOW_EMPTY="[[ env "CONFIG_prosody_token_allow_empty" ]]"
         JWT_ENABLE_DOMAIN_VERIFICATION="true"
         JWT_ACCEPTED_ISSUERS="[[ env "CONFIG_jwt_accepted_issuers" ]]"
