@@ -100,11 +100,15 @@ probe {
   targets {
     {{ range $dc := datacenters }}{{ $dc_shards := print "signal-sidecar@" $dc }}{{ range $shard := service $dc_shards -}}
     endpoint {
-      name: "{{ .ServiceMeta.shard }}"
-      url: "https://{{ .ServiceAddress }}:{{ .ServicePort }}/about/health"
+      name: "{{ .Name }}"
+      url: "https://{{ .Address }}:{{ .Port }}/about/health"
     }
     {{ end }}{{ end }}
   }
+
+### FIX 
+### Template failed: (dynamic): execute: template: :76:23: executing "" at <.ServiceAddress>: can't evaluate field ServiceAddress in type *dependency.HealthService
+
   interval_msec: 20000
   timeout_msec: 2000
 [[ end -]]
