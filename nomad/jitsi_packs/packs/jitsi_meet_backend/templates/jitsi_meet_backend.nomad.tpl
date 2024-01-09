@@ -686,7 +686,7 @@ EOF
 
       resources {
         cpu    = [[ or (env "CONFIG_nomad_jicofo_cpu") "500" ]]
-        memory    = [[ or (env "CONFIG_nomad_jicofo_memory") "2048" ]]
+        memory    = [[ or (env "CONFIG_nomad_jicofo_memory") "3072" ]]
       }
     }
 
