@@ -105,10 +105,6 @@ probe {
     }
     {{ end }}{{ end }}
 
-    additional_labels {
-      key: "foo"
-      value: "@target.label.name@"
-    }
   }
 
   interval_msec: 20000
