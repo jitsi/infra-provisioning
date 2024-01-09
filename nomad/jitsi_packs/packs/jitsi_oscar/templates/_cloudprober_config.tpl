@@ -103,7 +103,7 @@ probe {
       name: "{{ .ServiceMeta.shard }}"
       url: "https://{{ .ServiceAddress }}:{{ .ServicePort }}/about/health"
     }
-    {{ end }}{{ end }}{{ end }}
+    {{ end }}{{ end }}
   }
   interval_msec: 20000
   timeout_msec: 2000
