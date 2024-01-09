@@ -770,7 +770,6 @@ return {
 EOF
   
           destination = "local/openmetrics.lua"
-          env = true
         }
       template {
         data = <<EOF
