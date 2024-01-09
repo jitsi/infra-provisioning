@@ -46,6 +46,7 @@ OSCAR_ENABLE_WAVEFRONT_PROXY="true"
 if [[ "$OSCAR_TEMPLATE_TYPE" == "core" ]]; then
     OSCAR_ENABLE_OPS_REPO="false"
     OSCAR_ENABLE_COTURN="true"
+    OSCAR_ENABLE_SHARD="true"
     OSCAR_ENABLE_SITE_INGRESS="true"
     OSCAR_ENABLE_HAPROXY_REGION="true"
     OSCAR_ENABLE_AUTOSCALER="true"
@@ -53,6 +54,7 @@ fi
 if [[ "$OSCAR_TEMPLATE_TYPE" == "ops" ]]; then
     OSCAR_ENABLE_OPS_REPO="true"
     OSCAR_ENABLE_COTURN="false"
+    OSCAR_ENABLE_SHARD="false"
     OSCAR_ENABLE_SITE_INGRESS="false"
     OSCAR_ENABLE_HAPROXY_REGION="false"
     OSCAR_ENABLE_AUTOSCALER="false"
@@ -72,6 +74,7 @@ enable_ops_repo=$OSCAR_ENABLE_OPS_REPO
 enable_site_ingress=$OSCAR_ENABLE_SITE_INGRESS
 enable_haproxy_region=$OSCAR_ENABLE_HAPROXY_REGION
 enable_coturn=$OSCAR_ENABLE_COTURN
+enable_shard=$OSCAR_ENABLE_SHARD
 enable_autoscaler=$OSCAR_ENABLE_AUTOSCALER
 enable_wavefront_proxy=$OSCAR_ENABLE_WAVEFRONT_PROXY
 EOF
