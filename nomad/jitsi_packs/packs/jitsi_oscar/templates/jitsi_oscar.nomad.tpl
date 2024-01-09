@@ -74,7 +74,6 @@ EOH
 #!bin/sh
 
 apk add curl python3 py3-requests
-/usr/bin/python3 -m ensurepip --default-pip
 /cloudprober --logtostderr
 EOH
         destination = "local/custom_init.sh"
