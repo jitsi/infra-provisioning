@@ -146,6 +146,7 @@ job [[ template "job_name" . ]] {
         DIALOUT_CODES_URL = "[[ env "CONFIG_jitsi_meet_api_dialout_codes_url" ]]"
         START_VIDEO_MUTED = "[[ or (env "CONFIG_jitsi_meet_start_video_muted_count") "25" ]]"
         START_AUDIO_MUTED = "[[ or (env "CONFIG_jitsi_meet_start_audio_muted_count") "25" ]]"
+        TESTING_AV1_SUPPORT = "[[ env "CONFIG_jitsi_meet_enable_av1" ]]"
         WHITEBOARD_ENABLED = "[[ or (env "CONFIG_jitsi_meet_whiteboard_enabled") "false" ]]"
         WHITEBOARD_COLLAB_SERVER_PUBLIC_URL = "[[ env "CONFIG_jitsi_meet_whiteboard_collab_server_base_url" ]]"
       }
