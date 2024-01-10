@@ -106,15 +106,6 @@ job [[ template "job_name" . ]] {
       }
 
       port = "http"
-
-      check {
-        name     = "health"
-        type     = "http"
-        path     = "/nginx_status"
-        port     = "nginx-status"
-        interval = "10s"
-        timeout  = "2s"
-      }
     }
 
     service {
