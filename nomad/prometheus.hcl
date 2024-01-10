@@ -157,66 +157,6 @@ groups:
 
 - name: service_alerts
   rules:
-  - alert: FabioDown
-    expr: absent(up{job="fabio"})
-    for: 30s
-    labels:
-      type: infra
-      severity: critical
-    annotations:
-      summary: 'fabio service is down in ${var.dc}'
-      description: 'All fabio services are failing internal health checks. This means that traffic is not being forwarded to many services."
-      runbook: 'https://example.com/runbook-placeholder'
-      dashboard: 'https://example.com/dashboard-placeholder'
-
-  - alert: LokiDown
-    expr: absent(up{job="loki"})
-    for: 30s
-    labels:
-      type: infra
-      severity: critical
-    annotations:
-      summary: 'loki service is down in ${var.dc}'
-      description: 'All loki services are failing internal health checks. This means that no logs are being sent to Loki.'
-      runbook: 'https://example.com/runbook-placeholder'
-      dashboard: 'https://example.com/dashboard-placeholder'
-
-  - alert: OscarDown
-    expr: absent(up{job="oscar"})
-    for: 30s
-    labels:
-      type: infra
-      severity: critical
-    annotations:
-      summary: 'oscar service is down in ${var.dc}'
-      description: 'All oscar services are failing internal health checks. This means that synthetic probes are not running in this datacenter.'
-      runbook: 'https://example.com/runbook-placeholder'
-      dashboard: 'https://example.com/dashboard-placeholder'
-
-  - alert: TelegrafDown
-    expr: absent(up{job="telegraf"})
-    for: 30s
-    labels:
-      type: infra
-      severity: critical
-    annotations:
-      summary: 'telegraf service is down in ${var.dc}'
-      description: 'All telegraf services are failing internal health checks. This means that no metrics are being sent to wavefront-proxy or prometheus.'
-      runbook: 'https://example.com/runbook-placeholder'
-      dashboard: 'https://example.com/dashboard-placeholder'
-
-  - alert: VectorDown
-    expr: absent(up{job="vector"})
-    for: 30s
-    labels:
-      type: infra
-      severity: critical
-    annotations:
-      summary: 'vector service is down in ${var.dc}'
-      description: 'All vector services are failing internal health checks. This means that no logs are being sent to Loki.'
-      runbook: 'https://example.com/runbook-placeholder'
-      dashboard: 'https://example.com/dashboard-placeholder'
-
   - alert: WFProxyDown
     expr: absent(up{job="wavefront-proxy"})
     for: 30s
@@ -224,10 +164,10 @@ groups:
       type: infra
       severity: critical
     annotations:
-      summary: 'wavefront-proxy service is down in ${var.dc}'
-      description: 'All wavefront-proxy services are failing internal health checks. This means that no metrics are being sent to Wavefront.'
-      runbook: 'https://example.com/runbook-placeholder'
-      dashboard: 'https://example.com/dashboard-placeholder'
+      summary: wavefront-proxy service is down in ${var.dc}
+      description: All wavefront-proxy services are failing internal health checks in ${var.dc}. This means that no metrics are being sent to Wavefront.
+      runbook: https://example.com/runbook-placeholder
+      dashboard: https://example.com/dashboard-placeholder
 
 - name: oscar_alerts
   rules:
@@ -238,10 +178,32 @@ groups:
       type: infra
       severity: critical
     annotations:
-      summary: 'probe reached HAProxy in the incorrect region'
-      description: 'An oscar probe to the domain has hit an haproxy outside of the local. This means that CloudFlare is not routing the request to the local region.'
-      runbook: 'https://example.com/runbook-placeholder'
-      dashboard: 'https://example.com/dashboard-placeholder'
+      summary: probe reached HAProxy in the incorrect region
+      description: An oscar probe to the domain has hit an haproxy outside of the local region. This means that CloudFlare is not routing the request to the local region in ${var.dc}.
+      runbook: https://example.com/runbook-placeholder
+      dashboard: https://example.com/dashboard-placeholder
+  - alert: ShardUnhealthy
+    expr: jitsi_oscar_failure{probe="shard"} > 0
+    for: 1m
+    labels:
+      type: infra
+      severity: critical
+    annotations:
+      summary: a probe from ${var.dc} reached an unhealthy shard
+      description: An oscar probe from ${var.dc} to a shard's private IP detected that it is unhealthy.
+      runbook: https://example.com/runbook-placeholder
+      dashboard: https://example.com/dashboard-placeholder
+  - alert: ShardTimeout
+    expr: jitsi_oscar_timeouts{probe="shard"} > 0
+    for: 1m
+    labels:
+      type: infra
+      severity: critical
+    annotations:
+      summary: a probe from ${var.dc} timed out attempting to reach a shard
+      description: An oscar probe from ${var.dc} to a shard's private IP timed out. This may be due to a network issue or a problem with the shard.
+      runbook: https://example.com/runbook-placeholder
+      dashboard: https://example.com/dashboard-placeholder
 EOH
     }
 
