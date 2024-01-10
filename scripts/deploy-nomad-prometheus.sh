@@ -28,12 +28,12 @@ export RESOURCE_NAME_ROOT="${ENVIRONMENT}-${ORACLE_REGION}-prometheus"
 
 NOMAD_JOB_PATH="$LOCAL_PATH/../nomad"
 NOMAD_DC="$ENVIRONMENT-$ORACLE_REGION"
-JOB_NAME="prometheus-$ORACLE_REGION"
 export NOMAD_VAR_prometheus_hostname="${RESOURCE_NAME_ROOT}.${TOP_LEVEL_DNS_ZONE_NAME}"
+export NOMAD_VAR_dc="$NOMAD_DC"
 
+JOB_NAME="prometheus-$ORACLE_REGION"
 sed -e "s/\[JOB_NAME\]/$JOB_NAME/" "$NOMAD_JOB_PATH/prometheus.hcl" | nomad job run -var="dc=$NOMAD_DC" -
 RET=$?
-
 
 export CNAME_VALUE="$RESOURCE_NAME_ROOT"
 export STACK_NAME="${RESOURCE_NAME_ROOT}-cname"
