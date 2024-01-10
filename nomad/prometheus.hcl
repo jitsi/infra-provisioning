@@ -151,6 +151,8 @@ EOH
     template {
         change_mode = "noop"
         destination = "local/alerts.yml"
+        left_delimiter = "{{{"
+        right_delimiter = "}}}"
         data = <<EOH
 ---
 groups:
@@ -189,8 +191,8 @@ groups:
       type: infra
       severity: critical
     annotations:
-      summary: a probe from ${var.dc} reached an unhealthy shard
-      description: An oscar probe from ${var.dc} to a shard's private IP detected that it is unhealthy.
+      summary: shard {{ $labels.dst }} probe returned unhealthy from ${var.dc}
+      description: An internal oscar probe from ${var.dc} to the {{ $labels.dst }} shard received an unhealthy response from signal-sidecar. This may be due to a variety of problems, most commonly when jicofo or prosody goes unhealthy.
       runbook: https://example.com/runbook-placeholder
       dashboard: https://example.com/dashboard-placeholder
   - alert: ShardTimeout
@@ -200,8 +202,8 @@ groups:
       type: infra
       severity: critical
     annotations:
-      summary: a probe from ${var.dc} timed out attempting to reach a shard
-      description: An oscar probe from ${var.dc} to a shard's private IP timed out. This may be due to a network issue or a problem with the shard.
+      summary: shard {{ $labels.dst }} probe timed-out from ${var.dc}
+      description: An internal oscar probe from ${var.dc} to signal-sidecar at {{ $labels.dst }} on the shard timed-out. This may be due to a network issue or a problem with the shard.
       runbook: https://example.com/runbook-placeholder
       dashboard: https://example.com/dashboard-placeholder
 EOH

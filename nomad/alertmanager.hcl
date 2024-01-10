@@ -88,7 +88,7 @@ receivers:
     slack_configs:
       - channel: '#nomad-${var.environment_type}'
         send_resolved: true
-        title: '[{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] <{{- .GroupLabels.SortedPairs.Values | join " " }}> {{ if gt (len .CommonLabels) (len .GroupLabels) }} ({{ with .CommonLabels.Remove .GroupLabels.Names }}{{ .Values | join " " }}{{ end }}){{ end }}'
+        title: '[{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] ({{ .CommonLabels.alertname }} in {{ .CommonLabels.environment }}) <{{- .GroupLabels.SortedPairs.Values | join " " }}>'
         text: |-
           <!channel>
           {{- range .Alerts -}}
