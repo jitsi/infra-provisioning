@@ -86,6 +86,7 @@ route:
 receivers:
   - name: slack
     slack_configs:
+      - send_resolved: true
       - channel: '#nomad-${var.environment_type}'
         title: '[{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] <{{- .GroupLabels.SortedPairs.Values | join " " }}> {{ if gt (len .CommonLabels) (len .GroupLabels) }} ({{ with .CommonLabels.Remove .GroupLabels.Names }}{{ .Values | join " " }}{{ end }}){{ end }}'
         text: |-
