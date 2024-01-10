@@ -138,7 +138,7 @@ probe {
       }
   }
 
-  interval_msec: 20000
+  interval_msec: 5000
   timeout_msec: 2000
 }
 # emit metrics as guages
