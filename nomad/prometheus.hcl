@@ -203,7 +203,7 @@ groups:
       severity: critical
     annotations:
       summary: shard {{ $labels.dst }} probe timed-out from ${var.dc}
-      description: An internal oscar probe from ${var.dc} to signal-sidecar at {{ $labels.dst }} on the shard timed-out. This may be due to a network issue or a problem with the shard.
+      description: An internal oscar probe from ${var.dc} to the {{ $labels.dst }} shard timed-out. This may be due to a network issue or a problem with the shard.
       runbook: https://example.com/runbook-placeholder
       dashboard: https://example.com/dashboard-placeholder
 EOH
