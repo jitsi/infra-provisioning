@@ -76,11 +76,7 @@ job [[ template "job_name" . ]] {
       tags = [
         "[[ env "CONFIG_domain" ]]",
         "shard-[[ env "CONFIG_shard" ]]",
-        "release-[[ env "CONFIG_release_number" ]]",
-[[ if (var "fabio_domain_enabled" .) ]]
-        "urlprefix-[[ env "CONFIG_domain" ]]/",
-[[ end ]]
-        "urlprefix-/[[ env "CONFIG_shard" ]]/"
+        "release-[[ env "CONFIG_release_number" ]]"
       ]
 
       meta {
@@ -106,6 +102,38 @@ job [[ template "job_name" . ]] {
       }
 
       port = "http"
+    }
+
+    service {
+      name = "shard-web"
+      tags = [
+        "[[ env "CONFIG_domain" ]]",
+        "shard-[[ env "CONFIG_shard" ]]",
+        "release-[[ env "CONFIG_release_number" ]]",
+[[ if (var "fabio_domain_enabled" .) ]]
+        "urlprefix-[[ env "CONFIG_domain" ]]/",
+[[ end ]]
+        "urlprefix-/[[ env "CONFIG_shard" ]]/"
+      ]
+      meta {
+        domain = "[[ env "CONFIG_domain" ]]"
+        shard = "[[ env "CONFIG_shard" ]]"
+        shard_id = "[[ env "CONFIG_shard_id" ]]"
+        release_number = "[[ env "CONFIG_release_number" ]]"
+        environment = "${meta.environment}"
+        nomad_allocation = "${NOMAD_ALLOC_ID}"
+      }
+
+      port = "http"
+
+      check {
+        name     = "health"
+        type     = "http"
+        path     = "/nginx_status"
+        port     = "nginx-status"
+        interval = "10s"
+        timeout  = "2s"
+      }
     }
 
     service {
