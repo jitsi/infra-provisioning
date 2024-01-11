@@ -88,24 +88,22 @@ receivers:
     slack_configs:
       - channel: '#nomad-${var.environment_type}'
         send_resolved: true
-        title: '[{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] ({{ .CommonLabels.alertname }} in {{ .CommonLabels.environment }}) <{{- .GroupLabels.SortedPairs.Values | join " " }}>'
+        title: '[{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] ({{ or .CommonLabels.alertname "Multiple Alert Types" }} in {{ .CommonLabels.environment }}) <{{- .GroupLabels.SortedPairs.Values | join " " }}>'
         text: |-
-          <!channel>
-          {{- range .Alerts -}}
-            {{- if .Annotations.summary }}
-          *{{ .Annotations.summary }}*
-            {{- end }}
+          <!channel>{{ range .Alerts }}
+           
+          *{{ index .Labels "alertname" }}* {{- if .Annotations.summary }}: *{{ .Annotations.summary }}* {{- end }}
             {{- if .Annotations.description }}
           _{{ .Annotations.description }}_
             {{- end }}
           {{- end }}
-        actions:
-        - type: button
-          text: 'Runbook :green_book:'
-          url: '{{ (index .Alerts 0).Annotations.runbook }}'
-        - type: button
-          text: 'Dashboard :chart:'
-          url: '{{ (index .Alerts 0).Annotations.dashboard }}'
+#        actions:
+#        - type: button
+#          text: 'Runbook :green_book:'
+#          url: '{{ (index .Alerts 0).Annotations.runbook }}'
+#        - type: button
+#          text: 'Dashboard :chart:'
+#          url: '{{ (index .Alerts 0).Annotations.dashboard }}'
 EOH
       }
 
