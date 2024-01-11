@@ -288,7 +288,7 @@ EOF
   [inputs.prometheus.consul]
     enabled = true
     agent = "{{ env "attr.unique.network.ip-address" }}:8500"
-    query_interval = "1m"
+    query_interval = "30s"
     [[inputs.prometheus.consul.query]]
       name = "oscar"
       tag = "ip-{{ env "attr.unique.network.ip-address" }}"
