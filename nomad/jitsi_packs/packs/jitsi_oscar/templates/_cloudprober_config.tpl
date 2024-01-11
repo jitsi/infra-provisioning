@@ -141,12 +141,6 @@ probe {
   interval_msec: 5000
   timeout_msec: 2000
 }
-# emit metrics as guages
-surfacer {
-  type: PROMETHEUS
-
-   export_as_gauge: true
-}
 
 [[ end -]]
 [[ end -]]
