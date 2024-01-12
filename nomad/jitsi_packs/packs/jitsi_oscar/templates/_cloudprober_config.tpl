@@ -14,6 +14,13 @@ probe {
     protocol: HTTPS
     relative_url: "/health"
   }
+
+  validator {
+      name: "status_code_2xx"
+      http_validator {
+          success_status_codes: "200-299"
+      }
+  }
 }
 [[ end -]]
 [[ if var "enable_site_ingress" . -]]
@@ -26,6 +33,13 @@ probe {
   }
   interval_msec: 5000
   timeout_msec: 2000
+
+  validator {
+      name: "status_code_2xx"
+      http_validator {
+          success_status_codes: "200-299"
+      }
+  }
 }
 [[ end -]]
 [[ if var "enable_haproxy_region" . -]]
@@ -56,6 +70,12 @@ probe {
     protocol: HTTPS
     relative_url: "/health?deep=true"
   }
+  validator {
+      name: "status_code_2xx"
+      http_validator {
+          success_status_codes: "200-299"
+      }
+  }
   interval_msec: 60000
   timeout_msec: 2000
 }
@@ -71,6 +91,12 @@ probe {
   http_probe {
     protocol: HTTPS
     relative_url: "/status"
+  }
+  validator {
+      name: "status_code_2xx"
+      http_validator {
+          success_status_codes: "200-299"
+      }
   }
   interval_msec: 60000
   timeout_msec: 2000
@@ -91,5 +117,30 @@ probe {
   interval_msec: 60000
   timeout_msec: 2000
 }
+[[ end -]]
+[[ if var "enable_shard" . -]]
+# probes health of all shards in all datacenters using public IP
+probe {
+  name: "shard"
+  type: HTTP
+  targets {
+    {{ range $dc := datacenters }}{{ $dc_shards := print "signal-sidecar@" $dc }}{{ range $shard := service $dc_shards -}}
+    endpoint {
+      name: "{{ .ServiceMeta.shard }}"
+      url: "http://{{ .Address }}:{{ .Port }}/about/health"
+    }
+    {{ end }}{{ end }}
+  }
+  validator {
+      name: "status_code_2xx"
+      http_validator {
+          success_status_codes: "200-299"
+      }
+  }
+
+  interval_msec: 5000
+  timeout_msec: 2000
+}
+
 [[ end -]]
 [[ end -]]
