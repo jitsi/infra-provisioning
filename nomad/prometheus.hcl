@@ -180,24 +180,24 @@ groups:
       type: infra
       severity: critical
     annotations:
-      summary: probe reached HAProxy in the incorrect region
-      description: An oscar probe to the domain has hit an haproxy outside of the local region. This means that CloudFlare is not routing the request to the local region in ${var.dc}.
+      summary: a domain probe from ${var.dc} reached an haproxy outside the local region
+      description: An oscar probe to the domain reached an haproxy outside of the local region. This means that CloudFlare may not be routing requests to ${var.dc}, likely due to failing health checks to the regional load balancer ingress.
       runbook: https://example.com/runbook-placeholder
       dashboard: https://example.com/dashboard-placeholder
   - alert: ShardUnhealthy
-    expr: jitsi_oscar_failure{probe="shard"} > 0
+    expr: rate(jitsi_oscar_failure{probe="shard"}[5m]) > 0
     for: 1m
     labels:
       type: infra
       severity: critical
     annotations:
       summary: shard {{ $labels.dst }} probe returned unhealthy from ${var.dc}
-      description: An internal oscar probe from ${var.dc} to the {{ $labels.dst }} shard received an unhealthy response from signal-sidecar. This may be due to a variety of problems, most commonly when jicofo or prosody goes unhealthy.
+      description: An internal oscar probe from ${var.dc} to the {{ $labels.dst }} shard received an unhealthy response from signal-sidecar. This may be due to a variety of issues, most often when jicofo or prosody goes unhealthy.
       runbook: https://example.com/runbook-placeholder
       dashboard: https://example.com/dashboard-placeholder
   - alert: ShardTimeout
     expr: jitsi_oscar_timeouts{probe="shard"} > 0
-    for: 1m
+    for: 30s
     labels:
       type: infra
       severity: critical
@@ -210,8 +210,8 @@ EOH
     }
 
       resources {
-        cpu    = 500
-        memory = 500
+        cpu    = 1000
+        memory = 2048
       }
         
       service {
