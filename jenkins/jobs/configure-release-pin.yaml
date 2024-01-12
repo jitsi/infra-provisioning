@@ -7,7 +7,7 @@
       - string:
           name: CUSTOMER_ID
           default:
-          description: "The customer ID, i.e., the URL directory for this customer's conferences."
+          description: "The customer ID, i.e., the URL directory for this customer's conferences. Do not include 'vpaas-magic-cookie-' at the beginning for JaaS."
           trim: true
       - string:
           name: PIN_ACTION
