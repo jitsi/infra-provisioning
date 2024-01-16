@@ -425,8 +425,9 @@ pipeline {
         }
         stage("Enable shard alarms") {
             when {
-                allOf{
+                anyOf{
                    expression {env.CLOUD_PROVIDER == 'oracle'}
+                   expression {env.CLOUD_PROVIDER == 'nomad'}
                 }
             }
             steps {
