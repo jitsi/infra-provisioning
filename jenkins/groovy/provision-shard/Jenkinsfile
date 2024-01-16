@@ -133,14 +133,6 @@ def validateShard(hcv_environment,shards) {
     return validateShard
 }
 
-def reconfigureEnvironment(hcv_environment) {
-    def result = build job: 'reconfigure-autoscaler-environment',wait: true,parameters: [
-        [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: hcv_environment],
-        [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH]
-    ]
-    return result
-}
-
 def skipShardJVBs
 def utils
 def shard_numbers
@@ -400,13 +392,6 @@ pipeline {
                     // branch out here, run all deploy JVBs jobs at once
                     // only succeed if all branches succeed
                     parallel branches
-                }
-            }
-        }
-        stage("Trigger autoscaler reconfiguration") {
-            steps {
-                script {
-                    reconfigureEnvironment(env.ENVIRONMENT)
                 }
             }
         }
