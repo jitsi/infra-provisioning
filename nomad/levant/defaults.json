@@ -1,0 +1,6 @@
+{
+    "web_release": {
+        "job_name": "web-release",
+        "count_per_dc": 2
+    }
+}

@@ -66,6 +66,31 @@ else
   TF_POST_PARAMS="$LOCAL_PATH/destroy"
 fi
 
+# delete the rule set
+LOCAL_KEY="terraform-lb-rs.tfstate"
+
+oci os object get --bucket-name $S3_STATE_BUCKET --name $S3_STATE_KEY --region $ORACLE_REGION --file $LOCAL_KEY
+if [ $? -eq 0 ]; then
+
+    #The —reconfigure option disregards any existing configuration, preventing migration of any existing state
+    terraform $TF_GLOBALS_CHDIR init \
+    -backend-config="bucket=$S3_STATE_BUCKET" \
+    -backend-config="key=$S3_STATE_KEY" \
+    -backend-config="region=$ORACLE_REGION" \
+    -backend-config="profile=$S3_PROFILE" \
+    -backend-config="endpoint=$S3_ENDPOINT" \
+    -reconfigure $TF_POST_PARAMS
+
+    terraform $TF_GLOBALS_CHDIR apply \
+    -var="oracle_region=$ORACLE_REGION" \
+    -var="tenancy_ocid=$TENANCY_OCID" \
+    -auto-approve $TF_POST_PARAMS
+else
+  echo "LB RULE SET failed to be deleted, not found"
+fi
+
+
+# delete the main stack
 LOCAL_KEY="terraform-main.tfstate"
 
 oci os object get --bucket-name $S3_STATE_BUCKET --name $S3_STATE_KEY --region $ORACLE_REGION --file $LOCAL_KEY

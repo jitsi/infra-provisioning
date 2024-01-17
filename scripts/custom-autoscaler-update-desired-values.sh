@@ -26,13 +26,6 @@ fi
 ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 [ -e "$LOCAL_PATH/../clouds/${ORACLE_CLOUD_NAME}.sh" ] && . $LOCAL_PATH/../clouds/"${ORACLE_CLOUD_NAME}".sh
 
-# use custom backend if provided, otherwise use default URL for environment
-if [ -n "$AUTOSCALER_BACKEND" ]; then
-  if [[ "$AUTOSCALER_BACKEND" != "prod" ]] && [[ "$AUTOSCALER_BACKEND" != "pilot" ]]; then
-    AUTOSCALER_URL="https://$AUTOSCALER_BACKEND-autoscaler.$TOP_LEVEL_DNS_ZONE_NAME"
-  fi
-fi
-
 if [ -z "$AUTOSCALER_URL" ]; then
   echo "No AUTOSCALER_URL provided or found. Exiting.. "
   exit 212
@@ -85,6 +78,33 @@ fi
 
 if [ "$DESIRED_COUNT" ]; then
   REQUEST_BODY=$(echo "$REQUEST_BODY" | jq --arg DESIRED_COUNT "$DESIRED_COUNT" '. += {"desiredCount": '$DESIRED_COUNT'}')
+fi
+
+function findGroup() {
+  instanceGroupGetResponse=$(curl -s -w "\n %{http_code}" -X GET \
+    "$AUTOSCALER_URL"/groups/"$GROUP_NAME" \
+    -H "Authorization: Bearer $TOKEN")
+
+  getGroupHttpCode=$(tail -n1 <<<"$instanceGroupGetResponse" | sed 's/[^0-9]*//g') # get the last line
+  instanceGroupDetails=$(sed '$ d' <<<"$instanceGroupGetResponse")                 # get all but the last line which contains the status code
+}
+
+echo "Retrieve instance group details for group $GROUP_NAME"
+findGroup
+if [ "$getGroupHttpCode" == 404 ]; then
+  echo "No group $GROUP_NAME found at $AUTOSCALER_URL. Trying local autoscaler"
+  export AUTOSCALER_URL="https://${ENVIRONMENT}-${ORACLE_REGION}-autoscaler.${TOP_LEVEL_DNS_ZONE_NAME}"
+  findGroup
+  if [ "$getGroupHttpCode" == 404 ]; then
+    echo "No group $GROUP_NAME found at $AUTOSCALER_URL. Assuming no more work to do"
+    exit 230
+  elif [ "$getGroupHttpCode" == 200 ]; then
+    echo "Group $GROUP_NAME was found in the autoscaler"
+    export CLOUD_PROVIDER="$(echo "$instanceGroupDetails" | jq -r ."instanceGroup.cloud")"
+  fi
+elif [ "$getGroupHttpCode" == 200 ]; then
+  echo "Group $GROUP_NAME was found in the autoScaler"
+  export CLOUD_PROVIDER="$(echo "$instanceGroupDetails" | jq -r ."instanceGroup.cloud")"
 fi
 
 echo "Update desired values for group $GROUP_NAME"

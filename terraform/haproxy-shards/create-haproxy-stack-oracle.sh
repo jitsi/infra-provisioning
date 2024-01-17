@@ -195,18 +195,22 @@ TERRAFORM_MAJOR_VERSION=$(terraform -v | head -1  | awk '{print $2}' | cut -d'.'
 TF_GLOBALS_CHDIR=
 TF_GLOBALS_CHDIR_SG=
 TF_GLOBALS_CHDIR_LBSG=
+TF_GLOBALS_CHDIR_RS=
 if [[ "$TERRAFORM_MAJOR_VERSION" == "v1" ]]; then
   TF_GLOBALS_CHDIR="-chdir=$LOCAL_PATH"
   TF_GLOBALS_CHDIR_SG="-chdir=$LOCAL_PATH/security-group"
   TF_GLOBALS_CHDIR_LBSG="-chdir=$LOCAL_PATH/load-balancer-security-group"
+  TF_GLOBALS_CHDIR_RS="-chdir=$LOCAL_PATH/load-balancer-ruleset"
   TF_CLI_ARGS=""
   TF_POST_PARAMS=
   TF_POST_PARAMS_SG=
   TF_POST_PARAMS_LBSG=
+  TF_POST_PARAMS_RS=
 else
   TF_POST_PARAMS="$LOCAL_PATH"
   TF_POST_PARAMS_SG="$LOCAL_PATH/security-group"
   TF_POST_PARAMS_LBSG="$LOCAL_PATH/load-balancer-security-group"
+  TF_POST_PARAMS_RS="$LOCAL_PATH/load-balancer-rule-set"
 fi
 
 # first find or create the haproxy security group
@@ -298,6 +302,8 @@ if [ -z "$LB_SECURITY_GROUP_ID" ]; then
   exit 3
 fi
 
+
+
 [ -z "$ACTION" ] && ACTION="apply"
 
 if [[ "$ACTION" == "apply" ]]; then
@@ -359,3 +365,61 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
   -var "infra_configuration_repo=$INFRA_CONFIGURATION_REPO" \
   -var "infra_customizations_repo=$INFRA_CUSTOMIZATIONS_REPO" \
   $ACTION_POST_PARAMS $TF_POST_PARAMS
+
+LOCAL_HAPROXY_KEY="terraform-haproxy.tfstate"
+
+oci os object get --bucket-name $S3_STATE_BUCKET --name $S3_STATE_KEY --region $ORACLE_REGION --file $LOCAL_HAPROXY_KEY
+if [ $? -eq 0 ]; then
+  OCI_LOAD_BALANCER_ID="$(cat $LOCAL_HAPROXY_KEY | jq -r '.resources[]
+      | select(.type == "oci_load_balancer")
+      | .instances[]
+      | .attributes.id')"
+else
+  echo "Failed to extract load balancer ID, redirect ruleset will not be applied."
+  exit 12
+fi
+
+# find or create the load balancer rule set for https redirect
+# this is a separate terraform template because updating the load balancer
+# ruleset causes the load balancer to drop active connections
+[ -z "$S3_STATE_LB_KEY_RS" ] && S3_STATE_LB_KEY_RS="$ENVIRONMENT/haproxy-components/terraform-lb-rs.tfstate"
+LOCAL_LB_KEY_RS="terraform-lb-rs.tfstate"
+
+oci os object get --bucket-name $S3_STATE_BUCKET --name $S3_STATE_LB_KEY_RS --region $ORACLE_REGION --file $LOCAL_LB_KEY_RS
+
+if [ $? -eq 0 ]; then
+  LB_RULE_SET_ID="$(cat $LOCAL_LB_KEY_RS | jq -r '.resources[]
+      | select(.type == "oci_load_balancer_rule_set")
+      | .instances[]
+      | .attributes.id')"
+fi
+
+if [ -z "$LB_RULE_SET_ID" ]; then
+  terraform $TF_GLOBALS_CHDIR_RS init \
+    -backend-config="bucket=$S3_STATE_BUCKET" \
+    -backend-config="key=$S3_STATE_LB_KEY_RS" \
+    -backend-config="region=$ORACLE_REGION" \
+    -backend-config="profile=$S3_PROFILE" \
+    -backend-config="endpoint=$S3_ENDPOINT" \
+    -reconfigure $TF_POST_PARAMS_RS
+
+  terraform $TF_GLOBALS_CHDIR_RS apply \
+    -var="oracle_region=$ORACLE_REGION" \
+    -var="tenancy_ocid=$TENANCY_OCID" \
+    -var="oci_load_balancer_id=$OCI_LOAD_BALANCER_ID" \
+    -var="oci_load_balancer_bs_name=HAProxyLBBS" \
+    -var="oci_load_balancer_redirect_rule_set_name=RedirectToHTTPS" \
+    -auto-approve $TF_POST_PARAMS_RS
+
+  oci os object get --bucket-name $S3_STATE_BUCKET --name $S3_STATE_LB_KEY_RS --region $ORACLE_REGION --file $LOCAL_LB_KEY_RS
+
+  LB_RULE_SET_ID="$(cat $LOCAL_LB_KEY_RS | jq -r '.resources[]
+      | select(.type == "oci_core_network_security_group")
+      | .instances[]
+      | .attributes.id')"
+fi
+
+if [ -z "$LB_RULE_SET_ID" ]; then
+  echo "LB_RULE_SET_ID failed to be found or created, exiting..."
+  exit 3
+fi

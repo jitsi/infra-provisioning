@@ -17,7 +17,7 @@ fi
 
 [ -e ./sites/$ENVIRONMENT/stack-env.sh ] && . ./sites/$ENVIRONMENT/stack-env.sh
 
-LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
+LOCAL_PATH=$(realpath $(dirname "${BASH_SOURCE[0]}"))
 
 [ -z "$ANSIBLE_BUILD_PATH" ] && ANSIBLE_BUILD_PATH="$LOCAL_PATH/../../infra-configuration/ansible"
 
@@ -107,6 +107,7 @@ rm -f .facts/default
 
 # support packer 1.8
 PACKER_VERSION=$(packer --version)
+echo $PACKER_VERSION | grep -q 'Packer' && PACKER_VERSION=$(echo $PACKER_VERSION | cut -d' ' -f2 | cut -d 'v' -f2)
 if [[ $(echo $PACKER_VERSION | cut -d'.' -f1) -ge 1 ]] && [[ $(echo $PACKER_VERSION | cut -d'.' -f2) -gt 7 ]]; then
   packer init $LOCAL_PATH/../build/require.pkr.hcl
 fi

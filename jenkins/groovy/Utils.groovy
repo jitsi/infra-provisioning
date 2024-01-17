@@ -128,6 +128,9 @@ def CreateImageOracle(image_type) {
         case 'JVB':
             image_script = 'build-jvb-oracle.sh'
         break;
+        case 'JicofoHotfix':
+            image_script = 'build-jicofo-hotfix-oracle.sh'
+        break;
         case 'Signal':
             image_script = 'build-signal-oracle.sh'
         break;
@@ -279,7 +282,7 @@ def JigasiShapeFromEnvironment(environment) {
 . ./clouds/oracle.sh
 . ./sites/${environment}/stack-env.sh
 if [ -z "\$JIGASI_SHAPE" ]; then
-    echo \$SHAPE_E_4
+    echo \$SHAPE_A_1
 else
     echo \$JIGASI_SHAPE
 fi
@@ -310,7 +313,7 @@ def SignalShapeFromEnvironment(environment) {
 . ./clouds/oracle.sh
 . ./sites/${environment}/stack-env.sh
 if [ -z "\$DEFAULT_SIGNAL_SHAPE" ]; then
-    echo \$DEFAULT_STANDALONE_SHAPE
+    echo \$SHAPE_A_1
 else
     echo \$DEFAULT_SIGNAL_SHAPE
 fi

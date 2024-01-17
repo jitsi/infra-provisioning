@@ -33,8 +33,32 @@ if [ -n "$CLOUD_NAME" ]; then
   [ -e "$LOCAL_PATH/../clouds/${CLOUD_NAME}.sh" ] && . "$LOCAL_PATH/../clouds/${CLOUD_NAME}.sh"
 fi
 
+function consul_shard_clear() {
+    S=$1
+
+    SHARD_REGION=$($LOCAL_PATH/shard.py --shard_region --shard $S --environment $ENVIRONMENT)
+    CONSUL_URL="https://$ENVIRONMENT-$SHARD_REGION-consul.$TOP_LEVEL_DNS_ZONE_NAME/v1/kv/"
+
+    FINAL_RET=0
+
+    set -x
+
+    STATE_KEY="shard-states/$ENVIRONMENT/$S"
+    TEST_KEY="shard-test/$ENVIRONMENT/$S"
+    REPORT_KEY="signal-report/$ENVIRONMENT/$S"
+    for KEY in $STATE_KEY $TEST_KEY $REPORT_KEY; do
+        curl -X DELETE "$CONSUL_URL${KEY}"
+        RET=$?
+        if [[ $RET -gt 0 ]]; then
+            FINAL_RET=$RET
+        fi
+    done
+
+    return $FINAL_RET
+}
+
 #select new shard numbers if not provided
-[ -z $SHARD_NUMBERS ] && SHARD_NUMBERS=$(ENVIRONMENT="$ENVIRONMENT" COUNT=$SHARD_COUNT $LOCAL_PATH/shard.sh new $ANSIBLE_SSH_USER)
+[ -z "$SHARD_NUMBERS" ] && SHARD_NUMBERS=$(ENVIRONMENT="$ENVIRONMENT" COUNT=$SHARD_COUNT $LOCAL_PATH/shard.sh new $ANSIBLE_SSH_USER)
 
 FINAL_RET=0
 if [ $? -eq 0 ]; then
@@ -42,19 +66,21 @@ if [ $? -eq 0 ]; then
   export ORACLE_REGION
   export REGION_ALIAS
 
-  for x in $SHARD_NUMBERS; do
-      export SHARD_NAME=$(ENVIRONMENT="$ENVIRONMENT" SHARD_NUMBER=$x $LOCAL_PATH/shard.sh name $ANSIBLE_SSH_USER)
+  for SN in $SHARD_NUMBERS; do
+      export SHARD_NAME=$(ENVIRONMENT="$ENVIRONMENT" SHARD_NUMBER="$SN" $LOCAL_PATH/shard.sh name $ANSIBLE_SSH_USER)
+      # clear any existing state
+      consul_shard_clear $SHARD_NAME
       # first mark new shard as drain
       CONSUL_SHARD_STATES_ONLY="true" SHARDS_DRAIN="$SHARD_NAME" scripts/set-signal-shard-states.sh $ANSIBLE_SSH_USER
       #make a new stack for each new shard
       if [[ "$CORE_CLOUD_PROVIDER" == "aws" ]]; then
-          SHARD_NUMBER=$x $LOCAL_PATH/create-app-shard-stack.sh
+          SHARD_NUMBER=$SN $LOCAL_PATH/create-app-shard-stack.sh
           RET=$?
       elif [[ "$CORE_CLOUD_PROVIDER" == "oracle" ]]; then
-          SHARD_NUMBER=$x $LOCAL_PATH/create-shard-oracle.sh $ANSIBLE_SSH_USER
+          SHARD_NUMBER=$SN $LOCAL_PATH/create-shard-oracle.sh $ANSIBLE_SSH_USER
           RET=$?
       elif [[ "$CORE_CLOUD_PROVIDER" == "nomad" ]]; then
-          SHARD_NUMBER=$x $LOCAL_PATH/create-shard-nomad.sh $ANSIBLE_SSH_USER
+          SHARD_NUMBER=$SN $LOCAL_PATH/create-shard-nomad.sh $ANSIBLE_SSH_USER
           RET=$?
       else
           echo "Not a supported CORE_CLOUD_PROVIDER: $CORE_CLOUD_PROVIDER"

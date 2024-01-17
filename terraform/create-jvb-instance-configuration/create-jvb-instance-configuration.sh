@@ -46,7 +46,14 @@ fi
 [ -z "$JVB_VERSION" ] && JVB_VERSION='latest'
 
 #pull in cloud-specific variables, e.g. tenancy
+[ -e "$LOCAL_PATH/../../clouds/all.sh" ] && . $LOCAL_PATH/../../clouds/all.sh
 [ -e "$LOCAL_PATH/../../clouds/oracle.sh" ] && . $LOCAL_PATH/../../clouds/oracle.sh
+
+[ -z "$INFRA_CONFIGURATION_REPO" ] && INFRA_CONFIGURATION_REPO="$PRIVATE_CONFIGURATION_REPO"
+[ -z "$INFRA_CONFIGURATION_REPO" ] && INFRA_CONFIGURATION_REPO="https://github.com/jitsi/infra-configuration.git"
+
+[ -z "$INFRA_CUSTOMIZATIONS_REPO" ] && INFRA_CUSTOMIZATIONS_REPO="$PRIVATE_CUSTOMIZATIONS_REPO"
+[ -z "$INFRA_CUSTOMIZATIONS_REPO" ] && INFRA_CUSTOMIZATIONS_REPO="https://github.com/jitsi/infra-customizations.git"
 
 if [ -z "$ORACLE_REGION" ]; then
   echo "No ORACLE_REGION found.  Exiting..."
@@ -76,13 +83,13 @@ fi
 
 if [[ "$SHAPE" == "VM.Standard.E3.Flex" ]]; then
   [ -z "$OCPUS" ] && OCPUS=4
-  [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=16
+  [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=12
 elif [[ "$SHAPE" == "VM.Standard.E4.Flex" ]]; then
   [ -z "$OCPUS" ] && OCPUS=4
-  [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=16
+  [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=12
 elif [[ "$SHAPE" == "VM.Standard.A1.Flex" ]]; then
   [ -z "$OCPUS" ] && OCPUS=8
-  [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=16
+  [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=12
 else
   [ -z "$OCPUS" ] && OCPUS=4
   [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=60
@@ -100,6 +107,30 @@ fi
 [ -z "$JVB_AUTOSCALER_ENABLED" ] && JVB_AUTOSCALER_ENABLED="$JVB_DEFAULT_AUTOSCALER_ENABLED"
 [ -z "$JVB_AUTOSCALER_ENABLED" ] && JVB_AUTOSCALER_ENABLED="true"
 
+JVB_NOMAD_VARIABLE="jvb_enable_nomad"
+
+[ -z "$CONFIG_VARS_FILE" ] && CONFIG_VARS_FILE="$LOCAL_PATH/../../config/vars.yml"
+[ -z "$ENVIRONMENT_VARS_FILE" ] && ENVIRONMENT_VARS_FILE="$LOCAL_PATH/../../sites/$ENVIRONMENT/vars.yml"
+
+if [ -z "$NOMAD_JVB_FLAG" ]; then
+  NOMAD_JVB_FLAG="$(cat $ENVIRONMENT_VARS_FILE | yq eval .${JVB_NOMAD_VARIABLE} -)"
+  if [[ "$NOMAD_JVB_FLAG" == "null" ]]; then
+    NOMAD_JVB_FLAG="$(cat $CONFIG_VARS_FILE | yq eval .${JVB_NOMAD_VARIABLE} -)"
+  fi
+  if [[ "$NOMAD_JVB_FLAG" == "null" ]]; then
+    NOMAD_JVB_FLAG=
+  fi
+fi
+[ -z "$NOMAD_JVB_FLAG" ] && NOMAD_JVB_FLAG="false"
+
+JVB_IMAGE_TYPE="JVB"
+
+if [[ "$NOMAD_JVB_FLAG" == "true" ]]; then
+  JVB_IMAGE_TYPE="JammyBase"
+  JVB_VERSION="latest"
+  SHARD_ROLE="JVB-nomad-pool"
+fi
+
 [ -z "$JVB_POOL_MODE" ] && JVB_POOL_MODE="shard"
 
 [ -z "$INSTANCE_CONFIG_NAME" ] && INSTANCE_CONFIG_NAME="$SHARD-JVBInstanceConfig"
@@ -110,7 +141,7 @@ fi
 
 arch_from_shape $SHAPE
 
-[ -z "$IMAGE_OCID" ] && IMAGE_OCID=$($LOCAL_PATH/../../scripts/oracle_custom_images.py --type JVB --version "$JVB_VERSION" --architecture "$IMAGE_ARCH" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
+[ -z "$IMAGE_OCID" ] && IMAGE_OCID=$($LOCAL_PATH/../../scripts/oracle_custom_images.py --type $JVB_IMAGE_TYPE --version "$JVB_VERSION" --architecture "$IMAGE_ARCH" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
 if [ -z "$IMAGE_OCID" ]; then
   echo "No IMAGE_OCID found.  Exiting..."
   exit 1
@@ -140,6 +171,12 @@ terraform $TF_GLOBALS_CHDIR init \
   -reconfigure $TF_POST_PARAMS
 
 [ -z "$ACTION" ] && ACTION="apply"
+if [[ "$ACTION" == "apply" ]]; then
+  ACTION_POST_PARAMS="-auto-approve"
+fi
+if [[ "$ACTION" == "import" ]]; then
+  ACTION_POST_PARAMS="$1 $2"
+fi
 
 terraform $TF_GLOBALS_CHDIR $ACTION \
   -var="domain=$DOMAIN" \
@@ -169,12 +206,16 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
   -var="user_public_key_path=$USER_PUBLIC_KEY_PATH" \
   -var="secondary_vnic_name=$SECONDARY_VNIC_NAME" \
   -var="use_eip=$USE_EIP" \
+  -var="nomad_flag=$NOMAD_JVB_FLAG" \
   -var="autoscaler_sidecar_jvb_flag=$JVB_AUTOSCALER_ENABLED" \
   -var "infra_configuration_repo=$INFRA_CONFIGURATION_REPO" \
   -var "infra_customizations_repo=$INFRA_CUSTOMIZATIONS_REPO" \
-  -auto-approve $TF_POST_PARAMS
+  $ACTION_POST_PARAMS $TF_POST_PARAMS
+RET=$?
 
 if [[ "$ENVIRONMENT_TYPE" == "prod" ]]; then
   echo "Tagging JVB image as production"
   $LOCAL_PATH/../../scripts/oracle_custom_images.py --tag_production --image_id $IMAGE_OCID --region $ORACLE_REGION
 fi
+
+exit $RET

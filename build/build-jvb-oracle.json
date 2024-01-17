@@ -62,6 +62,7 @@
       "playbook_file": "{{user `ansible_build_path`}}/build-jvb-oracle.yml",
       "user": "{{user `ansible_ssh_user`}}",
       "extra_arguments": [
+        "--scp-extra-args", "'-O'",
         "-e",
         "jitsi_videobridge_deb_pkg_version={{user `jitsi_videobridge_deb_pkg_version`}}",
         "-e",

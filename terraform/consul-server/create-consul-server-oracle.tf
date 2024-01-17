@@ -290,6 +290,21 @@ resource "oci_core_network_security_group_security_rule" "nsg_rule_ingress_nomad
   }
 }
 
+resource "oci_core_network_security_group_security_rule" "consul_nsg_rule_telegraf_prometheus_tcp" {
+  network_security_group_id = oci_core_network_security_group.consul_security_group.id
+  direction = "INGRESS"
+  protocol = "6"
+  source = data.oci_core_vcns.vcns.virtual_networks[0].cidr_block
+  stateless = false
+
+  tcp_options {
+    destination_port_range {
+      max = 9126
+      min = 9126
+    }
+  }
+}
+
 resource "oci_core_instance_configuration" "oci_instance_configuration_a" {
   compartment_id = var.compartment_ocid
   display_name = var.instance_config_name
@@ -446,7 +461,7 @@ resource "oci_load_balancer_backend_set" "oci_load_balancer_bs" {
     protocol = "HTTP"
     port = 8500
     retries = 3
-    url_path = "/"
+    url_path = "/v1/agent/metrics"
   }
 }
 

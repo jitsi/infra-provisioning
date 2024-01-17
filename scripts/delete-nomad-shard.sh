@@ -20,7 +20,7 @@ LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
 if [ -z "$ORACLE_REGION" ]; then
   # Extract EC2_REGION from the shard name and use it to get the ORACLE_REGION
-  ORACLE_REGION=$($LOCAL_PATH/shard.py --shard_region --environment=$ENVIRONMENT --shard=$SHARD)
+  ORACLE_REGION=$($LOCAL_PATH/shard.py --shard_region --environment=$ENVIRONMENT --shard=$SHARD --oracle)
 fi
 
 if [ -z "$ORACLE_REGION" ]; then
@@ -33,6 +33,15 @@ fi
 
 if [ -z "$NOMAD_ADDR" ]; then
     export NOMAD_ADDR="https://$ENVIRONMENT-$LOCAL_REGION-nomad.$TOP_LEVEL_DNS_ZONE_NAME"
+fi
+
+nomad-pack status jitsi_meet_backend --name shard-$SHARD | egrep -q "no jobs found|dead"
+if [[ $? -eq 1 ]]; then
+    echo "nomad pack found for shard $SHARD"
+    nomad-pack stop jitsi_meet_backend --name shard-$SHARD
+else
+    echo "nomad pack not found for shard $SHARD"
+    nomad job stop "shard-$SHARD"
 fi
 
 nomad job stop "shard-$SHARD"

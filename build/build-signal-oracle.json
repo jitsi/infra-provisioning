@@ -72,6 +72,7 @@
       "playbook_file": "{{user `ansible_build_path`}}/build-signal.yml",
       "user": "{{user `ansible_ssh_user`}}",
       "extra_arguments": [
+        "--scp-extra-args", "'-O'",
         "-e",
         "jitsi_meet_deb_pkg_version={{user `jitsi_meet_deb_pkg_version`}}",
         "-e",

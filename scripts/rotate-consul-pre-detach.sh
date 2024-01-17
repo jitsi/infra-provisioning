@@ -24,8 +24,8 @@ if [[ $RET -gt 0 ]]; then
     echo "## ERROR draining nomad on $INSTANCE_PRIMARY_PRIVATE_IP with code $RET"
 fi
 echo -e "\n## rotate-consul-pre-detach: waiting for nomad drain to complete before stopping nomad and consul on $INSTANCE_PRIMARY_PRIVATE_IP"
-sleep 90
-timeout 10 ssh -F $LOCAL_PATH/../config/ssh.config $SSH_USER@$INSTANCE_PRIMARY_PRIVATE_IP "nomad node drain -self -enable -force -detach -yes && sleep 10 && sudo service nomad stop"
+sleep 120
+timeout 120 ssh -F $LOCAL_PATH/../config/ssh.config $SSH_USER@$INSTANCE_PRIMARY_PRIVATE_IP "nomad node drain -self -enable -force -detach -yes && sleep 20 && sudo service nomad stop"
 RET=$?
 if [[ $RET -gt 0 ]]; then
     echo "## ERROR stopping nomad on $INSTANCE_PRIMARY_PRIVATE_IP with code $RET"

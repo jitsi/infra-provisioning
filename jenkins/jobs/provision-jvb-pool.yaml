@@ -17,11 +17,11 @@
           default: lonely
           description: "Environment to build in, defaults to 'lonely'."
           trim: true
-    #   - string:
-    #       name: CLOUD_PROVIDER
-    #       default: oracle
-    #       description: "Cloud Provider, defaults to 'oracle'"
-    #       trim: true
+      - string:
+          name: CLOUD_PROVIDER
+          default: oracle
+          description: "Cloud Provider, defaults to 'oracle'"
+          trim: true
       - string:
           name: RELEASE_BRANCH
           default: main
@@ -34,6 +34,10 @@
       - string:
           name: CLOUD_NAME
           description: "Name of cloud to provision in"
+          trim: true
+      - string:
+          name: NOMAD_JVB_FLAG
+          description: "Flag for oracle pool for nomad JVBs"
           trim: true
       - string:
           name: RELEASE_NUMBER

@@ -192,6 +192,8 @@ function check_secondary_ip() {
 }
 
 eip_assign() {
+  [ -z "$PROVISION_COMMAND" ] && PROVISION_COMMAND="default_provision"
+
   EIP_EXIT_CODE=0
   (retry check_secondary_ip) || EIP_EXIT_CODE=1
 
@@ -207,7 +209,7 @@ eip_assign() {
   fi
 
   if [ $EIP_EXIT_CODE -eq 0 ]; then
-      (retry add_ip_tags && retry provisioning) || EIP_EXIT_CODE=1
+      (retry add_ip_tags && retry $PROVISION_COMMAND) || EIP_EXIT_CODE=1
   fi
   return $EIP_EXIT_CODE
 }
@@ -215,12 +217,15 @@ eip_assign() {
 function eip_main() {
   EXIT_CODE=0
 
+  [ -z "$PROVISION_COMMAND" ] && PROVISION_COMMAND="default_provision"
+  [ -z "$CLEAN_CREDENTIALS" ] && CLEAN_CREDENTIALS="true"
+
   if [ $EXIT_CODE -eq 0 ]; then
     if should_assign_eip; then
       eip_assign || EXIT_CODE=1
     else
         # we should not assign eip, therefore we assume we already have a public ip
-        (retry add_ip_tags && retry provisioning) || EXIT_CODE=1
+        (retry add_ip_tags && retry $PROVISION_COMMAND) || EXIT_CODE=1
     fi
   else
     echo "Failed to get private IP, no further provisioning possible.  This instance requires manual intervention"

@@ -52,7 +52,7 @@ fi
 
 [ -z "$SHAPE" ] && SHAPE="$SHAPE_E_4"
 [ -z "$OCPUS" ] && OCPUS="4"
-[ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS="16"
+[ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS="12"
 
 [ -z "$BASE_IMAGE_TYPE" ] && BASE_IMAGE_TYPE="$JVB_BASE_IMAGE_TYPE"
 [ -z "$BASE_IMAGE_TYPE" ] && BASE_IMAGE_TYPE="JammyBase"
@@ -94,6 +94,7 @@ rm -f .facts/default
 
 # support packer 1.8
 PACKER_VERSION=$(packer --version)
+echo $PACKER_VERSION | grep -q 'Packer' && PACKER_VERSION=$(echo $PACKER_VERSION | cut -d' ' -f2 | cut -d 'v' -f2)
 if [[ $(echo $PACKER_VERSION | cut -d'.' -f1) -ge 1 ]] && [[ $(echo $PACKER_VERSION | cut -d'.' -f2) -gt 7 ]]; then
   packer init $LOCAL_PATH/../build/require.pkr.hcl
 fi

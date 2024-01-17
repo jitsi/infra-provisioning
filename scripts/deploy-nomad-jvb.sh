@@ -18,6 +18,18 @@ if [ -z "$ORACLE_REGION" ]; then
     exit 2
 fi
 
+[ -z "$JVB_POOL_MODE" ] && export JVB_POOL_MODE="global"
+[ -z "$SHARD_BASE" ] && SHARD_BASE="$ENVIRONMENT"
+
+[ -z "$JVB_POOL_NAME" ] && JVB_POOL_NAME="$SHARD_BASE-$ORACLE_REGION-$JVB_POOL_MODE-$RELEASE_NUMBER"
+if [ ! -z "$JVB_POOL_NAME" ]; then
+  export SHARD=$JVB_POOL_NAME
+  export SHARD_NAME=$SHARD
+else
+  echo "Error. JVB_POOL_NAME is empty"
+  exit 213
+fi
+
 [ -z "$LOCAL_REGION" ] && LOCAL_REGION="$OCI_LOCAL_REGION"
 [ -z "$LOCAL_REGION" ] && LOCAL_REGION="us-phoenix-1"
 
@@ -31,12 +43,11 @@ fi
 
 if [ -n "$JVB_VERSION" ]; then
     JVB_TAG="jvb-$JVB_VERSION-1"
-    export NOMAD_VAR_jvb_version="$JVB_VERSION"
+    export CONFIG_jvb_version="$JVB_VERSION"
 fi
 
 [ -z "$JVB_TAG" ] && JVB_TAG="$DOCKER_TAG"
 
-NOMAD_JOB_PATH="$LOCAL_PATH/../nomad"
 NOMAD_DC="$ENVIRONMENT-$ORACLE_REGION"
 
 [ -z "$ENVIRONMENT_TYPE" ] && ENVIRONMENT_TYPE="stage"
@@ -54,24 +65,79 @@ JVB_XMPP_PASSWORD_VARIABLE="jvb_xmpp_password"
 set +x
 set -e
 set -o pipefail
-export NOMAD_VAR_jvb_auth_password="$(ansible-vault view $ENCRYPTED_JVB_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${JVB_XMPP_PASSWORD_VARIABLE}" -)"
-export NOMAD_VAR_asap_jwt_kid="$(ansible-vault view $ENCRYPTED_ASAP_KEYS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${ASAP_KEY_VARIABLE}.id" -)"
+export CONFIG_jvb_auth_password="$(ansible-vault view $ENCRYPTED_JVB_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${JVB_XMPP_PASSWORD_VARIABLE}" -)"
+export CONFIG_asap_jwt_kid="$(ansible-vault view $ENCRYPTED_ASAP_KEYS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${ASAP_KEY_VARIABLE}.id" -)"
 
 set -x
+set +e
 
-export NOMAD_VAR_environment="$ENVIRONMENT"
-export NOMAD_VAR_environment_type="${ENVIRONMENT_TYPE}"
-export NOMAD_VAR_domain="$DOMAIN"
-# [ -n "$SHARD_STATE" ] && export NOMAD_VAR_shard_state="$SHARD_STATE"
-export NOMAD_VAR_jvb_tag="$JVB_TAG"
-export NOMAD_VAR_pool_type="$NOMAD_POOL_TYPE"
-export NOMAD_VAR_release_number="$RELEASE_NUMBER"
-export NOMAD_VAR_shard="$SHARD"
+[ -z "$JVB_POOL_TYPE" ] && export CONFIG_jvb_pool_type="$JVB_POOL_TYPE"
 
-[ -z "$JVB_POOL_TYPE" ] && export NOMAD_VAR_jvb_pool_type="$JVB_POOL_TYPE"
-
-export NOMAD_JOB_NAME="jvb-release-${RELEASE_NUMBER}-${ORACLE_REGION}"
+export JOB_NAME="jvb-${SHARD}"
 export NOMAD_URL="https://${ENVIRONMENT}-${ORACLE_REGION}-nomad.$TOP_LEVEL_DNS_ZONE_NAME"
 
-sed -e "s/\[JOB_NAME\]/${NOMAD_JOB_NAME}/" "$NOMAD_JOB_PATH/jvb.hcl" | nomad job run -var="dc=$NOMAD_DC" -
-exit $?
+# evaluate each string, integer and boolean in the environment configuration file and export it as a CONFIG_ environment variable
+eval $(yq '.. | select(tag == "!!int" or tag == "!!str" or tag == "!!bool") |  "export CONFIG_"+(path | join("_")) + "=\"" + . + "\""' $ENVIRONMENT_CONFIGURATION_FILE)
+
+export CONFIG_environment="$ENVIRONMENT"
+export CONFIG_environment_type="${ENVIRONMENT_TYPE}"
+export CONFIG_domain="$DOMAIN"
+export CONFIG_shard="$SHARD"
+export CONFIG_octo_region="$ORACLE_REGION"
+# [ -n "$SHARD_STATE" ] && export CONFIG_shard_state="$SHARD_STATE"
+export CONFIG_release_number="$RELEASE_NUMBER"
+export CONFIG_jvb_version="$JVB_VERSION"
+export CONFIG_pool_type="$NOMAD_POOL_TYPE"
+export CONFIG_jvb_tag="$JVB_TAG"
+export CONFIG_jvb_pool_mode="$JVB_POOL_MODE"
+
+PACKS_DIR="$LOCAL_PATH/../nomad/jitsi_packs/packs"
+
+nomad-pack render --name "$JOB_NAME" \
+  -var "job_name=$JOB_NAME" \
+  -var "datacenter=$NOMAD_DC" \
+  $PACKS_DIR/jitsi_meet_jvb > /tmp/input.hcl
+
+nomad-pack plan --name "$JOB_NAME" \
+  -var "job_name=$JOB_NAME" \
+  -var "datacenter=$NOMAD_DC" \
+  $PACKS_DIR/jitsi_meet_jvb
+
+PLAN_RET=$?
+
+if [ $PLAN_RET -gt 1 ]; then
+    echo "Failed planning JVB job, exiting"
+    exit 4
+else
+    if [ $PLAN_RET -eq 1 ]; then
+        echo "Plan was successful, will make changes"
+    fi
+    if [ $PLAN_RET -eq 0 ]; then
+        echo "Plan was successful, no changes needed"
+    fi
+fi
+
+nomad-pack run --name "$JOB_NAME" \
+  -var "job_name=$JOB_NAME" \
+  -var "datacenter=$NOMAD_DC" \
+  $PACKS_DIR/jitsi_meet_jvb
+
+if [ $? -ne 0 ]; then
+    echo "Failed to run JVB job, exiting"
+    exit 5
+else
+    scripts/nomad-pack.sh status jitsi_meet_jvb --name "$JOB_NAME"
+    if [ $? -ne 0 ]; then
+        echo "Failed to get status for JVB job, exiting"
+        exit 6
+    fi
+    echo "JVB deployment complete"
+    exit 0
+    # nomad-watch --out "deployment" started "$JOB_NAME"
+    # WATCH_RET=$?
+    # if [ $WATCH_RET -ne 0 ]; then
+    #     echo "Failed starting job, dumping logs and exiting"
+    #     nomad-watch started "$JOB_NAME"
+    # fi
+    # exit $WATCH_RET
+fi

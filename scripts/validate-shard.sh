@@ -62,11 +62,8 @@ TEST_SUBDIR=''
 if [ -z $SHARD_IP ]; then
     SHARD_CORE_PROVIDER="$(SHARD=$SHARD ENVIRONMENT=$ENVIRONMENT $LOCAL_PATH/shard.sh core_provider $ANSIBLE_SSH_USER)"
     if [[ "$SHARD_CORE_PROVIDER" == "nomad" ]]; then
-      if [ -z "$ORACLE_REGION" ]; then
-        # Extract EC2_REGION from the shard name and use it to get the ORACLE_REGION
-        ORACLE_REGION=$($LOCAL_PATH/shard.py --shard_region --environment=$ENVIRONMENT --shard=$SHARD)
-      fi
-      [ -z "$NOMAD_LB_HOSTNAME" ] && NOMAD_LB_HOSTNAME="$ENVIRONMENT-$ORACLE_REGION-nomad-pool-general.$ORACLE_DNS_ZONE_NAME"
+      SHARD_REGION=$($LOCAL_PATH/shard.py --shard_region --environment=$ENVIRONMENT --shard=$SHARD)
+      [ -z "$NOMAD_LB_HOSTNAME" ] && NOMAD_LB_HOSTNAME="$ENVIRONMENT-$SHARD_REGION-nomad-pool-general.$ORACLE_DNS_ZONE_NAME"
 
       SHARD_IP=$(dig +short "$NOMAD_LB_HOSTNAME")
       if [ -z $SHARD_IP ]; then

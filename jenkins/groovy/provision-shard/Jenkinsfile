@@ -133,14 +133,6 @@ def validateShard(hcv_environment,shards) {
     return validateShard
 }
 
-def reconfigureEnvironment(hcv_environment) {
-    def result = build job: 'reconfigure-autoscaler-environment',wait: true,parameters: [
-        [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: hcv_environment],
-        [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH]
-    ]
-    return result
-}
-
 def skipShardJVBs
 def utils
 def shard_numbers
@@ -296,7 +288,7 @@ pipeline {
                     ]) {
                         script {
                             utils.SetupAnsible()
-                            newShards(env.ENVIRONMENT,env.CLOUD_NAME,env.CORE_CLOUD_PROVIDER,env.WORKSPACE,env.RELEASE_BRANCH,env.RELEASE_NUMBER,shard_numbers)
+                            newShards(env.ENVIRONMENT,env.CLOUD_NAME,env.CORE_CLOUD_PROVIDER,env.WORKSPACE,env.RELEASE_BRANCH,env.RELEASE_NUMBER,shard_numbers ? shard_numbers : env.SHARD_NUMBERS)
                         }
                     }
                   }
@@ -403,13 +395,6 @@ pipeline {
                 }
             }
         }
-        stage("Trigger autoscaler reconfiguration") {
-            steps {
-                script {
-                    reconfigureEnvironment(env.ENVIRONMENT)
-                }
-            }
-        }
         stage("Wait for healthy shards") {
             steps {
                 script {
@@ -440,8 +425,9 @@ pipeline {
         }
         stage("Enable shard alarms") {
             when {
-                allOf{
+                anyOf{
                    expression {env.CLOUD_PROVIDER == 'oracle'}
+                   expression {env.CLOUD_PROVIDER == 'nomad'}
                 }
             }
             steps {

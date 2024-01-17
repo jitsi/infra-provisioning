@@ -36,6 +36,7 @@ variable "user_data_file" {
 }
 variable "infra_configuration_repo" {}
 variable "infra_customizations_repo" {}
+variable "disk_in_gbs" {}
 
 locals {
   common_freeform_tags = {
@@ -101,6 +102,7 @@ resource "oci_core_instance_configuration" "oci_instance_configuration" {
       source_details {
         source_type = "image"
         image_id = var.image_ocid
+        boot_volume_size_in_gbs = var.disk_in_gbs
       }
 
       metadata = {

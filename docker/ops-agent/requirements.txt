@@ -1,4 +1,4 @@
-ansible==6.7.0
+ansible==9.0.1
 asn1crypto
 awacs
 awscli
@@ -37,3 +37,4 @@ six
 troposphere
 urllib3
 oci-cli
+nomad-tools

@@ -14,10 +14,12 @@ fi
 
 LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
-[ -z "$ROLE" ] && ROLE="nomad-pool"
+[ -z "$ROLE" ] && ROLE="$POOL_TYPE"
 [ -z "$POOL_TYPE" ] && POOL_TYPE="skynet"
 [ -z "$NAME" ] && NAME="$ENVIRONMENT-$ORACLE_REGION-$ROLE-$POOL_TYPE"
 [ -z "$ORACLE_GIT_BRANCH" ] && ORACLE_GIT_BRANCH="main"
+
+[ -z "$DISK_IN_GBS" ] && DISK_IN_GBS="100"
 
 [ -z "$POOL_PUBLIC" ] && POOL_PUBLIC="false"
 
@@ -67,6 +69,15 @@ fi
 [ -z "$ENCRYPTED_CREDENTIALS_FILE" ] && ENCRYPTED_CREDENTIALS_FILE="$LOCAL_PATH/../../ansible/secrets/ssl-certificates.yml"
 [ -z "$VAULT_PASSWORD_FILE" ] && VAULT_PASSWORD_FILE="$LOCAL_PATH/../../.vault-password.txt"
 
+# look up instance pool. If it exists, find its curent size and set INSTANCE_POOL_SIZE appropriately
+INSTANCE_POOL_DETAILS="$(oci compute-management instance-pool list --region "$ORACLE_REGION" -c "$COMPARTMENT_OCID" --all --display-name "$INSTANCE_POOL_NAME" | jq '.data[0]')"
+
+if [ -z "$INSTANCE_POOL_DETAILS" ] || [ "$INSTANCE_POOL_DETAILS" == "null" ]; then
+  echo "No instance pool found with name $INSTANCE_POOL_NAME. Using default size $INSTANCE_POOL_SIZE..."
+else
+  export INSTANCE_POOL_SIZE=$(echo "$INSTANCE_POOL_DETAILS" | jq -r '.size')
+  echo "Found existing instance pool with name $INSTANCE_POOL_NAME.  Using existing size $INSTANCE_POOL_SIZE"
+fi
 
 # run as user
 if [ -z "$1" ]; then
@@ -210,6 +221,7 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
   -var="shape=$SHAPE" \
   -var="memory_in_gbs=$MEMORY_IN_GBS" \
   -var="ocpus=$OCPUS" \
+  -var="disk_in_gbs=$DISK_IN_GBS" \
   -var="user_private_key_path=$USER_PRIVATE_KEY_PATH" \
   -var="postinstall_status_file=$POSTINSTALL_STATUS_FILE" \
   -var="vcn_name=$VCN_NAME" \

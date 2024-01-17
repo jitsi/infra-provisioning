@@ -42,6 +42,8 @@ job "[JOB_NAME]" {
       port "telegraf-statsd" {
         static = 8125
       }
+      port "telegraf-prometheus" {
+      }
     }
     # docker socket volume
     volume "root-ro" {
@@ -51,6 +53,20 @@ job "[JOB_NAME]" {
     }
 
     task "telegraf" {
+      service {
+        name = "telegraf"
+        tags = ["ip-${attr.unique.network.ip-address}"]
+        port = "telegraf-prometheus"
+        check {
+          name     = "alive"
+          type     = "http"
+          path     = "/"
+          port     = "telegraf-prometheus"
+          interval = "10s"
+          timeout  = "2s"
+        }
+      }
+
       user = "telegraf:999"
       driver = "docker"
       meta {
@@ -65,7 +81,7 @@ job "[JOB_NAME]" {
         network_mode = "host"
         privileged = true
         image        = "telegraf:latest"
-        ports = ["telegraf-statsd"]
+        ports = ["telegraf-statsd","telegraf-prometheus"]
         volumes = ["local/telegraf.conf:/etc/telegraf/telegraf.conf", "local/consul-resolved.conf:/etc/systemd/resolved.conf.d/consul.conf", "/var/run/docker.sock:/var/run/docker.sock"]
       }
       env {
@@ -180,6 +196,20 @@ EOF
         shard-role = "core"
         role = "core"
     [[inputs.prometheus.consul.query]]
+      name = "jvb"
+      tag = "ip-{{ env "attr.unique.network.ip-address" }}"
+      url = 'http://{{"{{"}}if ne .ServiceAddress ""}}{{"{{"}}.ServiceAddress}}{{"{{"}}else}}{{"{{"}}.Address}}{{"{{"}}end}}:{{"{{"}}.ServicePort}}/{{"{{"}}with .ServiceMeta.metrics_path}}{{"{{"}}.}}{{"{{"}}else}}metrics{{"{{"}}end}}'
+      [inputs.prometheus.consul.query.tags]
+        host = "{{"{{"}}.Node}}"
+        shard = "{{"{{"}}with .ServiceMeta.shard}}{{"{{"}}.}}{{"{{"}}else}}shard{{"{{"}}end}}"
+        release_number = "{{"{{"}}with .ServiceMeta.release_number}}{{"{{"}}.}}{{"{{"}}else}}0{{"{{"}}end}}"
+        jvb_release_number = "{{"{{"}}with .ServiceMeta.jvb_release_number}}{{"{{"}}.}}{{"{{"}}else}}0{{"{{"}}end}}"
+        shard-role = "JVB"
+        role = "JVB"
+        region = "{{ env "meta.cloud_region" }}"
+        oracle_region = "{{ env "meta.cloud_region" }}"
+        jvb_version = "{{"{{"}}with .ServiceMeta.jvb_version}}{{"{{"}}.}}{{"{{"}}else}}0{{"{{"}}end}}"
+    [[inputs.prometheus.consul.query]]
       name = "prosody-http"
       tag = "ip-{{ env "attr.unique.network.ip-address" }}"
       url = 'http://{{"{{"}}if ne .ServiceAddress ""}}{{"{{"}}.ServiceAddress}}{{"{{"}}else}}{{"{{"}}.Address}}{{"{{"}}end}}:{{"{{"}}.ServicePort}}/{{"{{"}}with .ServiceMeta.metrics_path}}{{"{{"}}.}}{{"{{"}}else}}metrics{{"{{"}}end}}'
@@ -222,7 +252,7 @@ EOF
     [[inputs.prometheus.consul.query]]
       name = "autoscaler"
       tag = "ip-{{ env "attr.unique.network.ip-address" }}"
-      url = 'http://{{"{{"}}if ne .ServiceAddress ""}}{{"{{"}}.ServiceAddress}}{{"{{"}}else}}{{"{{"}}.Address}}{{"{{"}}end}}:{{"{{"}}.ServicePort}}/{{"{{"}}with .ServiceMeta.metrics_path}}{{"{{"}}.}}{{"{{"}}else}}metrics{{"{{"}}end}}'
+      url = 'http://{{"{{"}}if ne .ServiceAddress ""}}{{"{{"}}.ServiceAddress}}{{"{{"}}else}}{{"{{"}}.Address}}{{"{{"}}end}}:{{"{{"}}with .ServiceMeta.metrics_port}}{{"{{"}}.}}{{"{{"}}else}}{{"{{"}}.ServicePort}}{{"{{"}}end}}/{{"{{"}}with .ServiceMeta.metrics_path}}{{"{{"}}.}}{{"{{"}}else}}metrics{{"{{"}}end}}'
       [inputs.prometheus.consul.query.tags]
         host = "{{"{{"}}.Node}}"
         shard-role = "autoscaler"
@@ -230,7 +260,7 @@ EOF
     [[inputs.prometheus.consul.query]]
       name = "skynet"
       tag = "ip-{{ env "attr.unique.network.ip-address" }}"
-      url = 'http://{{"{{"}}if ne .ServiceAddress ""}}{{"{{"}}.ServiceAddress}}{{"{{"}}else}}{{"{{"}}.Address}}{{"{{"}}end}}:{{"{{"}}with .ServiceMeta.metrics_port}}{{"{{"}}.}}{{"{{"}}else}}{{"{{"}}.ServicePort}}{{"{{"}}end}}/{{"{{"}}with .ServiceMeta.metrics_path}}{{"{{"}}.}}{{"{{"}}else}}/metrics{{"{{"}}end}}'
+      url = 'http://{{"{{"}}if ne .ServiceAddress ""}}{{"{{"}}.ServiceAddress}}{{"{{"}}else}}{{"{{"}}.Address}}{{"{{"}}end}}:{{"{{"}}with .ServiceMeta.metrics_port}}{{"{{"}}.}}{{"{{"}}else}}{{"{{"}}.ServicePort}}{{"{{"}}end}}/{{"{{"}}with .ServiceMeta.metrics_path}}{{"{{"}}.}}{{"{{"}}else}}metrics{{"{{"}}end}}'
       [inputs.prometheus.consul.query.tags]
         host = "{{"{{"}}.Node}}"
         shard-role = "skynet"
@@ -244,9 +274,17 @@ EOF
         shard-role = "recovery-agent"
         role = "recovery-agent"
     [[inputs.prometheus.consul.query]]
+      name = "whisper"
+      tag = "ip-{{ env "attr.unique.network.ip-address" }}"
+      url = 'http://{{"{{"}}if ne .ServiceAddress ""}}{{"{{"}}.ServiceAddress}}{{"{{"}}else}}{{"{{"}}.Address}}{{"{{"}}end}}:{{"{{"}}with .ServiceMeta.metrics_port}}{{"{{"}}.}}{{"{{"}}else}}{{"{{"}}.ServicePort}}{{"{{"}}end}}/{{"{{"}}with .ServiceMeta.metrics_path}}{{"{{"}}.}}{{"{{"}}else}}metrics{{"{{"}}end}}'
+      [inputs.prometheus.consul.query.tags]
+        host = "{{"{{"}}.Node}}"
+        shard-role = "whisper"
+        role = "whisper"
+    [[inputs.prometheus.consul.query]]
       name = "redis-metrics"
       tag = "ip-{{ env "attr.unique.network.ip-address" }}"
-      url = 'http://{{"{{"}}if ne .ServiceAddress ""}}{{"{{"}}.ServiceAddress}}{{"{{"}}else}}{{"{{"}}.Address}}{{"{{"}}end}}:{{"{{"}}with .ServiceMeta.metrics_port}}{{"{{"}}.}}{{"{{"}}else}}{{"{{"}}.ServicePort}}{{"{{"}}end}}/{{"{{"}}with .ServiceMeta.metrics_path}}{{"{{"}}.}}{{"{{"}}else}}/metrics{{"{{"}}end}}'
+      url = 'http://{{"{{"}}if ne .ServiceAddress ""}}{{"{{"}}.ServiceAddress}}{{"{{"}}else}}{{"{{"}}.Address}}{{"{{"}}end}}:{{"{{"}}with .ServiceMeta.metrics_port}}{{"{{"}}.}}{{"{{"}}else}}{{"{{"}}.ServicePort}}{{"{{"}}end}}/{{"{{"}}with .ServiceMeta.metrics_path}}{{"{{"}}.}}{{"{{"}}else}}metrics{{"{{"}}end}}'
       [inputs.prometheus.consul.query.tags]
         host = "{{"{{"}}.Node}}"
         shard-role = "redis"
@@ -258,7 +296,7 @@ EOF
   [inputs.prometheus.consul]
     enabled = true
     agent = "{{ env "attr.unique.network.ip-address" }}:8500"
-    query_interval = "1m"
+    query_interval = "30s"
     [[inputs.prometheus.consul.query]]
       name = "oscar"
       tag = "ip-{{ env "attr.unique.network.ip-address" }}"
@@ -267,6 +305,25 @@ EOF
         host = "{{"{{"}}.Node}}"
         shard-role = "oscar"
         role = "oscar"
+
+[[inputs.prometheus]]
+  namepass = ["DCGM_FI_DEV_GPU_UTIL*", "DCGM_FI_DEV_MEM_COPY_UTIL*"]
+  [inputs.prometheus.consul]
+    enabled = true
+    agent = "{{ env "attr.unique.network.ip-address" }}:8500"
+    query_interval = "1m"
+    [[inputs.prometheus.consul.query]]
+      name = "gpu-monitor"
+      tag = "ip-{{ env "attr.unique.network.ip-address" }}"
+      url = 'http://{{"{{"}}if ne .ServiceAddress ""}}{{"{{"}}.ServiceAddress}}{{"{{"}}else}}{{"{{"}}.Address}}{{"{{"}}end}}:{{"{{"}}with .ServiceMeta.metrics_port}}{{"{{"}}.}}{{"{{"}}else}}{{"{{"}}.ServicePort}}{{"{{"}}end}}/{{"{{"}}with .ServiceMeta.metrics_path}}{{"{{"}}.}}{{"{{"}}else}}metrics{{"{{"}}end}}'
+      [inputs.prometheus.consul.query.tags]
+        host = "{{"{{"}}.Node}}"
+        shard-role = "gpu"
+        role = "gpu"
+
+[[outputs.prometheus_client]]
+  listen = ":{{ env "NOMAD_HOST_PORT_telegraf_prometheus" }}"
+  path = "/metrics"
 
 [[outputs.wavefront]]
   url = "${var.wavefront_proxy_url}"

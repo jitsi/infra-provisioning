@@ -102,6 +102,7 @@ resource "oci_core_security_list" "private_security_list" {
     egress_security_rules {
         destination = "0.0.0.0/0"
         protocol    = "all"
+        description = "allow outbound traffic on all ports"
     }
 
     egress_security_rules {
@@ -115,6 +116,7 @@ resource "oci_core_security_list" "private_security_list" {
         protocol  = "6"         // tcp
         source    = var.vcn_cidr
         stateless = false
+        description = "allow inbound ssh traffic from the internal network"
 
         tcp_options {
             // These values correspond to the destination port range.
@@ -130,6 +132,7 @@ resource "oci_core_security_list" "private_security_list" {
         protocol  = "6"         // tcp
         source    = ingress_security_rules.value
         stateless = false
+        description = "allow inbound ssh traffic from ops networks"
         tcp_options {
             min = 22
             max = 22
@@ -157,7 +160,48 @@ resource "oci_core_security_list" "private_security_list" {
             type = 3
         }
     }
+
+    // allow consul TCP gossip traffic internally
+    ingress_security_rules {
+        protocol  = "6"         // tcp
+        source    = "10.0.0.0/8"
+        stateless = false
+        description = "allow consul TCP gossip traffic internally"
+
+        tcp_options {
+            min = 8301
+            max = 8301
+        }
+    }
+
+    // allow consul UDP gossip traffic internally
+    ingress_security_rules {
+        protocol  = "17"         // udp
+        source    = "10.0.0.0/8"
+        stateless = false
+        description = "allow consul UDP gossip traffic internally"
+
+        udp_options {
+            min = 8301
+            max = 8301
+        }
+    }
+
+    // allow consul http traffic internally
+    ingress_security_rules {
+        protocol  = "6"         // tcp
+        source    = var.vcn_cidr
+        stateless = false
+        description = "allow telegraf scrapes"
+
+        tcp_options {
+            min = 9126
+            max = 9126
+        }
+    }
+
 }
+
 
 // ============ NETWORKS SECURITY GROUPS ============
 

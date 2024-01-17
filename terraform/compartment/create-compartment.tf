@@ -43,6 +43,15 @@ resource "oci_identity_dynamic_group" "recovery_agent_dynamic_group" {
     oci_identity_compartment.oci_compartment]
 }
 
+resource "oci_identity_dynamic_group" "nomad_pool_dynamic_group" {
+  compartment_id = var.tenancy_ocid
+  description = "Enabling Nomad Pool instances from ${var.compartment_name} Compartment to make API calls against OCI"
+  matching_rule = "all {instance.compartment.id = '${oci_identity_compartment.oci_compartment.id}', tag.jitsi.role.value = 'nomad-pool'}"
+  name = "${var.compartment_name}-nomad-pool-dynamic-group"
+  depends_on = [
+    oci_identity_compartment.oci_compartment]
+}
+
 // ============ OUTPUTS ============
 
 output "compartment_ocid" {
