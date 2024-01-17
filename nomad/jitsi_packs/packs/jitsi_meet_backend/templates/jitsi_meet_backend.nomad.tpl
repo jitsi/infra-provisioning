@@ -313,11 +313,15 @@ job [[ template "job_name" . ]] {
 #
 XMPP_SERVER={{ env "NOMAD_IP_prosody_s2s" }}
 XMPP_SERVER_S2S_PORT={{  env "NOMAD_HOST_PORT_prosody_s2s" }}
-GLOBAL_CONFIG="statistics = \"internal\"\nstatistics_interval = \"manual\"\nopenmetrics_allow_cidr = \"0.0.0.0/0\";\n"
+GLOBAL_CONFIG="statistics = \"internal\"\nstatistics_interval = \"manual\"\nopenmetrics_allow_cidr = \"0.0.0.0/0\";\n
+[[- if eq (env "CONFIG_prosody_meet_webhooks_enabled") "true" -]]
+muc_prosody_egress_url = \"http://{{ env "attr.unique.network.ip-address" }}:[[ env "CONFIG_fabio_internal_port" ]]/v1/events\";\nmuc_prosody_egress_fallback_url = \"[[ env "CONFIG_prosody_egress_fallback_url" ]]\";\n
+[[- end -]]"
+
 GLOBAL_MODULES="admin_telnet,http_openmetrics,measure_stanza_counts,log_ringbuffer,firewall,muc_census,secure_interfaces,external_services,turncredentials_http"
 XMPP_MODULES="jiconop"
 XMPP_INTERNAL_MUC_MODULES=
-XMPP_MUC_MODULES=
+XMPP_MUC_MODULES="[[ if eq (env "CONFIG_prosody_meet_webhooks_enabled") "true" ]]muc_visitors_webhooks[[ end ]]"
 XMPP_PORT={{  env "NOMAD_HOST_PORT_prosody_vnode_[[ $i ]]_client" }}
 
 EOF
