@@ -149,6 +149,10 @@ block
         destination = "local/prosody-plugins-custom"
       }
       artifact {
+        source      = "https://raw.githubusercontent.com/jitsi/infra-configuration/main/ansible/roles/prosody/files/mod_muc_visitors_webhooks.lua"
+        destination = "local/prosody-plugins-custom"
+      }
+      artifact {
         source      = "https://raw.githubusercontent.com/jitsi/infra-configuration/main/ansible/roles/prosody/files/mod_muc_moderators.lua"
         destination = "local/prosody-plugins-custom"
       }
