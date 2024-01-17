@@ -79,6 +79,12 @@ fi
 [ -z "$NOMAD_PUBLIC_CERTIFICATE_VARIABLE" ] && NOMAD_PUBLIC_CERTIFICATE_VARIABLE="jitsi_net_ssl_certificate"
 [ -z "$NOMAD_PRIVATE_KEY_VARIABLE" ] && NOMAD_PRIVATE_KEY_VARIABLE="jitsi_net_ssl_key_name"
 
+[ -z "$NOMAD_ORG_CERTIFICATE_NAME" ] && NOMAD_ORG_CERTIFICATE_NAME="download_jitsi_org-2024-06-07"
+[ -z "$NOMAD_ORG_CA_CERTIFICATE_VARIABLE" ] && NOMAD_ORG_CA_CERTIFICATE_VARIABLE="download_jitsi_org_ssl_extras"
+[ -z "$NOMAD_ORG_PUBLIC_CERTIFICATE_VARIABLE" ] && NOMAD_ORG_PUBLIC_CERTIFICATE_VARIABLE="download_jitsi_org_ssl_certificate"
+[ -z "$NOMAD_ORG_PRIVATE_KEY_VARIABLE" ] && NOMAD_ORG_PRIVATE_KEY_VARIABLE="download_jitsi_org_ssl_key_name"
+
+
 if [[ -n "$CERTIFICATE_NAME" && "$CERTIFICATE_NAME" != "$NOMAD_CERTIFICATE_NAME" ]]; then
   [ -z "$NOMAD_ALT_CERTIFICATE_NAME" ] && NOMAD_ALT_CERTIFICATE_NAME="$CERTIFICATE_NAME"
   [ -z "$NOMAD_ALT_CA_CERTIFICATE_VARIABLE" ] && NOMAD_ALT_CA_CERTIFICATE_VARIABLE="$CA_CERTIFICATE_VARIABLE"
@@ -138,6 +144,9 @@ PRIVATE_KEY=$(ansible-vault view $ENCRYPTED_CREDENTIALS_FILE --vault-password $V
 ALT_CA_CERTIFICATE=$(ansible-vault view $ENCRYPTED_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${NOMAD_ALT_CA_CERTIFICATE_VARIABLE}" -)
 ALT_PUBLIC_CERTIFICATE=$(ansible-vault view $ENCRYPTED_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${NOMAD_ALT_PUBLIC_CERTIFICATE_VARIABLE}" -)
 ALT_PRIVATE_KEY=$(ansible-vault view $ENCRYPTED_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${NOMAD_ALT_PRIVATE_KEY_VARIABLE}" -)
+ORG_CA_CERTIFICATE=$(ansible-vault view $ENCRYPTED_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${NOMAD_ORG_CA_CERTIFICATE_VARIABLE}" -)
+ORG_PUBLIC_CERTIFICATE=$(ansible-vault view $ENCRYPTED_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${NOMAD_ORG_PUBLIC_CERTIFICATE_VARIABLE}" -)
+ORG_PRIVATE_KEY=$(ansible-vault view $ENCRYPTED_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${NOMAD_ORG_PRIVATE_KEY_VARIABLE}" -)
 set +e
 set +o pipefail
 
@@ -148,14 +157,19 @@ export TF_VAR_certificate_ca_certificate="$CA_CERTIFICATE"
 export TF_VAR_alt_certificate_public_certificate="$ALT_PUBLIC_CERTIFICATE"
 export TF_VAR_alt_certificate_private_key="$ALT_PRIVATE_KEY"
 export TF_VAR_alt_certificate_ca_certificate="$ALT_CA_CERTIFICATE"
+export TF_VAR_org_certificate_public_certificate="$ORG_PUBLIC_CERTIFICATE"
+export TF_VAR_org_certificate_private_key="$ORG_PRIVATE_KEY"
+export TF_VAR_org_certificate_ca_certificate="$ORG_CA_CERTIFICATE"
 set -x
 
 
 [ -z "$DNS_NAME" ] && DNS_NAME="$RESOURCE_NAME_ROOT.$DNS_ZONE_NAME"
 [ -z "$PRIVATE_DNS_NAME" ] && PRIVATE_DNS_NAME="$RESOURCE_NAME_ROOT-internal.$DNS_ZONE_NAME"
+[ -z "$ORG_DOMAIN" ] && ORG_DOMAIN="download.jitsi.org"
 
 [ -z "$NOMAD_LB_HOSTNAMES" ] && NOMAD_LB_HOSTNAMES="[\"$RESOURCE_NAME_ROOT.$TOP_LEVEL_DNS_ZONE_NAME\",\"${ENVIRONMENT}-${ORACLE_REGION}-jigasi-selector.$TOP_LEVEL_DNS_ZONE_NAME\",\"${ENVIRONMENT}-${ORACLE_REGION}-autoscaler.$TOP_LEVEL_DNS_ZONE_NAME\"]"
 [ -z "$NOMAD_ALT_HOSTNAMES" ] && NOMAD_ALT_HOSTNAMES="[\"$DOMAIN\"]"
+[ -z "$NOMAD_ORG_HOSTNAMES" ] && NOMAD_ORG_HOSTNAMES="[\"$ORG_DOMAIN\"]"
 
 # if environment has skynet alt hostname, add it to the list
 if [ -n "$SKYNET_ALT_HOSTNAME" ]; then
@@ -165,6 +179,8 @@ fi
 [ -n "$NOMAD_LB_EXTRA_HOSTNAMES" ] && NOMAD_LB_HOSTNAMES="$(echo "$NOMAD_LB_HOSTNAMES" "$NOMAD_LB_EXTRA_HOSTNAMES" | jq -c -s '.|add' )"
 
 [ -n "$NOMAD_ALT_EXTRA_HOSTNAMES" ] && NOMAD_ALT_HOSTNAMES="$(echo "$NOMAD_ALT_HOSTNAMES" "$NOMAD_ALT_EXTRA_HOSTNAMES" | jq -c -s '.|add' )"
+
+[ -n "$NOMAD_ORG_EXTRA_HOSTNAMES" ] && NOMAD_ORG_HOSTNAMES="$(echo "$NOMAD_ORG_HOSTNAMES" "$NOMAD_ORG_EXTRA_HOSTNAMES" | jq -c -s '.|add' )"
 
 [ -z "$LOAD_BALANCER_SHAPE" ] && LOAD_BALANCER_SHAPE="flexible"
 [ -z "$NOMAD_LOAD_BALANCER_MAXIMUM_BANDWIDTH_IN_MBPS" ] && NOMAD_LOAD_BALANCER_MAXIMUM_BANDWIDTH_IN_MBPS=100
@@ -285,8 +301,10 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
   -var="dns_compartment_ocid=$TENANCY_OCID" \
   -var="lb_hostnames=$NOMAD_LB_HOSTNAMES"\
   -var="alt_hostnames=$NOMAD_ALT_HOSTNAMES"\
+  -var="org_hostnames=$NOMAD_ORG_HOSTNAMES"\
   -var="certificate_certificate_name=$NOMAD_CERTIFICATE_NAME" \
   -var="alt_certificate_certificate_name=$NOMAD_ALT_CERTIFICATE_NAME" \
+  -var="org_certificate_certificate_name=$NOMAD_ORG_CERTIFICATE_NAME" \
   -var "infra_configuration_repo=$INFRA_CONFIGURATION_REPO" \
   -var "infra_customizations_repo=$INFRA_CUSTOMIZATIONS_REPO" \
   $ACTION_POST_PARAMS $TF_POST_PARAMS
