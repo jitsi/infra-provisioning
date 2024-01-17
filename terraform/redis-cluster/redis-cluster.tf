@@ -46,7 +46,7 @@ locals {
   common_tags = {
     "${var.tag_namespace}.environment" = var.environment
     "${var.tag_namespace}.role" = var.role
-    "${var.tag_namespace}.Name" = "${var.resource_name_root}-RedisCluster"
+    "${var.tag_namespace}.Name" = "${var.resource_name_root}"
   }
 }
 
