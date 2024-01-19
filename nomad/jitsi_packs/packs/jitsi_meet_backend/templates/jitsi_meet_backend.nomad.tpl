@@ -734,7 +734,6 @@ EOF
           "local/conf.stream:/etc/nginx/conf.stream",
 [[ if eq (env "CONFIG_jitsi_meet_load_test_enabled") "true" -]]
           "local/repo:/etc/nginx/html/load-test",
-          "local/loadtest-config.sh:/docker-entrypoint.d/loadtest-config.sh",
 [[ end -]]
           "local/consul-resolved.conf:/etc/systemd/resolved.conf.d/consul.conf"
         ]
