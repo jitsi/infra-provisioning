@@ -320,7 +320,7 @@ muc_prosody_egress_url = \"http://{{ env "attr.unique.network.ip-address" }}:[[ 
 
 GLOBAL_MODULES="admin_telnet,http_openmetrics,measure_stanza_counts,log_ringbuffer,firewall,muc_census,secure_interfaces,external_services,turncredentials_http"
 XMPP_MODULES="jiconop"
-XMPP_INTERNAL_MUC_MODULES=
+XMPP_INTERNAL_MUC_MODULES="muc_hide_all,muc_filter_access[[ if eq (env "CONFIG_prosody_enable_muc_events" ) "true" ]],muc_events[[ end ]]"
 XMPP_MUC_MODULES="[[ if eq (env "CONFIG_prosody_meet_webhooks_enabled") "true" ]]muc_visitors_webhooks[[ end ]]"
 XMPP_PORT={{  env "NOMAD_HOST_PORT_prosody_vnode_[[ $i ]]_client" }}
 
@@ -450,7 +450,7 @@ PROSODY_TRUSTED_PROXIES="127.0.0.1,::1,10.0.0.0/8,103.21.244.0/22,103.22.200.0/2
 
 GLOBAL_MODULES="admin_telnet,debug_traceback,http_openmetrics,measure_stanza_counts,log_ringbuffer,firewall,muc_census,muc_end_meeting,secure_interfaces,external_services,turncredentials_http"
 XMPP_MODULES="[[ if eq (env "CONFIG_prosody_enable_filter_iq_rayo") "true" ]]filter_iq_rayo,[[ end ]]jiconop,persistent_lobby"
-XMPP_INTERNAL_MUC_MODULES=
+XMPP_INTERNAL_MUC_MODULES="muc_hide_all,muc_filter_access[[ if eq (env "CONFIG_prosody_enable_muc_events" ) "true" ]],muc_events[[ end ]]"
 # hack to avoid token_verification when firebase auth is on
 JWT_TOKEN_AUTH_MODULE=muc_hide_all
 XMPP_CONFIGURATION="[[ if ne (or (env "CONFIG_prosody_cache_keys_url") "false") "false" ]]cache_keys_url=\"[[ env "CONFIG_prosody_cache_keys_url" ]]\",[[ end ]]shard_name=\"[[ env "CONFIG_shard" ]]\",region_name=\"{{ env "meta.cloud_region" }}\",release_number=\"[[ env "CONFIG_release_number" ]]\",max_number_outgoing_calls=[[ or (env "CONFIG_prosody_max_number_outgoing_calls") "3" ]]"
