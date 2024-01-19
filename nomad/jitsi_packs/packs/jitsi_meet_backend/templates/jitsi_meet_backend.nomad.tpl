@@ -739,7 +739,6 @@ EOF
         NGINX_WORKER_PROCESSES = 4
         NGINX_WORKER_CONNECTIONS = 1024
       }
-
       template {
         destination = "local/nginx.conf"
 
