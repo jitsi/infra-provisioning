@@ -94,7 +94,7 @@ job [[ template "job_name" . ]] {
 [[ if eq (env "CONFIG_jitsi_meet_load_test_enabled") "true" -]]
           "local/repo:/usr/share/nginx/html/load-test",
           "local/repo:/etc/nginx/html/load-test",
-          "local/custom-meet.conf:/config/nginx/custom-meet.conf"
+          "local/custom-meet.conf:/config/nginx/custom-meet.conf",
 [[ end -]]
           "local/nginx-status.conf:/config/nginx/site-confs/status.conf"
         ]
