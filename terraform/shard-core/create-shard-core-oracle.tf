@@ -404,7 +404,7 @@ resource "oci_monitoring_alarm" "shard_health_alarm_overall" {
     is_enabled = var.alarm_is_enabled
     metric_compartment_id = var.compartment_ocid
     namespace = "oci_healthchecks"
-    query = "HTTP.isHealthy[1m]{resourceId = \"${oci_health_checks_http_monitor.shard_http_health.id}\"}.grouping().max() < 1"
+    query = "HTTP.isHealthy[1m]{resourceId = \"${oci_health_checks_http_monitor.shard_http_health.id}\"}.grouping().percentile(.90) < 1"
     severity = var.alarm_severity
     depends_on = [
       oci_health_checks_http_monitor.shard_http_health
