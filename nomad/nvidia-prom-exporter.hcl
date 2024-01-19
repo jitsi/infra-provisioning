@@ -50,6 +50,7 @@ job "nvidia-prom-exporter" {
         runtime = "nvidia"
         image = "nvidia/dcgm-exporter:3.3.0-3.2.0-ubuntu22.04"
         ports = ["metrics_gpu"]
+        cap_add = ["SYS_ADMIN"]
       }
 
       env {
