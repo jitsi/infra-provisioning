@@ -93,7 +93,6 @@ job [[ template "job_name" . ]] {
           "local/config:/config",
 [[ if eq (env "CONFIG_jitsi_meet_load_test_enabled") "true" -]]
           "local/repo:/usr/share/[[ or (env "CONFIG_jitsi_meet_branding_override") "jitsi-meet" ]]/load-test",
-          "local/custom-meet.conf:/config/nginx/custom-meet.conf",
 [[ end -]]
           "local/nginx-status.conf:/config/nginx/site-confs/status.conf"
         ]
@@ -117,6 +116,7 @@ job [[ template "job_name" . ]] {
         DISABLE_LOCAL_RECORDING = "[[ if eq (env "CONFIG_jitsi_meet_enable_local_recording") "true" ]]false[[ else ]]true[[ end ]]"
         ENABLE_SIMULCAST = "true"
         ENABLE_RECORDING = "true"
+        ENABLE_LOAD_TEST_CLIENT = "[[ or (env "CONFIG_jitsi_meet_load_test_enabled") "false" ]]"
         ENABLE_LIVESTREAMING = "[[ or (env "CONFIG_jitsi_meet_enable_livestreaming") "false" ]]"
         ENABLE_SERVICE_RECORDING = "[[ or (env "CONFIG_jitsi_meet_enable_file_recordings") "false" ]]"
         ENABLE_FILE_RECORDING_SHARING = "[[ or (env "CONFIG_jitsi_meet_enable_file_recordings_sharing") "false" ]]"
@@ -159,39 +159,6 @@ job [[ template "job_name" . ]] {
       artifact {
         source      = "https://github.com/jitsi/jitsi-meet-load-test/releases/download/0.0.1/release-0.0.1.zip"
         destination = "local/repo"
-      }
-      template {
-        destination = "local/custom-meet.conf"
-        data = <<EOF
-
-    # load test minimal client, uncomment when used
-    location ~ ^/_load-test/([^/?&:'"]+)$ {
-        rewrite ^/_load-test/(.*)$ /load-test/index.html break;
-    }
-    location ~ ^/_load-test/libs/(.*)$ {
-        add_header 'Access-Control-Allow-Origin' '*';
-        alias /usr/share/nginx/html/load-test/libs/$1;
-    }
-
-    # load-test for subdomains
-    location ~ ^/([^/?&:'"]+)/_load-test/([^/?&:'"]+)$ {
-        set $subdomain "$1.";
-        set $subdir "$1/";
-        set $prefix "$1";
-
-        rewrite ^/(.*)$ /load-test/index.html break;
-    }
-
-    # load-test for subdomains
-    location ~ ^/([^/?&:'"]+)/_load-test/libs/(.*)$ {
-        set $subdomain "$1.";
-        set $subdir "$1/";
-        set $prefix "$1";
-
-        alias /usr/share/nginx/html/load-test/libs/$2;
-    }
-EOF
-
       }
 [[ end -]]
 
