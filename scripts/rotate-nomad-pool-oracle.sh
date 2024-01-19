@@ -129,12 +129,21 @@ else
   fi
 
   echo -e "\n## rotate-nomad-poool-oracle: shelling into detachable instances at ${DETACHABLE_IPS} and shutting down nomad and consul nicely"
-  # drain old instances
+  # first set old instances ineligible
+  for IP in $DETACHABLE_IPS; do
+    echo -e "\n## rotate-nomad-poool-oracle: marking nomad node ineligible on $IP"
+    timeout 10 ssh -n -o StrictHostKeyChecking=no -F $LOCAL_PATH/../config/ssh.config $SSH_USER@$IP "nomad node eligibility -self -disable"
+  done
+  sleep 90
+  # next drain old instances
   for IP in $DETACHABLE_IPS; do
     echo -e "\n## rotate-nomad-poool-oracle: draining nomad node on $IP"
-    timeout 10 ssh -n -o StrictHostKeyChecking=no -F $LOCAL_PATH/../config/ssh.config $SSH_USER@$IP "nomad node eligibility -self -disable && nomad node drain -self -enable -detach -yes"
-    echo -e "\n## rotate-nomad-poool-oracle: waiting for nomad drain to complete before stopping nomad and consul on $IP"
-    sleep 90
+    timeout 10 ssh -n -o StrictHostKeyChecking=no -F $LOCAL_PATH/../config/ssh.config $SSH_USER@$IP "nomad node drain -self -enable -detach -yes"
+  done
+  echo -e "\n## rotate-nomad-poool-oracle: waiting for nomad drain to complete before stopping nomad and consul"
+  sleep 90
+  for IP in $DETACHABLE_IPS; do
+    echo -e "\n## rotate-nomad-poool-oracle: stopping nomad and consul on $IP"
     timeout 10 ssh -n -o StrictHostKeyChecking=no -F $LOCAL_PATH/../config/ssh.config $SSH_USER@$IP "nomad node drain -self -enable -force -detach -yes && sleep 10 && sudo service nomad stop && sudo service consul stop"
   done
 
