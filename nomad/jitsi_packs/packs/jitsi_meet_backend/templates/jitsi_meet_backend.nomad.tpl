@@ -823,8 +823,8 @@ Domains=~consul
 EOF
       }
       resources {
-        cpu    = [[ or (env "CONFIG_nomad_web_cpu") "100" ]]
-        memory    = [[ or (env "CONFIG_nomad_web_memory") "300" ]]
+        cpu    = [[ or (env "CONFIG_nomad_web_cpu") "300" ]]
+        memory    = [[ or (env "CONFIG_nomad_web_memory") "1024" ]]
       }
     }
   }
