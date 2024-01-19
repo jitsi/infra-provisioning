@@ -56,6 +56,10 @@ job "nvidia-prom-exporter" {
       env {
         DCGM_EXPORTER_INTERVAL = "10000"
       }
+      resources {
+        cpu    = 500
+        memory = 500
+      }
     }
   }
 }
