@@ -732,10 +732,6 @@ EOF
           "local/nginx.conf:/etc/nginx/nginx.conf",
           "local/conf.d:/etc/nginx/conf.d",
           "local/conf.stream:/etc/nginx/conf.stream",
-[[ if eq (env "CONFIG_jitsi_meet_load_test_enabled") "true" -]]
-          "local/repo:/usr/share/nginx/html/load-test",
-          "local/repo:/etc/nginx/html/load-test",
-[[ end -]]
           "local/consul-resolved.conf:/etc/systemd/resolved.conf.d/consul.conf"
         ]
       }
@@ -743,13 +739,6 @@ EOF
         NGINX_WORKER_PROCESSES = 4
         NGINX_WORKER_CONNECTIONS = 1024
       }
-
-[[ if eq (env "CONFIG_jitsi_meet_load_test_enabled") "true" -]]
-      artifact {
-        source      = "https://github.com/jitsi/jitsi-meet-load-test/releases/download/0.0.1/release-0.0.1.zip"
-        destination = "local/repo"
-      }
-[[ end -]]
 
       template {
         destination = "local/nginx.conf"

@@ -91,6 +91,11 @@ job [[ template "job_name" . ]] {
           "local/_unlock:/usr/share/[[ or (env "CONFIG_jitsi_meet_branding_override") "jitsi-meet" ]]/_unlock",
           "local/nginx.conf:/defaults/nginx.conf",
           "local/config:/config",
+[[ if eq (env "CONFIG_jitsi_meet_load_test_enabled") "true" -]]
+          "local/repo:/usr/share/nginx/html/load-test",
+          "local/repo:/etc/nginx/html/load-test",
+          "local/custom-meet.conf:/config/nginx/custom-meet.conf"
+[[ end -]]
           "local/nginx-status.conf:/config/nginx/site-confs/status.conf"
         ]
       }
@@ -150,6 +155,47 @@ job [[ template "job_name" . ]] {
         WHITEBOARD_ENABLED = "[[ or (env "CONFIG_jitsi_meet_whiteboard_enabled") "false" ]]"
         WHITEBOARD_COLLAB_SERVER_PUBLIC_URL = "[[ env "CONFIG_jitsi_meet_whiteboard_collab_server_base_url" ]]"
       }
+
+[[ if eq (env "CONFIG_jitsi_meet_load_test_enabled") "true" -]]
+      artifact {
+        source      = "https://github.com/jitsi/jitsi-meet-load-test/releases/download/0.0.1/release-0.0.1.zip"
+        destination = "local/repo"
+      }
+      template {
+        destination = "local/custom-meet.conf"
+        data = <<EOF
+
+    # load test minimal client, uncomment when used
+    location ~ ^/_load-test/([^/?&:'"]+)$ {
+        rewrite ^/_load-test/(.*)$ /load-test/index.html break;
+    }
+    location ~ ^/_load-test/libs/(.*)$ {
+        add_header 'Access-Control-Allow-Origin' '*';
+        alias /usr/share/nginx/html/load-test/libs/$1;
+    }
+
+    # load-test for subdomains
+    location ~ ^/([^/?&:'"]+)/_load-test/([^/?&:'"]+)$ {
+        set $subdomain "$1.";
+        set $subdir "$1/";
+        set $prefix "$1";
+
+        rewrite ^/(.*)$ /load-test/index.html break;
+    }
+
+    # load-test for subdomains
+    location ~ ^/([^/?&:'"]+)/_load-test/libs/(.*)$ {
+        set $subdomain "$1.";
+        set $subdir "$1/";
+        set $prefix "$1";
+
+        alias /usr/share/nginx/html/load-test/libs/$2;
+    }
+EOF
+
+      }
+[[ end -]]
+
       template {
         destination = "local/_unlock"
   data = <<EOF
