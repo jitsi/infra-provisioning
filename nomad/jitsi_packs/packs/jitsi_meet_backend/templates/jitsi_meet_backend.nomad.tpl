@@ -765,7 +765,8 @@ npm install
 npm run build
 mkdir /usr/share/nginx/html/load-test
 cp index.html /usr/share/nginx/html/load-test
-cp -a libs/* /usr/share/nginx/html/load-test
+cp -a libs/ /usr/share/nginx/html/load-test
+ln -s /usr/share/nginx/html /etc/nginx/html
 EOF
       }
 [[ end -]]
