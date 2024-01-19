@@ -732,6 +732,9 @@ EOF
           "local/nginx.conf:/etc/nginx/nginx.conf",
           "local/conf.d:/etc/nginx/conf.d",
           "local/conf.stream:/etc/nginx/conf.stream",
+[[ if eq (env "CONFIG_jitsi_meet_load_test_enabled") "true" -]]
+          "local/loadtest-config.sh:/docker-entrypoint.d/loadtest-config.sh",
+[[ end -]]
           "local/consul-resolved.conf:/etc/systemd/resolved.conf.d/consul.conf"
         ]
       }
@@ -739,6 +742,27 @@ EOF
         NGINX_WORKER_PROCESSES = 4
         NGINX_WORKER_CONNECTIONS = 1024
       }
+
+[[ if eq (env "CONFIG_jitsi_meet_load_test_enabled") "true" -]]
+      artifact {
+        source      = "git::https://github.com/jitsi/jitsi-meet-load-test.git"
+        destination = "local/repo"
+      }
+      template {
+        mode = "0755"
+        destination = "local/loadtest-config.sh"
+  data = <<EOF
+#!/bin/bash
+cd /local/repo
+npm install
+npm run build
+mkdir /usr/share/nginx/html/load-test
+cp index.html /usr/share/nginx/html/load-test
+cp -a libs/* /usr/share/nginx/html/load-test
+EOF
+      }
+[[ end -]]
+
       template {
         destination = "local/nginx.conf"
 

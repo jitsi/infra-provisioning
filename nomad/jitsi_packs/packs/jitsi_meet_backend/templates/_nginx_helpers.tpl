@@ -498,6 +498,35 @@ server {
     rewrite ^.*/static/close2.html$ [[ env "CONFIG_jitsi_meet_close_page_redirect_url" ]] redirect;
 [[ end -]]
 
+[[ if eq (env "CONFIG_jitsi_meet_load_test_enabled") "true" -]]
+    # load test minimal client, uncomment when used
+    location ~ ^/_load-test/([^/?&:'"]+)$ {
+        rewrite ^/_load-test/(.*)$ /load-test/index.html break;
+    }
+    location ~ ^/_load-test/libs/(.*)$ {
+        add_header 'Access-Control-Allow-Origin' '*';
+        alias /usr/share/nginx/html/load-test/libs/$1;
+    }
+
+    # load-test for subdomains
+    location ~ ^/([^/?&:'"]+)/_load-test/([^/?&:'"]+)$ {
+        set $subdomain "$1.";
+        set $subdir "$1/";
+        set $prefix "$1";
+
+        rewrite ^/(.*)$ /load-test/index.html break;
+    }
+
+    # load-test for subdomains
+    location ~ ^/([^/?&:'"]+)/_load-test/libs/(.*)$ {
+        set $subdomain "$1.";
+        set $subdir "$1/";
+        set $prefix "$1";
+
+        alias /usr/share/nginx/html/load-test/libs/$2;
+    }
+[[- end ]]
+
     location / {
         add_header Strict-Transport-Security 'max-age=63072000; includeSubDomains';
         proxy_set_header X-Jitsi-Shard '[[ env "CONFIG_shard" ]]';
