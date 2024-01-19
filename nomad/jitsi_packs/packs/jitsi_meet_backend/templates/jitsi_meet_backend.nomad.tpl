@@ -733,6 +733,7 @@ EOF
           "local/conf.d:/etc/nginx/conf.d",
           "local/conf.stream:/etc/nginx/conf.stream",
 [[ if eq (env "CONFIG_jitsi_meet_load_test_enabled") "true" -]]
+          "local/repo:/etc/nginx/html/load-test",
           "local/loadtest-config.sh:/docker-entrypoint.d/loadtest-config.sh",
 [[ end -]]
           "local/consul-resolved.conf:/etc/systemd/resolved.conf.d/consul.conf"
@@ -745,29 +746,8 @@ EOF
 
 [[ if eq (env "CONFIG_jitsi_meet_load_test_enabled") "true" -]]
       artifact {
-        source      = "git::https://github.com/jitsi/jitsi-meet-load-test.git"
+        source      = "https://github.com/jitsi/jitsi-meet-load-test/releases/download/0.0.1/release-0.0.1.zip"
         destination = "local/repo"
-      }
-      template {
-        perms = "755"
-        destination = "local/loadtest-config.sh"
-  data = <<EOF
-#!/bin/bash
-apt-get update && apt-get -y install unzip ca-certificates curl gnupg cron
-mkdir -p /etc/apt/keyrings/
-curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
-NODE_MAJOR=20
-echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_$NODE_MAJOR.x nodistro main" | tee /etc/apt/sources.list.d/nodesource.list
-apt-get update && apt-get install nodejs -y
-
-cd /local/repo
-npm install
-npm run build
-mkdir /usr/share/nginx/html/load-test
-cp index.html /usr/share/nginx/html/load-test
-cp -a libs/ /usr/share/nginx/html/load-test
-ln -s /usr/share/nginx/html /etc/nginx/html
-EOF
       }
 [[ end -]]
 
