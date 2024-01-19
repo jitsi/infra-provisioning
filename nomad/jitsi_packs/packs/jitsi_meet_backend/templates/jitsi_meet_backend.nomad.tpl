@@ -749,7 +749,7 @@ EOF
         destination = "local/repo"
       }
       template {
-        mode = "0755"
+        perms = "755"
         destination = "local/loadtest-config.sh"
   data = <<EOF
 #!/bin/bash
