@@ -315,7 +315,7 @@ XMPP_SERVER={{ env "NOMAD_IP_prosody_s2s" }}
 XMPP_SERVER_S2S_PORT={{  env "NOMAD_HOST_PORT_prosody_s2s" }}
 GLOBAL_CONFIG="statistics = \"internal\"\nstatistics_interval = \"manual\"\nopenmetrics_allow_cidr = \"0.0.0.0/0\";\n
 [[- if eq (env "CONFIG_prosody_meet_webhooks_enabled") "true" -]]
-muc_prosody_egress_url = \"http://{{ env "attr.unique.network.ip-address" }}:[[ env "CONFIG_fabio_internal_port" ]]/v1/events\";\nmuc_prosody_egress_fallback_url = \"[[ env "CONFIG_prosody_egress_fallback_url" ]]\";\n
+muc_prosody_egress_url = \"http://{{ env "attr.unique.network.ip-address" }}:[[ or (env "CONFIG_fabio_internal_port") "9997" ]]/v1/events\";\nmuc_prosody_egress_fallback_url = \"[[ env "CONFIG_prosody_egress_fallback_url" ]]\";\n
 [[- end -]]"
 
 GLOBAL_MODULES="admin_telnet,http_openmetrics,measure_stanza_counts,log_ringbuffer,firewall,muc_census,secure_interfaces,external_services,turncredentials_http"
@@ -441,7 +441,7 @@ debug_traceback_filename = \"traceback.txt\";\nc2s_stanza_size_limit = 512*1024;
 muc_limit_messages_count = [[ env "CONFIG_prosody_limit_messages" ]];\nmuc_limit_messages_check_token = [[ env "CONFIG_prosody_limit_messages_check_token" ]];\n
 [[- end -]]
 [[- if eq (env "CONFIG_prosody_meet_webhooks_enabled") "true" -]]
-muc_prosody_egress_url = \"http://{{ env "attr.unique.network.ip-address" }}:[[ env "CONFIG_fabio_internal_port" ]]/v1/events\";\nmuc_prosody_egress_fallback_url = \"[[ env "CONFIG_prosody_egress_fallback_url" ]]\";\n
+muc_prosody_egress_url = \"http://{{ env "attr.unique.network.ip-address" }}:[[ or (env "CONFIG_fabio_internal_port") "9997" ]]/v1/events\";\nmuc_prosody_egress_fallback_url = \"[[ env "CONFIG_prosody_egress_fallback_url" ]]\";\n
 [[- end -]]"
 
 PROSODY_LOG_CONFIG="{level = \"debug\", to = \"ringbuffer\",size = [[ or (env "CONFIG_prosody_mod_log_ringbuffer_size") "1014*1024*4" ]], filename_template = \"traceback.txt\", event = \"debug_traceback/triggered\";};"
