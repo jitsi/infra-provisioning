@@ -260,7 +260,7 @@ if (!config.hasOwnProperty('testing')) config.testing = {};
 config.testing.skipInterimTranscriptions = true;
 [[- end ]]
 [[ if ne (or (env "CONFIG_jitsi_meet_mobile_xmpp_ws_threshold") "false") "false" -]]
-config.testing.jitsi_meet_mobile_xmpp_ws_threshold = '[[ env "CONFIG_jitsi_meet_mobile_xmpp_ws_threshold" ]]';
+config.testing.jitsi_meet_mobile_xmpp_ws_threshold = [[ env "CONFIG_jitsi_meet_mobile_xmpp_ws_threshold" ]];
 [[- end ]]
 
 [[ template "config_deeplinking.js" . ]]
