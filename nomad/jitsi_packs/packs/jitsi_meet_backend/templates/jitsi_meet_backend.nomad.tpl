@@ -596,6 +596,7 @@ EOF
         JICOFO_ENABLE_HEALTH_CHECKS="1"
         # jicofo rtcstats push vars
         JICOFO_ADDRESS = "http://127.0.0.1:8888"
+        JICOFO_VISITORS_REQUIRE_MUC_CONFIG = "[[ env "CONFIG_jicofo_require_muc_config_flag" ]]"
         RTCSTATS_SERVER="[[ env "CONFIG_jicofo_rtcstats_push_rtcstats_server" ]]"
         INTERVAL=10000
         JICOFO_LOG_FILE = "/local/jicofo.log"
