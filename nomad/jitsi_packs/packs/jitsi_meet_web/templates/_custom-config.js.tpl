@@ -255,9 +255,12 @@ config.speakerStats = {
 if (!config.hasOwnProperty('whiteboard')) config.whiteboard = {};
 config.whiteboard.userLimit = [[ or (env "CONFIG_jitsi_meet_whiteboard_user_limit") "25" ]];
 
-[[ if eq (env "CONFIG_jitsi_meet_skip_interim_transcriptions") "true" -]]
 if (!config.hasOwnProperty('testing')) config.testing = {};
+[[ if eq (env "CONFIG_jitsi_meet_skip_interim_transcriptions") "true" -]]
 config.testing.skipInterimTranscriptions = true;
+[[- end ]]
+[[ if eq (env "CONFIG_jitsi_meet_mobile_xmpp_ws_threshold") "false" -]]
+config.testing.jitsi_meet_mobile_xmpp_ws_threshold = '[[ env "CONFIG_jitsi_meet_mobile_xmpp_ws_threshold" ]]';
 [[- end ]]
 
 [[ template "config_deeplinking.js" . ]]
