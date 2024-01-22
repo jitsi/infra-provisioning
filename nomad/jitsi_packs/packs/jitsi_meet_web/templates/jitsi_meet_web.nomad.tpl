@@ -91,6 +91,9 @@ job [[ template "job_name" . ]] {
           "local/_unlock:/usr/share/[[ or (env "CONFIG_jitsi_meet_branding_override") "jitsi-meet" ]]/_unlock",
           "local/nginx.conf:/defaults/nginx.conf",
           "local/config:/config",
+[[ if eq (env "CONFIG_jitsi_meet_load_test_enabled") "true" -]]
+          "local/repo:/usr/share/[[ or (env "CONFIG_jitsi_meet_branding_override") "jitsi-meet" ]]/load-test",
+[[ end -]]
           "local/nginx-status.conf:/config/nginx/site-confs/status.conf"
         ]
       }
@@ -113,6 +116,7 @@ job [[ template "job_name" . ]] {
         DISABLE_LOCAL_RECORDING = "[[ if eq (env "CONFIG_jitsi_meet_enable_local_recording") "true" ]]false[[ else ]]true[[ end ]]"
         ENABLE_SIMULCAST = "true"
         ENABLE_RECORDING = "true"
+        ENABLE_LOAD_TEST_CLIENT = "[[ or (env "CONFIG_jitsi_meet_load_test_enabled") "false" ]]"
         ENABLE_LIVESTREAMING = "[[ or (env "CONFIG_jitsi_meet_enable_livestreaming") "false" ]]"
         ENABLE_SERVICE_RECORDING = "[[ or (env "CONFIG_jitsi_meet_enable_file_recordings") "false" ]]"
         ENABLE_FILE_RECORDING_SHARING = "[[ or (env "CONFIG_jitsi_meet_enable_file_recordings_sharing") "false" ]]"
@@ -150,6 +154,14 @@ job [[ template "job_name" . ]] {
         WHITEBOARD_ENABLED = "[[ or (env "CONFIG_jitsi_meet_whiteboard_enabled") "false" ]]"
         WHITEBOARD_COLLAB_SERVER_PUBLIC_URL = "[[ env "CONFIG_jitsi_meet_whiteboard_collab_server_base_url" ]]"
       }
+
+[[ if eq (env "CONFIG_jitsi_meet_load_test_enabled") "true" -]]
+      artifact {
+        source      = "https://github.com/jitsi/jitsi-meet-load-test/releases/download/0.0.1/release-0.0.1.zip"
+        destination = "local/repo"
+      }
+[[ end -]]
+
       template {
         destination = "local/_unlock"
   data = <<EOF
