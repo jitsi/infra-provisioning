@@ -495,7 +495,7 @@ EOH
       }
 
       resources {
-        cpu    = [[ or (env "CONFIG_nomad_prosody_cpu") "500" ]]
+        cpu    = [[ or (env "CONFIG_nomad_prosody_cpu") "1024" ]]
         memory    = [[ or (env "CONFIG_nomad_prosody_memory") "1024" ]]
       }
     }
