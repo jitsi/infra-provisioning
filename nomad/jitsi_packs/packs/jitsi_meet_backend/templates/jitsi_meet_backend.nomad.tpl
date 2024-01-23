@@ -286,6 +286,9 @@ job [[ template "job_name" . ]] {
         image        = "jitsi/prosody:[[ env "CONFIG_prosody_tag" ]]"
         ports = ["prosody-vnode-[[ $i ]]-http","prosody-vnode-[[ $i ]]-client","prosody-vnode-[[ $i ]]-s2s"]
         volumes = ["local/prosody-plugins-custom:/prosody-plugins-custom","local/config:/config"]
+        security_opt = [
+          "apparmor=unconfined",
+        ]
       }
 
       env {
@@ -345,6 +348,9 @@ EOF
         force_pull = [[ or (env "CONFIG_force_pull") "false" ]]
         image        = "jitsi/signal-sidecar:latest"
         ports = ["signal-sidecar-agent","signal-sidecar-http"]
+        security_opt = [
+          "apparmor=unconfined",
+        ]
       }
 
       env {
@@ -387,6 +393,9 @@ EOF
 	        "/opt/jitsi/keys:/opt/jitsi/keys",
           "local/prosody-plugins-custom:/prosody-plugins-custom",
           "local/config:/config"
+        ]
+        security_opt = [
+          "apparmor=unconfined",
         ]
       }
 
@@ -495,7 +504,7 @@ EOH
       }
 
       resources {
-        cpu    = [[ or (env "CONFIG_nomad_prosody_cpu") "500" ]]
+        cpu    = [[ or (env "CONFIG_nomad_prosody_cpu") "1024" ]]
         memory    = [[ or (env "CONFIG_nomad_prosody_memory") "1024" ]]
       }
     }
@@ -508,11 +517,15 @@ EOH
         image        = "jitsi/prosody:[[ env "CONFIG_prosody_tag" ]]"
         ports = ["prosody-jvb-client","prosody-jvb-http"]
         volumes = ["local/prosody-plugins-custom:/prosody-plugins-custom","local/config:/config"]
+        security_opt = [
+          "apparmor=unconfined",
+        ]
       }
 
 
       env {
         PROSODY_MODE="brewery"
+        LOG_LEVEL="debug"
         XMPP_DOMAIN = "[[ env "CONFIG_domain" ]]"
         PUBLIC_URL="https://[[ env "CONFIG_domain" ]]/"
         JICOFO_AUTH_PASSWORD = "[[ env "CONFIG_jicofo_auth_password" ]]"
@@ -544,7 +557,7 @@ EOF
       }
 
       resources {
-        cpu    = [[ or (env "CONFIG_nomad_prosody_jvb_cpu") "500" ]]
+        cpu    = [[ or (env "CONFIG_nomad_prosody_jvb_cpu") "1024" ]]
         memory    = [[ or (env "CONFIG_nomad_prosody_jvb_memory") "512" ]]
       }
     }
@@ -561,6 +574,9 @@ EOF
           "local/jicofo-service-run:/etc/services.d/jicofo/run",
           "local/11-jicofo-rtcstats-push:/etc/cont-init.d/11-jicofo-rtcstats-push",
           "local/jicofo-rtcstats-push-service-run:/etc/services.d/60-jicofo-rtcstats-push/run"
+        ]
+        security_opt = [
+          "apparmor=unconfined",
         ]
       }
 
@@ -711,7 +727,7 @@ EOF
       }
 
       resources {
-        cpu    = [[ or (env "CONFIG_nomad_jicofo_cpu") "500" ]]
+        cpu    = [[ or (env "CONFIG_nomad_jicofo_cpu") "1024" ]]
         memory    = [[ or (env "CONFIG_nomad_jicofo_memory") "3072" ]]
       }
     }
@@ -734,6 +750,9 @@ EOF
           "local/conf.d:/etc/nginx/conf.d",
           "local/conf.stream:/etc/nginx/conf.stream",
           "local/consul-resolved.conf:/etc/systemd/resolved.conf.d/consul.conf"
+        ]
+        security_opt = [
+          "apparmor=unconfined",
         ]
       }
       env {
