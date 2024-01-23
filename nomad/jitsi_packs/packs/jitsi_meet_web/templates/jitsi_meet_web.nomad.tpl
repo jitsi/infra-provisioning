@@ -122,7 +122,7 @@ job [[ template "job_name" . ]] {
         ENABLE_FILE_RECORDING_SHARING = "[[ or (env "CONFIG_jitsi_meet_enable_file_recordings_sharing") "false" ]]"
         ENABLE_TALK_WHILE_MUTED = "true"
         ENABLE_CLOSE_PAGE = "true"
-        ENABLE_GUESTS = "[[ if ne (or (env "CONFIG_jitsi_meet_anonymousdomain") "false") "false" ]]true[[ else ]]"
+        ENABLE_GUESTS = "[[ if ne (or (env "CONFIG_jitsi_meet_anonymousdomain") "false") "false" ]]true[[ end ]]"
         ENABLE_AUTH = "true"
         ENABLE_AUTH_DOMAIN = "false"
         ENABLE_IPV6 = "false"
