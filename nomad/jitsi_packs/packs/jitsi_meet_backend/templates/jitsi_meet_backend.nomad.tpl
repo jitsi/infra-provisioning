@@ -513,6 +513,7 @@ EOH
 
       env {
         PROSODY_MODE="brewery"
+        LOG_LEVEL="debug"
         XMPP_DOMAIN = "[[ env "CONFIG_domain" ]]"
         PUBLIC_URL="https://[[ env "CONFIG_domain" ]]/"
         JICOFO_AUTH_PASSWORD = "[[ env "CONFIG_jicofo_auth_password" ]]"
@@ -544,7 +545,7 @@ EOF
       }
 
       resources {
-        cpu    = [[ or (env "CONFIG_nomad_prosody_jvb_cpu") "500" ]]
+        cpu    = [[ or (env "CONFIG_nomad_prosody_jvb_cpu") "1024" ]]
         memory    = [[ or (env "CONFIG_nomad_prosody_jvb_memory") "512" ]]
       }
     }
@@ -711,7 +712,7 @@ EOF
       }
 
       resources {
-        cpu    = [[ or (env "CONFIG_nomad_jicofo_cpu") "500" ]]
+        cpu    = [[ or (env "CONFIG_nomad_jicofo_cpu") "1024" ]]
         memory    = [[ or (env "CONFIG_nomad_jicofo_memory") "3072" ]]
       }
     }
