@@ -257,6 +257,7 @@ include "xmpp.conf"
 
 [[ define "xmpp-config" ]]
 [[ template "shard-lookup" . ]]
+[[ $shard_brewery_enabled := (or (env "CONFIG_jvb_shard_brewery_enabled") "true") "true" ]]
 videobridge.apis.xmpp-client.configs {
 {{ range $sindex, $item := scratch.MapValues "shards" -}}
     # SHARD {{ .ServiceMeta.shard }}
@@ -264,7 +265,11 @@ videobridge.apis.xmpp-client.configs {
         HOSTNAME={{ .Address }}
         PORT={{ with .ServiceMeta.prosody_jvb_client_port}}{{.}}{{ else }}6222{{ end }}
         DOMAIN=auth.jvb.{{ .ServiceMeta.domain }}
+[[ if eq $shard_brewery_enabled "false" -]]
+        MUC_JIDS="release-[[ or (env "CONFIG_release_number") "0" ]]@muc.jvb.{{ .ServiceMeta.domain }}"
+[[- else ]]
         MUC_JIDS="jvbbrewery@muc.jvb.{{ .ServiceMeta.domain }}"
+[[- end ]]
         USERNAME=[[ or (env "CONFIG_jvb_auth_username") "jvb" ]]
         PASSWORD=[[ env "CONFIG_jvb_auth_password" ]]
         MUC_NICKNAME=jvb-{{ env "NOMAD_ALLOC_ID" }}

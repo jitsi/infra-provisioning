@@ -145,12 +145,18 @@ block
 
 [[ define "shard-lookup" -]]
 [[ $pool_mode := or (env "CONFIG_jvb_pool_mode") "shard" -]]
+[[ $shard_brewery_enabled := (or (env "CONFIG_jvb_shard_brewery_enabled") "true") "true" ]]
+
 [[ if eq $pool_mode "remote" "global" -]]
 {{ range $dcidx, $dc := datacenters -}}
   [[ if eq $pool_mode "remote" -]]
   {{ if ne $dc "[[ var "datacenter" . ]]" -}}
   [[ end -]]
+[[ if eq $shard_brewery_enabled "false" -]]
+  {{ $service := print "prosody-brewery@" $dc -}}
+[[- else ]]
   {{ $service := print "release-" (envOrDefault "RELEASE_NUMBER" "0") ".signal@" $dc -}}
+[[- end ]]
   {{range $index, $item := service $service -}}
     {{ scratch.MapSetX "shards" .ServiceMeta.shard $item  -}}
   {{ end -}}
@@ -159,11 +165,16 @@ block
   [[ end -]]
 {{ end -}}
 [[ else -]]
+
+[[ if eq $shard_brewery_enabled "false" -]]
+{{ $service := print "prosody-brewery" -}}
+[[ else -]]
   [[ if eq $pool_mode "local" -]]
 {{ $service := print "release-" (envOrDefault "RELEASE_NUMBER" "0") ".signal" -}}
   [[ else -]]
 {{ $service := print "shard-" (env "SHARD") ".signal" -}}
   [[ end -]]
+[[ end -]]
 {{range $index, $item := service $service -}}
   {{ scratch.MapSetX "shards" .ServiceMeta.shard $item  -}}
 {{ end -}}
@@ -245,6 +256,8 @@ done
 
 [[ define "shards-json" ]]
 [[ template "shard-lookup" . ]]
+[[ $shard_brewery_enabled := (or (env "CONFIG_jvb_shard_brewery_enabled") "true") "true" ]]
+
 {
   "shards": {
 {{ range $sindex, $item := scratch.MapValues "shards" -}}
@@ -262,7 +275,11 @@ done
   "drain_mode":"false",
   "port": 6222,
   "domain":"auth.jvb.{{ scratch.Get "domain" }}",
+[[ if eq $shard_brewery_enabled "false" -]]
+  "muc_jids":"release-[[ or (env "CONFIG_release_number") "0" ]]@muc.jvb.{{ scratch.Get "domain" }}",
+[[- else ]]
   "muc_jids":"jvbbrewery@muc.jvb.{{ scratch.Get "domain" }}",
+[[- end ]]
   "username":"[[ or (env "CONFIG_jvb_auth_username") "jvb" ]]",
   "password":"[[ env "CONFIG_jvb_auth_password" ]]",
   "muc_nickname":"jvb-{{ env "NOMAD_ALLOC_ID" }}",
