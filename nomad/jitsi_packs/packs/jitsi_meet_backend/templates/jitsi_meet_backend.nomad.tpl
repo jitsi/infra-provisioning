@@ -97,7 +97,7 @@ job [[ template "job_name" . ]] {
         prosody_s2s_port = "${NOMAD_HOST_PORT_prosody_s2s}"
 [[- if eq (or (env "CONFIG_prosody_brewery_shard_enabled") "true") "true" ]]
         prosody_jvb_client_port = "${NOMAD_HOST_PORT_prosody_jvb_client}"
-[[ end -]]
+[[- end ]]
         signal_sidecar_agent_port = "${NOMAD_HOST_PORT_signal_sidecar_agent}"
         signal_sidecar_http_ip = "${NOMAD_IP_signal_sidecar_http}"
         signal_sidecar_http_port = "${NOMAD_HOST_PORT_signal_sidecar_http}"
