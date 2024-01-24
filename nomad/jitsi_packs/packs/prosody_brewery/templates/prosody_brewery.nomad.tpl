@@ -35,7 +35,7 @@ job [[ template "job_name" . ]] {
 
     service {
       name = "prosody-brewery-http"
-      tags = ["[[ env "CONFIG_shard" ]]","ip-${attr.unique.network.ip-address}"]
+      tags = ["ip-${attr.unique.network.ip-address}"]
       port = "prosody-brewery-http"
       meta {
         domain = "[[ env "CONFIG_domain" ]]"
@@ -57,6 +57,8 @@ job [[ template "job_name" . ]] {
       meta {
         domain = "[[ env "CONFIG_domain" ]]"
         environment = "${meta.environment}"
+        shard = "prosody-brewery-[[ env "CONFIG_octo_region"]]"
+        prosody_jvb_client_port = "${NOMAD_HOST_PORT_prosody_brewery_client}"
       }
 
       port = "prosody-brewery-client"
