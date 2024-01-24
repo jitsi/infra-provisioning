@@ -551,7 +551,7 @@ EOF
         memory    = [[ or (env "CONFIG_nomad_prosody_jvb_memory") "512" ]]
       }
     }
-[[ end -]]
+[[- end ]]
     task "jicofo" {
       driver = "docker"
 
@@ -711,13 +711,14 @@ JVB_XMPP_PORT={{  env "NOMAD_HOST_PORT_prosody_jvb_client" }}
 [[- else ]]
 {{ range service "prosody-brewery" -}}
     {{ scratch.SetX "prosody-brewery" .  -}}
-{{ end -}}
+{{- end }}
 {{ with scratch.Get "prosody-brewery" -}}
 JVB_XMPP_SERVER={{ .Address }}
 JVB_XMPP_PORT={{ .Port }}
 JVB_BREWERY_MUC="release-[[ env "CONFIG_release_number" ]]"
-{{ end -}}
+{{- end }}
 [[- end ]]
+
 EOF
 
         destination = "local/jicofo.env"
