@@ -63,14 +63,6 @@ job [[ template "job_name" . ]] {
 
       port = "prosody-brewery-client"
 
-      check {
-        name     = "health"
-        type     = "http"
-        path     = "/metrics"
-        port     = "prosody-brewery-http"
-        interval = "10s"
-        timeout  = "2s"
-      }
     }
 
     task "brewery" {
