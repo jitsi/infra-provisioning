@@ -145,7 +145,7 @@ block
 
 [[ define "shard-lookup" -]]
 [[ $pool_mode := or (env "CONFIG_jvb_pool_mode") "shard" -]]
-[[ $shard_brewery_enabled := (or (env "CONFIG_jvb_shard_brewery_enabled") "true") "true" ]]
+[[ $shard_brewery_enabled := or (env "CONFIG_jvb_shard_brewery_enabled") "true" ]]
 
 [[ if eq $pool_mode "remote" "global" -]]
 {{ range $dcidx, $dc := datacenters -}}
@@ -256,7 +256,7 @@ done
 
 [[ define "shards-json" ]]
 [[ template "shard-lookup" . ]]
-[[ $shard_brewery_enabled := (or (env "CONFIG_jvb_shard_brewery_enabled") "true") "true" ]]
+[[ $shard_brewery_enabled := or (env "CONFIG_jvb_shard_brewery_enabled") "true" ]]
 
 {
   "shards": {

@@ -257,7 +257,7 @@ include "xmpp.conf"
 
 [[ define "xmpp-config" ]]
 [[ template "shard-lookup" . ]]
-[[ $shard_brewery_enabled := (or (env "CONFIG_jvb_shard_brewery_enabled") "true") "true" ]]
+[[ $shard_brewery_enabled := or (env "CONFIG_jvb_shard_brewery_enabled") "true" ]]
 videobridge.apis.xmpp-client.configs {
 {{ range $sindex, $item := scratch.MapValues "shards" -}}
     # SHARD {{ .ServiceMeta.shard }}
