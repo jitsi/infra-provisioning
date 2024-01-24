@@ -200,7 +200,6 @@ export CONFIG_domain="$DOMAIN"
 export CONFIG_shard="$SHARD"
 export CONFIG_shard_id="$(echo $SHARD| rev | cut -d"-" -f1 | rev | tr -d '[:alpha:]')"
 export CONFIG_octo_region="$ORACLE_REGION"
-# [ -n "$SHARD_STATE" ] && export CONFIG_shard_state="$SHARD_STATE"
 export CONFIG_release_number="$RELEASE_NUMBER"
 export CONFIG_signal_version="$SIGNAL_VERSION"
 export CONFIG_jicofo_tag="$JICOFO_TAG"
@@ -219,6 +218,8 @@ if [ -z "$CONFIG_force_pull" ]; then
         export CONFIG_force_pull="true"
     fi
 fi
+
+[ -n "$SHARD_BREWERY_ENABLED" ] && export CONFIG_prosody_brewery_shard_enabled="$SHARD_BREWERY_ENABLED"
 
 export JOB_NAME="shard-${SHARD}"
 

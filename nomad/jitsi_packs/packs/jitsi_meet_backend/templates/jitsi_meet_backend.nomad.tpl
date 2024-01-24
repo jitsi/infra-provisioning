@@ -47,11 +47,13 @@ job [[ template "job_name" . ]] {
       }
       port "prosody-client" {
       }
+[[- if eq (or (env "CONFIG_prosody_brewery_shard_enabled") "true") "true" ]]
       port "prosody-jvb-client" {
       }
       port "prosody-jvb-http" {
         to = 5280
       }
+[[- end ]]
       port "jicofo-http" {
         to = 8888
       }
@@ -93,7 +95,9 @@ job [[ template "job_name" . ]] {
         prosody_http_port = "${NOMAD_HOST_PORT_prosody_http}"
         prosody_client_port = "${NOMAD_HOST_PORT_prosody_client}"
         prosody_s2s_port = "${NOMAD_HOST_PORT_prosody_s2s}"
+[[- if eq (or (env "CONFIG_prosody_brewery_shard_enabled") "true") "true" ]]
         prosody_jvb_client_port = "${NOMAD_HOST_PORT_prosody_jvb_client}"
+[[- end ]]
         signal_sidecar_agent_port = "${NOMAD_HOST_PORT_signal_sidecar_agent}"
         signal_sidecar_http_ip = "${NOMAD_IP_signal_sidecar_http}"
         signal_sidecar_http_port = "${NOMAD_HOST_PORT_signal_sidecar_http}"
@@ -170,6 +174,7 @@ job [[ template "job_name" . ]] {
       }
     }
 
+[[- if eq (or (env "CONFIG_prosody_brewery_shard_enabled") "true") "true" ]]
     service {
       name = "prosody-jvb-http"
       tags = ["[[ env "CONFIG_shard" ]]","ip-${attr.unique.network.ip-address}"]
@@ -190,7 +195,29 @@ job [[ template "job_name" . ]] {
         timeout  = "2s"
       }
     }
+    service {
 
+      name = "prosody-jvb-client"
+      tags = ["[[ env "CONFIG_shard" ]]"]
+      meta {
+        domain = "[[ env "CONFIG_domain" ]]"
+        shard = "[[ env "CONFIG_shard" ]]"
+        release_number = "[[ env "CONFIG_release_number" ]]"
+        environment = "${meta.environment}"
+      }
+
+      port = "prosody-jvb-client"
+
+      check {
+        name     = "health"
+        type     = "http"
+        path     = "/metrics"
+        port     = "prosody-jvb-http"
+        interval = "10s"
+        timeout  = "2s"
+      }
+    }
+[[- end ]]
     service {
       name = "signal-sidecar"
       tags = ["[[ env "CONFIG_shard" ]]","ip-${attr.unique.network.ip-address}","urlprefix-/[[ env "CONFIG_shard" ]]/about/health strip=/[[ env "CONFIG_shard" ]]"]
@@ -226,29 +253,6 @@ job [[ template "job_name" . ]] {
         port = "prosody-http"
         interval = "10s"
         timeout = "2s"
-      }
-    }
-
-    service {
-
-      name = "prosody-jvb-client"
-      tags = ["[[ env "CONFIG_shard" ]]"]
-      meta {
-        domain = "[[ env "CONFIG_domain" ]]"
-        shard = "[[ env "CONFIG_shard" ]]"
-        release_number = "[[ env "CONFIG_release_number" ]]"
-        environment = "${meta.environment}"
-      }
-
-      port = "prosody-jvb-client"
-
-      check {
-        name     = "health"
-        type     = "http"
-        path     = "/metrics"
-        port     = "prosody-jvb-http"
-        interval = "10s"
-        timeout  = "2s"
       }
     }
 
@@ -499,7 +503,7 @@ EOH
         memory    = [[ or (env "CONFIG_nomad_prosody_memory") "1024" ]]
       }
     }
-
+[[- if eq (or (env "CONFIG_prosody_brewery_shard_enabled") "true") "true" ]]
     task "prosody-jvb" {
       driver = "docker"
 
@@ -527,7 +531,6 @@ EOH
         PROSODY_LOG_CONFIG="{level = \"debug\", to = \"ringbuffer\",size = [[ or (env "CONFIG_prosody_jvb_mod_log_ringbuffer_size") "1024*1024*4" ]], filename_template = \"traceback.txt\", event = \"debug_traceback/triggered\";};"
         TZ = "UTC"
       }
-[[ template "prosody_artifacts" . ]]
 
       template {
         data = <<EOF
@@ -548,7 +551,7 @@ EOF
         memory    = [[ or (env "CONFIG_nomad_prosody_jvb_memory") "512" ]]
       }
     }
-
+[[- end ]]
     task "jicofo" {
       driver = "docker"
 
@@ -702,8 +705,20 @@ XMPP_PORT={{  env "NOMAD_HOST_PORT_prosody_client" }}
 # Internal XMPP server URL
 XMPP_BOSH_URL_BASE=http://{{ env "NOMAD_IP_prosody_http" }}:{{ env "NOMAD_HOST_PORT_prosody_http" }}
 
+[[- if eq (or (env "CONFIG_prosody_brewery_shard_enabled") "true") "true" ]]
 JVB_XMPP_SERVER={{ env "NOMAD_IP_prosody_jvb_client" }}
 JVB_XMPP_PORT={{  env "NOMAD_HOST_PORT_prosody_jvb_client" }}
+[[- else ]]
+{{ range service "prosody-brewery" -}}
+    {{ scratch.SetX "prosody-brewery" .  -}}
+{{- end }}
+{{ with scratch.Get "prosody-brewery" -}}
+JVB_XMPP_SERVER={{ .Address }}
+JVB_XMPP_PORT={{ .Port }}
+JVB_BREWERY_MUC="release-[[ env "CONFIG_release_number" ]]"
+{{- end }}
+[[- end ]]
+
 EOF
 
         destination = "local/jicofo.env"

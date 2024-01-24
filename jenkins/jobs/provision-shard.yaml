@@ -85,6 +85,10 @@
           description: "Cloud to build signal node in, defaults to 'oracle'."
           trim: true
       - string:
+          name: SHARD_BREWERY_ENABLED
+          description: "Enables local jvb brewery for shard, defaults true in script, set to false to use shared prosody-brewery service"
+          trim: true
+      - string:
           name: INFRA_CONFIGURATION_REPO
           default: git@github.com:jitsi/infra-configuration.git
           description: "Repo for configuration code (ansible etc), defaults to 'git@github.com:jitsi/infra-configuration.git'."
