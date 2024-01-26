@@ -22,7 +22,6 @@ variable "tag_namespace" {}
 variable "user" {}
 variable "user_private_key_path" {}
 variable "user_public_key_path" {}
-variable "bastion_host" {}
 variable "ingress_nsg_cidr" {}
 variable "instance_display_name" {}
 variable "instance_shape_config_memory_in_gbs" {}
@@ -37,6 +36,27 @@ variable "user_data_file" {
 }
 variable "infra_configuration_repo" {}
 variable "infra_customizations_repo" {}
+
+variable "cloudflare_ip_ranges" {
+  type = list(string)
+  default = [
+    "173.245.48.0/20",
+    "103.21.244.0/22",
+    "103.22.200.0/22",
+    "103.31.4.0/22",
+    "141.101.64.0/18",
+    "108.162.192.0/18",
+    "190.93.240.0/20",
+    "188.114.96.0/20",
+    "197.234.240.0/22",
+    "198.41.128.0/17",
+    "162.158.0.0/15",
+    "104.16.0.0/13",
+    "104.24.0.0/14",
+    "172.64.0.0/13",
+    "131.0.72.0/22"
+  ]
+}
 
 locals {
   common_tags = {
@@ -101,7 +121,7 @@ resource "oci_core_network_security_group_security_rule" "instance_nsg_rule_ingr
   }
 }
 
-# TCP Ingress for iperf server
+# TCP Ingress for default access to 443
 resource "oci_core_network_security_group_security_rule" "instance_nsg_rule_ingress_tcp" {
   network_security_group_id = oci_core_network_security_group.instance_security_group.id
   direction = "INGRESS"
@@ -116,6 +136,25 @@ resource "oci_core_network_security_group_security_rule" "instance_nsg_rule_ingr
     }
   }
 }
+
+# TCP access to Cloudflare IP ranges
+
+resource "oci_core_network_security_group_security_rule" "instance_nsg_rule_ingress_tcp_cloudflare" {
+  count = length(var.cloudflare_ip_ranges)
+  network_security_group_id = oci_core_network_security_group.instance_security_group.id
+  direction = "INGRESS"
+  protocol = "6"
+  source = var.cloudflare_ip_ranges[count.index]
+  stateless = false
+
+  tcp_options {
+    destination_port_range {
+      max = 443
+      min = 443
+    }
+  }
+}
+
 
 resource "oci_core_instance" "instance" {
     #Required
