@@ -7,9 +7,12 @@ FROM  --platform=$TARGETPLATFORM jenkins/agent:latest-jdk17
 ARG TARGETPLATFORM
 ARG BUILDPLATFORM
 ARG DOCKER_GID=996
+
 COPY --from=0 /usr/bin/yq /usr/bin/yq
 COPY ./requirements.txt /home/jenkins/requirements.txt
 COPY ./s3cfg /home/jenkins/.s3cfg
+RUN mkdir /home/jenkins/.docker
+COPY ./docker-config.json /home/jenkins/.docker/config.json
 
 USER root
 RUN apt-get update && apt-get -y install procps dnsutils jq python3-pip python3-venv rsync wget curl gpg unzip zip git python-is-python3 maven xvfb imagemagick s3cmd s3fs mini-dinstall sudo devscripts dpkg-dev amazon-ecr-credential-helper
@@ -41,10 +44,13 @@ RUN if [ "$TARGETPLATFORM" = "linux/amd64" ]; then ARCHITECTURE="amd64"; elif [ 
 RUN wget -qO - https://download.jitsi.org/jitsi-key.gpg.key | gpg --dearmour > /etc/apt/trusted.gpg.d/jitsi.gpg && \
     echo "deb https://download.jitsi.org unstable/" > /etc/apt/sources.list.d/jitsi.list && \
     apt-get update && \
-    apt-get -y install jitsi-autoscaler-sidecar && rm /etc/apt/sources.list.d/jitsi.list
+    apt-get -y install jitsi-autoscaler-sidecar
 
 RUN apt-get -y install docker-ce docker-ce-cli containerd.io docker-compose-plugin binfmt-support qemu-user-static
-RUN usermod -a -G docker jenkins && usermod -a -G $DOCKER_GID jenkins
+RUN usermod -a -G docker jenkins && usermod -a -G $DOCKER_GID jenkins && usermod -a -G jitsi jenkins
+
+RUN mkdir -p /opt/jitsi && git clone https://github.com/jitsi/jitsi-autoscaler-sidecar.git /opt/jitsi/jitsi-autoscaler-sidecar \
+    && cd /opt/jitsi/jitsi-autoscaler-sidecar && npm install && npm run build
 
 RUN mkdir -p /opt/jitsi && git clone https://github.com/jitsi/token-generator.git /opt/jitsi/token-generator \
     && cd /opt/jitsi/token-generator && npm install && npm run build
