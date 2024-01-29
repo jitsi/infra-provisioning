@@ -63,9 +63,6 @@ if [[ "$BRANDING_NAME" == "jitsi-meet" ]]; then
         exit 1
     fi
 else
-    # login to docker and check for branding image
-    [ -z "$AWS_DEFAULT_REGION" ] && AWS_DEFAULT_REGION="us-west-2"
-    aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ECR_REPO_HOST
 
     # grab manifest from ECR
     RETRIES=360
