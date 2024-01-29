@@ -70,7 +70,7 @@ job "[JOB_NAME]" {
           image = "grafana/loki:2.9.1"
           args = [
             "-config.file",
-            "local/loki/local-config.yaml",
+            "local/local-config.yaml",
           ]
           ports = ["loki","gossip"]
         }
@@ -104,10 +104,6 @@ job "[JOB_NAME]" {
   ingester:
     lifecycler:
       address: 127.0.0.1
-      ring:
-        kvstore:
-          store: inmemory
-        replication_factor: 1
       final_sleep: 0s
     # Any chunk not receiving new logs in this time will be flushed
     chunk_idle_period: 1h
@@ -152,7 +148,7 @@ job "[JOB_NAME]" {
     retention_deletes_enabled: false
     retention_period: 0s
   EOH
-          destination = "local/loki/local-config.yaml"
+          destination = "local/local-config.yaml"
         }
         resources {
           cpu    = 1024
