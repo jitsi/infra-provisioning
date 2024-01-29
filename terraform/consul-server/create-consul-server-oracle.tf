@@ -305,6 +305,21 @@ resource "oci_core_network_security_group_security_rule" "consul_nsg_rule_telegr
   }
 }
 
+resource "oci_core_network_security_group_security_rule" "consul_nsg_rule_loki_gossip" {
+  network_security_group_id = oci_core_network_security_group.consul_security_group.id
+  direction = "INGRESS"
+  protocol = "6"
+  source = data.oci_core_vcns.vcns.virtual_networks[0].cidr_block
+  stateless = false
+
+  tcp_options {
+    destination_port_range {
+      max = 7946
+      min = 7946
+    }
+  }
+}
+
 resource "oci_core_instance_configuration" "oci_instance_configuration_a" {
   compartment_id = var.compartment_ocid
   display_name = var.instance_config_name
