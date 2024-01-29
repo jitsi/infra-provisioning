@@ -45,11 +45,11 @@ job "[JOB_NAME]" {
       attribute  = "${meta.pool_type}"
       value     = "general"
     }
-    volume "loki" {
-      type      = "host"
-      read_only = false
-      source    = "loki"
-    }
+    // volume "loki" {
+    //   type      = "host"
+    //   read_only = false
+    //   source    = "loki"
+    // }
     task "loki" {
       driver = "docker"
       user = "root"
@@ -57,15 +57,18 @@ job "[JOB_NAME]" {
         image = "grafana/loki:2.9.1"
         args = [
           "-config.file",
-          "local/loki/local-config.yaml",
+          "local/local-config.yaml",
         ]
         ports = ["loki","gossip"]
+        volumes = [
+          "local/loki:/loki",
+        ]
       }
-      volume_mount {
-        volume      = "loki"
-        destination = "/loki"
-        read_only   = false
-      }
+      // volume_mount {
+      //   volume      = "loki"
+      //   destination = "/loki"
+      //   read_only   = false
+      // }
       template {
         data = <<EOH
 auth_enabled: false
@@ -123,7 +126,7 @@ table_manager:
   retention_deletes_enabled: false
   retention_period: 0s
 EOH
-        destination = "local/loki/local-config.yaml"
+        destination = "local/local-config.yaml"
       }
       resources {
         cpu    = 1024

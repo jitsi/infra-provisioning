@@ -29,19 +29,21 @@ if [ -z "$JOB" ]; then
     echo "Not enough parameters provided, exiting.."
     exit 5
 fi
-if [ -z "$SEARCH" ]; then
-    echo "Not enough parameters provided, exiting.."
-    exit 6
-fi
+# if [ -z "$SEARCH" ]; then
+#     echo "Not enough parameters provided, exiting.."
+#     exit 6
+# fi
 
 
 function log_search() {
     local job="$1"
     local search="$2"
-    local region="$3"
     set -x
 
-    # from and to date need to be exactly like '2024-01-06T00:00:00.999999999-06:00'
+    # from and to date need to be exactly like '2024-01-06T00:00:00.999999999-0600'
+    #                   try your out here like '2023-11-29T13:36:02.118519000'
+    [ -n "$FROM_PERIOD" ] && SEARCH_FROM="$(gdate --iso-8601=ns -d "$FROM_PERIOD")"
+    [ -n "$TO_PERIOD" ] && SEARCH_TO="$(gdate --iso-8601=ns -d "$TO_PERIOD")"
     [ -z "$SEARCH_PERIOD" ] && SEARCH_PERIOD="1h"
     [ -z "$SEARCH_LIMIT" ] && SEARCH_LIMIT="30"
     [ -n "$SEARCH_FROM" ] && FROM_PARAM="--from $SEARCH_FROM"
@@ -51,13 +53,17 @@ function log_search() {
     else
         SEARCH_PARAM="--since=$SEARCH_PERIOD"
     fi
-    [ -z "$SEARCH_LIMIT" ] && SEARCH_LIMIT="1000"
-    LOKI_ADDR="https://${ENVIRONMENT}-${region}-loki.${TOP_LEVEL_DNS_ZONE_NAME}"
+    [ -z "$SEARCH_LIMIT" ] && SEARCH_LIMIT="30"
+    [ -n "$search" ] && SEARCH_TERM="|~ \"(?i)$search\""
+
+    LOKI_ADDR="https://${ENVIRONMENT}-${ORACLE_REGION}-loki.${TOP_LEVEL_DNS_ZONE_NAME}"
     logcli query -q --addr $LOKI_ADDR \
         --output=jsonl \
         --limit=$SEARCH_LIMIT \
         $SEARCH_PARAM \
-    "{job=\"$job\"} |~ \"(?i)$search\"" | jq -r -s '.[]|"\(.timestamp): \(.labels.task) \(.line|fromjson|.message)"'
+        $SEARCH_TAIL \
+        --parallel-max-workers=4 \
+    "{job=\"$job\"}$SEARCH_TERM" | jq -r -s '.[]|"\(.timestamp): \(.labels) \(.line|fromjson|.message)"'
 }
 
-log_search $JOB $SEARCH $ORACLE_REGION
+log_search $JOB $SEARCH
