@@ -24,7 +24,7 @@ LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
 if [ -z "$INVENTORY_FILE" ]; then
     INVENTORY_FILE="./remap.inventory"
-    $LOCAL_PATH/node.py --environment=$ENVIRONMENT --role $REMOUNT_ROLE --batch > $INVENTORY_FILE
+    $LOCAL_PATH/node.py --environment=$ENVIRONMENT --role $REMOUNT_ROLE --region all --batch > $INVENTORY_FILE
 fi
 
 for i in $(cat $INVENTORY_FILE); do
