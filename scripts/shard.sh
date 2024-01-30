@@ -280,6 +280,7 @@ function shard_log_search() {
          --output=jsonl \
          --limit=$SEARCH_LIMIT \
          $SEARCH_PARAM \
+        --parallel-max-workers=4 \
         "{job=\"shard-$shard\"} |~ \"(?i)$search\"" | jq -r -s '.[]|"\(.timestamp): \(.labels.task) \(.line|fromjson|.message)"'
     fi
 }
