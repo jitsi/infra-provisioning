@@ -60,10 +60,15 @@ fi
 
 
 # TODO query available standard images with ubuntu 22.04
-[ -z "$BARE_IMAGE_ID" ] && BARE_IMAGE_ID=$DEFAULT_FOCAL_IMAGE_ID
-[ -z "$BASE_IMAGE_TYPE" ] && BASE_IMAGE_TYPE="FocalBare"
 
 arch_from_shape $SHAPE
+
+if [[ "$IMAGE_ARCH" == "aarch64" ]]; then
+  [ -z "$BARE_IMAGE_ID" ] && BARE_IMAGE_ID=$ARM_FOCAL_IMAGE_ID
+else
+  [ -z "$BARE_IMAGE_ID" ] && BARE_IMAGE_ID=$DEFAULT_FOCAL_IMAGE_ID
+fi
+[ -z "$BASE_IMAGE_TYPE" ] && BASE_IMAGE_TYPE="FocalBare"
 
 EXISTING_IMAGE_OCID=$($LOCAL_PATH/oracle_custom_images.py --type FocalBase --architecture "$IMAGE_ARCH" --version "latest" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
 if [ ! -z "$EXISTING_IMAGE_OCID" ]; then
