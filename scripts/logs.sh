@@ -63,7 +63,7 @@ function log_search() {
         $SEARCH_PARAM \
         $SEARCH_TAIL \
         --parallel-max-workers=4 \
-    "{job=\"$job\"}$SEARCH_TERM" | jq -r -s '.[]|"\(.timestamp): \(.labels) \(.line|fromjson|.level + ": " +.message)"'
+    "{job=\"$job\"}$SEARCH_TERM" | jq -r -s '.[]|"\(.timestamp): \(if (.labels|keys|length)>0 then .labels else "" end) \(.line|fromjson| if .level then (.level + ": " +.message) else .message end)"'
 }
 
 log_search $JOB $SEARCH
