@@ -46,11 +46,13 @@ job "[JOB_NAME]" {
         mode     = "delay"
       }
       network {
-        port "loki" {
-          to = 3100
+        mode = "host"
+        port "http" {
         }
         port "gossip" {
           static = 7946
+        }
+        port "grpc" {
         }
       }
       constraint {
@@ -67,12 +69,13 @@ job "[JOB_NAME]" {
         driver = "docker"
         user = "root"
         config {
+          network_mode = "host"
           image = "grafana/loki:2.9.1"
           args = [
             "-config.file",
             "local/local-config.yaml",
           ]
-          ports = ["loki","gossip"]
+          ports = ["http","gossip","grpc"]
         }
         volume_mount {
           volume      = "loki"
@@ -83,27 +86,32 @@ job "[JOB_NAME]" {
           data = <<EOH
   auth_enabled: false
   server:
-    http_listen_port: 3100
+    http_listen_port: {{ env "NOMAD_HOST_PORT_http" }}
+    http_listen_address: 0.0.0.0
+    grpc_listen_port: {{ env "NOMAD_HOST_PORT_grpc" }}
+    grpc_listen_address: 0.0.0.0
 
   common:
     ring:
-      instance_addr: 127.0.0.1
+      instance_addr: {{ env "NOMAD_IP_grpc" }}
       kvstore:
         store: memberlist
     replication_factor: 1
     path_prefix: /loki # Update this accordingly, data will be stored here.
 
   memberlist:
+    advertise_addr: {{ env "NOMAD_IP_grpc" }}
+    tls_insecure_skip_verify: true
     join_members:
     # You can use a headless k8s service for all distributor, ingester and querier components.
     # :7946 is the default memberlist port.
-    - ${var.dc}-consul-a.${var.internal_dns_zone}:7946
-    - ${var.dc}-consul-b.${var.internal_dns_zone}:7946
-    - ${var.dc}-consul-c.${var.internal_dns_zone}:7946
+    - ${var.dc}-consul-a.${var.internal_dns_zone}:{{ env "NOMAD_HOST_PORT_gossip" }}
+    - ${var.dc}-consul-b.${var.internal_dns_zone}:{{ env "NOMAD_HOST_PORT_gossip" }}
+    - ${var.dc}-consul-c.${var.internal_dns_zone}:{{ env "NOMAD_HOST_PORT_gossip" }}
 
   ingester:
     lifecycler:
-      address: 127.0.0.1
+      address: {{ env "NOMAD_IP_grpc" }}
       final_sleep: 0s
     # Any chunk not receiving new logs in this time will be flushed
     chunk_idle_period: 1h
@@ -156,11 +164,11 @@ job "[JOB_NAME]" {
         }
         service {
           name = "loki"
-          port = "loki"
+          port = "http"
           tags = ["int-urlprefix-${var.loki_hostname}/", "ip-${attr.unique.network.ip-address}","loki-${group.key}"]
           check {
             name     = "Loki healthcheck"
-            port     = "loki"
+            port     = "http"
             type     = "http"
             path     = "/ready"
             interval = "20s"

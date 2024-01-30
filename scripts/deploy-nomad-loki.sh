@@ -43,7 +43,7 @@ export NOMAD_VAR_loki_hostname="${LOKI_HOSTNAME}"
 export NOMAD_VAR_oracle_s3_namespace="$ORACLE_S3_NAMESPACE"
 JOB_NAME="loki-$ORACLE_REGION"
 
-sed -e "s/\[JOB_NAME\]/$JOB_NAME/" "$NOMAD_JOB_PATH/loki.hcl" | nomad job run -var="dc=$NOMAD_DC" -
+sed -e "s/\[JOB_NAME\]/$JOB_NAME/" "$NOMAD_JOB_PATH/loki-cluster.hcl" | nomad job run -var="dc=$NOMAD_DC" -
 
 if [ $? -ne 0 ]; then
     echo "Failed to run nomad loki job, exiting"
