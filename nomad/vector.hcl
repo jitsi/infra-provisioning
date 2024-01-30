@@ -2,6 +2,11 @@ variable "dc" {
   type = list(string)
 }
 
+variable "top_level_domain" {
+  type = string
+  default = "jitsi.net"
+}
+
 job "vector" {
   datacenters = var.dc
   # system job, runs on all nodes
@@ -91,7 +96,7 @@ job "vector" {
           [sinks.loki]
             type = "loki"
             inputs = ["message_to_structure"]
-            endpoint = "http://[[ range service "loki" ]][[ .Address ]]:[[ .Port ]][[ end ]]"
+            endpoint = "https://[[ env "meta.environment" ]]-[[ env "meta.cloud_region" ]]-loki.${var.top_level_domain}"
             encoding.codec = "json"
             healthcheck.enabled = true
             # since . is used by Vector to denote a parent-child relationship, and Nomad's Docker labels contain ".",

@@ -6,6 +6,14 @@ variable "loki_hostname" {
   type = string
 }
 
+variable "oracle_s3_namespace" {
+  type = string
+}
+
+variable "oracle_s3_credentials" {
+  type = string
+}
+
 job "[JOB_NAME]" {
   datacenters = [var.dc]
   type        = "service"
@@ -29,37 +37,44 @@ job "[JOB_NAME]" {
       port "loki" {
         to = 3100
       }
+      port "gossip" {
+        static = 7946
+      }
     }
     constraint {
       attribute  = "${meta.pool_type}"
       value     = "general"
     }
-    volume "loki" {
-      type      = "host"
-      read_only = false
-      source    = "loki"
-    }
+    // volume "loki" {
+    //   type      = "host"
+    //   read_only = false
+    //   source    = "loki"
+    // }
     task "loki" {
       driver = "docker"
       user = "root"
       config {
-        image = "grafana/loki:2.7.4"
+        image = "grafana/loki:2.9.1"
         args = [
           "-config.file",
-          "local/loki/local-config.yaml",
+          "local/local-config.yaml",
         ]
-        ports = ["loki"]
+        ports = ["loki","gossip"]
+        volumes = [
+          "local/loki:/loki",
+        ]
       }
-      volume_mount {
-        volume      = "loki"
-        destination = "/loki"
-        read_only   = false
-      }
+      // volume_mount {
+      //   volume      = "loki"
+      //   destination = "/loki"
+      //   read_only   = false
+      // }
       template {
         data = <<EOH
 auth_enabled: false
 server:
   http_listen_port: 3100
+
 ingester:
   lifecycler:
     address: 127.0.0.1
@@ -79,24 +94,29 @@ ingester:
   max_transfer_retries: 0     # Chunk transfers disabled
 schema_config:
   configs:
-    - from: 2020-10-24
-      store: boltdb-shipper
-      object_store: filesystem
-      schema: v11
+    # New TSDB schema below
+    - from: "2024-01-01" # <---- A date in the future
       index:
-        prefix: index_
         period: 24h
+        prefix: index_
+      object_store: s3
+      schema: v12
+      store: tsdb
+
 storage_config:
-  boltdb_shipper:
-    active_index_directory: /loki/boltdb-shipper-active
-    cache_location: /loki/boltdb-shipper-cache
-    cache_ttl: 24h         # Can be increased for faster performance over longer query periods, uses more disk space
-    shared_store: filesystem
-  filesystem:
-    directory: /loki/chunks
+  tsdb_shipper:
+    active_index_directory: /loki/data/tsdb-index
+    cache_location: /loki/data/tsdb-cache
+    shared_store: s3
+  aws:
+    s3: s3://${var.oracle_s3_credentials}@${var.oracle_s3_namespace}.compat.objectstorage.{{ env "meta.cloud_region" }}.oraclecloud.com/loki-{{ env "meta.environment" }}
+    region: {{ env "meta.cloud_region" }}
+    endpoint: https://${var.oracle_s3_namespace}.compat.objectstorage.{{ env "meta.cloud_region" }}.oraclecloud.com:443
+    s3forcepathstyle: true
+    insecure: false
 compactor:
   working_directory: /tmp/loki/boltdb-shipper-compactor
-  shared_store: filesystem
+  shared_store: s3
 limits_config:
   reject_old_samples: true
   reject_old_samples_max_age: 168h
@@ -106,7 +126,7 @@ table_manager:
   retention_deletes_enabled: false
   retention_period: 0s
 EOH
-        destination = "local/loki/local-config.yaml"
+        destination = "local/local-config.yaml"
       }
       resources {
         cpu    = 1024
@@ -115,7 +135,7 @@ EOH
       service {
         name = "loki"
         port = "loki"
-        tags = ["int-urlprefix-${var.loki_hostname}/"]
+        tags = ["int-urlprefix-${var.loki_hostname}/", "ip-${attr.unique.network.ip-address}","loki-${group.key}"]
         check {
           name     = "Loki healthcheck"
           port     = "loki"
@@ -125,7 +145,7 @@ EOH
           timeout  = "5s"
           check_restart {
             limit           = 3
-            grace           = "60s"
+            grace           = "300s"
             ignore_warnings = false
           }
         }
