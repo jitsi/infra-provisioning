@@ -25,6 +25,14 @@ if (!config.hasOwnProperty('videoQuality')) config.videoQuality = {};
 config.videoQuality.codecPreferenceOrder=[[ env "CONFIG_jitsi_meet_jvb_preferred_codecs" ]];
 [[- end ]]
 
+[[ if env "CONFIG_jitsi_meet_enable_simulcast_av1" -]]
+config.videoQuality.av1.useSimulcast=true;
+[[- end ]]
+
+[[ if env "CONFIG_jitsi_meet_enable_simulcast_vp9" -]]
+config.videoQuality.vp9.useSimulcast=true;
+[[- end ]]
+
 config.audioQuality.enableOpusDtx=[[ or (env "CONFIG_jitsi_meet_enable_dtx") "false" ]];
 
 [[ if eq (env "CONFIG_jitsi_meet_hidden_from_recorder_feature") "true" -]]
