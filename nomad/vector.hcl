@@ -94,6 +94,7 @@ job "vector" {
             inputs = [ "message_to_structure" ]
             encoding.codec = "json"
           [sinks.loki]
+            remove_timestamp = false
             type = "loki"
             inputs = ["message_to_structure"]
             endpoint = "https://[[ env "meta.environment" ]]-[[ env "meta.cloud_region" ]]-loki.${var.top_level_domain}"
@@ -104,6 +105,7 @@ job "vector" {
             # remove fields that have been converted to labels to avoid having the field twice
             remove_label_fields = true
                 [sinks.loki.labels]
+                    alloc = "{{ label.\"com.hashicorp.nomad.alloc_id\" }}"
                     job = "{{ label.\"com.hashicorp.nomad.job_name\" }}"
                     task = "{{ label.\"com.hashicorp.nomad.task_name\" }}"
                     group = "{{ label.\"com.hashicorp.nomad.task_group_name\" }}"
