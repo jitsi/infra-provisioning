@@ -147,16 +147,16 @@ if [ $? -ne 0 ]; then
     echo "Failed to run web release job, exiting"
     exit 5
 else
-    scripts/nomad-pack.sh status jitsi_meet_web --name "$JOB_NAME"
+    scripts/nomad-pack.sh status jitsi_meet_web --name "web-release-${RELEASE_NUMBER}"
     if [ $? -ne 0 ]; then
         echo "Failed to get status for web release job, exiting"
         exit 6
     fi
-    nomad-watch --out "deployment" started "$JOB_NAME"
+    nomad-watch --out "deployment" started "web-release-${RELEASE_NUMBER}"
     WATCH_RET=$?
     if [ $WATCH_RET -ne 0 ]; then
         echo "Failed starting job, dumping logs and exiting"
-        nomad-watch started "$JOB_NAME"
+        nomad-watch started "web-release-${RELEASE_NUMBER}"
     fi
     exit $WATCH_RET
 fi
