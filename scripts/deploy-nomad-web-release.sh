@@ -142,5 +142,21 @@ nomad-pack run \
   -var "job_name=web-release-${RELEASE_NUMBER}" \
   -var "dc=$NOMAD_DC" \
   $PACKS_DIR/jitsi_meet_web
-#  | tail -n+2 \
-# #  | nomad job run -
+
+if [ $? -ne 0 ]; then
+    echo "Failed to run web release job, exiting"
+    exit 5
+else
+    scripts/nomad-pack.sh status jitsi_meet_web --name "$JOB_NAME"
+    if [ $? -ne 0 ]; then
+        echo "Failed to get status for web release job, exiting"
+        exit 6
+    fi
+    nomad-watch --out "deployment" started "$JOB_NAME"
+    WATCH_RET=$?
+    if [ $WATCH_RET -ne 0 ]; then
+        echo "Failed starting job, dumping logs and exiting"
+        nomad-watch started "$JOB_NAME"
+    fi
+    exit $WATCH_RET
+fi
