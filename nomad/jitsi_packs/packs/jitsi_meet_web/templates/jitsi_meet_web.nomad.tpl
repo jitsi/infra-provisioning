@@ -94,6 +94,8 @@ job [[ template "job_name" . ]] {
 [[ if eq (env "CONFIG_jitsi_meet_load_test_enabled") "true" -]]
           "local/repo:/usr/share/[[ or (env "CONFIG_jitsi_meet_branding_override") "jitsi-meet" ]]/load-test",
 [[ end -]]
+          "local/well-known/apple-app-site-association:/usr/share/[[ or (env "CONFIG_jitsi_meet_branding_override") "jitsi-meet" ]]/apple-app-site-association",
+          "local/well-known:/usr/share/[[ or (env "CONFIG_jitsi_meet_branding_override") "jitsi-meet" ]]/.well-known",
           "local/nginx-status.conf:/config/nginx/site-confs/status.conf"
         ]
       }
@@ -161,6 +163,18 @@ job [[ template "job_name" . ]] {
         destination = "local/repo"
       }
 [[ end -]]
+      template {
+        destination = "local/well-known/.apple-app-site-association"
+  data = <<EOF
+[[ env "CONFIG_jitsi_meet_apple_site_associations" ]]
+EOF
+      }
+      template {
+        destination = "local/well-known/assetlinks.json"
+[[ env "CONFIG_jitsi_meet_assetlinks" ]]
+  data = <<EOF
+EOF
+      }
 
       template {
         destination = "local/_unlock"
