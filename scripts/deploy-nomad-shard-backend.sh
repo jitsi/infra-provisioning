@@ -192,8 +192,23 @@ if [ -n "$NGINX_RATE_LIMIT_ALLOW_RANGES" ]; then
     fi
 fi
 
-# evaluate each string, integer and boolean in the environment configuration file and export it as a CONFIG_ environment variable
-eval $(yq '.. | select(tag == "!!int" or tag == "!!str" or tag == "!!bool") |  "export CONFIG_"+(path | join("_")) + "=\"" + . + "\""' $ENVIRONMENT_CONFIGURATION_FILE)
+function yamltoenv() {
+    # set -x
+    local yaml_file=$1
+    # evaluate each integer and boolean in the environment configuration file and export it as a CONFIG_ environment variable
+    eval $(yq '.. | select((tag == "!!int" or tag == "!!bool") and (path|length)==1) |  "export CONFIG_"+(path | join("_")) + "=\"" + . + "\""' $yaml_file)
+
+    # hack due to yq inability to escape a single backslash
+    # https://github.com/mikefarah/yq/issues/1692
+    export BACKSLASH='\'
+
+    # evaluate each string in the environment configuration file and export it as a CONFIG_ environment variable
+    eval $(yq '.. | select(tag == "!!str" and (path|length)==1) |  "export CONFIG_"+(path | join("_")) + "=\"" + (. | sub("\n"," ") | sub("\"",strenv(BACKSLASH)+"\"")) + "\""' $yaml_file)
+    # set +x
+}
+
+yamltoenv $MAIN_CONFIGURATION_FILE
+yamltoenv $ENVIRONMENT_CONFIGURATION_FILE
 
 export CONFIG_environment="$ENVIRONMENT"
 export CONFIG_domain="$DOMAIN"
