@@ -164,7 +164,7 @@ job [[ template "job_name" . ]] {
       }
 [[ end -]]
       template {
-        destination = "local/well-known/.apple-app-site-association"
+        destination = "local/well-known/apple-app-site-association"
   data = <<EOF
 [[ env "CONFIG_jitsi_meet_apple_site_associations" ]]
 EOF
