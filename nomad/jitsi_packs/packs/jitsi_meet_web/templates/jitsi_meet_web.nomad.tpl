@@ -171,8 +171,8 @@ EOF
       }
       template {
         destination = "local/well-known/assetlinks.json"
-[[ env "CONFIG_jitsi_meet_assetlinks" ]]
   data = <<EOF
+[[ env "CONFIG_jitsi_meet_assetlinks" ]]
 EOF
       }
 
