@@ -185,13 +185,13 @@ upstream prosodylimited {
 upstream web {
     zone upstreams 64K;
 {{ range $i, $v := service "release-[[ env "CONFIG_release_number" ]].jitsi-meet-web" -}}
-    {{ scratch.MapSet "web" $i . -}}
+    {{ scratch.MapSet "web" sprig_toString($) . -}}
 {{ end -}}
 {{ if not (scratch.Key "web") -}}
     {{ range $dcidx, $dc := datacenters -}}
         {{ $service := print "release-[[ env "CONFIG_release_number" ]].jitsi-meet-web" $dc -}}
         {{ range $i, $v := service $service  -}}
-            {{ scratch.MapSet "web" $i . -}}
+            {{ scratch.MapSet "web" sprig_toString($) . -}}
         {{ end -}}
     {{ end -}}
 {{ end -}}
