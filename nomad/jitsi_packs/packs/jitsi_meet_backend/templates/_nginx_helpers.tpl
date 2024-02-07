@@ -187,7 +187,7 @@ upstream web {
 {{ range $i, $v := service "release-[[ env "CONFIG_release_number" ]].jitsi-meet-web" -}}
     {{ scratch.MapSet "web" $i . -}}
 {{ end -}}
-{{ if not scratch.Key "web" -}}
+{{ if not (scratch.Key "web") -}}
     {{ range $dcidx, $dc := datacenters -}}
         {{ $service := print "release-[[ env "CONFIG_release_number" ]].jitsi-meet-web" $dc -}}
         {{ range $i, $v := service $service  -}}
