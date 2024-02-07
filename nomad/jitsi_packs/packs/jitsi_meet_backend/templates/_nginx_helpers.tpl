@@ -188,16 +188,17 @@ upstream web {
     {{ scratch.MapSet "web" $i . -}}
 {{ end -}}
 {{ if not scratch.Key "web" -}}
-{{ range $dcidx, $dc := datacenters -}}
-{{ $service := print "release-[[ env "CONFIG_release_number" ]].jitsi-meet-web" $dc -}}
-{{ range $i, $v := service $service  -}}
-    {{ scratch.MapSet "web" $i . -}}
-{{ end -}}
+    {{ range $dcidx, $dc := datacenters -}}
+        {{ $service := print "release-[[ env "CONFIG_release_number" ]].jitsi-meet-web" $dc -}}
+        {{ range $i, $v := service $service  -}}
+            {{ scratch.MapSet "web" $i . -}}
+        {{ end -}}
+    {{ end -}}
 {{ end -}}
 {{ if scratch.Key "web" -}}
-{{- range $sindex, $item := scratch.MapValues "web" }}
+  {{- range $sindex, $item := scratch.MapValues "web" }}
     server {{ .Address }}:{{ .Port }};
-{{ end -}}
+  {{ end -}}
 {{ else -}}
     server 127.0.0.1:15280;
 {{ end -}}
