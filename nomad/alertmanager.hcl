@@ -6,6 +6,11 @@ variable "alertmanager_hostname" {
   type = string
 }
 
+variable "alertmanager_version" {
+  type = string
+  default = "v0.26.0"
+}
+
 variable "slack_api_url" {
     type = string
     default = "replaceme"
@@ -56,7 +61,8 @@ job "[JOB_NAME]" {
       driver = "docker"
 
       config {
-        image = "prom/alertmanager:latest"
+        image = "prom/alertmanager:${var.alertmanager_version}"
+        force_pull = false
         ports = ["alertmanager_ui"]
         volumes = [
           "local/alertmanager.yml:/etc/alertmanager/alertmanager.yml"
