@@ -49,7 +49,7 @@ job [[ template "job_name" . ]] {
       }
     }
 
-    task "ingress-cloudprober" {
+    task "cloudprober" {
       service {
         name = "oscar"
         tags = ["int-urlprefix-[[ var "oscar_hostname" . ]]/","ip-${attr.unique.network.ip-address}"]

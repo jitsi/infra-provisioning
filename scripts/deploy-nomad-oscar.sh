@@ -12,6 +12,7 @@ LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
 [ -e "$LOCAL_PATH/../clouds/all.sh" ] && . "$LOCAL_PATH/../clouds/all.sh"
 [ -e "$LOCAL_PATH/../clouds/oracle.sh" ] && . "$LOCAL_PATH/../clouds/oracle.sh"
+[ -z "$ENVIRONMENT_CONFIGURATION_FILE" ] && ENVIRONMENT_CONFIGURATION_FILE="$LOCAL_PATH/../sites/$ENVIRONMENT/vars.yml"
 
 if [ -z "$ORACLE_REGION" ]; then
     echo "No ORACLE_REGION set, exiting"
@@ -51,6 +52,7 @@ if [[ "$OSCAR_TEMPLATE_TYPE" == "core" ]]; then
     OSCAR_ENABLE_HAPROXY_REGION="true"
     OSCAR_ENABLE_AUTOSCALER="true"
 fi
+
 if [[ "$OSCAR_TEMPLATE_TYPE" == "ops" ]]; then
     OSCAR_ENABLE_OPS_REPO="true"
     OSCAR_ENABLE_COTURN="false"
@@ -58,6 +60,28 @@ if [[ "$OSCAR_TEMPLATE_TYPE" == "ops" ]]; then
     OSCAR_ENABLE_SITE_INGRESS="false"
     OSCAR_ENABLE_HAPROXY_REGION="false"
     OSCAR_ENABLE_AUTOSCALER="false"
+fi
+
+OSCAR_ENABLE_RTCSTATS="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval ".jitsi_meet_rtcstats_enabled" -)"
+if [[ "$OSCAR_ENABLE_RTCSTATS" == "true" ]]; then
+  RTCSTATS_URL="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval ".jitsi_meet_rtcstats_endpoint" -)"
+  RTCSTATS_HOSTNAME=$(echo $RTCSTATS_URL | cut -d'/' -f3 | cut -d':' -f1)
+else
+  OSCAR_ENABLE_RTCSTATS="false"
+fi
+
+OSCAR_ENABLE_SKYNET="false"
+if [[ -e $SKYNET_ALT_HOSTNAME ]]; then
+    OSCAR_ENABLE_SKYNET="true"
+fi
+
+OSCAR_ENABLE_WHISPER="false"
+WHISPER_URL="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval ".jigasi_transcriber_whisper_websocket_url" -)"
+if [[ "$WHISPER_URL" != "null" ]]; then
+  OSCAR_ENABLE_WHISPER="true"
+  basename $WHISPER_URL
+  basename $(dirname $WHISPER_URL)
+  WHISPER_HOSTNAME=$(echo $WHISPER_URL | cut -d'/' -f3 | cut -d':' -f1)
 fi
 
 [ -z "$CLOUDPROBER_VERSION" ] && CLOUDPROBER_VERSION="latest"
@@ -77,6 +101,12 @@ enable_coturn=$OSCAR_ENABLE_COTURN
 enable_shard=$OSCAR_ENABLE_SHARD
 enable_autoscaler=$OSCAR_ENABLE_AUTOSCALER
 enable_wavefront_proxy=$OSCAR_ENABLE_WAVEFRONT_PROXY
+enable_skynet=$OSCAR_ENABLE_SKYNET
+skynet_hostname=$SKYNET_ALT_HOSTNAME
+enable_rtcstats=$OSCAR_ENABLE_RTCSTATS
+rtcstats_hostanems=$RTCSTATS_HOSTNAMES
+enable_whisper=$OSCAR_ENABLE_WHISPER
+whisper_hostname=$WHISPER_HOSTNAME
 EOF
 
 nomad-pack plan --name "$JOB_NAME" \

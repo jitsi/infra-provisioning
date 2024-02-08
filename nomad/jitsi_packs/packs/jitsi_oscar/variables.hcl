@@ -94,3 +94,36 @@ variable "enable_shard" {
   type        = bool
   default     = false
 }
+
+variable "enable_skynet" {
+  description = "Whether to enable the skynet monitoring"
+  type        = bool
+  default     = false
+}
+
+variable "skynet_hostname" {
+  description = "The hostname of the skynet service"
+  type        = string
+}
+
+variable "enable_rtcstats" {
+  description = "Whether to enable the rtcstats monitoring"
+  type        = bool
+  default     = false
+}
+
+variable "rtcstats_hostname" {
+  description = "The hostname of the rtcstats service"
+  type        = string
+}
+
+variable "enable_whisper" {
+  description = "Whether to enable the whisper monitoring"
+  type        = bool
+  default     = false
+}
+
+variable "whisper_hostname" {
+  description = "The hostname of the whisper service"
+  type        = string
+}
