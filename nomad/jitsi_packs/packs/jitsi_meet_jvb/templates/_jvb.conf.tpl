@@ -280,3 +280,58 @@ videobridge.apis.xmpp-client.configs {
 {{ end -}}
 }
 [[ end -]]
+
+[[ define "logging-properties" ]]
+handlers= java.util.logging.ConsoleHandler
+
+java.util.logging.ConsoleHandler.level = ALL
+java.util.logging.ConsoleHandler.formatter = org.jitsi.utils.logging2.JitsiLogFormatter
+
+org.jitsi.utils.logging2.JitsiLogFormatter.programname=JVB
+
+.level=INFO
+
+[[- if eq (env "CONFIG_jvb_enable_sctp_debug_logs") "true" ]]
+org.jitsi.videobridge.sctp.level=ALL
+[[- end ]]
+
+# This is intentionally always enabled, it's not noisy and includes
+# logging assert failures from usrsctp
+org.jitsi_modified.sctp4j.SctpJni.level=ALL
+
+[[- if eq (env "CONFIG_jvb_enable_message_transport_logs") "true" ]]
+org.jitsi.videobridge.EndpointMessageTransport.level=ALL
+org.jitsi.videobridge.relay.RelayMessageTransport.level=ALL
+[[- end ]]
+
+[[- if eq (env "CONFIG_jvb_enable_route_loudest_logs") "true" ]]
+org.jitsi.utils.dsi.DominantSpeakerIdentification.level=ALL
+[[- end ]]
+
+# We need this for SENT and RECV messages (for COLIBRI signaling) now.
+org.jitsi.videobridge.xmpp.XmppConnection.level=ALL
+
+# time series logging
+java.util.logging.SimpleFormatter.format= %5$s%n
+java.util.logging.FileHandler.level = ALL
+java.util.logging.FileHandler.formatter = java.util.logging.SimpleFormatter
+java.util.logging.FileHandler.pattern = {{ jvb_log_series_path }}
+java.util.logging.FileHandler.limit = {{ jvb_log_series_file_size_limit }}
+java.util.logging.FileHandler.count = 1
+java.util.logging.FileHandler.append = false
+
+[[- if eq (env "CONFIG_jvb_enable_all_timeseries") "true" ]]
+timeseries.level=ALL
+[[- else ]]
+timeseries.level=OFF
+[[- end ]]
+[[- if eq (env "CONFIG_jvb_enable_bwe_timeseries") "true" ]]
+timeseries.org.jitsi.nlj.rtp.bandwidthestimation.level=ALL
+[[- end ]]
+[[- if eq (env "CONFIG_jvb_enable_brctrl_timeseries") "true" ]]
+timeseries.org.jitsi.videobridge.cc.BitrateController.level=ALL
+[[- end ]]
+timeseries.useParentHandlers = false
+timeseries.handlers = java.util.logging.FileHandler
+
+[[ end -]]
