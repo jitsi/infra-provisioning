@@ -241,7 +241,6 @@ groups:
       description: An internal oscar probe from ${var.dc} to the {{ $labels.dst }} shard timed-out. This may be due to a network issue or a problem with the shard.
       runbook: https://example.com/runbook-placeholder
       dashboard: https://example.com/dashboard-placeholder
-
 EOH
     }
 
