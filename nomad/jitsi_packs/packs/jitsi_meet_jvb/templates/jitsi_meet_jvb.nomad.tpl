@@ -157,6 +157,7 @@ EOF
           "local/01-jvb-env:/etc/cont-init.d/01-jvb-env",
           "local/config:/config",
           "local/jvb.conf:/defaults/jvb.conf",
+          "local/logging.properties:/defaults/logging.properties",
           "local/jvb-service-run:/etc/services.d/jvb/run",
           "local/11-jvb-rtcstats-push:/etc/cont-init.d/11-jvb-rtcstats-push",
           "local/jvb-rtcstats-push-service-run:/etc/services.d/60-jvb-rtcstats-push/run"
@@ -302,6 +303,14 @@ EOF
 EOF
       }
 
+      template {
+        destination = "local/logging.properties"
+        left_delimiter = "[{"
+        right_delimiter = "}]"
+        data = <<EOF
+[[ template "logging-properties" . ]]
+EOF
+      }
 
       template {
         data = <<EOF
