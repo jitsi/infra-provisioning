@@ -6,6 +6,32 @@ variable "prometheus_hostname" {
   type = string
 }
 
+variable "prometheus_version" {
+  type = string
+  default = "v2.49.1"
+}
+
+variable "enable_remote_write" {
+  type = string
+  default = "false"
+}
+
+variable "remote_write_url" {
+  type = string
+}
+
+variable "remote_write_username" {
+  type = string
+}
+
+variable "remote_write_password" {
+  type = string
+}
+
+variable "remote_write_org_id" {
+  type = string
+}
+
 job "[JOB_NAME]" {
   region = "global"
 
@@ -41,7 +67,8 @@ job "[JOB_NAME]" {
       driver = "docker"
 
       config {
-        image = "prom/prometheus:latest"
+        image = "prom/prometheus:${var.prometheus_version}"
+        force_pull = false
         ports = ["prometheus_ui"]
         volumes = [
           "local/alerts.yml:/etc/prometheus/alerts.yml",
@@ -145,6 +172,14 @@ scrape_configs:
     consul_sd_configs:
     - server: '{{ env "NOMAD_IP_prometheus_ui" }}:8500'
       services: ['wavefront-proxy']
+
+remote_write:
+  - url: '${var.remote_write_url}'
+    basic_auth:
+      username: ${var.remote_write_username}
+      password: ${var.remote_write_password}
+    headers:
+      X-Scope-OrgID: ${var.remote_write_org_id}
 EOH
     }
 
