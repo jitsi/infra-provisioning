@@ -164,10 +164,6 @@ server {
 
 [[ define "nginx-site.conf" -]]
 
-{{ range service "release-[[ env "CONFIG_release_number" ]].jitsi-meet-web" -}}
-    {{ scratch.SetX "web" .  -}}
-{{ end -}}
-
 {{ range service "colibri-proxy" -}}
     {{ scratch.SetX "colibri-proxy" .  -}}
 {{ end -}}
@@ -188,8 +184,21 @@ upstream prosodylimited {
 # local upstream for web content used in final proxy_pass directive
 upstream web {
     zone upstreams 64K;
-{{ with scratch.Get "web" -}}
+{{ range $i, $v := service "release-[[ env "CONFIG_release_number" ]].jitsi-meet-web" -}}
+    {{ scratch.MapSet "web" ($i | sprig_toString ) . -}}
+{{ end -}}
+{{ if not (scratch.Key "web") -}}
+    {{ range $dcidx, $dc := datacenters -}}
+        {{ $service := print "release-[[ env "CONFIG_release_number" ]].jitsi-meet-web" $dc -}}
+        {{ range $i, $v := service $service  -}}
+            {{ scratch.MapSet "web" ($i | sprig_toString ) . -}}
+        {{ end -}}
+    {{ end -}}
+{{ end -}}
+{{ if scratch.Key "web" -}}
+  {{- range $sindex, $item := scratch.MapValues "web" }}
     server {{ .Address }}:{{ .Port }};
+  {{ end -}}
 {{ else -}}
     server 127.0.0.1:15280;
 {{ end -}}
