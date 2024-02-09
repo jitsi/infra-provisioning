@@ -179,6 +179,9 @@ job "[JOB_NAME]" {
               ignore_warnings = false
             }
           }
+          meta {
+            loki_index = "${group.key}"
+          }
         }
       }
     }
