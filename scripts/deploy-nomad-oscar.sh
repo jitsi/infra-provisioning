@@ -84,6 +84,11 @@ if [[ "$WHISPER_URL" != "null" ]]; then
   WHISPER_HOSTNAME=$(echo $WHISPER_URL | cut -d'/' -f3 | cut -d':' -f1)
 fi
 
+OSCAR_ENABLE_CUSTOM="false"
+if [[ -e $OSCAR_CUSTOM_PROBE_URLS ]]; then
+    OSCAR_ENABLE_CUSTOM="true"
+fi
+
 [ -z "$CLOUDPROBER_VERSION" ] && CLOUDPROBER_VERSION="latest"
 
 cat > "./oscar.hcl" <<EOF
@@ -104,9 +109,11 @@ enable_wavefront_proxy=$OSCAR_ENABLE_WAVEFRONT_PROXY
 enable_skynet=$OSCAR_ENABLE_SKYNET
 skynet_hostname=$SKYNET_ALT_HOSTNAME
 enable_rtcstats=$OSCAR_ENABLE_RTCSTATS
-rtcstats_hostanems=$RTCSTATS_HOSTNAMES
+rtcstats_hostname=$RTCSTATS_HOSTNAME
 enable_whisper=$OSCAR_ENABLE_WHISPER
 whisper_hostname=$WHISPER_HOSTNAME
+enable_custom=$OSCAR_ENABLE_CUSTOM
+custom_probe_urls=$OSCAR_CUSTOM_PROBE_URLS
 EOF
 
 nomad-pack plan --name "$JOB_NAME" \

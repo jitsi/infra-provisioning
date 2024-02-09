@@ -143,28 +143,6 @@ probe {
 }
 
 [[ end -]]
-[[ if var "enable_skynet" . -]]
-# probes skynet health
-probe {
-  name: "skynet"
-  type: HTTP
-  targets {
-    host_names: "[[ var "skynet_hostname" . ]]"
-  }
-  interval_msec: 5000
-  timeout_msec: 2000
-
-  http_probe {
-    protocol: HTTPS
-  }
-  validator {
-      name: "status_code_2xx"
-      http_validator {
-          success_status_codes: "200-299"
-      }
-  }
-}
-[[ end -]]
 [[ if var "enable_rtcstats" . -]]
 # probes rtcstats health
 probe {
@@ -188,6 +166,28 @@ probe {
   }
 }
 [[ end -]]
+[[ if var "enable_skynet" . -]]
+# probes skynet health
+probe {
+  name: "skynet"
+  type: HTTP
+  targets {
+    host_names: "[[ var "skynet_hostname" . ]]"
+  }
+  interval_msec: 5000
+  timeout_msec: 2000
+
+  http_probe {
+    protocol: HTTPS
+  }
+  validator {
+      name: "status_code_2xx"
+      http_validator {
+          success_status_codes: "200-299"
+      }
+  }
+}
+[[ end -]]
 [[ if var "enable_whisper" . -]]
 # probes whisper health
 probe {
@@ -202,6 +202,28 @@ probe {
   http_probe {
     protocol: HTTPS
     relative_url: "/healthz"
+  }
+  validator {
+      name: "status_code_2xx"
+      http_validator {
+          success_status_codes: "200-299"
+      }
+  }
+}
+[[ end -]]
+[[ if var "enable_custom" . -]]
+# probes custom endpoint health
+probe {
+  name: "whisper"
+  type: HTTP
+  targets {
+    host_names: "[[ var "custom_probe_urls" . ]]"
+  }
+  interval_msec: 5000
+  timeout_msec: 2000
+
+  http_probe {
+    protocol: HTTPS
   }
   validator {
       name: "status_code_2xx"

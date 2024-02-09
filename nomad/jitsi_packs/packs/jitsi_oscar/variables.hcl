@@ -127,3 +127,14 @@ variable "whisper_hostname" {
   description = "The hostname of the whisper service"
   type        = string
 }
+
+variable "enable_custom" {
+  description = "Enable probing a list of custom URLs"
+  type        = bool
+  default     = false
+}
+
+variable "custom_probe_urls" {
+  description = "Comma-delimeted list of custom URLs to probe"
+  type        = string
+}
