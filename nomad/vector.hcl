@@ -106,6 +106,7 @@ job "vector" {
                     group = "syslog"
                     namespace = "system"
                     node = "[[ env "node.unique.name" ]]"
+                    region = "[[ env "meta.cloud_region" ]]"
           [transforms.message_to_structure]
             type = "remap"
             inputs = ["logs"]
@@ -139,6 +140,7 @@ job "vector" {
                     group = "{{ label.\"com.hashicorp.nomad.task_group_name\" }}"
                     namespace = "{{ label.\"com.hashicorp.nomad.namespace\" }}"
                     node = "{{ label.\"com.hashicorp.nomad.node_name\" }}"
+                    region = "[[ env "meta.cloud_region" ]]"
         EOH
       }
       service {
