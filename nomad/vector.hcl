@@ -29,6 +29,9 @@ job "vector" {
       port "api" {
         to = 8686
       }
+      port "syslog" {
+        static = 9000
+      }
     }
     # docker socket volume
     volume "docker-sock-ro" {
@@ -44,7 +47,10 @@ job "vector" {
       driver = "docker"
       config {
         image = "timberio/vector:0.28.1-alpine"
-        ports = ["api"]
+        ports = ["api","syslog"]
+        volumes = [
+          "/var/log/syslog:/var/log/syslog:ro",
+        ]
       }
       # docker socket volume mount
       volume_mount {
@@ -78,6 +84,28 @@ job "vector" {
             playground = true
           [sources.logs]
             type = "docker_logs"
+          [sources.syslog]
+            type = "syslog"
+            address = "0.0.0.0:9000"
+            mode = "tcp"
+          [sinks.loki_syslog]
+            remove_timestamp = false
+            type = "loki"
+            inputs = ["syslog"]
+            endpoint = "https://[[ env "meta.environment" ]]-[[ env "meta.cloud_region" ]]-loki.${var.top_level_domain}"
+            encoding.codec = "json"
+            healthcheck.enabled = true
+            # since . is used by Vector to denote a parent-child relationship, and Nomad's Docker labels contain ".",
+            # we need to escape them twice, once for TOML, once for Vector
+            # remove fields that have been converted to labels to avoid having the field twice
+            # remove_label_fields = true
+                [sinks.loki_syslog.labels]
+                    alloc = "[[ env "meta.cloud_instance_id" ]]"
+                    job = "syslog"
+                    task = "{{ .appname }}"
+                    group = "syslog"
+                    namespace = "system"
+                    node = "[[ env "node.unique.name" ]]"
           [transforms.message_to_structure]
             type = "remap"
             inputs = ["logs"]
