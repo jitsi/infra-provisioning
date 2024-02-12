@@ -315,8 +315,8 @@ org.jitsi.videobridge.xmpp.XmppConnection.level=ALL
 java.util.logging.SimpleFormatter.format= %5$s%n
 java.util.logging.FileHandler.level = ALL
 java.util.logging.FileHandler.formatter = java.util.logging.SimpleFormatter
-java.util.logging.FileHandler.pattern = {{ jvb_log_series_path }}
-java.util.logging.FileHandler.limit = {{ jvb_log_series_file_size_limit }}
+java.util.logging.FileHandler.pattern = [[ or (env "CONFIG_jvb_log_series_path") "/tmp/jvb-series.log" ]]
+java.util.logging.FileHandler.limit = [[ or (env "CONFIG_jvb_log_series_file_size_limit") "20000000" ]]
 java.util.logging.FileHandler.count = 1
 java.util.logging.FileHandler.append = false
 
