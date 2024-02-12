@@ -13,3 +13,5 @@ To run it locally, you can run:
 `scripts/local-ops-agent.sh`
 
 This assumes that local codebase exists in ~/dev and mounts it in /home/jenkins, but this can be customized via `LOCAL_DEV_DIR`.
+
+Other assumptions: yq, jq, ansible-vault and xmlstarlet are installed
