@@ -128,8 +128,8 @@ for AUTOSCALER in $AUTOSCALER_LIST; do
       fi
     fi
   else
-      echo "Error from HTTP REQUEST code: $RESPONSE_HTTP_CODE"
-      echo $RESPONSE_BODY
+      >&2 echo "Error from HTTP REQUEST code: $RESPONSE_HTTP_CODE"
+      >&2 echo $RESPONSE_BODY
   fi
 done
 
