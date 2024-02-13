@@ -160,7 +160,7 @@ job "[JOB_NAME]" {
         }
         resources {
           cpu    = 1024
-          memory = 512
+          memory = 2048
         }
         service {
           name = "loki"
