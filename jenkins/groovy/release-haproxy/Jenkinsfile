@@ -131,7 +131,7 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                 }
             }
         }
-        // trigger rotation of load balancers to trigger reconfigure step using new branches
+        // trigger configuration and rotation of load balancers to trigger reconfigure step using new branches
         stage ("rotate load balancers") {
             steps {
                 script {

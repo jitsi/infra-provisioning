@@ -189,16 +189,5 @@ pipeline {
                 }
             }
         }
-        // trigger rotation of load balancers to remove deleted shards
-        stage ("rotate load balancers") {
-            when {
-                expression { useHAProxyConsulTemplate != 'true' }
-            }
-            steps {
-                script {
-                    utils.ReconfigureHAProxy(env.ENVIRONMENT, env.VIDEO_INFRA_BRANCH)
-                }
-            }
-        }
      }
 }

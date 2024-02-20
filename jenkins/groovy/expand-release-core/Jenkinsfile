@@ -163,18 +163,5 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                 ]
             }
         }
-        // trigger rotation of load balancers to discover new shards
-        stage ("rotate load balancers") {
-            when {
-                expression { useHAProxyConsulTemplate != 'true' }
-            }
-            steps {
-                script {
-                    if (shards_created) {
-                        utils.ReconfigureHAProxy(env.ENVIRONMENT, env.VIDEO_INFRA_BRANCH)
-                    }
-                }
-            }
-        }
     }
 }
