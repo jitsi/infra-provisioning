@@ -109,8 +109,12 @@ if [[ "$NOMAD_JIBRI_FLAG" == "null" ]]; then
   NOMAD_JIBRI_FLAG="false"
 fi
 
+SHARD_ROLE="$JIBRI_TYPE"
+
 if [[ "$NOMAD_JIBRI_FLAG" == "true" ]]; then
   JIBRI_IMAGE_TYPE="JammyBase"
+  JIBRI_VERSION="latest"
+  SHARD_ROLE="jibri-nomad-pool"
 fi
 
 
@@ -177,7 +181,7 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
   -var="git_branch=$ORACLE_GIT_BRANCH" \
   -var="domain=$DOMAIN" \
   -var="name=$NAME" \
-  -var="shard_role=$JIBRI_TYPE" \
+  -var="shard_role=$SHARD_ROLE" \
   -var="aws_cloud_name=$CLOUD_NAME" \
   -var="jibri_release_number=$JIBRI_RELEASE_NUMBER" \
   -var="nomad_flag=$NOMAD_JIBRI_FLAG" \
