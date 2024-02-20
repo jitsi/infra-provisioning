@@ -83,6 +83,10 @@ if [ "$getGroupHttpCode" == 404 ]; then
   findGroup
   if [ "$getGroupHttpCode" == 404 ]; then
     echo "No group $GROUP_NAME found at $AUTOSCALER_URL. Assuming no more work to do"
+    exit 0
+  elif [ "$getGroupHttpCode" == 000 ]; then
+    echo "Local autoscaler not present for $GROUP_NAME. Assuming no more work to do"
+    exit 0
   elif [ "$getGroupHttpCode" == 200 ]; then
     echo "Group $GROUP_NAME was found in the autoscaler"
     export CLOUD_PROVIDER="$(echo "$instanceGroupDetails" | jq -r ."instanceGroup.cloud")"
