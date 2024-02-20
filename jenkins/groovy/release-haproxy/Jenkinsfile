@@ -131,13 +131,5 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                 }
             }
         }
-        // trigger rotation of load balancers to trigger reconfigure step using new branches
-        stage ("rotate load balancers") {
-            steps {
-                script {
-                    utils.ReconfigureHAProxy(env.ENVIRONMENT, env.VIDEO_INFRA_BRANCH)
-                }
-            }
-        }
     }
 }

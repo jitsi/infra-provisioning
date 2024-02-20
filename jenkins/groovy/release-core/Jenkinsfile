@@ -362,16 +362,5 @@ pipeline {
                 }
             }
         }
-
-        stage ("update load balancers with new shards") {
-            when {
-                expression { useHAProxyConsulTemplate != 'true' }
-            }
-            steps {
-                script {
-                    utils.ReconfigureHAProxy(env.ENVIRONMENT, env.VIDEO_INFRA_BRANCH)
-                }
-            }
-        }
     }
 }
