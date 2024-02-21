@@ -34,16 +34,24 @@
       - string:
           name: JIBRI_INSTANCE_TYPE
           description: "Size of EC2 instance to use for the jibri instance"
+          trim: true
       - string:
           name: JIBRI_TYPE
           default: java-jibri
           description: "Type of jibri to deploy, either 'java-jibri' or 'sip-jibri'."
+          trim: true
       - string:
           name: JIBRI_IMAGE_ID
           description: "Image ID to use in provisioning, otherwise defaults to JIBRI_VERSION search"
+          trim: true
       - string:
           name: JIBRI_RELEASE_NUMBER
           description: "Release number with which to tag all jibri instances"
+          trim: true
+      - string:
+          name: NOMAD_JIBRI_FLAG
+          description: "For CLOUD_PROVIDER oracle when true builds a nomad pool instead of traditional jibri VMs"
+          trim: true
       - string:
           name: INFRA_CONFIGURATION_REPO
           default: git@github.com:jitsi/infra-configuration.git
