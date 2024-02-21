@@ -52,13 +52,6 @@ variable "cloudprober_version" {
 
 }
 
-variable "enable_ops_repo" {
-  description = "Whether to enable the ops repo monitoring"
-  type        = bool
-  default     = false
-
-}
-
 variable "enable_site_ingress" {
   description = "Whether to enable the site ingress monitoring"
   type        = bool
@@ -91,6 +84,51 @@ variable "enable_coturn" {
 
 variable "enable_shard" {
   description = "Whether to enable the cross-region shard monitoring."
+  type        = bool
+  default     = false
+}
+
+variable "enable_skynet" {
+  description = "Whether to enable the skynet monitoring"
+  type        = bool
+  default     = false
+}
+
+variable "skynet_hostname" {
+  description = "The hostname of the skynet service"
+  type        = string
+}
+
+variable "rtcstats_hostname" {
+  description = "The hostname of the rtcstats service"
+  type        = string
+}
+
+variable "enable_whisper" {
+  description = "Whether to enable the whisper monitoring"
+  type        = bool
+  default     = false
+}
+
+variable "whisper_hostname" {
+  description = "The hostname of the whisper service"
+  type        = string
+}
+
+variable "enable_custom_https" {
+  description = "Whether to enable the custom https monitoring"
+  type        = bool
+  default     = false
+}
+
+variable "custom_https_targets" {
+  description = "target endpoints"
+  type        = string
+  default     = ""
+}
+
+variable "enable_loki" {
+  description = "Whether to enable the loki monitoring"
   type        = bool
   default     = false
 }

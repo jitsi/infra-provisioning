@@ -12,6 +12,7 @@ LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
 [ -e "$LOCAL_PATH/../clouds/all.sh" ] && . "$LOCAL_PATH/../clouds/all.sh"
 [ -e "$LOCAL_PATH/../clouds/oracle.sh" ] && . "$LOCAL_PATH/../clouds/oracle.sh"
+[ -z "$ENVIRONMENT_CONFIGURATION_FILE" ] && ENVIRONMENT_CONFIGURATION_FILE="$LOCAL_PATH/../sites/$ENVIRONMENT/vars.yml"
 
 if [ -z "$ORACLE_REGION" ]; then
     echo "No ORACLE_REGION set, exiting"
@@ -44,20 +45,50 @@ export RESOURCE_NAME_ROOT="${ENVIRONMENT}-${ORACLE_REGION}-oscar"
 OSCAR_ENABLE_WAVEFRONT_PROXY="true"
 
 if [[ "$OSCAR_TEMPLATE_TYPE" == "core" ]]; then
-    OSCAR_ENABLE_OPS_REPO="false"
     OSCAR_ENABLE_COTURN="true"
     OSCAR_ENABLE_SHARD="true"
     OSCAR_ENABLE_SITE_INGRESS="true"
     OSCAR_ENABLE_HAPROXY_REGION="true"
     OSCAR_ENABLE_AUTOSCALER="true"
-fi
-if [[ "$OSCAR_TEMPLATE_TYPE" == "ops" ]]; then
-    OSCAR_ENABLE_OPS_REPO="true"
+    OSCAR_ENABLE_LOKI="true"
+elif [[ "$OSCAR_TEMPLATE_TYPE" == "ops" ]]; then
     OSCAR_ENABLE_COTURN="false"
     OSCAR_ENABLE_SHARD="false"
     OSCAR_ENABLE_SITE_INGRESS="false"
     OSCAR_ENABLE_HAPROXY_REGION="false"
     OSCAR_ENABLE_AUTOSCALER="false"
+    OSCAR_ENABLE_LOKI="true"
+else
+    echo "Unsupported OSCAR_TEMPLATE_TYPE, exiting"
+    exit 3
+fi
+
+OSCAR_ENABLE_SKYNET="false"
+if [[ -n $OSCAR_CUSTOM_SKYNET_HOSTS ]]; then
+    OSCAR_ENABLE_SKYNET="true"
+    SKYNET_ALT_HOSTNAME=$OSCAR_CUSTOM_SKYNET_HOSTS
+elif [[ -n $SKYNET_ALT_HOSTNAME ]]; then
+    OSCAR_ENABLE_SKYNET="true"
+fi
+
+OSCAR_ENABLE_WHISPER="false"
+if [[ -n $OSCAR_CUSTOM_WHISPER_HOSTS ]]; then
+    OSCAR_ENABLE_WHISPER="true"
+    WHISPER_HOSTNAME=$OSCAR_CUSTOM_WHISPER_HOSTS
+else
+    WHISPER_URL="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval ".jigasi_transcriber_whisper_websocket_url" -)"
+    if [[ "$WHISPER_URL" != "null" ]]; then
+        OSCAR_ENABLE_WHISPER="true"
+        basename $WHISPER_URL
+        basename $(dirname $WHISPER_URL)
+        WHISPER_HOSTNAME=$(echo $WHISPER_URL | cut -d'/' -f3 | cut -d':' -f1)
+    fi
+fi
+
+OSCAR_ENABLE_CUSTOM_HTTPS="false"
+OSCAR_CUSTOM_HTTPS_TARGETS=$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval ".oscar_custom_https_url_targets" | tr -d '\n')
+if [[ "$OSCAR_CUSTOM_HTTPS_TARGETS" != "null" ]]; then
+    OSCAR_ENABLE_CUSTOM_HTTPS="true"
 fi
 
 [ -z "$CLOUDPROBER_VERSION" ] && CLOUDPROBER_VERSION="latest"
@@ -70,13 +101,19 @@ oracle_region="$ORACLE_REGION"
 top_level_domain="$TOP_LEVEL_DNS_ZONE_NAME"
 domain="$DOMAIN"
 environment="$ENVIRONMENT"
-enable_ops_repo=$OSCAR_ENABLE_OPS_REPO
 enable_site_ingress=$OSCAR_ENABLE_SITE_INGRESS
 enable_haproxy_region=$OSCAR_ENABLE_HAPROXY_REGION
 enable_coturn=$OSCAR_ENABLE_COTURN
 enable_shard=$OSCAR_ENABLE_SHARD
 enable_autoscaler=$OSCAR_ENABLE_AUTOSCALER
 enable_wavefront_proxy=$OSCAR_ENABLE_WAVEFRONT_PROXY
+enable_skynet=$OSCAR_ENABLE_SKYNET
+skynet_hostname="$SKYNET_ALT_HOSTNAME"
+enable_whisper=$OSCAR_ENABLE_WHISPER
+whisper_hostname="$WHISPER_HOSTNAME"
+enable_loki=$OSCAR_ENABLE_LOKI
+enable_custom_https=$OSCAR_ENABLE_CUSTOM_HTTPS
+custom_https_targets="$OSCAR_CUSTOM_HTTPS_TARGETS"
 EOF
 
 nomad-pack plan --name "$JOB_NAME" \
