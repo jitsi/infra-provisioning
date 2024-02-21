@@ -52,20 +52,26 @@ JIBRI_NOMAD_VARIABLE="jibri_enable_nomad"
 
 JIBRI_IMAGE_TYPE="JavaJibri"
 
-NOMAD_JIBRI_FLAG="$(cat $ENVIRONMENT_VARS_FILE | yq eval .${JIBRI_NOMAD_VARIABLE} -)"
-if [[ "$NOMAD_JIBRI_FLAG" == "null" ]]; then
-  NOMAD_JIBRI_FLAG="$(cat $CONFIG_VARS_FILE | yq eval .${JIBRI_NOMAD_VARIABLE} -)"
-fi
+if [ -z "$NOMAD_JIBRI_FLAG" ]; then
+  # only look in environment vars if not already set
+  NOMAD_JIBRI_FLAG="$(cat $ENVIRONMENT_VARS_FILE | yq eval .${JIBRI_NOMAD_VARIABLE} -)"
+  if [[ "$NOMAD_JIBRI_FLAG" == "null" ]]; then
+    NOMAD_JIBRI_FLAG="$(cat $CONFIG_VARS_FILE | yq eval .${JIBRI_NOMAD_VARIABLE} -)"
+  fi
 
-if [[ "$NOMAD_JIBRI_FLAG" == "null" ]]; then
-  NOMAD_JIBRI_FLAG="false"
+  if [[ "$NOMAD_JIBRI_FLAG" == "null" ]]; then
+    NOMAD_JIBRI_FLAG="false"
+  fi
 fi
 
 if [[ "$NOMAD_JIBRI_FLAG" == "true" ]]; then
+  # instead of launch jibri images, launch the latest JammyBase image
+  # in addition, give a new name and set our type to nomad for the autoscaler
+
   JIBRI_IMAGE_TYPE="JammyBase"
   JIBRI_VERSION="latest"
   TYPE="nomad"
-  [ -z "$NAME_ROOT_SUFFIX" ] && NAME_ROOT_SUFFIX="NomadJibriCustomGroup"
+  [ -z "$NAME_ROOT_SUFFIX" ] && NAME_ROOT_SUFFIX="JibriNomadPoolCustomGroup"
   echo "Using Nomad AUTOSCALER_URL"
   AUTOSCALER_URL="https://${ENVIRONMENT}-${ORACLE_REGION}-autoscaler.$TOP_LEVEL_DNS_ZONE_NAME"
   [ -z $JIBRI_MAX_COUNT ] && JIBRI_MAX_COUNT=5
