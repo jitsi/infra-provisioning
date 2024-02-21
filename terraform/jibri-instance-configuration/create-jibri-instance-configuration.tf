@@ -95,7 +95,7 @@ resource "oci_core_instance_configuration" "oci_instance_configuration" {
   display_name = var.instance_config_name
 
   lifecycle {
-    prevent_destroy = true
+    create_before_destroy = true
   }
 
   defined_tags = local.common_tags
