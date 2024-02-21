@@ -41,8 +41,8 @@ if [[ "$PROMETHEUS_ENABLE_REMOTE_WRITE" == "true" ]]; then
     PROMETHEUS_ENVIRONMENT_TYPE="non_prod"
   fi
 
-[ -z "$VAULT_PASSWORD_FILE" ] && VAULT_PASSWORD_FILE="$LOCAL_PATH/../.vault-password.txt"
-[ -z "$ENCRYPTED_PROMETHEUS_FILE" ] && ENCRYPTED_PROMETHEUS_FILE="$LOCAL_PATH/../ansible/secrets/prometheus.yml"
+  [ -z "$VAULT_PASSWORD_FILE" ] && VAULT_PASSWORD_FILE="$LOCAL_PATH/../.vault-password.txt"
+  [ -z "$ENCRYPTED_PROMETHEUS_FILE" ] && ENCRYPTED_PROMETHEUS_FILE="$LOCAL_PATH/../ansible/secrets/prometheus.yml"
 
   # ensure no output for ansible vault contents and fail if ansible-vault fails
   set +x
