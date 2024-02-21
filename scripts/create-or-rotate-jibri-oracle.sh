@@ -206,7 +206,12 @@ if [ "$getGroupHttpCode" == 404 ]; then
       exit 214
     fi
 
-    INSTANCE_CONFIGURATION_DETAILS=$(oci compute-management instance-configuration list --region "$ORACLE_REGION" -c "$COMPARTMENT_OCID" --sort-by TIMECREATED --sort-order DESC --all --query 'data[?"defined-tags".'\"$TAG_NAMESPACE\"'."shard-role" == `'"$JIBRI_TYPE"'`]' |  jq .[0])
+    SHARD_ROLE="$JIBRI_TYPE"
+    if [[ "$NOMAD_JIBRI_FLAG" == "true" ]]; then
+      SHARD_ROLE="jibri-nomad-pool"
+    fi
+
+    INSTANCE_CONFIGURATION_DETAILS=$(oci compute-management instance-configuration list --region "$ORACLE_REGION" -c "$COMPARTMENT_OCID" --sort-by TIMECREATED --sort-order DESC --all --query 'data[?"defined-tags".'\"$TAG_NAMESPACE\"'."shard-role" == `'"$SHARD_ROLE"'`]' |  jq .[0])
     if [ $? -eq 0 ]; then
       INSTANCE_CONFIGURATION_ID=$(echo "$INSTANCE_CONFIGURATION_DETAILS" | jq -r '.id')
     fi
