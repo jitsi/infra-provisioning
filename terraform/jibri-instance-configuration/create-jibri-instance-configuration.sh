@@ -189,7 +189,16 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
   -var "infra_customizations_repo=$INFRA_CUSTOMIZATIONS_REPO" \
   $ACTION_POST_PARAMS $TF_POST_PARAMS
 
+RET=$?
+
+if [[ "$RET" -ne 0 ]]; then
+  echo "Terraform $ACTION failed with exit code $RET"
+  exit $RET
+fi
+
 if [[ "$ENVIRONMENT_TYPE" == "prod" ]]; then
   echo "Tagging jibri image as production"
   $LOCAL_PATH/../../scripts/oracle_custom_images.py --tag_production --image_id $JIBRI_IMAGE_OCID --region $ORACLE_REGION
 fi
+
+exit $RET
