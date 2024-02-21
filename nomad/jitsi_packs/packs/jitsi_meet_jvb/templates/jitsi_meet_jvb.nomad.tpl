@@ -282,6 +282,8 @@ echo -n "$JVB_VERSION" > /var/run/s6/container_environment/JVB_VERSION
 
 export JVB_NAT_PORT="$(cat /alloc/data/JVB_NAT_PORT)"
 echo -n "$JVB_NAT_PORT" > /var/run/s6/container_environment/JVB_NAT_PORT
+
+apt-get update && apt-get -y install libpcap0.8
 EOF
         destination = "local/01-jvb-env"
         perms = "755"
