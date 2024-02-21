@@ -97,6 +97,29 @@ job "[JOB_NAME]" {
       }
     }
 
+    service {
+      name = "jibri"
+      tags = ["group-${NOMAD_META_group}","jibri-${NOMAD_ALLOC_ID}","ip-${attr.unique.network.ip-address}"]
+
+      meta {
+        domain = "${var.domain}"
+        environment = "${meta.environment}"
+        jibri_version = "${var.jibri_version}"
+        nomad_allocation = "${NOMAD_ALLOC_ID}"
+        group = "${NOMAD_META_group}"
+      }
+
+      port = "http"
+
+      check {
+        name     = "health"
+        type     = "http"
+        path     = "/jibri/api/v1.0/health"
+        port     = "http"
+        interval = "10s"
+        timeout  = "2s"
+      }
+    }
     task "jibri" {
       driver = "docker"
 
