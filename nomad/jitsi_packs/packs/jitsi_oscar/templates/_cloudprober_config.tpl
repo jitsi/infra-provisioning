@@ -1,28 +1,4 @@
 [[ define "cloudprober-config" ]]
-[[ if var "enable_ops_repo" . -]]
-# probes ops-repo health
-probe {
-  name: "ops-repo"
-  type: HTTP
-  targets {
-    host_names: "ops-repo.jitsi.net"
-  }
-  interval_msec: 5000
-  timeout_msec: 2000
-
-  http_probe {
-    protocol: HTTPS
-    relative_url: "/health"
-  }
-
-  validator {
-      name: "status_code_2xx"
-      http_validator {
-          success_status_codes: "200-299"
-      }
-  }
-}
-[[ end -]]
 [[ if var "enable_site_ingress" . -]]
 # probes site ingress health from this datacenter
 probe {
@@ -143,29 +119,6 @@ probe {
 }
 
 [[ end -]]
-[[ if var "enable_rtcstats" . -]]
-# probes rtcstats health
-probe {
-  name: "rtcstats"
-  type: HTTP
-  targets {
-    host_names: "[[ var "rtcstats_hostname" . ]]"
-  }
-  interval_msec: 5000
-  timeout_msec: 2000
-
-  http_probe {
-    protocol: HTTPS
-    relative_url: "/healthcheck"
-  }
-  validator {
-      name: "status_code_2xx"
-      http_validator {
-          success_status_codes: "200-299"
-      }
-  }
-}
-[[ end -]]
 [[ if var "enable_skynet" . -]]
 # probes skynet health
 probe {
@@ -211,19 +164,12 @@ probe {
   }
 }
 [[ end -]]
-[[ if var "enable_custom" . -]]
-# probes custom endpoint health
+[[ if var "enable_custom_https" . -]]
 probe {
-  name: "whisper"
+  name: "https"
   type: HTTP
   targets {
-    host_names: "[[ var "custom_probe_urls" . ]]"
-  }
-  interval_msec: 5000
-  timeout_msec: 2000
-
-  http_probe {
-    protocol: HTTPS
+    [[ var "custom_https_targets" . ]]
   }
   validator {
       name: "status_code_2xx"
@@ -231,6 +177,29 @@ probe {
           success_status_codes: "200-299"
       }
   }
+  interval_msec: 5000
+  timeout_msec: 2000
+}
+[[ end -]]
+[[ if var "enable_loki" . -]]
+# probes loki health in the local datacenter
+probe {
+  name: "loki"
+  type: HTTP
+  targets {
+    host_names: "{{ range $index, $service := service "loki"}}{{ if gt $index 0 }},{{ end }}{{ .Address }}:{{.Port}}{{ end }}"
+  }
+  http_probe {
+    relative_url: "/ready"
+  }
+  validator {
+      name: "status_code_2xx"
+      http_validator {
+          success_status_codes: "200-299"
+      }
+  }
+  interval_msec: 60000
+  timeout_msec: 2000
 }
 [[ end -]]
 

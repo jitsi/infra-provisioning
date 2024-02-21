@@ -28,7 +28,7 @@ job [[ template "job_name" . ]] {
     cloudprober_version = "[[ var "cloudprober_version" . ]]"
   }
 
-  group "synthetics" {
+  group "oscar" {
     constraint {
       attribute  = "${meta.pool_type}"
       value     = "[[ var "pool_type" . ]]"

@@ -52,13 +52,6 @@ variable "cloudprober_version" {
 
 }
 
-variable "enable_ops_repo" {
-  description = "Whether to enable the ops repo monitoring"
-  type        = bool
-  default     = false
-
-}
-
 variable "enable_site_ingress" {
   description = "Whether to enable the site ingress monitoring"
   type        = bool
@@ -106,12 +99,6 @@ variable "skynet_hostname" {
   type        = string
 }
 
-variable "enable_rtcstats" {
-  description = "Whether to enable the rtcstats monitoring"
-  type        = bool
-  default     = false
-}
-
 variable "rtcstats_hostname" {
   description = "The hostname of the rtcstats service"
   type        = string
@@ -128,13 +115,20 @@ variable "whisper_hostname" {
   type        = string
 }
 
-variable "enable_custom" {
-  description = "Enable probing a list of custom URLs"
+variable "enable_custom_https" {
+  description = "Whether to enable the custom https monitoring"
   type        = bool
   default     = false
 }
 
-variable "custom_probe_urls" {
-  description = "Comma-delimeted list of custom URLs to probe"
+variable "custom_https_targets" {
+  description = "target endpoints"
   type        = string
+  default     = ""
+}
+
+variable "enable_loki" {
+  description = "Whether to enable the loki monitoring"
+  type        = bool
+  default     = false
 }
