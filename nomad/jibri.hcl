@@ -44,6 +44,10 @@ variable "domain" {
     type = string
 }
 
+variable "release_number" {
+  type = string
+  default = "0"
+}
 
 # This declares a job named "docs". There can be exactly one
 # job declaration per job file.
@@ -71,6 +75,7 @@ job "[JOB_NAME]" {
 
   meta {
     jibri_version = "${var.jibri_version}"
+    release_number = "${var.release_number}"
   }
 
   group "jibri" {
@@ -107,6 +112,7 @@ job "[JOB_NAME]" {
         jibri_version = "${var.jibri_version}"
         nomad_allocation = "${NOMAD_ALLOC_ID}"
         group = "${NOMAD_META_group}"
+        release_number = "${var.release_number}"
       }
 
       port = "http"

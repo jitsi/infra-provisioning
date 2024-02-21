@@ -34,6 +34,8 @@ if [ -n "$JIBRI_VERSION" ]; then
     export NOMAD_VAR_jibri_version="$JIBRI_VERSION"
 fi
 
+[ -n "$JIBRI_RELEASE_NUMBER" ] && export NOMAD_VAR_release_number="$JIBRI_RELEASE_NUMBER"
+
 [ -z "$JIBRI_TAG" ] && JIBRI_TAG="$DOCKER_TAG"
 
 NOMAD_JOB_PATH="$LOCAL_PATH/../nomad"
