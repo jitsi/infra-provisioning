@@ -45,48 +45,50 @@ export RESOURCE_NAME_ROOT="${ENVIRONMENT}-${ORACLE_REGION}-oscar"
 OSCAR_ENABLE_WAVEFRONT_PROXY="true"
 
 if [[ "$OSCAR_TEMPLATE_TYPE" == "core" ]]; then
-    OSCAR_ENABLE_OPS_REPO="false"
     OSCAR_ENABLE_COTURN="true"
     OSCAR_ENABLE_SHARD="true"
     OSCAR_ENABLE_SITE_INGRESS="true"
     OSCAR_ENABLE_HAPROXY_REGION="true"
     OSCAR_ENABLE_AUTOSCALER="true"
-fi
-
-if [[ "$OSCAR_TEMPLATE_TYPE" == "ops" ]]; then
-    OSCAR_ENABLE_OPS_REPO="true"
+    OSCAR_ENABLE_LOKI="true"
+elif [[ "$OSCAR_TEMPLATE_TYPE" == "ops" ]]; then
     OSCAR_ENABLE_COTURN="false"
     OSCAR_ENABLE_SHARD="false"
     OSCAR_ENABLE_SITE_INGRESS="false"
     OSCAR_ENABLE_HAPROXY_REGION="false"
     OSCAR_ENABLE_AUTOSCALER="false"
-fi
-
-OSCAR_ENABLE_RTCSTATS="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval ".jitsi_meet_rtcstats_enabled" -)"
-if [[ "$OSCAR_ENABLE_RTCSTATS" == "true" ]]; then
-  RTCSTATS_URL="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval ".jitsi_meet_rtcstats_endpoint" -)"
-  RTCSTATS_HOSTNAME=$(echo $RTCSTATS_URL | cut -d'/' -f3 | cut -d':' -f1)
+    OSCAR_ENABLE_LOKI="true"
 else
-  OSCAR_ENABLE_RTCSTATS="false"
+    echo "Unsupported OSCAR_TEMPLATE_TYPE, exiting"
+    exit 3
 fi
 
 OSCAR_ENABLE_SKYNET="false"
-if [[ -e $SKYNET_ALT_HOSTNAME ]]; then
+if [[ -n $OSCAR_CUSTOM_SKYNET_HOSTS ]]; then
+    OSCAR_ENABLE_SKYNET="true"
+    SKYNET_ALT_HOSTNAME=$OSCAR_CUSTOM_SKYNET_HOSTS
+elif [[ -n $SKYNET_ALT_HOSTNAME ]]; then
     OSCAR_ENABLE_SKYNET="true"
 fi
 
 OSCAR_ENABLE_WHISPER="false"
-WHISPER_URL="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval ".jigasi_transcriber_whisper_websocket_url" -)"
-if [[ "$WHISPER_URL" != "null" ]]; then
-  OSCAR_ENABLE_WHISPER="true"
-  basename $WHISPER_URL
-  basename $(dirname $WHISPER_URL)
-  WHISPER_HOSTNAME=$(echo $WHISPER_URL | cut -d'/' -f3 | cut -d':' -f1)
+if [[ -n $OSCAR_CUSTOM_WHISPER_HOSTS ]]; then
+    OSCAR_ENABLE_WHISPER="true"
+    WHISPER_HOSTNAME=$OSCAR_CUSTOM_WHISPER_HOSTS
+else
+    WHISPER_URL="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval ".jigasi_transcriber_whisper_websocket_url" -)"
+    if [[ "$WHISPER_URL" != "null" ]]; then
+        OSCAR_ENABLE_WHISPER="true"
+        basename $WHISPER_URL
+        basename $(dirname $WHISPER_URL)
+        WHISPER_HOSTNAME=$(echo $WHISPER_URL | cut -d'/' -f3 | cut -d':' -f1)
+    fi
 fi
 
-OSCAR_ENABLE_CUSTOM="false"
-if [[ -e $OSCAR_CUSTOM_PROBE_URLS ]]; then
-    OSCAR_ENABLE_CUSTOM="true"
+OSCAR_ENABLE_CUSTOM_HTTPS="false"
+OSCAR_CUSTOM_HTTPS_TARGETS=$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval ".oscar_custom_https_url_targets" | tr -d '\n')
+if [[ "$OSCAR_CUSTOM_HTTPS_TARGETS" != "null" ]]; then
+    OSCAR_ENABLE_CUSTOM_HTTPS="true"
 fi
 
 [ -z "$CLOUDPROBER_VERSION" ] && CLOUDPROBER_VERSION="latest"
@@ -99,7 +101,6 @@ oracle_region="$ORACLE_REGION"
 top_level_domain="$TOP_LEVEL_DNS_ZONE_NAME"
 domain="$DOMAIN"
 environment="$ENVIRONMENT"
-enable_ops_repo=$OSCAR_ENABLE_OPS_REPO
 enable_site_ingress=$OSCAR_ENABLE_SITE_INGRESS
 enable_haproxy_region=$OSCAR_ENABLE_HAPROXY_REGION
 enable_coturn=$OSCAR_ENABLE_COTURN
@@ -107,13 +108,12 @@ enable_shard=$OSCAR_ENABLE_SHARD
 enable_autoscaler=$OSCAR_ENABLE_AUTOSCALER
 enable_wavefront_proxy=$OSCAR_ENABLE_WAVEFRONT_PROXY
 enable_skynet=$OSCAR_ENABLE_SKYNET
-skynet_hostname=$SKYNET_ALT_HOSTNAME
-enable_rtcstats=$OSCAR_ENABLE_RTCSTATS
-rtcstats_hostname=$RTCSTATS_HOSTNAME
+skynet_hostname="$SKYNET_ALT_HOSTNAME"
 enable_whisper=$OSCAR_ENABLE_WHISPER
-whisper_hostname=$WHISPER_HOSTNAME
-enable_custom=$OSCAR_ENABLE_CUSTOM
-custom_probe_urls=$OSCAR_CUSTOM_PROBE_URLS
+whisper_hostname="$WHISPER_HOSTNAME"
+enable_loki=$OSCAR_ENABLE_LOKI
+enable_custom_https=$OSCAR_ENABLE_CUSTOM_HTTPS
+custom_https_targets="$OSCAR_CUSTOM_HTTPS_TARGETS"
 EOF
 
 nomad-pack plan --name "$JOB_NAME" \
