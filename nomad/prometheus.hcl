@@ -18,18 +18,22 @@ variable "enable_remote_write" {
 
 variable "remote_write_url" {
   type = string
+  default = ""
 }
 
 variable "remote_write_username" {
   type = string
+  default = ""
 }
 
 variable "remote_write_password" {
   type = string
+  default = ""
 }
 
 variable "remote_write_org_id" {
   type = string
+  default = ""
 }
 
 job "[JOB_NAME]" {
