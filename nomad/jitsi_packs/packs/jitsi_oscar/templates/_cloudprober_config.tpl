@@ -158,7 +158,6 @@ probe {
 
   http_probe {
     protocol: HTTPS
-    relative_url: "/healthz"
   }
   validator {
       name: "status_code_2xx"
