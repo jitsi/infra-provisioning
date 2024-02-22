@@ -4,8 +4,6 @@ if [ -z "$ENVIRONMENT" ]; then
     exit 2
 fi
 
-set -x
-
 LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
 [ -e "$LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh" ] && . "$LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh"
