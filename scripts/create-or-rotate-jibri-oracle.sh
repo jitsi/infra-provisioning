@@ -323,17 +323,25 @@ elif [ "$getGroupHttpCode" == 200 ]; then
   fi
 
   NEW_MAXIMUM_DESIRED=$((EXISTING_MAXIMUM + PROTECTED_INSTANCES_COUNT))
-  echo "Creating new Instance Configuration for group $GROUP_NAME based on the existing one"
-  SHAPE_PARAMS=""
-  [ ! -z "$SHAPE" ] && SHAPE_PARAMS="$SHAPE_PARAMS --shape $SHAPE"
-  [ ! -z "$OCPUS" ] && SHAPE_PARAMS="$SHAPE_PARAMS --ocpus $OCPUS"
-  [ ! -z "$MEMORY_IN_GBS" ] && SHAPE_PARAMS="$SHAPE_PARAMS --memory $MEMORY_IN_GBS"
 
-  NEW_INSTANCE_CONFIGURATION_ID=$($LOCAL_PATH/rotate_instance_configuration_oracle.py --region "$ORACLE_REGION" --image_id "$JIBRI_IMAGE_OCID" \
-    --jibri_release_number "$JIBRI_RELEASE_NUMBER" --git_branch "$ORACLE_GIT_BRANCH" --infra_customizations_repo "$INFRA_CUSTOMIZATIONS_REPO" --infra_configuration_repo "$INFRA_CONFIGURATION_REPO" \
-    --instance_configuration_id "$EXISTING_INSTANCE_CONFIGURATION_ID" --tag_namespace "$TAG_NAMESPACE" --user_public_key_path "$USER_PUBLIC_KEY_PATH" --metadata_lib_path "$METADATA_LIB_PATH" --metadata_path "$METADATA_PATH" \
-    --metadata_extras="export NOMAD_FLAG=$NOMAD_JIBRI_FLAG" \
-    --custom_autoscaler $SHAPE_PARAMS)
+  echo "Creating Jibri Instance Configuration"
+  $LOCAL_PATH/../terraform/jibri-instance-configuration/create-jibri-instance-configuration.sh
+  if [ $? == 0 ]; then
+    echo "Instance Configuration $INSTANCE_CONFIG_NAME was created successfully"
+  else
+    echo "Instance Configuration $INSTANCE_CONFIG_NAME failed to create correctly"
+    exit 214
+  fi
+
+  SHARD_ROLE="$JIBRI_TYPE"
+  if [[ "$NOMAD_JIBRI_FLAG" == "true" ]]; then
+    SHARD_ROLE="jibri-nomad-pool"
+  fi
+
+  INSTANCE_CONFIGURATION_DETAILS=$(oci compute-management instance-configuration list --region "$ORACLE_REGION" -c "$COMPARTMENT_OCID" --sort-by TIMECREATED --sort-order DESC --all --query 'data[?"defined-tags".'\"$TAG_NAMESPACE\"'."shard-role" == `'"$SHARD_ROLE"'`]' |  jq .[0])
+  if [ $? -eq 0 ]; then
+    NEW_INSTANCE_CONFIGURATION_ID=$(echo "$INSTANCE_CONFIGURATION_DETAILS" | jq -r '.id')
+  fi
 
   if [ -z "$NEW_INSTANCE_CONFIGURATION_ID" ] || [ "$NEW_INSTANCE_CONFIGURATION_ID" == "null" ]; then
     echo "No Instance Configuration was created for group $GROUP_NAME. Exiting.."
