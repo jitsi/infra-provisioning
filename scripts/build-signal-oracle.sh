@@ -166,9 +166,9 @@ packer build \
 -var "jicofo_version=$JICOFO_VERSION" \
 -var "jitsi_meet_version=$JITSI_MEET_VERSION" \
 -var "prosody_version=$PROSODY_VERSION" \
-$([ ! -z $PROSODY_APT_FLAG ] && echo "-var prosody_apt_flag=$PROSODY_APT_FLAG") \
-$([ ! -z $PROSODY_PACKAGE_VERSION ] && echo "-var prosody_package_version=$PROSODY_PACKAGE_VERSION") \
-$([ ! -z $PROSODY_URL_VERSION ] && echo "-var prosody_url_version=$PROSODY_URL_VERSION") \
+$([ -n "$PROSODY_APT_FLAG" ] && echo "-var prosody_apt_flag=$PROSODY_APT_FLAG") \
+$([ -n "$PROSODY_PACKAGE_VERSION" ] && echo "-var prosody_package_version=$PROSODY_PACKAGE_VERSION") \
+$([ -n "$PROSODY_URL_VERSION" ] && echo "-var prosody_url_version=$PROSODY_URL_VERSION") \
 -var "ansible_python_interpreter=/usr/bin/python3" \
 -var "ansible_deploy_tags=$DEPLOY_TAGS" \
 -var "ansible_skip_tags=failfast" \
