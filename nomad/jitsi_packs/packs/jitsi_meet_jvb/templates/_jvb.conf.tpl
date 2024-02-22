@@ -201,6 +201,7 @@ jmt {
   debug {
     pcap {
       enabled = true
+      directory = "/local"
     }
   }
 [[ end ]]
