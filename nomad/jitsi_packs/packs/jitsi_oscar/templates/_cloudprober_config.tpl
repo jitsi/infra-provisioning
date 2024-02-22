@@ -40,10 +40,9 @@ probe {
   name: "autoscaler"
   type: HTTP
   targets {
-    host_names: "[[ var "environment" . ]]-[[ var "oracle_region" . ]]-autoscaler.[[ var "top_level_domain" . ]]"
+    host_names: "{{ range $index, $service := service "autoscaler"}}{{ if gt $index 0 }},{{ end }}{{ .Address }}:{{ .ServiceMeta.metrics_port }}{{ end }}"
   }
   http_probe {
-    protocol: HTTPS
     relative_url: "/health?deep=true"
   }
   validator {
