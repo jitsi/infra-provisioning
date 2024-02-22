@@ -100,13 +100,15 @@ fi
 
 JIBRI_IMAGE_TYPE="JavaJibri"
 
-NOMAD_JIBRI_FLAG="$(cat $ENVIRONMENT_VARS_FILE | yq eval .${JIBRI_NOMAD_VARIABLE} -)"
-if [[ "$NOMAD_JIBRI_FLAG" == "null" ]]; then
-  NOMAD_JIBRI_FLAG="$(cat $CONFIG_VARS_FILE | yq eval .${JIBRI_NOMAD_VARIABLE} -)"
-fi
+if [ -z "$NOMAD_JIBRI_FLAG" ]; then
+  NOMAD_JIBRI_FLAG="$(cat $ENVIRONMENT_VARS_FILE | yq eval .${JIBRI_NOMAD_VARIABLE} -)"
+  if [[ "$NOMAD_JIBRI_FLAG" == "null" ]]; then
+    NOMAD_JIBRI_FLAG="$(cat $CONFIG_VARS_FILE | yq eval .${JIBRI_NOMAD_VARIABLE} -)"
+  fi
 
-if [[ "$NOMAD_JIBRI_FLAG" == "null" ]]; then
-  NOMAD_JIBRI_FLAG="false"
+  if [[ "$NOMAD_JIBRI_FLAG" == "null" ]]; then
+    NOMAD_JIBRI_FLAG="false"
+  fi
 fi
 
 SHARD_ROLE="$JIBRI_TYPE"
