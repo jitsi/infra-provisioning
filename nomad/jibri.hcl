@@ -142,7 +142,8 @@ job "[JOB_NAME]" {
           "local/11-status-cron:/etc/cont-init.d/11-status-cron",
           "local/reload-config.sh:/opt/jitsi/scripts/reload-config.sh",
           "local/jibri-status.sh:/opt/jitsi/scripts/jibri-status.sh",
-          "local/cron-service-run:/etc/services.d/60-cron/run"
+          "local/cron-service-run:/etc/services.d/60-cron/run",
+          "local/config:/config"
     	  ]
       }
       volume_mount {
@@ -227,6 +228,7 @@ EOF
 . /etc/cont-init.d/01-xmpp-servers
 /etc/cont-init.d/10-config
 /opt/jitsi/jibri/reload.sh
+cp /etc/jitsi/jibri/* /config
 EOF
         destination = "local/reload-config.sh"
         perms = "755"
@@ -235,6 +237,7 @@ EOF
       template {
         data = <<EOF
 #!/usr/bin/with-contenv bash
+cp /etc/jitsi/jibri/* /config
 
 apt-get update && apt-get -y install cron netcat
 
