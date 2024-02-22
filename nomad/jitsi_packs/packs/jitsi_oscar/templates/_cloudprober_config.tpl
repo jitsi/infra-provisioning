@@ -100,12 +100,17 @@ probe {
   name: "shard"
   type: HTTP
   targets {
+    {{ $shard_count := 0 }}
     {{ range $dc := datacenters }}{{ $dc_shards := print "signal-sidecar@" $dc }}{{ range $shard := service $dc_shards -}}
+      {{ $shard_count = add $shard_count 1 }}
     endpoint {
       name: "{{ .ServiceMeta.shard }}"
       url: "http://{{ .Address }}:{{ .Port }}/about/health"
     }
     {{ end }}{{ end }}
+    {{ if eq $shard_count 0 -}}
+    host_names: ""
+    {{ end }}
   }
   validator {
       name: "status_code_2xx"
