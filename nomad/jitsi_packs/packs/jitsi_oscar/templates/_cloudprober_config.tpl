@@ -51,7 +51,7 @@ probe {
           success_status_codes: "200-299"
       }
   }
-  interval_msec: 60000
+  interval_msec: 10000
   timeout_msec: 2000
 }
 [[ end -]]
@@ -73,7 +73,7 @@ probe {
           success_status_codes: "200-299"
       }
   }
-  interval_msec: 60000
+  interval_msec: 10000
   timeout_msec: 2000
 }
 [[ end -]]
@@ -89,7 +89,7 @@ probe {
     mode: ONCE 
     command: "/bin/oscar_coturn_probe.sh @target@"
   }
-  interval_msec: 60000
+  interval_msec: 10000
   timeout_msec: 2000
 }
 [[ end -]]
@@ -202,7 +202,7 @@ probe {
           success_status_codes: "200-299"
       }
   }
-  interval_msec: 60000
+  interval_msec: 10000
   timeout_msec: 2000
 }
 [[ end -]]
