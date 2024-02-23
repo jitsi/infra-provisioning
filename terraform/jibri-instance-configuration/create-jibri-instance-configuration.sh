@@ -100,17 +100,23 @@ fi
 
 JIBRI_IMAGE_TYPE="JavaJibri"
 
-NOMAD_JIBRI_FLAG="$(cat $ENVIRONMENT_VARS_FILE | yq eval .${JIBRI_NOMAD_VARIABLE} -)"
-if [[ "$NOMAD_JIBRI_FLAG" == "null" ]]; then
-  NOMAD_JIBRI_FLAG="$(cat $CONFIG_VARS_FILE | yq eval .${JIBRI_NOMAD_VARIABLE} -)"
+if [ -z "$NOMAD_JIBRI_FLAG" ]; then
+  NOMAD_JIBRI_FLAG="$(cat $ENVIRONMENT_VARS_FILE | yq eval .${JIBRI_NOMAD_VARIABLE} -)"
+  if [[ "$NOMAD_JIBRI_FLAG" == "null" ]]; then
+    NOMAD_JIBRI_FLAG="$(cat $CONFIG_VARS_FILE | yq eval .${JIBRI_NOMAD_VARIABLE} -)"
+  fi
+
+  if [[ "$NOMAD_JIBRI_FLAG" == "null" ]]; then
+    NOMAD_JIBRI_FLAG="false"
+  fi
 fi
 
-if [[ "$NOMAD_JIBRI_FLAG" == "null" ]]; then
-  NOMAD_JIBRI_FLAG="false"
-fi
+SHARD_ROLE="$JIBRI_TYPE"
 
 if [[ "$NOMAD_JIBRI_FLAG" == "true" ]]; then
   JIBRI_IMAGE_TYPE="JammyBase"
+  JIBRI_VERSION="latest"
+  SHARD_ROLE="jibri-nomad-pool"
 fi
 
 
@@ -177,7 +183,7 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
   -var="git_branch=$ORACLE_GIT_BRANCH" \
   -var="domain=$DOMAIN" \
   -var="name=$NAME" \
-  -var="shard_role=$JIBRI_TYPE" \
+  -var="shard_role=$SHARD_ROLE" \
   -var="aws_cloud_name=$CLOUD_NAME" \
   -var="jibri_release_number=$JIBRI_RELEASE_NUMBER" \
   -var="nomad_flag=$NOMAD_JIBRI_FLAG" \
@@ -185,7 +191,16 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
   -var "infra_customizations_repo=$INFRA_CUSTOMIZATIONS_REPO" \
   $ACTION_POST_PARAMS $TF_POST_PARAMS
 
+RET=$?
+
+if [[ "$RET" -ne 0 ]]; then
+  echo "Terraform $ACTION failed with exit code $RET"
+  exit $RET
+fi
+
 if [[ "$ENVIRONMENT_TYPE" == "prod" ]]; then
   echo "Tagging jibri image as production"
   $LOCAL_PATH/../../scripts/oracle_custom_images.py --tag_production --image_id $JIBRI_IMAGE_OCID --region $ORACLE_REGION
 fi
+
+exit $RET

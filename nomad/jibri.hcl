@@ -44,6 +44,10 @@ variable "domain" {
     type = string
 }
 
+variable "release_number" {
+  type = string
+  default = "0"
+}
 
 # This declares a job named "docs". There can be exactly one
 # job declaration per job file.
@@ -71,6 +75,7 @@ job "[JOB_NAME]" {
 
   meta {
     jibri_version = "${var.jibri_version}"
+    release_number = "${var.release_number}"
   }
 
   group "jibri" {
@@ -97,6 +102,30 @@ job "[JOB_NAME]" {
       }
     }
 
+    service {
+      name = "jibri"
+      tags = ["group-${NOMAD_META_group}","jibri-${NOMAD_ALLOC_ID}","ip-${attr.unique.network.ip-address}"]
+
+      meta {
+        domain = "${var.domain}"
+        environment = "${meta.environment}"
+        jibri_version = "${var.jibri_version}"
+        nomad_allocation = "${NOMAD_ALLOC_ID}"
+        group = "${NOMAD_META_group}"
+        release_number = "${var.release_number}"
+      }
+
+      port = "http"
+
+      check {
+        name     = "health"
+        type     = "http"
+        path     = "/jibri/api/v1.0/health"
+        port     = "http"
+        interval = "10s"
+        timeout  = "2s"
+      }
+    }
     task "jibri" {
       driver = "docker"
 
@@ -113,7 +142,8 @@ job "[JOB_NAME]" {
           "local/11-status-cron:/etc/cont-init.d/11-status-cron",
           "local/reload-config.sh:/opt/jitsi/scripts/reload-config.sh",
           "local/jibri-status.sh:/opt/jitsi/scripts/jibri-status.sh",
-          "local/cron-service-run:/etc/services.d/60-cron/run"
+          "local/cron-service-run:/etc/services.d/60-cron/run",
+          "local/config:/config"
     	  ]
       }
       volume_mount {
@@ -198,6 +228,7 @@ EOF
 . /etc/cont-init.d/01-xmpp-servers
 /etc/cont-init.d/10-config
 /opt/jitsi/jibri/reload.sh
+cp /etc/jitsi/jibri/* /config
 EOF
         destination = "local/reload-config.sh"
         perms = "755"
@@ -206,6 +237,7 @@ EOF
       template {
         data = <<EOF
 #!/usr/bin/with-contenv bash
+cp /etc/jitsi/jibri/* /config
 
 apt-get update && apt-get -y install cron netcat
 
@@ -293,7 +325,7 @@ EOF
       }
 
       resources {
-        cpu    = 4000
+        cpu    = 2500
         memory = 2048
       }
     }

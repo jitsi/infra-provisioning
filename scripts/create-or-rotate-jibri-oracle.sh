@@ -52,20 +52,26 @@ JIBRI_NOMAD_VARIABLE="jibri_enable_nomad"
 
 JIBRI_IMAGE_TYPE="JavaJibri"
 
-NOMAD_JIBRI_FLAG="$(cat $ENVIRONMENT_VARS_FILE | yq eval .${JIBRI_NOMAD_VARIABLE} -)"
-if [[ "$NOMAD_JIBRI_FLAG" == "null" ]]; then
-  NOMAD_JIBRI_FLAG="$(cat $CONFIG_VARS_FILE | yq eval .${JIBRI_NOMAD_VARIABLE} -)"
-fi
+if [ -z "$NOMAD_JIBRI_FLAG" ]; then
+  # only look in environment vars if not already set
+  NOMAD_JIBRI_FLAG="$(cat $ENVIRONMENT_VARS_FILE | yq eval .${JIBRI_NOMAD_VARIABLE} -)"
+  if [[ "$NOMAD_JIBRI_FLAG" == "null" ]]; then
+    NOMAD_JIBRI_FLAG="$(cat $CONFIG_VARS_FILE | yq eval .${JIBRI_NOMAD_VARIABLE} -)"
+  fi
 
-if [[ "$NOMAD_JIBRI_FLAG" == "null" ]]; then
-  NOMAD_JIBRI_FLAG="false"
+  if [[ "$NOMAD_JIBRI_FLAG" == "null" ]]; then
+    NOMAD_JIBRI_FLAG="false"
+  fi
 fi
 
 if [[ "$NOMAD_JIBRI_FLAG" == "true" ]]; then
+  # instead of launch jibri images, launch the latest JammyBase image
+  # in addition, give a new name and set our type to nomad for the autoscaler
+
   JIBRI_IMAGE_TYPE="JammyBase"
   JIBRI_VERSION="latest"
   TYPE="nomad"
-  [ -z "$NAME_ROOT_SUFFIX" ] && NAME_ROOT_SUFFIX="NomadJibriCustomGroup"
+  [ -z "$NAME_ROOT_SUFFIX" ] && NAME_ROOT_SUFFIX="JibriNomadPoolCustomGroup"
   echo "Using Nomad AUTOSCALER_URL"
   AUTOSCALER_URL="https://${ENVIRONMENT}-${ORACLE_REGION}-autoscaler.$TOP_LEVEL_DNS_ZONE_NAME"
   [ -z $JIBRI_MAX_COUNT ] && JIBRI_MAX_COUNT=5
@@ -200,7 +206,12 @@ if [ "$getGroupHttpCode" == 404 ]; then
       exit 214
     fi
 
-    INSTANCE_CONFIGURATION_DETAILS=$(oci compute-management instance-configuration list --region "$ORACLE_REGION" -c "$COMPARTMENT_OCID" --sort-by TIMECREATED --sort-order DESC --all --query 'data[?"defined-tags".'\"$TAG_NAMESPACE\"'."shard-role" == `'"$JIBRI_TYPE"'`]' |  jq .[0])
+    SHARD_ROLE="$JIBRI_TYPE"
+    if [[ "$NOMAD_JIBRI_FLAG" == "true" ]]; then
+      SHARD_ROLE="jibri-nomad-pool"
+    fi
+
+    INSTANCE_CONFIGURATION_DETAILS=$(oci compute-management instance-configuration list --region "$ORACLE_REGION" -c "$COMPARTMENT_OCID" --sort-by TIMECREATED --sort-order DESC --all --query 'data[?"defined-tags".'\"$TAG_NAMESPACE\"'."shard-role" == `'"$SHARD_ROLE"'`]' |  jq .[0])
     if [ $? -eq 0 ]; then
       INSTANCE_CONFIGURATION_ID=$(echo "$INSTANCE_CONFIGURATION_DETAILS" | jq -r '.id')
     fi
@@ -312,17 +323,25 @@ elif [ "$getGroupHttpCode" == 200 ]; then
   fi
 
   NEW_MAXIMUM_DESIRED=$((EXISTING_MAXIMUM + PROTECTED_INSTANCES_COUNT))
-  echo "Creating new Instance Configuration for group $GROUP_NAME based on the existing one"
-  SHAPE_PARAMS=""
-  [ ! -z "$SHAPE" ] && SHAPE_PARAMS="$SHAPE_PARAMS --shape $SHAPE"
-  [ ! -z "$OCPUS" ] && SHAPE_PARAMS="$SHAPE_PARAMS --ocpus $OCPUS"
-  [ ! -z "$MEMORY_IN_GBS" ] && SHAPE_PARAMS="$SHAPE_PARAMS --memory $MEMORY_IN_GBS"
 
-  NEW_INSTANCE_CONFIGURATION_ID=$($LOCAL_PATH/rotate_instance_configuration_oracle.py --region "$ORACLE_REGION" --image_id "$JIBRI_IMAGE_OCID" \
-    --jibri_release_number "$JIBRI_RELEASE_NUMBER" --git_branch "$ORACLE_GIT_BRANCH" --infra_customizations_repo "$INFRA_CUSTOMIZATIONS_REPO" --infra_configuration_repo "$INFRA_CONFIGURATION_REPO" \
-    --instance_configuration_id "$EXISTING_INSTANCE_CONFIGURATION_ID" --tag_namespace "$TAG_NAMESPACE" --user_public_key_path "$USER_PUBLIC_KEY_PATH" --metadata_lib_path "$METADATA_LIB_PATH" --metadata_path "$METADATA_PATH" \
-    --metadata_extras="export NOMAD_FLAG=$NOMAD_JIBRI_FLAG" \
-    --custom_autoscaler $SHAPE_PARAMS)
+  echo "Creating Jibri Instance Configuration"
+  $LOCAL_PATH/../terraform/jibri-instance-configuration/create-jibri-instance-configuration.sh
+  if [ $? == 0 ]; then
+    echo "Instance Configuration $INSTANCE_CONFIG_NAME was created successfully"
+  else
+    echo "Instance Configuration $INSTANCE_CONFIG_NAME failed to create correctly"
+    exit 214
+  fi
+
+  SHARD_ROLE="$JIBRI_TYPE"
+  if [[ "$NOMAD_JIBRI_FLAG" == "true" ]]; then
+    SHARD_ROLE="jibri-nomad-pool"
+  fi
+
+  INSTANCE_CONFIGURATION_DETAILS=$(oci compute-management instance-configuration list --region "$ORACLE_REGION" -c "$COMPARTMENT_OCID" --sort-by TIMECREATED --sort-order DESC --all --query 'data[?"defined-tags".'\"$TAG_NAMESPACE\"'."shard-role" == `'"$SHARD_ROLE"'`]' |  jq .[0])
+  if [ $? -eq 0 ]; then
+    NEW_INSTANCE_CONFIGURATION_ID=$(echo "$INSTANCE_CONFIGURATION_DETAILS" | jq -r '.id')
+  fi
 
   if [ -z "$NEW_INSTANCE_CONFIGURATION_ID" ] || [ "$NEW_INSTANCE_CONFIGURATION_ID" == "null" ]; then
     echo "No Instance Configuration was created for group $GROUP_NAME. Exiting.."
