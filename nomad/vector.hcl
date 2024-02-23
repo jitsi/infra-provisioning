@@ -82,8 +82,30 @@ job "vector" {
             enabled = true
             address = "0.0.0.0:8686"
             playground = true
+          [sources.jvb_logs]
+            type = "docker_logs"
+            include_containers = ["jvb-"]
+            multiline.timeout_ms = 300
+            multiline.mode = "halt_before"
+            multiline.condition_pattern = "^JVB "
+            multiline.start_pattern = "^JVB "
+          [sources.jibri_logs]
+            type = "docker_logs"
+            include_containers = ["jibri-"]
+            multiline.timeout_ms = 300
+            multiline.mode = "halt_before"
+            multiline.condition_pattern = "^Jibri "
+            multiline.start_pattern = "^Jibri "
+          [sources.jicofo_logs]
+            type = "docker_logs"
+            include_containers = ["jicofo-"]
+            multiline.timeout_ms = 300
+            multiline.mode = "halt_before"
+            multiline.condition_pattern = "^Jicofo "
+            multiline.start_pattern = "^Jicofo "
           [sources.logs]
             type = "docker_logs"
+            exclude_containers = ["jicofo-","jvb-","jibri-"]
           [sources.syslog]
             type = "syslog"
             address = "0.0.0.0:9000"
@@ -109,10 +131,17 @@ job "vector" {
                     region = "[[ env "meta.cloud_region" ]]"
           [transforms.message_to_structure]
             type = "remap"
-            inputs = ["logs"]
+            inputs = ["logs","jibri_logs","jicofo_logs","jvb_logs"]
             source = """
             structured =
               parse_json(.message) ??
+              parse_regex(.message, r'^(?P<app>Jicofo) (?P<timestamp>\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}\\.\\d{3}) (?P<level>\\w+): \\[(?P<pid>\\d+)\\] (?P<message>[\\S\\s]*)$') ??
+              parse_regex(.message, r'^(?P<app>Jicofo) (?P<timestamp>\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}\\.\\d{3}) (?P<message>[\\S\\s]*)$') ??
+              parse_regex(.message, r'^(?P<app>JVB) (?P<timestamp>\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}\\.\\d{3}) (?P<level>\\w+): \\[(?P<pid>\\d+)\\] (?P<message>[\\S\\s]*)$') ??
+              parse_regex(.message, r'^(?P<app>JVB) (?P<timestamp>\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}\\.\\d{3}) (?P<message>[\\S\\s]*)$') ??
+              parse_regex(.message, r'^(?P<app>Jibri) (?P<timestamp>\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}\\.\\d{3}) (?P<level>\\w+): \\[(?P<pid>\\d+)\\] (?P<message>[\\S\\s]*)$') ??
+              parse_regex(.message, r'^(?P<app>Jibri) (?P<timestamp>\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}\\.\\d{3}) (?P<message>[\\S\\s]*)$') ??
+              parse_regex(.message, r'^(?P<timestamp>\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}\\.\\d{3}) (?P<level>\\w+): \\[(?P<pid>\\d+)\\] (?P<message>[\\S\\s]*)$') ??
               parse_syslog(.message) ??
               parse_common_log(.message) ??
               parse_regex(.message, r'^(?P<timestamp>\\d+/\\d+/\\d+ \\d+:\\d+:\\d+) \\[(?P<severity>\\w+)\\] (?P<pid>\\d+)#(?P<tid>\\d+):(?: \\*(?P<connid>\\d+))? (?P<message>.*)$') ??
