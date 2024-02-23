@@ -2,6 +2,14 @@ variable "dc" {
   type = string
 }
 
+variable "environment" {
+  type = string
+}
+
+variable "region" {
+  type = string
+}
+
 variable "prometheus_hostname" {
   type = string
 }
@@ -95,6 +103,10 @@ job "[JOB_NAME]" {
 global:
   scrape_interval:     10s
   evaluation_interval: 5s
+
+  external_labels:
+    environment: ${var.environment}
+    region: ${var.region}
 
 alerting:
   alertmanagers:
