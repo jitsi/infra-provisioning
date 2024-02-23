@@ -19,6 +19,11 @@ variable "internal_dns_zone" {
   default = "oracle.infra.jitsi.net"
 }
 
+variable "retention_period" {
+  type = string
+  default = "744h"
+}
+
 locals {
   loki = [0, 1, 2]
 }
@@ -147,9 +152,14 @@ job "[JOB_NAME]" {
   compactor:
     working_directory: /tmp/loki/boltdb-shipper-compactor
     shared_store: s3
+    compaction_interval: 10m
+    retention_enabled: true
+    retention_delete_delay: 2h
+    retention_delete_worker_count: 150
   limits_config:
     reject_old_samples: true
     reject_old_samples_max_age: 168h
+    retention_period: ${var.retention_period}
   chunk_store_config:
     max_look_back_period: 0s
   table_manager:
