@@ -314,6 +314,9 @@ server {
     proxy_read_timeout          90s;
     send_timeout                90s;
 
+    client_body_timeout 5s;
+    client_header_timeout 5s;
+
     listen 80;
 
     server_name [[ env "CONFIG_signal_api_hostname" ]];
