@@ -2,14 +2,6 @@ variable "dc" {
   type = string
 }
 
-variable "environment" {
-  type = string
-}
-
-variable "region" {
-  type = string
-}
-
 variable "prometheus_hostname" {
   type = string
 }
@@ -105,8 +97,8 @@ global:
   evaluation_interval: 5s
 
   external_labels:
-    environment: ${var.environment}
-    region: ${var.region}
+    environment: '{{ env "meta.environment" }}'
+    region: '{{ env "meta.cloud_region" }}'
 
 alerting:
   alertmanagers:
