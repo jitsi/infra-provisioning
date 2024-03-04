@@ -51,7 +51,7 @@ probe {
           success_status_codes: "200-299"
       }
   }
-  interval_msec: 10000
+  interval_msec: 60000
   timeout_msec: 2000
 }
 [[ end -]]
@@ -73,7 +73,7 @@ probe {
           success_status_codes: "200-299"
       }
   }
-  interval_msec: 10000
+  interval_msec: 60000
   timeout_msec: 2000
 }
 [[ end -]]
@@ -180,7 +180,7 @@ probe {
           success_status_codes: "200-299"
       }
   }
-  interval_msec: 5000
+  interval_msec: 20000
   timeout_msec: 2000
 }
 [[ end -]]
@@ -201,7 +201,7 @@ probe {
           success_status_codes: "200-299"
       }
   }
-  interval_msec: 10000
+  interval_msec: 60000
   timeout_msec: 2000
 }
 [[ end -]]
