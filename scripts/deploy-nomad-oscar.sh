@@ -24,7 +24,7 @@ fi
 
 [ -z "$VAULT_PASSWORD_FILE" ] && VAULT_PASSWORD_FILE="$LOCAL_PATH/../.vault-password.txt"
 
-[ -z "$OSCAR_TEMPLATE_TYPE" ] && OSCAR_TEMPLATE_TYPE="core"
+[ -z "$OSCAR_TEMPLATE_TYPE" ] && OSCAR_TEMPLATE_TYPE="base"
 
 [ -z "$LOCAL_REGION" ] && LOCAL_REGION="$OCI_LOCAL_REGION"
 [ -z "$LOCAL_REGION" ] && LOCAL_REGION="us-phoenix-1"
@@ -40,21 +40,21 @@ PACKS_DIR="$LOCAL_PATH/../nomad/jitsi_packs/packs"
 
 export RESOURCE_NAME_ROOT="${ENVIRONMENT}-${ORACLE_REGION}-oscar"
 
-OSCAR_ENABLE_WAVEFRONT_PROXY="true"
-
 if [[ "$OSCAR_TEMPLATE_TYPE" == "core" ]]; then
     OSCAR_ENABLE_COTURN="true"
     OSCAR_ENABLE_SHARD="true"
     OSCAR_ENABLE_SITE_INGRESS="true"
     OSCAR_ENABLE_HAPROXY_REGION="true"
     OSCAR_ENABLE_AUTOSCALER="true"
+    OSCAR_ENABLE_WAVEFRONT_PROXY="true"
     OSCAR_ENABLE_LOKI="true"
-elif [[ "$OSCAR_TEMPLATE_TYPE" == "ops" ]]; then
+elif [[ "$OSCAR_TEMPLATE_TYPE" == "ops" || "$OSCAR_TEMPLATE_TYPE" == "base" ]]; then
     OSCAR_ENABLE_COTURN="false"
     OSCAR_ENABLE_SHARD="false"
     OSCAR_ENABLE_SITE_INGRESS="false"
     OSCAR_ENABLE_HAPROXY_REGION="false"
     OSCAR_ENABLE_AUTOSCALER="false"
+    OSCAR_ENABLE_WAVEFRONT_PROXY="true"
     OSCAR_ENABLE_LOKI="true"
 else
     echo "Unsupported OSCAR_TEMPLATE_TYPE, exiting"
