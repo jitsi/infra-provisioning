@@ -96,6 +96,10 @@ global:
   scrape_interval:     10s
   evaluation_interval: 5s
 
+  external_labels:
+    environment: '{{ env "meta.environment" }}'
+    region: '{{ env "meta.cloud_region" }}'
+
 alerting:
   alertmanagers:
   - consul_sd_configs:
