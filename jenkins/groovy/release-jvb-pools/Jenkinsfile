@@ -39,7 +39,7 @@ pipeline {
     options {
         ansiColor('xterm')
         timestamps()
-        buildDiscarder(logRotator(numToKeepStr: '10', artifactNumToKeepStr: '10'))
+        buildDiscarder(logRotator(numToKeepStr: '80', artifactNumToKeepStr: '80'))
     }
 
     stages {
