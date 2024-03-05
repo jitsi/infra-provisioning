@@ -2,6 +2,7 @@
 LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
 [ -z "$LOCAL_DEV_DIR" ] && LOCAL_DEV_DIR="$(realpath "$HOME/dev")"
+
 [ -z "$ASAP_KEY_DIR" ] && ASAP_KEY_DIR="/opt/jitsi/keys"
 [ -z "$OPS_AGENT_VERSION" ] && OPS_AGENT_VERSION="latest"
 [ -z "$VAULT_PASSWORD_FILE" ] && VAULT_PASSWORD_FILE='./.vault-password.txt'
@@ -23,6 +24,8 @@ export ASAP_CLIENT_JWT_KID_PROD="$(ansible-vault view $ENCRYPTED_ASAP_KEYS_FILE 
 export ASAP_CLIENT_JWT_KID_STAGE="$(ansible-vault view $ENCRYPTED_ASAP_KEYS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".asap_key_client_stage.id" -)"
 export JENKINS_AWS_ACCESS_KEY_ID="$(ansible-vault view $ENCRYPTED_JENKINS_FILE --vault-password $VAULT_PASSWORD_FILE | tail +3 | xmlstarlet sel -t -c "/list//credentials//org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl[id[contains(.,'jenkins-aws-id')]]/secret/text()" | tr -d '\n' | tr -d ' ')"
 export JENKINS_AWS_SECRET_ACCESS_KEY="$(ansible-vault view $ENCRYPTED_JENKINS_FILE --vault-password $VAULT_PASSWORD_FILE | tail +3 | xmlstarlet sel -t -c "/list//credentials//org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl[id[contains(.,'jenkins-aws-secret')]]/secret/text()" | tr -d '\n' | tr -d ' ')"
+export JENKINS_TERRAFORM_AWS_ACCESS_KEY_ID="$(ansible-vault view $ENCRYPTED_JENKINS_FILE --vault-password $VAULT_PASSWORD_FILE | tail +3 | xmlstarlet sel -t -c "/list//credentials//org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl[id[contains(.,'oci-jenkins-terraform-aws-id')]]/secret/text()" | tr -d '\n' | tr -d ' ')"
+export JENKINS_TERRAFORM_AWS_SECRET_ACCESS_KEY="$(ansible-vault view $ENCRYPTED_JENKINS_FILE --vault-password $VAULT_PASSWORD_FILE | tail +3 | xmlstarlet sel -t -c "/list//credentials//org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl[id[contains(.,'oci-jenkins-terraform-aws-secret')]]/secret/text()" | tr -d '\n' | tr -d ' ')"
 
 ENVFILE="$(mktemp)"
 cat <<EOF > $ENVFILE
@@ -40,6 +43,8 @@ ASAP_CLIENT_JWT_KID_STAGE=$ASAP_CLIENT_JWT_KID_STAGE
 ASAP_CLIENT_JWT_KEY_STAGE=/opt/jitsi/keys/asap-client-pilot.key
 AWS_ACCESS_KEY_ID=$JENKINS_AWS_ACCESS_KEY_ID
 AWS_SECRET_ACCESS_KEY=$JENKINS_AWS_SECRET_ACCESS_KEY
+TERRAFORM_AWS_ACCESS_KEY_ID=$JENKINS_TERRAFORM_AWS_ACCESS_KEY_ID
+TERRAFORM_AWS_SECRET_ACCESS_KEY=$JENKINS_TERRAFORM_AWS_SECRET_ACCESS_KEY
 AWS_DEFAULT_REGION=us-west-2
 EOF
 
