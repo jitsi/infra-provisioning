@@ -40,10 +40,9 @@ probe {
   name: "autoscaler"
   type: HTTP
   targets {
-    host_names: "[[ var "environment" . ]]-[[ var "oracle_region" . ]]-autoscaler.[[ var "top_level_domain" . ]]"
+    host_names: "{{ range $index, $service := service "autoscaler"}}{{ if gt $index 0 }},{{ end }}{{ .Address }}:{{ .ServiceMeta.metrics_port }}{{ end }}"
   }
   http_probe {
-    protocol: HTTPS
     relative_url: "/health?deep=true"
   }
   validator {
@@ -90,7 +89,7 @@ probe {
     mode: ONCE 
     command: "/bin/oscar_coturn_probe.sh @target@"
   }
-  interval_msec: 60000
+  interval_msec: 10000
   timeout_msec: 2000
 }
 [[ end -]]
@@ -159,7 +158,6 @@ probe {
 
   http_probe {
     protocol: HTTPS
-    relative_url: "/healthz"
   }
   validator {
       name: "status_code_2xx"
@@ -182,7 +180,7 @@ probe {
           success_status_codes: "200-299"
       }
   }
-  interval_msec: 5000
+  interval_msec: 20000
   timeout_msec: 2000
 }
 [[ end -]]
