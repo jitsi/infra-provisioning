@@ -16,7 +16,8 @@ set -e
 set -o pipefail
 export ASAP_JWT_KID_DEV="$(ansible-vault view $ENCRYPTED_ASAP_KEYS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".asap_key_prod.id" -)"
 
-export ASAP_JWT_KID_PROD="$(ansible-vault view $ENCRYPTED_ASAP_KEYS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".asap_key_stage.id" -)"
+export ASAP_JWT_KID_PROD="$(ansible-vault view $ENCRYPTED_ASAP_KEYS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".asap_key_prod.id" -)"
+export ASAP_JWT_KID_STAGE="$(ansible-vault view $ENCRYPTED_ASAP_KEYS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".asap_key_stage.id" -)"
 
 export ASAP_CLIENT_JWT_KID_MEET="$(ansible-vault view $ENCRYPTED_ASAP_KEYS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".asap_key_client_meet.id" -)"
 export ASAP_CLIENT_JWT_KID_BETA="$(ansible-vault view $ENCRYPTED_ASAP_KEYS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".asap_key_client_beta.id" -)"
