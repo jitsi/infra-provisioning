@@ -57,6 +57,7 @@ docker run --env-file $ENVFILE  -v ~/.ssh:/home/jenkins/.ssh \
   -v ~/.jenkins-aws:/home/jenkins/.aws \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -v $ASAP_KEY_DIR:/opt/jitsi/keys \
+  --cap-add=CAP_IPC_LOCK \
   -it aaronkvanmeerten/ops-agent:$OPS_AGENT_VERSION
 
 rm $ENVFILE
