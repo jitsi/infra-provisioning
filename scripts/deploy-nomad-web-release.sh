@@ -177,7 +177,7 @@ else
         echo "Failed to get status for web release job, exiting"
         exit 6
     fi
-    nomad-watch --out "deployment" started "web-release-${RELEASE_NUMBER}"
+    nomad-watch --out "deploy" started "web-release-${RELEASE_NUMBER}"
     WATCH_RET=$?
     if [ $WATCH_RET -ne 0 ]; then
         echo "Failed starting job, dumping logs and exiting"

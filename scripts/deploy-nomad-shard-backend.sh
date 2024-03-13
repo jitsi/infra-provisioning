@@ -278,7 +278,7 @@ else
         echo "Failed to get status for shard backend job, exiting"
         exit 6
     fi
-    nomad-watch --out "deployment" started "$JOB_NAME"
+    nomad-watch --out "deploy" started "$JOB_NAME"
     WATCH_RET=$?
     if [ $WATCH_RET -ne 0 ]; then
         echo "Failed starting job, dumping logs and exiting"
