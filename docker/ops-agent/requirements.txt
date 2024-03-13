@@ -38,3 +38,4 @@ troposphere
 urllib3
 oci-cli
 nomad-tools
+hvac
