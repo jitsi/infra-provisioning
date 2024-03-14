@@ -5,9 +5,6 @@ variable "wavefront_instance" {
   type = string
   default = "metrics"
 }
-// variable "wavefront_token" {
-//   type = string
-// }
 variable "wavefront_proxy_hostname" {
   type = string
 }
