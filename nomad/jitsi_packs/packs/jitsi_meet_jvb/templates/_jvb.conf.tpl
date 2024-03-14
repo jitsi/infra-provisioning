@@ -111,7 +111,7 @@ videobridge {
     tls = true
     domain = "[[ env "CONFIG_domain" ]]:443"
     // Set both 'domain' and 'domains' for backward compat with jvb versions that don't support "domains".
-    [[ if eq (or (env "CONFIG_jvb_ws_additional_domain_enabled") "true") "true" ]]
+    [[ if eq (or (env "CONFIG_jvb_ws_additional_domain_enabled") "false") "true" ]]
     domains = [
         "[[ env "CONFIG_jvb_ws_additional_domain" ]]:443"
     ]
