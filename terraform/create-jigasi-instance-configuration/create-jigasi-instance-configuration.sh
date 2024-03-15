@@ -93,23 +93,6 @@ if [ -z "$IMAGE_OCID" ]; then
   exit 1
 fi
 
-[ -z "$CONFIG_VARS_FILE" ] && CONFIG_VARS_FILE="$LOCAL_PATH/../../config/vars.yml"
-[ -z "$ENVIRONMENT_VARS_FILE" ] && ENVIRONMENT_VARS_FILE="$LOCAL_PATH/../../sites/$ENVIRONMENT/vars.yml"
-
-if [ -z "$VAULT_JIGASI_FLAG" ]; then
-  VAULT_JIGASI_FLAG="jigasi_vault_enabled"
-
-  VAULT_JIGASI_FLAG="$(cat $ENVIRONMENT_VARS_FILE | yq eval .${VAULT_JIGASI_FLAG} -)"
-  if [[ "$VAULT_JIGASI_FLAG" == "null" ]]; then
-    VAULT_JIGASI_FLAG="$(cat $CONFIG_VARS_FILE | yq eval .${VAULT_JIGASI_FLAG} -)"
-  fi
-  if [[ "$VAULT_JIGASI_FLAG" == "null" ]]; then
-    VAULT_JIGASI_FLAG=
-  fi
-fi
-
-[ -z "$VAULT_JIGASI_FLAG" ] && VAULT_JIGASI_FLAG="false"
-
 [ -z "$VCN_NAME" ] && VCN_NAME="${ORACLE_REGION}-${ENVIRONMENT}-vcn"
 [ -z "$JIGASI_SECURITY_GROUP_NAME" ] && JIGASI_SECURITY_GROUP_NAME="${ORACLE_REGION}-${ENVIRONMENT}-JigasiCustomSecurityGroup"
 
