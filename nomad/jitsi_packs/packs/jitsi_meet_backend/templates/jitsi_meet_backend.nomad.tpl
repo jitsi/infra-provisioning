@@ -441,7 +441,10 @@ JIGASI_XMPP_PASSWORD="{{ .Data.data.password }}"
 EOF
         destination = "secrets/jigasi_xmpp"
         change_mode = "script"
-        change_script = "/local/jigasi_xmpp.sh"
+        change_script {
+          command       = "/local/jigasi_xmpp.sh"
+          fail_on_error = false
+        }
         env = true
       }
 [[ end ]]
