@@ -381,6 +381,11 @@ EOF
     }
 
     task "prosody" {
+[[ if eq (or (env "CONFIG_jigasi_vault_enabled") "true") "true" ]]
+      vault {
+        
+      }
+[[ end ]]
       driver = "docker"
 
       config {
