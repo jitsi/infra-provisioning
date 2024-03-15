@@ -87,22 +87,22 @@ job "vector" {
             include_containers = ["jvb-"]
             multiline.timeout_ms = 300
             multiline.mode = "halt_before"
-            multiline.condition_pattern = "^JVB "
-            multiline.start_pattern = "^JVB "
+            multiline.condition_pattern = "^(JVB|Exception) "
+            multiline.start_pattern = "^(JVB|Exception) "
           [sources.jibri_logs]
             type = "docker_logs"
             include_containers = ["jibri-"]
             multiline.timeout_ms = 300
             multiline.mode = "halt_before"
-            multiline.condition_pattern = "^Jibri "
-            multiline.start_pattern = "^Jibri "
+            multiline.condition_pattern = "^(Jibri|Exception) "
+            multiline.start_pattern = "^(Jibri|Exception) "
           [sources.jicofo_logs]
             type = "docker_logs"
             include_containers = ["jicofo-"]
             multiline.timeout_ms = 300
             multiline.mode = "halt_before"
-            multiline.condition_pattern = "^Jicofo "
-            multiline.start_pattern = "^Jicofo "
+            multiline.condition_pattern = "^(Jicofo|Exception) "
+            multiline.start_pattern = "^(Jicofo|Exception) "
           [sources.logs]
             type = "docker_logs"
             exclude_containers = ["jicofo-","jvb-","jibri-"]
