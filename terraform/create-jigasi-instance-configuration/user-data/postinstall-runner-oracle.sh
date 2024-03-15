@@ -4,6 +4,10 @@ export DUMP_COMMAND="dump"
 # do not clean up credentials, re-used on reconfiguration
 export CLEAN_CREDENTIALS="false"
 
+if [[ "$VAULT_FLAG" == "true" ]]; then
+  [ -f "/lib/systemd/system/vault-proxy.service" ] && service vault-proxy start
+fi
+
 function dump() {
   sudo /usr/local/bin/dump-jigasi.sh
 }
