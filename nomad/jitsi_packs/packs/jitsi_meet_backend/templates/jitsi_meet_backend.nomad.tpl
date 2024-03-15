@@ -434,7 +434,7 @@ EOF
       }
       template {
         data = <<EOF
-{{- with secret "secret/[[ env "CONFIG_environment" ]]/jigasi/xmpp" }}
+{{- with secret "secret/data/[[ env "CONFIG_environment" ]]/jigasi/xmpp" }}
 JIGASI_XMPP_USER="{{ .Data.data.user }}"
 JIGASI_XMPP_PASSWORD="{{ .Data.data.password }}"
 {{- end }}
