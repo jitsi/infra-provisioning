@@ -419,6 +419,33 @@ EOF
       }
 [[ template "prosody_artifacts" . ]]
 
+[[ if eq (or (env "CONFIG_jigasi_vault_enabled") "true") "true" ]]
+      template {
+        data = <<EOF
+#!/usr/bin/with-contenv bash
+PROSODY_CFG="/config/prosody.cfg.lua"
+
+. /secrets/jigasi_xmpp
+prosodyctl --config $PROSODY_CFG register $JIGASI_XMPP_USER $XMPP_AUTH_DOMAIN $JIGASI_XMPP_PASSWORD
+
+EOF
+        destination = "local/jigasi_xmpp.sh"
+        mode = 0755
+      }
+      template {
+        data = <<EOF
+{{- with secret "secret/[[ env "CONFIG_environment" ]]/jigasi/xmpp" }}
+JIGASI_XMPP_USER="{{ .Data.data.user }}"
+JIGASI_XMPP_PASSWORD="{{ .Data.data.password }}"
+{{- end }}
+EOF
+        destination = "secrets/jigasi_xmpp"
+        change_mode = "script"
+        change_script = "/local/jigasi_xmpp.sh"
+        env = true
+      }
+[[ end ]]
+
       template {
         data = <<EOF
 VISITORS_XMPP_SERVER=[[ range $index, $i := split " "  (seq 0 ((sub $VNODE_COUNT 1)|int)) ]][[ if gt ($i|int) 0 ]],[[ end ]]{{ env "NOMAD_IP_prosody_vnode_[[ $i ]]_s2s" }}:{{ env "NOMAD_HOST_PORT_prosody_vnode_[[ $i ]]_s2s" }}[[ end ]]  
