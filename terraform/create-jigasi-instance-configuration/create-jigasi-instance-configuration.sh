@@ -153,7 +153,6 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
   -var="user_public_key_path=$USER_PUBLIC_KEY_PATH" \
   -var "infra_configuration_repo=$INFRA_CONFIGURATION_REPO" \
   -var "infra_customizations_repo=$INFRA_CUSTOMIZATIONS_REPO" \
-  -var "vault_flag=$VAULT_JIGASI_FLAG" \
   $ACTION_POST_PARAMS $TF_POST_PARAMS
   RET=$?
 
