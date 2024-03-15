@@ -430,7 +430,7 @@ prosodyctl --config $PROSODY_CFG register $JIGASI_XMPP_USER $XMPP_AUTH_DOMAIN $J
 
 EOF
         destination = "local/jigasi_xmpp.sh"
-        mode = 0755
+        perms = "755"
       }
       template {
         data = <<EOF
