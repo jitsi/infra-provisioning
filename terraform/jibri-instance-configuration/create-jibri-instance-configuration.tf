@@ -85,7 +85,7 @@ data "oci_core_network_security_groups" "network_security_groups" {
   compartment_id = var.compartment_ocid
   filter {
     name = "display_name"
-    values = [ var.shard_role == "java-jibri" ? ".*-JibriCustomSecurityGroup" :  ".*-SipJibriCustomSecurityGroup"]
+    values = [ var.shard_role == "jibri-nomad-pool" ||  var.shard_role == "java-jibri" ? ".*-JibriCustomSecurityGroup" : ".*-SipJibriCustomSecurityGroup"]
     regex = true
   }
 }
