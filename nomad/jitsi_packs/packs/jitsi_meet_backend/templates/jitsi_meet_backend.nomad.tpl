@@ -395,7 +395,8 @@ EOF
         volumes = [
 	        "/opt/jitsi/keys:/opt/jitsi/keys",
           "local/prosody-plugins-custom:/prosody-plugins-custom",
-          "local/config:/config"
+          "local/config:/config",
+          "local/jigasi_xmpp.sh:/etc/cont-init.d/11-jigasi_xmpp",
         ]
       }
 
