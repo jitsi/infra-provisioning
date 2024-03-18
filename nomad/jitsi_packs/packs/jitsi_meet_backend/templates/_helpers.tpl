@@ -191,7 +191,9 @@ block
         XMPP_DOMAIN = "[[ env "CONFIG_domain" ]]"
         JICOFO_AUTH_PASSWORD = "[[ env "CONFIG_jicofo_auth_password" ]]"
         JVB_AUTH_PASSWORD = "[[ env "CONFIG_jvb_auth_password" ]]"
+[[- if eq (or (env "CONFIG_jigasi_vault_enabled") "true") "false" ]]
         JIGASI_XMPP_PASSWORD = "[[ env "CONFIG_jigasi_xmpp_password" ]]"
+[[- end ]]
         JIBRI_RECORDER_PASSWORD = "[[ env "CONFIG_jibri_recorder_password" ]]"
         JIBRI_XMPP_PASSWORD = "[[ env "CONFIG_jibri_xmpp_password" ]]"
         PUBLIC_URL = "https://[[ env "CONFIG_domain" ]]/"

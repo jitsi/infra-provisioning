@@ -381,6 +381,11 @@ EOF
     }
 
     task "prosody" {
+[[ if eq (or (env "CONFIG_jigasi_vault_enabled") "true") "true" ]]
+      vault {
+        
+      }
+[[ end ]]
       driver = "docker"
 
       config {
@@ -390,7 +395,7 @@ EOF
         volumes = [
 	        "/opt/jitsi/keys:/opt/jitsi/keys",
           "local/prosody-plugins-custom:/prosody-plugins-custom",
-          "local/config:/config"
+          "local/config:/config",
         ]
       }
 
@@ -418,6 +423,36 @@ EOF
         MAX_PARTICIPANTS=500
       }
 [[ template "prosody_artifacts" . ]]
+
+[[ if eq (or (env "CONFIG_jigasi_vault_enabled") "true") "true" ]]
+      template {
+        data = <<EOF
+#!/usr/bin/with-contenv bash
+PROSODY_CFG="/config/prosody.cfg.lua"
+
+. /secrets/jigasi_xmpp
+prosodyctl --config $PROSODY_CFG register $JIGASI_XMPP_USER $XMPP_AUTH_DOMAIN $JIGASI_XMPP_PASSWORD
+
+EOF
+        destination = "local/jigasi_xmpp.sh"
+        perms = "755"
+      }
+      template {
+        data = <<EOF
+{{- with secret "secret/[[ env "CONFIG_environment" ]]/jigasi/xmpp" }}
+JIGASI_XMPP_USER="{{ .Data.data.user }}"
+JIGASI_XMPP_PASSWORD="{{ .Data.data.password }}"
+{{- end }}
+EOF
+        destination = "secrets/jigasi_xmpp"
+        change_mode = "script"
+        change_script {
+          command       = "/local/jigasi_xmpp.sh"
+          fail_on_error = false
+        }
+        env = true
+      }
+[[ end ]]
 
       template {
         data = <<EOF
