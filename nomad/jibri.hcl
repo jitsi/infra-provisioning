@@ -22,16 +22,6 @@ variable "jibri_version" {
   default = "latest"
 }
 
-variable "environment_type" {
-  type = string
-  default = "stage"
-}
-
-variable "asap_jwt_kid" {
-    type = string
-    default = "replaceme"
-}
-
 variable "dc" {
   type = string
 }
@@ -127,6 +117,10 @@ job "[JOB_NAME]" {
       }
     }
     task "jibri" {
+      vault {
+
+      }
+
       driver = "docker"
 
       config {
@@ -136,7 +130,6 @@ job "[JOB_NAME]" {
         shm_size = 2147483648
         ports = ["http"]
         volumes = [
-	        "/opt/jitsi/keys:/opt/jitsi/keys",
           "local/xmpp-servers:/opt/jitsi/xmpp-servers",
           "local/01-xmpp-servers:/etc/cont-init.d/01-xmpp-servers",
           "local/11-status-cron:/etc/cont-init.d/11-status-cron",
@@ -179,13 +172,27 @@ job "[JOB_NAME]" {
         ENABLE_STATS_D = "true"
         LOCAL_ADDRESS = "${attr.unique.network.ip-address}"
         AUTOSCALER_SIDECAR_PORT = "6000"
-        AUTOSCALER_SIDECAR_KEY_ID = "${var.asap_jwt_kid}"
         AUTOSCALER_URL = "https://${meta.cloud_name}-autoscaler.jitsi.net"
-        AUTOSCALER_SIDECAR_KEY_FILE = "/opt/jitsi/keys/${var.environment_type}.key"
+        AUTOSCALER_SIDECAR_KEY_FILE = "/secrets/asap.key"
         AUTOSCALER_SIDECAR_REGION = "${meta.cloud_region}"
         AUTOSCALER_SIDECAR_GROUP_NAME = "${NOMAD_META_group}"
         AUTOSCALER_SIDECAR_INSTANCE_ID = "${NOMAD_JOB_ID}"
 #        CHROMIUM_FLAGS="--start-maximized,--kiosk,--enabled,--autoplay-policy=no-user-gesture-required,--use-fake-ui-for-media-stream,--enable-logging,--v=1"
+      }
+
+      template {
+        data = <<EOF
+AUTOSCALER_SIDECAR_KEY_ID="{{ with secret "secret/${var.environment}/asap/server" }}{{ .Data.data.key_id }}{{ end }}"
+EOF
+        env = true
+        destination = "secrets/asap_key_id"
+      }
+
+      template {
+        data = <<EOF
+{{ with secret "secret/${var.environment}/asap/server" }}{{ .Data.data.private_key }}{{ end }}
+EOF
+        destination = "secrets/asap.key"
       }
 
       template {
