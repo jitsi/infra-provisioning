@@ -452,7 +452,7 @@ EOF
 [[ end ]]
       template {
         data = <<EOF
-{{- with secret "secret/${var.environment}/asap/server" }}{{ .Data.data.private_key }}{{ end -}}
+{{- with secret "secret/[[ env "CONFIG_environment" ]]/asap/server" }}{{ .Data.data.private_key }}{{ end -}}
 EOF
         destination = "secrets/asap.key"
       }

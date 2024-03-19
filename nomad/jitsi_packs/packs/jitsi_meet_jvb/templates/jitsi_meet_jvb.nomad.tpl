@@ -221,7 +221,7 @@ EOF
 
       template {
         data = <<EOF
-AUTOSCALER_SIDECAR_KEY_ID="{{ with secret "secret/${var.environment}/asap/server" }}{{ .Data.data.key_id }}{{ end }}"
+AUTOSCALER_SIDECAR_KEY_ID="{{ with secret "secret/[[ env "CONFIG_environment" ]]/asap/server" }}{{ .Data.data.key_id }}{{ end }}"
 EOF
         env = true
         destination = "secrets/asap_key_id"
@@ -229,7 +229,7 @@ EOF
 
       template {
         data = <<EOF
-{{- with secret "secret/${var.environment}/asap/server" }}{{ .Data.data.private_key }}{{ end -}}
+{{- with secret "secret/[[ env "CONFIG_environment" ]]/asap/server" }}{{ .Data.data.private_key }}{{ end -}}
 EOF
         destination = "secrets/asap.key"
       }
