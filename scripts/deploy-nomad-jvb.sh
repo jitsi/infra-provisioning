@@ -59,7 +59,7 @@ NOMAD_DC="$ENVIRONMENT-$ORACLE_REGION"
 
 ASAP_KEY_VARIABLE="asap_key_$ENVIRONMENT_TYPE"
 
-JVB_XMPP_PASSWORD_VARIABLE="jvb_xmpp_password"
+JVB_XMPP_PASSWORD_VARIABLE="secrets_jvb_brewery_by_environment_A.\"$ENVIRONMENT\""
 
 # ensure no output for ansible vault contents and fail if ansible-vault fails
 set +x
