@@ -68,6 +68,11 @@ job [[ template "job_name" . ]] {
     }
 
     task "autoscaler" {
+[[ if var "enable_oci" . ]]
+      vault {
+        
+      }
+[[ end ]]
       driver = "docker"
 
       config {
@@ -75,10 +80,6 @@ job [[ template "job_name" . ]] {
         ports = ["http","metrics"]
         volumes = [
           "local/groups.json:/config/groups.json",
-          "[[ var "local_certs_path" . ]]:/certs",
-[[ if var "enable_oci" . ]]
-          "local/oci.config:/config/oci.config",
-[[ end ]]
         ]
       }
 
@@ -98,11 +99,11 @@ job [[ template "job_name" . ]] {
         ASAP_JWT_ACCEPTED_HOOK_ISS = "[[ var "asap_accepted_hook_iss" . ]]"
         GROUP_CONFIG_FILE = "/config/groups.json"
 [[ if var "enable_oci" . ]]
-        OCI_CONFIGURATION_FILE_PATH =  "/config/oci.config"
-[[ end ]]
-        DEFAULT_INSTANCE_CONFIGURATION_ID = "[[ var "oci.default_instance_configuration_id" . ]]"
+        OCI_CONFIGURATION_FILE_PATH =  "/secrets/oci.config"
         OCI_CONFIGURATION_PROFILE = "DEFAULT"
-        DEFAULT_COMPARTMENT_ID = "[[ var "oci.compartment_id" . ]]"
+        DEFAULT_COMPARTMENT_ID = "[[ var "oci_compartment_id" . ]]"
+[[ end ]]
+        DEFAULT_INSTANCE_CONFIGURATION_ID = "none"
         NODE_ENV = "development"
         PORT = "8080"
         METRICS_PORT = "8081"
@@ -113,15 +114,27 @@ job [[ template "job_name" . ]] {
 [[ if var "enable_oci" . ]]
       template {
         data = <<EOF
-[DEFAULT]
-user=[[ var "oci.user" . ]]
-fingerprint=[[ var "oci.fingerprint" . ]]
-pass_phrase=[[ var "oci.passphrase" . ]]
-key_file=/certs/oci_api_key.pem
-tenancy=[[ var "oci.tenancy" . ]]
-region=[[ var "oci.region" . ]]
+{{- $secret_path := printf "secret/%s/autoscaler/oci_api" (env "NOMAD_NAMESPACE") }}
+{{- with secret $secret_path }}{{ .Data.data.private_key }}{{ end -}}
 EOF
-        destination = "local/oci.config"
+        destination = "secrets/oci_api_key.pem"
+        perms = "600"
+      }
+
+      template {
+        data = <<EOF
+[DEFAULT]
+{{- $secret_path := printf "secret/%s/autoscaler/oci_api" (env "NOMAD_NAMESPACE") }}
+{{- with secret $secret_path }}
+user={{ .Data.data.user }}
+fingerprint={{ .Data.data.fingerprint }}
+pass_phrase={{ .Data.data.passphrase }}
+key_file=/secrets/oci_api_key.pem
+tenancy={{ .Data.data.tenancy }}
+region={{ .Data.data.region }}
+{{ end -}}
+EOF
+        destination = "secrets/oci.config"
         perms = "600"
       }
 
