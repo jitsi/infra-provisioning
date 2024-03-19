@@ -42,6 +42,7 @@ NOMAD_DC="$ENVIRONMENT-$ORACLE_REGION"
 
 [ -z "$ENCRYPTED_JVB_CREDENTIALS_FILE" ] && ENCRYPTED_JVB_CREDENTIALS_FILE="$LOCAL_PATH/../ansible/secrets/jvb.yml"
 [ -z "$ENCRYPTED_JIBRI_CREDENTIALS_FILE" ] && ENCRYPTED_JIBRI_CREDENTIALS_FILE="$LOCAL_PATH/../ansible/secrets/jibri.yml"
+[ -z "$ENCRYPTED_JICOFO_CREDENTIALS_FILE" ] && ENCRYPTED_JICOFO_CREDENTIALS_FILE="$LOCAL_PATH/../ansible/secrets/jicofo.yml"
 [ -z "$ENCRYPTED_JIGASI_CREDENTIALS_FILE" ] && ENCRYPTED_JIGASI_CREDENTIALS_FILE="$LOCAL_PATH/../ansible/secrets/jigasi.yml"
 
 [ -z "$ENVIRONMENT_CONFIGURATION_FILE" ] && ENVIRONMENT_CONFIGURATION_FILE="$LOCAL_PATH/../sites/$ENVIRONMENT/vars.yml"
@@ -51,7 +52,7 @@ JVB_XMPP_PASSWORD_VARIABLE="secrets_jvb_brewery_by_environment_A.\"$ENVIRONMENT\
 JIBRI_XMPP_PASSWORD_VARIABLE="jibri_auth_password"
 JIBRI_RECORDER_PASSWORD_VARIABLE="jibri_selenium_auth_password"
 JIGASI_XMPP_PASSWORD_VARIABLE="jigasi_xmpp_password"
-JICOFO_XMPP_PASSWORD_VARIABLE="prosody_focus_user_secret"
+JICOFO_XMPP_PASSWORD_VARIABLE="secrets_jicofo_focus_by_environment.\"$ENVIRONMENT\""
 
 SIP_JIBRI_SHARED_SECRET_VARIABLE="sip_jibri_shared_secrets.\"$ENVIRONMENT\""
 
@@ -63,8 +64,8 @@ export CONFIG_jvb_auth_password="$(ansible-vault view $ENCRYPTED_JVB_CREDENTIALS
 export CONFIG_jibri_xmpp_password="$(ansible-vault view $ENCRYPTED_JIBRI_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${JIBRI_XMPP_PASSWORD_VARIABLE}" -)"
 export CONFIG_jibri_recorder_password="$(ansible-vault view $ENCRYPTED_JIBRI_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${JIBRI_RECORDER_PASSWORD_VARIABLE}" -)"
 export CONFIG_jigasi_xmpp_password="$(ansible-vault view $ENCRYPTED_JIGASI_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${JIGASI_XMPP_PASSWORD_VARIABLE}" -)"
-
-export CONFIG_jicofo_auth_password="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .${JICOFO_XMPP_PASSWORD_VARIABLE} -)"
+# TODO: use the separate _jvb and _visitor secrets for the different accounts.
+export CONFIG_jicofo_auth_password="$(ansible-vault view $ENCRYPTED_JICOFO_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE  | yq eval .${JICOFO_XMPP_PASSWORD_VARIABLE} -)"
 
 export CONFIG_jigasi_shared_secret="$CONFIG_jigasi_xmpp_password"
 
