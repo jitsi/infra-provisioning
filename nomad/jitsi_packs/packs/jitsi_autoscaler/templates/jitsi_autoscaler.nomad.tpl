@@ -124,7 +124,7 @@ EOF
       template {
         data = <<EOF
 [DEFAULT]
-{{ $secret_path := printf "secret/%s/autoscaler/oci_api" (env "NOMAD_NAMESPACE") }}
+{{- $secret_path := printf "secret/%s/autoscaler/oci_api" (env "NOMAD_NAMESPACE") }}
 {{- with secret $secret_path }}
 user={{ .Data.data.user }}
 fingerprint={{ .Data.data.fingerprint }}
