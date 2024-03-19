@@ -83,11 +83,6 @@ variable "asap_base_url" {
   default     = "https://example.com/asap_keys/server"
 }
 
-variable "local_certs_path" {
-  description = "The path to the local certs directory on the nomad clients"
-  default = "/opt/jitsi/certs"
-}
-
 variable "enable_oci" {
   description = "If you want to enable OCI in the autoscaler"
   type        = bool
@@ -111,18 +106,9 @@ variable "asap_jwt_aud" {
   default = "jitsi-autoscaler"
 }
 
-variable "oci" {
-  description = "The OCI configuration for the job"
-  type        = object({
-    compartment_id = string
-    tenancy   = string
-    user      = string
-    passphrase     = string
-    fingerprint    = string
-    private_key    = string
-    region         = string
-    default_instance_configuration_id = string
-  })
+variable "oci_compartment_id" {
+  description = "The default OCI compartment for launches"
+  type        = string
 }
 
 variable "resources" {

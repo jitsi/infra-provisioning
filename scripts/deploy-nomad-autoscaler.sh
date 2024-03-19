@@ -87,15 +87,6 @@ datacenters=["$NOMAD_DC"]
 hostname="${RESOURCE_NAME_ROOT}.${TOP_LEVEL_DNS_ZONE_NAME}"
 version="$AUTOSCALER_VERSION"
 $ASAP_BASE_URL_CONFIG
-oci={
-  user="$NOMAD_VAR_oci_user"
-  passphrase="$NOMAD_VAR_oci_passphrase"
-  fingerprint="$NOMAD_VAR_oci_fingerprint"
-  tenancy="$NOMAD_VAR_oci_tenancy"
-  region="$NOMAD_VAR_oci_key_region"
-  compartment_id="$COMPARTMENT_OCID"
-  default_instance_configuration_id="ocid1.instanceconfiguration.oc1.phx.aaaaaaaawbzx774dlgfhvo4ahvrfiidhejzcuzh7uej67ez27k5lcg3nohra"
-}
 redis_from_consul=$REDIS_FROM_CONSUL
 redis_host="$REDIS_HOST"
 redis_tls=$REDIS_TLS
