@@ -145,6 +145,9 @@ EOF
     }
 
     task "jvb" {
+      vault {
+
+      }
       driver = "docker"
 
       config {
@@ -152,7 +155,6 @@ EOF
         cap_add = ["SYS_ADMIN"]
         ports = ["http","media","colibri"]
         volumes = [
-          "/opt/jitsi/keys:/opt/jitsi/keys",
           "local/reload-shards.sh:/opt/jitsi/scripts/reload-shards.sh",
           "local/01-jvb-env:/etc/cont-init.d/01-jvb-env",
           "local/config:/config",
@@ -198,9 +200,8 @@ EOF
         JVB_INSTANCE_ID = "${NOMAD_SHORT_ALLOC_ID}"
         LOCAL_ADDRESS = "${attr.unique.network.ip-address}"
         AUTOSCALER_SIDECAR_PORT = "6000"
-        AUTOSCALER_SIDECAR_KEY_ID = "[[ env "CONFIG_asap_jwt_kid" ]]"
         AUTOSCALER_URL = "https://${meta.cloud_name}-autoscaler.jitsi.net"
-        AUTOSCALER_SIDECAR_KEY_FILE = "/opt/jitsi/keys/[[ env "CONFIG_environment_type" ]].key"
+        AUTOSCALER_SIDECAR_KEY_FILE = "/secrets/asap.key"
         AUTOSCALER_SIDECAR_REGION = "${meta.cloud_region}"
         AUTOSCALER_SIDECAR_GROUP_NAME = "${NOMAD_META_group}"
         AUTOSCALER_SIDECAR_INSTANCE_ID = "${NOMAD_JOB_ID}"
@@ -216,6 +217,21 @@ EOF
         options {
           archive = false
         }
+      }
+
+      template {
+        data = <<EOF
+AUTOSCALER_SIDECAR_KEY_ID="{{ with secret "secret/${var.environment}/asap/server" }}{{ .Data.data.key_id }}{{ end }}"
+EOF
+        env = true
+        destination = "secrets/asap_key_id"
+      }
+
+      template {
+        data = <<EOF
+{{ with secret "secret/${var.environment}/asap/server" }}{{ .Data.data.private_key }}{{ end }}
+EOF
+        destination = "secrets/asap.key"
       }
 
       template {
