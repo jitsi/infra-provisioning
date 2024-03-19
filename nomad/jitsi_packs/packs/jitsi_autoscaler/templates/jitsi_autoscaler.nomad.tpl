@@ -130,7 +130,7 @@ user={{ .Data.data.user }}
 fingerprint={{ .Data.data.fingerprint }}
 pass_phrase={{ .Data.data.passphrase }}
 key_file=/secrets/oci_api_key.pem
-tenancy={{ .Data.data.tenacy }}
+tenancy={{ .Data.data.tenancy }}
 region={{ .Data.data.region }}
 {{ end -}}
 EOF
