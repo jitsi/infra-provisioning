@@ -381,11 +381,9 @@ EOF
     }
 
     task "prosody" {
-[[ if eq (or (env "CONFIG_jigasi_vault_enabled") "true") "true" ]]
       vault {
         
       }
-[[ end ]]
       driver = "docker"
 
       config {
@@ -393,7 +391,6 @@ EOF
         image        = "jitsi/prosody:[[ env "CONFIG_prosody_tag" ]]"
         ports = ["prosody-http","prosody-client","prosody-s2s"]
         volumes = [
-	        "/opt/jitsi/keys:/opt/jitsi/keys",
           "local/prosody-plugins-custom:/prosody-plugins-custom",
           "local/config:/config",
         ]
@@ -453,6 +450,12 @@ EOF
         env = true
       }
 [[ end ]]
+      template {
+        data = <<EOF
+{{ with secret "secret/${var.environment}/asap/server" }}{{ .Data.data.private_key }}{{ end }}
+EOF
+        destination = "secrets/asap.key"
+      }
 
       template {
         data = <<EOF
@@ -470,7 +473,7 @@ asap_require_room_claim = false;\n
 enable_password_waiting_for_host = true;\n
 [[- end -]]
 [[- if eq (env "CONFIG_prosody_enable_muc_events") "true" -]]
-asap_key_path = \"/opt/jitsi/keys/[[ env "CONFIG_environment_type" ]].key\";\nasap_key_id = \"[[ env "CONFIG_asap_jwt_kid" ]]\";\nasap_issuer = \"[[ or (env "CONFIG_prosody_asap_issuer") "jitsi" ]]\";\nasap_audience = \"[[ or (env "CONFIG_prosody_asap_audience") "jitsi" ]]\";\n
+asap_key_path = \"/secrets/asap.key\";\nasap_key_id = \"{{ with secret "secret/[[ env "CONFIG_environment" ]]/asap/server" }}{{ .Data.data.key_id }}{{ end }}\";\nasap_issuer = \"[[ or (env "CONFIG_prosody_asap_issuer") "jitsi" ]]\";\nasap_audience = \"[[ or (env "CONFIG_prosody_asap_audience") "jitsi" ]]\";\n
 [[- end -]]
 [[- if (env "CONFIG_prosody_amplitude_api_key") -]]
 amplitude_api_key = \"[[ env "CONFIG_prosody_amplitude_api_key" ]]\";\n
