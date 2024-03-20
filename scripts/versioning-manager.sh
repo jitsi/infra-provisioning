@@ -275,12 +275,20 @@ elif [ "$VERSIONING_ACTION" == "UNPIN_ALL_FROM_RELEASE" ]; then
     exit 2
   fi
 
-  echo "## getting list of all releases"
-  response=$(curl -s -X GET \
+  response=$(curl -s -w '\n %{http_code}' -X GET \
       "$VERSIONING_URL"/v1/releases?environment="$ENVIRONMENT" \
       -H 'accept: application/json' \
       -H 'Content-Type: application/json' \
       -H "Authorization: Bearer $TOKEN")
+
+  httpCode=$(tail -n1 <<<"$response" | sed 's/[^0-9]*//g')
+  if [ "$httpCode" == 200 ]; then
+    echo "## release list:"
+    echo "$response" | jq
+  else
+    echo "## ERROR getting releases with status code $httpCode and response:\n$response"
+    exit 1
+  fi
 
   ## ref
   ## {
@@ -295,7 +303,7 @@ elif [ "$VERSIONING_ACTION" == "UNPIN_ALL_FROM_RELEASE" ]; then
 
   set -x
   ## iterate through response and delete all pins
-  PINNED_CUSTOMERS=$(echo "$response" | jq ".[] | select(.releaseNumber==\"${RELEASE_NUMBER}\") | .customers[])')
+  PINNED_CUSTOMERS=$(sed '$ d' <<< "$response" | jq ".[] | select(.releaseNumber==\"${RELEASE_NUMBER}\") | .customers[])")
   echo $PINNED_CUSTOMERS
   for tenant in $(echo $PINNED_CUSTOMERS | jq);  do
     echo "## deleting pin for $tenant"
