@@ -32,7 +32,7 @@ pipeline {
                 script {
                     dir("infra-provisioning") {
                         useReleaseBackends = utils.GetEnvironmentVar(env.ENVIRONMENT, "USE_RELEASE_BACKENDS")
-                        echo useReleaseBackends
+                        echo 'environment supports release backends: ' + useReleaseBackends
                         if (useReleaseBackends != 'true') {
                             error 'environment does not support tenant pinning'
                         }
@@ -58,7 +58,7 @@ pipeline {
             when {
                 allOf {
                     expression { useReleaseBackends == 'true' }
-                    expression { versioningManagerDeployed != 'true' }
+                    expression { versioningManagerDeployed == 'true' }
                 }
             }
             steps {

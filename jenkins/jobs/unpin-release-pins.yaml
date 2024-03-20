@@ -7,7 +7,7 @@
       - string:
           name: RELEASE_NUMBER
           default:
-          description: "The release number to pin to. This is the release job number. Only required for SET_PIN"
+          description: "The release number to unpin all tenants from."
           trim: true
       - string:
           name: ENVIRONMENT
