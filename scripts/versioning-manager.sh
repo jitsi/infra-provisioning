@@ -307,7 +307,7 @@ elif [ "$VERSIONING_ACTION" == "UNPIN_ALL_FROM_RELEASE" ]; then
 
   echo $(sed '$ d' <<< "$response" | jq ".[] | select(.releaseNumber==\"${RELEASE_NUMBER}\")")
 
-  PINNED_CUSTOMERS=$(sed '$ d' <<< "$response" | jq ".[] | select(.releaseNumber==\"${RELEASE_NUMBER}\") | .customers[] | map(.customerId)")
+  PINNED_CUSTOMERS=$(sed '$ d' <<< "$response" | jq ".[] | select(.releaseNumber==\"${RELEASE_NUMBER}\") | .customers | map(.customerId)")
   echo $PINNED_CUSTOMERS
   for tenant in $(echo $PINNED_CUSTOMERS | jq);  do
     echo "## deleting pin for $tenant"
