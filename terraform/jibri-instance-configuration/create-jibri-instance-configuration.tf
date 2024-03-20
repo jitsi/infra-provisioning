@@ -90,6 +90,15 @@ data "oci_core_network_security_groups" "network_security_groups" {
   }
 }
 
+data "oci_core_network_security_groups" "nomad_network_security_groups" {
+  compartment_id = var.compartment_ocid
+  filter {
+    name = "display_name"
+    values = ["${var.environment}-${var.oracle_region}-nomad-pool-general-SecurityGroup"]
+    regex = true
+  }
+}
+
 resource "oci_core_instance_configuration" "oci_instance_configuration" {
   compartment_id = var.compartment_ocid
   display_name = var.instance_config_name
@@ -114,8 +123,10 @@ resource "oci_core_instance_configuration" "oci_instance_configuration" {
 
       create_vnic_details {
         subnet_id = data.oci_core_subnets.jibri_subnets.subnets[0].id
-        nsg_ids = [
-          data.oci_core_network_security_groups.network_security_groups.network_security_groups[0].id]
+        nsg_ids = concat(
+          [data.oci_core_network_security_groups.network_security_groups.network_security_groups[*].id],
+          var.shard_role == "jibri-nomad-pool" ? [data.oci_core_network_security_groups.nomad_network_security_groups.network_security_groups[*].id] : []
+        )
         # disable auto-assignment of public IP for instance
         assign_public_ip = false
       }
