@@ -268,6 +268,68 @@ elif [ "$VERSIONING_ACTION" == "DELETE_TENANT_PIN" ]; then
     echo "## ERROR deleting pin for $TENANT with status code $httpCode and response:\n$response"
     exit 1
   fi
+elif ["$VERSIONING_ACTION" == "UNPIN_ALL_FROM_RELEASE" ]; then
+  echo "## unpinning all tenants from release"
+  if [ -z "$RELEASE_NUMBER" ]; then
+    echo "## no RELEASE_NUMBER set, exiting"
+    exit 2
+  fi
+
+  echo "## getting list of all releases"
+  response=$(curl -s -w '\n %{http_code}' -X GET \
+      "$VERSIONING_URL"/v1/releases?environment="$ENVIRONMENT" \
+      -H 'accept: application/json' \
+      -H 'Content-Type: application/json' \
+      -H "Authorization: Bearer $TOKEN")
+
+  httpCode=$(tail -n1 <<<"$response" | sed 's/[^0-9]*//g')
+  if [ "$httpCode" == 200 ]; then
+    echo "## release list:"
+    echo "$response" | jq
+  else
+    echo "## ERROR getting releases with status code $httpCode and response:\n$response"
+    exit 1
+  fi
+
+  ## ref
+  ## {
+  ##    "releaseNumber": "4876",
+  ##        "customers": [
+  ##          {
+  ##            "customerId": "scotttestscotttestscotttest",
+  ##            "current": true
+  ##          }
+  ##        ],
+  ## },
+
+  ## iterate through response and delete all pins
+  for tenant in $(echo "$response" | jq -r '.[] | select(.releaseNumber == "'"$RELEASE_NUMBER"'") | .customers[]'); do
+    echo "## deleting pin for $tenant"
+    THIS_CUSTOMER_ID=$(echo "$tenant" | jq -r '.customerId')
+    echo "## customer ID to delete is $THIS_CUSTOMER_ID"
+    #response=$(curl -s -w '\n %{http_code}' -X DELETE \
+    #    "$VERSIONING_URL"/v1/customers/"$tenant"/pin/?environment="$ENVIRONMENT" \
+    #    -H 'accept: application/json' \
+    #    -H 'Content-Type: application/json' \
+    #    -H "Authorization: Bearer $TOKEN" \
+    #    -d "$REQUEST_BODY")
+    #
+    #httpCode=$(tail -n1 <<<"$response" | sed 's/[^0-9]*//g')
+    #if [ "$httpCode" == 200 ]; then
+    #  echo "## successfully deleted pin for $tenant"
+    #else
+    #  echo "## ERROR deleting pin for $tenant with status code $httpCode and response:\n$response"
+    #  exit 1
+    #fi
+  done
+
+else
+  echo "## ERROR no action performed, invalid VERSIONING_ACTION: $VERSIONING_ACTION"
+  echo "## VERSIONING_ACTION must be CREATE_RELEASE, DELETE_RELEASE, GET_RELEASES, SET_RELEASE_GA, UPDATE_RELEASE_TITLE, SET_TENANT_PIN, DELETE_TENANT_PIN, UNPIN_ALL_FROM_RELEASE"
+  exit 2
+fi
+
+
 
 else
   echo "## ERROR no action performed, invalid VERSIONING_ACTION: $VERSIONING_ACTION"
