@@ -268,7 +268,7 @@ elif [ "$VERSIONING_ACTION" == "DELETE_TENANT_PIN" ]; then
     echo "## ERROR deleting pin for $TENANT with status code $httpCode and response:\n$response"
     exit 1
   fi
-elif ["$VERSIONING_ACTION" == "UNPIN_ALL_FROM_RELEASE" ]; then
+elif [ "$VERSIONING_ACTION" == "UNPIN_ALL_FROM_RELEASE" ]; then
   echo "## unpinning all tenants from release"
   if [ -z "$RELEASE_NUMBER" ]; then
     echo "## no RELEASE_NUMBER set, exiting"
