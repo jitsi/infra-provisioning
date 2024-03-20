@@ -5,6 +5,13 @@ def getVersioningReleases(environment) {
     )
 }
 
+def unpinAllFromRelease(environment, release) {
+    echo 'getting all releases with versioning-manager'
+    sh(
+        script: "ENVIRONMENT=${environment} VERSIONING_ACTION=UNPIN_ALL_FROM_RELEASE RELEASE_NUMBER=${release} scripts/versioning-manager.sh ubuntu"
+    )
+}
+
 pipeline {
     agent any
     options {
@@ -54,7 +61,7 @@ pipeline {
                 }
             }
         }
-        stage ("get list of release pins") {
+        stage ("unpin all tenants from release") {
             when {
                 allOf {
                     expression { useReleaseBackends == 'true' }
@@ -72,6 +79,7 @@ pipeline {
                           ]) {
                               sshagent(credentials: ['ssh-ubuntu']) {
                                   getVersioningReleases(env.ENVIRONMENT)
+                                  unpinAllFromRelease(env.ENVIRONMENT, env.RELEASE_NUMBER)
                               }
                           }
                     }
