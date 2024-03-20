@@ -1,0 +1,87 @@
+def getVersioningReleases(environment) {
+    echo 'getting all releases with versioning-manager'
+    sh(
+        script: "ENVIRONMENT=${environment} VERSIONING_ACTION=GET_RELEASES scripts/versioning-manager.sh ubuntu"
+    )
+}
+
+pipeline {
+    agent any
+    options {
+        ansiColor('xterm')
+        timestamps()
+        buildDiscarder(logRotator(numToKeepStr: '10', artifactNumToKeepStr: '10'))
+    }
+    stages {
+        stage ("setup") {
+            steps {
+                script {
+                    // load utility function
+                    def rootDir = pwd()
+                    utils = load "${rootDir}/jenkins/groovy/Utils.groovy"
+                    // checkout repos
+                    utils.SetupRepos(env.VIDEO_INFRA_BRANCH)
+
+                    // setup OCI credentials
+                    utils.SetupOCI()
+                }
+            }
+        }
+        stage ("check that environment supports release backends") {
+            steps {
+                script {
+                    dir("infra-provisioning") {
+                        useReleaseBackends = utils.GetEnvironmentVar(env.ENVIRONMENT, "USE_RELEASE_BACKENDS")
+                        echo useReleaseBackends
+                        if (useReleaseBackends != 'true') {
+                            error 'environment does not support tenant pinning'
+                        }
+                    }
+                }
+            }
+        }
+        stage ("check if versionining-manager is used for tenant release pins in this environment") {
+            steps {
+                script{ 
+                    dir("infra-provisioning") {
+                        versioningManagerURL = utils.GetEnvironmentVar(env.ENVIRONMENT, "VERSIONING_URL")
+                        if (versioningManagerURL != 'false') {
+                            versioningManagerDeployed = 'true'
+                        }
+                        echo 'versioning manager URL: ' + versioningManagerURL
+                        echo 'versioning manager deployed: ' + versioningManagerDeployed
+                    }
+                }
+            }
+        }
+        stage ("get list of release pins") {
+            when {
+                allOf {
+                    expression { useReleaseBackends == 'true' }
+                    expression { versioningManagerDeployed != 'true' }
+                }
+            }
+            steps {
+                script {
+                    dir("infra-provisioning") {
+                        withCredentials([
+                            string(credentialsId: 'asap-jwt-kid-dev', variable: 'ASAP_JWT_KID_DEV'),
+                            string(credentialsId: 'asap-jwt-kid-prod', variable: 'ASAP_JWT_KID_PROD'),
+                            file(credentialsId: 'asap-jwt-key-dev', variable: 'ASAP_JWT_KEY_DEV'),
+                            file(credentialsId: 'asap-jwt-key-prod', variable: 'ASAP_JWT_KEY_PROD')
+                          ]) {
+                              sshagent(credentials: ['ssh-ubuntu']) {
+                                  getVersioningReleases(env.ENVIRONMENT)
+                              }
+                          }
+                    }
+                }
+            }
+        }
+    }
+    post {
+        always {
+            cleanWs()  // clean up afterwards
+        }
+    }
+}
