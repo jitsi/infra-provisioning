@@ -302,9 +302,10 @@ elif [ "$VERSIONING_ACTION" == "UNPIN_ALL_FROM_RELEASE" ]; then
   ##        ],
   ## },
 
+  set -x
   ## iterate through response and delete all pins
-  PINNED_CUSTOMERS=$(echo "$response" | jq -r '.[] | select(.releaseNumber == "'"$RELEASE_NUMBER"'") | .customers[]')
-  echo $PINNER_CUSTOMERS
+  PINNED_CUSTOMERS=$(echo "$response" | jq -r '.[] | select(.releaseNumber == "${RELEASE_NUMBER}"')
+  echo $PINNED_CUSTOMERS
   for tenant in $(echo $PINNED_CUSTOMERS | jq);  do
     echo "## deleting pin for $tenant"
     THIS_CUSTOMER_ID=$(echo "$tenant" | jq -r '.customerId')
