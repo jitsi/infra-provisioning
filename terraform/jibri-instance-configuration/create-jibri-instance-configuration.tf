@@ -95,7 +95,6 @@ data "oci_core_network_security_groups" "nomad_network_security_groups" {
   filter {
     name = "display_name"
     values = ["${var.environment}-${var.oracle_region}-nomad-pool-general-SecurityGroup"]
-    regex = true
   }
 }
 
