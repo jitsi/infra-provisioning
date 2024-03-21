@@ -1,6 +1,6 @@
 ---
 AWSTemplateFormatVersion: '2010-09-09'
-Description: 'Direct Connect Alarms for MegaPort Virtual Interfaces'
+Description: 'EXAMPLE TEMPLATE, NO VALUES IN THIS DOCUMENT ARE USED IN ANY ACTUAL DEPLOYMENTS.  This template should be adapted to create direct Connect Alarms for MegaPort Virtual Interfaces'
 Parameters:
   Environment:
     Description: 'Environment name'

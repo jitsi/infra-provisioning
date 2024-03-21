@@ -1,6 +1,6 @@
 ---
 AWSTemplateFormatVersion: '2010-09-09'
-Description: 'Transit Gateway for Mesh and VPC Attachment'
+Description: 'EXAMPLE TEMPLATE, NO VALUES IN THIS DOCUMENT ARE USED IN ANY ACTUAL DEPLOYMENTS.  This template should be adapted to create a transit Gateway for Mesh and VPC Attachment'
 Parameters:
   CloudName:
     Description: Cloud name

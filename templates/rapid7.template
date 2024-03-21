@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: "Rapid7 Server Template"
+Description: "EXAMPLE TEMPLATE, NO VALUES IN THIS DOCUMENT ARE USED IN ANY ACTUAL DEPLOYMENTS.  This template should be adapted to create a Rapid7 Server Template"
 Parameters:
   SSHSecurityGroup:
     Description:
