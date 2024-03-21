@@ -299,6 +299,17 @@ EOF
         shard-role = "loki"
         role = "loki"
         loki-index = "{{"{{"}}with .ServiceMeta.loki_index}}{{"{{"}}.}}{{"{{"}}else}}NA{{"{{"}}end}}"
+    [[inputs.prometheus.consul.query]]
+      name = "jibri"
+      tag = "ip-{{ env "attr.unique.network.ip-address" }}"
+      url = 'http://{{"{{"}}if ne .ServiceAddress ""}}{{"{{"}}.ServiceAddress}}{{"{{"}}else}}{{"{{"}}.Address}}{{"{{"}}end}}:{{"{{"}}.ServicePort}}/{{"{{"}}with .ServiceMeta.metrics_path}}{{"{{"}}.}}{{"{{"}}else}}metrics{{"{{"}}end}}'
+      [inputs.prometheus.consul.query.tags]
+        host = "{{"{{"}}.Node}}"
+        group = "{{"{{"}}with .ServiceMeta.group}}{{"{{"}}.}}{{"{{"}}else}}jibri{{"{{"}}end}}"
+        jibri_version = "{{"{{"}}with .ServiceMeta.jibri_version}}{{"{{"}}.}}{{"{{"}}else}}0{{"{{"}}end}}"
+        jibri_release_number = "{{"{{"}}with .ServiceMeta.release_number}}{{"{{"}}.}}{{"{{"}}else}}0{{"{{"}}end}}"
+        shard-role = "java-jibri"
+        role = "java-jibri"
 
 [[inputs.prometheus]]
   name_prefix = "jitsi_oscar_"
