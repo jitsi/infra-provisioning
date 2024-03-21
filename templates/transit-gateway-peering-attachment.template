@@ -1,6 +1,6 @@
 ---
 AWSTemplateFormatVersion: '2010-09-09'
-Description: 'Transit Gateway and VPC Attachment'
+Description: 'EXAMPLE TEMPLATE, NO VALUES IN THIS DOCUMENT ARE USED IN ANY ACTUAL DEPLOYMENTS.  This template should be adapted to create transit Gateway and VPC Attachment'
 Parameters:
   TransitGatewayId:
     Description: Local transit gateway for attachment

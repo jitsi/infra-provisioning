@@ -1,6 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": "Template for the provisioning AWS resources for the HC Video SSH jumpboxes",
+  "Description": "EXAMPLE TEMPLATE, NO VALUES IN THIS DOCUMENT ARE USED IN ANY ACTUAL DEPLOYMENTS.  This template should be adapted to create a template for the provisioning AWS resources for the HC Video SSH jumpboxes",
   "Parameters": {
     "KeyName": {
       "Description": "Name of an existing EC2 KeyPair to enable SSH access to the ec2 hosts",

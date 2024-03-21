@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: "Recovery Agent Template"
+Description: "EXAMPLE TEMPLATE, NO VALUES IN THIS DOCUMENT ARE USED IN ANY ACTUAL DEPLOYMENTS.  This template should be adapted to create a recovery Agent Template"
 Parameters:
   InstanceType:
     Type: String
