@@ -291,11 +291,9 @@ elif [ "$VERSIONING_ACTION" == "UNPIN_ALL_FROM_RELEASE" ]; then
   fi
 
   ## iterate through response and delete all pins
-  PINNED_CUSTOMERS=$(sed '$ d' <<< "$response" | jq ".[] | select(.releaseNumber==\"${RELEASE_NUMBER}\") | .customers | map(.customerId) | .[]")
-  for tenant in $(echo $PINNED_CUSTOMERS | tr -d '"');  do
+  PINNED_TENANTS=$(sed '$ d' <<< "$response" | jq ".[] | select(.releaseNumber==\"${RELEASE_NUMBER}\") | .customers | map(.customerId) | .[]")
+  for tenant in $(echo $PINNED_TENANTS | tr -d '"');  do
     echo "## deleting pin for $tenant"
-    THIS_CUSTOMER_ID=$(echo "$tenant" | jq -r '.customerId')
-    echo "## customer ID to delete is $THIS_CUSTOMER_ID"
     response=$(curl -s -w '\n %{http_code}' -X DELETE \
         "$VERSIONING_URL"/v1/customers/"$tenant"/pin/?environment="$ENVIRONMENT" \
         -H 'accept: application/json' \
