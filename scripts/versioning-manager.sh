@@ -290,43 +290,26 @@ elif [ "$VERSIONING_ACTION" == "UNPIN_ALL_FROM_RELEASE" ]; then
     exit 1
   fi
 
-  ## ref
-  ## {
-  ##    "releaseNumber": "4876",
-  ##        "customers": [
-  ##          {
-  ##            "customerId": "scotttestscotttestscotttest",
-  ##            "current": true
-  ##          }
-  ##        ],
-  ## },
-
-  set -x
   ## iterate through response and delete all pins
-  ## PINNED_CUSTOMERS=$(sed '$ d' <<< "$response" | jq ".[] | select(.releaseNumber==\"${RELEASE_NUMBER}\") | .customers[])")
-
-  echo $(sed '$ d' <<< "$response" | jq ".[] | select(.releaseNumber==\"${RELEASE_NUMBER}\")")
-
   PINNED_CUSTOMERS=$(sed '$ d' <<< "$response" | jq ".[] | select(.releaseNumber==\"${RELEASE_NUMBER}\") | .customers | map(.customerId) | .[]")
-  echo $PINNED_CUSTOMERS
   for tenant in $(echo $PINNED_CUSTOMERS | tr -d '"');  do
     echo "## deleting pin for $tenant"
     THIS_CUSTOMER_ID=$(echo "$tenant" | jq -r '.customerId')
     echo "## customer ID to delete is $THIS_CUSTOMER_ID"
-    #response=$(curl -s -w '\n %{http_code}' -X DELETE \
-    #    "$VERSIONING_URL"/v1/customers/"$tenant"/pin/?environment="$ENVIRONMENT" \
-    #    -H 'accept: application/json' \
-    #    -H 'Content-Type: application/json' \
-    #    -H "Authorization: Bearer $TOKEN" \
-    #    -d "$REQUEST_BODY")
-    #
-    #httpCode=$(tail -n1 <<<"$response" | sed 's/[^0-9]*//g')
-    #if [ "$httpCode" == 200 ]; then
-    #  echo "## successfully deleted pin for $tenant"
-    #else
-    #  echo "## ERROR deleting pin for $tenant with status code $httpCode and response:\n$response"
-    #  exit 1
-    #fi
+    response=$(curl -s -w '\n %{http_code}' -X DELETE \
+        "$VERSIONING_URL"/v1/customers/"$tenant"/pin/?environment="$ENVIRONMENT" \
+        -H 'accept: application/json' \
+        -H 'Content-Type: application/json' \
+        -H "Authorization: Bearer $TOKEN" \
+        -d "$REQUEST_BODY")
+    
+    httpCode=$(tail -n1 <<<"$response" | sed 's/[^0-9]*//g')
+    if [ "$httpCode" == 200 ]; then
+      echo "## successfully deleted pin for $tenant"
+    else
+      echo "## ERROR deleting pin for $tenant with status code $httpCode and response:\n$response"
+      exit 1
+    fi
   done
 
 else
