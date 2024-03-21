@@ -157,7 +157,7 @@ data "oci_core_vcns" "vcns" {
 resource "oci_core_network_security_group" "nomad_lb_security_group" {
   compartment_id = var.compartment_ocid
   vcn_id = data.oci_core_vcns.vcns.virtual_networks[0].id
-  display_name = "${var.resource_name_root}-SecurityGroup"
+  display_name = "${var.resource_name_root}-LB-SecurityGroup"
 }
 
 resource "oci_core_network_security_group_security_rule" "consul_nsg_rule_egress" {
