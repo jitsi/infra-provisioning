@@ -534,10 +534,10 @@ VirtualHost "jigasi.[[ env "CONFIG_domain" ]]"
 [[- if eq (or (env "CONFIG_jigasi_vault_enabled") "true") "true" ]]
 {{- with secret "secret/[[ env "CONFIG_environment" ]]/jigasi/xmpp" }}
     shared_secret = "{{ .Data.data.password }}"
-{{ end -}}
+{{- end }}
 [[- else ]]
     shared_secret = "[[ env "CONFIG_jigasi_shared_secret" ]]"
-[[ end -]]
+[[- end ]]
 EOH
         destination = "local/config/conf.d/other-domains.cfg.lua"
       }
