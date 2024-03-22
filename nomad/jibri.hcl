@@ -124,7 +124,7 @@ job "[JOB_NAME]" {
       driver = "docker"
 
       config {
-        force_pull = [[ or (env "CONFIG_force_pull") "true" ]]
+        force_pull = true
         image        = "jitsi/jibri:${var.jibri_tag}"
         cap_add = ["SYS_ADMIN"]
         # 2gb shm
