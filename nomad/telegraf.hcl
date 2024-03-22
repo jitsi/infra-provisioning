@@ -37,6 +37,13 @@ job "[JOB_NAME]" {
   group "telegraf" {
     count = 1
 
+    restart {
+      attempts = 3
+      delay    = "15s"
+      interval = "10m"
+      mode = "delay"
+    }
+
     network {
       mode = "host"
       port "telegraf-statsd" {
@@ -80,7 +87,7 @@ job "[JOB_NAME]" {
       config {
         network_mode = "host"
         privileged = true
-        image        = "telegraf:latest"
+        image        = "telegraf:1.29.5"
         ports = ["telegraf-statsd","telegraf-prometheus"]
         volumes = ["local/telegraf.conf:/etc/telegraf/telegraf.conf", "local/consul-resolved.conf:/etc/systemd/resolved.conf.d/consul.conf", "/var/run/docker.sock:/var/run/docker.sock"]
       }
@@ -363,6 +370,10 @@ EOF
 EOF
         destination = "local/telegraf.conf"
       }
+      // resources {
+      //   cpu    = 500
+      //   memory = 768
+      // }
     }
   }
 }
