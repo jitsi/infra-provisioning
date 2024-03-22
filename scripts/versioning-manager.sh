@@ -290,6 +290,7 @@ elif [ "$VERSIONING_ACTION" == "UNPIN_ALL_FROM_RELEASE" ]; then
     exit 1
   fi
 
+  set -x
   ## iterate through response and delete all pins
   PINNED_TENANTS=$(sed '$ d' <<< "$response" | jq ".[] | select(.releaseNumber==\"${RELEASE_NUMBER}\") | .customers | map(.customerId) | .[]")
   for tenant in $(echo $PINNED_TENANTS | tr -d '"');  do
