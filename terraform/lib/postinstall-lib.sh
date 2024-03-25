@@ -180,7 +180,7 @@ function mount_volumes() {
           VOLUME_DETAIL="$(echo $NON_GROUP_VOLUMES | jq -r ".[$i]")"
           VOLUME_TYPE="$(echo $VOLUME_DETAIL | jq -r .\"freeform-tags\".\"volume-type\")"
           VOLUME_LABEL="$VOLUME_TYPE"
-          mount_volume "$VOLUME_DETAIL" $VOLUME_LABEL $INSTANCE_ID
+          mount_volume "$VOLUME_DETAIL" $VOLUME_LABEL $INSTANCE_ID || echo "Failed to mount non-group volume $VOLUME_LABEL, may be mounted elsewhere"
         done
       else
         echo "No volumes found matching role $ROLE with no group index"
