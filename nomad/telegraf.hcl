@@ -188,7 +188,7 @@ EOF
 {{ end }}
 
 [[inputs.prometheus]]
-  http_headers = {"Accept" = "application/openmetrics-text"}
+  http_headers = {"Accept" = "text/plain; version=0.0.4"}
   [inputs.prometheus.consul]
     enabled = true
     agent = "{{ env "attr.unique.network.ip-address" }}:8500"
