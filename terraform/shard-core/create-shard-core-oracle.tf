@@ -277,7 +277,7 @@ resource "oci_core_network_security_group_security_rule" "instance_nsg_rule_ingr
 
 resource "oci_core_instance" "instance" {
     #Required
-    availability_domain = var.availability_domains[local.shard_availability_domain]
+    availability_domain = local.shard_availability_domain
     compartment_id = var.compartment_ocid
     shape = var.shape
 
