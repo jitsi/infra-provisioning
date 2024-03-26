@@ -123,6 +123,96 @@ probe {
 }
 
 [[ end -]]
+[[ if var "enable_prometheus" . -]]
+# probes health of all prometheus in all datacenters
+probe {
+  name: "prometheus"
+  type: HTTP
+  targets {
+    {{ $prometheus_count := 0 }}
+    {{ range $dc := datacenters }}{{ $dc_prometheus := print "prometheus@" $dc }}{{ range $prometheus := service $dc_prometheus -}}
+      {{ $prometheus_count = add $prometheus_count 1 }}
+    endpoint {
+      name: "{{ .ServiceMeta.prometheus }}"
+      url: "http://{{ .Address }}:{{ .Port }}/-/healthy"
+    }
+    {{ end }}{{ end }}
+    {{ if eq $prometheus_count 0 -}}
+    host_names: ""
+    {{ end }}
+  }
+  validator {
+      name: "status_code_2xx"
+      http_validator {
+          success_status_codes: "200-299"
+      }
+  }
+
+    interval_msec: 5000
+  timeout_msec: 2000
+}
+
+[[ end -]]
+[[ if var "enable_alertmanager" . -]]
+# probes health of all alertmanager in all datacenters
+probe {
+  name: "alertmanager"
+  type: HTTP
+  targets {
+    {{ $alertmanager_count := 0 }}
+    {{ range $dc := datacenters }}{{ $dc_alertmanager := print "alertmanager@" $dc }}{{ range $alertmanager := service $dc_alertmanager -}}
+      {{ $alertmanager_count = add $alertmanager_count 1 }}
+    endpoint {
+      name: "{{ .ServiceMeta.alertmanager }}"
+      url: "http://{{ .Address }}:{{ .Port }}/-/healthy"
+    }
+    {{ end }}{{ end }}
+    {{ if eq $alertmanager_count 0 -}}
+    host_names: ""
+    {{ end }}
+  }
+  validator {
+      name: "status_code_2xx"
+      http_validator {
+          success_status_codes: "200-299"
+      }
+  }
+
+    interval_msec: 5000
+  timeout_msec: 2000
+}
+
+[[ end -]]
+[[ if var "enable_oscar" . -]]
+# probes health of all oscar cloudprobers in all datacenters
+probe {
+  name: "oscar"
+  type: HTTP
+  targets {
+    {{ $oscar_count := 0 }}
+    {{ range $dc := datacenters }}{{ $dc_oscar := print "oscar@" $dc }}{{ range $oscar := service $dc_oscar -}}
+      {{ $oscar_count = add $oscar_count 1 }}
+    endpoint {
+      name: "{{ .ServiceMeta.oscar }}"
+      url: "http://{{ .Address }}:{{ .Port }}/health"
+    }
+    {{ end }}{{ end }}
+    {{ if eq $oscar_count 0 -}}
+    host_names: ""
+    {{ end }}
+  }
+  validator {
+      name: "status_code_2xx"
+      http_validator {
+          success_status_codes: "200-299"
+      }
+  }
+
+    interval_msec: 5000
+  timeout_msec: 2000
+}
+
+[[ end -]]
 [[ if var "enable_skynet" . -]]
 # probes skynet health
 probe {
