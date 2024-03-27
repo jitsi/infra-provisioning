@@ -48,6 +48,9 @@ if [[ "$OSCAR_TEMPLATE_TYPE" == "core" ]]; then
     OSCAR_ENABLE_AUTOSCALER="true"
     OSCAR_ENABLE_WAVEFRONT_PROXY="true"
     OSCAR_ENABLE_LOKI="true"
+    OSCAR_ENABLE_PROMETHEUS="true"
+    OSCAR_ENABLE_ALERTMANAGER="true"
+    OSCAR_ENABLE_OSCAR="false"
 elif [[ "$OSCAR_TEMPLATE_TYPE" == "ops" || "$OSCAR_TEMPLATE_TYPE" == "base" ]]; then
     OSCAR_ENABLE_COTURN="false"
     OSCAR_ENABLE_SHARD="false"
@@ -56,6 +59,9 @@ elif [[ "$OSCAR_TEMPLATE_TYPE" == "ops" || "$OSCAR_TEMPLATE_TYPE" == "base" ]]; 
     OSCAR_ENABLE_AUTOSCALER="false"
     OSCAR_ENABLE_WAVEFRONT_PROXY="true"
     OSCAR_ENABLE_LOKI="true"
+    OSCAR_ENABLE_PROMETHEUS="true"
+    OSCAR_ENABLE_ALERTMANAGER="true"
+    OSCAR_ENABLE_OSCAR="false"
 else
     echo "Unsupported OSCAR_TEMPLATE_TYPE, exiting"
     exit 3
@@ -112,6 +118,9 @@ whisper_hostname="$WHISPER_HOSTNAME"
 enable_loki=$OSCAR_ENABLE_LOKI
 enable_custom_https=$OSCAR_ENABLE_CUSTOM_HTTPS
 custom_https_targets="$OSCAR_CUSTOM_HTTPS_TARGETS"
+enable_prometheus=$OSCAR_ENABLE_PROMETHEUS
+enable_alertmanager=$OSCAR_ENABLE_ALERTMANAGER
+enable_oscar=$OSCAR_ENABLE_OSCAR
 EOF
 
 nomad-pack plan --name "$JOB_NAME" \
