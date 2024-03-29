@@ -9,7 +9,6 @@ probe {
   }
   interval_msec: 5000
   timeout_msec: 2000
-
   validator {
       name: "status_code_2xx"
       http_validator {
@@ -17,6 +16,7 @@ probe {
       }
   }
 }
+
 [[ end -]]
 [[ if var "enable_haproxy_region" . -]]
 # probe to validate that the ingress haproxy reached is in the local datacenter
@@ -33,6 +33,7 @@ probe {
   interval_msec: 5000
   timeout_msec: 2000
 }
+
 [[ end -]]
 [[ if var "enable_autoscaler" . -]]
 # probes autoscaler health in the local datacenter
@@ -54,6 +55,7 @@ probe {
   interval_msec: 60000
   timeout_msec: 2000
 }
+
 [[ end -]]
 [[ if var "enable_wavefront_proxy" . -]]
 # probes wavefront-proxy health in the local datacenter
@@ -76,6 +78,7 @@ probe {
   interval_msec: 60000
   timeout_msec: 2000
 }
+
 [[ end -]]
 [[ if var "enable_coturn" . -]]
 # probes coturn health in the local datacenter using public IP
@@ -92,24 +95,25 @@ probe {
   interval_msec: 10000
   timeout_msec: 2000
 }
+
 [[ end -]]
 [[ if var "enable_shard" . -]]
-# probes health of all shards in all datacenters using public IP
+# probes health of all shards via their signal-sidecars, in all datacenters, using public IP
 probe {
   name: "shard"
   type: HTTP
   targets {
-    {{ $shard_count := 0 }}
-    {{ range $dc := datacenters }}{{ $dc_shards := print "signal-sidecar@" $dc }}{{ range $shard := service $dc_shards -}}
-      {{ $shard_count = add $shard_count 1 }}
+    {{ $shard_count := 0 -}}
+    {{ range $dc := datacenters -}}{{ $dc_shards := print "signal@" $dc -}}{{ range $shard := service $dc_shards -}}
+    {{ $shard_count = add $shard_count 1 -}}
     endpoint {
       name: "{{ .ServiceMeta.shard }}"
-      url: "http://{{ .Address }}:{{ .Port }}/about/health"
+      url: "http://{{ .Address }}:{{ if .ServiceMeta.signal_sidecar_http_port }}{{ .ServiceMeta.signal_sidecar_http_port }}{{ else }}6000{{ end }}/about/health"
     }
-    {{ end }}{{ end }}
+    {{ end }}{{ end -}}
     {{ if eq $shard_count 0 -}}
     host_names: ""
-    {{ end }}
+    {{- end }}
   }
   validator {
       name: "status_code_2xx"
@@ -117,7 +121,75 @@ probe {
           success_status_codes: "200-299"
       }
   }
+  interval_msec: 5000
+  timeout_msec: 2000
+}
 
+[[ end -]]
+[[ if var "enable_prometheus" . -]]
+# probes health of prometheus service in all datacenters
+probe {
+  name: "prometheus"
+  type: HTTP
+  targets {
+    host_names: "{{ range $dcidx, $dc := datacenters -}}{{ if ne $dcidx 0 }},{{ end }}{{ $dc }}-prometheus.[[ var "top_level_domain" . ]]{{ end }}"
+  }
+  http_probe {
+    protocol: HTTPS
+    relative_url: "/-/healthy"
+  }
+  validator {
+      name: "status_code_2xx"
+      http_validator {
+          success_status_codes: "200-299"
+      }
+  }
+  interval_msec: 5000
+  timeout_msec: 2000
+}
+
+[[ end -]]
+[[ if var "enable_alertmanager" . -]]
+# probes health of alertmanager health in all datacenters
+probe {
+  name: "alertmanager"
+  type: HTTP
+  targets {
+    host_names: "{{ range $dcidx, $dc := datacenters -}}{{ if ne $dcidx 0 }},{{ end }}{{ $dc }}-alertmanager.[[ var "top_level_domain" . ]]{{ end }}"
+  }
+  http_probe {
+    protocol: HTTPS
+    relative_url: "/-/healthy"
+  }
+  validator {
+      name: "status_code_2xx"
+      http_validator {
+          success_status_codes: "200-299"
+      }
+  }
+  interval_msec: 5000
+  timeout_msec: 2000
+}
+
+[[ end -]]
+[[ if var "enable_oscar" . -]]
+# probes health of oscar health in all datacenters
+probe {
+  name: "oscar"
+  type: HTTP
+  targets {
+    host_names: "{{ range $dcidx, $dc := datacenters -}}{{ if ne $dcidx 0 }},{{ end }}{{ $dc }}-alertmanager.[[ var "top_level_domain" . ]]{{ end }}"
+  }
+  http_probe {
+    protocol: HTTPS
+    relative_url: "/-/healthy"
+  }
+  validator {
+      name: "status_code_2xx"
+      http_validator {
+          success_status_codes: "200-299"
+      }
+  }
   interval_msec: 5000
   timeout_msec: 2000
 }
@@ -131,9 +203,6 @@ probe {
   targets {
     host_names: "[[ var "skynet_hostname" . ]]"
   }
-  interval_msec: 5000
-  timeout_msec: 2000
-
   http_probe {
     protocol: HTTPS
   }
@@ -143,7 +212,10 @@ probe {
           success_status_codes: "200-299"
       }
   }
+  interval_msec: 5000
+  timeout_msec: 2000
 }
+
 [[ end -]]
 [[ if var "enable_whisper" . -]]
 # probes whisper health
@@ -153,9 +225,6 @@ probe {
   targets {
     host_names: "[[ var "whisper_hostname" . ]]"
   }
-  interval_msec: 5000
-  timeout_msec: 2000
-
   http_probe {
     protocol: HTTPS
   }
@@ -165,7 +234,10 @@ probe {
           success_status_codes: "200-299"
       }
   }
+  interval_msec: 5000
+  timeout_msec: 2000
 }
+
 [[ end -]]
 [[ if var "enable_custom_https" . -]]
 probe {
@@ -190,9 +262,10 @@ probe {
   name: "loki"
   type: HTTP
   targets {
-    host_names: "{{ range $index, $service := service "loki"}}{{ if gt $index 0 }},{{ end }}{{ .Address }}:{{.Port}}{{ end }}"
+    host_names: "[[ var "environment" . ]]-[[ var "oracle_region" . ]]-loki.[[ var "top_level_domain" . ]]"
   }
   http_probe {
+    protocol: HTTPS
     relative_url: "/ready"
   }
   validator {
@@ -204,6 +277,7 @@ probe {
   interval_msec: 60000
   timeout_msec: 2000
 }
+
 [[ end -]]
 
 [[ end -]]

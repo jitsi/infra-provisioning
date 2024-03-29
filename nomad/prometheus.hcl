@@ -213,7 +213,7 @@ groups:
       severity: critical
     annotations:
       summary: oscar service is down in ${var.dc}
-      description: oscar appears to not be sending probe metrics in ${var.dc}. This means that data from synthetic probes is not being collected in this datacenter.
+      description: Probe metrics from oscar are not being received in ${var.dc}. This means that data from synthetic probes is not being collected in this datacenter.
       runbook: https://example.com/runbook-placeholder
       dashboard: https://example.com/dashboard-placeholder
   - alert: TelegrafDown
