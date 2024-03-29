@@ -104,11 +104,11 @@ probe {
   type: HTTP
   targets {
     {{ $shard_count := 0 -}}
-    {{ range $dc := datacenters -}}{{ $dc_shards := print "signal-sidecar@" $dc -}}{{ range $shard := service $dc_shards -}}
+    {{ range $dc := datacenters -}}{{ $dc_shards := print "signal@" $dc -}}{{ range $shard := service $dc_shards -}}
     {{ $shard_count = add $shard_count 1 -}}
     endpoint {
       name: "{{ .ServiceMeta.shard }}"
-      url: "http://{{ .Address }}:{{ .Port }}/about/health"
+      url: "http://{{ .Address }}:{{ if .ServiceMeta.signal_sidecar_http_port }}{{ .ServiceMeta.signal_sidecar_http_port }}{{ else }}6000{{ end }}/about/health"
     }
     {{ end }}{{ end -}}
     {{ if eq $shard_count 0 -}}
