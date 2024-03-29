@@ -14,7 +14,7 @@ variable "coturn_auth_secret" {
 
 variable "ssl_cert_name" {
     type = string
-    default = "secret_key_file"
+    default = "star_example_com"
 }
 
 variable "coturn_count" {
@@ -60,11 +60,6 @@ job "[JOB_NAME]" {
       delay    = "25s"
       mode     = "delay"
     }
-    volume "ssl" {
-      type      = "host"
-      read_only = true
-      source    = "ssl"
-    }
     network {
       port "coturn" {
         static = 443
@@ -74,6 +69,9 @@ job "[JOB_NAME]" {
       }
     }
     task "coturn" {
+      vault {
+
+      }
       driver = "docker"
       user = "root"
       config {
@@ -85,11 +83,6 @@ job "[JOB_NAME]" {
         ]
         ports = ["coturn"]
         volumes = ["local/coturn.conf:/local/coturn.conf"]
-      }
-      volume_mount {
-        volume      = "ssl"
-        destination = "/etc/ssl"
-        read_only   = true
       }
       template {
         data = <<EOH
@@ -129,13 +122,30 @@ static-auth-secret=${var.coturn_auth_secret}
 realm=${var.coturn_realm}
 listening-port=443
 prometheus
-cert=/etc/ssl/${var.ssl_cert_name}.crt
-pkey=/etc/ssl/${var.ssl_cert_name}.key
+cert=/secrets/ssl.crt
+pkey=/secrets/ssl.key
 external-ip={{ env "meta.public_ip" }}/{{ env "attr.unique.network.ip-address" }}
 relay-ip={{ env "attr.unique.network.ip-address" }}
 EOH
         destination = "local/coturn.conf"
       }
+
+      template {
+        data = <<EOF
+{{- with secret "secret/ssl/${var.ssl_cert_name}/cert" }}{{ .Data.data.cert }}{{ .Data.data.chain }}{{ end -}}
+EOF
+        destination = "secrets/ssl.crt"
+        change_mode = "noop" # todo: change to send SIGUSR2 to coturn
+      }
+
+      template {
+        data = <<EOF
+{{- with secret "secret/ssl/${var.ssl_cert_name}/cert" }}{{ .Data.data.key }}{{ end -}}
+EOF
+        destination = "secrets/ssl.key"
+        change_mode = "noop" # todo: change to send SIGUSR2 to coturn
+      }
+
       resources {
         cpu    = 10000
         memory = 15360
