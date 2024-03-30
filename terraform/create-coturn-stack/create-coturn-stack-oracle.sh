@@ -13,6 +13,8 @@ fi
 
 [ -e ./sites/$ENVIRONMENT/stack-env.sh ] && . ./sites/$ENVIRONMENT/stack-env.sh
 
+[ -z "$VAULT_ENVIRONMENT" ] && VAULT_ENVIRONMENT="ops-prod"
+
 LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
 #load cloud defaults
@@ -124,6 +126,8 @@ if [[ "$TERRAFORM_MAJOR_VERSION" == "v1" ]]; then
 else
   TF_POST_PARAMS="$LOCAL_PATH"
 fi
+
+[ -f "$LOCAL_PATH/vault-login.sh" ] && . $LOCAL_PATH/vault-login.sh
 
 # The —reconfigure option disregards any existing configuration, preventing migration of any existing state
 terraform $TF_GLOBALS_CHDIR init \

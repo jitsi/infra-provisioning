@@ -56,12 +56,23 @@ provider "oci" {
   tenancy_ocid = var.tenancy_ocid
 }
 
+provider "vault" {
+
+}
+
+data "vault_kv_secret_v2" "oci_s3_auth" {
+  mount = "secret"
+  name  = "${var.environment}/oci/s3"
+}
+
 terraform {
   backend "s3" {
     skip_region_validation = true
     skip_credentials_validation = true
     skip_metadata_api_check = true
     force_path_style = true
+    access_key = vault_kv_secret_v2.oci_s3_auth.data.access_key
+    secret_key = vault_kv_secret_v2.oci_s3_auth.data.secret_key
   }
   required_providers {
       oci = {
