@@ -13,8 +13,6 @@ fi
 
 [ -e ./sites/$ENVIRONMENT/stack-env.sh ] && . ./sites/$ENVIRONMENT/stack-env.sh
 
-[ -z "$VAULT_ENVIRONMENT" ] && VAULT_ENVIRONMENT="ops-prod"
-
 LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
 #load cloud defaults
@@ -127,7 +125,13 @@ else
   TF_POST_PARAMS="$LOCAL_PATH"
 fi
 
-[ -f "$LOCAL_PATH/vault-login.sh" ] && . $LOCAL_PATH/vault-login.sh
+if [ -f "$LOCAL_PATH/vault-login.sh" ]; then
+  [ -z "$VAULT_ENVIRONMENT" ] && VAULT_ENVIRONMENT="ops-prod"
+  . $LOCAL_PATH/vault-login.sh
+  # load OCI TF secrets from vault
+  export AWS_ACCESS_KEY_ID="$(vault kv get -field=access_key -mount=secret jenkins/oci/s3)"
+  export AWS_SECRET_KEY_ID="$(vault kv get -field=secret_key -mount=secret jenkins/oci/s3)"
+fi
 
 # The —reconfigure option disregards any existing configuration, preventing migration of any existing state
 terraform $TF_GLOBALS_CHDIR init \
