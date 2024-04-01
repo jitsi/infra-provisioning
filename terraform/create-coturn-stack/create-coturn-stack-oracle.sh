@@ -129,8 +129,10 @@ if [ -f "$LOCAL_PATH/vault-login.sh" ]; then
   [ -z "$VAULT_ENVIRONMENT" ] && VAULT_ENVIRONMENT="ops-prod"
   . $LOCAL_PATH/vault-login.sh
   # load OCI TF secrets from vault
+  set +x
   export AWS_ACCESS_KEY_ID="$(vault kv get -field=access_key -mount=secret jenkins/oci/s3)"
-  export AWS_SECRET_KEY_ID="$(vault kv get -field=secret_key -mount=secret jenkins/oci/s3)"
+  export AWS_SECRET_ACCESS_KEY="$(vault kv get -field=secret_key -mount=secret jenkins/oci/s3)"
+  set -x
 fi
 
 # The —reconfigure option disregards any existing configuration, preventing migration of any existing state
