@@ -17,36 +17,26 @@ variable "ssl_cert_name" {
     default = "star_example_com"
 }
 
-variable "coturn_count" {
-    type = number
-    default = 2
-}
-
 job "[JOB_NAME]" {
   datacenters = [var.dc]
-  type        = "service"
+  type        = "system"
+
 
   update {
-    max_parallel      = 1
-    health_check      = "checks"
-    min_healthy_time  = "10s"
-    healthy_deadline  = "3m"
-    progress_deadline = "5m"
-  }
-
-  reschedule {
-    delay          = "30s"
-    delay_function = "exponential"
-    max_delay      = "1h"
-    unlimited      = true
+    min_healthy_time = "10s"
+    healthy_deadline = "5m"
+    progress_deadline = "10m"
+    auto_revert = true
   }
 
   group "coturn" {
-    count = var.coturn_count
+    count = 1
 
-    constraint {
-      operator  = "distinct_hosts"
-      value     = "true"
+    restart {
+      attempts = 3
+      delay    = "25s"
+      interval = "5m"
+      mode = "delay"
     }
 
     constraint {
@@ -54,12 +44,6 @@ job "[JOB_NAME]" {
       value     = "coturn"
     }
 
-    restart {
-      attempts = 3
-      interval = "5m"
-      delay    = "25s"
-      mode     = "delay"
-    }
     network {
       port "coturn" {
         static = 443
