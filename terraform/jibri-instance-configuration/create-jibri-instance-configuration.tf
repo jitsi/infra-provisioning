@@ -94,7 +94,7 @@ data "oci_core_network_security_groups" "nomad_network_security_groups" {
   compartment_id = var.compartment_ocid
   filter {
     name = "display_name"
-    values = ["${var.environment}-${var.oracle_region}-nomad-pool-general-SecurityGroup"]
+    values = ["${var.environment}-${var.oracle_region}-nomad-pool-shared-SecurityGroup"]
   }
 }
 
