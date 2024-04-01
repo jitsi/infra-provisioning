@@ -134,6 +134,8 @@ if [ -f "$LOCAL_PATH/../../scripts/vault-login.sh" ]; then
   . $LOCAL_PATH/../../scripts/vault-login.sh
   # load OCI TF secrets from vault
   set +x
+  OLD_AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+  OLD_AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
   export AWS_ACCESS_KEY_ID="$(vault kv get -field=access_key -mount=secret jenkins/oci/s3)"
   export AWS_SECRET_ACCESS_KEY="$(vault kv get -field=secret_key -mount=secret jenkins/oci/s3)"
   set -x
@@ -157,7 +159,7 @@ if [[ "$ACTION" == "import" ]]; then
   ACTION_POST_PARAMS="$1 $2"
 fi
 
-terraform $TF_GLOBALS_CHDIR $ACTION \
+AWS_ACCESS_KEY_ID=$TF_AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY=$TF_AWS_SECRET_ACCESS_KEYterraform $TF_GLOBALS_CHDIR $ACTION \
   -var="tenancy_ocid=$TENANCY_OCID" \
   -var="compartment_ocid=$COMPARTMENT_OCID" \
   -var="oracle_region=$ORACLE_REGION" \
@@ -193,6 +195,12 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
   -var "infra_customizations_repo=$INFRA_CUSTOMIZATIONS_REPO" \
   $ACTION_POST_PARAMS $TF_POST_PARAMS
   RET=$?
+
+
+set +x
+export AWS_ACCESS_KEY_ID="$OLD_AWS_ACCESS_KEY_ID"
+export AWS_SECRET_ACCESS_KEY="$OLD_AWS_SECRET_ACCESS_KEY"
+set -x
 
 if [[ "$ENVIRONMENT_TYPE" == "prod" ]]; then
   echo "Tagging coturn image as production"
