@@ -50,7 +50,7 @@ if [[ "$OSCAR_TEMPLATE_TYPE" == "core" ]]; then
     OSCAR_ENABLE_LOKI="true"
     OSCAR_ENABLE_PROMETHEUS="true"
     OSCAR_ENABLE_ALERTMANAGER="true"
-    OSCAR_ENABLE_OSCAR="false"
+    OSCAR_ENABLE_OSCAR="true"
 elif [[ "$OSCAR_TEMPLATE_TYPE" == "ops" || "$OSCAR_TEMPLATE_TYPE" == "base" ]]; then
     OSCAR_ENABLE_COTURN="false"
     OSCAR_ENABLE_SHARD="false"
@@ -61,7 +61,7 @@ elif [[ "$OSCAR_TEMPLATE_TYPE" == "ops" || "$OSCAR_TEMPLATE_TYPE" == "base" ]]; 
     OSCAR_ENABLE_LOKI="true"
     OSCAR_ENABLE_PROMETHEUS="true"
     OSCAR_ENABLE_ALERTMANAGER="true"
-    OSCAR_ENABLE_OSCAR="false"
+    OSCAR_ENABLE_OSCAR="true"
 else
     echo "Unsupported OSCAR_TEMPLATE_TYPE, exiting"
     exit 3
