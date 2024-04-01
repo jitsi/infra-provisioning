@@ -159,7 +159,7 @@ if [[ "$ACTION" == "import" ]]; then
   ACTION_POST_PARAMS="$1 $2"
 fi
 
-AWS_ACCESS_KEY_ID=$TF_AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY=$TF_AWS_SECRET_ACCESS_KEYterraform $TF_GLOBALS_CHDIR $ACTION \
+terraform $TF_GLOBALS_CHDIR $ACTION \
   -var="tenancy_ocid=$TENANCY_OCID" \
   -var="compartment_ocid=$COMPARTMENT_OCID" \
   -var="oracle_region=$ORACLE_REGION" \
