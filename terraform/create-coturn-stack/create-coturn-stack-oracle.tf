@@ -77,6 +77,14 @@ data "oci_core_vcns" "vcns" {
   display_name = var.vcn_name
 }
 
+data "oci_core_network_security_groups" "nomad_network_security_groups" {
+  compartment_id = var.compartment_ocid
+  filter {
+    name = "display_name"
+    values = ["${var.environment}-${var.oracle_region}-nomad-pool-shared-SecurityGroup"]
+  }
+}
+
 resource "oci_core_network_security_group" "coturn_network_security_group" {
   compartment_id = var.compartment_ocid
   vcn_id = data.oci_core_vcns.vcns.virtual_networks[0].id
@@ -210,8 +218,12 @@ resource "oci_core_instance_configuration" "oci_instance_configuration" {
 
       create_vnic_details {
         subnet_id = var.public_subnet_ocid
-        nsg_ids = [
-          oci_core_network_security_group.coturn_network_security_group.id]
+        nsg_ids = concat(
+          [oci_core_network_security_group.coturn_network_security_group.id],
+          data.oci_core_network_security_groups.nomad_network_security_groups.network_security_groups[*].id
+        )
+        
+        
         # disable auto-assignment of public IP for instance
         assign_public_ip = false
       }
