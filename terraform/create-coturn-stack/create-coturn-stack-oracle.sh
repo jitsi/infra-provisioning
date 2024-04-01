@@ -125,9 +125,10 @@ else
   TF_POST_PARAMS="$LOCAL_PATH"
 fi
 
-if [ -f "$LOCAL_PATH/vault-login.sh" ]; then
+if [ -f "$LOCAL_PATH/../../scripts/vault-login.sh" ]; then
+  echo "Performing vault login"
   [ -z "$VAULT_ENVIRONMENT" ] && VAULT_ENVIRONMENT="ops-prod"
-  . $LOCAL_PATH/vault-login.sh
+  . $LOCAL_PATH/../../scripts/vault-login.sh
   # load OCI TF secrets from vault
   set +x
   export AWS_ACCESS_KEY_ID="$(vault kv get -field=access_key -mount=secret jenkins/oci/s3)"
