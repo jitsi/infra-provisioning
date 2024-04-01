@@ -77,6 +77,9 @@ fi
 
 [ -z "$ORACLE_GIT_BRANCH" ] && ORACLE_GIT_BRANCH="main"
 
+# flag to indicate if this is being sourced within a parent script
+[ -z "$ROTATE_INSTANCE_POOL" ] && ROTATE_INSTANCE_POOL=false
+
 # e.g. AVAILABILITY_DOMAINS='[  "ObqI:EU-FRANKFURT-1-AD-1", "ObqI:EU-FRANKFURT-1-AD-2", "ObqI:EU-FRANKFURT-1-AD-3" ]'
 [ -z "$AVAILABILITY_DOMAINS" ] && AVAILABILITY_DOMAINS=$(oci iam availability-domain list --region=$ORACLE_REGION | jq .data[].name | jq --slurp .)
 if [ -z "$AVAILABILITY_DOMAINS" ]; then
@@ -196,4 +199,8 @@ if [[ "$ENVIRONMENT_TYPE" == "prod" ]]; then
   $LOCAL_PATH/../../scripts/oracle_custom_images.py --tag_production --image_id $COTURN_IMAGE_OCID --region $ORACLE_REGION
 fi
 
-exit $RET
+if [[ $ROTATE_INSTANCE_POOL == true ]]; then
+  return $RET
+else
+  exit $RET
+fi

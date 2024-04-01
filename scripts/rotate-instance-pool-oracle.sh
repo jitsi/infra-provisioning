@@ -90,6 +90,7 @@ SHAPE_PARAMS=
 [ ! -z "$MEMORY_IN_GBS" ] && SHAPE_PARAMS="$SHAPE_PARAMS --memory $MEMORY_IN_GBS"
 
 echo "Rotating instance pool $INSTANCE_POOL_ID"
+export ROTATE_INSTANCE_POOL=true
 if [ ! -z "$ROTATE_INSTANCE_CONFIGURATION_SCRIPT" ]; then
   echo "Running provided rotation script $ROTATE_INSTANCE_CONFIGURATION_SCRIPT"
   # source this script in case any variables need to be used that were set in the pre script
