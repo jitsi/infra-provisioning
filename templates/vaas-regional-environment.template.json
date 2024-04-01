@@ -1,6 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": "Template for basic SNS topics run once per region per environment",
+  "Description": "EXAMPLE TEMPLATE, NO VALUES IN THIS DOCUMENT ARE USED IN ANY ACTUAL DEPLOYMENTS.  This template should be adapted to create a template for basic SNS topics run once per region per environment",
   "Parameters": {
     "HealthAlarmSNS": {
       "Description": "SNS topic name for environment-specific health failure Alarms",

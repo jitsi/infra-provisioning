@@ -31,6 +31,8 @@ LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 #shard name ends up like: lonely-us-phoenix-1-s3
 [ -z "$SHARD_NAME" ] && export SHARD_NAME="${SHARD_BASE}-${ORACLE_REGION}-s${SHARD_NUMBER}"
 
+[ -z "$SHARD_NUMBER" ] && SHARD_NUMBER=$(SHARD="$SHARD_NAME" $LOCAL_PATH/../../scripts/shard.sh number)
+
 [ -e "$LOCAL_PATH/../../clouds/oracle.sh" ] && . $LOCAL_PATH/../../clouds/oracle.sh
 
 if [ -z "$ORACLE_REGION" ]; then
@@ -154,6 +156,7 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
   -var="domain=$DOMAIN" \
   -var="release_number=$RELEASE_NUMBER" \
   -var="shard=$SHARD_NAME" \
+  -var="shard_number=$SHARD_NUMBER" \
   -var="cloud_name=$CLOUD_NAME" \
   -var="name=$SHARD_NAME" \
   -var="oracle_region=$ORACLE_REGION" \

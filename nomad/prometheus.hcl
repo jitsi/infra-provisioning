@@ -116,67 +116,59 @@ scrape_configs:
     - server: '{{ env "NOMAD_IP_prometheus_ui" }}:8500'
       services: ['alertmanager']
 
-  - job_name: 'consul_metrics'
-
+  - job_name: 'consul'
     consul_sd_configs:
     - server: '{{ env "NOMAD_IP_prometheus_ui" }}:8500'
       services: ['consul']
-
     relabel_configs:
     - source_labels: ['__address__']
       separator:     ':'
       regex:         '(.*):(8300)'
       target_label:  '__address__'
       replacement:   '$${1}:8500'
-
     metrics_path: /v1/agent/metrics
     params:
       format: ['prometheus']
 
-  - job_name: 'nomad_metrics'
+  - job_name: 'loki'
+    consul_sd_configs:
+    - server: '{{ env "NOMAD_IP_prometheus_ui" }}:8500'
+      services: ['loki']
+    scrape_interval: 30s
+    metrics_path: /metrics
 
+  - job_name: 'nomad'
     consul_sd_configs:
     - server: '{{ env "NOMAD_IP_prometheus_ui" }}:8500'
       services: ['nomad-clients', 'nomad-servers']
-
     relabel_configs:
     - source_labels: ['__address__']
       separator:     ':'
       regex:         '(.*):(4647)'
       target_label:  '__address__'
       replacement:   '$${1}:4646'
-
     - source_labels: ['__address__']
       separator:     ':'
       regex:         '(.*):(4648)'
       target_label:  '__address__'
       replacement:   '$${1}:4646'
-
     metrics_path: /v1/metrics
     params:
       format: ['prometheus']
 
-
-  - job_name: 'telegraf_metrics'
-
-    consul_sd_configs:
-    - server: '{{ env "NOMAD_IP_prometheus_ui" }}:8500'
-      services: ['telegraf']
-
-    scrape_interval:     30s
-    metrics_path: /metrics
-
-
   - job_name: 'prometheus'
-    # Override the global default and scrape targets from this job every 5 seconds.
     scrape_interval: 5s
-
     static_configs:
       - targets: ['localhost:9090']
 
+  - job_name: 'telegraf'
+    consul_sd_configs:
+    - server: '{{ env "NOMAD_IP_prometheus_ui" }}:8500'
+      services: ['telegraf']
+    scrape_interval: 30s
+    metrics_path: /metrics
 
   - job_name: 'wavefront-proxy'
-
     consul_sd_configs:
     - server: '{{ env "NOMAD_IP_prometheus_ui" }}:8500'
       services: ['wavefront-proxy']
@@ -202,6 +194,39 @@ groups:
 
 - name: service_alerts
   rules:
+  - alert: LokiDown
+    expr: absent(up{job="loki"})
+    for: 30s
+    labels:
+      type: infra
+      severity: critical
+    annotations:
+      summary: loki service is down in ${var.dc}
+      description: All loki services are failing internal health checks in ${var.dc}. This means that logs are not being collected.
+      runbook: https://example.com/runbook-placeholder
+      dashboard: https://example.com/dashboard-placeholder
+  - alert: OscarDown
+    expr: absent_over_time(jitsi_oscar_cpu_usage_msec[5m])
+    for: 30s
+    labels:
+      type: infra
+      severity: critical
+    annotations:
+      summary: oscar service is down in ${var.dc}
+      description: Probe metrics from oscar are not being received in ${var.dc}. This means that data from synthetic probes is not being collected in this datacenter.
+      runbook: https://example.com/runbook-placeholder
+      dashboard: https://example.com/dashboard-placeholder
+  - alert: TelegrafDown
+    expr: prometheus_target_scrape_pools_total > sum(up{job="telegraf"})
+    for: 30s
+    labels:
+      type: infra
+      severity: critical
+    annotations:
+      summary: telegraf services are down on some nodes in ${var.dc}
+      description: telegraf is not running on all scraped nodes in ${var.dc}. This means that metrics for some services are not being collected.
+      runbook: https://example.com/runbook-placeholder
+      dashboard: https://example.com/dashboard-placeholder
   - alert: WFProxyDown
     expr: absent(up{job="wavefront-proxy"})
     for: 30s
@@ -210,7 +235,7 @@ groups:
       severity: critical
     annotations:
       summary: wavefront-proxy service is down in ${var.dc}
-      description: All wavefront-proxy services are failing internal health checks in ${var.dc}. This means that no metrics are being sent to Wavefront.
+      description: All wavefront-proxy services are failing internal health checks in ${var.dc}. This means that metrics are not being sent to Wavefront.
       runbook: https://example.com/runbook-placeholder
       dashboard: https://example.com/dashboard-placeholder
 
@@ -228,7 +253,7 @@ groups:
       runbook: https://example.com/runbook-placeholder
       dashboard: https://example.com/dashboard-placeholder
   - alert: ShardUnhealthy
-    expr: rate(jitsi_oscar_failure{probe="shard"}[5m]) > 0
+    expr: (rate(jitsi_oscar_failure{probe="shard"}[1m]) > 0) and on() count_over_time(rate(jitsi_oscar_failure{probe="shard"}[5m])[5m:1m]) >= 5
     for: 1m
     labels:
       type: infra

@@ -77,6 +77,9 @@ fi
 
 [ -z "$ORACLE_GIT_BRANCH" ] && ORACLE_GIT_BRANCH="main"
 
+# flag to indicate if this is being sourced within a parent script
+[ -z "$ROTATE_INSTANCE_POOL" ] && ROTATE_INSTANCE_POOL=false
+
 # e.g. AVAILABILITY_DOMAINS='[  "ObqI:EU-FRANKFURT-1-AD-1", "ObqI:EU-FRANKFURT-1-AD-2", "ObqI:EU-FRANKFURT-1-AD-3" ]'
 [ -z "$AVAILABILITY_DOMAINS" ] && AVAILABILITY_DOMAINS=$(oci iam availability-domain list --region=$ORACLE_REGION | jq .data[].name | jq --slurp .)
 if [ -z "$AVAILABILITY_DOMAINS" ]; then
@@ -123,6 +126,17 @@ if [[ "$TERRAFORM_MAJOR_VERSION" == "v1" ]]; then
   TF_POST_PARAMS=
 else
   TF_POST_PARAMS="$LOCAL_PATH"
+fi
+
+if [ -f "$LOCAL_PATH/../../scripts/vault-login.sh" ]; then
+  echo "Performing vault login"
+  [ -z "$VAULT_ENVIRONMENT" ] && VAULT_ENVIRONMENT="ops-prod"
+  . $LOCAL_PATH/../../scripts/vault-login.sh
+  # load OCI TF secrets from vault
+  set +x
+  export AWS_ACCESS_KEY_ID="$(vault kv get -field=access_key -mount=secret jenkins/oci/s3)"
+  export AWS_SECRET_ACCESS_KEY="$(vault kv get -field=secret_key -mount=secret jenkins/oci/s3)"
+  set -x
 fi
 
 # The —reconfigure option disregards any existing configuration, preventing migration of any existing state
@@ -185,4 +199,8 @@ if [[ "$ENVIRONMENT_TYPE" == "prod" ]]; then
   $LOCAL_PATH/../../scripts/oracle_custom_images.py --tag_production --image_id $COTURN_IMAGE_OCID --region $ORACLE_REGION
 fi
 
-exit $RET
+if [[ $ROTATE_INSTANCE_POOL == true ]]; then
+  return $RET
+else
+  exit $RET
+fi

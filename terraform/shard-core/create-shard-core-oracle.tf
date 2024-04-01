@@ -1,6 +1,9 @@
 variable "environment" {}
 variable "domain" {}
 variable "shard" {}
+variable "shard_number" {
+  type = number
+}
 variable "cloud_name" {}
 variable "release_number" {}
 variable "name" {}
@@ -94,6 +97,7 @@ locals {
     "${var.tag_namespace}.shard-role" = var.role
     "${var.tag_namespace}.Name" = var.name
   }
+  shard_availability_domain = var.availability_domains[var.shard_number%length(var.availability_domains)]
 }
 
 provider "oci" {
@@ -273,7 +277,7 @@ resource "oci_core_network_security_group_security_rule" "instance_nsg_rule_ingr
 
 resource "oci_core_instance" "instance" {
     #Required
-    availability_domain = var.availability_domains[0]
+    availability_domain = local.shard_availability_domain
     compartment_id = var.compartment_ocid
     shape = var.shape
 

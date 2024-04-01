@@ -252,7 +252,14 @@ nomad-pack plan --name "$JOB_NAME" \
 PLAN_RET=$?
 
 if [ $PLAN_RET -gt 1 ]; then
-    echo "Failed planning shard backend job, exiting"
+    echo "Failed planning shard backend job, rendering and exiting"
+    nomad-pack render --name "$JOB_NAME" \
+    -var "job_name=$JOB_NAME" \
+    -var "datacenter=$NOMAD_DC" \
+    -var "visitors_count=$CONFIG_visitors_count" \
+    -var "fabio_domain_enabled=$CONFIG_nomad_enable_fabio_domain" \
+    $PACKS_DIR/jitsi_meet_backend
+
     exit 4
 else
     if [ $PLAN_RET -eq 1 ]; then

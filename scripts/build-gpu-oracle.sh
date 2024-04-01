@@ -119,5 +119,11 @@ packer build \
 -var "infra_customizations_repo=$INFRA_CUSTOMIZATIONS_REPO" \
 $LOCAL_PATH/../build/build-gpu-oracle.json
 
-IMAGE_OCID=$($LOCAL_PATH/oracle_custom_images.py --type GPU --version "latest" --architecture "$IMAGE_ARCH" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
-$LOCAL_PATH/../scripts/oracle_custom_images.py --add_shape_compatibility --image_id $IMAGE_OCID --region $ORACLE_REGION
+RET=$?
+
+if [[ $RET -eq 0 ]]; then
+  IMAGE_OCID=$($LOCAL_PATH/oracle_custom_images.py --type GPU --version "latest" --architecture "$IMAGE_ARCH" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
+  $LOCAL_PATH/../scripts/oracle_custom_images.py --add_shape_compatibility --image_id $IMAGE_OCID --region $ORACLE_REGION
+fi
+
+exit $RET

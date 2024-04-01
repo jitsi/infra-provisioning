@@ -124,6 +124,7 @@ job "[JOB_NAME]" {
       driver = "docker"
 
       config {
+        force_pull = true
         image        = "jitsi/jibri:${var.jibri_tag}"
         cap_add = ["SYS_ADMIN"]
         # 2gb shm
@@ -167,9 +168,10 @@ job "[JOB_NAME]" {
         JIBRI_INSTANCE_ID = "${NOMAD_SHORT_ALLOC_ID}"
         JIBRI_FINALIZE_RECORDING_SCRIPT_PATH = "/usr/bin/jitsi_uploader.sh"
         JIBRI_RECORDING_DIR = "/mnt/recordings"
-        JIBRI_STATSD_HOST = "${attr.unique.network.ip-address}"
-        JIBRI_STATSD_PORT = "8125"
-        ENABLE_STATS_D = "true"
+        // JIBRI_STATSD_HOST = "${attr.unique.network.ip-address}"
+        // JIBRI_STATSD_PORT = "8125"
+        ENABLE_STATS_D = "false"
+        JIBRI_ENABLE_PROMETHEUS = "true"
         LOCAL_ADDRESS = "${attr.unique.network.ip-address}"
         AUTOSCALER_SIDECAR_PORT = "6000"
         AUTOSCALER_URL = "https://${meta.cloud_name}-autoscaler.jitsi.net"

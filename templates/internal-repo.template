@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: "Template for internal-repo.jitsi.net ELB and autoscaling group"
+Description: "EXAMPLE TEMPLATE, NO VALUES IN THIS DOCUMENT ARE USED IN ANY ACTUAL DEPLOYMENTS.  This template should be adapted to create a template for internal-repo.jitsi.net ELB and autoscaling group"
 Parameters:
   InstanceType:
     Type: String

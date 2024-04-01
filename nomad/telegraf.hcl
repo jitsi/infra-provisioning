@@ -37,6 +37,13 @@ job "[JOB_NAME]" {
   group "telegraf" {
     count = 1
 
+    restart {
+      attempts = 3
+      delay    = "15s"
+      interval = "10m"
+      mode = "delay"
+    }
+
     network {
       mode = "host"
       port "telegraf-statsd" {
@@ -80,7 +87,7 @@ job "[JOB_NAME]" {
       config {
         network_mode = "host"
         privileged = true
-        image        = "telegraf:latest"
+        image        = "telegraf:1.29.5"
         ports = ["telegraf-statsd","telegraf-prometheus"]
         volumes = ["local/telegraf.conf:/etc/telegraf/telegraf.conf", "local/consul-resolved.conf:/etc/systemd/resolved.conf.d/consul.conf", "/var/run/docker.sock:/var/run/docker.sock"]
       }
@@ -181,6 +188,7 @@ EOF
 {{ end }}
 
 [[inputs.prometheus]]
+  http_headers = {"Accept" = "text/plain; version=0.0.4"}
   [inputs.prometheus.consul]
     enabled = true
     agent = "{{ env "attr.unique.network.ip-address" }}:8500"
@@ -299,6 +307,17 @@ EOF
         shard-role = "loki"
         role = "loki"
         loki-index = "{{"{{"}}with .ServiceMeta.loki_index}}{{"{{"}}.}}{{"{{"}}else}}NA{{"{{"}}end}}"
+    [[inputs.prometheus.consul.query]]
+      name = "jibri"
+      tag = "ip-{{ env "attr.unique.network.ip-address" }}"
+      url = 'http://{{"{{"}}if ne .ServiceAddress ""}}{{"{{"}}.ServiceAddress}}{{"{{"}}else}}{{"{{"}}.Address}}{{"{{"}}end}}:{{"{{"}}.ServicePort}}/{{"{{"}}with .ServiceMeta.metrics_path}}{{"{{"}}.}}{{"{{"}}else}}metrics{{"{{"}}end}}'
+      [inputs.prometheus.consul.query.tags]
+        host = "{{"{{"}}.Node}}"
+        group = "{{"{{"}}with .ServiceMeta.group}}{{"{{"}}.}}{{"{{"}}else}}jibri{{"{{"}}end}}"
+        jibri_version = "{{"{{"}}with .ServiceMeta.jibri_version}}{{"{{"}}.}}{{"{{"}}else}}0{{"{{"}}end}}"
+        jibri_release_number = "{{"{{"}}with .ServiceMeta.release_number}}{{"{{"}}.}}{{"{{"}}else}}0{{"{{"}}end}}"
+        shard-role = "java-jibri"
+        role = "java-jibri"
 
 [[inputs.prometheus]]
   name_prefix = "jitsi_oscar_"
@@ -352,6 +371,10 @@ EOF
 EOF
         destination = "local/telegraf.conf"
       }
+      // resources {
+      //   cpu    = 500
+      //   memory = 768
+      // }
     }
   }
 }
