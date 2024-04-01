@@ -14,29 +14,39 @@ variable "coturn_auth_secret" {
 
 variable "ssl_cert_name" {
     type = string
-    default = "star_example_com"
+    default = "secret_key_file"
+}
+
+variable "coturn_count" {
+    type = number
+    default = 2
 }
 
 job "[JOB_NAME]" {
   datacenters = [var.dc]
-  type        = "system"
-
+  type        = "service"
 
   update {
-    min_healthy_time = "10s"
-    healthy_deadline = "5m"
-    progress_deadline = "10m"
-    auto_revert = true
+    max_parallel      = 1
+    health_check      = "checks"
+    min_healthy_time  = "10s"
+    healthy_deadline  = "3m"
+    progress_deadline = "5m"
+  }
+
+  reschedule {
+    delay          = "30s"
+    delay_function = "exponential"
+    max_delay      = "1h"
+    unlimited      = true
   }
 
   group "coturn" {
-    count = 1
+    count = var.coturn_count
 
-    restart {
-      attempts = 3
-      delay    = "25s"
-      interval = "5m"
-      mode = "delay"
+    constraint {
+      operator  = "distinct_hosts"
+      value     = "true"
     }
 
     constraint {
@@ -44,6 +54,17 @@ job "[JOB_NAME]" {
       value     = "coturn"
     }
 
+    restart {
+      attempts = 3
+      interval = "5m"
+      delay    = "25s"
+      mode     = "delay"
+    }
+    volume "ssl" {
+      type      = "host"
+      read_only = true
+      source    = "ssl"
+    }
     network {
       port "coturn" {
         static = 443
@@ -53,9 +74,6 @@ job "[JOB_NAME]" {
       }
     }
     task "coturn" {
-      vault {
-
-      }
       driver = "docker"
       user = "root"
       config {
@@ -67,6 +85,11 @@ job "[JOB_NAME]" {
         ]
         ports = ["coturn"]
         volumes = ["local/coturn.conf:/local/coturn.conf"]
+      }
+      volume_mount {
+        volume      = "ssl"
+        destination = "/etc/ssl"
+        read_only   = true
       }
       template {
         data = <<EOH
@@ -106,30 +129,13 @@ static-auth-secret=${var.coturn_auth_secret}
 realm=${var.coturn_realm}
 listening-port=443
 prometheus
-cert=/secrets/ssl.crt
-pkey=/secrets/ssl.key
+cert=/etc/ssl/${var.ssl_cert_name}.crt
+pkey=/etc/ssl/${var.ssl_cert_name}.key
 external-ip={{ env "meta.public_ip" }}/{{ env "attr.unique.network.ip-address" }}
 relay-ip={{ env "attr.unique.network.ip-address" }}
 EOH
         destination = "local/coturn.conf"
       }
-
-      template {
-        data = <<EOF
-{{- with secret "secret/ssl/${var.ssl_cert_name}/cert" }}{{ .Data.data.cert }}{{ .Data.data.chain }}{{ end -}}
-EOF
-        destination = "secrets/ssl.crt"
-        change_mode = "noop" # todo: change to send SIGUSR2 to coturn
-      }
-
-      template {
-        data = <<EOF
-{{- with secret "secret/ssl/${var.ssl_cert_name}/cert" }}{{ .Data.data.key }}{{ end -}}
-EOF
-        destination = "secrets/ssl.key"
-        change_mode = "noop" # todo: change to send SIGUSR2 to coturn
-      }
-
       resources {
         cpu    = 10000
         memory = 15360
