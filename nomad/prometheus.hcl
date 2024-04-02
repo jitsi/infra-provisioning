@@ -203,8 +203,6 @@ groups:
     annotations:
       summary: loki service is down in ${var.dc}
       description: All loki services are failing internal health checks in ${var.dc}. This means that logs are not being collected.
-      runbook: https://example.com/runbook-placeholder
-      dashboard: https://example.com/dashboard-placeholder
   - alert: OscarDown
     expr: absent_over_time(jitsi_oscar_cpu_usage_msec[5m])
     for: 30s
@@ -214,8 +212,6 @@ groups:
     annotations:
       summary: oscar service is down in ${var.dc}
       description: Probe metrics from oscar are not being received in ${var.dc}. This means that data from synthetic probes is not being collected in this datacenter.
-      runbook: https://example.com/runbook-placeholder
-      dashboard: https://example.com/dashboard-placeholder
   - alert: TelegrafDown
     expr: prometheus_target_scrape_pools_total > sum(up{job="telegraf"})
     for: 30s
@@ -225,8 +221,6 @@ groups:
     annotations:
       summary: telegraf services are down on some nodes in ${var.dc}
       description: telegraf is not running on all scraped nodes in ${var.dc}. This means that metrics for some services are not being collected.
-      runbook: https://example.com/runbook-placeholder
-      dashboard: https://example.com/dashboard-placeholder
   - alert: WFProxyDown
     expr: absent(up{job="wavefront-proxy"})
     for: 30s
@@ -236,44 +230,27 @@ groups:
     annotations:
       summary: wavefront-proxy service is down in ${var.dc}
       description: All wavefront-proxy services are failing internal health checks in ${var.dc}. This means that metrics are not being sent to Wavefront.
-      runbook: https://example.com/runbook-placeholder
-      dashboard: https://example.com/dashboard-placeholder
 
 - name: oscar_alerts
   rules:
+  - alert: OscarProbeUnhealthy
+    expr: ((rate(jitsi_oscar_failure[5m]) > 0) and on() count_over_time(rate(jitsi_oscar_failure[5m])[5m:1m]) >= 5) or (rate(jitsi_oscar_timeouts[5m]) > 0)
+    for: 1m
+    labels:
+      type: infra
+      severity: critical
+    annotations:
+      summary: http probe from ${var.dc} to {{ $labels.dst }} is unhealthy
+      description: The oscar {{ $labels.probe }} http probe from ${var.dc} to {{ $labels.dst }} timed-out or received an unhealthy response.
   - alert: HAProxyRegionMismatch
     expr: jitsi_oscar_haproxy_region_mismatch < 1
     for: 1m
     labels:
       type: infra
-      severity: critical
+      severity: severe 
     annotations:
       summary: a domain probe from ${var.dc} reached an haproxy outside the local region
       description: An oscar probe to the domain reached an haproxy outside of the local region. This means that CloudFlare may not be routing requests to ${var.dc}, likely due to failing health checks to the regional load balancer ingress.
-      runbook: https://example.com/runbook-placeholder
-      dashboard: https://example.com/dashboard-placeholder
-  - alert: ShardUnhealthy
-    expr: (rate(jitsi_oscar_failure{probe="shard"}[1m]) > 0) and on() count_over_time(rate(jitsi_oscar_failure{probe="shard"}[5m])[5m:1m]) >= 5
-    for: 1m
-    labels:
-      type: infra
-      severity: critical
-    annotations:
-      summary: shard {{ $labels.dst }} probe returned unhealthy from ${var.dc}
-      description: An internal oscar probe from ${var.dc} to the {{ $labels.dst }} shard received an unhealthy response from signal-sidecar. This may be due to a variety of issues, most often when jicofo or prosody goes unhealthy.
-      runbook: https://example.com/runbook-placeholder
-      dashboard: https://example.com/dashboard-placeholder
-  - alert: ShardTimeout
-    expr: jitsi_oscar_timeouts{probe="shard"} > 0
-    for: 30s
-    labels:
-      type: infra
-      severity: critical
-    annotations:
-      summary: shard {{ $labels.dst }} probe timed-out from ${var.dc}
-      description: An internal oscar probe from ${var.dc} to the {{ $labels.dst }} shard timed-out. This may be due to a network issue or a problem with the shard.
-      runbook: https://example.com/runbook-placeholder
-      dashboard: https://example.com/dashboard-placeholder
 EOH
     }
 
