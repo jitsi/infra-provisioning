@@ -248,7 +248,7 @@ EOF
 #!/usr/bin/with-contenv bash
 cp /etc/jitsi/jibri/* /config
 
-apt-get update && apt-get -y install cron netcat
+apt-get update && apt-get -y install cron netcat-openbsd
 
 echo '* * * * * /opt/jitsi/scripts/jibri-status.sh' | crontab 
 
