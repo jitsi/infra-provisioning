@@ -234,7 +234,7 @@ groups:
 - name: oscar_alerts
   rules:
   - alert: OscarProbeUnhealthy
-    expr: ((rate(jitsi_oscar_failure[1m]) > 0) and on() count_over_time(rate(jitsi_oscar_failure[5m])[5m:1m]) >= 5) or (rate(jitsi_oscar_timeouts[1m]) > 0)
+    expr: ((rate(jitsi_oscar_failure[5m]) > 0) and on() count_over_time(rate(jitsi_oscar_failure[5m])[5m:1m]) >= 5) or (rate(jitsi_oscar_timeouts[5m]) > 0)
     for: 1m
     labels:
       type: infra
