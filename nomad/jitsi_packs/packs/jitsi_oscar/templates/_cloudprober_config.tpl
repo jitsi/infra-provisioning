@@ -178,11 +178,11 @@ probe {
   name: "oscar"
   type: HTTP
   targets {
-    host_names: "{{ range $dcidx, $dc := datacenters -}}{{ if ne $dcidx 0 }},{{ end }}{{ $dc }}-alertmanager.[[ var "top_level_domain" . ]]{{ end }}"
+    host_names: "{{ range $dcidx, $dc := datacenters -}}{{ if ne $dcidx 0 }},{{ end }}{{ $dc }}-oscar.[[ var "top_level_domain" . ]]{{ end }}"
   }
   http_probe {
     protocol: HTTPS
-    relative_url: "/-/healthy"
+    relative_url: "/health"
   }
   validator {
       name: "status_code_2xx"
