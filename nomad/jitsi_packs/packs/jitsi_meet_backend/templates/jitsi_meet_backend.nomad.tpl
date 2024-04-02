@@ -382,6 +382,7 @@ EOF
 
     task "prosody" {
       vault {
+        change_mode = "noop"
         
       }
       driver = "docker"

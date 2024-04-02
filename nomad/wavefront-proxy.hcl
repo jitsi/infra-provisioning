@@ -32,6 +32,7 @@ job "[JOB_NAME]" {
     }
     task "wavefront-proxy" {
       vault {
+        change_mode = "noop"
         
       }
       service {

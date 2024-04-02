@@ -54,6 +54,7 @@ job "[JOB_NAME]" {
     }
     task "coturn" {
       vault {
+        change_mode = "noop"
 
       }
       driver = "docker"

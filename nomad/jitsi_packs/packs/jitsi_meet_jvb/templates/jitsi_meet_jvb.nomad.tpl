@@ -146,6 +146,7 @@ EOF
 
     task "jvb" {
       vault {
+        change_mode = "noop"
 
       }
       driver = "docker"

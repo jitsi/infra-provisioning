@@ -118,6 +118,7 @@ job "[JOB_NAME]" {
     }
     task "jibri" {
       vault {
+        change_mode = "noop"
 
       }
 
