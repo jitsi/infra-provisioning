@@ -70,6 +70,7 @@ job [[ template "job_name" . ]] {
     task "autoscaler" {
 [[ if var "enable_oci" . ]]
       vault {
+        change_mode = "noop"
         
       }
 [[ end ]]
