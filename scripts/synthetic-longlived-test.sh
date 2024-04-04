@@ -10,8 +10,6 @@ if [ -z "$BASE_URL" ]; then
     exit 2
 fi
 
-TEST_BASE_URL=${BASE_URL}$(od -vN "16" -An -tx1 /dev/urandom | tr -d " \n"; echo)
-
 if [ -z "$SELENIUM_HUB_URL" ]; then
     echo "## No SELENIUM_HUB_URL found. Exiting..."
     exit 2
@@ -125,17 +123,17 @@ git reset --hard origin/$TORTURE_TEST_BRANCH
 
 set +x
 echo "------------------------------------------------------------------------------"
-echo "- CONFERENCE WEB TEST AT ${TEST_BASE_URL} for ${TEST_DURATION_MINUTES} minutes"
+echo "- CONFERENCE WEB TEST AT ${BASE_URL} for ${TEST_DURATION_MINUTES} minutes"
 echo "------------------------------------------------------------------------------"
 echo ""
 
-doTest "${TEST_BASE_URL}" $TEST_DURATION_MINUTES
+doTest "${BASE_URL}" $TEST_DURATION_MINUTES
 SUCCESS=$?
 
 # Only actually fail on two consecuative failures
 if [[ $SUCCESS -ne 0 ]]; then
     sleep 15
-    doTest "${TEST_BASE_URL}" $TEST_DURATION_MINUTES
+    doTest "${BASE_URL}" $TEST_DURATION_MINUTES
     SUCCESS=$?
 fi
 
