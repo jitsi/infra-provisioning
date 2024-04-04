@@ -83,7 +83,11 @@ pipeline {
                             sshagent (credentials: ['ssh-ubuntu']) {
                                 sh(
                                     script: """#!/bin/bash
+                                    echo "111111 ${ASAP_CLIENT_JWT_KID_PROD}"
+                                    echo "222222 ${env.ASAP_CLIENT_JWT_KID_PROD}"
+
                                     set +x
+
                                     TORTURE_GITHUB_USER=${torture_user} TORTURE_GITHUB_TOKEN=${torture_secret} scripts/synthetic-longlived-test.sh"""
                                 )
                             }
