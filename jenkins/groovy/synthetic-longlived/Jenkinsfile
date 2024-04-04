@@ -32,14 +32,14 @@ pipeline {
                                 returnStdout: true,
                                 script: """#!/bin/bash
                                 LOCAL_PATH=\$(realpath \$(dirname "\${BASH_SOURCE[0]}"))
-                                ENCRYPTED_CREDENTIALS_FILE="\$LOCAL_PATH/../ansible/secrets/torture.yml"
+                                ENCRYPTED_CREDENTIALS_FILE="\$LOCAL_PATH/ansible/secrets/torture.yml"
                                 echo \$(ansible-vault view \$ENCRYPTED_CREDENTIALS_FILE --vault-password .vault-password.txt | yq eval ".torture_github_user" -)"""
                             ).trim()
                             torture_secret = sh(
                                 returnStdout: true,
                                 script: """#!/bin/bash
                                 LOCAL_PATH=\$(realpath \$(dirname "\${BASH_SOURCE[0]}"))
-                                ENCRYPTED_CREDENTIALS_FILE="\$LOCAL_PATH/../ansible/secrets/torture.yml"
+                                ENCRYPTED_CREDENTIALS_FILE="\$LOCAL_PATH/ansible/secrets/torture.yml"
                                 echo \$(ansible-vault view \$ENCRYPTED_CREDENTIALS_FILE --vault-password .vault-password.txt | yq eval ".torture_github_token" -)"""
                             ).trim()
                         }
