@@ -83,7 +83,9 @@ pipeline {
                             sshagent (credentials: ['ssh-ubuntu']) {
                                 sh(
                                     script: """#!/bin/bash
+                                    echo "aaaaaa"
                                     set +x
+                                    echo "bbbbbb"
                                     AWS_SECRET_ACCESS_KEY=${env.AWS_SECRET_ACCESS_KEY} \
                                     AWS_ACCESS_KEY_ID=${env.AWS_ACCESS_KEY_ID} \
                                     ASAP_CLIENT_JWT_KID_MEET=${env.ASAP_CLIENT_JWT_KID_MEET} \
