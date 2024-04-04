@@ -43,12 +43,18 @@ if [ -z "$WAVEFRONT_PROXY_URL" ]; then
   echo "## No WAVEFRONT_PROXY_URL found. Exiting..."
   exit 2
 fi
-
+echo "11111"
 if [ -x "$LOCAL_PATH/generate-client-token.sh" ]; then
+  echo "2222"
   # generate a token if a client key file is defined
   if [ -n "$ASAP_CLIENT_SIGNING_KEY_FILE" ]; then
+    echo "3333"
     TOKEN=$($LOCAL_PATH/generate-client-token.sh | tail -1)
+  else
+    echo "4444"
   fi
+else
+    echo "55555"
 fi
 
 [ -z "$CLOUDWATCH_NAMESPACE" ] && CLOUDWATCH_NAMESPACE="Video"
