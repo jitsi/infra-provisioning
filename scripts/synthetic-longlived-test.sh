@@ -43,7 +43,10 @@ if [ -z "$WAVEFRONT_PROXY_URL" ]; then
   echo "## No WAVEFRONT_PROXY_URL found. Exiting..."
   exit 2
 fi
-echo "11111"
+echo "11111 $LOCAL_PATH"
+echo "pwd:$(pwd)"
+echo "ls:$(ls -l $LOCAL_PATH)"
+
 if [ -x "$LOCAL_PATH/generate-client-token.sh" ]; then
   echo "2222"
   # generate a token if a client key file is defined
