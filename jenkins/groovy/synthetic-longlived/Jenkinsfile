@@ -84,8 +84,12 @@ pipeline {
                                 sh(
                                     script: """#!/bin/bash
                                     echo "aaaaaa"
+                                    echo "aaaaaa1 ${ASAP_CLIENT_JWT_KID_MEET}"
+                                    echo "aaaaaa2 ${env.ASAP_CLIENT_JWT_KID_MEET}"
                                     set +x
                                     echo "bbbbbb"
+                                    echo "bbbbbb1 ${ASAP_CLIENT_JWT_KID_MEET}"
+                                    echo "bbbbbb2 ${env.ASAP_CLIENT_JWT_KID_MEET}"
                                     AWS_SECRET_ACCESS_KEY=${env.AWS_SECRET_ACCESS_KEY} \
                                     AWS_ACCESS_KEY_ID=${env.AWS_ACCESS_KEY_ID} \
                                     ASAP_CLIENT_JWT_KID_MEET=${env.ASAP_CLIENT_JWT_KID_MEET} \
