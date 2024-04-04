@@ -83,23 +83,7 @@ pipeline {
                             sshagent (credentials: ['ssh-ubuntu']) {
                                 sh(
                                     script: """#!/bin/bash
-                                    echo "aaaaaa"
-                                    echo "aaaaaa1 ${ASAP_CLIENT_JWT_KID_MEET}"
-                                    echo "aaaaaa2 ${env.ASAP_CLIENT_JWT_KID_MEET}"
                                     set +x
-                                    echo "bbbbbb"
-                                    echo "bbbbbb1 ${ASAP_CLIENT_JWT_KID_MEET}"
-                                    echo "bbbbbb2 ${env.ASAP_CLIENT_JWT_KID_MEET}"
-                                    AWS_SECRET_ACCESS_KEY=${env.AWS_SECRET_ACCESS_KEY} \
-                                    AWS_ACCESS_KEY_ID=${env.AWS_ACCESS_KEY_ID} \
-                                    ASAP_CLIENT_JWT_KID_MEET=${env.ASAP_CLIENT_JWT_KID_MEET} \
-                                    ASAP_CLIENT_JWT_KID_BETA=${env.ASAP_CLIENT_JWT_KID_BETA} \
-                                    ASAP_CLIENT_JWT_KID_PROD=${env.ASAP_CLIENT_JWT_KID_PROD} \
-                                    ASAP_CLIENT_JWT_KID_STAGE=${env.ASAP_CLIENT_JWT_KID_STAGE} \
-                                    ASAP_CLIENT_JWT_KEY_MEET=${env.ASAP_CLIENT_JWT_KEY_MEET} \
-                                    ASAP_CLIENT_JWT_KEY_PROD=${env.ASAP_CLIENT_JWT_KEY_PROD} \
-                                    ASAP_CLIENT_JWT_KEY_STAGE=${env.ASAP_CLIENT_JWT_KEY_STAGE} \
-                                    ASAP_CLIENT_JWT_KEY_BETA=${env.ASAP_CLIENT_JWT_KEY_BETA} \
                                     TORTURE_GITHUB_USER=${torture_user} TORTURE_GITHUB_TOKEN=${torture_secret} scripts/synthetic-longlived-test.sh"""
                                 )
                             }
