@@ -29,6 +29,7 @@ job [[ template "job_name" . ]] {
     }
 
     network {
+      mode = "bridge"
       port "http" {
         to = 80
       }
@@ -106,6 +107,20 @@ job [[ template "job_name" . ]] {
       }
 
       port = "http"
+
+[[- if ne (or (env "CONFIG_prosody_brewery_shard_enabled") "true") "true" ]]
+      connect {
+        sidecar_service {
+          proxy {
+            upstreams {
+              destination_name = "prosody-brewery"
+              local_bind_port  = 6222
+            }
+          }
+        }
+      }
+[[- end ]]
+
     }
 
     service {
@@ -749,14 +764,9 @@ XMPP_BOSH_URL_BASE=http://{{ env "NOMAD_IP_prosody_http" }}:{{ env "NOMAD_HOST_P
 JVB_XMPP_SERVER={{ env "NOMAD_IP_prosody_jvb_client" }}
 JVB_XMPP_PORT={{  env "NOMAD_HOST_PORT_prosody_jvb_client" }}
 [[- else ]]
-{{ range service "prosody-brewery" -}}
-    {{ scratch.SetX "prosody-brewery" .  -}}
-{{- end }}
-{{ with scratch.Get "prosody-brewery" -}}
-JVB_XMPP_SERVER={{ .Address }}
-JVB_XMPP_PORT={{ .Port }}
+JVB_XMPP_SERVER=localhost
+JVB_XMPP_PORT=6222
 JVB_BREWERY_MUC="release-[[ env "CONFIG_release_number" ]]"
-{{- end }}
 [[- end ]]
 
 EOF
