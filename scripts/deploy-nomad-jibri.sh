@@ -63,12 +63,19 @@ export NOMAD_VAR_asap_jwt_kid="$(ansible-vault view $ENCRYPTED_ASAP_KEYS_FILE --
 
 set -x
 
+JIBRI_USAGE_TIMEOUT="$(yq eval ".jibri_max_usage" < "$ENVIRONMENT_CONFIGURATION_FILE")"
+[ "$JIBRI_USAGE_TIMEOUT" == "null" ] && JIBRI_USAGE_TIMEOUT=
+
+[ -z "$JIBRI_USAGE_TIMEOUT" ] && JIBRI_USAGE_TIMEOUT=61
+
 export NOMAD_VAR_environment="$ENVIRONMENT"
 export NOMAD_VAR_environment_type="${ENVIRONMENT_TYPE}"
 export NOMAD_VAR_domain="$DOMAIN"
 # [ -n "$SHARD_STATE" ] && export NOMAD_VAR_shard_state="$SHARD_STATE"
 export NOMAD_VAR_jibri_tag="$JIBRI_TAG"
 export NOMAD_VAR_pool_type="$NOMAD_POOL_TYPE"
+
+export NOMAD_VAR_jibri_usage_timeout="$JIBRI_USAGE_TIMEOUT"
 
 export NOMAD_JOB_NAME="jibri-${ORACLE_REGION}"
 export NOMAD_URL="https://${ENVIRONMENT}-${ORACLE_REGION}-nomad.$TOP_LEVEL_DNS_ZONE_NAME"

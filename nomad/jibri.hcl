@@ -39,6 +39,11 @@ variable "release_number" {
   default = "0"
 }
 
+variable "jibri_usage_timeout" {
+  type = string
+  default = "61"
+}
+
 # This declares a job named "docs". There can be exactly one
 # job declaration per job file.
 job "[JOB_NAME]" {
@@ -173,6 +178,7 @@ job "[JOB_NAME]" {
         // JIBRI_STATSD_PORT = "8125"
         ENABLE_STATS_D = "false"
         JIBRI_ENABLE_PROMETHEUS = "true"
+        JIBRI_USAGE_TIMEOUT = "${var.jibri_usage_timeout} minutes"
         LOCAL_ADDRESS = "${attr.unique.network.ip-address}"
         AUTOSCALER_SIDECAR_PORT = "6000"
         AUTOSCALER_URL = "https://${meta.cloud_name}-autoscaler.jitsi.net"
