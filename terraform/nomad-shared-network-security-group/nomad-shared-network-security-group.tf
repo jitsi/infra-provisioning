@@ -163,3 +163,18 @@ resource "oci_core_network_security_group_security_rule" "nsg_rule_ingress_consu
     }
   }
 }
+
+resource "oci_core_network_security_group_security_rule" "consul_nsg_rule_ingress_consul_grpc" {
+  network_security_group_id = oci_core_network_security_group.security_group.id
+  direction = "INGRESS"
+  protocol = "6"
+  source = "10.0.0.0/8"
+  stateless = false
+
+  tcp_options {
+    destination_port_range {
+      max = 8502
+      min = 8502
+    }
+  }
+}
