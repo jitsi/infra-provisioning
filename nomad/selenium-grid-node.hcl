@@ -77,10 +77,10 @@ max-sessions = ${var.max_sessions}
 # Configs have a mapping between the Docker image to use and the capabilities that need to be matched to
 # start a container with the given image.
 configs = [
-    "jitsi/selenium-standalone-firefox:daily-2023-10-05", "{\"browserName\": \"firefox\"}",
-    "jitsi/selenium-standalone-chrome:daily-2023-10-05", "{\"browserName\": \"chrome\"}",
-    "jitsi/selenium-standalone-firefox:beta-daily-2023-10-05", "{\"browserName\": \"firefox-beta\"}",
-    "jitsi/selenium-standalone-chrome:beta-daily-2023-10-05", "{\"browserName\": \"chrome-beta\"}"
+    "jitsi/selenium-standalone-firefox:daily-2024-04-09", "{\"browserName\": \"firefox\"}",
+    "jitsi/selenium-standalone-chrome:daily-2024-04-09", "{\"browserName\": \"chrome\"}",
+    "jitsi/selenium-standalone-firefox:beta-daily-2024-04-09", "{\"browserName\": \"firefox-beta\"}",
+    "jitsi/selenium-standalone-chrome:beta-daily-2024-04-09", "{\"browserName\": \"chrome-beta\"}"
     ]
 
 # URL for connecting to the docker daemon
@@ -93,7 +93,7 @@ configs = [
 # Linux: varies from machine to machine, please mount /var/run/docker.sock. If this does not work, please create an issue.
 url = "http://127.0.0.1:2375"
 # Docker image used for video recording
-video-image = "selenium/video:ffmpeg-4.3.1-20230801"
+video-image = "selenium/video:ffmpeg-6.1-20240402"
 
 # Uncomment the following section if you are running the node on a separate VM
 # Fill out the placeholders with appropriate values
