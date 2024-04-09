@@ -58,7 +58,7 @@ job "nvidia-prom-exporter" {
       }
       resources {
         cpu    = 500
-        memory = 500
+        memory = 1024
       }
     }
   }
