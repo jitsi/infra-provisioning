@@ -186,6 +186,8 @@ job "[JOB_NAME]" {
         AUTOSCALER_SIDECAR_REGION = "${meta.cloud_region}"
         AUTOSCALER_SIDECAR_GROUP_NAME = "${NOMAD_META_group}"
         AUTOSCALER_SIDECAR_INSTANCE_ID = "${NOMAD_JOB_ID}"
+        AUTOSCALER_SIDECAR_SHUTDOWN_POLLING_INTERVAL = 10
+        AUTOSCALER_SIDECAR_STATS_POLLING_INTERVAL = 5
 #        CHROMIUM_FLAGS="--start-maximized,--kiosk,--enabled,--autoplay-policy=no-user-gesture-required,--use-fake-ui-for-media-stream,--enable-logging,--v=1"
       }
 
