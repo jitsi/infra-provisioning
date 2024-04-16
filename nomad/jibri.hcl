@@ -3,6 +3,11 @@ variable "pool_type" {
   default = "jibri"
 }
 
+variable jibri_recorder_user {
+    type = string
+    default = "recorder"
+}
+
 variable jibri_recorder_password {
     type = string
     default = "replaceme_recorder"
@@ -11,6 +16,11 @@ variable jibri_recorder_password {
 variable jibri_xmpp_password {
     type = string
     default = "replaceme_jibri"
+}
+
+variable jibri_xmpp_user {
+    type = string
+    default = "jibri"
 }
 
 variable "jibri_tag" {
@@ -158,7 +168,7 @@ job "[JOB_NAME]" {
         PUBLIC_URL="https://${var.domain}/"
         JIBRI_RECORDER_USER = "recorder"
         JIBRI_RECORDER_PASSWORD = "${var.jibri_recorder_password}"
-        JIBRI_XMPP_USER = "jibri"
+        JIBRI_XMPP_USER = "${var.jibri_xmpp_user}"
         JIBRI_XMPP_PASSWORD = "${var.jibri_xmpp_password}"
         # Internal XMPP domain for authenticated services
         XMPP_AUTH_DOMAIN = "auth.${var.domain}"
