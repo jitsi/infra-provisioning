@@ -154,6 +154,7 @@ job "[JOB_NAME]" {
           "local/jibri-status.sh:/opt/jitsi/scripts/jibri-status.sh",
           "local/cron-service-run:/etc/services.d/60-cron/run",
           "local/config:/config"
+          "local/etc:/etc/jitsi/jibri"
     	  ]
       }
       volume_mount {
@@ -170,6 +171,7 @@ job "[JOB_NAME]" {
         JIBRI_RECORDER_PASSWORD = "${var.jibri_recorder_password}"
         JIBRI_XMPP_USER = "${var.jibri_xmpp_user}"
         JIBRI_XMPP_PASSWORD = "${var.jibri_xmpp_password}"
+        JIBRI_BREWERY_MUC = "JibriBrewery"
         # Internal XMPP domain for authenticated services
         XMPP_AUTH_DOMAIN = "auth.${var.domain}"
         # XMPP domain for the MUC
@@ -182,6 +184,7 @@ job "[JOB_NAME]" {
         XMPP_RECORDER_DOMAIN = "recorder.${var.domain}"
         DISPLAY=":0"
         JIBRI_INSTANCE_ID = "${NOMAD_SHORT_ALLOC_ID}"
+        JIBRI_MUC_NICKNAME = "jibri-${NOMAD_ALLOC_ID}"
         JIBRI_FINALIZE_RECORDING_SCRIPT_PATH = "/usr/bin/jitsi_uploader.sh"
         JIBRI_RECORDING_DIR = "/mnt/recordings"
         // JIBRI_STATSD_HOST = "${attr.unique.network.ip-address}"
@@ -237,10 +240,38 @@ EOF
 {{ range $index, $item := service "all" -}}
     {{ scratch.MapSetX "shards" .ServiceMeta.domain $item  -}}
 {{ end -}}
-{{ range $sindex, $item := scratch.MapValues "shards" -}}{{ if gt $sindex 0 -}},{{end}}{{ .Address }}:{{ with .ServiceMeta.prosody_client_port}}{{.}}{{ else }}5222{{ end }}{{ end -}}
+jibri.api.xmpp.environments = [
+{{ range $sindex, $item := scratch.MapValues "shards" -}}
+    {
+        name = "{{ .ServiceMeta.environment }}"
+        xmpp-server-hosts = ["{{ .Address }}:{{ with .ServiceMeta.prosody_client_port}}{{.}}{{ else }}5222{{ end }}"]
+        xmpp-domain = "{{ .ServiceMeta.domain }}"
+        control-login {
+            domain = "auth.{{ .ServiceMeta.domain }}"
+            username = "{{ env "JIBRI_XMPP_USER" }}"
+            password = "{{ env "JIBRI_XMPP_PASSWORD" }}"
+            port = {{ with .ServiceMeta.prosody_client_port}}{{.}}{{ else }}5222{{ end }}
+        }
+        control-muc {
+            domain = "internal.auth.{{ .ServiceMeta.domain }}"
+            room-name = "{{ env "JIBRI_BREWERY_MUC" }}"
+            nickname = "{{ env "JIBRI_MUC_NICKNAME" }}"
+        }
+        call-login {
+            domain = "recorder.{{ .ServiceMeta.domain }}"
+            username = "{{ env "JIBRI_RECORDER_USER" }}"
+            password = "{{ env "JIBRI_RECORDER_PASSWORD" }}"
+        }
+        strip-from-room-domain = "conference."
+        usage-timeout = "{{ env "JIBRI_USAGE_TIMEOUT" }}"
+        trust-all-xmpp-certs = true
+        randomize-control-muc-nickname = true
+    },
+{{ end -}}
+]
 EOF
 
-        destination = "local/xmpp-servers/servers"
+        destination = "local/etc/xmpp.conf"
         # instead of restarting, jibri will graceful shutdown when shard list changes
         change_mode = "script"
         change_script {
@@ -249,14 +280,12 @@ EOF
           fail_on_error = true
         }
       }
+
       template {
         data = <<EOF
 #!/usr/bin/with-contenv bash
 
-. /etc/cont-init.d/01-xmpp-servers
-/etc/cont-init.d/10-config
 /opt/jitsi/jibri/reload.sh
-cp /etc/jitsi/jibri/* /config
 EOF
         destination = "local/reload-config.sh"
         perms = "755"
@@ -265,7 +294,19 @@ EOF
       template {
         data = <<EOF
 #!/usr/bin/with-contenv bash
-cp /etc/jitsi/jibri/* /config
+
+apt-get update && apt-get -y install cron netcat-openbsd
+
+echo '* * * * * /opt/jitsi/scripts/jibri-status.sh' | crontab 
+
+EOF
+        destination = "local/01-status-cron"
+        perms = "755"
+      }
+
+      template {
+        data = <<EOF
+#!/usr/bin/with-contenv bash
 
 apt-get update && apt-get -y install cron netcat-openbsd
 
