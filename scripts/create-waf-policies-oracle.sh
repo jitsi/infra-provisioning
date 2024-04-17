@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-set -x
 
 # IF THE CURRENT DIRECTORY HAS stack-env.sh THEN INCLUDE IT
 [ -e ./stack-env.sh ] && . ./stack-env.sh
@@ -23,6 +22,7 @@ fi
 
 echo $ORACLE_REGIONS
 
+exit 0
 for ORACLE_REGION in $ORACLE_REGIONS; do
   echo $ORACLE_REGION
   ENVIRONMENT=$ENVIRONMENT ORACLE_REGION=$ORACLE_REGION $LOCAL_PATH/create-waf-policies-oracle.sh
