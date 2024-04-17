@@ -32,8 +32,9 @@ pipeline {
                             utils.SetupSSH()
                             sshagent (credentials: ['ssh-ubuntu']) {
                                 sh(
+                                    returnStdout: true,
                                     script: """#!/bin/bash
-                                    ENVIRONMENT=${env.ENVIRONMENT} ./terraform/ingress-firewall/create-ingress-waf-policy.sh"""
+                                    ENVIRONMENT=${env.ENVIRONMENT} ./scripts/create-waf-policies-oracle.sh"""
                                 )
                             }
                         }
