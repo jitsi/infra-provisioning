@@ -163,7 +163,7 @@ elif [ "$VERSIONING_ACTION" == "SET_RELEASE_EARLY_ACCESS" ]; then
   set -x
 
   REQUEST_BODY='{
-    "releaseStatus": "EARLY_ACCESS",
+    "releaseStatus": "EARLY_ACCESS"
   }'
 
   echo "## setting release $VERSIONING_RELEASE as EARLY_ACCESS"
