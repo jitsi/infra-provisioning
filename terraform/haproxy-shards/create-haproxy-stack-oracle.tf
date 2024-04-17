@@ -141,6 +141,14 @@ data "oci_ons_notification_topics" "pagerduty_notification_topics" {
     name = var.alarm_pagerduty_topic_name
 }
 
+data "oci_waf_web_app_firewall_policies" "regional_policy" {
+    #Required
+    compartment_id = var.compartment_ocid
+
+    #Optional
+    display_name = "${var.environment}-${var.oracle_region}-PublicWAFPolicy"
+}
+
 locals {
   overall_alarm_targets = var.alarm_pagerduty_is_enabled == "true" ? [data.oci_ons_notification_topics.pagerduty_notification_topics.notification_topics[0].topic_id] : [data.oci_ons_notification_topics.email_notification_topics.notification_topics[0].topic_id]
 }
@@ -158,6 +166,24 @@ resource "oci_load_balancer" "oci_load_balancer" {
   defined_tags = local.common_tags
   is_private = false
   network_security_group_ids = [var.lb_security_group_id]
+}
+
+resource "oci_waf_web_app_firewall" "oci_ingress_waf_firewall" {
+    #Required
+    backend_type = "LOAD_BALANCER"
+    compartment_id = var.compartment_ocid
+    load_balancer_id = oci_load_balancer.oci_load_balancer.id
+    web_app_firewall_policy_id = data.oci_waf_web_app_firewall_policies.regional_policy.web_app_firewall_policy_collection[0].items[0].id
+
+    #Optional
+    defined_tags = {
+      "${var.tag_namespace}.environment" = var.environment
+      "${var.tag_namespace}.environment_type" = var.environment_type
+    }
+
+    display_name = "${var.oracle_region}-HAProxyWAF"
+    #freeform_tags = {"bar-key"= "value"}
+    #system_tags = var.web_app_firewall_system_tags
 }
 
 resource "oci_load_balancer_backend_set" "oci_load_balancer_bs" {
