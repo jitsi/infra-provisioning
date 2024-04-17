@@ -1,4 +1,4 @@
-def versioningManagerSetEA(environment, release_number) {
+def versioningManagerSetEarlyAccess(environment, release_number) {
     sh(
         script: """#!/bin/bash
 export VERSIONING_ACTION=SET_RELEASE_EARLY_ACCESS
@@ -55,7 +55,7 @@ pipeline {
                             file(credentialsId: 'asap-jwt-key-dev', variable: 'ASAP_JWT_KEY_DEV'),
                             file(credentialsId: 'asap-jwt-key-prod', variable: 'ASAP_JWT_KEY_PROD')
                         ]) {
-                            versioningManagerSetGA(env.ENVIRONMENT, env.RELEASE_NUMBER)
+                            versioningManagerSetEarlyAccess(env.ENVIRONMENT, env.RELEASE_NUMBER)
                         }
                     }
                 }
