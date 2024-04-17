@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-set -x
 unset SSH_USER
 
 #IF THE CURRENT DIRECTORY HAS stack-env.sh THEN INCLUDE IT
@@ -39,10 +38,14 @@ fi
 [ -z "$USER_PUBLIC_KEY_PATH" ] && USER_PUBLIC_KEY_PATH="~/.ssh/id_ed25519.pub"
 [ -z "$USER_PRIVATE_KEY_PATH" ] && USER_PRIVATE_KEY_PATH="~/.ssh/id_ed25519"
 
+
+set -x
+
 [ -z "$S3_PROFILE" ] && S3_PROFILE="oracle"
 [ -z "$S3_STATE_BUCKET" ] && S3_STATE_BUCKET="tf-state-$ENVIRONMENT"
 [ -z "$S3_ENDPOINT" ] && S3_ENDPOINT="https://$ORACLE_S3_NAMESPACE.compat.objectstorage.$ORACLE_REGION.oraclecloud.com"
-[ -z "$S3_STATE_KEY" ] && S3_STATE_KEY="$ENVIRONMENT/ingress-waf/terraform.tfstate"
+[ -z "$S3_STATE_KEY" ] && S3_STATE_KEY="$ENVIRONMENT/ingress-waf/terraform-waf-policy.tfstate"
+LOCAL_STATE_KEY="terraform-waf-policy.tfstate"
 
 TERRAFORM_MAJOR_VERSION=$(terraform -v | head -1  | awk '{print $2}' | cut -d'.' -f1)
 TF_GLOBALS_CHDIR=
@@ -55,9 +58,6 @@ else
 fi
 
 # first find or create the waf policy
-[ -z "$S3_STATE_KEY" ] && S3_STATE_KEY="$ENVIRONMENT/ingress-waf/terraform.tfstate"
-LOCAL_STATE_KEY="terraform.tfstate"
-
 oci os object get --bucket-name $S3_STATE_BUCKET --name $S3_STATE_KEY --region $ORACLE_REGION --file $LOCAL_STATE_KEY
 
 # check to see if it's been created
@@ -68,7 +68,7 @@ if [ $? -eq 0 ]; then
 fi
 
 if [ -z "$WAF_POLICY_ID" ]; then
-  terraform $TF_GLOBALS_CHDIR_SG init \
+  TF_LOG=DEBUG terraform $TF_GLOBALS_CHDIR init \
     -backend-config="bucket=$S3_STATE_BUCKET" \
     -backend-config="key=$S3_STATE" \
     -backend-config="region=$ORACLE_REGION" \
@@ -76,7 +76,9 @@ if [ -z "$WAF_POLICY_ID" ]; then
     -backend-config="endpoint=$S3_ENDPOINT" \
     -reconfigure $TF_POST_PARAMS_SG
 
-  terraform $TF_GLOBALS_CHDIR_SG apply \
+  exit 0
+
+  terraform $TF_GLOBALS_CHDIR apply \
     -var="oracle_region=$ORACLE_REGION" \
     -var="tenancy_ocid=$TENANCY_OCID" \
     -var="compartment_ocid=$COMPARTMENT_OCID" \
