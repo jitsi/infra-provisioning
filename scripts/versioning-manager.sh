@@ -154,7 +154,7 @@ elif [ "$VERSIONING_ACTION" == "SET_RELEASE_GA" ]; then
     exit 1
   fi
 
-elif [ "$VERSIONING_ACTION" == "SET_RELEASE_EARLY_ACCESS"]; then
+elif [ "$VERSIONING_ACTION" == "SET_RELEASE_EARLY_ACCESS" ]; then
   if [ -z "$VERSIONING_RELEASE" ]; then
     echo "## ERROR: no VERSIONING_RELEASE provided or found for SET_RELEASE_GA, exiting..."
     exit 2
