@@ -20,6 +20,8 @@ if [ -z "$ORACLE_REGIONS" ]; then
   exit 2
 fi
 
+set -x
+
 for ORACLE_REGION in $ORACLE_REGIONS; do
   ENVIRONMENT=$ENVIRONMENT ORACLE_REGION=$ORACLE_REGION $LOCAL_PATH/terraform/ingress-firewall/create-ingress-waf-policy.sh
 done
