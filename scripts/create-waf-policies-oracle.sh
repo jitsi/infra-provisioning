@@ -20,10 +20,6 @@ if [ -z "$ORACLE_REGIONS" ]; then
   exit 2
 fi
 
-echo $ORACLE_REGIONS
-
-exit 0
 for ORACLE_REGION in $ORACLE_REGIONS; do
-  echo $ORACLE_REGION
-  ENVIRONMENT=$ENVIRONMENT ORACLE_REGION=$ORACLE_REGION $LOCAL_PATH/create-waf-policies-oracle.sh
+  ENVIRONMENT=$ENVIRONMENT ORACLE_REGION=$ORACLE_REGION $LOCAL_PATH/terraform/ingress-firewall/create-ingress-waf-policy.sh
 done
