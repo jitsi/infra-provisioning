@@ -1,7 +1,7 @@
 - job:
-    name: set-releasee-early-access
-    display-name: set release EARLY_ACCESS
-    description: 'Mark a release as EARLY_ACCESS, i.e., the default release that new traffic goes to.'
+    name: set-release-early-access
+    display-name: set release early access
+    description: 'Mark a release as early access, i.e., a release that customers can use to test new features.'
     concurrent: true
     parameters:
       - string:
