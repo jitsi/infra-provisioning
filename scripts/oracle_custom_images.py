@@ -183,7 +183,7 @@ if args.clean:
        print(("No prod_images cleanup needed for %s, only %s images found"%(args.type,len(prod_images))))
 
 elif args.get_shape_compatibility:
-    shapes=['VM.Standard.E3.Flex', 'VM.Standard.E4.Flex', 'VM.GPU.A10.1','VM.GPU.A10.2']
+    shapes=['VM.Standard.E3.Flex', 'VM.Standard.E4.Flex', 'VM.GPU.A10.1','VM.GPU.A10.2', 'VM.GPU2.1']
     if not args.image_id:
         print("No image_id provided, exiting...")
         exit(2)
@@ -196,7 +196,7 @@ elif args.get_shape_compatibility:
 
 elif args.add_shape_compatibility:
     shapes_by_arch={
-        'x86_64': ['VM.Standard.E3.Flex', 'VM.Standard.E4.Flex', 'VM.GPU.A10.1','VM.GPU.A10.2'],
+        'x86_64': ['VM.Standard.E3.Flex', 'VM.Standard.E4.Flex', 'VM.GPU.A10.1','VM.GPU.A10.2', 'VM.GPU2.1'],
         'aarch64': ['VM.Standard.A1.Flex']
     }
     if not args.image_id:
