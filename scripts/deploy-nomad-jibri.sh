@@ -50,8 +50,12 @@ NOMAD_DC="$ENVIRONMENT-$ORACLE_REGION"
 
 ASAP_KEY_VARIABLE="asap_key_$ENVIRONMENT_TYPE"
 
-JIBRI_XMPP_PASSWORD_VARIABLE="jibri_auth_password"
-JIBRI_RECORDER_PASSWORD_VARIABLE="jibri_selenium_auth_password"
+
+JIBRI_AUTH_TYPE="$(yq eval ".jibri_auth_type" < "$ENVIRONMENT_CONFIGURATION_FILE")"
+[[ "$JIBRI_AUTH_TYPE" == "null" ]] && JIBRI_AUTH_TYPE="A"
+
+JIBRI_XMPP_PASSWORD_VARIABLE="secrets_jibri_brewery_by_environment_${JIBRI_AUTH_TYPE}.${ENVIRONMENT}"
+JIBRI_RECORDER_PASSWORD_VARIABLE="secrets_jibri_selenium_by_environment_${JIBRI_AUTH_TYPE}.${ENVIRONMENT}"
 
 # ensure no output for ansible vault contents and fail if ansible-vault fails
 set +x
@@ -61,6 +65,8 @@ export NOMAD_VAR_jibri_xmpp_password="$(ansible-vault view $ENCRYPTED_JIBRI_CRED
 export NOMAD_VAR_jibri_recorder_password="$(ansible-vault view $ENCRYPTED_JIBRI_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${JIBRI_RECORDER_PASSWORD_VARIABLE}" -)"
 export NOMAD_VAR_asap_jwt_kid="$(ansible-vault view $ENCRYPTED_ASAP_KEYS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${ASAP_KEY_VARIABLE}.id" -)"
 
+export NOMAD_VAR_jibri_xmpp_user="jibri$(echo $JIBRI_AUTH_TYPE | tr '[:upper:]' '[:lower:]')"
+export NOMAD_VAR_jibri_recorder_user="jibri$(echo $JIBRI_AUTH_TYPE | tr '[:upper:]' '[:lower:]')"
 set -x
 
 JIBRI_USAGE_TIMEOUT="$(yq eval ".jibri_max_usage" < "$ENVIRONMENT_CONFIGURATION_FILE")"
