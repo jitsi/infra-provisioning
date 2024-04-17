@@ -160,6 +160,8 @@ elif [ "$VERSIONING_ACTION" == "SET_RELEASE_EARLY_ACCESS"]; then
     exit 2
   fi
 
+  set -x
+
   REQUEST_BODY='{
     "releaseStatus": "EARLY_ACCESS",
   }'
