@@ -201,19 +201,16 @@ if [[ "$TERRAFORM_MAJOR_VERSION" == "v1" ]]; then
   TF_GLOBALS_CHDIR_SG="-chdir=$LOCAL_PATH/security-group"
   TF_GLOBALS_CHDIR_LBSG="-chdir=$LOCAL_PATH/load-balancer-security-group"
   TF_GLOBALS_CHDIR_RS="-chdir=$LOCAL_PATH/load-balancer-ruleset"
-  TF_GLOBALS_CHDIR_WAF="-chdir=$LOCAL_PATH/load-balancer-firewall"
   TF_CLI_ARGS=""
   TF_POST_PARAMS=
   TF_POST_PARAMS_SG=
   TF_POST_PARAMS_LBSG=
   TF_POST_PARAMS_RS=
-  TF_POST_PARAMS_WAF=
 else
   TF_POST_PARAMS="$LOCAL_PATH"
   TF_POST_PARAMS_SG="$LOCAL_PATH/security-group"
   TF_POST_PARAMS_LBSG="$LOCAL_PATH/load-balancer-security-group"
   TF_POST_PARAMS_RS="$LOCAL_PATH/load-balancer-rule-set"
-  TF_POST_PARAMS_WAF="$LOCAL_PATH/load-balancer-firewall"
 fi
 
 # first find or create the haproxy security group
@@ -424,52 +421,5 @@ fi
 
 if [ -z "$LB_RULE_SET_ID" ]; then
   echo "LB_RULE_SET_ID failed to be found or created, exiting..."
-  exit 3
-fi
-
-# find or create the load balancer waf firewall
-[ -z "$S3_STATE_LB_KEY_WAF" ] && S3_STATE_LB_KEY_RS="$ENVIRONMENT/haproxy-components/terraform-lb-waf.tfstate"
-LOCAL_LB_KEY_WAF="terraform-lb-waf.tfstate"
-
-## first make sure the policy exists
-
-
-
-## check to see if the waf already exists
-
-oci os object get --bucket-name $S3_STATE_BUCKET --name $S3_STATE_LB_KEY_WAF --region $ORACLE_REGION --file $LOCAL_LB_KEY_WAF
-
-if [ $? -eq 0 ]; then
-  LB_WAF_ID="$(cat $LOCAL_LB_KEY_WAF | jq -r '.resources[]
-      | select(.type == "oci_waf_web_app_firewall")
-      | .load_balancer_id')"
-fi
-
-if [ -z "$LB_WAF_ID" ]; then
-  terraform $TF_GLOBALS_CHDIR_WAF init \
-    -backend-config="bucket=$S3_STATE_BUCKET" \
-    -backend-config="key=$S3_STATE_LB_KEY_WAF" \
-    -backend-config="region=$ORACLE_REGION" \
-    -backend-config="profile=$S3_PROFILE" \
-    -backend-config="endpoint=$S3_ENDPOINT" \
-    -reconfigure $TF_POST_PARAMS_WAF
-
-  terraform $TF_GLOBALS_CHDIR_WAF apply \
-    -var="oracle_region=$ORACLE_REGION" \
-    -var="tenancy_ocid=$TENANCY_OCID" \
-    -var="compartment_ocid=$COMPARTMENT_OCID" \
-    -var="load_balancer_id=$OCI_LOAD_BALANCER_ID" \
-    -var="waf_policy_id=$WAF_POLICY_ID" \
-    -auto-approve $TF_POST_PARAMS_WAF
-
-  oci os object get --bucket-name $S3_STATE_BUCKET --name $S3_STATE_LB_KEY_WAF --region $ORACLE_REGION --file $LOCAL_LB_KEY_WAF
-
-  LB_WAF_ID="$(cat $LOCAL_LB_KEY_WAF | jq -r '.resources[]
-      | select(.type == "oci_waf_web_app_firewall")
-      | .load_balancer_id')"
-fi
-
-if [ -z "$LB_WAF_ID" ]; then
-  echo "LB_WAF_ID failed to be found or created, exiting..."
   exit 3
 fi
