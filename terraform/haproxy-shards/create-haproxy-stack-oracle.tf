@@ -160,6 +160,25 @@ resource "oci_load_balancer" "oci_load_balancer" {
   network_security_group_ids = [var.lb_security_group_id]
 }
 
+resource "oci_waf_web_app_firewall" "oci_ingress_waf_firewall" {
+    #Required
+    backend_type = "LOAD_BALANCER"
+    compartment_id = var.compartment_ocid
+    load_balancer_id = oci_load_balancer.oci_load_balancer.id
+    web_app_firewall_policy_id = var.waf_policy_id
+
+    #Optional
+    #defined_tags = {"foo-namespace.bar-key"= "value"}
+    display_name = var.name
+    #freeform_tags = {"bar-key"= "value"}
+    #system_tags = var.web_app_firewall_system_tags
+}
+
+locals {
+  firewall_id = oci_waf_web_app_firewall.oci_ingress_waf_firewall.id
+  firewall_name = oci_waf_web_app_firewall.oci_ingress_waf_firewall.display_name
+}
+
 resource "oci_load_balancer_backend_set" "oci_load_balancer_bs" {
   load_balancer_id = oci_load_balancer.oci_load_balancer.id
   name = "HAProxyLBBS"

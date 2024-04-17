@@ -3,7 +3,6 @@ variable "name" {}
 variable "oracle_region" {}
 variable "tenancy_ocid" {}
 variable "compartment_ocid" {}
-variable "resource_name_root" {}
 variable "environment_type" {}
 variable "tag_namespace" {}
 
