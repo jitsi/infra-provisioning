@@ -1,10 +1,10 @@
 #!/bin/bash
 
-## wrapper to call jitsi-versioning service
-## create/delete new releases on jitsi-versioning-service
-## set a release on jitsi-versioning-service as GA
-## pin a tenant to a release
-## delete a tenant pin
+## wrapper to call jitsi-versioning service to perform various actions
+
+## CRUD release: CREATE_RELEASE, DELETE_RELEASE, SET_RELEASE_GA, SET_RELEASE_EARLY_ACCESS, UPDATE_RELEASE_TITLE
+## list releases: GET_RELEASE, GET_RELEASES
+## tenant release pinning management: SET_TENANT_PIN, DELETE_TENANT_PIN, UNPIN_ALL_FROM_RELEASE
 
 echo "# starting versioning-manager.sh"
 
