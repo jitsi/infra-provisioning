@@ -160,37 +160,8 @@ elif [ "$VERSIONING_ACTION" == "SET_RELEASE_EARLY_ACCESS"]; then
     exit 2
   fi
 
-  echo "## getting information for $VERSIONING_RELEASE"
-  response=$(curl -s -w '\n %{http_code}' -X GET \
-      "$VERSIONING_URL"/v1/releases/"$VERSIONING_RELEASE"?environment="$ENVIRONMENT" \
-      -H 'accept: application/json' \
-      -H 'Content-Type: application/json' \
-      -H "Authorization: Bearer $TOKEN")
-
-  httpCode=$(tail -n1 <<<"$response" | sed 's/[^0-9]*//g')
-  if [ "$httpCode" == 200 ]; then
-    echo "## got info for ${VERSIONING_RELEASE}:"
-    echo "$response" | jq
-  else
-    echo "## ERROR getting info for release $VERSIONING_RELEASE with status code $httpCode and response:\n$response"
-    exit 1
-  fi
-
-  RELEASE_VERSION=echo $response | jq ."version"
-  RELEASE_DATE=echo $response | jq ."releaseDate"
-  RELEASE_EOL=echo $response | jq ."endOfLife"
-  RELEASE_LTS=echo $response | jq ."lts"
-  RELEASE_TITLE=echo $response | jq ."releaseNotesTitle"
-
   REQUEST_BODY='{
-    "releaseNumber": "'"$VERSIONING_RELEASE"'",
-    "version": "'$RELEASE_VERSION'",
-    "environment": "'$ENVIRONMENT'",
-    "releaseDate": "'$RELEASE_DATE'",
-    "endOfLife": "'$RELEASE_EOL'",
-    "lts": '$RELEASE_LTS',
     "releaseStatus": "EARLY_ACCESS",
-    "releaseNotesTitle": "'$RELEASE_TITLE'"
   }'
 
   echo "## setting release $VERSIONING_RELEASE as EARLY_ACCESS"
