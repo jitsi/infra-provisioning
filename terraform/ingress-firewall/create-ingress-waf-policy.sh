@@ -54,17 +54,17 @@ else
   TF_POST_PARAMS="$LOCAL_PATH"
 fi
 
-TF_LOG=DEBUG terraform $TF_GLOBALS_CHDIR init \
+terraform $TF_GLOBALS_CHDIR init \
   -backend-config="bucket=$S3_STATE_BUCKET" \
-  -backend-config="key=$S3_STATE" \
+  -backend-config="key=$S3_STATE_KEY" \
   -backend-config="region=$ORACLE_REGION" \
   -backend-config="profile=$S3_PROFILE" \
   -backend-config="endpoint=$S3_ENDPOINT" \
   -reconfigure $TF_POST_PARAMS
 
-exit 0
 terraform $TF_GLOBALS_CHDIR apply \
   -var="oracle_region=$ORACLE_REGION" \
+  -var="environment=$ENVIRONMENT" \
   -var="tenancy_ocid=$TENANCY_OCID" \
   -var="compartment_ocid=$COMPARTMENT_OCID" \
   -auto-approve $TF_POST_PARAMS

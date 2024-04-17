@@ -1,4 +1,5 @@
 variable "oracle_region" {}
+variable "environment" {}
 variable "tenancy_ocid" {}
 variable "compartment_ocid" {}
 
@@ -23,11 +24,11 @@ terraform {
 
 resource "oci_waf_web_app_firewall_policy" "oci_ingress_waf_firewall_policy" {
   compartment_id = var.compartment_ocid
-  display_name = "${var.oracle_region}-PublicWAFPolicy"
+  display_name = "${var.environment}-${var.oracle_region}-PublicWAFPolicy"
 
   actions {
     name = "ForbiddenAction"
-    type = "PRECONFIGURED"
+    type = "RETURN_HTTP_RESPONSE"
     code = "403"
   }
 
