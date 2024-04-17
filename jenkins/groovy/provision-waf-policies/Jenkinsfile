@@ -31,8 +31,10 @@ pipeline {
                             utils.SetupAnsible()
                             utils.SetupSSH()
                             sshagent (credentials: ['ssh-ubuntu']) {
-                                sh '''#!/bin/bash
-                                ENVIRONMENT=${env.ENVIRONMENT} ./terraform/ingress-firewall/create-ingress-waf-policy.sh'''
+                                sh(
+                                    script: """#!/bin/bash
+                                    ENVIRONMENT=${env.ENVIRONMENT} ./terraform/ingress-firewall/create-ingress-waf-policy.sh"""
+                                )
                             }
                         }
                     }
