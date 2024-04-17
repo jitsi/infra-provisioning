@@ -146,7 +146,7 @@ data "oci_waf_web_app_firewall_policies" "regional_policy" {
     compartment_id = var.compartment_ocid
 
     #Optional
-    display_name = "${var.oracle_region}-PublicWAFPolicy"
+    display_name = "${var.environment}-${var.oracle_region}-PublicWAFPolicy"
 }
 
 locals {
