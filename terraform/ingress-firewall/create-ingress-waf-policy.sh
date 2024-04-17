@@ -54,6 +54,8 @@ else
   TF_POST_PARAMS="$LOCAL_PATH"
 fi
 
+set -x
+
 terraform $TF_GLOBALS_CHDIR init \
   -backend-config="bucket=$S3_STATE_BUCKET" \
   -backend-config="key=$S3_STATE_KEY" \
