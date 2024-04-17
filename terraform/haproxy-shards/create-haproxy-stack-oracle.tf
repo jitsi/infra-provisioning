@@ -181,7 +181,7 @@ resource "oci_waf_web_app_firewall" "oci_ingress_waf_firewall" {
       "${var.tag_namespace}.environment_type" = var.environment_type
     }
 
-    display_name = "${var.oracle_region}-HAProxyWAFFirewall"
+    display_name = "${var.oracle_region}-HAProxyWAF"
     #freeform_tags = {"bar-key"= "value"}
     #system_tags = var.web_app_firewall_system_tags
 }

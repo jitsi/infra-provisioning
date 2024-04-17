@@ -225,6 +225,11 @@ resource "oci_core_network_security_group_security_rule" "consul_nsg_rule_privat
   }
 }
 
+data "oci_waf_web_app_firewall_policies" "regional_policy" {
+    compartment_id = var.compartment_ocid
+    display_name = "${var.environment}-${var.oracle_region}-PublicWAFPolicy"
+}
+
 resource "oci_load_balancer" "public_oci_load_balancer" {
   compartment_id = var.compartment_ocid
   display_name = "${var.resource_name_root}-LoadBalancer"
@@ -239,6 +244,24 @@ resource "oci_load_balancer" "public_oci_load_balancer" {
   defined_tags = local.common_tags
   is_private = false
   network_security_group_ids = [oci_core_network_security_group.nomad_lb_security_group.id]
+}
+
+resource "oci_waf_web_app_firewall" "oci_ingress_waf_firewall" {
+    #Required
+    backend_type = "LOAD_BALANCER"
+    compartment_id = var.compartment_ocid
+    load_balancer_id = oci_load_balancer.oci_load_balancer.id
+    web_app_firewall_policy_id = data.oci_waf_web_app_firewall_policies.regional_policy.web_app_firewall_policy_collection[0].items[0].id
+
+    #Optional
+    defined_tags = {
+      "${var.tag_namespace}.environment" = var.environment
+      "${var.tag_namespace}.environment_type" = var.environment_type
+    }
+
+    display_name = "${var.oracle_region}-NomadPoolWAF"
+    #freeform_tags = {"bar-key"= "value"}
+    #system_tags = var.web_app_firewall_system_tags
 }
 
 resource "oci_load_balancer" "private_oci_load_balancer" {
