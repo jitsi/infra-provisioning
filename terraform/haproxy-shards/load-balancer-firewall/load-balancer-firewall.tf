@@ -1,21 +1,8 @@
-variable "environment" {}
-variable "name" {}
 variable "oracle_region" {}
 variable "tenancy_ocid" {}
 variable "compartment_ocid" {}
-variable "resource_name_root" {}
-variable "environment_type" {}
-variable "tag_namespace" {}
 variable "load_balancer_id" {}
 variable "waf_policy_id" {}
-
-locals {
-  common_tags = {
-    "${var.tag_namespace}.environment" = var.environment
-    "${var.tag_namespace}.environment_type" = var.environment_type
-    "${var.tag_namespace}.Name" = var.name
-  }
-}
 
 provider "oci" {
   region = var.oracle_region
