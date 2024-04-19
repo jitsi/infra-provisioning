@@ -58,7 +58,7 @@ resource "oci_waf_web_app_firewall_policy" "oci_ingress_waf_firewall_policy" {
       }
       protection_capabilities {
         key = "921150"  ## argument newline detection
-        version = "2"
+        version = "1"
       }
       protection_capabilities {
         key = "921160"  ## argument newline detection
