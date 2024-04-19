@@ -1,8 +1,17 @@
 - job:
-    name: release-core
-    display-name: release core (shards)
+    name: release-core-clone
+    display-name: release core clone (shards)
+    description: clone a release for exclusive use by a customer
     concurrent: true
     parameters:
+      - string:
+          name: EXCLUSIVE_CLONED_RELEASE_NUMBER
+          description: "the release number to clone for use by the customer"
+          trim: true
+      - string:
+          name: EXCLUSIVE_TENANCY
+          description: "the tenancy to clone the exclusive release for"
+          trim: true
       - string:
           name: SIGNAL_VERSION
           description: "Signal image version for shard."
@@ -79,16 +88,6 @@
           name: INFRA_CUSTOMIZATIONS_REPO
           default: git@github.com:jitsi/infra-customizations.git
           description: "Repo with customized configurations, defaults to 'git@github.com:jitsi/infra-customizations.git'."
-          trim: true
-      - hidden:
-          name: EXCLUSIVE_CLONED_RELEASE_NUMBER
-          description: "the release number to clone for use by the customer"
-          default: "NONE"
-          trim: true
-      - hidden:
-          name: EXCLUSIVE_TENANCY
-          description: "the tenancy to clone the exclusive release for"
-          default: "NONE"
           trim: true
  
     project-type: pipeline

@@ -1,0 +1,70 @@
+def versioningManagerSetActivated(environment, release_number) {
+    sh(
+        script: """#!/bin/bash
+export VERSIONING_ACTION=ACTIVATE_EXCLUSIVE_RELEASE
+export VERSIONING_RELEASE="${release_number}"
+ENVIRONMENT=${environment} scripts/versioning-manager.sh
+"""
+    )
+}
+
+pipeline {
+    agent any
+    options {
+        ansiColor('xterm')
+        timestamps()
+        buildDiscarder(logRotator(numToKeepStr: '10', artifactNumToKeepStr: '10'))
+    }
+    stages {
+        stage ("setup") {
+            steps {
+                script {
+                    // load utility function
+                    def rootDir = pwd()
+                    utils = load "${rootDir}/jenkins/groovy/Utils.groovy"
+                    // checkout repos
+                    utils.SetupRepos(env.VIDEO_INFRA_BRANCH)
+
+                    sh 'mkdir -p test-results'
+                }
+            }
+        }  
+        stage ("load flags") {
+            steps {
+                script {
+                    dir("infra-provisioning") {
+                        useReleaseBackends = utils.GetEnvironmentVar(env.ENVIRONMENT, "USE_RELEASE_BACKENDS")
+                        echo useReleaseBackends
+                    }
+                }
+            }
+        }
+        stage ("set exclusive release ACTIVATED in versioning manager") {
+            when {
+                expression { useReleaseBackends == 'true' }
+            }
+            steps {
+                script {
+                    dir("infra-provisioning") {
+                        withCredentials([
+                            string(credentialsId: 'asap-jwt-kid-dev', variable: 'ASAP_JWT_KID_DEV'),
+                            string(credentialsId: 'asap-jwt-kid-prod', variable: 'ASAP_JWT_KID_PROD'),
+                            file(credentialsId: 'asap-jwt-key-dev', variable: 'ASAP_JWT_KEY_DEV'),
+                            file(credentialsId: 'asap-jwt-key-prod', variable: 'ASAP_JWT_KEY_PROD')
+                        ]) {
+                            versioningManagerSetGA(env.ENVIRONMENT, env.RELEASE_NUMBER)
+                        }
+                    }
+                }
+            }
+        }
+     }
+     post {
+        always {
+            cleanWs()
+        }
+        failure {
+            slackSend color: "danger", message: "${env.JOB_NAME} - build ${env.BUILD_NUMBER} failed to activate exclusive release ${env.RELEASE_NUMBER} as GA in ${env.ENVIRONMENT}"
+        }
+    }
+}
