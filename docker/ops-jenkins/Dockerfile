@@ -24,4 +24,4 @@ RUN usermod -a -G docker jenkins && usermod -a -G shadow jenkins
 RUN adduser -q --disabled-password --gecos "" ubuntu && mkdir /home/ubuntu/.ssh && chown ubuntu /home/ubuntu/.ssh
 RUN mkdir -p /home/jenkins/triggers && touch /home/jenkins/triggers/reconfigure-users-jenkins && chown -R jenkins:jenkins /home/jenkins/triggers
 USER jenkins
-RUN jenkins-plugin-cli --plugins "ansicolor ant rebuild docker-plugin docker-slaves git-parameter aws-credentials next-build-number build-timestamp fstrigger github junit lockable-resources maven-plugin nomad parameterized-trigger plain-credentials slack ssh-agent ssh-credentials timestamper ws-cleanup script-security docker-workflow saferestart"
+RUN jenkins-plugin-cli --plugins "ansicolor ant rebuild docker-plugin docker-slaves git-parameter aws-credentials next-build-number build-timestamp fstrigger github junit lockable-resources maven-plugin nomad parameterized-trigger plain-credentials slack ssh-agent ssh-credentials timestamper ws-cleanup script-security docker-workflow saferestart dark-theme"
