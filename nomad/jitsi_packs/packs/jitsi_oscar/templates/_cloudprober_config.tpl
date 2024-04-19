@@ -277,7 +277,28 @@ probe {
   interval_msec: 60000
   timeout_msec: 2000
 }
-
+[[ end -]]
+[[ if var "enable_vault" . -]]
+# probes vault health in the local datacenter
+probe {
+  name: "vault"
+  type: HTTP
+  targets {
+    host_names: "[[ var "environment" . ]]-[[ var "oracle_region" . ]]-vault.[[ var "top_level_domain" . ]]"
+  }
+  http_probe {
+    protocol: HTTPS
+    relative_url: "/v1/sys/health"
+  }
+  validator {
+      name: "status_code_2xx"
+      http_validator {
+          success_status_codes: "200-299"
+      }
+  }
+  interval_msec: 60000
+  timeout_msec: 2000
+}
 [[ end -]]
 
 [[ end -]]
