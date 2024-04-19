@@ -130,13 +130,6 @@ scrape_configs:
     params:
       format: ['prometheus']
 
-  - job_name: 'loki'
-    consul_sd_configs:
-    - server: '{{ env "NOMAD_IP_prometheus_ui" }}:8500'
-      services: ['loki']
-    scrape_interval: 30s
-    metrics_path: /metrics
-
   - job_name: 'nomad'
     consul_sd_configs:
     - server: '{{ env "NOMAD_IP_prometheus_ui" }}:8500'
@@ -155,6 +148,12 @@ scrape_configs:
     metrics_path: /v1/metrics
     params:
       format: ['prometheus']
+
+  - job_name: 'oscar'
+    scrape_interval: 10s
+    consul_sd_configs:
+    - server: '{{ env "NOMAD_IP_prometheus_ui" }}:8500'
+      services: ['oscar']
 
   - job_name: 'prometheus'
     scrape_interval: 5s
@@ -234,7 +233,7 @@ groups:
 - name: oscar_alerts
   rules:
   - alert: OscarProbeUnhealthy
-    expr: ((rate(jitsi_oscar_failure[5m]) > 0) and on() count_over_time(rate(jitsi_oscar_failure[5m])[5m:1m]) >= 5) or (rate(jitsi_oscar_timeouts[5m]) > 0)
+    expr: (rate(jitsi_oscar_failure{probe!="shard"}[5m]) > 0) or (rate(jitsi_oscar_timeouts{probe!="shard"}[5m]) > 0)
     for: 1m
     labels:
       type: infra
@@ -242,6 +241,15 @@ groups:
     annotations:
       summary: http probe from ${var.dc} to {{ $labels.dst }} is unhealthy
       description: The oscar {{ $labels.probe }} http probe from ${var.dc} to {{ $labels.dst }} timed-out or received an unhealthy response.
+  - alert: ShardUnhealthy
+    expr: ((rate(jitsi_oscar_failure{probe="shard"}[5m]) > 0) and on() count_over_time(rate(jitsi_oscar_failure{probe="shard"}[5m])[5m:1m]) >= 5) or (rate(jitsi_oscar_timeouts{probe="shard"}[5m]) > 0)
+    for: 1m
+    labels:
+      type: infra
+      severity: critical
+    annotations:
+      summary: shard {{ $labels.dst }} probe returned unhealthy from ${var.dc}
+      description: An internal oscar probe from ${var.dc} to the {{ $labels.dst }} shard received an unhealthy response from signal-sidecar. This may be due to a variety of issues, most often when jicofo or prosody goes unhealthy.
   - alert: HAProxyRegionMismatch
     expr: jitsi_oscar_haproxy_region_mismatch < 1
     for: 1m
