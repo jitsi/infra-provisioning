@@ -40,9 +40,9 @@ resource "oci_waf_web_app_firewall_policy" "oci_ingress_waf_firewall_policy" {
     default_action_name = "DefaultAllow"
     rules {
       action_name = "ForbiddenAction"
-      name = "CustomRequestSmuggleRule"
+      name = "HTTP request smuggling"
       type = "ACCESS_CONTROL"
-      condition = "i_contains(keys(http.request.headers), 'Content-Length') && i_contains(http.request.headers.\"Transfer-Encoding\", 'chunked')"
+      condition = "i_contains(keys(http.request.headers), 'Content-Length') && i_contains(http.request.headers.\"transfer-encoding\", 'chunked')"
       condition_language = "JMESPATH"
     }
   }
@@ -50,7 +50,7 @@ resource "oci_waf_web_app_firewall_policy" "oci_ingress_waf_firewall_policy" {
   request_protection {
     rules {
       action_name = "ForbiddenAction"
-      name = "preconfigured HTTP protections"
+      name = "builtin HTTP protections"
       #protection_capabilities {
       #  key = "920390"  ## Limit arguments total length (max_total_argument_length)
       #  version = "1"
