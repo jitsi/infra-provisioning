@@ -26,14 +26,25 @@ resource "oci_waf_web_app_firewall_policy" "oci_ingress_waf_firewall_policy" {
   compartment_id = var.compartment_ocid
   display_name = "${var.environment}-${var.oracle_region}-PublicWAFPolicy"
 
-#  actions {
-#    name = "DefaultAllow"
-#    type = "ALLOW"
-#  }
+  actions {
+    name = "DefaultAllow"
+    type = "ALLOW"
+  }
   actions {
     name = "ForbiddenAction"
     type = "RETURN_HTTP_RESPONSE"
     code = "403"
+  }
+
+  request_access_control {
+    default_action_name = "DefaultAllow"
+    rules {
+      action_name = "ForbiddenAction"
+      name = "CustomRequestSmuggleRule"
+      type = "ACCESS_CONTROL"
+      condition = "i_contains(keys(http.request.headers), 'Content-Length') && i_contains(http.request.headers."Transfer-Encoding", 'chunked')"
+      condition_language = "JMESPATH"
+    }
   }
 
   request_protection {
