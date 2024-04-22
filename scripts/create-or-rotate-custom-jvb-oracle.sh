@@ -55,6 +55,11 @@ if [ "$ENABLE_E_4" == "true" ]; then
   JVB_SHAPE="$SHAPE_E_4"
 fi
 
+# next check E5 flag
+if [ "$ENABLE_E_5" == "true" ]; then
+  JVB_SHAPE="$SHAPE_E_5"
+fi
+
 # use A1 if configured
 if [ "$ENABLE_A_1" == "true" ]; then
   JVB_SHAPE="$SHAPE_A_1"
@@ -150,6 +155,11 @@ METADATA_LIB_PATH="$LOCAL_PATH/../terraform/lib"
 [ -z "$USER_PUBLIC_KEY_PATH" ] && USER_PUBLIC_KEY_PATH=~/.ssh/id_ed25519.pub
 
 if [[ "$SHAPE" == "VM.Standard.E4.Flex" ]]; then
+  [ -z "$OCPUS" ] && OCPUS=4
+  [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=12
+fi
+
+if [[ "$SHAPE" == "VM.Standard.E5.Flex" ]]; then
   [ -z "$OCPUS" ] && OCPUS=4
   [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=12
 fi
