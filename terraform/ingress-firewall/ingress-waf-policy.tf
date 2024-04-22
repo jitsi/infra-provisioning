@@ -42,7 +42,7 @@ resource "oci_waf_web_app_firewall_policy" "oci_ingress_waf_firewall_policy" {
       action_name = "ForbiddenAction"
       name = "CustomRequestSmuggleRule"
       type = "ACCESS_CONTROL"
-      condition = "i_contains(keys(http.request.headers), 'Content-Length') && i_contains(http.request.headers."Transfer-Encoding", 'chunked')"
+      condition = "i_contains(keys(http.request.headers), 'Content-Length') && i_contains(http.request.headers.'Transfer-Encoding', 'chunked')"
       condition_language = "JMESPATH"
     }
   }
