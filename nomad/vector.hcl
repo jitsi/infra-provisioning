@@ -103,13 +103,39 @@ job "vector" {
             multiline.mode = "halt_before"
             multiline.condition_pattern = "^Jicofo "
             multiline.start_pattern = "^Jicofo "
+          [sources.loki_logs]
+            type = "docker_logs"
+            include_containers = ["loki-"]
+            multiline.timeout_ms = 300
+            multiline.mode = "halt_before"
+            multiline.condition_pattern = "^level= "
+            multiline.start_pattern = "^level= "
           [sources.logs]
             type = "docker_logs"
-            exclude_containers = ["jicofo-","jvb-","jibri-"]
+            exclude_containers = ["jicofo-","jvb-","jibri-","loki-"]
           [sources.syslog]
             type = "syslog"
             address = "0.0.0.0:9000"
             mode = "tcp"
+          [sinks.loki_lokilogs]
+            remove_timestamp = false
+            type = "loki"
+            inputs = ["loki_to_structure"]
+            endpoint = "https://[[ env "meta.environment" ]]-[[ env "meta.cloud_region" ]]-loki.${var.top_level_domain}"
+            encoding.codec = "json"
+            healthcheck.enabled = true
+            # since . is used by Vector to denote a parent-child relationship, and Nomad's Docker labels contain ".",
+            # we need to escape them twice, once for TOML, once for Vector
+            # remove fields that have been converted to labels to avoid having the field twice
+            remove_label_fields = true
+                [sinks.loki_lokilogs.labels]
+                    alloc = "{{ label.\"com.hashicorp.nomad.alloc_id\" }}"
+                    job = "{{ label.\"com.hashicorp.nomad.job_name\" }}"
+                    task = "{{ label.\"com.hashicorp.nomad.task_name\" }}"
+                    group = "{{ label.\"com.hashicorp.nomad.task_group_name\" }}"
+                    namespace = "logs"
+                    node = "{{ label.\"com.hashicorp.nomad.node_name\" }}"
+                    region = "[[ env "meta.cloud_region" ]]"
           [sinks.loki_syslog]
             remove_timestamp = false
             type = "loki"
@@ -129,6 +155,17 @@ job "vector" {
                     namespace = "system"
                     node = "[[ env "node.unique.name" ]]"
                     region = "[[ env "meta.cloud_region" ]]"
+          [transforms.loki_to_structure]
+            type = "remap"
+            inputs = ["loki_logs"]
+            source = """
+
+            structured =
+              parse_key_value(.message) ??
+              parse_json(.message) ??
+              {}
+            . = merge(., structured) ?? .
+            .timestamp = parse_timestamp(.ts, "%+")"""
           [transforms.message_to_structure]
             type = "remap"
             inputs = ["logs","jibri_logs","jicofo_logs","jvb_logs"]
