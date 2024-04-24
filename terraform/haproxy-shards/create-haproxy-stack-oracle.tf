@@ -1,4 +1,5 @@
 variable "environment" {}
+variable "domain" {}
 variable "name" {}
 variable "oracle_region" {}
 variable "availability_domains" {
@@ -101,6 +102,7 @@ locals {
     "${var.tag_namespace}.git_branch" = var.git_branch
     "${var.tag_namespace}.role" = var.role
     "${var.tag_namespace}.Name" = var.name
+    "${var.tag_namespace}.domain" = var.domain
   }
 }
 

@@ -329,6 +329,7 @@ terraform $TF_GLOBALS_CHDIR init \
 
 terraform $TF_GLOBALS_CHDIR $ACTION \
   -var="environment=$ENVIRONMENT" \
+  -var="domain=$DOMAIN" \
   -var="name=$NAME" \
   -var="oracle_region=$ORACLE_REGION" \
   -var="availability_domains=$AVAILABILITY_DOMAINS" \
