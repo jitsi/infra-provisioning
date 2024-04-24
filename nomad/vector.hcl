@@ -165,7 +165,7 @@ job "vector" {
               parse_json(.message) ??
               {}
             . = merge(., structured) ?? .
-            .timestamp = parse_timestamp(.ts, "%+")"""
+            .timestamp = parse_timestamp(.ts, "%+") ?? .timestamp"""
           [transforms.message_to_structure]
             type = "remap"
             inputs = ["logs","jibri_logs","jicofo_logs","jvb_logs"]
