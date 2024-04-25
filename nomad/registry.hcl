@@ -69,6 +69,34 @@ job "[JOB_NAME]" {
         ports = ["http"]
       }
 
+      env {
+        REGISTRY_STORAGE="s3"
+        REGISTRY_STORAGE_S3_BUCKET="ops-repo"
+        REGISTRY_STORAGE_S3_ROOTDIRECTORY="/registry"
+        REGISTRY_STORAGE_DELETE_ENABLED = "true"
+        REGISTRY_AUTH = "htpasswd"
+        REGISTRY_AUTH_HTPASSWD_PATH  = "/secrets/auth-htpasswd"
+        REGISTRY_AUTH_HTPASSWD_REALM = "Registry"
+      }
+
+      template {
+        change_mode = "noop"
+        destination = "/secrets/auth-htpasswd"
+
+        data = <<EOH
+{{ with secret "secret/data/registry/htpasswd" }}
+{{ .Data.data.username }}:{{ .Data.data.password | md5sum }}
+{{ end -}}
+EOH
+      }
+
+      // eventually decide if this is going to be a volume mount or a bucket
+      // volume_mount {
+      //   volume      = "registry"
+      //   destination = "/registry/data"
+      //   read_only   = false
+      // }
+
       resources {
         cpu    = 9000
         memory = 1000
