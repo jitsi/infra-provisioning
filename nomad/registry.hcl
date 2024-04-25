@@ -41,7 +41,7 @@ job "[JOB_NAME]" {
 
     network {
       port "http" {
-        to = 80
+        to = 5000
       }
     }
 
@@ -79,16 +79,21 @@ job "[JOB_NAME]" {
       }
 
       env {
+        REGISTRY_LOG_LEVEL="debug"
         REGISTRY_STORAGE="s3"
         REGISTRY_STORAGE_S3_BUCKET="ops-repo"
         REGISTRY_STORAGE_S3_ROOTDIRECTORY="/registry"
         REGISTRY_STORAGE_S3_REGION = "${var.oracle_region}"
         REGISTRY_STORAGE_S3_REGIONENDPOINT = "https://${var.oracle_s3_namespace}.compat.objectstorage.${meta.cloud_region}.oraclecloud.com"
         REGISTRY_STORAGE_S3_FORCEPATHSTYLE = "true"
+        REGISTRY_STORAGE_S3_V4AUTH = "true"
+        REGISTRY_STORAGE_S3_SECURE = "true"
+        REGISTRY_STORAGE_S3_ENCRYPT = "false"
         REGISTRY_STORAGE_DELETE_ENABLED = "true"
         REGISTRY_AUTH = "htpasswd"
         REGISTRY_AUTH_HTPASSWD_PATH  = "/secrets/auth-htpasswd"
         REGISTRY_AUTH_HTPASSWD_REALM = "Registry"
+        REGISTRY_HTTP_SECRET = "registrysecret"
       }
 
       template {
@@ -108,6 +113,7 @@ REGISTRY_STORAGE_S3_SECRETKEY="{{ .Data.data.secret_key }}"
     {{ scratch.SetX "redis" $item  -}}
 {{ end -}}
 {{ with scratch.Get "redis" -}}
+REGISTRY_CACHE_BLOBDESCRIPTOR="redis"
 REGISTRY_REDIS_ADDR="{{ .Address }}:{{ .Port }}"
 REGISTRY_REDIS_DB="3"
 REGISTRY_REDIS_TLS_ENABLED="false"
@@ -124,7 +130,7 @@ REGISTRY_REDIS_TLS_ENABLED="false"
 
         data = <<EOH
 {{- with secret "secret/default/docker-registry/htpasswd" }}
-{{ .Data.data.username }}:{{ .Data.data.password | md5sum }}
+{{ .Data.data.username }}:{{ .Data.data.password }}
 {{ end -}}
 EOH
       }
