@@ -104,7 +104,7 @@ REGISTRY_STORAGE_S3_SECRETKEY="{{ .Data.data.secret_key }}"
 
       template {
         data = <<EOF
-{{ range $index, $item := service "[[ var "master.resec-redis" . ]]" -}}
+{{ range $index, $item := service "master.resec-redis" -}}
     {{ scratch.SetX "redis" $item  -}}
 {{ end -}}
 {{ with scratch.Get "redis" -}}
