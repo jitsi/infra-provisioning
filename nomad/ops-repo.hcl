@@ -59,13 +59,6 @@ job "ops-repo" {
       }
     }
 
-    volume "s3fs-passwd" {
-      type      = "host"
-      read_only = true
-      source    = "s3fs-passwd"
-    }
-
-
     task "ops-repo" {
       service {
         name = "ops-repo"
@@ -89,6 +82,10 @@ job "ops-repo" {
 
       driver = "docker"
 
+      vault {
+        change_mode = "noop"
+      }
+
       config {
         image = "aaronkvanmeerten/ops-repo:latest"
         force_pull = false
@@ -98,14 +95,8 @@ job "ops-repo" {
         devices = [{ host_path = "/dev/fuse" }]
         volumes = [
 	        "local/htpasswd:/etc/nginx/htpasswd.repo",
-            "local/mount.sh:/docker-entrypoint.d/10-mount.sh"
-    	]
-      }
-
-      volume_mount {
-        volume      = "s3fs-passwd"
-        destination = "/etc/s3fs-passwd"
-        read_only   = true
+          "local/mount.sh:/docker-entrypoint.d/10-mount.sh"
+      	]
       }
 
       resources {
@@ -113,6 +104,14 @@ job "ops-repo" {
         memory = 1000
       }
 
+      template {
+        destination = "secrets/s3fs-passwd"
+        data = <<EOF
+{{ with secret "secret/default/ops-repo/s3" -}}
+{{ .Data.data.access_key }}:{{ .Data.data.secret_key }}
+{{ end -}}
+EOF
+      }
       template {
         destination = "local/htpasswd"
         data = <<EOF
@@ -126,11 +125,10 @@ EOF
         data = <<EOF
 #!/bin/bash
 
-rm -rf /mnt/ops-repo/repo
-cp /etc/s3fs-passwd /etc/.s3fs-passwd
+cp /secrets/s3fs-passwd /etc/.s3fs-passwd
 chown root:root /etc/.s3fs-passwd
 chmod 0600 /etc/.s3fs-passwd
-echo 's3fs#${var.ops_bucket} /mnt/ops-repo fuse _netdev,passwd_file=/etc/.s3fs-passwd,url=https://${var.oracle_s3_namespace}.compat.objectstorage.${var.oracle_region}.oraclecloud.com,nomultipart,use_path_request_style,endpoint=${var.oracle_region},allow_other,umask=000 0 0' >> /etc/fstab
+echo 's3fs#${var.ops_bucket} /mnt/ops-repo fuse _netdev,passwd_file=/etc/.s3fs-passwd,url=https://${var.oracle_s3_namespace}.compat.objectstorage.${var.oracle_region}.oraclecloud.com,nomultipart,use_path_request_style,endpoint=${var.oracle_region},allow_other,nonempty,umask=000 0 0' >> /etc/fstab
 
 mount /mnt/ops-repo
 EOF
