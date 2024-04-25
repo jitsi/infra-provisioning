@@ -6,6 +6,10 @@ variable "oracle_region" {
     type = string
 }
 
+variable "oracle_s3_namespace" {
+    type = string
+}
+
 variable "registry_hostname" {
     type = string
 }
@@ -20,7 +24,7 @@ job "[JOB_NAME]" {
      value     = "linux"
    }
 
-  group "registry" {
+  group "docker-registry" {
     count = 1
 
     constraint {
@@ -41,7 +45,7 @@ job "[JOB_NAME]" {
       }
     }
 
-    task "registry" {
+    task "docker-registry" {
       service {
         name = "docker-registry"
         tags = ["int-urlprefix-${var.registry_hostname}/"]
@@ -56,10 +60,15 @@ job "[JOB_NAME]" {
           name     = "health"
           type     = "http"
           port     = "http"
-          path     = "/health"
+          path     = "/"
           interval = "10s"
           timeout  = "2s"
         }
+      }
+
+      vault {
+        change_mode = "noop"
+        
       }
 
       driver = "docker"
@@ -73,6 +82,9 @@ job "[JOB_NAME]" {
         REGISTRY_STORAGE="s3"
         REGISTRY_STORAGE_S3_BUCKET="ops-repo"
         REGISTRY_STORAGE_S3_ROOTDIRECTORY="/registry"
+        REGISTRY_STORAGE_S3_REGION = "${var.oracle_region}"
+        REGISTRY_STORAGE_S3_REGIONENDPOINT = "https://${var.oracle_s3_namespace}.compat.objectstorage.${meta.cloud_region}.oraclecloud.com"
+        REGISTRY_STORAGE_S3_FORCEPATHSTYLE = "true"
         REGISTRY_STORAGE_DELETE_ENABLED = "true"
         REGISTRY_AUTH = "htpasswd"
         REGISTRY_AUTH_HTPASSWD_PATH  = "/secrets/auth-htpasswd"
@@ -80,11 +92,38 @@ job "[JOB_NAME]" {
       }
 
       template {
+        data = <<EOF
+{{ with secret "secret/default/docker-registry/s3" -}}
+REGISTRY_STORAGE_S3_ACCESSKEY="{{ .Data.data.access_key }}"
+REGISTRY_STORAGE_S3_SECRETKEY="{{ .Data.data.secret_key }}"
+{{ end -}}
+        EOF
+        destination = "secrets/env"
+        env = true
+      }
+
+      template {
+        data = <<EOF
+{{ range $index, $item := service "[[ var "master.resec-redis" . ]]" -}}
+    {{ scratch.SetX "redis" $item  -}}
+{{ end -}}
+{{ with scratch.Get "redis" -}}
+REGISTRY_REDIS_ADDR="{{ .Address }}:{{ .Port }}"
+REGISTRY_REDIS_DB="3"
+REGISTRY_REDIS_TLS_ENABLED="false"
+{{ end -}}
+
+        EOF
+        destination = "local/registry.env"
+        env = true
+      }
+
+      template {
         change_mode = "noop"
         destination = "/secrets/auth-htpasswd"
 
         data = <<EOH
-{{ with secret "secret/data/registry/htpasswd" }}
+{{- with secret "secret/default/docker-registry/htpasswd" }}
 {{ .Data.data.username }}:{{ .Data.data.password | md5sum }}
 {{ end -}}
 EOH
@@ -98,7 +137,7 @@ EOH
       // }
 
       resources {
-        cpu    = 9000
+        cpu    = 1000
         memory = 1000
       }
 

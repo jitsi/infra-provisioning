@@ -36,6 +36,7 @@ JOB_NAME="registry-$ORACLE_REGION"
 
 export NOMAD_VAR_oracle_region="$ORACLE_REGION"
 export NOMAD_VAR_registry_hostname="$REGISTRY_HOSTNAME"
+export NOMAD_VAR_oracle_s3_namespace="$ORACLE_S3_NAMESPACE"
 
 
 sed -e "s/\[JOB_NAME\]/$JOB_NAME/" "$NOMAD_JOB_PATH/registry.hcl" | nomad job run -var="dc=$NOMAD_DC" -
