@@ -14,6 +14,16 @@ variable "registry_hostname" {
     type = string
 }
 
+variable "registry_mode" {
+    type = string
+    default = "dhmirror"
+}
+
+variable "registry_redis_db" {
+    type = string
+    default = "3"
+}
+
 job "[JOB_NAME]" {
   datacenters = ["${var.dc}"]
 
@@ -43,13 +53,27 @@ job "[JOB_NAME]" {
       port "http" {
         to = 5000
       }
+      port "debug" {
+        to = 5001
+      }
+    }
+
+    # only need this in the case of dhmirror but it's easier to just always have it
+    ephemeral_disk {
+      migrate = true
+      size    = 20000
+      sticky  = true
     }
 
     task "docker-registry" {
       service {
-        name = "docker-registry"
-        tags = ["int-urlprefix-${var.registry_hostname}/"]
+        name = "docker-${var.registry_mode}"
+        tags = ["int-urlprefix-${var.registry_hostname}/","ip-${attr.unique.network.ip-address}"]
         port = "http"
+        meta {
+          metrics_port = "${NOMAD_HOST_PORT_debug}"
+          metrics_path = "/metrics"
+        }
         check {
           check_restart {
             limit = 3
@@ -59,8 +83,8 @@ job "[JOB_NAME]" {
 
           name     = "health"
           type     = "http"
-          port     = "http"
-          path     = "/"
+          port     = "debug"
+          path     = "/metrics"
           interval = "10s"
           timeout  = "2s"
         }
@@ -75,32 +99,47 @@ job "[JOB_NAME]" {
 
       config {
         image = "registry:latest"
-        ports = ["http"]
+        ports = ["http","debug"]
       }
 
       env {
-        REGISTRY_LOG_LEVEL="debug"
-        REGISTRY_STORAGE="s3"
-        REGISTRY_STORAGE_S3_BUCKET="ops-repo"
-        REGISTRY_STORAGE_S3_ROOTDIRECTORY="/registry"
-        REGISTRY_STORAGE_S3_REGION = "${var.oracle_region}"
-        REGISTRY_STORAGE_S3_REGIONENDPOINT = "https://${var.oracle_s3_namespace}.compat.objectstorage.${meta.cloud_region}.oraclecloud.com"
-        REGISTRY_STORAGE_S3_FORCEPATHSTYLE = "true"
-        REGISTRY_STORAGE_S3_V4AUTH = "true"
-        REGISTRY_STORAGE_S3_SECURE = "true"
-        REGISTRY_STORAGE_S3_ENCRYPT = "false"
-        REGISTRY_STORAGE_DELETE_ENABLED = "true"
-        REGISTRY_AUTH = "htpasswd"
-        REGISTRY_AUTH_HTPASSWD_PATH  = "/secrets/auth-htpasswd"
-        REGISTRY_AUTH_HTPASSWD_REALM = "Registry"
+        REGISTRY_LOG_LEVEL="info"
+        REGISTRY_HTTP_HOST="https://${var.registry_hostname}"
+        // REGISTRY_AUTH = 
+        // REGISTRY_AUTH = "htpasswd"
+        // REGISTRY_AUTH_HTPASSWD_PATH  = "/secrets/auth-htpasswd"
+        // REGISTRY_AUTH_HTPASSWD_REALM = "Registry"
         REGISTRY_HTTP_SECRET = "registrysecret"
+        REGISTRY_HTTP_DEBUG_ADDR = ":5001"
+        REGISTRY_HTTP_DEBUG_PROMETHEUS_ENABLED = "true"
+        REGISTRY_HTTP_DEBUG_PROMETHEUS_PATH = "/metrics"
       }
 
       template {
         data = <<EOF
+{{- if eq "${var.registry_mode}" "registry" }}
+REGISTRY_STORAGE="s3"
+REGISTRY_STORAGE_S3_BUCKET="ops-repo"
+REGISTRY_STORAGE_S3_ROOTDIRECTORY="/registry"
+REGISTRY_STORAGE_S3_REGION="${var.oracle_region}"
+REGISTRY_STORAGE_S3_REGIONENDPOINT="https://${var.oracle_s3_namespace}.compat.objectstorage.${var.oracle_region}.oraclecloud.com"
+REGISTRY_STORAGE_S3_FORCEPATHSTYLE="true"
+REGISTRY_STORAGE_S3_SECURE="true"
+REGISTRY_STORAGE_DELETE_ENABLED="true"
 {{ with secret "secret/default/docker-registry/s3" -}}
-REGISTRY_STORAGE_S3_ACCESSKEY="{{ .Data.data.access_key }}"
-REGISTRY_STORAGE_S3_SECRETKEY="{{ .Data.data.secret_key }}"
+AWS_ACCESS_KEY_ID="{{ .Data.data.access_key }}"
+AWS_SECRET_ACCESS_KEY="{{ .Data.data.secret_key }}"
+{{ end -}}
+{{ end -}}
+
+{{- if eq "${var.registry_mode}" "dhmirror" }}
+REGISTRY_STORAGE="filesystem"
+REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY="/local/registry"
+REGISTRY_PROXY_REMOTEURL="https://registry-1.docker.io"
+{{ with secret "secret/default/docker-registry/dockerhub" -}}
+REGISTRY_PROXY_USERNAME="{{ .Data.data.username }}"
+REGISTRY_PROXY_PASSWORD="{{ .Data.data.password }}"
+{{ end -}}
 {{ end -}}
         EOF
         destination = "secrets/env"
@@ -113,10 +152,8 @@ REGISTRY_STORAGE_S3_SECRETKEY="{{ .Data.data.secret_key }}"
     {{ scratch.SetX "redis" $item  -}}
 {{ end -}}
 {{ with scratch.Get "redis" -}}
-REGISTRY_CACHE_BLOBDESCRIPTOR="redis"
 REGISTRY_REDIS_ADDR="{{ .Address }}:{{ .Port }}"
-REGISTRY_REDIS_DB="3"
-REGISTRY_REDIS_TLS_ENABLED="false"
+REGISTRY_REDIS_DB="${var.registry_redis_db}"
 {{ end -}}
 
         EOF
@@ -124,16 +161,16 @@ REGISTRY_REDIS_TLS_ENABLED="false"
         env = true
       }
 
-      template {
-        change_mode = "noop"
-        destination = "/secrets/auth-htpasswd"
+//       template {
+//         change_mode = "noop"
+//         destination = "/secrets/auth-htpasswd"
 
-        data = <<EOH
-{{- with secret "secret/default/docker-registry/htpasswd" }}
-{{ .Data.data.username }}:{{ .Data.data.password }}
-{{ end -}}
-EOH
-      }
+//         data = <<EOH
+// {{- with secret "secret/default/docker-registry/htpasswd" }}
+// {{ .Data.data.username }}:{{ .Data.data.password }}
+// {{ end -}}
+// EOH
+//       }
 
       // eventually decide if this is going to be a volume mount or a bucket
       // volume_mount {
@@ -144,7 +181,7 @@ EOH
 
       resources {
         cpu    = 1000
-        memory = 1000
+        memory = 4096
       }
 
     }

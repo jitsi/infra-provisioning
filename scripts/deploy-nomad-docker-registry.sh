@@ -22,7 +22,10 @@ fi
 [ -z "$LOCAL_REGION" ] && LOCAL_REGION="$OCI_LOCAL_REGION"
 [ -z "$LOCAL_REGION" ] && LOCAL_REGION="us-phoenix-1"
 
-export RESOURCE_NAME_ROOT="${ENVIRONMENT}-${ORACLE_REGION}-registry"
+# alternate value is "registry"
+[ -z "$REGISTRY_MODE" ] && REGISTRY_MODE="dhmirror"
+
+export RESOURCE_NAME_ROOT="${ENVIRONMENT}-${ORACLE_REGION}-$REGISTRY_MODE"
 
 [ -z "$REGISTRY_HOSTNAME" ] && REGISTRY_HOSTNAME="$RESOURCE_NAME_ROOT.$TOP_LEVEL_DNS_ZONE_NAME"
 
@@ -32,10 +35,15 @@ fi
 
 NOMAD_JOB_PATH="$LOCAL_PATH/../nomad"
 NOMAD_DC="$ENVIRONMENT-$ORACLE_REGION"
-JOB_NAME="registry-$ORACLE_REGION"
+JOB_NAME="${REGISTRY_MODE}-$ORACLE_REGION"
 
 export NOMAD_VAR_oracle_region="$ORACLE_REGION"
 export NOMAD_VAR_registry_hostname="$REGISTRY_HOSTNAME"
+export NOMAD_VAR_registry_mode="$REGISTRY_MODE"
+# use a different redis db for dhmirror
+if [[ "$REGISTRY_MODE" == "dhmirror" ]]; then
+    export NOMAD_VAR_registry_redis_db="4"
+fi
 export NOMAD_VAR_oracle_s3_namespace="$ORACLE_S3_NAMESPACE"
 
 
