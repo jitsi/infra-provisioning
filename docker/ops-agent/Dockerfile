@@ -55,6 +55,10 @@ RUN mkdir -p /opt/jitsi && git clone https://github.com/jitsi/jitsi-autoscaler-s
 RUN mkdir -p /opt/jitsi && git clone https://github.com/jitsi/token-generator.git /opt/jitsi/token-generator \
     && cd /opt/jitsi/token-generator && npm install && npm run build
 
+RUN if [ "$TARGETPLATFORM" = "linux/amd64" ]; then ARCHITECTURE="amd64"; elif [ "$TARGETPLATFORM" = "linux/arm64" ]; then ARCHITECTURE="arm64"; else ARCHITECTURE="amd64"; fi \
+    && curl -L https://github.com/regclient/regclient/releases/latest/download/regctl-linux-$ARCHITECTURE > /usr/bin/regctl \
+    && chmod 755 /usr/bin/regctl
+
 USER jenkins
 RUN mkdir -p /home/jenkins/.ansible/cp
 #ENTRYPOINT ["/usr/local/bin/jenkins-agent"]
