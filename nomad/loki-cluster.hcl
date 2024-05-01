@@ -75,7 +75,7 @@ job "[JOB_NAME]" {
         user = "root"
         config {
           network_mode = "host"
-          image = "grafana/loki:2.9.1"
+          image = "grafana/loki:2.9.7"
           args = [
             "-config.file",
             "local/local-config.yaml",
@@ -174,6 +174,11 @@ job "[JOB_NAME]" {
     reject_old_samples: true
     reject_old_samples_max_age: 168h
     retention_period: ${var.retention_period}
+    retention_stream:
+    # Retain jigasi-transcriber logs for 14 days
+    - selector: '{task="jigasi-transcriber"}'
+      priority: 1
+      period: 336h
     split_queries_by_interval: 15m
   chunk_store_config:
     max_look_back_period: 0s
