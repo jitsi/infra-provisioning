@@ -365,6 +365,7 @@ EOF
     "jitsi_jvb_incoming_bitrate",
     "jitsi_jvb_incoming_loss_fraction",
     "jitsi_jvb_incoming_packet_rate",
+    "jitsi_jvb_jvm_*",
     "jitsi_jvb_keyframes_received_total",
     "jitsi_jvb_largest_conference",
     "jitsi_jvb_layering_changes_received_total",
@@ -377,6 +378,7 @@ EOF
     "jitsi_jvb_outgoing_bitrate",
     "jitsi_jvb_outgoing_loss_fraction",
     "jitsi_jvb_outgoing_packet_rate",
+    "jitsi_jvb_queue_*",
     "jitsi_jvb_relay_incoming_bitrate",
     "jitsi_jvb_relay_incoming_packet_rate",
     "jitsi_jvb_relay_outgoing_bitrate",
@@ -384,6 +386,7 @@ EOF
     "jitsi_jvb_relays_no_message_transport_after_delay_total",
     "jitsi_jvb_rtcp_transit_time",
     "jitsi_jvb_rtp_transit_time",
+    "jitsi_jvb_startup_time",
     "jitsi_jvb_stress",
     "jitsi_jvb_thread_count",
     "jitsi_jvb_video_milliseconds_received_total"
