@@ -33,6 +33,7 @@ job [[ template "job_name" . ]] {
     }
 
     network {
+      mode = "bridge"
       port "http" {
         to = 8080
       }
@@ -46,6 +47,9 @@ job [[ template "job_name" . ]] {
       name = "autoscaler"
       tags = [  "int-urlprefix-${var.autoscaler_hostname}/","urlprefix-${var.autoscaler_hostname}/","ip-${attr.unique.network.ip-address}" ]
       port = "http"
+      connect {
+        sidecar_service {}
+      }
       check {
         name     = "alive"
         type     = "http"
