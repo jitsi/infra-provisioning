@@ -89,6 +89,7 @@ job "[JOB_NAME]" {
     count = 1
 
     network {
+      mode = "bridge"
       # This requests a dynamic port named "http". This will
       # be something like "46283", but we refer to it via the
       # label "http".
