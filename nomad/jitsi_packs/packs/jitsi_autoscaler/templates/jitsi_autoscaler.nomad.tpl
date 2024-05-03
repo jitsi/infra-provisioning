@@ -48,7 +48,9 @@ job [[ template "job_name" . ]] {
       tags = [  "int-urlprefix-${var.autoscaler_hostname}/","urlprefix-${var.autoscaler_hostname}/","ip-${attr.unique.network.ip-address}" ]
       port = "http"
       connect {
-        sidecar_service {}
+        sidecar_service {
+          tags = ["ip-${attr.unique.network.ip-address}"]
+        }
       }
       check {
         name     = "alive"
