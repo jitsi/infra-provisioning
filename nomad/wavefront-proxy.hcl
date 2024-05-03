@@ -38,7 +38,9 @@ job "[JOB_NAME]" {
       port = "http"
 
       connect {
-        sidecar_service {}
+        sidecar_service {
+          tags = ["ip-${attr.unique.network.ip-address}"]
+        }
       }
 
       check {
