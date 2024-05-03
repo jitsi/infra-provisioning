@@ -199,6 +199,10 @@ if [ $? -eq 0 ]; then
       | .attributes.id')"
 fi
 
+if [ "$UPDATE_SECURITY_GROUP" == "true" ]; then
+  NOMAD_SECURITY_GROUP_ID=
+fi
+
 if [ -z "$NOMAD_SECURITY_GROUP_ID" ]; then
   terraform $TF_GLOBALS_CHDIR_SG init \
     -backend-config="bucket=$S3_STATE_BUCKET" \
