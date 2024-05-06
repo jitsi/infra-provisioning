@@ -37,10 +37,8 @@ job [[ template "job_name" . ]] {
         to = 888
       }
       port "prosody-http" {
-        to = 5280
       }
       port "prosody-s2s" {
-        to = 5269
       }
       port "signal-sidecar-agent" {
       }
@@ -52,7 +50,6 @@ job [[ template "job_name" . ]] {
       port "prosody-jvb-client" {
       }
       port "prosody-jvb-http" {
-        to = 5280
       }
 [[- end ]]
       port "jicofo-http" {
@@ -62,12 +59,10 @@ job [[ template "job_name" . ]] {
 
 [[ range $index, $i := split " "  (seq 0 ((sub $VNODE_COUNT 1)|int)) ]]
       port "prosody-vnode-[[ $i ]]-http" {
-        to = 5280
       }
       port "prosody-vnode-[[ $i ]]-client" {
       }
       port "prosody-vnode-[[ $i ]]-s2s" {
-        to = 5269
       }
 [[ end ]]
 [[ end ]]
@@ -308,6 +303,8 @@ job [[ template "job_name" . ]] {
       }
 
       env {
+        PROSODY_HTTP_PORT="${NOMAD_HOST_PORT_prosody_vnode_[[ $i ]]_http}"
+        PROSODY_S2S_PORT="${NOMAD_HOST_PORT_prosody_vnode_[[ $i ]]_s2s}"
         PROSODY_MODE="visitors"
         VISITORS_MAX_PARTICIPANTS=5
         VISITORS_MAX_VISITORS_PER_NODE=250
@@ -414,6 +411,8 @@ EOF
 
       env {
 [[ template "common-env" . ]]
+        PROSODY_HTTP_PORT="${NOMAD_HOST_PORT_prosody_http}"
+        PROSODY_S2S_PORT="${NOMAD_HOST_PORT_prosody_s2s}"
         ENABLE_VISITORS = "[[ env "CONFIG_visitors_enabled" ]]"
         ENABLE_LOBBY="1"
         ENABLE_AV_MODERATION="1"
@@ -576,6 +575,7 @@ EOH
 
 
       env {
+        PROSODY_HTTP_PORT="${NOMAD_HOST_PORT_prosody_jvb_http}"
         PROSODY_MODE="brewery"
         XMPP_DOMAIN = "[[ env "CONFIG_domain" ]]"
         PUBLIC_URL="https://[[ env "CONFIG_domain" ]]/"
