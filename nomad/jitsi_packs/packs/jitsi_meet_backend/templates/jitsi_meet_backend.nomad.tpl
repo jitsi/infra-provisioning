@@ -330,7 +330,7 @@ XMPP_SERVER_S2S_PORT={{  env "NOMAD_HOST_PORT_prosody_s2s" }}
 PROSODY_HTTP_PORT={{ env "NOMAD_HOST_PORT_prosody_vnode_[[ $i ]]_http" }}
 PROSODY_S2S_PORT={{ env "NOMAD_HOST_PORT_prosody_vnode_[[ $i ]]_s2s" }}
 
-GLOBAL_CONFIG="statistics = \"internal\"\nstatistics_interval = \"manual\"\nopenmetrics_allow_cidr = \"0.0.0.0/0\";\n
+GLOBAL_CONFIG="console_ports={ 7582+[[ $i ]] };\nstatistics = \"internal\"\nstatistics_interval = \"manual\"\nopenmetrics_allow_cidr = \"0.0.0.0/0\";\n
 [[- if eq (env "CONFIG_prosody_meet_webhooks_enabled") "true" -]]
 muc_prosody_egress_url = \"http://{{ env "attr.unique.network.ip-address" }}:[[ or (env "CONFIG_fabio_internal_port") "9997" ]]/v1/events\";\nmuc_prosody_egress_fallback_url = \"[[ env "CONFIG_prosody_egress_fallback_url" ]]\";\n
 [[- end -]]"
@@ -481,7 +481,7 @@ PROSODY_S2S_PORT={{ env "NOMAD_HOST_PORT_prosody_s2s" }}
 # prosody main configuration options
 #
 
-GLOBAL_CONFIG="statistics = \"internal\"\nstatistics_interval = \"manual\"\nopenmetrics_allow_cidr = \"0.0.0.0/0\";\ntoken_verification_allowlist = { \"recorder.[[ env "CONFIG_domain" ]]\" };\n
+GLOBAL_CONFIG="console_ports={ 5582 };\nstatistics = \"internal\"\nstatistics_interval = \"manual\"\nopenmetrics_allow_cidr = \"0.0.0.0/0\";\ntoken_verification_allowlist = { \"recorder.[[ env "CONFIG_domain" ]]\" };\n
 [[- if eq (env "CONFIG_prosody_disable_required_room_claim") "true" -]]
 asap_require_room_claim = false;\n
 [[- end -]]
@@ -586,7 +586,7 @@ EOH
         JIBRI_XMPP_PASSWORD = "[[ env "CONFIG_jibri_xmpp_password" ]]"
         JVB_XMPP_AUTH_DOMAIN = "auth.jvb.[[ env "CONFIG_domain" ]]"
         JVB_XMPP_INTERNAL_MUC_DOMAIN = "muc.jvb.[[ env "CONFIG_domain" ]]"
-        GLOBAL_CONFIG = "statistics = \"internal\";\nstatistics_interval = \"manual\";\nopenmetrics_allow_cidr = \"0.0.0.0/0\";\ndebug_traceback_filename = \"traceback.txt\";\nc2s_stanza_size_limit = 10*1024*1024;\n"
+        GLOBAL_CONFIG = "console_ports={ 6582 },statistics = \"internal\";\nstatistics_interval = \"manual\";\nopenmetrics_allow_cidr = \"0.0.0.0/0\";\ndebug_traceback_filename = \"traceback.txt\";\nc2s_stanza_size_limit = 10*1024*1024;\n"
         GLOBAL_MODULES = "admin_telnet,http_openmetrics,log_ringbuffer[[ if eq (env "CONFIG_prosody_mod_measure_stanza_counts") "true"]],measure_stanza_counts[[ end ]]"
         PROSODY_LOG_CONFIG="{level = \"debug\", to = \"ringbuffer\",size = [[ or (env "CONFIG_prosody_jvb_mod_log_ringbuffer_size") "1024*1024*4" ]], filename_template = \"traceback.txt\", event = \"debug_traceback/triggered\";};"
         TZ = "UTC"
