@@ -303,8 +303,6 @@ job [[ template "job_name" . ]] {
       }
 
       env {
-        PROSODY_HTTP_PORT="${NOMAD_HOST_PORT_prosody_vnode_[[ $i ]]_http}"
-        PROSODY_S2S_PORT="${NOMAD_HOST_PORT_prosody_vnode_[[ $i ]]_s2s}"
         PROSODY_MODE="visitors"
         VISITORS_MAX_PARTICIPANTS=5
         VISITORS_MAX_VISITORS_PER_NODE=250
@@ -329,6 +327,9 @@ job [[ template "job_name" . ]] {
 #
 XMPP_SERVER={{ env "NOMAD_IP_prosody_s2s" }}
 XMPP_SERVER_S2S_PORT={{  env "NOMAD_HOST_PORT_prosody_s2s" }}
+PROSODY_HTTP_PORT={{ env "NOMAD_HOST_PORT_prosody_vnode_[[ $i ]]_http" }}
+PROSODY_S2S_PORT={{ env "NOMAD_HOST_PORT_prosody_vnode_[[ $i ]]_s2s" }}
+
 GLOBAL_CONFIG="statistics = \"internal\"\nstatistics_interval = \"manual\"\nopenmetrics_allow_cidr = \"0.0.0.0/0\";\n
 [[- if eq (env "CONFIG_prosody_meet_webhooks_enabled") "true" -]]
 muc_prosody_egress_url = \"http://{{ env "attr.unique.network.ip-address" }}:[[ or (env "CONFIG_fabio_internal_port") "9997" ]]/v1/events\";\nmuc_prosody_egress_fallback_url = \"[[ env "CONFIG_prosody_egress_fallback_url" ]]\";\n
@@ -411,8 +412,6 @@ EOF
 
       env {
 [[ template "common-env" . ]]
-        PROSODY_HTTP_PORT="${NOMAD_HOST_PORT_prosody_http}"
-        PROSODY_S2S_PORT="${NOMAD_HOST_PORT_prosody_s2s}"
         ENABLE_VISITORS = "[[ env "CONFIG_visitors_enabled" ]]"
         ENABLE_LOBBY="1"
         ENABLE_AV_MODERATION="1"
@@ -475,6 +474,8 @@ EOF
       template {
         data = <<EOF
 VISITORS_XMPP_SERVER=[[ range $index, $i := split " "  (seq 0 ((sub $VNODE_COUNT 1)|int)) ]][[ if gt ($i|int) 0 ]],[[ end ]]{{ env "NOMAD_IP_prosody_vnode_[[ $i ]]_s2s" }}:{{ env "NOMAD_HOST_PORT_prosody_vnode_[[ $i ]]_s2s" }}[[ end ]]  
+PROSODY_HTTP_PORT={{ env "NOMAD_HOST_PORT_prosody_http" }}
+PROSODY_S2S_PORT={{ env "NOMAD_HOST_PORT_prosody_s2s" }}
 
 #
 # prosody main configuration options
@@ -575,7 +576,6 @@ EOH
 
 
       env {
-        PROSODY_HTTP_PORT="${NOMAD_HOST_PORT_prosody_jvb_http}"
         PROSODY_MODE="brewery"
         XMPP_DOMAIN = "[[ env "CONFIG_domain" ]]"
         PUBLIC_URL="https://[[ env "CONFIG_domain" ]]/"
@@ -597,6 +597,7 @@ EOH
 # Internal XMPP server
 XMPP_SERVER={{ env "NOMAD_IP_prosody_jvb_client" }}
 XMPP_PORT={{  env "NOMAD_HOST_PORT_prosody_jvb_client" }}
+PROSODY_HTTP_PORT={{ env "NOMAD_HOST_PORT_prosody_jvb_http" }}
 
 # Internal XMPP server URL
 XMPP_BOSH_URL_BASE=http://{{ env "NOMAD_IP_prosody_jvb_http" }}:{{ env "NOMAD_HOST_PORT_prosody_jvb_http" }}
