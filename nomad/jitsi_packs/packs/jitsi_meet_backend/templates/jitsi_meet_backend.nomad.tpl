@@ -381,7 +381,7 @@ HTTP_PORT={{ env "NOMAD_HOST_PORT_signal_sidecar_http" }}
 TCP_PORT={{ env "NOMAD_HOST_PORT_signal_sidecar_agent" }}
 CENSUS_HOST={{ env "NOMAD_META_domain" }}
 JICOFO_ORIG=http://localhost:8888
-PROSODY_ORIG=http://localhost:5280
+PROSODY_ORIG=http://localhost:{{ env "NOMAD_HOST_PORT_prosody_http" }}
 EOF
 
         destination = "local/signal-sidecar.env"
