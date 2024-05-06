@@ -380,8 +380,8 @@ CONSUL_HOST={{ env "attr.unique.network.ip-address" }}
 HTTP_PORT={{ env "NOMAD_HOST_PORT_signal_sidecar_http" }}
 TCP_PORT={{ env "NOMAD_HOST_PORT_signal_sidecar_agent" }}
 CENSUS_HOST={{ env "NOMAD_META_domain" }}
-JICOFO_ORIG=http://{{ env "NOMAD_IP_jicofo_http" }}:{{ env "NOMAD_HOST_PORT_jicofo_http" }}
-PROSODY_ORIG=http://{{ env "NOMAD_IP_prosody_http" }}:{{ env "NOMAD_HOST_PORT_prosody_http" }}
+JICOFO_ORIG=http://localhost:{{ env "NOMAD_HOST_PORT_jicofo_http" }}
+PROSODY_ORIG=http://localhost:{{ env "NOMAD_HOST_PORT_prosody_http" }}
 EOF
 
         destination = "local/signal-sidecar.env"
