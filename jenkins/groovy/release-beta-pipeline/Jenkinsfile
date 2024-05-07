@@ -1,4 +1,14 @@
-def myRelease
+def gaReleaseFromEnvironment(environment) {
+    echo "Searching for GA release"
+    def releaseGA = sh(
+        returnStdout: true,
+        script: """#!/bin/bash
+            export ENVIRONMENT="${environment}"
+            scripts/consul-get-release-ga.sh"""
+    ).trim()
+    echo "Found GA release: $releaseGA"
+    return releaseGA
+}
 
 def oldReleasesFromEnvironment(environment, latestRelease) {
     echo "Searching for old releases not matching $latestRelease"
@@ -43,6 +53,33 @@ pipeline {				//indicate the job is written in Declarative Pipeline
         }
         stage ("build") {		//an arbitrary stage name
             parallel {
+                // attempt to clean other broken releases that aren't GA
+                stage ("pre-cleanup") {		//an arbitrary stage name
+                    steps {
+                        dir('infra-provisioning') {
+                            withCredentials([
+                                string(credentialsId: 'jenkins-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
+                                string(credentialsId: 'jenkins-aws-id', variable: 'AWS_ACCESS_KEY_ID')                            
+                            ]) {
+                                sshagent (credentials: ['ssh-ubuntu']) {
+                                    script {
+                                        def GA_RELEASE = gaReleaseFromEnvironment(env.ENVIRONMENT)
+                                        if (GA_RELEASE != null && GA_RELEASE != "") {
+                                            def OLD_RELEASES = oldReleasesFromEnvironment(env.ENVIRONMENT, myRelease.toString()).join(' ')
+                                            if (OLD_RELEASES != null && OLD_RELEASES != "") {
+                                                build job: 'destroy-release-core',parameters: [
+                                                    [$class: 'StringParameterValue', name: 'RELEASE_NUMBER', value: OLD_RELEASES],
+                                                    [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: env.ENVIRONMENT],
+                                                    [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH]
+                                                ]
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+              }
               stage ("build JVB oracle") {		//an arbitrary stage name
                 when {
                     expression {env.CLOUD_PROVIDER == 'oracle'}
