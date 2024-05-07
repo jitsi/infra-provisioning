@@ -336,7 +336,7 @@ EOF
     "jitsi_jvb_colibri_web_socket_*",
     "jitsi_jvb_conference_seconds_total",
     "jitsi_jvb_conferences",
-    "jitsi_jvb_conferences_by_size_*",
+    "jitsi_jvb_conferences_by_size*",
     "jitsi_jvb_conferences_inactive",
     "jitsi_jvb_conferences_p2p",
     "jitsi_jvb_conferences_with_relay",
