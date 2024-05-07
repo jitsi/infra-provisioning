@@ -19,6 +19,8 @@ job [[ template "job_name" . ]] {
   }
 
 [[ $VNODE_COUNT := (or (var "visitors_count" .) 0) ]]
+[[ $STS_PORT := (or (var "sts_port" .) 5269) ]]
+[[ $VNODE_STS_PORT := (or (var "vnode_sts_port" .) 7269) ]]
 
   group "signal" {
     count = 1
@@ -37,8 +39,6 @@ job [[ template "job_name" . ]] {
         to = 888
       }
       port "prosody-http" {
-      }
-      port "prosody-s2s" {
       }
       port "signal-sidecar-agent" {
       }
@@ -59,10 +59,6 @@ job [[ template "job_name" . ]] {
 
 [[ range $index, $i := split " "  (seq 0 ((sub $VNODE_COUNT 1)|int)) ]]
       port "prosody-vnode-[[ $i ]]-http" {
-      }
-      port "prosody-vnode-[[ $i ]]-client" {
-      }
-      port "prosody-vnode-[[ $i ]]-s2s" {
       }
 [[ end ]]
 [[ end ]]
@@ -90,7 +86,6 @@ job [[ template "job_name" . ]] {
         prosody_client_ip = "${NOMAD_IP_prosody_client}"
         prosody_http_port = "${NOMAD_HOST_PORT_prosody_http}"
         prosody_client_port = "${NOMAD_HOST_PORT_prosody_client}"
-        prosody_s2s_port = "${NOMAD_HOST_PORT_prosody_s2s}"
 [[- if eq (or (env "CONFIG_prosody_brewery_shard_enabled") "true") "true" ]]
         prosody_jvb_client_port = "${NOMAD_HOST_PORT_prosody_jvb_client}"
 [[- end ]]
@@ -277,7 +272,6 @@ job [[ template "job_name" . ]] {
         shard = "[[ env "CONFIG_shard" ]]"
         release_number = "[[ env "CONFIG_release_number" ]]"
         prosody_client_port = "${NOMAD_HOST_PORT_prosody_vnode_[[ $i ]]_client}"
-        prosody_s2s_port = "${NOMAD_HOST_PORT_prosody_vnode_[[ $i ]]_s2s}"
         environment = "${meta.environment}"
         vindex = "[[ $i ]]"
       }
@@ -298,7 +292,7 @@ job [[ template "job_name" . ]] {
       config {
         force_pull = [[ or (env "CONFIG_force_pull") "false" ]]
         image        = "jitsi/prosody:[[ env "CONFIG_prosody_tag" ]]"
-        ports = ["prosody-vnode-[[ $i ]]-http","prosody-vnode-[[ $i ]]-client","prosody-vnode-[[ $i ]]-s2s"]
+        ports = ["prosody-vnode-[[ $i ]]-http"]
         volumes = ["local/prosody-plugins-custom:/prosody-plugins-custom","local/config:/config"]
       }
 
@@ -326,9 +320,9 @@ job [[ template "job_name" . ]] {
 # prosody vnode configuration options
 #
 XMPP_SERVER=localhost
-XMPP_SERVER_S2S_PORT={{  env "NOMAD_HOST_PORT_prosody_s2s" }}
+XMPP_SERVER_S2S_PORT=[[ $STS_PORT ]]
 PROSODY_HTTP_PORT={{ env "NOMAD_HOST_PORT_prosody_vnode_[[ $i ]]_http" }}
-PROSODY_S2S_PORT={{ env "NOMAD_HOST_PORT_prosody_vnode_[[ $i ]]_s2s" }}
+PROSODY_S2S_PORT=[[ $VNODE_STS_PORT + $i ]]
 
 GLOBAL_CONFIG="console_ports={ 7582+[[ $i ]] };\nstatistics = \"internal\"\nstatistics_interval = \"manual\"\nopenmetrics_allow_cidr = \"0.0.0.0/0\";\n
 [[- if eq (env "CONFIG_prosody_meet_webhooks_enabled") "true" -]]
@@ -403,7 +397,7 @@ EOF
       config {
         force_pull = [[ or (env "CONFIG_force_pull") "false" ]]
         image        = "jitsi/prosody:[[ env "CONFIG_prosody_tag" ]]"
-        ports = ["prosody-http","prosody-client","prosody-s2s"]
+        ports = ["prosody-http","prosody-client"]
         volumes = [
           "local/prosody-plugins-custom:/prosody-plugins-custom",
           "local/config:/config",
@@ -473,9 +467,9 @@ EOF
 
       template {
         data = <<EOF
-VISITORS_XMPP_SERVER=[[ range $index, $i := split " "  (seq 0 ((sub $VNODE_COUNT 1)|int)) ]][[ if gt ($i|int) 0 ]],[[ end ]]localhost:{{ env "NOMAD_HOST_PORT_prosody_vnode_[[ $i ]]_s2s" }}[[ end ]]  
+VISITORS_XMPP_SERVER=[[ range $index, $i := split " "  (seq 0 ((sub $VNODE_COUNT 1)|int)) ]][[ if gt ($i|int) 0 ]],[[ end ]]localhost:[[ $VNODE_STS_PORT + $i ]][[ end ]]  
 PROSODY_HTTP_PORT={{ env "NOMAD_HOST_PORT_prosody_http" }}
-PROSODY_S2S_PORT={{ env "NOMAD_HOST_PORT_prosody_s2s" }}
+PROSODY_S2S_PORT=[[ $STS_PORT ]]
 
 #
 # prosody main configuration options
