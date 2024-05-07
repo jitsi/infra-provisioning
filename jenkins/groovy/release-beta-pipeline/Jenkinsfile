@@ -164,6 +164,8 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                         sshagent (credentials: ['ssh-ubuntu']) {
                             script {
                                 def OLD_RELEASES = oldReleasesFromEnvironment(env.ENVIRONMENT, myRelease.toString()).join(' ')
+                                // wait a few minutes before starting release job
+                                sleep 300
                                 build job: 'destroy-release-core',parameters: [
                                     [$class: 'StringParameterValue', name: 'RELEASE_NUMBER', value: OLD_RELEASES],
                                     [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: env.ENVIRONMENT],
