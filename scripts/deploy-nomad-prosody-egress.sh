@@ -12,26 +12,10 @@ LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
 [ -e "$LOCAL_PATH/../clouds/all.sh" ] && . "$LOCAL_PATH/../clouds/all.sh"
 
-[ -z "$VAULT_PASSWORD_FILE" ] && VAULT_PASSWORD_FILE="$LOCAL_PATH/../.vault-password.txt"
-
-
-[ -z "$ENCRYPTED_PROSODY_EGRESS_AWS_FILE" ] && ENCRYPTED_PROSODY_EGRESS_AWS_FILE="$LOCAL_PATH/../ansible/secrets/prosody-egress-aws.yml"
-[ -z "$ENVIRONMENT_CONFIGURATION_FILE" ] && ENVIRONMENT_CONFIGURATION_FILE="$LOCAL_PATH/../sites/$ENVIRONMENT/vars.yml"
-[ -z "$MAIN_CONFIGURATION_FILE" ] && MAIN_CONFIGURATION_FILE="$LOCAL_PATH/../config/vars.yml"
-
 [ -z "$ENVIRONMENT_TYPE" ] && ENVIRONMENT_TYPE="dev"
 
 # use dev profile for stage envs
 [[ "$ENVIRONMENT_TYPE" == "stage" ]] && ENVIRONMENT_TYPE="dev"
-
-# ensure no output for ansible vault contents and fail if ansible-vault fails
-set +x
-set -e
-set -o pipefail
-export NOMAD_VAR_aws_access_key_id="$(ansible-vault view $ENCRYPTED_PROSODY_EGRESS_AWS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".prosody_egress_aws_access_key_id_by_type.$ENVIRONMENT_TYPE" -)"
-export NOMAD_VAR_aws_secret_access_key="$(ansible-vault view $ENCRYPTED_PROSODY_EGRESS_AWS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".prosody_egress_aws_secret_access_key_by_type.$ENVIRONMENT_TYPE" -)"
-
-set -x
 
 export NOMAD_VAR_environment_type="${ENVIRONMENT_TYPE}"
 
