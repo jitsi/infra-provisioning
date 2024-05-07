@@ -21,6 +21,7 @@ job [[ template "job_name" . ]] {
 [[ $VNODE_COUNT := (or (var "visitors_count" .) 0) ]]
 [[ $STS_PORT := (or (var "sts_port" .) 5269) ]]
 [[ $VNODE_STS_PORT := (or (var "vnode_sts_port" .) 7269) ]]
+[[ $VNODE_CLIENT_PORT := (or (var "vnode_client_port" .) 7222) ]]
 
   group "signal" {
     count = 1
@@ -271,7 +272,7 @@ job [[ template "job_name" . ]] {
         domain = "[[ env "CONFIG_domain" ]]"
         shard = "[[ env "CONFIG_shard" ]]"
         release_number = "[[ env "CONFIG_release_number" ]]"
-        prosody_client_port = "${NOMAD_HOST_PORT_prosody_vnode_[[ $i ]]_client}"
+        prosody_client_port = "[[ add $VNODE_CLIENT_PORT $i ]]"
         environment = "${meta.environment}"
         vindex = "[[ $i ]]"
       }
@@ -333,7 +334,7 @@ GLOBAL_MODULES="admin_telnet,http_openmetrics,log_ringbuffer,firewall,muc_census
 XMPP_MODULES="jiconop"
 XMPP_INTERNAL_MUC_MODULES="muc_hide_all,muc_filter_access[[ if eq (env "CONFIG_prosody_enable_muc_events" ) "true" ]],muc_events[[ end ]]"
 XMPP_MUC_MODULES="[[ if eq (env "CONFIG_prosody_meet_webhooks_enabled") "true" ]]muc_visitors_webhooks[[ end ]]"
-XMPP_PORT={{  env "NOMAD_HOST_PORT_prosody_vnode_[[ $i ]]_client" }}
+XMPP_PORT=[[ add $VNODE_CLIENT_PORT $i ]]
 
 EOF
 
@@ -729,7 +730,7 @@ EOF
 
       template {
         data = <<EOF
-VISITORS_XMPP_SERVER=[[ range $index, $i := split " "  (seq 0 ((sub $VNODE_COUNT 1)|int)) ]][[ if gt ($i|int) 0 ]],[[ end ]]localhost:{{ env "NOMAD_HOST_PORT_prosody_vnode_[[ $i ]]_client" }}[[ end ]]  
+VISITORS_XMPP_SERVER=[[ range $index, $i := split " "  (seq 0 ((sub $VNODE_COUNT 1)|int)) ]][[ if gt ($i|int) 0 ]],[[ end ]]localhost:[[ add $VNODE_CLIENT_PORT ($i|int) ]][[ end ]]  
 #
 # Basic configuration options
 #
