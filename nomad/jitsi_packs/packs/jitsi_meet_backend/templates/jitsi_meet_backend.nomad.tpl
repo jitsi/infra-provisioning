@@ -98,15 +98,22 @@ job [[ template "job_name" . ]] {
       }
 
       port = "http"
-
-[[- if ne (or (env "CONFIG_prosody_brewery_shard_enabled") "true") "true" ]]
+[[- if or (eq (env "CONFIG_prosody_meet_webhooks_enabled") "true") (ne (or (env "CONFIG_prosody_brewery_shard_enabled") "true") "true") ]]
       connect {
         sidecar_service {
           proxy {
+[[- if ne (or (env "CONFIG_prosody_brewery_shard_enabled") "true") "true" ]]
             upstreams {
               destination_name = "prosody-brewery"
               local_bind_port  = 6222
             }
+[[- end ]]
+[[- if eq (env "CONFIG_prosody_meet_webhooks_enabled") "true" ]]
+            upstreams {
+              destination_name = "prosody-egress"
+              local_bind_port  = 9880
+            }
+[[- end ]]
           }
         }
       }
@@ -327,7 +334,7 @@ PROSODY_S2S_PORT=[[ add $VNODE_STS_PORT $i ]]
 
 GLOBAL_CONFIG="console_ports={ 7582+[[ $i ]] };\nstatistics = \"internal\"\nstatistics_interval = \"manual\"\nopenmetrics_allow_cidr = \"0.0.0.0/0\";\n
 [[- if eq (env "CONFIG_prosody_meet_webhooks_enabled") "true" -]]
-muc_prosody_egress_url = \"http://{{ env "attr.unique.network.ip-address" }}:[[ or (env "CONFIG_fabio_internal_port") "9997" ]]/v1/events\";\nmuc_prosody_egress_fallback_url = \"[[ env "CONFIG_prosody_egress_fallback_url" ]]\";\n
+muc_prosody_egress_url = \"http://localhost:9880/v1/events\";\nmuc_prosody_egress_fallback_url = \"[[ env "CONFIG_prosody_egress_fallback_url" ]]\";\n
 [[- end -]]"
 
 GLOBAL_MODULES="admin_telnet,http_openmetrics,log_ringbuffer,firewall,muc_census,secure_interfaces,external_services,turncredentials_http[[ if eq (env "CONFIG_prosody_mod_measure_stanza_counts") "true" ]],measure_stanza_counts[[ end ]]"
@@ -494,7 +501,7 @@ debug_traceback_filename = \"traceback.txt\";\nc2s_stanza_size_limit = 512*1024;
 muc_limit_messages_count = [[ env "CONFIG_prosody_limit_messages" ]];\nmuc_limit_messages_check_token = [[ env "CONFIG_prosody_limit_messages_check_token" ]];\n
 [[- end -]]
 [[- if eq (env "CONFIG_prosody_meet_webhooks_enabled") "true" -]]
-muc_prosody_egress_url = \"http://{{ env "attr.unique.network.ip-address" }}:[[ or (env "CONFIG_fabio_internal_port") "9997" ]]/v1/events\";\nmuc_prosody_egress_fallback_url = \"[[ env "CONFIG_prosody_egress_fallback_url" ]]\";\n
+muc_prosody_egress_url = \"http://localhost:9880/v1/events\";\nmuc_prosody_egress_fallback_url = \"[[ env "CONFIG_prosody_egress_fallback_url" ]]\";\n
 [[- end -]]"
 
 PROSODY_LOG_CONFIG="{level = \"debug\", to = \"ringbuffer\",size = [[ or (env "CONFIG_prosody_mod_log_ringbuffer_size") "1014*1024*4" ]], filename_template = \"traceback.txt\", event = \"debug_traceback/triggered\";};"
