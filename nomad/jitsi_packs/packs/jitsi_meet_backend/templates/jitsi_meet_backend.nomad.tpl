@@ -107,13 +107,13 @@ job [[ template "job_name" . ]] {
               destination_name = "prosody-brewery"
               local_bind_port  = 6222
             }
-[[ end ]]
-[[- if eq (env "CONFIG_prosody_meet_webhooks_enabled") "true" -]]
+[[- end ]]
+[[- if eq (env "CONFIG_prosody_meet_webhooks_enabled") "true" ]]
             upstreams {
               destination_name = "prosody-egress"
               local_bind_port  = 9880
             }
-[[ end ]]
+[[- end ]]
           }
         }
       }
