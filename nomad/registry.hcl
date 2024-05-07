@@ -180,7 +180,7 @@ REGISTRY_REDIS_DB="${var.registry_redis_db}"
       // }
 
       resources {
-        cpu    = 1000
+        cpu    = 512
         memory = 4096
       }
 
