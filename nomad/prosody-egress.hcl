@@ -109,7 +109,7 @@ job "[JOB_NAME]" {
         STATSD_HOST = "${attr.unique.network.ip-address}"
       }
       resources {
-        cpu    = 1200
+        cpu    = 500
         memory = 2048
       }
       template {
