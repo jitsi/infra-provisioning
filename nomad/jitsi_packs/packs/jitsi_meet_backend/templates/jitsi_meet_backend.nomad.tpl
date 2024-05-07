@@ -19,6 +19,9 @@ job [[ template "job_name" . ]] {
   }
 
 [[ $VNODE_COUNT := (or (var "visitors_count" .) 0) ]]
+[[ $STS_PORT := (or (var "sts_port" .) 5269) ]]
+[[ $VNODE_STS_PORT := (or (var "vnode_sts_port" .) 7269) ]]
+[[ $VNODE_CLIENT_PORT := (or (var "vnode_client_port" .) 7222) ]]
 
   group "signal" {
     count = 1
@@ -37,8 +40,6 @@ job [[ template "job_name" . ]] {
         to = 888
       }
       port "prosody-http" {
-      }
-      port "prosody-s2s" {
       }
       port "signal-sidecar-agent" {
       }
@@ -59,10 +60,6 @@ job [[ template "job_name" . ]] {
 
 [[ range $index, $i := split " "  (seq 0 ((sub $VNODE_COUNT 1)|int)) ]]
       port "prosody-vnode-[[ $i ]]-http" {
-      }
-      port "prosody-vnode-[[ $i ]]-client" {
-      }
-      port "prosody-vnode-[[ $i ]]-s2s" {
       }
 [[ end ]]
 [[ end ]]
@@ -90,7 +87,6 @@ job [[ template "job_name" . ]] {
         prosody_client_ip = "${NOMAD_IP_prosody_client}"
         prosody_http_port = "${NOMAD_HOST_PORT_prosody_http}"
         prosody_client_port = "${NOMAD_HOST_PORT_prosody_client}"
-        prosody_s2s_port = "${NOMAD_HOST_PORT_prosody_s2s}"
 [[- if eq (or (env "CONFIG_prosody_brewery_shard_enabled") "true") "true" ]]
         prosody_jvb_client_port = "${NOMAD_HOST_PORT_prosody_jvb_client}"
 [[- end ]]
@@ -276,8 +272,7 @@ job [[ template "job_name" . ]] {
         domain = "[[ env "CONFIG_domain" ]]"
         shard = "[[ env "CONFIG_shard" ]]"
         release_number = "[[ env "CONFIG_release_number" ]]"
-        prosody_client_port = "${NOMAD_HOST_PORT_prosody_vnode_[[ $i ]]_client}"
-        prosody_s2s_port = "${NOMAD_HOST_PORT_prosody_vnode_[[ $i ]]_s2s}"
+        prosody_client_port = "[[ add $VNODE_CLIENT_PORT $i ]]"
         environment = "${meta.environment}"
         vindex = "[[ $i ]]"
       }
@@ -298,7 +293,7 @@ job [[ template "job_name" . ]] {
       config {
         force_pull = [[ or (env "CONFIG_force_pull") "false" ]]
         image        = "jitsi/prosody:[[ env "CONFIG_prosody_tag" ]]"
-        ports = ["prosody-vnode-[[ $i ]]-http","prosody-vnode-[[ $i ]]-client","prosody-vnode-[[ $i ]]-s2s"]
+        ports = ["prosody-vnode-[[ $i ]]-http"]
         volumes = ["local/prosody-plugins-custom:/prosody-plugins-custom","local/config:/config"]
       }
 
@@ -325,10 +320,10 @@ job [[ template "job_name" . ]] {
 #
 # prosody vnode configuration options
 #
-XMPP_SERVER={{ env "NOMAD_IP_prosody_s2s" }}
-XMPP_SERVER_S2S_PORT={{  env "NOMAD_HOST_PORT_prosody_s2s" }}
+XMPP_SERVER=localhost
+XMPP_SERVER_S2S_PORT=[[ $STS_PORT ]]
 PROSODY_HTTP_PORT={{ env "NOMAD_HOST_PORT_prosody_vnode_[[ $i ]]_http" }}
-PROSODY_S2S_PORT={{ env "NOMAD_HOST_PORT_prosody_vnode_[[ $i ]]_s2s" }}
+PROSODY_S2S_PORT=[[ add $VNODE_STS_PORT $i ]]
 
 GLOBAL_CONFIG="console_ports={ 7582+[[ $i ]] };\nstatistics = \"internal\"\nstatistics_interval = \"manual\"\nopenmetrics_allow_cidr = \"0.0.0.0/0\";\n
 [[- if eq (env "CONFIG_prosody_meet_webhooks_enabled") "true" -]]
@@ -339,7 +334,7 @@ GLOBAL_MODULES="admin_telnet,http_openmetrics,log_ringbuffer,firewall,muc_census
 XMPP_MODULES="jiconop"
 XMPP_INTERNAL_MUC_MODULES="muc_hide_all,muc_filter_access[[ if eq (env "CONFIG_prosody_enable_muc_events" ) "true" ]],muc_events[[ end ]]"
 XMPP_MUC_MODULES="[[ if eq (env "CONFIG_prosody_meet_webhooks_enabled") "true" ]]muc_visitors_webhooks[[ end ]]"
-XMPP_PORT={{  env "NOMAD_HOST_PORT_prosody_vnode_[[ $i ]]_client" }}
+XMPP_PORT=[[ add $VNODE_CLIENT_PORT $i ]]
 
 EOF
 
@@ -380,8 +375,8 @@ CONSUL_HOST={{ env "attr.unique.network.ip-address" }}
 HTTP_PORT={{ env "NOMAD_HOST_PORT_signal_sidecar_http" }}
 TCP_PORT={{ env "NOMAD_HOST_PORT_signal_sidecar_agent" }}
 CENSUS_HOST={{ env "NOMAD_META_domain" }}
-JICOFO_ORIG=http://{{ env "NOMAD_IP_jicofo_http" }}:{{ env "NOMAD_HOST_PORT_jicofo_http" }}
-PROSODY_ORIG=http://{{ env "NOMAD_IP_prosody_http" }}:{{ env "NOMAD_HOST_PORT_prosody_http" }}
+JICOFO_ORIG=http://localhost:8888
+PROSODY_ORIG=http://localhost:{{ env "NOMAD_HOST_PORT_prosody_http" }}
 EOF
 
         destination = "local/signal-sidecar.env"
@@ -403,7 +398,7 @@ EOF
       config {
         force_pull = [[ or (env "CONFIG_force_pull") "false" ]]
         image        = "jitsi/prosody:[[ env "CONFIG_prosody_tag" ]]"
-        ports = ["prosody-http","prosody-client","prosody-s2s"]
+        ports = ["prosody-http","prosody-client"]
         volumes = [
           "local/prosody-plugins-custom:/prosody-plugins-custom",
           "local/config:/config",
@@ -473,9 +468,9 @@ EOF
 
       template {
         data = <<EOF
-VISITORS_XMPP_SERVER=[[ range $index, $i := split " "  (seq 0 ((sub $VNODE_COUNT 1)|int)) ]][[ if gt ($i|int) 0 ]],[[ end ]]{{ env "NOMAD_IP_prosody_vnode_[[ $i ]]_s2s" }}:{{ env "NOMAD_HOST_PORT_prosody_vnode_[[ $i ]]_s2s" }}[[ end ]]  
+VISITORS_XMPP_SERVER=[[ range $index, $i := split " "  (seq 0 ((sub $VNODE_COUNT 1)|int)) ]][[ if gt ($i|int) 0 ]],[[ end ]]localhost:[[ add $VNODE_STS_PORT $i ]][[ end ]]  
 PROSODY_HTTP_PORT={{ env "NOMAD_HOST_PORT_prosody_http" }}
-PROSODY_S2S_PORT={{ env "NOMAD_HOST_PORT_prosody_s2s" }}
+PROSODY_S2S_PORT=[[ $STS_PORT ]]
 
 #
 # prosody main configuration options
@@ -516,7 +511,7 @@ XMPP_MUC_CONFIGURATION="allowners_moderated_subdomains = {\n [[ range (env "CONF
 XMPP_MUC_MODULES="[[ if eq (env "CONFIG_prosody_meet_webhooks_enabled") "true" ]]muc_webhooks,[[ end ]][[ if eq (env "CONFIG_prosody_muc_allowners") "true" ]]muc_allowners,[[ end ]][[ if eq (env "CONFIG_prosody_enable_wait_for_host") "true" ]]muc_wait_for_host,[[ end ]][[ if eq (env "CONFIG_prosody_enable_mod_measure_message_count") "true" ]]measure_message_count,[[ end ]]muc_hide_all"
 XMPP_LOBBY_MUC_MODULES="[[ if eq (env "CONFIG_prosody_meet_webhooks_enabled") "true" ]]muc_webhooks[[ end ]]"
 XMPP_BREAKOUT_MUC_MODULES="[[ if eq (env "CONFIG_prosody_meet_webhooks_enabled") "true" ]]muc_webhooks[[ end ]][[ if eq (env "CONFIG_prosody_enable_mod_measure_message_count") "true" ]][[ if eq (env "CONFIG_prosody_meet_webhooks_enabled") "true" ]],[[ end ]]measure_message_count[[ end ]]"
-XMPP_SERVER={{ env "NOMAD_IP_prosody_client" }}
+XMPP_SERVER=localhost
 XMPP_PORT={{  env "NOMAD_HOST_PORT_prosody_client" }}
 XMPP_BOSH_URL_BASE=http://{{ env "NOMAD_IP_prosody_http" }}:{{ env "NOMAD_HOST_PORT_prosody_http" }}
 HTTP_PORT={{ env "NOMAD_HOST_PORT_http" }}
@@ -595,7 +590,7 @@ EOH
       template {
         data = <<EOF
 # Internal XMPP server
-XMPP_SERVER={{ env "NOMAD_IP_prosody_jvb_client" }}
+XMPP_SERVER=localhost
 XMPP_PORT={{  env "NOMAD_HOST_PORT_prosody_jvb_client" }}
 PROSODY_HTTP_PORT={{ env "NOMAD_HOST_PORT_prosody_jvb_http" }}
 
@@ -735,7 +730,7 @@ EOF
 
       template {
         data = <<EOF
-VISITORS_XMPP_SERVER=[[ range $index, $i := split " "  (seq 0 ((sub $VNODE_COUNT 1)|int)) ]][[ if gt ($i|int) 0 ]],[[ end ]]{{ env "NOMAD_IP_prosody_vnode_[[ $i ]]_client" }}:{{ env "NOMAD_HOST_PORT_prosody_vnode_[[ $i ]]_client" }}[[ end ]]  
+VISITORS_XMPP_SERVER=[[ range $index, $i := split " "  (seq 0 ((sub $VNODE_COUNT 1)|int)) ]][[ if gt ($i|int) 0 ]],[[ end ]]localhost:[[ add $VNODE_CLIENT_PORT ($i|int) ]][[ end ]]  
 #
 # Basic configuration options
 #
@@ -755,14 +750,14 @@ HTTP_PORT={{ env "NOMAD_HOST_PORT_http" }}
 HTTPS_PORT={{ env "NOMAD_HOST_PORT_https" }}
 
 # Internal XMPP server
-XMPP_SERVER={{ env "NOMAD_IP_prosody_client" }}
+XMPP_SERVER=localhost
 XMPP_PORT={{  env "NOMAD_HOST_PORT_prosody_client" }}
 
 # Internal XMPP server URL
 XMPP_BOSH_URL_BASE=http://{{ env "NOMAD_IP_prosody_http" }}:{{ env "NOMAD_HOST_PORT_prosody_http" }}
 
 [[- if eq (or (env "CONFIG_prosody_brewery_shard_enabled") "true") "true" ]]
-JVB_XMPP_SERVER={{ env "NOMAD_IP_prosody_jvb_client" }}
+JVB_XMPP_SERVER=localhost
 JVB_XMPP_PORT={{  env "NOMAD_HOST_PORT_prosody_jvb_client" }}
 [[- else ]]
 JVB_XMPP_SERVER=localhost

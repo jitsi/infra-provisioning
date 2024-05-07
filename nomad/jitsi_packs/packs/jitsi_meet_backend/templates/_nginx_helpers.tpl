@@ -137,7 +137,7 @@ server {
 [[ define "nginx-streams.conf" -]]
 # upstream main prosody
 upstream prosodylimitedupstream {
-    server {{ env "NOMAD_IP_prosody_http" }}:{{ env "NOMAD_HOST_PORT_prosody_http" }};
+    server localhost:{{ env "NOMAD_HOST_PORT_prosody_http" }};
 }
 # local rate-limited proxy for main prosody
 server {
@@ -149,7 +149,7 @@ server {
 [[ range $index, $i := split " "  (seq 0 ((sub (var "visitors_count" .) 1)|int)) -]]
 # upstream visitor prosody [[ $i ]]
 upstream prosodylimitedupstream[[ $i ]] {
-    server {{ env "NOMAD_IP_prosody_vnode_[[ $i ]]_http" }}:{{ env "NOMAD_HOST_PORT_prosody_vnode_[[ $i ]]_http" }};
+    server localhost:{{ env "NOMAD_HOST_PORT_prosody_vnode_[[ $i ]]_http" }};
 }
 # local rate-limited proxy for visitor prosody [[ $i ]]
 server {
@@ -170,7 +170,7 @@ server {
 
 upstream prosody {
     zone upstreams 64K;
-    server {{ env "NOMAD_IP_prosody_http" }}:{{ env "NOMAD_HOST_PORT_prosody_http" }};
+    server localhost:{{ env "NOMAD_HOST_PORT_prosody_http" }};
     keepalive 2;
 }
 
@@ -217,7 +217,7 @@ upstream colibri-proxy {
 # local upstream for jicofo connection
 upstream jicofo {
     zone upstreams 64K;
-    server {{ env "NOMAD_IP_jicofo_http" }}:{{ env "NOMAD_HOST_PORT_jicofo_http" }};
+    server localhost:8888;
     keepalive 2;
 }
 
@@ -236,7 +236,7 @@ upstream prosodylimited[[ $i ]] {
 [[ range $index, $i := split " "  (seq 0 ((sub (var "visitors_count" .) 1)|int)) -]]
 # upstream visitor prosody [[ $i ]]
 upstream v[[ $i ]] {
-    server {{ env "NOMAD_IP_prosody_vnode_[[ $i ]]_http" }}:{{ env "NOMAD_HOST_PORT_prosody_vnode_[[ $i ]]_http" }};
+    server localhost:{{ env "NOMAD_HOST_PORT_prosody_vnode_[[ $i ]]_http" }};
 }
 [[ end -]]
 [[ end -]]
@@ -482,7 +482,7 @@ server {
 
     # shard health check
     location = /about/health {
-        proxy_pass      http://{{ env "NOMAD_IP_signal_sidecar_http" }}:{{ env "NOMAD_HOST_PORT_signal_sidecar_http" }}/signal/health;
+        proxy_pass      http://localhost:{{ env "NOMAD_HOST_PORT_signal_sidecar_http" }}/signal/health;
         access_log   off;
         # do not cache anything from prebind
         add_header "Cache-Control" "no-cache, no-store";
