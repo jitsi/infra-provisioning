@@ -68,7 +68,7 @@ WAVEFRONT_TOKEN="{{ with secret "secret/default/wavefront-proxy/token" }}{{ .Dat
       }
 
       resources {
-        cpu    = 1000
+        cpu    = 512
         memory = 1024
       }
     }

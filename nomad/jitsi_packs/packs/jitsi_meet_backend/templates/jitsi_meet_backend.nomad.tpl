@@ -343,7 +343,7 @@ EOF
       }
 
       resources {
-        cpu    = [[ or (env "CONFIG_nomad_prosody_vnode_cpu") "500" ]]
+        cpu    = [[ or (env "CONFIG_nomad_prosody_vnode_cpu") "200" ]]
         memory    = [[ or (env "CONFIG_nomad_prosody_vnode_memory") "512" ]]
       }
     }
@@ -554,7 +554,7 @@ EOH
       }
 
       resources {
-        cpu    = [[ or (env "CONFIG_nomad_prosody_cpu") "500" ]]
+        cpu    = [[ or (env "CONFIG_nomad_prosody_cpu") "200" ]]
         memory    = [[ or (env "CONFIG_nomad_prosody_memory") "1024" ]]
       }
     }
@@ -603,7 +603,7 @@ EOF
       }
 
       resources {
-        cpu    = [[ or (env "CONFIG_nomad_prosody_jvb_cpu") "500" ]]
+        cpu    = [[ or (env "CONFIG_nomad_prosody_jvb_cpu") "200" ]]
         memory    = [[ or (env "CONFIG_nomad_prosody_jvb_memory") "512" ]]
       }
     }
@@ -772,7 +772,7 @@ EOF
       }
 
       resources {
-        cpu    = [[ or (env "CONFIG_nomad_jicofo_cpu") "500" ]]
+        cpu    = [[ or (env "CONFIG_nomad_jicofo_cpu") "200" ]]
         memory    = [[ or (env "CONFIG_nomad_jicofo_memory") "3072" ]]
       }
     }
@@ -854,7 +854,7 @@ Domains=~consul
 EOF
       }
       resources {
-        cpu    = [[ or (env "CONFIG_nomad_web_cpu") "300" ]]
+        cpu    = [[ or (env "CONFIG_nomad_web_cpu") "200" ]]
         memory    = [[ or (env "CONFIG_nomad_web_memory") "512" ]]
       }
     }
