@@ -322,7 +322,7 @@ job [[ template "job_name" . ]] {
 XMPP_SERVER=localhost
 XMPP_SERVER_S2S_PORT=[[ $STS_PORT ]]
 PROSODY_HTTP_PORT={{ env "NOMAD_HOST_PORT_prosody_vnode_[[ $i ]]_http" }}
-PROSODY_S2S_PORT=[[ $VNODE_STS_PORT + $i ]]
+PROSODY_S2S_PORT=[[ add $VNODE_STS_PORT $i ]]
 
 GLOBAL_CONFIG="console_ports={ 7582+[[ $i ]] };\nstatistics = \"internal\"\nstatistics_interval = \"manual\"\nopenmetrics_allow_cidr = \"0.0.0.0/0\";\n
 [[- if eq (env "CONFIG_prosody_meet_webhooks_enabled") "true" -]]
@@ -467,7 +467,7 @@ EOF
 
       template {
         data = <<EOF
-VISITORS_XMPP_SERVER=[[ range $index, $i := split " "  (seq 0 ((sub $VNODE_COUNT 1)|int)) ]][[ if gt ($i|int) 0 ]],[[ end ]]localhost:[[ $VNODE_STS_PORT + $i ]][[ end ]]  
+VISITORS_XMPP_SERVER=[[ range $index, $i := split " "  (seq 0 ((sub $VNODE_COUNT 1)|int)) ]][[ if gt ($i|int) 0 ]],[[ end ]]localhost:[[ add $VNODE_STS_PORT $i ]][[ end ]]  
 PROSODY_HTTP_PORT={{ env "NOMAD_HOST_PORT_prosody_http" }}
 PROSODY_S2S_PORT=[[ $STS_PORT ]]
 
