@@ -23,6 +23,12 @@ variable "count" {
   default     = 2
 }
 
+variable "consul_connect" {
+  description = "If you want to use Consul Connect for sidecar connectivity"
+  type        = bool
+  default     = true
+}
+
 variable "hostname" {
   description = "The hostname to use for the app"
   type        = string
