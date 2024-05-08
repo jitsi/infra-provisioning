@@ -33,6 +33,7 @@ job [[ template "job_name" . ]] {
     count = 1
 
     network {
+      mode = "bridge"
       # This requests a dynamic port named "http". This will
       # be something like "46283", but we refer to it via the
       # label "http".
@@ -65,6 +66,17 @@ job [[ template "job_name" . ]] {
       }
 
       port = "http"
+
+      connect {
+        sidecar_service {
+          proxy {
+            upstreams {
+              destination_name = "autoscaler"
+              local_bind_port  = 2223
+            }
+          }
+        }
+      }
 
       check {
         name     = "health"
@@ -201,7 +213,8 @@ EOF
         JVB_INSTANCE_ID = "${NOMAD_SHORT_ALLOC_ID}"
         LOCAL_ADDRESS = "${attr.unique.network.ip-address}"
         AUTOSCALER_SIDECAR_PORT = "6000"
-        AUTOSCALER_URL = "https://${meta.cloud_name}-autoscaler.jitsi.net"
+        AUTOSCALER_URL = "http://localhost:2223"
+#        AUTOSCALER_URL = "https://${meta.cloud_name}-autoscaler.jitsi.net"
         AUTOSCALER_SIDECAR_KEY_FILE = "/secrets/asap.key"
         AUTOSCALER_SIDECAR_REGION = "${meta.cloud_region}"
         AUTOSCALER_SIDECAR_GROUP_NAME = "${NOMAD_META_group}"
