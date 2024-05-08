@@ -37,31 +37,51 @@ job [[ template "job_name" . ]] {
       port "http" {
         to = 8080
       }
-      port "metrics" {
-        to = 8081
+      port "expose" {
+      }
+      port "expose2" {
       }
     }
 
     [[ if var "register_service" . ]]
     service {
       name = "autoscaler"
-      tags = [  "int-urlprefix-${var.autoscaler_hostname}/","urlprefix-${var.autoscaler_hostname}/","ip-${attr.unique.network.ip-address}" ]
+      tags = [ "int-urlprefix-${var.autoscaler_hostname}/","ip-${attr.unique.network.ip-address}" ]
       port = "http"
+      [[- if var "consul_connect" . ]]
       connect {
         sidecar_service {
           tags = ["ip-${attr.unique.network.ip-address}"]
+          proxy {
+            local_service_port = 8080
+            expose {
+              path {
+                path            = "/health"
+                protocol        = "http"
+                local_path_port = 8081
+                listener_port   = "expose"
+              }
+              path {
+                path            = "/metrics"
+                protocol        = "http"
+                local_path_port = 8081
+                listener_port   = "expose2"
+              }
+            }
+          }
         }
       }
+      [[- end ]]      
       check {
         name     = "alive"
         type     = "http"
         path     = "/health"
-        port     = "metrics"
+        port     = "expose"
         interval = "10s"
         timeout  = "2s"
       }
       meta {
-        metrics_port = "${NOMAD_HOST_PORT_metrics}"
+        metrics_port = "${NOMAD_HOST_PORT_expose2}"
       }
     }
     [[ end ]]
