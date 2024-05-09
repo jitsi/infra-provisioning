@@ -44,6 +44,9 @@ job [[ template "job_name" . ]] {
       port "colibri" {
         to = 9090
       }
+      port "metrics_envoy" {
+        to = 9102
+      }
     }
 
     service {
@@ -63,6 +66,7 @@ job [[ template "job_name" . ]] {
         public_ip = "${meta.public_ip}"
         group = "${NOMAD_META_group}"
         jvb_pool_mode = "[[ or (env "CONFIG_jvb_pool_mode") "shard" ]]"
+        metrics_port_envoy = "${NOMAD_HOST_PORT_metrics_envoy}"
       }
 
       port = "http"
@@ -70,6 +74,10 @@ job [[ template "job_name" . ]] {
       connect {
         sidecar_service {
           proxy {
+            config {
+              # Expose metrics for prometheus (envoy)
+              envoy_prometheus_bind_addr = "0.0.0.0:9102"              
+            }
             upstreams {
               destination_name = "autoscaler"
               local_bind_port  = 2223
