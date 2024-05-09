@@ -328,14 +328,15 @@ EOF
         host = "{{"{{"}}.Node}}"
         shard-role = "docker-dhmirror"
         role = "docker-dhmirror"
-    [[inputs.prometheus.consul.query]]
-      name = "jvb-sidecar-proxy"
-      tag = "ip-{{ env "attr.unique.network.ip-address" }}"
-      url = 'http://{{"{{"}}if ne .ServiceAddress ""}}{{"{{"}}.ServiceAddress}}{{"{{"}}else}}{{"{{"}}.Address}}{{"{{"}}end}}:{{"{{"}}with .ServiceMeta.metrics_port_envoy}}{{"{{"}}.}}{{"{{"}}else}}{{"{{"}}.ServicePort}}{{"{{"}}end}}/metrics'
-      [inputs.prometheus.consul.query.tags]
-        host = "{{"{{"}}.Node}}"
-        shard-role = "jvb-envoy"
-        role = "jvb-envoy"
+# uncomment for consul connect envoy sidecar metrics (~1700 per sidecar)
+#    [[inputs.prometheus.consul.query]]
+#      name = "jvb-sidecar-proxy"
+#      tag = "ip-{{ env "attr.unique.network.ip-address" }}"
+#      url = 'http://{{"{{"}}if ne .ServiceAddress ""}}{{"{{"}}.ServiceAddress}}{{"{{"}}else}}{{"{{"}}.Address}}{{"{{"}}end}}:{{"{{"}}with .ServiceMeta.metrics_port_envoy}}{{"{{"}}.}}{{"{{"}}else}}{{"{{"}}.ServicePort}}{{"{{"}}end}}/metrics'
+#      [inputs.prometheus.consul.query.tags]
+#        host = "{{"{{"}}.Node}}"
+#        shard-role = "jvb-envoy"
+#        role = "jvb-envoy"
 
 
 [[inputs.prometheus]]
