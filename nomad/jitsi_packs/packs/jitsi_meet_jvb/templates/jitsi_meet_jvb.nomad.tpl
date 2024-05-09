@@ -33,6 +33,7 @@ job [[ template "job_name" . ]] {
     count = 1
 
     network {
+      mode = "bridge"
       # This requests a dynamic port named "http". This will
       # be something like "46283", but we refer to it via the
       # label "http".
@@ -42,6 +43,9 @@ job [[ template "job_name" . ]] {
       port "media" {}
       port "colibri" {
         to = 9090
+      }
+      port "metrics_envoy" {
+        to = 9102
       }
     }
 
@@ -62,9 +66,25 @@ job [[ template "job_name" . ]] {
         public_ip = "${meta.public_ip}"
         group = "${NOMAD_META_group}"
         jvb_pool_mode = "[[ or (env "CONFIG_jvb_pool_mode") "shard" ]]"
+        metrics_port_envoy = "${NOMAD_HOST_PORT_metrics_envoy}"
       }
 
       port = "http"
+
+      connect {
+        sidecar_service {
+          proxy {
+            config {
+              # Expose metrics for prometheus (envoy)
+              envoy_prometheus_bind_addr = "0.0.0.0:9102"              
+            }
+            upstreams {
+              destination_name = "autoscaler"
+              local_bind_port  = 2223
+            }
+          }
+        }
+      }
 
       check {
         name     = "health"
@@ -201,7 +221,8 @@ EOF
         JVB_INSTANCE_ID = "${NOMAD_SHORT_ALLOC_ID}"
         LOCAL_ADDRESS = "${attr.unique.network.ip-address}"
         AUTOSCALER_SIDECAR_PORT = "6000"
-        AUTOSCALER_URL = "https://${meta.cloud_name}-autoscaler.jitsi.net"
+        AUTOSCALER_URL = "http://localhost:2223"
+#        AUTOSCALER_URL = "https://${meta.cloud_name}-autoscaler.jitsi.net"
         AUTOSCALER_SIDECAR_KEY_FILE = "/secrets/asap.key"
         AUTOSCALER_SIDECAR_REGION = "${meta.cloud_region}"
         AUTOSCALER_SIDECAR_GROUP_NAME = "${NOMAD_META_group}"
