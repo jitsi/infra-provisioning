@@ -96,6 +96,9 @@ job "[JOB_NAME]" {
       port "http" {
         to = 2222
       }
+      port "metrics_envoy" {
+        to = 9102
+      }
     }
 
     service {
@@ -109,6 +112,7 @@ job "[JOB_NAME]" {
         nomad_allocation = "${NOMAD_ALLOC_ID}"
         group = "${NOMAD_META_group}"
         release_number = "${var.release_number}"
+        metrics_port_envoy = "${NOMAD_HOST_PORT_metrics_envoy}"
       }
 
       port = "http"
@@ -116,6 +120,10 @@ job "[JOB_NAME]" {
       connect {
         sidecar_service {
           proxy {
+            config {
+              # Expose metrics for prometheus (envoy)
+              envoy_prometheus_bind_addr = "0.0.0.0:9102"              
+            }
             upstreams {
               destination_name = "autoscaler"
               local_bind_port  = 2223
