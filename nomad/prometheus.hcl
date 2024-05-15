@@ -193,17 +193,35 @@ groups:
 
 - name: service_alerts
   rules:
-  - alert: LokiDown
-    expr: absent(up{job="loki"})
+  - alert: ConsulDown
+    expr: absent(up{job="consul"})
     for: 30s
     labels:
       type: infra
       severity: critical
     annotations:
-      summary: loki service is down in ${var.dc}
-      description: All loki services are failing internal health checks in ${var.dc}. This means that logs are not being collected.
+      summary: consul service is down in ${var.dc}
+      description: All consul services are failing internal health checks in ${var.dc}. This means that service discovery is not functioning.
+  - alert: NomadDown
+    expr: absent(up{job="nomad"})
+    for: 30s
+    labels:
+      type: infra
+      severity: critical
+    annotations:
+      summary: nomad service is down in ${var.dc}
+      description: All nomad services are failing internal health checks in ${var.dc}. This means that service orchestration is not functioning.
+  - alert: PrometheusDown
+    expr: absent(up{job="prometheus"})
+    for: 30s
+    labels:
+      type: infra
+      severity: critical
+    annotations:
+      summary: prometheus service is down in ${var.dc}
+      description: All prometheus services are failing internal health checks in ${var.dc}. This means that metrics are not being stored and served.
   - alert: OscarDown
-    expr: absent_over_time(jitsi_oscar_cpu_usage_msec[5m])
+    expr: absent(up{job="oscar"})
     for: 30s
     labels:
       type: infra
