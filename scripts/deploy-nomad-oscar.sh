@@ -51,6 +51,7 @@ if [[ "$OSCAR_TEMPLATE_TYPE" == "core" ]]; then
     OSCAR_ENABLE_PROMETHEUS="true"
     OSCAR_ENABLE_ALERTMANAGER="true"
     OSCAR_ENABLE_OSCAR="true"
+    OSCAR_ENABLE_VAULT="false"
 elif [[ "$OSCAR_TEMPLATE_TYPE" == "ops" || "$OSCAR_TEMPLATE_TYPE" == "base" ]]; then
     OSCAR_ENABLE_COTURN="false"
     OSCAR_ENABLE_SHARD="false"
@@ -62,6 +63,7 @@ elif [[ "$OSCAR_TEMPLATE_TYPE" == "ops" || "$OSCAR_TEMPLATE_TYPE" == "base" ]]; 
     OSCAR_ENABLE_PROMETHEUS="true"
     OSCAR_ENABLE_ALERTMANAGER="true"
     OSCAR_ENABLE_OSCAR="true"
+    OSCAR_ENABLE_VAULT="true"
 else
     echo "Unsupported OSCAR_TEMPLATE_TYPE, exiting"
     exit 3
@@ -121,6 +123,7 @@ custom_https_targets="$OSCAR_CUSTOM_HTTPS_TARGETS"
 enable_prometheus=$OSCAR_ENABLE_PROMETHEUS
 enable_alertmanager=$OSCAR_ENABLE_ALERTMANAGER
 enable_oscar=$OSCAR_ENABLE_OSCAR
+enable_vault=$OSCAR_ENABLE_VAULT
 EOF
 
 nomad-pack plan --name "$JOB_NAME" \

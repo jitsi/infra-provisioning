@@ -126,3 +126,8 @@ variable "enable_oscar" {
   type        = bool
   default     = false
 }
+variable "enable_vault" {
+  description = "Whether to enable the vault monitoring"
+  type        = bool
+  default     = false
+}
