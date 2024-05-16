@@ -60,5 +60,6 @@ RUN if [ "$TARGETPLATFORM" = "linux/amd64" ]; then ARCHITECTURE="amd64"; elif [ 
     && chmod 755 /usr/bin/regctl
 
 USER jenkins
+RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
 RUN mkdir -p /home/jenkins/.ansible/cp
 #ENTRYPOINT ["/usr/local/bin/jenkins-agent"]
