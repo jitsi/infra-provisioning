@@ -210,6 +210,9 @@ job "vector" {
         EOH
       }
       service {
+        name = "vector"
+        port = "api"
+        tags = ["ip-${attr.unique.network.ip-address}"]
         check {
           port     = "api"
           type     = "http"
