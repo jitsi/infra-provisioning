@@ -50,6 +50,7 @@ if [[ "$OSCAR_TEMPLATE_TYPE" == "core" ]]; then
     OSCAR_ENABLE_LOKI="true"
     OSCAR_ENABLE_PROMETHEUS="true"
     OSCAR_ENABLE_ALERTMANAGER="true"
+    OSCAR_ENABLE_VECTOR="true"
     OSCAR_ENABLE_OSCAR="true"
     OSCAR_ENABLE_VAULT="false"
 elif [[ "$OSCAR_TEMPLATE_TYPE" == "ops" || "$OSCAR_TEMPLATE_TYPE" == "base" ]]; then
@@ -62,6 +63,7 @@ elif [[ "$OSCAR_TEMPLATE_TYPE" == "ops" || "$OSCAR_TEMPLATE_TYPE" == "base" ]]; 
     OSCAR_ENABLE_LOKI="true"
     OSCAR_ENABLE_PROMETHEUS="true"
     OSCAR_ENABLE_ALERTMANAGER="true"
+    OSCAR_ENABLE_VECTOR="true"
     OSCAR_ENABLE_OSCAR="true"
     OSCAR_ENABLE_VAULT="true"
 else
@@ -122,6 +124,7 @@ enable_custom_https=$OSCAR_ENABLE_CUSTOM_HTTPS
 custom_https_targets="$OSCAR_CUSTOM_HTTPS_TARGETS"
 enable_prometheus=$OSCAR_ENABLE_PROMETHEUS
 enable_alertmanager=$OSCAR_ENABLE_ALERTMANAGER
+enable_vector=$OSCAR_ENABLE_VECTOR
 enable_oscar=$OSCAR_ENABLE_OSCAR
 enable_vault=$OSCAR_ENABLE_VAULT
 EOF

@@ -131,3 +131,8 @@ variable "enable_vault" {
   type        = bool
   default     = false
 }
+variable "enable_vector" {
+  description = "Whether to enable the vector monitoring"
+  type        = bool
+  default     = false
+}
