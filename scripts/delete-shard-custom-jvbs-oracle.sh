@@ -168,7 +168,7 @@ if [ "$RESULT" -eq 0 ]; then
 
   DELETE_FAILED=true
 # by default retry for up to 6 hours 
-  DELETE_RETRIES=72 # 12 retries in an hour (every 5 mins), 6 hours
+  DELETE_RETRIES=180 # 30 retries in an hour (every 2 mins), 6 hours
   DELETE_RETRY=0
   while $DELETE_FAILED; do
     delGroup
@@ -181,7 +181,7 @@ if [ "$RESULT" -eq 0 ]; then
         DELETE_FAILED=false
       else
         # failed, but within our retry limit so sleep and try again in 5 mins
-        sleep 300
+        sleep 120
       fi
     fi
   done
