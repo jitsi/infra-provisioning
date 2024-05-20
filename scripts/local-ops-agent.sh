@@ -5,7 +5,7 @@ LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
 [ -z "$ASAP_KEY_DIR" ] && ASAP_KEY_DIR="/opt/jitsi/keys"
 [ -z "$OPS_AGENT_VERSION" ] && OPS_AGENT_VERSION="latest"
-[ -z "$VAULT_PASSWORD_FILE" ] && VAULT_PASSWORD_FILE='./.vault-password.txt'
+[ -z "$VAULT_PASSWORD_FILE" ] && VAULT_PASSWORD_FILE="$LOCAL_PATH/../.vault-password.txt"
 
 [ -z "$ENCRYPTED_ASAP_KEYS_FILE" ] && ENCRYPTED_ASAP_KEYS_FILE="$LOCAL_PATH/../../infra-customizations-private/ansible/secrets/asap-keys.yml"
 [ -z "$ENCRYPTED_JENKINS_FILE" ] && ENCRYPTED_JENKINS_FILE="$LOCAL_PATH/../../infra-customizations-private/ansible/secrets/jenkins.yml"
@@ -58,6 +58,6 @@ docker run --env-file $ENVFILE  -v ~/.ssh:/home/jenkins/.ssh \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -v $ASAP_KEY_DIR:/opt/jitsi/keys \
   --cap-add=CAP_IPC_LOCK \
-  -it aaronkvanmeerten/ops-agent:$OPS_AGENT_VERSION
+  -it aaronkvanmeerten/ops-agent:$OPS_AGENT_VERSION "$@"
 
 rm $ENVFILE
