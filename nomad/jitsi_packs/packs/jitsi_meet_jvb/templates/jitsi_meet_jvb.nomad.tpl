@@ -1,4 +1,5 @@
 [[ $pool_mode := or (env "CONFIG_jvb_pool_mode") "shard" -]]
+[[ $consul_connect_brewery_enabled := or (env "CONFIG_jvb_consul_connect_brewery_enabled") "false" ]]
 
 job [[ template "job_name" . ]] {
   [[ template "region" . ]]
@@ -65,7 +66,31 @@ job [[ template "job_name" . ]] {
       }
 
       port = "http"
-
+      connect {
+        sidecar_service {
+          proxy {
+            upstreams {
+              destination_name = "autoscaler"
+              local_bind_port  = "2223"
+            }
+[[- if eq $consul_connect_brewery_enabled "true" ]]
+[[- if eq $pool_mode "remote" "global" ]]
+[[- range $i, $dc := (var "connect_datacenters" .) ]]
+            upstreams {
+              destination_name = "prosody-brewery@[[ $dc ]]"
+              local_bind_port  = "[[ add 5222 $i ]]"
+            }
+[[- end ]]
+[[- else ]]
+            upstreams {
+              destination_name = "prosody-brewery"
+              local_bind_port  = "5222"
+            }
+[[- end ]]
+          }
+        }
+      }
+[[- end ]]
       check {
         name     = "health"
         type     = "http"

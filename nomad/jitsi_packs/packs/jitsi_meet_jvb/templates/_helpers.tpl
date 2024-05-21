@@ -256,6 +256,8 @@ exit 0
 [[- end ]]
 
 [[ define "shards-json" ]]
+[[ $consul_connect_brewery_enabled := or (env "CONFIG_jvb_consul_connect_brewery_enabled") "true" ]]
+
 [[ template "shard-lookup" . ]]
 [[ $shard_brewery_enabled := or (env "CONFIG_jvb_shard_brewery_enabled") "true" ]]
 
@@ -267,10 +269,16 @@ exit 0
     "{{.ServiceMeta.shard}}": {
       "shard":"{{.ServiceMeta.shard}}",
       "domain":"{{ .ServiceMeta.domain }}",
+[[- if eq $shard_brewery_enabled "false" -]]
+      "address":"127.0.0.1",
+      "xmpp_host_private_ip_address":"127.0.0.1",
+      "host_port":"5222"
+[[- else ]]
       "address":"{{.Address}}",
       "xmpp_host_private_ip_address":"{{.Address}}",
       "host_port":"{{ with .ServiceMeta.prosody_jvb_client_port}}{{.}}{{ else }}6222{{ end }}"
     }
+[[- fi ]]
 {{ end -}}
   },
   "drain_mode":"false",

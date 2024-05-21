@@ -15,3 +15,9 @@ variable "datacenter" {
   description = "A datacenter in the region which are eligible for task placement"
   type        = string
 }
+
+variable "connect_datacenters" {
+  description = "The list of datacenters to search shards in for consul-connect"
+  type        = list(string)
+  default     = []
+}

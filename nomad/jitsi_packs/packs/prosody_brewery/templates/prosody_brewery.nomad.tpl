@@ -27,28 +27,7 @@ job [[ template "job_name" . ]] {
 
     network {
       mode = "bridge"
-      port "prosody-brewery-client" {
-      }
-      port "prosody-brewery-http" {
-        to = 5280
-      }
-    }
-
-    service {
-      name = "prosody-brewery-http"
-      tags = ["ip-${attr.unique.network.ip-address}"]
-      port = "prosody-brewery-http"
-      meta {
-        domain = "[[ env "CONFIG_domain" ]]"
-        environment = "${meta.environment}"
-      }
-      check {
-        name     = "health"
-        type     = "http"
-        path     = "/metrics"
-        port     = "prosody-brewery-http"
-        interval = "10s"
-        timeout  = "2s"
+      port "expose" {
       }
     }
 
@@ -59,13 +38,23 @@ job [[ template "job_name" . ]] {
         domain = "[[ env "CONFIG_domain" ]]"
         environment = "${meta.environment}"
         shard = "prosody-brewery-[[ env "CONFIG_octo_region"]]"
-        prosody_jvb_client_port = "${NOMAD_HOST_PORT_prosody_brewery_client}"
+        metrics_port = "${NOMAD_HOST_PORT_expose}"
       }
 
-      port = "prosody-brewery-client"
+      port = "6222"
 
       connect {
-        sidecar_service {}
+        sidecar_service {
+            local_service_port = 5222
+            expose {
+              path {
+                path            = "/metrics"
+                protocol        = "http"
+                local_path_port = 5280
+                listener_port   = "expose"
+              }
+            }
+        }
       }
     }
 
@@ -75,7 +64,6 @@ job [[ template "job_name" . ]] {
       config {
         force_pull = [[ or (env "CONFIG_force_pull") "false" ]]
         image        = "jitsi/prosody:[[ env "CONFIG_prosody_tag" ]]"
-        ports = ["prosody-brewery-client","prosody-brewery-http"]
         volumes = ["local/prosody-plugins-custom:/prosody-plugins-custom","local/config:/config"]
       }
 
@@ -103,11 +91,9 @@ job [[ template "job_name" . ]] {
       template {
         data = <<EOF
 # Internal XMPP server
-XMPP_SERVER={{ env "NOMAD_IP_prosody_brewery_client" }}
-XMPP_PORT={{  env "NOMAD_HOST_PORT_prosody_brewery_client" }}
+XMPP_SERVER=0.0.0.0
+XMPP_PORT=5222
 
-# Internal XMPP server URL
-XMPP_BOSH_URL_BASE=http://{{ env "NOMAD_IP_prosody_brewery_http" }}:{{ env "NOMAD_HOST_PORT_prosody_brewery_http" }}
 EOF
 
         destination = "local/prosody-brewery.env"
@@ -116,7 +102,7 @@ EOF
 
       resources {
         cpu    = [[ or (env "CONFIG_nomad_prosody_brewery_cpu") "512" ]]
-        memory    = [[ or (env "CONFIG_nomad_prosody_brewery_memory") "512" ]]
+        memory    = [[ or (env "CONFIG_nomad_prosody_brewery_memory") "1024" ]]
       }
     }
   }
