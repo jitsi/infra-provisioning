@@ -49,7 +49,7 @@ videobridge {
     endpoint = true
     [[ end ]]
 
-    [[ if eq (or (env "CONFIG_jvb_enable_cryptex_relay") "false") "true" ]]
+    [[ if eq (or (env "CONFIG_jvb_enable_cryptex_relay") "true") "true" ]]
     relay = true
     [[ end ]]
   }
