@@ -103,6 +103,10 @@ videobridge {
 
   stats {
     enabled = true
+    transit-time {
+      enable-json = false
+      enable-prometheus = true
+    }
   }
 
   websockets {
