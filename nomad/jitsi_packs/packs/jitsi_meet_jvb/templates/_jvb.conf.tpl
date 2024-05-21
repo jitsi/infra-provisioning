@@ -84,10 +84,6 @@ videobridge {
 [[ end ]]
   }
 
-  multi-stream {
-    enabled = [[ or (env "CONFIG_jvb_enable_multi_stream") "true" ]]
-  }
-
   apis {
     rest {
       enabled=true
