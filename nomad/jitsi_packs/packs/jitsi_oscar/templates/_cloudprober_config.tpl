@@ -7,8 +7,8 @@ probe {
   targets {
     host_names: "[[ var "domain" . ]]"
   }
-  interval_msec: 5000
-  timeout_msec: 2000
+  interval_msec: 10000
+  timeout_msec: 5000
   validator {
       name: "status_code_2xx"
       http_validator {
@@ -30,8 +30,8 @@ probe {
     mode: ONCE 
     command: "/bin/oscar_haproxy_probe.sh"
   }
-  interval_msec: 5000
-  timeout_msec: 2000
+  interval_msec: 10000
+  timeout_msec: 5000
 }
 
 [[ end -]]
@@ -53,7 +53,7 @@ probe {
       }
   }
   interval_msec: 60000
-  timeout_msec: 2000
+  timeout_msec: 5000
 }
 
 [[ end -]]
@@ -76,7 +76,7 @@ probe {
       }
   }
   interval_msec: 60000
-  timeout_msec: 2000
+  timeout_msec: 5000
 }
 
 [[ end -]]
@@ -92,8 +92,8 @@ probe {
     mode: ONCE 
     command: "/bin/oscar_coturn_probe.sh @target@"
   }
-  interval_msec: 10000
-  timeout_msec: 2000
+  interval_msec: 20000
+  timeout_msec: 5000
 }
 
 [[ end -]]
@@ -121,8 +121,8 @@ probe {
           success_status_codes: "200-299"
       }
   }
-  interval_msec: 5000
-  timeout_msec: 2000
+  interval_msec: 10000
+  timeout_msec: 5000
 }
 
 [[ end -]]
@@ -144,8 +144,8 @@ probe {
           success_status_codes: "200-299"
       }
   }
-  interval_msec: 5000
-  timeout_msec: 2000
+  interval_msec: 60000
+  timeout_msec: 5000
 }
 
 [[ end -]]
@@ -167,7 +167,7 @@ probe {
           success_status_codes: "200-299"
       }
   }
-  interval_msec: 5000
+  interval_msec: 60000
   timeout_msec: 2000
 }
 
@@ -190,7 +190,7 @@ probe {
           success_status_codes: "200-299"
       }
   }
-  interval_msec: 5000
+  interval_msec: 60000
   timeout_msec: 2000
 }
 
@@ -212,8 +212,8 @@ probe {
           success_status_codes: "200-299"
       }
   }
-  interval_msec: 5000
-  timeout_msec: 2000
+  interval_msec: 20000
+  timeout_msec: 5000
 }
 
 [[ end -]]
@@ -234,8 +234,8 @@ probe {
           success_status_codes: "200-299"
       }
   }
-  interval_msec: 5000
-  timeout_msec: 2000
+  interval_msec: 20000
+  timeout_msec: 5000
 }
 
 [[ end -]]
@@ -253,7 +253,7 @@ probe {
       }
   }
   interval_msec: 20000
-  timeout_msec: 2000
+  timeout_msec: 5000
 }
 [[ end -]]
 [[ if var "enable_loki" . -]]
@@ -275,7 +275,7 @@ probe {
       }
   }
   interval_msec: 60000
-  timeout_msec: 2000
+  timeout_msec: 5000
 }
 [[ end -]]
 [[ if var "enable_vault" . -]]
@@ -297,7 +297,7 @@ probe {
       }
   }
   interval_msec: 60000
-  timeout_msec: 2000
+  timeout_msec: 5000
 }
 [[ end -]]
 

@@ -251,7 +251,7 @@ groups:
 - name: oscar_alerts
   rules:
   - alert: OscarProbeUnhealthy
-    expr: (rate(jitsi_oscar_failure{probe!="shard"}[5m]) > 0) or (rate(jitsi_oscar_timeouts{probe!="shard"}[5m]) > 0)
+    expr: (5 * rate(jitsi_oscar_failure{probe!="shard"}[5m]) > 0.2) or (5 * rate(jitsi_oscar_timeouts{probe!="shard"}[5m]) > 0.2)
     for: 1m
     labels:
       type: infra
