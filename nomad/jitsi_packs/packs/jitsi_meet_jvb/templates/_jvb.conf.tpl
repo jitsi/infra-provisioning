@@ -162,6 +162,9 @@ videobridge {
 
   sctp {
     enabled = [[ or (env "CONFIG_jvb_enable_sctp") "false" ]]
+[[ if eq (or (env "CONFIG_jvb_use_dcsctp") "true") "true" ]]
+    use-usrsctp = false
+[[ end ]]
   }
 
   shutdown {
