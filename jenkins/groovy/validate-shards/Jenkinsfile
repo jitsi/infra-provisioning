@@ -67,6 +67,7 @@ pipeline {
         }
         archiveArtifacts artifacts: 'test-results/**/*', fingerprint: true
         junit 'test-results/**/target/chrome-2-chrome/*.xml'
+        archiveArtifacts artifacts: 'test-results-*/**', fingerprint: true
     }
     fixed {
         slackSend color: "good", message: "Successfully fixed build of ${env.JOB_NAME} ${env.BUILD_NUMBER} (<${env.BUILD_URL}|Open>)\nValidating shards in $ENVIRONMENT -> $SHARDS"
