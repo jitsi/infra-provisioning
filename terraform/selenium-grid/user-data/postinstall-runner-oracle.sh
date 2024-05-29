@@ -17,6 +17,11 @@ if [[ "$NOMAD_FLAG" == "null" ]]; then
     NOMAD_FLAG="false"
 fi
 
+if [[ "$NOMAD_FLAG" == "false" ]]; then
+    service docker stop # no docker if not using nomad
+    ip link delete docker0
+fi
+
 export HOST_ROLE="$GRID-grid"
 MY_IP=`curl -s curl http://169.254.169.254/opc/v1/vnics/ | jq .[0].privateIp -r`
 export MY_COMPONENT_NUMBER="$(echo $MY_IP | awk -F. '{print $2"-"$3"-"$4}')"
