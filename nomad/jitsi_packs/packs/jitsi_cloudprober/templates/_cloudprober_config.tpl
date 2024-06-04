@@ -28,7 +28,7 @@ probe {
   }
   external_probe {
     mode: ONCE 
-    command: "/bin/oscar_haproxy_probe.sh"
+    command: "/bin/cloudprober_haproxy_probe.sh"
   }
   interval_msec: 10000
   timeout_msec: 5000
@@ -90,7 +90,7 @@ probe {
   }
   external_probe {
     mode: ONCE 
-    command: "/bin/oscar_coturn_probe.sh @target@"
+    command: "/bin/cloudprober_coturn_probe.sh @target@"
   }
   interval_msec: 20000
   timeout_msec: 5000
@@ -172,13 +172,13 @@ probe {
 }
 
 [[ end -]]
-[[ if var "enable_oscar" . -]]
-# probes oscar health in all other datacenters
+[[ if var "enable_cloudprober" . -]]
+# probes cloudprober health in all other datacenters
 probe {
-  name: "oscar"
+  name: "cloudprober"
   type: HTTP
   targets {
-    host_names: "{{ range $dcidx, $dc := datacenters -}}{{ if ne $dcidx 0 }}{{ if ne $dcidx 1 }},{{ end }}{{ $dc }}-oscar.[[ var "top_level_domain" . ]]{{ end }}{{ end }}"
+    host_names: "{{ range $dcidx, $dc := datacenters -}}{{ if ne $dcidx 0 }}{{ if ne $dcidx 1 }},{{ end }}{{ $dc }}-cloudprober.[[ var "top_level_domain" . ]]{{ end }}{{ end }}"
   }
   http_probe {
     protocol: HTTPS
