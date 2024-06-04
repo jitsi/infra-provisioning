@@ -127,12 +127,12 @@ probe {
 
 [[ end -]]
 [[ if var "enable_prometheus" . -]]
-# probes health of prometheus service in all other datacenters
+# probes prometheus health in all datacenters
 probe {
   name: "prometheus"
   type: HTTP
   targets {
-    host_names: "{{ range $dcidx, $dc := datacenters -}}{{ if ne $dcidx 0 }}{{ if ne $dcdix 1 }},{{ end }}{{ $dc }}-prometheus.[[ var "top_level_domain" . ]]{{ end }}{{ end }}"
+    host_names: "{{ range $dcidx, $dc := datacenters -}}{{ if ne $dcidx 0 }},{{ end }}{{ $dc }}-prometheus.[[ var "top_level_domain" . ]]{{ end }}"
   }
   http_probe {
     protocol: HTTPS
@@ -150,12 +150,12 @@ probe {
 
 [[ end -]]
 [[ if var "enable_alertmanager" . -]]
-# probes health of alertmanager health in all other datacenters
+# probes alertmanager health in all datacenters
 probe {
   name: "alertmanager"
   type: HTTP
   targets {
-    host_names: "{{ range $dcidx, $dc := datacenters -}}{{ if ne $dcidx 0 }}{{ if ne $dcdix 1 }},{{ end }}{{ $dc }}-alertmanager.[[ var "top_level_domain" . ]]{{ end }}{{ end }}"
+    host_names: "{{ range $dcidx, $dc := datacenters -}}{{ if ne $dcidx 0 }},{{ end }}{{ $dc }}-alertmanager.[[ var "top_level_domain" . ]]{{ end }}"
   }
   http_probe {
     protocol: HTTPS
@@ -173,12 +173,12 @@ probe {
 
 [[ end -]]
 [[ if var "enable_oscar" . -]]
-# probes health of oscar health in all other datacenters
+# probes oscar health in all other datacenters
 probe {
   name: "oscar"
   type: HTTP
   targets {
-    host_names: "{{ range $dcidx, $dc := datacenters -}}{{ if ne $dcidx 0 }}{{ if ne $dcdix 1 }},{{ end }}{{ $dc }}-oscar.[[ var "top_level_domain" . ]]{{ end }}{{ end }}"
+    host_names: "{{ range $dcidx, $dc := datacenters -}}{{ if ne $dcidx 0 }}{{ if ne $dcidx 1 }},{{ end }}{{ $dc }}-oscar.[[ var "top_level_domain" . ]]{{ end }}{{ end }}"
   }
   http_probe {
     protocol: HTTPS
