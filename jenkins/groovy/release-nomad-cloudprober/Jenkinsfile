@@ -1,8 +1,8 @@
-def provisionJob(shard_environment,cloud_name,release_number,oscarTemplateType,oracle_region,video_infra_branch) {
-    def provision = build job: 'provision-nomad-oscar',parameters: [
+def provisionJob(shard_environment,cloud_name,release_number,cloudproberTemplateType,oracle_region,video_infra_branch) {
+    def provision = build job: 'provision-nomad-cloudprober',parameters: [
         [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: shard_environment],
         [$class: 'StringParameterValue', name: 'CLOUD_NAME', value: cloud_name],
-        [$class: 'StringParameterValue', name: 'OSCAR_TEMPLATE_TYPE', value: oscarTemplateType],
+        [$class: 'StringParameterValue', name: 'CLOUDPROBER_TEMPLATE_TYPE', value: cloudproberTemplateType],
         [$class: 'StringParameterValue', name: 'ORACLE_REGION', value: oracle_region],
         [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: video_infra_branch]
     ]
@@ -24,8 +24,8 @@ pipeline {				//indicate the job is written in Declarative Pipeline
         stage('Prepare/Checkout') {
             steps {
                 script {
-                    echo 'Oscar Release'
-                    echo "OSCAR TEMPLATE TYPE ${env.OSCAR_TEMPLATE_TYPE}"
+                    echo 'Cloudprober Release'
+                    echo "CLOUDPROBER TEMPLATE TYPE ${env.CLOUDPROBER_TEMPLATE_TYPE}"
                     // load utility function
                     def rootDir = pwd()
                     utils = load "${rootDir}/jenkins/groovy/Utils.groovy"
@@ -38,11 +38,11 @@ pipeline {				//indicate the job is written in Declarative Pipeline
             }
         }
 
-        stage("provision oscar regions") {
+        stage("provision cloudprober regions") {
             steps {
                 script {
                   dir('infra-provisioning') {
-                    echo "Provision oscar in environment ${env.ENVIRONMENT}, clouds ${env.CLOUDS}";
+                    echo "Provision cloudprober in environment ${env.ENVIRONMENT}, clouds ${env.CLOUDS}";
                     def cloud_list = utils.SplitClouds(env.ENVIRONMENT,env.CLOUDS);
                     echo "cloud list ${cloud_list}";
                     def branches = [:]
@@ -54,7 +54,7 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                             provisionJob(env.ENVIRONMENT,
                                 cloud_list[curr],
                                 env.BUILD_ID,
-                                env.OSCAR_TEMPLATE_TYPE,
+                                env.CLOUDPROBER_TEMPLATE_TYPE,
                                 oracle_region,
                                 env.VIDEO_INFRA_BRANCH
                             )
