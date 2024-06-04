@@ -1,4 +1,4 @@
-# cloudprober
+# jitsi_cloudprober
 
 <!-- Include a brief description of your pack -->
 
@@ -15,7 +15,7 @@ To change the message this server responds with, change the "message" variable
 when running the pack.
 
 ```
-nomad-pack run cloudprober --var message="Hola Mundo!"
+nomad-pack run jitsi_cloudprober --var message="Hola Mundo!"
 ```
 
 This tells Nomad Pack to tweak the `MESSAGE` environment variable that the
