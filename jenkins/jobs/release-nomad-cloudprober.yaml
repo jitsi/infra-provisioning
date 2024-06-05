@@ -1,13 +1,13 @@
 - job:
-    name: release-nomad-oscar
-    display-name: release nomad oscar
-    description: "release oscar to nomad in one or more clouds in an environment"
+    name: release-nomad-cloudprober
+    display-name: release nomad cloudprober
+    description: "release cloudprober to nomad in one or more clouds in an environment"
     concurrent: true
     parameters:
       - string:
-          name: OSCAR_TEMPLATE_TYPE
+          name: CLOUDPROBER_TEMPLATE_TYPE
           default: core
-          description: "The type of oscar template to use: core or ops"
+          description: "The type of cloudprober template to use: core or ops"
           trim: true
       - string:
           name: VIDEO_INFRA_BRANCH
@@ -47,5 +47,5 @@
             browser-url: https://github.com/jitsi/infra-provisioning
             submodule:
               recursive: true
-      script-path: jenkins/groovy/release-nomad-oscar/Jenkinsfile
+      script-path: jenkins/groovy/release-nomad-cloudprober/Jenkinsfile
       lightweight-checkout: true

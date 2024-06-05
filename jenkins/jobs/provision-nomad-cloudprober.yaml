@@ -1,13 +1,13 @@
 - job:
-    name: provision-nomad-oscar
-    display-name: provision nomad oscar
-    description: "release oscar in nomad to an oracle region in an environment"
+    name: provision-nomad-cloudprober
+    display-name: provision nomad cloudprober
+    description: "release cloudprober in nomad to an oracle region in an environment"
     concurrent: true
     parameters:
       - string:
-          name: OSCAR_TEMPLATE_TYPE
+          name: CLOUDPROBER_TEMPLATE_TYPE
           default: core
-          description: "The type of oscar template to use: core or ops"
+          description: "The type of cloudprober template to use: core or ops"
           trim: true
       - string:
           name: VIDEO_INFRA_BRANCH
@@ -24,8 +24,8 @@
           trim: true
       - string:
           name: JOB_TYPE
-          default: oscar
-          description: "Nomad job type to provision, defaults to 'oscar' do not change"
+          default: cloudprober
+          description: "Nomad job type to provision, defaults to 'cloudprober' do not change"
           trim: true
       - string:
           name: INFRA_CONFIGURATION_REPO

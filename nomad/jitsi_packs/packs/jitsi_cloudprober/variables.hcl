@@ -18,13 +18,13 @@ variable "oracle_region" {
   description = "The region where jobs will be deployed"
   type        = string
 }
-variable "oscar_hostname" {
-  description = "The hostname of the oscar instance"
+variable "cloudprober_hostname" {
+  description = "The hostname of the cloudprober instance"
   type        = string
-  default     = "oscar.example.com"
+  default     = "cloudprober.example.com"
 }
 variable "top_level_domain" {
-  description = "The top level domain to use for the oscar hostname building"
+  description = "The top level domain to use for the cloudprober hostname building"
   type        = string
   default     = "example.com"
 }
@@ -121,8 +121,8 @@ variable "enable_alertmanager" {
   type        = bool
   default     = false
 }
-variable "enable_oscar" {
-  description = "Whether to enable the oscar monitoring"
+variable "enable_cloudprober" {
+  description = "Whether to enable the cloudprober monitoring"
   type        = bool
   default     = false
 }

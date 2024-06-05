@@ -149,11 +149,11 @@ scrape_configs:
     params:
       format: ['prometheus']
 
-  - job_name: 'oscar'
+  - job_name: 'cloudprober'
     scrape_interval: 10s
     consul_sd_configs:
     - server: '{{ env "NOMAD_IP_prometheus_ui" }}:8500'
-      services: ['oscar']
+      services: ['cloudprober']
 
   - job_name: 'prometheus'
     scrape_interval: 5s
@@ -220,15 +220,15 @@ groups:
     annotations:
       summary: prometheus service is down in ${var.dc}
       description: All prometheus services are failing internal health checks in ${var.dc}. This means that metrics are not being stored and served.
-  - alert: OscarDown
-    expr: absent(up{job="oscar"})
+  - alert: CloudproberDown
+    expr: absent(up{job="cloudprober"})
     for: 30s
     labels:
       type: infra
       severity: critical
     annotations:
-      summary: oscar service is down in ${var.dc}
-      description: Probe metrics from oscar are not being received in ${var.dc}. This means that data from synthetic probes is not being collected in this datacenter.
+      summary: cloudprober service is down in ${var.dc}
+      description: Probe metrics from cloudprober are not being received in ${var.dc}. This means that data from synthetic probes is not being collected in this datacenter.
   - alert: TelegrafDown
     expr: prometheus_target_scrape_pools_total > sum(up{job="telegraf"})
     for: 30s
@@ -248,35 +248,35 @@ groups:
       summary: wavefront-proxy service is down in ${var.dc}
       description: All wavefront-proxy services are failing internal health checks in ${var.dc}. This means that metrics are not being sent to Wavefront.
 
-- name: oscar_alerts
+- name: cloudprober_alerts
   rules:
-  - alert: OscarProbeUnhealthy
-    expr: (rate(jitsi_oscar_failure{probe!="shard"}[5m]) > 0) or (rate(jitsi_oscar_timeouts{probe!="shard"}[5m]) > 0)
+  - alert: CloudproberProbeUnhealthy
+    expr: (5 * rate(cloudprober_failure{probe!="shard"}[5m]) > 0.2) or (5 * rate(cloudprober_timeouts{probe!="shard"}[5m]) > 0.2)
     for: 1m
     labels:
       type: infra
       severity: critical
     annotations:
       summary: http probe from ${var.dc} to {{ $labels.dst }} is unhealthy
-      description: The oscar {{ $labels.probe }} http probe from ${var.dc} to {{ $labels.dst }} timed-out or received an unhealthy response.
+      description: The cloudprober {{ $labels.probe }} http probe from ${var.dc} to {{ $labels.dst }} timed-out or received an unhealthy response.
   - alert: ShardUnhealthy
-    expr: ((rate(jitsi_oscar_failure{probe="shard"}[5m]) > 0) and on() count_over_time(rate(jitsi_oscar_failure{probe="shard"}[5m])[5m:1m]) >= 5) or (rate(jitsi_oscar_timeouts{probe="shard"}[5m]) > 0)
+    expr: ((rate(cloudprober_failure{probe="shard"}[5m]) > 0) and on() count_over_time(rate(cloudprober_failure{probe="shard"}[5m])[5m:1m]) >= 5) or (rate(cloudprober_timeouts{probe="shard"}[5m]) > 0)
     for: 1m
     labels:
       type: infra
       severity: critical
     annotations:
       summary: shard {{ $labels.dst }} probe returned unhealthy from ${var.dc}
-      description: An internal oscar probe from ${var.dc} to the {{ $labels.dst }} shard received an unhealthy response from signal-sidecar. This may be due to a variety of issues, most often when jicofo or prosody goes unhealthy.
+      description: An internal cloudprober probe from ${var.dc} to the {{ $labels.dst }} shard received an unhealthy response from signal-sidecar. This may be due to a variety of issues, most often when jicofo or prosody goes unhealthy.
   - alert: HAProxyRegionMismatch
-    expr: jitsi_oscar_haproxy_region_mismatch < 1
+    expr: cloudprober_haproxy_region_mismatch < 1
     for: 1m
     labels:
       type: infra
       severity: severe 
     annotations:
       summary: a domain probe from ${var.dc} reached an haproxy outside the local region
-      description: An oscar probe to the domain reached an haproxy outside of the local region. This means that CloudFlare may not be routing requests to ${var.dc}, likely due to failing health checks to the regional load balancer ingress.
+      description: An cloudprober probe to the domain reached an haproxy outside of the local region. This means that CloudFlare may not be routing requests to ${var.dc}, likely due to failing health checks to the regional load balancer ingress.
 EOH
     }
 

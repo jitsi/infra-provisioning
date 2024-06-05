@@ -1,4 +1,4 @@
-# jitsi_oscar
+# jitsi_cloudprober
 
 <!-- Include a brief description of your pack -->
 
@@ -15,7 +15,7 @@ To change the message this server responds with, change the "message" variable
 when running the pack.
 
 ```
-nomad-pack run jitsi_oscar --var message="Hola Mundo!"
+nomad-pack run jitsi_cloudprober --var message="Hola Mundo!"
 ```
 
 This tells Nomad Pack to tweak the `MESSAGE` environment variable that the
@@ -34,7 +34,7 @@ service reads from.
 - `region` (string) - The region where jobs will be deployed
 - `register_service` (bool: true) - If you want to register a Nomad service
   for the job
-- `service_tags` (list of string) - The service tags for the jitsi_oscar application
-- `service_name` (string) - The service name for the jitsi_oscar application
+- `service_tags` (list of string) - The service tags for the cloudprober application
+- `service_name` (string) - The service name for the cloudprober application
 
 [pack-registry]: https://github.com/hashicorp/nomad-pack-community-registry
