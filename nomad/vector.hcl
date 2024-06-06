@@ -1,5 +1,5 @@
 variable "dc" {
-  type = list(string)
+  type = string
 }
 
 variable "top_level_domain" {
@@ -8,7 +8,7 @@ variable "top_level_domain" {
 }
 
 job "vector" {
-  datacenters = var.dc
+  datacenters = ["${var.dc}"]
   # system job, runs on all nodes
   type = "system"
   update {
