@@ -18,7 +18,7 @@ def SplitNomadRegions(environment,region_names) {
             returnStdout: true,
             script: """#!/bin/bash
 . ./sites/${environment}/stack-env.sh"
-echo $NOMAD_REGIONS"""
+echo \$NOMAD_REGIONS"""
         ).trim()
     }
     if (!region_names) {
