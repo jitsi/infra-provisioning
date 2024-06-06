@@ -57,42 +57,42 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                                 env.BUILD_ID,
                                 oracle_region,
                                 env.VIDEO_INFRA_BRANCH
-                            },
+                            ),
                             provisionJob('provision-nomad-loki',
                                 env.ENVIRONMENT,
                                 cloud_list[curr],
                                 env.BUILD_ID,
                                 oracle_region,
                                 env.VIDEO_INFRA_BRANCH
-                            },
+                            ),
                             provisionJob('provision-nomad-prometheus',
                                 env.ENVIRONMENT,
                                 cloud_list[curr],
                                 env.BUILD_ID,
                                 oracle_region,
                                 env.VIDEO_INFRA_BRANCH
-                            },
+                            ),
                             provisionJob('provision-nomad-alertmanager',
                                 env.ENVIRONMENT,
                                 cloud_list[curr],
                                 env.BUILD_ID,
                                 oracle_region,
                                 env.VIDEO_INFRA_BRANCH
-                            },
-                            provisionJob('provision-nomad-telegraf',  ## have
+                            ),
+                            provisionJob('provision-nomad-telegraf',
                                 env.ENVIRONMENT,
                                 cloud_list[curr],
                                 env.BUILD_ID,
                                 oracle_region,
                                 env.VIDEO_INFRA_BRANCH
-                            },
-                            provisionJob('provision-nomad-cloudprober', ## have
+                            ),
+                            provisionJob('provision-nomad-cloudprober',
                                 env.ENVIRONMENT,
                                 cloud_list[curr],
                                 env.BUILD_ID,
                                 oracle_region,
                                 env.VIDEO_INFRA_BRANCH
-                            }
+                            )
                         }
                     }
                     // branch out here, run all jobs at once
