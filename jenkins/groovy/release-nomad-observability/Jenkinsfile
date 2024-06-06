@@ -1,8 +1,6 @@
-def provisionJob(job_name,shard_environment,cloud_name,release_number,cloudproberTemplateType,oracle_region,video_infra_branch) {
+def provisionJob(job_name,environment,oracle_region,video_infra_branch) {
     def provision = build job: job_name, parameters: [
-        [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: shard_environment],
-        [$class: 'StringParameterValue', name: 'CLOUD_NAME', value: cloud_name],
-        [$class: 'StringParameterValue', name: 'CLOUDPROBER_TEMPLATE_TYPE', value: cloudproberTemplateType],
+        [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: environment],
         [$class: 'StringParameterValue', name: 'ORACLE_REGION', value: oracle_region],
         [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: video_infra_branch]
     ]
@@ -24,8 +22,7 @@ pipeline {				//indicate the job is written in Declarative Pipeline
         stage('Prepare/Checkout') {
             steps {
                 script {
-                    echo 'Cloudprober Release'
-                    echo "CLOUDPROBER TEMPLATE TYPE ${env.CLOUDPROBER_TEMPLATE_TYPE}"
+                    echo 'Observability stack release'
                     // load utility function
                     def rootDir = pwd()
                     utils = load "${rootDir}/jenkins/groovy/Utils.groovy"
@@ -38,68 +35,55 @@ pipeline {				//indicate the job is written in Declarative Pipeline
             }
         }
 
-        stage("provision cloudprober regions") {
+        stage("provision observability regions") {
             steps {
                 script {
                   dir('infra-provisioning') {
-                    echo "Provision cloudprober in environment ${env.ENVIRONMENT}, clouds ${env.CLOUDS}";
-                    def cloud_list = utils.SplitClouds(env.ENVIRONMENT,env.CLOUDS);
-                    echo "cloud list ${cloud_list}";
+                    echo "Provision observability stack in environment ${env.ENVIRONMENT}, clouds ${env.CLOUDS}";
+                    def region_list = utils.SplitNomadRegions(env.ENVIRONMENT,env.REGIONS);
+                    echo "region list ${region_list}";
                     def branches = [:]
-                    for(i = 0; i < cloud_list.size(); i++) {
-                        def curr = i
-                        def oracle_region = utils.OracleRegionFromCloud(cloud_list[curr])
+                    for(i = 0; i < region_list.size(); i++) {
+                        def oracle_region = region_list[i]
                         echo "pipeline branch ${curr} for ${cloud_list[curr]} ${oracle_region}";
-                        branches["Build ${cloud_list[curr]}"] = {
+                        branches["Build vector-${oracle_region}"] = {
                             provisionJob('provision-nomad-vector',
                                 env.ENVIRONMENT,
-                                cloud_list[curr],
-                                env.BUILD_ID,
                                 oracle_region,
                                 env.VIDEO_INFRA_BRANCH
                             )
                         }
-                        branches["Build ${cloud_list[curr]}"] = {
+                        branches["Build loki-${cloud_list[curr]}"] = {
                             provisionJob('provision-nomad-loki',
                                 env.ENVIRONMENT,
-                                cloud_list[curr],
-                                env.BUILD_ID,
                                 oracle_region,
                                 env.VIDEO_INFRA_BRANCH
                             )
                         }
-                        branches["Build ${cloud_list[curr]}"] = {
+                        branches["Build prometheus-${cloud_list[curr]}"] = {
                             provisionJob('provision-nomad-prometheus',
                                 env.ENVIRONMENT,
-                                cloud_list[curr],
-                                env.BUILD_ID,
                                 oracle_region,
                                 env.VIDEO_INFRA_BRANCH
                             )
                         }
-                        branches["Build ${cloud_list[curr]}"] = {
+                        branches["Build alertmanager-${cloud_list[curr]}"] = {
                             provisionJob('provision-nomad-alertmanager',
                                 env.ENVIRONMENT,
-                                cloud_list[curr],
-                                env.BUILD_ID,
                                 oracle_region,
                                 env.VIDEO_INFRA_BRANCH
                             )
                         }
-                        branches["Build ${cloud_list[curr]}"] = {
+                        branches["Build telegraf-${cloud_list[curr]}"] = {
                             provisionJob('provision-nomad-telegraf',
                                 env.ENVIRONMENT,
-                                cloud_list[curr],
-                                env.BUILD_ID,
                                 oracle_region,
                                 env.VIDEO_INFRA_BRANCH
                             )
                         }
-                        branches["Build ${cloud_list[curr]}"] = {
+                        branches["Build cloudprober-${cloud_list[curr]}"] = {
                             provisionJob('provision-nomad-cloudprober',
                                 env.ENVIRONMENT,
-                                cloud_list[curr],
-                                env.BUILD_ID,
                                 oracle_region,
                                 env.VIDEO_INFRA_BRANCH
                             )
