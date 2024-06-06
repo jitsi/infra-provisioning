@@ -5,11 +5,6 @@
     concurrent: true
     parameters:
       - string:
-          name: CLOUDPROBER_TEMPLATE_TYPE
-          default: core
-          description: "The type of cloudprober template to use: core or ops"
-          trim: true
-      - string:
           name: VIDEO_INFRA_BRANCH
           default: main
           description: "Controls checkout branch for infra repos, defaults to 'main'."
