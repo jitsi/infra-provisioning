@@ -11,14 +11,14 @@ LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
 [ -e "$LOCAL_PATH/../clouds/all.sh" ] && . "$LOCAL_PATH/../clouds/all.sh"
 
-[ -z "$REGIONS" ] && REGIONS="$DRG_PEER_REGIONS"
+if [ -z "$ORACLE_REGION" ]; then
+    echo "No ORACLE_REGION set, exiting"
+    exit 2
+fi
 
 NOMAD_JOB_PATH="$LOCAL_PATH/../nomad"
 
-NOMAD_DC="[]"
-for ORACLE_REGION in $REGIONS; do
-    NOMAD_DC="$( echo "$NOMAD_DC" "[\"$ENVIRONMENT-$ORACLE_REGION\"]" | jq -c -s '.|add')"
-done
+NOMAD_DC="$ENVIRONMENT-$ORACLE_REGION"
 
 [ -z "$LOCAL_REGION" ] && LOCAL_REGION="$OCI_LOCAL_REGION"
 [ -z "$LOCAL_REGION" ] && LOCAL_REGION="us-phoenix-1"
