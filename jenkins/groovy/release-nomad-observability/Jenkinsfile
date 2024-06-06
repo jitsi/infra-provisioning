@@ -39,7 +39,7 @@ pipeline {				//indicate the job is written in Declarative Pipeline
             steps {
                 script {
                   dir('infra-provisioning') {
-                    echo "Provision observability stack in environment ${env.ENVIRONMENT}, clouds ${env.CLOUDS}";
+                    echo "Provision observability stack in environment ${env.ENVIRONMENT}, regions ${env.REGIONS}";
                     def region_list = utils.SplitNomadRegions(env.ENVIRONMENT,env.REGIONS);
                     echo "region list ${region_list}";
                     def branches = [:]
