@@ -57,35 +57,45 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                                 env.BUILD_ID,
                                 oracle_region,
                                 env.VIDEO_INFRA_BRANCH
-                            ),
+                            )
+                        }
+                        branches["Build ${cloud_list[curr]}"] = {
                             provisionJob('provision-nomad-loki',
                                 env.ENVIRONMENT,
                                 cloud_list[curr],
                                 env.BUILD_ID,
                                 oracle_region,
                                 env.VIDEO_INFRA_BRANCH
-                            ),
+                            )
+                        }
+                        branches["Build ${cloud_list[curr]}"] = {
                             provisionJob('provision-nomad-prometheus',
                                 env.ENVIRONMENT,
                                 cloud_list[curr],
                                 env.BUILD_ID,
                                 oracle_region,
                                 env.VIDEO_INFRA_BRANCH
-                            ),
+                            )
+                        }
+                        branches["Build ${cloud_list[curr]}"] = {
                             provisionJob('provision-nomad-alertmanager',
                                 env.ENVIRONMENT,
                                 cloud_list[curr],
                                 env.BUILD_ID,
                                 oracle_region,
                                 env.VIDEO_INFRA_BRANCH
-                            ),
+                            )
+                        }
+                        branches["Build ${cloud_list[curr]}"] = {
                             provisionJob('provision-nomad-telegraf',
                                 env.ENVIRONMENT,
                                 cloud_list[curr],
                                 env.BUILD_ID,
                                 oracle_region,
                                 env.VIDEO_INFRA_BRANCH
-                            ),
+                            )
+                        }
+                        branches["Build ${cloud_list[curr]}"] = {
                             provisionJob('provision-nomad-cloudprober',
                                 env.ENVIRONMENT,
                                 cloud_list[curr],
