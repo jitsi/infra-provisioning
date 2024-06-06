@@ -15,8 +15,8 @@
           description: "Environment to build in, defaults to 'lonely'."
           trim: true
       - string:
-          name: CLOUDS
-          description: "Clouds to build in, defaults to RELEASE_CLOUDS for environment."
+          name: REGIONS
+          description: "REGIONS to build in, defaults to NOMAD_REGIONS for the environment."
           trim: true
       - string:
           name: INFRA_CONFIGURATION_REPO
