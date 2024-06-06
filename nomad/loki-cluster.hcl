@@ -31,6 +31,8 @@ locals {
 job "[JOB_NAME]" {
   datacenters = [var.dc]
   type        = "service"
+  priority    = 75
+
   update {
     max_parallel      = 1
     health_check      = "checks"

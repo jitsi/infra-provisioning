@@ -9,8 +9,9 @@ variable "top_level_domain" {
 
 job "vector" {
   datacenters = ["${var.dc}"]
-  # system job, runs on all nodes
   type = "system"
+  priority = 75
+
   update {
     min_healthy_time = "10s"
     healthy_deadline = "5m"
@@ -65,8 +66,8 @@ job "vector" {
       }
       # resource limits are a good idea because you don't want your log collection to consume all resources available
       resources {
-        cpu    = 500 # 500 MHz
-        memory = 256 # 256MB
+        cpu    = 64
+        memory = 64
       }
       # template with Vector's configuration
       template {

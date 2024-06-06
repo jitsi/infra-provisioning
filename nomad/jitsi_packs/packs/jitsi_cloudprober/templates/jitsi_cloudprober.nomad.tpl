@@ -2,6 +2,7 @@ job [[ template "job_name" . ]] {
   [[ template "region" . ]]
   datacenters = [[ var "datacenters" . | toStringList ]]
   type = "service"
+  priority = 75
 
   update {
     max_parallel      = 1
