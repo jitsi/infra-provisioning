@@ -1,4 +1,10 @@
 [[ define "cloudprober-config" ]]
+
+surfacer {
+  type: PROMETHEUS
+  export_as_gauge: true
+}
+
 [[ if var "enable_site_ingress" . -]]
 # probes site ingress health from this datacenter
 probe {
@@ -9,6 +15,7 @@ probe {
   }
   interval_msec: 10000
   timeout_msec: 5000
+  latency_unit: "ms"
   validator {
       name: "status_code_2xx"
       http_validator {
@@ -32,6 +39,7 @@ probe {
   }
   interval_msec: 10000
   timeout_msec: 5000
+  latency_unit: "ms"
 }
 
 [[ end -]]
@@ -54,6 +62,7 @@ probe {
   }
   interval_msec: 60000
   timeout_msec: 5000
+  latency_unit: "ms"
 }
 
 [[ end -]]
@@ -77,6 +86,7 @@ probe {
   }
   interval_msec: 60000
   timeout_msec: 5000
+  latency_unit: "ms"
 }
 
 [[ end -]]
@@ -94,6 +104,7 @@ probe {
   }
   interval_msec: 20000
   timeout_msec: 5000
+  latency_unit: "ms"
 }
 
 [[ end -]]
@@ -102,6 +113,7 @@ probe {
 probe {
   name: "shard"
   type: HTTP
+
   targets {
     {{ $shard_count := 0 -}}
     {{ range $dc := datacenters -}}{{ $dc_shards := print "signal@" $dc -}}{{ range $shard := service $dc_shards -}}
@@ -123,6 +135,7 @@ probe {
   }
   interval_msec: 10000
   timeout_msec: 5000
+  latency_unit: "ms"
 }
 
 [[ end -]]
@@ -146,6 +159,7 @@ probe {
   }
   interval_msec: 60000
   timeout_msec: 5000
+  latency_unit: "ms"
 }
 
 [[ end -]]
@@ -169,6 +183,7 @@ probe {
   }
   interval_msec: 60000
   timeout_msec: 2000
+  latency_unit: "ms"
 }
 
 [[ end -]]
@@ -192,6 +207,7 @@ probe {
   }
   interval_msec: 60000
   timeout_msec: 2000
+  latency_unit: "ms"
 }
 
 [[ end -]]
@@ -214,6 +230,7 @@ probe {
   }
   interval_msec: 20000
   timeout_msec: 5000
+  latency_unit: "ms"
 }
 
 [[ end -]]
@@ -236,6 +253,7 @@ probe {
   }
   interval_msec: 20000
   timeout_msec: 5000
+  latency_unit: "ms"
 }
 
 [[ end -]]
@@ -254,6 +272,7 @@ probe {
   }
   interval_msec: 20000
   timeout_msec: 5000
+  latency_unit: "ms"
 }
 [[ end -]]
 [[ if var "enable_loki" . -]]
@@ -276,6 +295,7 @@ probe {
   }
   interval_msec: 60000
   timeout_msec: 5000
+  latency_unit: "ms"
 }
 [[ end -]]
 [[ if var "enable_vault" . -]]
@@ -298,6 +318,7 @@ probe {
   }
   interval_msec: 60000
   timeout_msec: 5000
+  latency_unit: "ms"
 }
 [[ end -]]
 
