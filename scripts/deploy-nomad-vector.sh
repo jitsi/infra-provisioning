@@ -27,7 +27,11 @@ if [ -z "$NOMAD_ADDR" ]; then
     export NOMAD_ADDR="https://$ENVIRONMENT-$LOCAL_REGION-nomad.$TOP_LEVEL_DNS_ZONE_NAME"
 fi
 
-export NOMAD_VAR_dc="$NOMAD_DC"
+sed -e "s/\[JOB_NAME\]/$JOB_NAME/" "$NOMAD_JOB_PATH/vector.hcl" | nomad job run -var="dc=$NOMAD_DC" -
 
-sed -e "s/\[JOB_NAME\]/$DOMAIN/" "$NOMAD_JOB_PATH/vector.hcl" | nomad job run  -
+if [ $? -ne 0 ]; then
+    echo "Failed to run nomad vector job, exiting"
+    exit 5
+fi
+
 exit $?
