@@ -1,8 +1,6 @@
-def provisionJob(shard_environment,cloud_name,release_number,cloudproberTemplateType,oracle_region,video_infra_branch) {
+def provisionJob(shard_environment,oracle_region,video_infra_branch) {
     def provision = build job: 'provision-nomad-cloudprober',parameters: [
         [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: shard_environment],
-        [$class: 'StringParameterValue', name: 'CLOUD_NAME', value: cloud_name],
-        [$class: 'StringParameterValue', name: 'CLOUDPROBER_TEMPLATE_TYPE', value: cloudproberTemplateType],
         [$class: 'StringParameterValue', name: 'ORACLE_REGION', value: oracle_region],
         [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: video_infra_branch]
     ]
@@ -25,7 +23,6 @@ pipeline {				//indicate the job is written in Declarative Pipeline
             steps {
                 script {
                     echo 'Cloudprober Release'
-                    echo "CLOUDPROBER TEMPLATE TYPE ${env.CLOUDPROBER_TEMPLATE_TYPE}"
                     // load utility function
                     def rootDir = pwd()
                     utils = load "${rootDir}/jenkins/groovy/Utils.groovy"
@@ -42,19 +39,15 @@ pipeline {				//indicate the job is written in Declarative Pipeline
             steps {
                 script {
                   dir('infra-provisioning') {
-                    echo "Provision cloudprober in environment ${env.ENVIRONMENT}, clouds ${env.CLOUDS}";
-                    def cloud_list = utils.SplitClouds(env.ENVIRONMENT,env.CLOUDS);
-                    echo "cloud list ${cloud_list}";
+                    echo "Provision cloudprober in environment ${env.ENVIRONMENT}, regions ${env.REGIONS}";
+                    def region_list = utils.SplitNomadRegions(env.ENVIRONMENT,env.REGIONS);
+                    echo "region list ${region_list}";
                     def branches = [:]
-                    for(i = 0; i < cloud_list.size(); i++) {
-                        def curr = i
-                        def oracle_region = utils.OracleRegionFromCloud(cloud_list[curr])
-                        echo "pipeline branch ${curr} for ${cloud_list[curr]} ${oracle_region}";
-                        branches["Build ${cloud_list[curr]}"] = {
+                    for(i = 0; i < region_list.size(); i++) {
+                        def oracle_region = region_list[i]
+                        echo "pipeline branch ${i} for ${oracle_region}";
+                        branches["Build loki-${oracle_region}"] = {
                             provisionJob(env.ENVIRONMENT,
-                                cloud_list[curr],
-                                env.BUILD_ID,
-                                env.CLOUDPROBER_TEMPLATE_TYPE,
                                 oracle_region,
                                 env.VIDEO_INFRA_BRANCH
                             )

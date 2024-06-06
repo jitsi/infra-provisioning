@@ -45,7 +45,7 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                     def branches = [:]
                     for(i = 0; i < region_list.size(); i++) {
                         def oracle_region = region_list[i]
-                        echo "pipeline branch ${curr} for ${cloud_list[curr]} ${oracle_region}";
+                        echo "pipeline branch ${i} for ${oracle_region}";
                         branches["Build vector-${oracle_region}"] = {
                             provisionJob('provision-nomad-vector',
                                 env.ENVIRONMENT,
@@ -53,35 +53,35 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                                 env.VIDEO_INFRA_BRANCH
                             )
                         }
-                        branches["Build loki-${cloud_list[curr]}"] = {
+                        branches["Build loki-${oracle_region}"] = {
                             provisionJob('provision-nomad-loki',
                                 env.ENVIRONMENT,
                                 oracle_region,
                                 env.VIDEO_INFRA_BRANCH
                             )
                         }
-                        branches["Build prometheus-${cloud_list[curr]}"] = {
+                        branches["Build prometheus-${oracle_region}"] = {
                             provisionJob('provision-nomad-prometheus',
                                 env.ENVIRONMENT,
                                 oracle_region,
                                 env.VIDEO_INFRA_BRANCH
                             )
                         }
-                        branches["Build alertmanager-${cloud_list[curr]}"] = {
+                        branches["Build alertmanager-${oracle_region}"] = {
                             provisionJob('provision-nomad-alertmanager',
                                 env.ENVIRONMENT,
                                 oracle_region,
                                 env.VIDEO_INFRA_BRANCH
                             )
                         }
-                        branches["Build telegraf-${cloud_list[curr]}"] = {
+                        branches["Build telegraf-${oracle_region}"] = {
                             provisionJob('provision-nomad-telegraf',
                                 env.ENVIRONMENT,
                                 oracle_region,
                                 env.VIDEO_INFRA_BRANCH
                             )
                         }
-                        branches["Build cloudprober-${cloud_list[curr]}"] = {
+                        branches["Build cloudprober-${oracle_region}"] = {
                             provisionJob('provision-nomad-cloudprober',
                                 env.ENVIRONMENT,
                                 oracle_region,
