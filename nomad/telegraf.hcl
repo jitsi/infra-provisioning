@@ -18,10 +18,9 @@ variable wavefront_proxy_url {
 
 
 job "[JOB_NAME]" {
-  region = "global"
   datacenters = [var.dc]
-
   type        = "system"
+  priority    = 75
 
   meta {
     environment = "${var.environment}"

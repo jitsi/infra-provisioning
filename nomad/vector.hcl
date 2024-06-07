@@ -1,5 +1,5 @@
 variable "dc" {
-  type = list(string)
+  type = string
 }
 
 variable "top_level_domain" {
@@ -7,16 +7,18 @@ variable "top_level_domain" {
   default = "jitsi.net"
 }
 
-job "vector" {
-  datacenters = var.dc
-  # system job, runs on all nodes
+job "[JOB_NAME]" {
+  datacenters = ["${var.dc}"]
   type = "system"
+  priority = 75
+
   update {
     min_healthy_time = "10s"
     healthy_deadline = "5m"
     progress_deadline = "10m"
     auto_revert = true
   }
+
   group "vector" {
     count = 1
     restart {
@@ -65,8 +67,8 @@ job "vector" {
       }
       # resource limits are a good idea because you don't want your log collection to consume all resources available
       resources {
-        cpu    = 500 # 500 MHz
-        memory = 256 # 256MB
+        cpu    = 64
+        memory = 256
       }
       # template with Vector's configuration
       template {

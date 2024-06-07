@@ -1,6 +1,6 @@
-def provisionJob(shard_environment,oracle_region,video_infra_branch) {
-    def provision = build job: 'provision-nomad-cloudprober',parameters: [
-        [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: shard_environment],
+def provisionJob(job_name,environment,oracle_region,video_infra_branch) {
+    def provision = build job: job_name, parameters: [
+        [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: environment],
         [$class: 'StringParameterValue', name: 'ORACLE_REGION', value: oracle_region],
         [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: video_infra_branch]
     ]
@@ -18,11 +18,10 @@ pipeline {
       buildDiscarder(logRotator(numToKeepStr: '10', artifactNumToKeepStr: '10'))
     }
     stages {
-        // output stage, shows off our input parameters
         stage('prepare') {
             steps {
                 script {
-                    echo 'cloudprober release'
+                    echo 'loki stack release'
                     // load utility function
                     def rootDir = pwd()
                     utils = load "${rootDir}/jenkins/groovy/Utils.groovy"
@@ -35,19 +34,20 @@ pipeline {
             }
         }
 
-        stage("provision cloudprober regions") {
+        stage("provision loki jobs") {
             steps {
                 script {
                   dir('infra-provisioning') {
-                    echo "Provision cloudprober in environment ${env.ENVIRONMENT}, regions ${env.REGIONS}";
+                    echo "Provision loki stack in environment ${env.ENVIRONMENT}, regions ${env.REGIONS}";
                     def region_list = utils.SplitNomadRegions(env.ENVIRONMENT,env.REGIONS);
-                    echo "region list ${region_list}";
+                    echo "regions: ${region_list}";
                     def branches = [:]
                     for(i = 0; i < region_list.size(); i++) {
                         def oracle_region = region_list[i]
                         echo "pipeline branch ${i} for ${oracle_region}";
-                        branches["Build cloudprober-${oracle_region}"] = {
-                            provisionJob(env.ENVIRONMENT,
+                        branches["Build loki-${oracle_region}"] = {
+                            provisionJob('provision-nomad-loki',
+                                env.ENVIRONMENT,
                                 oracle_region,
                                 env.VIDEO_INFRA_BRANCH
                             )

@@ -37,10 +37,9 @@ variable "remote_write_org_id" {
 }
 
 job "[JOB_NAME]" {
-  region = "global"
-
   datacenters = ["${var.dc}"]
   type        = "service"
+  priority    = 75
 
   update {
     max_parallel = 1

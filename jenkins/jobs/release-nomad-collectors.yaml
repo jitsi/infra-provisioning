@@ -1,7 +1,7 @@
 - job:
-    name: provision-nomad-cloudprober
-    display-name: provision nomad cloudprober
-    description: "release cloudprober in nomad to an oracle region in an environment"
+    name: release-nomad-collectors
+    display-name: release nomad collectors 
+    description: "release the collector stack to nomad in one or more regions in an environment. this currently includes vector and telegraf."
     concurrent: true
     parameters:
       - string:
@@ -11,16 +11,12 @@
           trim: true
       - string:
           name: ENVIRONMENT
-          description: "Environment to provision in"
+          default: lonely
+          description: "Environment to build in, defaults to 'lonely'."
           trim: true
       - string:
-          name: ORACLE_REGION
-          description: "Region to provision in"
-          trim: true
-      - string:
-          name: JOB_TYPE
-          default: cloudprober
-          description: "Nomad job type to provision, defaults to 'cloudprober' do not change"
+          name: REGIONS
+          description: "REGIONS to build in, defaults to NOMAD_REGIONS for the environment."
           trim: true
       - string:
           name: INFRA_CONFIGURATION_REPO
@@ -46,5 +42,5 @@
             browser-url: https://github.com/jitsi/infra-provisioning
             submodule:
               recursive: true
-      script-path: jenkins/groovy/provision-nomad-job/Jenkinsfile
+      script-path: jenkins/groovy/release-nomad-collectors/Jenkinsfile
       lightweight-checkout: true

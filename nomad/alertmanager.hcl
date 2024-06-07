@@ -22,10 +22,9 @@ variable "environment_type" {
 }
 
 job "[JOB_NAME]" {
-  region = "global"
-
   datacenters = ["${var.dc}"]
   type        = "service"
+  priority    = 75
 
   update {
     max_parallel = 1
