@@ -1,7 +1,7 @@
 - job:
-    name: release-nomad-cloudprober
-    display-name: release nomad cloudprober
-    description: "release cloudprober to nomad in one or more regions in an environment"
+    name: release-nomad-loki
+    display-name: release nomad loki
+    description: "release loki to nomad in one or more clouds in an environment."
     concurrent: true
     parameters:
       - string:
@@ -42,5 +42,5 @@
             browser-url: https://github.com/jitsi/infra-provisioning
             submodule:
               recursive: true
-      script-path: jenkins/groovy/release-nomad-cloudprober/Jenkinsfile
+      script-path: jenkins/groovy/release-nomad-loki/Jenkinsfile
       lightweight-checkout: true

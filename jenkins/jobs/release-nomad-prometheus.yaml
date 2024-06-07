@@ -1,7 +1,7 @@
 - job:
-    name: release-nomad-observability
-    display-name: release nomad observability
-    description: "release the observability stack to nomad in one or more clouds in an environment. this includes vector, loki, prometheus, alertmanager, telegraf, and cloudprober."
+    name: release-nomad-prometheus
+    display-name: release nomad prometheus
+    description: "release the prometheus stack (prometheus and alertmanager) to nomad in one or more regions in an environment."
     concurrent: true
     parameters:
       - string:
@@ -42,5 +42,5 @@
             browser-url: https://github.com/jitsi/infra-provisioning
             submodule:
               recursive: true
-      script-path: jenkins/groovy/release-nomad-observability/Jenkinsfile
+      script-path: jenkins/groovy/release-nomad-prometheus/Jenkinsfile
       lightweight-checkout: true
