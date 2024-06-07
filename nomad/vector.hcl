@@ -1,7 +1,3 @@
-variable "environment" {
-    type = string
-}
-
 variable "dc" {
   type = string
 }
@@ -15,10 +11,6 @@ job "[JOB_NAME]" {
   datacenters = ["${var.dc}"]
   type = "system"
   priority = 75
-
-  meta {
-    environment = "${var.environment}"
-  }
 
   update {
     min_healthy_time = "10s"
