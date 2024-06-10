@@ -249,7 +249,7 @@ groups:
 
 - name: cloudprober_alerts
   rules:
-  - alert: CloudproberProbeUnhealthy
+  - alert: ProbeUnhealthy
     expr: (5 * rate(cloudprober_failure{probe!="shard"}[5m]) > 0.2) or (5 * rate(cloudprober_timeouts{probe!="shard"}[5m]) > 0.2)
     for: 1m
     labels:
@@ -266,7 +266,7 @@ groups:
       severity: critical
     annotations:
       summary: shard {{ $labels.dst }} probe returned unhealthy from ${var.dc}
-      description: An internal cloudprober probe from ${var.dc} to the {{ $labels.dst }} shard received an unhealthy response from signal-sidecar. This may be due to a variety of issues, most often when jicofo or prosody goes unhealthy.
+      description: An internal cloudprober probe from ${var.dc} to the {{ $labels.dst }} shard received an unhealthy response from signal-sidecar. This may be due to a variety of issues. If a local probe failed it is likely due to an unhealthy prosody or jicofo, if it's a remote probe then there may be a network issue between regions.
   - alert: HAProxyRegionMismatch
     expr: cloudprober_haproxy_region_mismatch < 1
     for: 1m
