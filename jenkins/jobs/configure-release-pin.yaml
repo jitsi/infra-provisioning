@@ -5,9 +5,14 @@
     concurrent: true
     parameters:
       - string:
+          name: TENANT
+          default:
+          description: "The tenant, i.e., the first directory in a URL path. For use environments that support arbitrary tenancy names."
+          trim: true
+      - string:
           name: CUSTOMER_ID
           default:
-          description: "The customer ID, i.e., the URL directory for this customer's conferences. Do not include 'vpaas-magic-cookie-' at the beginning for JaaS."
+          description: "The customer ID. For use in environments with a versioning-manager backend that maps customer IDs to tenancies, e.g., JaaS."
           trim: true
       - string:
           name: PIN_ACTION
