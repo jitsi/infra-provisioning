@@ -237,6 +237,15 @@ groups:
     annotations:
       summary: telegraf services are down on some nodes in ${var.dc}
       description: telegraf is not running on all scraped nodes in ${var.dc}. This means that metrics for some services are not being collected.
+  - alert: VectorDown
+    expr: prometheus_target_scrape_pools_total > sum(up{job="vector"})
+    for: 30s
+    labels:
+      type: infra
+      severity: critical
+    annotations:
+      summary: vector services are down on some nodes in ${var.dc}
+      description: vector is not running on all scraped nodes in ${var.dc}. This means that logs for some services are not being collected.
   - alert: WFProxyDown
     expr: absent(up{job="wavefront-proxy"})
     for: 30s
