@@ -44,8 +44,9 @@ ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 
 [ -z "$SHAPE" ] && SHAPE="$SHAPE_A_1"
 
-[ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS="32"
-[ -z "$OCPUS" ] && OCPUS="8"
+[ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS="64"
+[ -z "$OCPUS" ] && OCPUS="12"
+[ -z "$DISK_IN_GBS" ] && DISK_IN_GBS="100"
 
 [ -z "$INSTANCE_POOL_SIZE" ] && INSTANCE_POOL_SIZE=2
 
@@ -278,6 +279,7 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
   -var="shape=$SHAPE" \
   -var="memory_in_gbs=$MEMORY_IN_GBS" \
   -var="ocpus=$OCPUS" \
+  -var="disk_in_gbs=$DISK_IN_GBS" \
   -var="user_private_key_path=$USER_PRIVATE_KEY_PATH" \
   -var="postinstall_status_file=$POSTINSTALL_STATUS_FILE" \
   -var="vcn_name=$VCN_NAME" \

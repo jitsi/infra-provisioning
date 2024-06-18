@@ -17,6 +17,9 @@ variable "security_group_id" {}
 variable "shape" {}
 variable "memory_in_gbs" {}
 variable "ocpus" {}
+variable "disk_in_gbs" {
+  default = "100"
+}
 variable "pool_subnet_ocid" {}
 variable "public_subnet_ocid" {}
 variable "instance_pool_size" {}
@@ -130,6 +133,7 @@ resource "oci_core_instance_configuration" "oci_instance_configuration" {
       source_details {
         source_type = "image"
         image_id = var.image_ocid
+        boot_volume_size_in_gbs = var.disk_in_gbs
       }
 
       metadata = {
