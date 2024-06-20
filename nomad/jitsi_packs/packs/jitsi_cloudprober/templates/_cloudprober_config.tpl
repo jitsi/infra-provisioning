@@ -109,7 +109,7 @@ probe {
 
 [[ end -]]
 [[ if var "enable_shard" . -]]
-# probes health of all shards via their signal-sidecars, in all datacenters, using public IP
+# probes health of all shards via their signal-sidecars, in all datacenters
 probe {
   name: "shard"
   type: HTTP
@@ -121,6 +121,37 @@ probe {
     endpoint {
       name: "{{ .ServiceMeta.shard }}"
       url: "http://{{ .Address }}:{{ if .ServiceMeta.signal_sidecar_http_port }}{{ .ServiceMeta.signal_sidecar_http_port }}{{ else }}6000{{ end }}/about/health"
+    }
+    {{ end }}{{ end -}}
+    {{ if eq $shard_count 0 -}}
+    host_names: ""
+    {{- end }}
+  }
+  validator {
+      name: "status_code_2xx"
+      http_validator {
+          success_status_codes: "200-299"
+      }
+  }
+  interval_msec: 10000
+  timeout_msec: 5000
+  latency_unit: "ms"
+}
+
+[[ end -]]
+[[ if var "enable_shard_latency" . -]]
+# probes latency of all shards via their nginx server, in all datacenters
+probe {
+  name: "shard_latency"
+  type: HTTP
+
+  targets {
+    {{ $shard_count := 0 -}}
+    {{ range $dc := datacenters -}}{{ $dc_shards := print "signal@" $dc -}}{{ range $shard := service $dc_shards -}}
+    {{ $shard_count = add $shard_count 1 -}}
+    endpoint {
+      name: "{{ .ServiceMeta.shard }}"
+      url: "http://{{ .Address }}:{{ if .ServiceMeta.http_backend_port }}{{ .ServiceMeta.http_backend_port }}{{ else }}80{{ end }}/_health"
     }
     {{ end }}{{ end -}}
     {{ if eq $shard_count 0 -}}
