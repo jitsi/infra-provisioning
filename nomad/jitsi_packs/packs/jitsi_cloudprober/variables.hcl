@@ -74,7 +74,12 @@ variable "enable_coturn" {
   default     = false
 }
 variable "enable_shard" {
-  description = "Whether to enable cross-regionl shard probes"
+  description = "Whether to enable cross-regional shard probes"
+  type        = bool
+  default     = false
+}
+variable "enable_shard_latency" {
+  description = "Whether to enable cross-regional shard latency probes"
   type        = bool
   default     = false
 }
