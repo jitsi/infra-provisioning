@@ -151,7 +151,7 @@ probe {
     {{ $shard_count = add $shard_count 1 -}}
     endpoint {
       name: "{{ .ServiceMeta.shard }}"
-      url: "http://{{ .Address }}:{{ if .ServiceMeta.http_backend_port }}{{ .ServiceMeta.http_backend_port }}{{ else }}80{{ end }}/_unlock"
+      url: "http://{{ .Address }}:{{ if .ServiceMeta.http_backend_port }}{{ .ServiceMeta.http_backend_port }}{{ else }}80{{ end }}/_health"
     }
     {{ end }}{{ end -}}
     {{ if eq $shard_count 0 -}}
