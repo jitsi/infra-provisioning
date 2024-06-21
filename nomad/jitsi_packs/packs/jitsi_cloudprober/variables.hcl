@@ -4,7 +4,6 @@ variable "job_name" {
   type        = string
   default     = ""
 }
-
 variable "region" {
   description = "The region where jobs will be deployed"
   type        = string
@@ -82,24 +81,6 @@ variable "enable_shard_latency" {
   description = "Whether to enable cross-regional shard latency probes"
   type        = bool
   default     = false
-}
-variable "enable_skynet" {
-  description = "Whether to enable skynet probes"
-  type        = bool
-  default     = false
-}
-variable "skynet_hostname" {
-  description = "The hostname of the skynet service"
-  type        = string
-}
-variable "enable_whisper" {
-  description = "Whether to enable the whisper monitoring"
-  type        = bool
-  default     = false
-}
-variable "whisper_hostname" {
-  description = "The hostname of the whisper service"
-  type        = string
 }
 variable "enable_custom_https" {
   description = "Whether to enable the custom https monitoring"

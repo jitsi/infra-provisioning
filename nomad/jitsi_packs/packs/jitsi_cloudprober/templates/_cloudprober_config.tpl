@@ -242,58 +242,12 @@ probe {
 }
 
 [[ end -]]
-[[ if var "enable_skynet" . -]]
-# probes skynet health
-probe {
-  name: "skynet"
-  type: HTTP
-  targets {
-    host_names: "[[ var "skynet_hostname" . ]]"
-  }
-  http_probe {
-    protocol: HTTPS
-  }
-  validator {
-      name: "status_code_2xx"
-      http_validator {
-          success_status_codes: "200-299"
-      }
-  }
-  interval_msec: 20000
-  timeout_msec: 5000
-  latency_unit: "ms"
-}
-
-[[ end -]]
-[[ if var "enable_whisper" . -]]
-# probes whisper health
-probe {
-  name: "whisper"
-  type: HTTP
-  targets {
-    host_names: "[[ var "whisper_hostname" . ]]"
-  }
-  http_probe {
-    protocol: HTTPS
-  }
-  validator {
-      name: "status_code_2xx"
-      http_validator {
-          success_status_codes: "200-299"
-      }
-  }
-  interval_msec: 20000
-  timeout_msec: 5000
-  latency_unit: "ms"
-}
-
-[[ end -]]
 [[ if var "enable_custom_https" . -]]
 probe {
-  name: "https"
+  name: "custom"
   type: HTTP
   targets {
-    [[ var "custom_https_targets" . ]]
+      [[ var "custom_https_targets" . ]]
   }
   validator {
       name: "status_code_2xx"
@@ -304,7 +258,16 @@ probe {
   interval_msec: 20000
   timeout_msec: 5000
   latency_unit: "ms"
+  additional_label {
+    key: "severity"
+    value: "@target.label.severity@"
+  }
+  additional_label {
+    key: "team"
+    value: "@target.label.team@"
+  }
 }
+
 [[ end -]]
 [[ if var "enable_loki" . -]]
 # probes loki health in the local datacenter
