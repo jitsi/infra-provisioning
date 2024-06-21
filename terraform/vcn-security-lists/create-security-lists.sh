@@ -1,9 +1,4 @@
 #!/bin/bash
-set -x #echo on
-
-#IF THE CURRENT DIRECTORY HAS stack-env.sh THEN INCLUDE IT
-[ -e ./stack-env.sh ] && . ./stack-env.sh
-
 if [ -z "$ENVIRONMENT" ]; then
   echo "No ENVIRONMENT found. Exiting..."
   exit 203
@@ -22,26 +17,25 @@ if [ -z "$ORACLE_REGION" ]; then
   exit 203
 fi
 
-ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
-[ -e "$LOCAL_PATH/../../${ORACLE_CLOUD_NAME}.sh" ] && . $LOCAL_PATH/../../clouds/${ORACLE_CLOUD_NAME}.sh
+set -x
 
-[ -z "$VCN_CIDR_ROOT" ] && VCN_CIDR_ROOT="10.50"
-[ -z "$VCN_CIDR" ] && VCN_CIDR="$VCN_CIDR_ROOT.0.0/16"
-[ -z "$PUBLIC_SUBNET_CIDR" ] && PUBLIC_SUBNET_CIDR="$VCN_CIDR_ROOT.1.0/24"
-[ -z "$JVB_SUBNET_CIDR" ] && JVB_SUBNET_CIDR="$VCN_CIDR_ROOT.64.0/18"
+# Create Security Lists
+[ -z "$NAME_ROOT" ] && NAME_ROOT="$ORACLE_REGION-$ENVIRONMENT"
 
-[ -z "$VCN_NAME_ROOT" ] && VCN_NAME_ROOT="$ORACLE_REGION-$ENVIRONMENT"
-VCN_NAME="$VCN_NAME_ROOT-vcn"
-# Should be alfanumeric, start with a letter and have max 15 chars
-[ -z "$VCN_DNS_LABEL" ] && VCN_DNS_LABEL="${ENVIRONMENT//-}${VCN_CIDR_ROOT//.}"
+if [ -z "$OPS_PEER_CIDRS" ]; then
+  echo "No OPS_PEER_CIDRS found.  Exiting..."
+  exit 204
+fi
 
-rm -f terraform.tfstate
+if [ -n "$EXTRA_OPS_PEER_CIDRS" ]; then
+  OPS_PEER_CIDRS="$(echo "$OPS_PEER_CIDRS" "$EXTRA_OPS_PEER_CIDRS"  | jq -s '.|add')"
+fi
 
 [ -z "$S3_PROFILE" ] && S3_PROFILE="oracle"
 [ -z "$S3_STATE_BUCKET" ] && S3_STATE_BUCKET="tf-state-$ENVIRONMENT"
 [ -z "$S3_ENDPOINT" ] && S3_ENDPOINT="https://$ORACLE_S3_NAMESPACE.compat.objectstorage.$ORACLE_REGION.oraclecloud.com"
 
-S3_STATE_BASE="$ENVIRONMENT/vcn"
+S3_STATE_BASE="$ENVIRONMENT/vcn-security-lists"
 [ -z "$S3_STATE_KEY" ] && S3_STATE_KEY="${S3_STATE_BASE}/terraform.tfstate"
 
 
@@ -78,9 +72,6 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
   -var="compartment_ocid=$COMPARTMENT_OCID"\
   -var="environment=$ENVIRONMENT"\
   -var="vcn_name=$VCN_NAME"\
-  -var="vcn_dns_label=$VCN_DNS_LABEL"\
-  -var="resource_name_root=$VCN_NAME_ROOT"\
-  -var="vcn_cidr=$VCN_CIDR"\
-  -var="public_subnet_cidr=$PUBLIC_SUBNET_CIDR"\
-  -var="jvb_subnet_cidr=$JVB_SUBNET_CIDR"\
+  -var="resource_name_root=$NAME_ROOT"\
+  -var="ops_peer_cidrs=$OPS_PEER_CIDRS"\
   $ACTION_POST_PARAMS $TF_POST_PARAMS
