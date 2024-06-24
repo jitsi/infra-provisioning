@@ -62,8 +62,21 @@ terraform $TF_GLOBALS_CHDIR init \
 if [[ "$ACTION" == "apply" ]]; then
   ACTION_POST_PARAMS="-auto-approve"
 fi
+
 if [[ "$ACTION" == "import" ]]; then
-  ACTION_POST_PARAMS="$1 $2"
+  [ -z "$IMPORT_LOOKUP_FLAG" ] && IMPORT_LOOKUP_FLAG="true"
+  if [ "$IMPORT_LOOKUP_FLAG" == "true" ]; then
+    SECURITY_LIST_OCID="$(oci network security-list list --compartment-id $COMPARTMENT_OCID --all --region $ORACLE_REGION --display-name $NAME_ROOT-PrivateSecurityList | jq -r '.data[].id')"
+    if [[ "$SECURITY_LIST_OCID" == "null" ]]; then
+        echo "No security list found, not automatically providing import parameters"
+        ACTION_POST_PARAMS="$1 $2"
+    else
+        ACTION_POST_PARAMS="oci_core_security_list.private_security_list $SECURITY_LIST_OCID"
+    fi
+    ACTION_POST_PARAMS="oci_core_security_list.private_security_list $SECURITY_LIST_OCID"
+  else
+    ACTION_POST_PARAMS="$1 $2"
+  fi
 fi
 
 terraform $TF_GLOBALS_CHDIR $ACTION \
