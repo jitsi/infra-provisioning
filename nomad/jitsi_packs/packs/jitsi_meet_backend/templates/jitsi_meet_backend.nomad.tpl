@@ -644,7 +644,7 @@ EOF
         BRIDGE_AVG_PARTICIPANT_STRESS="0.005"
         BRIDGE_STRESS_THRESHOLD="[[ or (env "CONFIG_jicofo_stress_threshold") "0.8" ]]"
         MAX_BRIDGE_PARTICIPANTS="[[ or (env "CONFIG_jicofo_max_bridge_participants") "80" ]]"
-        ENABLE_CODEC_AV1="[[ or (env "CONFIG_jicofo_enable_av1") "false" ]]"
+        ENABLE_CODEC_AV1="[[ or (env "CONFIG_jicofo_enable_av1") "true" ]]"
         ENABLE_CODEC_VP8="[[ or (env "CONFIG_jicofo_enable_vp8") "true" ]]"
         ENABLE_CODEC_VP9="[[ or (env "CONFIG_jicofo_enable_vp9") "true" ]]"
         ENABLE_CODEC_H264="[[ or (env "CONFIG_jicofo_enable_h264") "true" ]]"
