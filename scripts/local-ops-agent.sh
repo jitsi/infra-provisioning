@@ -1,7 +1,7 @@
 #!/bin/bash
 LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
-[ -z "$LOCAL_DEV_DIR" ] && LOCAL_DEV_DIR="$(realpath "$HOME/dev")"
+[ -z "$LOCAL_DEV_DIR" ] && LOCAL_DEV_DIR="$(realpath "$LOCAL_PATH/../..")"
 
 [ -z "$ASAP_KEY_DIR" ] && ASAP_KEY_DIR="/opt/jitsi/keys"
 [ -z "$OPS_AGENT_VERSION" ] && OPS_AGENT_VERSION="latest"
@@ -10,23 +10,25 @@ LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 [ -z "$ENCRYPTED_ASAP_KEYS_FILE" ] && ENCRYPTED_ASAP_KEYS_FILE="$LOCAL_PATH/../../infra-customizations-private/ansible/secrets/asap-keys.yml"
 [ -z "$ENCRYPTED_JENKINS_FILE" ] && ENCRYPTED_JENKINS_FILE="$LOCAL_PATH/../../infra-customizations-private/ansible/secrets/jenkins.yml"
 
-# ensure no output for ansible vault contents and fail if ansible-vault fails
-set +x
-set -e
-set -o pipefail
-export ASAP_JWT_KID_DEV="$(ansible-vault view $ENCRYPTED_ASAP_KEYS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".asap_key_prod.id" -)"
+if [ -f "$VAULT_PASSWORD_FILE" ]; then
+  # ensure no output for ansible vault contents and fail if ansible-vault fails
+  set +x
+  set -e
+  set -o pipefail
+  export ASAP_JWT_KID_DEV="$(ansible-vault view $ENCRYPTED_ASAP_KEYS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".asap_key_prod.id" -)"
 
-export ASAP_JWT_KID_PROD="$(ansible-vault view $ENCRYPTED_ASAP_KEYS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".asap_key_prod.id" -)"
-export ASAP_JWT_KID_STAGE="$(ansible-vault view $ENCRYPTED_ASAP_KEYS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".asap_key_stage.id" -)"
+  export ASAP_JWT_KID_PROD="$(ansible-vault view $ENCRYPTED_ASAP_KEYS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".asap_key_prod.id" -)"
+  export ASAP_JWT_KID_STAGE="$(ansible-vault view $ENCRYPTED_ASAP_KEYS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".asap_key_stage.id" -)"
 
-export ASAP_CLIENT_JWT_KID_MEET="$(ansible-vault view $ENCRYPTED_ASAP_KEYS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".asap_key_client_meet.id" -)"
-export ASAP_CLIENT_JWT_KID_BETA="$(ansible-vault view $ENCRYPTED_ASAP_KEYS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".asap_key_client_beta.id" -)"
-export ASAP_CLIENT_JWT_KID_PROD="$(ansible-vault view $ENCRYPTED_ASAP_KEYS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".asap_key_client_prod.id" -)"
-export ASAP_CLIENT_JWT_KID_STAGE="$(ansible-vault view $ENCRYPTED_ASAP_KEYS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".asap_key_client_stage.id" -)"
-export JENKINS_AWS_ACCESS_KEY_ID="$(ansible-vault view $ENCRYPTED_JENKINS_FILE --vault-password $VAULT_PASSWORD_FILE | tail +3 | xmlstarlet sel -t -c "/list//credentials//org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl[id[contains(.,'jenkins-aws-id')]]/secret/text()" | tr -d '\n' | tr -d ' ')"
-export JENKINS_AWS_SECRET_ACCESS_KEY="$(ansible-vault view $ENCRYPTED_JENKINS_FILE --vault-password $VAULT_PASSWORD_FILE | tail +3 | xmlstarlet sel -t -c "/list//credentials//org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl[id[contains(.,'jenkins-aws-secret')]]/secret/text()" | tr -d '\n' | tr -d ' ')"
-export JENKINS_TERRAFORM_AWS_ACCESS_KEY_ID="$(ansible-vault view $ENCRYPTED_JENKINS_FILE --vault-password $VAULT_PASSWORD_FILE | tail +3 | xmlstarlet sel -t -c "/list//credentials//org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl[id[contains(.,'oci-jenkins-terraform-aws-id')]]/secret/text()" | tr -d '\n' | tr -d ' ')"
-export JENKINS_TERRAFORM_AWS_SECRET_ACCESS_KEY="$(ansible-vault view $ENCRYPTED_JENKINS_FILE --vault-password $VAULT_PASSWORD_FILE | tail +3 | xmlstarlet sel -t -c "/list//credentials//org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl[id[contains(.,'oci-jenkins-terraform-aws-secret')]]/secret/text()" | tr -d '\n' | tr -d ' ')"
+  export ASAP_CLIENT_JWT_KID_MEET="$(ansible-vault view $ENCRYPTED_ASAP_KEYS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".asap_key_client_meet.id" -)"
+  export ASAP_CLIENT_JWT_KID_BETA="$(ansible-vault view $ENCRYPTED_ASAP_KEYS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".asap_key_client_beta.id" -)"
+  export ASAP_CLIENT_JWT_KID_PROD="$(ansible-vault view $ENCRYPTED_ASAP_KEYS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".asap_key_client_prod.id" -)"
+  export ASAP_CLIENT_JWT_KID_STAGE="$(ansible-vault view $ENCRYPTED_ASAP_KEYS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".asap_key_client_stage.id" -)"
+  export JENKINS_AWS_ACCESS_KEY_ID="$(ansible-vault view $ENCRYPTED_JENKINS_FILE --vault-password $VAULT_PASSWORD_FILE | tail +3 | xmlstarlet sel -t -c "/list//credentials//org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl[id[contains(.,'jenkins-aws-id')]]/secret/text()" | tr -d '\n' | tr -d ' ')"
+  export JENKINS_AWS_SECRET_ACCESS_KEY="$(ansible-vault view $ENCRYPTED_JENKINS_FILE --vault-password $VAULT_PASSWORD_FILE | tail +3 | xmlstarlet sel -t -c "/list//credentials//org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl[id[contains(.,'jenkins-aws-secret')]]/secret/text()" | tr -d '\n' | tr -d ' ')"
+  export JENKINS_TERRAFORM_AWS_ACCESS_KEY_ID="$(ansible-vault view $ENCRYPTED_JENKINS_FILE --vault-password $VAULT_PASSWORD_FILE | tail +3 | xmlstarlet sel -t -c "/list//credentials//org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl[id[contains(.,'oci-jenkins-terraform-aws-id')]]/secret/text()" | tr -d '\n' | tr -d ' ')"
+  export JENKINS_TERRAFORM_AWS_SECRET_ACCESS_KEY="$(ansible-vault view $ENCRYPTED_JENKINS_FILE --vault-password $VAULT_PASSWORD_FILE | tail +3 | xmlstarlet sel -t -c "/list//credentials//org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl[id[contains(.,'oci-jenkins-terraform-aws-secret')]]/secret/text()" | tr -d '\n' | tr -d ' ')"
+fi
 
 ENVFILE="$(mktemp)"
 cat <<EOF > $ENVFILE
