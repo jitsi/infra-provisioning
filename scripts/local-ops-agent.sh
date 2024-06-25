@@ -1,7 +1,7 @@
 #!/bin/bash
 LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
-[ -z "$LOCAL_DEV_DIR" ] && LOCAL_DEV_DIR="$(realpath "$HOME/dev")"
+[ -z "$LOCAL_DEV_DIR" ] && LOCAL_DEV_DIR="$(realpath "$LOCAL_PATH/../..")"
 
 [ -z "$ASAP_KEY_DIR" ] && ASAP_KEY_DIR="/opt/jitsi/keys"
 [ -z "$OPS_AGENT_VERSION" ] && OPS_AGENT_VERSION="latest"
