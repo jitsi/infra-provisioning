@@ -59,7 +59,7 @@ EOF
             ;;
     esac
 else
-    echo "$VAULT_PASSWORD_FILE not found or not readable; skipping variables that require it"
+    echo "$VAULT_PASSWORD_FILE not found or not readable; skipping variables that require it" 1>&2
     ENVFILE="$(mktemp)"
     cat <<EOF > $ENVFILE
 AWS_DEFAULT_REGION=us-west-2
