@@ -200,16 +200,15 @@ EOH
         data = <<EOH
 ---
 groups:
-
 - name: service_alerts
   rules:
   - alert: ConsulDown
     expr: absent(up{job="consul"})
     for: 5m
     labels:
+      environment_type: "{{ if $labels.environment_type }}{{ $labels.environment_type }}{{ else }}${var.environment_type}{{ end }}"
+      service: "{{ if $labels.service }}{{ $labels.service }}{{ else }}${var.default_service_name}{{ end }}"
       severity: critical
-      environment_type: {{ if Labels "environment_type" }}{{ .Labels "environment_type" }}{{ else }}${var.environment_type}{{ end }}
-      service: {{ if Labels "service" }}{{ .Labels "service" }}{{ else }}${var.default_service_name}{{ end }}
     annotations:
       summary: consul service is down in ${var.dc}
       description: No consul services are emitting metrics in ${var.dc}. This may mean that service discovery is not functioning.
@@ -217,9 +216,9 @@ groups:
     expr: absent(up{job="nomad"})
     for: 5m
     labels:
+      environment_type: "{{ if $labels.environment_type }}{{ $labels.environment_type }}{{ else }}${var.environment_type}{{ end }}"
+      service: "{{ if $labels.service }}{{ $labels.service }}{{ else }}${var.default_service_name}{{ end }}"
       severity: critical
-      environment_type: {{ if Labels "environment_type" }}{{ .Labels "environment_type" }}{{ else }}${var.environment_type}{{ end }}
-      service: {{ if Labels "service" }}{{ .Labels "service" }}{{ else }}${var.default_service_name}{{ end }}
     annotations:
       summary: nomad service is down in ${var.dc}
       description: No nomad services are emitting metrics in ${var.dc}. This may mean that service orchestration is not functioning.
@@ -227,9 +226,9 @@ groups:
     expr: absent(up{job="prometheus"})
     for: 5m
     labels:
+      environment_type: "{{ if $labels.environment_type }}{{ $labels.environment_type }}{{ else }}${var.environment_type}{{ end }}"
+      service: "{{ if $labels.service }}{{ $labels.service }}{{ else }}${var.default_service_name}{{ end }}"
       severity: critical
-      environment_type: {{ if Labels "environment_type" }}{{ .Labels "environment_type" }}{{ else }}${var.environment_type}{{ end }}
-      service: {{ if Labels "service" }}{{ .Labels "service" }}{{ else }}${var.default_service_name}{{ end }}
     annotations:
       summary: prometheus service is down in ${var.dc}
       description: No prometheus services are emitting metrics in ${var.dc}. This may mean that no metrics are being stored or served.
@@ -237,9 +236,9 @@ groups:
     expr: absent(up{job="cloudprober"})
     for: 5m
     labels:
+      environment_type: "{{ if $labels.environment_type }}{{ $labels.environment_type }}{{ else }}${var.environment_type}{{ end }}"
+      service: "{{ if $labels.service }}{{ $labels.service }}{{ else }}${var.default_service_name}{{ end }}"
       severity: critical
-      environment_type: {{ if Labels "environment_type" }}{{ .Labels "environment_type" }}{{ else }}${var.environment_type}{{ end }}
-      service: {{ if Labels "service" }}{{ .Labels "service" }}{{ else }}${var.default_service_name}{{ end }}
     annotations:
       summary: cloudprober service is down in ${var.dc}
       description: Metrics from cloudprober are not being received in ${var.dc}. This means that data from synthetic probes is not being collected or alerted on in this datacenter.
@@ -247,9 +246,9 @@ groups:
     expr: prometheus_target_scrape_pools_total > sum(up{job="telegraf"})
     for: 5m
     labels:
+      environment_type: "{{ if $labels.environment_type }}{{ $labels.environment_type }}{{ else }}${var.environment_type}{{ end }}"
+      service: "{{ if $labels.service }}{{ $labels.service }}{{ else }}${var.default_service_name}{{ end }}"
       severity: critical
-      environment_type: {{ if Labels "environment_type" }}{{ .Labels "environment_type" }}{{ else }}${var.environment_type}{{ end }}
-      service: {{ if Labels "service" }}{{ .Labels "service" }}{{ else }}${var.default_service_name}{{ end }}
     annotations:
       summary: telegraf services are down on some nodes in ${var.dc}
       description: telegraf metrics are not being emitted from all nodes in ${var.dc}. This means that metrics for some services are not being collected.
@@ -257,9 +256,9 @@ groups:
     expr: prometheus_target_scrape_pools_total > sum(up{job="vector"})
     for: 5m
     labels:
+      environment_type: "{{ if $labels.environment_type }}{{ $labels.environment_type }}{{ else }}${var.environment_type}{{ end }}"
+      service: "{{ if $labels.service }}{{ $labels.service }}{{ else }}${var.default_service_name}{{ end }}"
       severity: critical
-      environment_type: {{ if Labels "environment_type" }}{{ .Labels "environment_type" }}{{ else }}${var.environment_type}{{ end }}
-      service: {{ if Labels "service" }}{{ .Labels "service" }}{{ else }}${var.default_service_name}{{ end }}
     annotations:
       summary: vector services are down on some nodes in ${var.dc}
       description: vector metrics are not being emitted from all scraped nodes in ${var.dc}. This means that logs for some services are not being collected.
@@ -267,9 +266,9 @@ groups:
     expr: absent(up{job="wavefront-proxy"})
     for: 5m
     labels:
+      environment_type: "{{ if $labels.environment_type }}{{ $labels.environment_type }}{{ else }}${var.environment_type}{{ end }}"
+      service: "{{ if $labels.service }}{{ $labels.service }}{{ else }}${var.default_service_name}{{ end }}"
       severity: critical
-      environment_type: {{ if Labels "environment_type" }}{{ .Labels "environment_type" }}{{ else }}${var.environment_type}{{ end }}
-      service: {{ if Labels "service" }}{{ .Labels "service" }}{{ else }}${var.default_service_name}{{ end }}
     annotations:
       summary: wavefront-proxy service is down in ${var.dc}
       description: wavefront-proxy metrics are not being collected in ${var.dc}. This means that metrics from this datacenter may not being sent to Wavefront.
@@ -277,31 +276,31 @@ groups:
 - name: cloudprober_alerts
   rules:
   - alert: ProbeUnhealthy
-    expr: (cloudprober_failure{probe!=~"shard"} > 0) or (cloudprober_timeouts{probe!=~"shard"} > 0)
+    expr: (cloudprober_failure{probe!="shard"} > 0) or (cloudprober_timeouts{probe!="shard"} > 0)
     for: 2m
     labels:
+      environment_type: "{{ if $labels.environment_type }}{{ $labels.environment_type }}{{ else }}${var.environment_type}{{ end }}"
+      service: "{{ if $labels.service }}{{ $labels.service }}{{ else }}${var.default_service_name}{{ end }}"
       severity: warning
-      environment_type: {{ if Labels "environment_type" }}{{ .Labels "environment_type" }}{{ else }}${var.environment_type}{{ end }}
-      service: {{ if Labels "service" }}{{ .Labels "service" }}{{ else }}${var.default_service_name}{{ end }}
     annotations:
       summary: http probe from ${var.dc} to {{ $labels.dst }} timed-out or is unhealthy
       description: The {{ $labels.probe }} http probe from ${var.dc} to {{ $labels.dst }} timed-out or received an unhealthy response.
   - alert: ProbeUnhealthy
-    expr: (cloudprober_failure{probe!=~"shard"} > 0) or (cloudprober_timeouts{probe!=~"shard"} > 0)
+    expr: (cloudprober_failure{probe!="shard"} > 0) or (cloudprober_timeouts{probe!="shard"} > 0)
     for: 5m
     labels:
+      environment_type: "{{ if $labels.environment_type }}{{ $labels.environment_type }}{{ else }}${var.environment_type}{{ end }}"
+      service: "{{ if $labels.service }}{{ $labels.service }}{{ else }}${var.default_service_name}{{ end }}"
       severity: critical
-      environment_type: {{ if Labels "environment_type" }}{{ .Labels "environment_type" }}{{ else }}${var.environment_type}{{ end }}
-      service: {{ if Labels "service" }}{{ .Labels "service" }}{{ else }}${var.default_service_name}{{ end }}
     annotations:
       summary: http probe from ${var.dc} to {{ $labels.dst }} timed-out or is unhealthy
   - alert: ShardUnhealthy
-    expr: (cloudprober_failure{probe="shard"} > 0) and on() count_over_time(cloudprober_failure{probe="shard"}[5m:1m]) > 5) or (cloudprober_timeouts{probe="shard"} > 0)
+    expr: ((cloudprober_failure{probe="shard"} > 0) and on() count_over_time(cloudprober_failure{probe="shard"}[5m:1m]) > 5) or (cloudprober_timeouts{probe="shard"} > 0)
     for: 2m
     labels:
+      environment_type: "{{ if $labels.environment_type }}{{ $labels.environment_type }}{{ else }}${var.environment_type}{{ end }}"
+      service: "{{ if $labels.service }}{{ $labels.service }}{{ else }}${var.default_service_name}{{ end }}"
       severity: critical
-      environment_type: {{ if Labels "environment_type" }}{{ .Labels "environment_type" }}{{ else }}${var.environment_type}{{ end }}
-      service: {{ if Labels "service" }}{{ .Labels "service" }}{{ else }}${var.default_service_name}{{ end }}
     annotations:
       summary: shard {{ $labels.dst }} probe returned failed or timed-out from ${var.dc}
       description: An internal probe from ${var.dc} to the {{ $labels.dst }} shard timed-out or received an unhealthy response from signal-sidecar. This may be due to a variety of issues. If a local probe failed it is likely due to an unhealthy prosody or jicofo, if it's a remote probe then there may be a network issue between regions.
@@ -309,9 +308,9 @@ groups:
     expr: cloudprober_haproxy_region_check_passed < 1
     for: 2m
     labels:
+      environment_type: "{{ if $labels.environment_type }}{{ $labels.environment_type }}{{ else }}${var.environment_type}{{ end }}"
+      service: "{{ if $labels.service }}{{ $labels.service }}{{ else }}${var.default_service_name}{{ end }}"
       severity: warning
-      environment_type: {{ if Labels "environment_type" }}{{ .Labels "environment_type" }}{{ else }}${var.environment_type}{{ end }}
-      service: {{ if Labels "service" }}{{ .Labels "service" }}{{ else }}${var.default_service_name}{{ end }}
     annotations:
       summary: a domain probe from ${var.dc} reached an haproxy outside the local region
       description: An cloudprober probe to the domain reached an haproxy outside of the local region. This means that CloudFlare may not be routing requests to ${var.dc}, likely due to failing health checks to the regional load balancer ingress.
@@ -319,9 +318,9 @@ groups:
     expr: cloudprober_haproxy_region_check_passed < 1
     for: 10m
     labels:
+      environment_type: "{{ if $labels.environment_type }}{{ $labels.environment_type }}{{ else }}${var.environment_type}{{ end }}"
+      service: "{{ if $labels.service }}{{ $labels.service }}{{ else }}${var.default_service_name}{{ end }}"
       severity: critical
-      environment_type: {{ if Labels "environment_type" }}{{ .Labels "environment_type" }}{{ else }}${var.environment_type}{{ end }}
-      service: {{ if Labels "service" }}{{ .Labels "service" }}{{ else }}${var.default_service_name}{{ end }}
     annotations:
       summary: a domain probe from ${var.dc} reached an haproxy outside the local region
       description: An cloudprober probe to the domain reached an haproxy outside of the local region. This means that CloudFlare may not be routing requests to ${var.dc}, likely due to failing health checks to the regional load balancer ingress.
@@ -329,22 +328,22 @@ groups:
     expr: cloudprober_latency{probe="shard_latency"} > 500
     for: 2m
     labels:
+      environment_type: "{{ if $labels.environment_type }}{{ $labels.environment_type }}{{ else }}${var.environment_type}{{ end }}"
+      service: "{{ if $labels.service }}{{ $labels.service }}{{ else }}${var.default_service_name}{{ end }}"
       severity: warning
-      environment_type: {{ if Labels "environment_type" }}{{ .Labels "environment_type" }}{{ else }}${var.environment_type}{{ end }}
-      service: {{ if Labels "service" }}{{ .Labels "service" }}{{ else }}${var.default_service_name}{{ end }}
     annotations:
       summary: http probe from ${var.dc} to {{ $labels.dst }} has high latency
-      description: The {{ $labels.probe }} http probe from ${var.dc} to {{ $labels.dst }} has had high latency for 2 minutes, most recently at {{ $value | printf '%.2f' }} ms.
+      description: The {{ $labels.probe }} http probe from ${var.dc} to {{ $labels.dst }} has had high latency for 2 minutes, most recently at {{ $value }} ms.
   - alert: LatencyHigh
     expr: cloudprober_latency{probe="shard_latency"} > 1000
     for: 5m
     labels:
+      environment_type: "{{ if $labels.environment_type }}{{ $labels.environment_type }}{{ else }}${var.environment_type}{{ end }}"
+      service: "{{ if $labels.service }}{{ $labels.service }}{{ else }}${var.default_service_name}{{ end }}"
       severity: critical
-      environment_type: {{ if Labels "environment_type" }}{{ .Labels "environment_type" }}{{ else }}${var.environment_type}{{ end }}
-      service: {{ if Labels "service" }}{{ .Labels "service" }}{{ else }}${var.default_service_name}{{ end }}
     annotations:
       summary: http probe from ${var.dc} to {{ $labels.dst }} has extremely high latency
-      description: The {{ $labels.probe }} http probe from ${var.dc} to {{ $labels.dst }} has extremely high latency for 5 minutes, most recently at {{ $value | printf '%.2f' }} ms.
+      description: The {{ $labels.probe }} http probe from ${var.dc} to {{ $labels.dst }} has extremely high latency for 5 minutes, most recently at {{ $value }} ms.
 EOH
     }
 
