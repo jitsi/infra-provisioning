@@ -36,7 +36,7 @@ export NOMAD_VAR_dc="$NOMAD_DC"
 if [ -z "$ENVIRONMENT_TYPE" ]; then
     ENVIRONMENT_TYPE="dev"
 fi
-export NOMAD_VAR_environment_type=ENVIRONMENT_TYPE
+export NOMAD_VAR_environment_type=$ENVIRONMENT_TYPE
 
 if [ -z "$DEFAULT_ALERT_SERVICE_NAME" ]; then
     DEFAULT_ALERT_SERVICE_NAME="default"
