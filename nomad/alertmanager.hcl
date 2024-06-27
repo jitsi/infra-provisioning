@@ -101,30 +101,8 @@ route:
   group_interval: 10s
   repeat_interval: 1h
 
-  {{ for k, v := range pagerduty_urls_by_service }}
-  receiver: pagerduty-{{ k }}
-    pagerduty_configs:
-      service_key: '${v}'
-      routing_key: '${v}'
-      url: '${v}'
-    group_by:
-      - severity
-      - type
-    group_wait: 10s
-    group_interval: 10s
-    repeat_interval: 1h
-    matchers:
-        severity: critical
-        environment_type: prod
-        service: '{{ k }}'
-  {{ end }}
-
-
-        severity: critical
-        action: stop
-
-receivers:
-  - name: slack
+  routes
+  - receiver: 'slack'
     slack_configs:
       - channel: '#{{ .Labels "service" }}-${var.environment_type}'
         send_resolved: true
@@ -137,13 +115,23 @@ receivers:
           _{{ .Annotations.description }}_
             {{- end }}
           {{- end }}
-#        actions:
-#        - type: button
-#          text: 'Runbook :green_book:'
-#          url: '{{ (index .Alerts 0).Annotations.runbook }}'
-#        - type: button
-#          text: 'Dashboard :chart:'
-#          url: '{{ (index .Alerts 0).Annotations.dashboard }}'
+  {{ for k, v := range ${var.pagerduty_urls_by_service} }}
+  - receiver: 'pagerduty-{{ k }}'
+    pagerduty_configs:
+      url: '{{ v }}'
+    group_by:
+      - alertname
+      - environment
+      - severity
+    group_wait: 10s
+    group_interval: 10s
+    repeat_interval: 1h
+    matchers:
+      severity: 'critical'
+      environment_type: 'prod'
+      service: '{{ k }}'
+  {{ end }}
+
 EOH
       }
 
