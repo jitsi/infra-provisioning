@@ -19,7 +19,7 @@ fi
 
 #set -x
 
-# Create Security Lists
+# Create Security Groups
 [ -z "$NAME_ROOT" ] && NAME_ROOT="$ORACLE_REGION-$ENVIRONMENT"
 
 [ -z "$S3_PROFILE" ] && S3_PROFILE="oracle"
