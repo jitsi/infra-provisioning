@@ -34,6 +34,12 @@ JOB_NAME="alertmanager-$ORACLE_REGION"
 export NOMAD_VAR_alertmanager_hostname="${RESOURCE_NAME_ROOT}.${TOP_LEVEL_DNS_ZONE_NAME}"
 export NOMAD_VAR_environment_type="${ENVIRONMENT_TYPE}"
 
+if [ -z "$DEFAULT_ALERT_SERVICE_NAME" ]; then
+    export NOMAD_VAR_default_service_name=$DEFAULT_ALERT_SERVICE_NAME
+else
+    export NOMAD_VAR_default_service_name="default"
+fi
+
 [ -z "$VAULT_PASSWORD_FILE" ] && VAULT_PASSWORD_FILE="$LOCAL_PATH/../.vault-password.txt"
 [ -z "$ENCRYPTED_NOMAD_SECRETS_FILE" ] && ENCRYPTED_NOMAD_SECRETS_FILE="$LOCAL_PATH/../ansible/secrets/nomad.yml"
 

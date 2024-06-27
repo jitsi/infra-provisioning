@@ -16,6 +16,18 @@ variable "slack_api_url" {
     default = "replaceme"
 }
 
+variable "default_service_name" {
+    type = string
+    default = "default"
+}
+
+variable "pagerduty_urls_by_service" {
+    type = map(string)
+    default = {
+        default = "replaceme"
+    }
+}
+
 variable "environment_type" {
   type = string
   default = "dev"
@@ -80,18 +92,41 @@ global:
   slack_api_url: '${var.slack_api_url}'
 
 route:
+  receiver: slack
   group_by:
+    - alertname
+    - environment
     - severity
-    - type
   group_wait: 10s
   group_interval: 10s
   repeat_interval: 1h
-  receiver: slack
+
+  {{ for k, v := range pagerduty_urls_by_service }}
+  receiver: pagerduty-{{ k }}
+    pagerduty_configs:
+      service_key: '${v}'
+      routing_key: '${v}'
+      url: '${v}'
+    group_by:
+      - severity
+      - type
+    group_wait: 10s
+    group_interval: 10s
+    repeat_interval: 1h
+    matchers:
+        severity: critical
+        environment_type: prod
+        service: '{{ k }}'
+  {{ end }}
+
+
+        severity: critical
+        action: stop
 
 receivers:
   - name: slack
     slack_configs:
-      - channel: '#nomad-${var.environment_type}'
+      - channel: '#{{ .Labels "service" }}-${var.environment_type}'
         send_resolved: true
         title: '[{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] ({{ or .CommonLabels.alertname "Multiple Alert Types" }} in {{ .CommonLabels.environment }}) <{{- .GroupLabels.SortedPairs.Values | join " " }}>'
         text: |-
