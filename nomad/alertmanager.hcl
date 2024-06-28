@@ -8,7 +8,7 @@ variable "alertmanager_hostname" {
 
 variable "alertmanager_version" {
   type = string
-  default = "v0.26.0"
+  default = "v0.27.0"
 }
 
 variable "slack_api_url" {
@@ -22,10 +22,8 @@ variable "default_service_name" {
 }
 
 variable "pagerduty_urls_by_service" {
-    type = map(string)
-    default = {
-        default = "replaceme"
-    }
+    type = string
+    default = "{ \"default\": \"replaceme\" }"
 }
 
 variable "environment_type" {
@@ -101,7 +99,7 @@ route:
   group_interval: 10s
   repeat_interval: 1h
 
-  routes
+  routes:
   - receiver: 'slack'
     slack_configs:
       - channel: '#{{ .Labels "service" }}-${var.environment_type}'
@@ -115,10 +113,11 @@ route:
           _{{ .Annotations.description }}_
             {{- end }}
           {{- end }}
-  {{ for k, v := range ${var.pagerduty_urls_by_service} }}
-  - receiver: 'pagerduty-{{ k }}'
+  {{{ $pagerduty_urls_by_service := (`${var.pagerduty_urls_by_service}` | parseJSON ) }}}
+  {{{ range $k, $v := $pagerduty_urls_by_service }}}
+  - receiver: 'pagerduty-{{{ $k }}}'
     pagerduty_configs:
-      url: '{{ v }}'
+      url: '{{{ $v }}}'
     group_by:
       - alertname
       - environment
@@ -129,8 +128,8 @@ route:
     matchers:
       severity: 'critical'
       environment_type: 'prod'
-      service: '{{ k }}'
-  {{ end }}
+      service: '{{{ $k }}}'
+  {{{ end }}}
 
 EOH
       }
