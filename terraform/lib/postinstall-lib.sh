@@ -4,7 +4,6 @@ LOCAL_REPO_DIRECTORY="/opt/jitsi/bootstrap"
 function check_private_ip() {
   local counter=1
   local ip_status=1
-
   while [ $counter -le 2 ]; do
     local my_private_ip=$(curl -s curl http://169.254.169.254/opc/v1/vnics/ | jq .[0].privateIp -r)
     if [ -z $my_private_ip ] || [ $my_private_ip == "null" ]; then
@@ -19,7 +18,7 @@ function check_private_ip() {
     echo "Private IP still not available status: $ip_status" > $tmp_msg_file
     return 1
   else
-    curl -H "Authorization: Bearer Oracle" http://169.254.169.254/opc/v2/identity/cert.pem
+    curl -v -H "Authorization: Bearer Oracle" http://169.254.169.254/opc/v2/identity/cert.pem
     return 0
   fi
 }
