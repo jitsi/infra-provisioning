@@ -187,6 +187,7 @@ function check_secondary_ip() {
     echo "Secondary private IP still not available status: $ip_status" >$tmp_msg_file
     return 1
   else
+    curl -H "Authorization: Bearer Oracle" http://169.254.169.254/opc/v2/identity/cert.pem
     return 0
   fi
 }
