@@ -62,6 +62,7 @@ wget -q https://web-cdn.jitsi.net/$CDN_PREFIX$CDN_VERSION/libs/external_api.min.
 wget -q https://web-cdn.jitsi.net/$CDN_PREFIX$CDN_VERSION/libs/lib-jitsi-meet.min.js
 wget -q https://web-cdn.jitsi.net/$CDN_PREFIX$CDN_VERSION/libs/lib-jitsi-meet.min.map
 
+wget -q https://web-cdn.jitsi.net/$CDN_PREFIX$CDN_VERSION/static/recommendedBrowsers.html
 wget -q https://web-cdn.jitsi.net/$CDN_PREFIX$CDN_VERSION/static/welcomePageAdditionalContent.html
 wget -q https://web-cdn.jitsi.net/$CDN_PREFIX$CDN_VERSION/static/accessStorage.html
 wget -q https://web-cdn.jitsi.net/$CDN_PREFIX$CDN_VERSION/static/accessStorage.min.js
@@ -83,6 +84,7 @@ for i in `cat $SIGNAL_INVENTORY_PATH`; do
     ssh -F "$LOCAL_PATH/../config/ssh.config" $ANSIBLE_SSH_USER@$i "cat $CDN_PATH"
     echo "COPYING NEW CDN VERSION TO $i"
     scp -F "$LOCAL_PATH/../config/ssh.config" $LIST_FILES_FROM_ROOT_DIR \
+      ./recommendedBrowsers.html \
       ./welcomePageAdditionalContent.html \
       ./external_api.min.js.map \
       ./external_api.min.js \
@@ -99,6 +101,7 @@ for i in `cat $SIGNAL_INVENTORY_PATH`; do
     ssh -F "$LOCAL_PATH/../config/ssh.config" $ANSIBLE_SSH_USER@$i "sudo cp ./base.html $CDN_PATH"
     ssh -F "$LOCAL_PATH/../config/ssh.config" $ANSIBLE_SSH_USER@$i "sudo cp ./external_api.min.* $DEST_PATH/libs"
     ssh -F "$LOCAL_PATH/../config/ssh.config" $ANSIBLE_SSH_USER@$i "sudo cp ./lib-jitsi-meet.min.* $DEST_PATH/libs"
+    ssh -F "$LOCAL_PATH/../config/ssh.config" $ANSIBLE_SSH_USER@$i "sudo cp ./recommendedBrowsers.html $DEST_PATH/static"
     ssh -F "$LOCAL_PATH/../config/ssh.config" $ANSIBLE_SSH_USER@$i "sudo cp ./welcomePageAdditionalContent.html $DEST_PATH/static"
     ssh -F "$LOCAL_PATH/../config/ssh.config" $ANSIBLE_SSH_USER@$i "sudo cp ./accessStorage.html $DEST_PATH/static"
     ssh -F "$LOCAL_PATH/../config/ssh.config" $ANSIBLE_SSH_USER@$i "sudo cp ./accessStorage.min.js $DEST_PATH/static"
