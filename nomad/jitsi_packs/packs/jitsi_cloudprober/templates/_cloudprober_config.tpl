@@ -5,6 +5,8 @@ surfacer {
   export_as_gauge: true
 }
 
+# add variables for default_cloudprober_severity and default_cloudprober_team, and apply them to all non-custom probes
+
 [[ if var "enable_site_ingress" . -]]
 # probes site ingress health from this datacenter
 probe {
@@ -165,7 +167,7 @@ probe {
       }
   }
   interval_msec: 10000
-  timeout_msec: 5000
+  timeout_msec: 10000
   latency_unit: "ms"
 }
 
@@ -213,7 +215,7 @@ probe {
       }
   }
   interval_msec: 60000
-  timeout_msec: 2000
+  timeout_msec: 5000
   latency_unit: "ms"
 }
 
@@ -237,7 +239,7 @@ probe {
       }
   }
   interval_msec: 60000
-  timeout_msec: 2000
+  timeout_msec: 5000
   latency_unit: "ms"
 }
 
