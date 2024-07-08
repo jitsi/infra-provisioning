@@ -1,3 +1,30 @@
+def getJitsiMeetTortureTag(baseurl) {
+  def torturetag = sh(
+    returnStdout: true,
+    script="""
+        BASE_HTML=$(curl --silent --insecure ${baseurl}/base.html)
+        WEB_FULL_VER=$(echo $BASE_HTML | sed 's|.*web-cdn.jitsi.net/||' | sed 's|/".*||')
+        WEB_VER=$(echo $WEB_FULL_VER | sed 's|.*_|| ' | sed 's|\..*||')
+
+        set +x -a
+        JITSI_MEET_VERSIONS=$(apt-cache madison jitsi-meet| sort -r | awk '{print $3;}' | cut -d'-' -f1,2,3)
+        for item in $JITSI_MEET_VERSIONS; do
+            current_ver=$(apt-cache show jitsi-meet=$item | grep '^Depends:'  | cut -f2- -d: | cut -f2 -d,)
+            if grep -q ".${WEB_VER}-1" <<< "$current_ver"; then
+                #jitsi-meet-web version ${WEB_VER} is in jitsi-meet (meta) $item
+                BUILD_NUM=$(echo $item | sed -n "s/[0-9]*\.[0-9]*\.\([0-9]*\)-1/\1/p")
+                #"The tag is jitsi-meet_${BUILD_NUM}"
+                echo "jitsi-meet_${BUILD_NUM}";
+                break
+            fi
+        done
+        set -x +a
+        [ -z "$BUILD_NUM" ] && echo "master";""").trim();
+  );
+  echo "Torture tag is ${torturetag}"
+  return torturetag
+}
+
 def utils
 def torture_user
 def torture_secret
@@ -44,6 +71,15 @@ pipeline {
                     }
                 }
             }
+        }
+        stage ("get torture test branch") {
+          steps {
+            script {
+              if (env.TORTURE_TEST_BRANCH != '') {
+                env.TORTURE_TEST_BRANCH = getJitsiMeetTortureTag(env.BASE_URL)
+              }
+            }
+          }
         }
         stage ("clone torture test repo") {
             steps {
