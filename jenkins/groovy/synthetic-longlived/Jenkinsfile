@@ -11,7 +11,7 @@ def getJitsiMeetTortureTag(baseurl) {
         for item in \$JITSI_MEET_VERSIONS; do
             current_ver=\$(apt-cache show jitsi-meet=\$item | grep '^Depends:'  | cut -f2- -d: | cut -f2 -d,)
             if grep -q ".\${WEB_VER}-1" <<< "\$current_ver"; then
-                BUILD_NUM=\$(echo \$item | sed -n "s/[0-9]*\\.[0-9]*.([0-9]*\\)-1/\\1/p")
+                BUILD_NUM=\$(echo \$item | sed -n "s/[0-9]*\\.[0-9]*\\.\\([0-9]*\\)-1/\\1/p")
                 echo "jitsi-meet_\${BUILD_NUM}";
                 break
             fi
@@ -72,11 +72,11 @@ pipeline {
         stage ("get torture test branch") {
           steps {
             script {
-              echo "${env.TORTURE_TEST_BRANCH}"
+              echo "ttb: ${env.TORTURE_TEST_BRANCH}"
               if (env.TORTURE_TEST_BRANCH == '') {
                 env.TORTURE_TEST_BRANCH = getJitsiMeetTortureTag(env.BASE_URL)
               }
-              echo "${env.TORTURE_TEST_BRANCH}"
+              echo "ttb: ${env.TORTURE_TEST_BRANCH}"
             }
           }
         }
