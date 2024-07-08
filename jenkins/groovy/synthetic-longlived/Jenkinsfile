@@ -74,9 +74,11 @@ pipeline {
             script {
               echo "ttb: ${env.TORTURE_TEST_BRANCH}"
               if (env.TORTURE_TEST_BRANCH == '') {
-                env.TORTURE_TEST_BRANCH = getJitsiMeetTortureTag(env.BASE_URL)
+                def tortureTestBranch = getJitsiMeetTortureTag(env.BASE_URL)
+              } else {
+                def tortureTestBranch = env.TORTURE_TEST_BRANCH
               }
-              echo "ttb: ${env.TORTURE_TEST_BRANCH}"
+              echo "ttb: ${tortureTestBranch}"
             }
           }
         }
@@ -85,7 +87,7 @@ pipeline {
                 script {
                     dir('jitsi-meet-torture') {
                         try {
-                            git branch: env.TORTURE_TEST_BRANCH, url: env.TORTURE_TEST_REPO, credentialsId: 'video-infra'
+                            git branch: tortureTestBranch, url: env.TORTURE_TEST_REPO, credentialsId: 'video-infra'
                         } catch (hudson.AbortException e) {
                             if (e.toString().contains('Couldn\'t find any revision to build')) {
                                 echo "WARNING: couldn't find branch ${branch} in torture test repo, falling back to master"
