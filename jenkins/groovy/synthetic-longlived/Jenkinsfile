@@ -1,7 +1,7 @@
 def getJitsiMeetTortureTag(baseurl) {
   def torturetag = sh(
     returnStdout: true,
-    script="""
+    script: """
         BASE_HTML=$(curl --silent --insecure ${baseurl}/base.html)
         WEB_FULL_VER=$(echo $BASE_HTML | sed 's|.*web-cdn.jitsi.net/||' | sed 's|/".*||')
         WEB_VER=$(echo $WEB_FULL_VER | sed 's|.*_|| ' | sed 's|\..*||')
