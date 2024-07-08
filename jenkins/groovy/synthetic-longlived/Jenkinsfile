@@ -73,10 +73,14 @@ pipeline {
           steps {
             script {
               echo "ttb: ${env.TORTURE_TEST_BRANCH}"
-              if (env.TORTURE_TEST_BRANCH == '') {
-                def tortureTestBranch = getJitsiMeetTortureTag(env.BASE_URL)
-              } else {
-                def tortureTestBranch = env.TORTURE_TEST_BRANCH
+              try {
+                if (env.TORTURE_TEST_BRANCH == '') {
+                  def tortureTestBranch = getJitsiMeetTortureTag(env.BASE_URL)
+                } else {
+                  def tortureTestBranch = env.TORTURE_TEST_BRANCH
+                }
+              } catch (Exception e) {
+                echo "Error getting torture test branch: ${e}"
               }
               echo "ttb: ${tortureTestBranch}"
             }
