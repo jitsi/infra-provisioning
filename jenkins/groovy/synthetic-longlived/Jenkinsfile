@@ -18,7 +18,6 @@ def getJitsiMeetTortureTag(baseurl) {
         done
         set -x +a
         [ -z "\$BUILD_NUM" ] && echo "master";""").trim();
-  );
   echo "Torture tag is ${torturetag}"
   return torturetag
 }
