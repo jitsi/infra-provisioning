@@ -72,9 +72,11 @@ pipeline {
         stage ("get torture test branch") {
           steps {
             script {
-              if (env.TORTURE_TEST_BRANCH != '') {
+              echo "${env.TORTURE_TEST_BRANCH}"
+              if (env.TORTURE_TEST_BRANCH == '') {
                 env.TORTURE_TEST_BRANCH = getJitsiMeetTortureTag(env.BASE_URL)
               }
+              echo "${env.TORTURE_TEST_BRANCH}"
             }
           }
         }
