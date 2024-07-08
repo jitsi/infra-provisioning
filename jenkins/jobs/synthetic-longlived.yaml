@@ -27,8 +27,8 @@
           trim: true
       - string:
           name: TORTURE_TEST_BRANCH
-          default: master
-          description: "Branch to use from torture test."
+          default: ""
+          description: "Branch to use from torture test. Leave blank for whatever is appropriate for the meet version running at the base url."
           trim: true
       - string:
           name: TORTURE_TEST_REPO

@@ -19,14 +19,14 @@ def getJitsiMeetTortureTag(baseurl) {
         set -x +a
         [ -z "\$BUILD_NUM" ] && echo "master";
         exit 0""").trim();
-  echo "Torture tag is ${torturetag}"
+  echo "torture tag is ${torturetag}"
   return torturetag
 }
 
 def utils
 def torture_user
 def torture_secret
-def torture_test_branch
+def torture_test_tag
 pipeline {
     agent any
     options {
@@ -71,21 +71,17 @@ pipeline {
                 }
             }
         }
-        stage ("get torture test branch") {
+        stage ("get torture test tag") {
           steps {
             script {
               dir('infra-configuration') {
-                echo "ttb: ${env.TORTURE_TEST_BRANCH}"
                 try {
                   if (env.TORTURE_TEST_BRANCH == '') {
-                    torture_test_branch = getJitsiMeetTortureTag(env.BASE_URL)
-                  } else {
-                    torture_test_branch = env.TORTURE_TEST_BRANCH
+                    torture_test_tag = getJitsiMeetTortureTag(env.BASE_URL)
                   }
                 } catch (Exception e) {
-                  echo "Error getting torture test branch: ${e}"
+                  echo "Error getting torture test tag: ${e}"
                 }
-                echo "ttb: ${torture_test_branch}"
               }
             }
           }
@@ -95,7 +91,15 @@ pipeline {
                 script {
                     dir('jitsi-meet-torture') {
                         try {
-                            git branch: torture_test_branch, url: env.TORTURE_TEST_REPO, credentialsId: 'video-infra'
+                            if (env.TORTURE_TEST_BRANCH != "") {
+                                git branch: env.TORTURE_TEST_BRANCH, url: env.TORTURE_TEST_REPO, credentialsId: 'video-infra'
+                            } else {
+                                checkout scmGit(
+                                    branch: torture_test_tag,
+                                    url: env.TORTURE_TEST_REPO,
+                                    credentialsId: 'video-infra'
+                                )
+                            }
                         } catch (hudson.AbortException e) {
                             if (e.toString().contains('Couldn\'t find any revision to build')) {
                                 echo "WARNING: couldn't find branch ${branch} in torture test repo, falling back to master"
