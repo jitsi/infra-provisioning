@@ -88,7 +88,7 @@ job "[JOB_NAME]" {
 global:
   resolve_timeout: 5m
   slack_api_url: '${var.slack_api_url}'
-
+{{{ $pagerduty_urls_by_service := (`${var.pagerduty_urls_by_service}` | parseJSON ) }}}
 route:
   receiver: slack
   group_by:
@@ -100,36 +100,34 @@ route:
   repeat_interval: 1h
 
   routes:
-  - receiver: 'slack'
-    slack_configs:
-      - channel: '#{{ .Labels "service" }}-${var.environment_type}'
-        send_resolved: true
-        title: '[{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] ({{ or .CommonLabels.alertname "Multiple Alert Types" }} in {{ .CommonLabels.environment }}) <{{- .GroupLabels.SortedPairs.Values | join " " }}>'
-        text: |-
-          <!channel>{{ range .Alerts }}
-           
-          *{{ index .Labels "alertname" }}* {{- if .Annotations.summary }}: *{{ .Annotations.summary }}* {{- end }}
-            {{- if .Annotations.description }}
-          _{{ .Annotations.description }}_
-            {{- end }}
-          {{- end }}
-  {{{ $pagerduty_urls_by_service := (`${var.pagerduty_urls_by_service}` | parseJSON ) }}}
-  {{{ range $k, $v := $pagerduty_urls_by_service }}}
-  - receiver: 'pagerduty-{{{ $k }}}'
-    pagerduty_configs:
-      url: '{{{ $v }}}'
-    group_by:
-      - alertname
-      - environment
-      - severity
-    group_wait: 10s
-    group_interval: 10s
-    repeat_interval: 1h
-    matchers:
-      severity: 'critical'
-      environment_type: 'prod'
+{{{ range $k, $v := $pagerduty_urls_by_service }}}
+  - match:
       service: '{{{ $k }}}'
-  {{{ end }}}
+    receiver: slack
+    routes:
+    - match:
+        environment_type: prod
+        severity: critical
+      receiver: 'pagerduty-{{{ $k }}}'
+{{{ end }}}
+
+receivers:
+- name: slack
+  slack_configs:
+    - channel: '#nomad-${var.environment_type}'
+      send_resolved: true
+      title: '[{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] ({{ or .CommonLabels.alertname "Multiple Alert Types" }} in {{ .CommonLabels.environment }}) <{{- .GroupLabels.SortedPairs.Values | join " " }}>'
+      text: |-
+        <!channel>{{ range .Alerts }}
+        *{{ index .Labels "alertname" }}* {{- if .Annotations.summary }}: *{{ .Annotations.summary }}* {{- end }}
+          {{- if .Annotations.description }}
+        _{{ .Annotations.description }}_
+          {{- end }}
+        {{- end }}
+
+- name: 'pagerduty-jitsi'
+  pagerduty_configs:
+  - url: 'https://events.pagerduty.com/integration/dae038c835b84605c0d792a05c0f47df/enqueue'
 
 EOH
       }
