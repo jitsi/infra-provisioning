@@ -94,11 +94,7 @@ pipeline {
                             if (env.TORTURE_TEST_BRANCH != "") {
                                 git branch: env.TORTURE_TEST_BRANCH, url: env.TORTURE_TEST_REPO, credentialsId: 'video-infra'
                             } else {
-                                checkout scmGit(
-                                    branch: torture_test_tag,
-                                    url: env.TORTURE_TEST_REPO,
-                                    credentialsId: 'video-infra'
-                                )
+                                checkout scm: [$class: 'GitSCM', userRemoteConfigs: [[url: env.TORTURE_TEST_REPO]], branches: [[name: 'refs/tags/${torture_test_tag}']]], poll: false
                             }
                         } catch (hudson.AbortException e) {
                             if (e.toString().contains('Couldn\'t find any revision to build')) {
