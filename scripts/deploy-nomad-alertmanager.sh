@@ -48,7 +48,7 @@ set +x
 set -e
 set -o pipefail
 export NOMAD_VAR_slack_api_url="$(ansible-vault view $ENCRYPTED_NOMAD_SECRETS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".nomad_slack_api_url" -)"
-export NOMAD_VAR_pagerduty_urls_by_service="$(ansible-vault view $ENCRYPTED_NOMAD_SECRETS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".nomad_pagerduty_urls_by_service" -)"
+export NOMAD_VAR_pagerduty_keys_by_service="$(ansible-vault view $ENCRYPTED_NOMAD_SECRETS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".nomad_pagerduty_keys_by_service" -)"
 set -x
 
 sed -e "s/\[JOB_NAME\]/$JOB_NAME/" "$NOMAD_JOB_PATH/alertmanager.hcl" | nomad job run -var="dc=$NOMAD_DC" -
