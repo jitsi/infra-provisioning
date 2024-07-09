@@ -22,7 +22,9 @@ if [ -z "$ENVIRONMENT" ]; then
   exit 2
 fi
 
-[ -e ./sites/$ENVIRONMENT/stack-env.sh ] && . ./sites/$ENVIRONMENT/stack-env.sh
+. $LOCAL_PATH/../clouds/all.sh
+. $LOCAL_PATH/../clouds/oracle.sh
+[ -e $LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh ] && . $LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh
 
 if [ -z "$TORTURE_GITHUB_USER" ]; then
   echo "## No TORTURE_GITHUB_USER found. Exiting..."
@@ -64,7 +66,7 @@ function doTest {
     if [[ $REPORT_ID == 1 ]]; then
         EXTRA_MVN_TARGETS="clean"
     fi
-    
+    [ -n "$REGIONAL_IP" ] && RESOLVER_PARAM="-DhostResolverRules=\"MAP $DOMAIN $REGIONAL_IP\"" || RESOLVER_PARAM=
 	#set +x
     mvn -U ${EXTRA_MVN_TARGETS} test \
         -Djitsi-meet.instance.url="${TENANT_URL}" \
@@ -73,6 +75,7 @@ function doTest {
         -Dweb.participant1.isRemote=true \
         -Dweb.participant2.isRemote=true \
         -Dchrome.enable.headless=true \
+        $RESOLVER_PARAM \
         -Dbrowser.owner=chrome -Dbrowser.second.participant=chrome \
         -Dremote.address="${SELENIUM_HUB_URL}" \
         -Dremote.resource.path=/usr/share/jitsi-meet-torture \
@@ -82,13 +85,34 @@ function doTest {
         -Dorg.jitsi.token=$TOKEN
 }
 
+function pickRegion {
+  [ -z "$BUILD_NUMBER" ] && BUILD_NUMBER=1
+  [ -z "$SYNTHETIC_CLOUDS" ] && SYNTHETIC_CLOUDS="$RELEASE_CLOUDS"
+  REGION_COUNT=$(echo $SYNTHETIC_CLOUDS | wc -w)
+  REGION_INDEX=$(($BUILD_NUMBER % $REGION_COUNT + 1))
+  SYNTHETIC_CLOUD=$(echo $SYNTHETIC_CLOUDS | cut -d' ' -f$REGION_INDEX)
+  . $LOCAL_PATH/../clouds/$SYNTHETIC_CLOUD.sh
+  echo $ORACLE_REGION
+}
+
+function getRegionalIP {
+  REGION=$1
+  dig +short "$ENVIRONMENT-$REGION-haproxy.$ORACLE_DNS_ZONE_NAME" | tail -1
+}
+
 cd ../jitsi-meet-torture
 CURRENT_COMMIT=$(git log -1 --format="%H")
 echo "jitsi-meet-torture commit is at ${CURRENT_COMMIT}"
 
+# determine region
+[ -n "$ORACLE_REGION" ] && SYNTHETIC_REGION="$ORACLE_REGION" || SYNTHETIC_REGION=`pickRegion`
+
+[ -n "$SYNTHETIC_REGION" ] && REGIONAL_IP=`getRegionalIP $SYNTHETIC_REGION`
+
 set +x
 echo "------------------------------------------------------------------------------"
 echo "- CONFERENCE WEB TEST AT ${BASE_URL} for ${TEST_DURATION_MINUTES} minutes"
+echo "- Region: $SYNTHETIC_REGION ($REGIONAL_IP)"
 echo "------------------------------------------------------------------------------"
 echo ""
 
