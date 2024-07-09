@@ -75,7 +75,7 @@ function doTest {
         -Dweb.participant1.isRemote=true \
         -Dweb.participant2.isRemote=true \
         -Dchrome.enable.headless=true \
-        $RESOLVER_PARAM \
+        "$RESOLVER_PARAM" \
         -Dbrowser.owner=chrome -Dbrowser.second.participant=chrome \
         -Dremote.address="${SELENIUM_HUB_URL}" \
         -Dremote.resource.path=/usr/share/jitsi-meet-torture \
