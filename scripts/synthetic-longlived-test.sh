@@ -100,14 +100,14 @@ function getRegionalIP {
   dig +short "$ENVIRONMENT-$REGION-haproxy.$ORACLE_DNS_ZONE_NAME" | tail -1
 }
 
-cd ../jitsi-meet-torture
-CURRENT_COMMIT=$(git log -1 --format="%H")
-echo "jitsi-meet-torture commit is at ${CURRENT_COMMIT}"
-
 # determine region
 [ -n "$ORACLE_REGION" ] && SYNTHETIC_REGION="$ORACLE_REGION" || SYNTHETIC_REGION=`pickRegion`
 
 [ -n "$SYNTHETIC_REGION" ] && REGIONAL_IP=`getRegionalIP $SYNTHETIC_REGION`
+
+cd ../jitsi-meet-torture
+CURRENT_COMMIT=$(git log -1 --format="%H")
+echo "jitsi-meet-torture commit is at ${CURRENT_COMMIT}"
 
 set +x
 echo "------------------------------------------------------------------------------"
