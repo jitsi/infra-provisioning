@@ -24,9 +24,6 @@ fi
 
 [ -e ./sites/$ENVIRONMENT/stack-env.sh ] && . ./sites/$ENVIRONMENT/stack-env.sh
 
-[ -z "$TORTURE_TEST_REPO" ] && TORTURE_TEST_REPO=git@github.com:jitsi/jitsi-meet-torture.git
-[ -z "$TORTURE_TEST_BRANCH" ] && TORTURE_TEST_BRANCH=master
-
 if [ -z "$TORTURE_GITHUB_USER" ]; then
   echo "## No TORTURE_GITHUB_USER found. Exiting..."
   exit 2
@@ -86,6 +83,9 @@ function doTest {
 }
 
 cd ../jitsi-meet-torture
+CURRENT_COMMIT=$(git log -1 --format="%H")
+echo "jitsi-meet-torture branch is at ${CURRENT_COMMIT}"
+
 # clean all local branches
 #git branch | grep -vx '* master' | xargs -r -n 1 git branch -D || true
 # update
