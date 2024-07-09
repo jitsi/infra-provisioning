@@ -55,7 +55,6 @@ fi
   
 SUCCESS=0
 
-
 function doTest {
     set -x
     TENANT_URL=$1
@@ -88,10 +87,10 @@ function doTest {
 
 cd ../jitsi-meet-torture
 # clean all local branches
-git branch | grep -vx '* master' | xargs -r -n 1 git branch -D || true
+#git branch | grep -vx '* master' | xargs -r -n 1 git branch -D || true
 # update
-git fetch
-git reset --hard origin/$TORTURE_TEST_BRANCH
+#git fetch
+#git reset --hard origin/$TORTURE_TEST_BRANCH
 
 set +x
 echo "------------------------------------------------------------------------------"
