@@ -66,7 +66,7 @@ function doTest {
     if [[ $REPORT_ID == 1 ]]; then
         EXTRA_MVN_TARGETS="clean"
     fi
-    [ -n "$REGIONAL_IP" ] && RESOLVER_PARAM="-DhostResolverRules=\"MAP $DOMAIN $REGIONAL_IP\"" || RESOLVER_PARAM=
+    [ -z "$REGIONAL_IP" ] && REGIONAL_IP="$(dig +short $DOMAIN | tail -1)"
 	#set +x
     mvn -U ${EXTRA_MVN_TARGETS} test \
         -Djitsi-meet.instance.url="${TENANT_URL}" \
@@ -75,7 +75,7 @@ function doTest {
         -Dweb.participant1.isRemote=true \
         -Dweb.participant2.isRemote=true \
         -Dchrome.enable.headless=true \
-        "$RESOLVER_PARAM" \
+        -DhostResolverRules="MAP $DOMAIN $REGIONAL_IP" \
         -Dbrowser.owner=chrome -Dbrowser.second.participant=chrome \
         -Dremote.address="${SELENIUM_HUB_URL}" \
         -Dremote.resource.path=/usr/share/jitsi-meet-torture \
