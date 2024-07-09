@@ -124,7 +124,7 @@ receivers:
           {{- end }}
         {{- end }}
 {{{ range $k, $v := $pagerduty_keys_by_service }}}
-- name: 'pagerduty-{{{ $k}}}'
+- name: 'pagerduty-{{{ $k }}}'
   pagerduty_configs:
   - service_key: '{{{ $v }}}'
 {{{ end }}}
