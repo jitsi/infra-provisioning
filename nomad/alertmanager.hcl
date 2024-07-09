@@ -21,7 +21,7 @@ variable "default_service_name" {
     default = "default"
 }
 
-variable "pagerduty_urls_by_service" {
+variable "pagerduty_keys_by_service" {
     type = string
     default = "{ \"default\": \"replaceme\" }"
 }
@@ -88,7 +88,7 @@ job "[JOB_NAME]" {
 global:
   resolve_timeout: 5m
   slack_api_url: '${var.slack_api_url}'
-{{{ $pagerduty_urls_by_service := (`${var.pagerduty_urls_by_service}` | parseJSON ) }}}
+{{{ $pagerduty_keys_by_service := (`${var.pagerduty_keys_by_service}` | parseJSON ) }}}
 route:
   receiver: slack
   group_by:
@@ -99,8 +99,7 @@ route:
   group_interval: 10s
   repeat_interval: 1h
 
-  routes:
-{{{ range $k, $v := $pagerduty_urls_by_service }}}
+  routes:{{{ range $k, $v := $pagerduty_keys_by_service }}}
   - match:
       service: '{{{ $k }}}'
     receiver: slack
@@ -109,7 +108,7 @@ route:
         environment_type: prod
         severity: critical
       receiver: 'pagerduty-{{{ $k }}}'
-{{{ end }}}
+{{{- end }}}
 
 receivers:
 - name: slack
@@ -124,10 +123,11 @@ receivers:
         _{{ .Annotations.description }}_
           {{- end }}
         {{- end }}
-
-- name: 'pagerduty-jitsi'
+{{{ range $k, $v := $pagerduty_keys_by_service }}}
+- name: 'pagerduty-{{{ $k}}}'
   pagerduty_configs:
-  - url: 'https://events.pagerduty.com/integration/dae038c835b84605c0d792a05c0f47df/enqueue'
+  - service_key: '{{{ $v }}}'
+{{{ end }}}
 
 EOH
       }
