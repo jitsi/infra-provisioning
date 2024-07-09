@@ -125,7 +125,9 @@ else
     echo ""
 fi
 
+set -x
 echo "jitsi_longlived_test_failure $CLOUDWATCH_VALUE source=jenkins-internal.jitsi.net environment=$ENVIRONMENT region=$CLOUDWATCH_REGION cloud=aws" | curl -s --data @- $WAVEFRONT_PROXY_URL
+set +x
 
 if [[ $SUCCESS == 0 ]]; then
 	exit 0
