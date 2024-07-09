@@ -24,9 +24,6 @@ fi
 
 [ -e ./sites/$ENVIRONMENT/stack-env.sh ] && . ./sites/$ENVIRONMENT/stack-env.sh
 
-[ -z "$TORTURE_TEST_REPO" ] && TORTURE_TEST_REPO=git@github.com:jitsi/jitsi-meet-torture.git
-[ -z "$TORTURE_TEST_BRANCH" ] && TORTURE_TEST_BRANCH=master
-
 if [ -z "$TORTURE_GITHUB_USER" ]; then
   echo "## No TORTURE_GITHUB_USER found. Exiting..."
   exit 2
@@ -54,35 +51,6 @@ fi
 [ -z "$CLOUDWATCH_REGION" ] && CLOUDWATCH_REGION="us-west-2"
   
 SUCCESS=0
-
-# Extracts the jitsi-meet-web version used from the base.html file on the shard.
-#
-# with jitsi-meet-web version we check all available meta packages from the newest
-# to the latest for that web version and when we find that one we use the meta
-# version to construct the tag to use for jitsi-meet-torture
-function getJitsiMeetTortureTag {
-  BASE_HTML=$(curl --silent --insecure ${BASE_URL}/base.html)
-  WEB_FULL_VER=$(echo $BASE_HTML | sed 's|.*web-cdn.jitsi.net/||' | sed 's|/".*||')
-  WEB_VER=$(echo $WEB_FULL_VER | sed 's|.*_|| ' | sed 's|\..*||')
-
-  set +x -a 	
-  JITSI_MEET_VERSIONS=$(apt-cache madison jitsi-meet| sort -r | awk '{print $3;}' | cut -d'-' -f1,2,3)
-  for item in $JITSI_MEET_VERSIONS
-  do
-      current_ver=$(apt-cache show jitsi-meet=$item | grep '^Depends:'  | cut -f2- -d: | cut -f2 -d,)
-      if grep -q ".${WEB_VER}-1" <<< "$current_ver"; then
-          #jitsi-meet-web version ${WEB_VER} is in jitsi-meet (meta) $item
-          BUILD_NUM=$(echo $item | sed -n "s/[0-9]*\.[0-9]*\.\([0-9]*\)-1/\1/p")
-          #"The tag is jitsi-meet_${BUILD_NUM}"
-          echo "jitsi-meet_${BUILD_NUM}";
-          break
-      fi
-  done
-  set -x +a
-  [ -z "$BUILD_NUM" ] && echo "master";
-}
-
-echo "End checking versions"
 
 function doTest {
     set -x
@@ -115,11 +83,8 @@ function doTest {
 }
 
 cd ../jitsi-meet-torture
-# clean all local branches
-git branch | grep -vx '* master' | xargs -r -n 1 git branch -D || true
-# update
-git fetch
-git reset --hard origin/$TORTURE_TEST_BRANCH
+CURRENT_COMMIT=$(git log -1 --format="%H")
+echo "jitsi-meet-torture commit is at ${CURRENT_COMMIT}"
 
 set +x
 echo "------------------------------------------------------------------------------"
@@ -153,8 +118,7 @@ else
     echo ""
 fi
 
-aws cloudwatch put-metric-data --namespace $CLOUDWATCH_NAMESPACE --metric-name "jitsi_longlived_test_failure" --dimensions $CLOUDWATCH_DIMENSIONS --value $CLOUDWATCH_VALUE --unit Count
-echo "jitsi.jitsi_longlived_test_failure $CLOUDWATCH_VALUE source=jenkins-internal.jitsi.net environment=$ENVIRONMENT region=$CLOUDWATCH_REGION cloud=aws" | curl -s --data @- $WAVEFRONT_PROXY_URL
+echo "jitsi_longlived_test_failure $CLOUDWATCH_VALUE source=jenkins-internal.jitsi.net environment=$ENVIRONMENT region=$CLOUDWATCH_REGION cloud=aws" | curl -s --data @- $WAVEFRONT_PROXY_URL
 
 if [[ $SUCCESS == 0 ]]; then
 	exit 0
