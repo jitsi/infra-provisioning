@@ -84,13 +84,7 @@ function doTest {
 
 cd ../jitsi-meet-torture
 CURRENT_COMMIT=$(git log -1 --format="%H")
-echo "jitsi-meet-torture branch is at ${CURRENT_COMMIT}"
-
-# clean all local branches
-#git branch | grep -vx '* master' | xargs -r -n 1 git branch -D || true
-# update
-#git fetch
-#git reset --hard origin/$TORTURE_TEST_BRANCH
+echo "jitsi-meet-torture commit is at ${CURRENT_COMMIT}"
 
 set +x
 echo "------------------------------------------------------------------------------"
