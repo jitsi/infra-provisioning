@@ -293,7 +293,7 @@ groups:
       service: "{{ if $labels.service }}{{ $labels.service }}{{ else }}${var.default_service_name}{{ end }}"
       severity: warning
     annotations:
-      summary: http probe from ${var.dc} to {{ $labels.dst }} timed-out or is unhealthy
+      summary: "{{ $labels.probe }} probe from ${var.dc} to {{ $labels.dst }} timed-out or is unhealthy"
       description: The {{ $labels.probe }} http probe from ${var.dc} to {{ $labels.dst }} timed-out or received an unhealthy response.
   - alert: ProbeUnhealthy
     expr: (cloudprober_failure{probe!="shard"} > 0) or (cloudprober_timeouts{probe!="shard"} > 0)
@@ -303,7 +303,8 @@ groups:
       service: "{{ if $labels.service }}{{ $labels.service }}{{ else }}${var.default_service_name}{{ end }}"
       severity: critical
     annotations:
-      summary: http probe from ${var.dc} to {{ $labels.dst }} timed-out or is unhealthy
+      summary: "{{ $labels.probe }} probe from ${var.dc} to {{ $labels.dst }} timed-out or is unhealthy"
+      description: The {{ $labels.probe }} http probe from ${var.dc} to {{ $labels.dst }} timed-out or received an unhealthy response.
   - alert: ShardUnhealthy
     expr: ((cloudprober_failure{probe="shard"} > 0) and on() count_over_time(cloudprober_failure{probe="shard"}[5m:1m]) > 5) or (cloudprober_timeouts{probe="shard"} > 0)
     for: 2m
@@ -335,7 +336,7 @@ groups:
       summary: a domain probe from ${var.dc} reached an haproxy outside the local region
       description: An cloudprober probe to the domain reached an haproxy outside of the local region. This means that CloudFlare may not be routing requests to ${var.dc}, likely due to failing health checks to the regional load balancer ingress.
   - alert: LatencyHigh
-    expr: cloudprober_latency{probe="shard_latency"} > 500
+    expr: (cloudprober_latency{probe="latency"} > 500) or (cloudprober_latency{probe="latency_https"} > 500)
     for: 2m
     labels:
       environment_type: "{{ if $labels.environment_type }}{{ $labels.environment_type }}{{ else }}${var.environment_type}{{ end }}"
@@ -345,7 +346,7 @@ groups:
       summary: http probe from ${var.dc} to {{ $labels.dst }} has high latency
       description: The {{ $labels.probe }} http probe from ${var.dc} to {{ $labels.dst }} has had high latency for 2 minutes, most recently at {{ $value }} ms.
   - alert: LatencyHigh
-    expr: cloudprober_latency{probe="shard_latency"} > 1000
+    expr: (cloudprober_latency{probe="latency"} > 1000) or (cloudprober_latency{probe="latency_https"} > 1000)
     for: 5m
     labels:
       environment_type: "{{ if $labels.environment_type }}{{ $labels.environment_type }}{{ else }}${var.environment_type}{{ end }}"

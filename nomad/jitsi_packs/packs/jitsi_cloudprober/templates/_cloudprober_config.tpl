@@ -142,23 +142,58 @@ probe {
 
 [[ end -]]
 [[ if var "enable_shard_latency" . -]]
-# probes latency of all shards via their nginx server, in all datacenters
+# measures between datacenters using shard _health endpoints
 probe {
-  name: "shard_latency"
+  name: "latency"
   type: HTTP
 
   targets {
     {{ $shard_count := 0 -}}
     {{ range $dc := datacenters -}}{{ $dc_shards := print "signal@" $dc -}}{{ range $shard := service $dc_shards -}}
-    {{ $shard_count = add $shard_count 1 -}}
+    {{ if ne .ServiceMeta.http_backend_port "443" }}{{ $shard_count = add $shard_count 1 -}}
     endpoint {
       name: "{{ .ServiceMeta.shard }}"
       url: "http://{{ .Address }}:{{ if .ServiceMeta.http_backend_port }}{{ .ServiceMeta.http_backend_port }}{{ else }}80{{ end }}/_health"
     }
-    {{ end }}{{ end -}}
+    {{ end }}{{ end }}{{ end -}}
     {{ if eq $shard_count 0 -}}
     host_names: ""
     {{- end }}
+  }
+  validator {
+      name: "status_code_2xx"
+      http_validator {
+          success_status_codes: "200-299"
+      }
+  }
+  interval_msec: 10000
+  timeout_msec: 10000
+  latency_unit: "ms"
+}
+
+# measures between datacenters using shard _health endpoints
+probe {
+  name: "latency_https"
+  type: HTTP
+
+  targets {
+    {{ $shard_count := 0 -}}
+    {{ range $dc := datacenters -}}{{ $dc_shards := print "signal@" $dc -}}{{ range $shard := service $dc_shards -}}
+    {{ if eq .ServiceMeta.http_backend_port "443" }}{{ $shard_count = add $shard_count 1 -}}
+    endpoint {
+      name: "{{ .ServiceMeta.shard }}"
+      url: "https://{{ .Address }}/_health"
+    }
+    {{ end }}{{ end }}{{ end -}}
+    {{ if eq $shard_count 0 -}}
+    host_names: ""
+    {{- end }}
+  }
+  http_probe {
+    protocol: HTTPS
+    tls_config {
+        disable_cert_validation: true
+    }
   }
   validator {
       name: "status_code_2xx"
