@@ -202,6 +202,26 @@ EOH
 groups:
 - name: service_alerts
   rules:
+  - alert: AlertmanagerDown
+    expr: absent(up{job="alertmanager"})
+    for: 5m
+    labels:
+      environment_type: "{{ if $labels.environment_type }}{{ $labels.environment_type }}{{ else }}${var.environment_type}{{ end }}"
+      service: "{{ if $labels.service }}{{ $labels.service }}{{ else }}${var.default_service_name}{{ end }}"
+      severity: critical
+    annotations:
+      summary: alertmanager service is down in ${var.dc}
+      description: Metrics from alertmanager are not being received in ${var.dc}. This means that alerts are not being emitted from the datacenter. Thus, the fact that you received an alert from this datacenter is quite curious indeed.
+  - alert: CloudproberDown
+    expr: absent(up{job="cloudprober"})
+    for: 5m
+    labels:
+      environment_type: "{{ if $labels.environment_type }}{{ $labels.environment_type }}{{ else }}${var.environment_type}{{ end }}"
+      service: "{{ if $labels.service }}{{ $labels.service }}{{ else }}${var.default_service_name}{{ end }}"
+      severity: critical
+    annotations:
+      summary: cloudprober service is down in ${var.dc}
+      description: Metrics from cloudprober are not being received in ${var.dc}. This means that data from synthetic probes is not being collected or alerted on in this datacenter.
   - alert: ConsulDown
     expr: absent(up{job="consul"})
     for: 5m
@@ -232,16 +252,6 @@ groups:
     annotations:
       summary: prometheus service is down in ${var.dc}
       description: No prometheus services are emitting metrics in ${var.dc}. This may mean that no metrics are being stored or served.
-  - alert: CloudproberDown
-    expr: absent(up{job="cloudprober"})
-    for: 5m
-    labels:
-      environment_type: "{{ if $labels.environment_type }}{{ $labels.environment_type }}{{ else }}${var.environment_type}{{ end }}"
-      service: "{{ if $labels.service }}{{ $labels.service }}{{ else }}${var.default_service_name}{{ end }}"
-      severity: critical
-    annotations:
-      summary: cloudprober service is down in ${var.dc}
-      description: Metrics from cloudprober are not being received in ${var.dc}. This means that data from synthetic probes is not being collected or alerted on in this datacenter.
   - alert: TelegrafDown
     expr: prometheus_target_scrape_pools_total > sum(up{job="telegraf"})
     for: 5m
