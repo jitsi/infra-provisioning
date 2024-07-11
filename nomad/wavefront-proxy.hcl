@@ -54,22 +54,15 @@ job "[JOB_NAME]" {
       driver = "docker"
       env {
         WAVEFRONT_URL = "https://${var.wavefront_instance}.wavefront.com/api"
+        WAVEFRONT_PROXY_ARGS="--preprocessorConfigFile /etc/wavefront/wavefront-proxy/preprocessor_rules.yaml"
       }
       template {
         data = <<EOF
-preprocessorConfigFile=/etc/wavefront/wavefront-proxy/preprocessor_rules.yaml
-EOF
-        destination = "local/wavefront.conf"
-      }
-      template {
-        data = <<EOF
-'2878'
-# block all points with metricName that starts with loki
-  ###############################################################
-  - rule    : block-loki-stats
-    action  : block
-    scope   : metricName
-    match   : "loki\\..*"
+'2878':
+  - rule : block-loki-stats
+    action: block
+    scope : metricName
+    match : "loki\\..*"
 EOF
         destination = "local/preprocessor_rules.yaml"
       }
@@ -133,7 +126,7 @@ EOF
     </Appenders>
     <Loggers>
         <!-- Uncomment AppenderRef to log blocked points to a file.
-             Logger property level="WARN" logs only rejected points, level="INFO"
+             Logger property level="INFO" logs only rejected points, level="INFO"
              logs points filtered out by allow/block rules as well -->
         <AsyncLogger name="RawBlockedPoints" level="WARN" additivity="false">
             <AppenderRef ref="BlockedPointsFile"/>
@@ -154,7 +147,6 @@ EOF
         image = "wavefronthq/proxy:latest"
         ports = ["http"]
         volumes = [
-          "local/wavefront.conf:/etc/wavefront/wavefront-proxy/wavefront.conf",
           "local/preprocessor_rules.yaml:/etc/wavefront/wavefront-proxy/preprocessor_rules.yaml",
           "local/log4j2.xml:/etc/wavefront/wavefront-proxy/log4j2.xml"
         ]
