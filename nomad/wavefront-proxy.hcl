@@ -57,6 +57,12 @@ job "[JOB_NAME]" {
       }
       template {
         data = <<EOF
+preprocessorConfigFile=/etc/wavefront/wavefront-proxy/preprocessor_rules.yaml
+EOF
+        destination = "local/wavefront.conf"
+      }
+      template {
+        data = <<EOF
 '2878'
 # block all points with metricName that starts with loki
   ###############################################################
@@ -70,7 +76,7 @@ EOF
       template {
         data = <<EOF
 WAVEFRONT_TOKEN="{{ with secret "secret/default/wavefront-proxy/token" }}{{ .Data.data.api_token }}{{ end }}"
-        EOF
+EOF
         destination = "secrets/env"
         env = true
       }
@@ -108,7 +114,6 @@ WAVEFRONT_TOKEN="{{ with secret "secret/default/wavefront-proxy/token" }}{{ .Dat
             </DefaultRolloverStrategy>
         </RollingFile>
         <!-- Uncomment the RollingFile section below to log all valid points to a file -->
-        <!--
         <RollingFile name="ValidPointsFile" fileName="${log-path}/wavefront-valid-points.log"
                      filePattern="${log-path}/wavefront-valid-points-%d{yyyy-MM-dd}-%i.log" >
             <PatternLayout>
@@ -125,22 +130,17 @@ WAVEFRONT_TOKEN="{{ with secret "secret/default/wavefront-proxy/token" }}{{ .Dat
                 </Delete>
             </DefaultRolloverStrategy>
         </RollingFile>
-        -->
     </Appenders>
     <Loggers>
         <!-- Uncomment AppenderRef to log blocked points to a file.
              Logger property level="WARN" logs only rejected points, level="INFO"
              logs points filtered out by allow/block rules as well -->
         <AsyncLogger name="RawBlockedPoints" level="WARN" additivity="false">
-            <!--
             <AppenderRef ref="BlockedPointsFile"/>
-            -->
         </AsyncLogger>
         <!-- Uncomment AppenderRef and set level="ALL" to log all valid points to a file -->
-        <AsyncLogger name="RawValidPoints" level="DEBUG" additivity="false">
-            <!--
+        <AsyncLogger name="RawValidPoints" level="ALL" additivity="false">
             <AppenderRef ref="ValidPointsFile"/>
-            -->
         </AsyncLogger>
         <Root level="INFO">
             <AppenderRef ref="Console" />
@@ -154,6 +154,7 @@ EOF
         image = "wavefronthq/proxy:latest"
         ports = ["http"]
         volumes = [
+          "local/wavefront.conf:/etc/wavefront/wavefront-proxy/wavefront.conf",
           "local/preprocessor_rules.yaml:/etc/wavefront/wavefront-proxy/preprocessor_rules.yaml",
           "local/log4j2.xml:/etc/wavefront/wavefront-proxy/log4j2.xml"
         ]
