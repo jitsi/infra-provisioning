@@ -57,6 +57,17 @@ job "[JOB_NAME]" {
       }
       template {
         data = <<EOF
+# block all points with metricName that starts with loki
+  ###############################################################
+  - rule    : block-loki-stats
+    action  : block
+    scope   : metricName
+    match   : "loki.*"
+EOF
+        destination = "local/preprocessor_rules.yaml"
+      }
+      template {
+        data = <<EOF
 WAVEFRONT_TOKEN="{{ with secret "secret/default/wavefront-proxy/token" }}{{ .Data.data.api_token }}{{ end }}"
         EOF
         destination = "secrets/env"
