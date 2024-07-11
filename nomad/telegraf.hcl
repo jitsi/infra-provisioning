@@ -284,15 +284,6 @@ EOF
         role = "redis"
         redis-index = "{{"{{"}}with .ServiceMeta.redis_index}}{{"{{"}}.}}{{"{{"}}else}}NA{{"{{"}}end}}"
     [[inputs.prometheus.consul.query]]
-      name = "loki"
-      tag = "ip-{{ env "attr.unique.network.ip-address" }}"
-      url = 'http://{{"{{"}}if ne .ServiceAddress ""}}{{"{{"}}.ServiceAddress}}{{"{{"}}else}}{{"{{"}}.Address}}{{"{{"}}end}}:{{"{{"}}with .ServiceMeta.metrics_port}}{{"{{"}}.}}{{"{{"}}else}}{{"{{"}}.ServicePort}}{{"{{"}}end}}/{{"{{"}}with .ServiceMeta.metrics_path}}{{"{{"}}.}}{{"{{"}}else}}metrics{{"{{"}}end}}'
-      [inputs.prometheus.consul.query.tags]
-        host = "{{"{{"}}.Node}}"
-        shard-role = "loki"
-        role = "loki"
-        loki-index = "{{"{{"}}with .ServiceMeta.loki_index}}{{"{{"}}.}}{{"{{"}}else}}NA{{"{{"}}end}}"
-    [[inputs.prometheus.consul.query]]
       name = "jibri"
       tag = "ip-{{ env "attr.unique.network.ip-address" }}"
       url = 'http://{{"{{"}}if ne .ServiceAddress ""}}{{"{{"}}.ServiceAddress}}{{"{{"}}else}}{{"{{"}}.Address}}{{"{{"}}end}}:{{"{{"}}.ServicePort}}/{{"{{"}}with .ServiceMeta.metrics_path}}{{"{{"}}.}}{{"{{"}}else}}metrics{{"{{"}}end}}'
