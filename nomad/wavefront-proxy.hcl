@@ -59,10 +59,10 @@ job "[JOB_NAME]" {
       template {
         data = <<EOF
 '2878':
-  - rule : block-loki-stats
-    action: block
-    scope : metricName
-    match : "loki\\..*"
+  - rule   : block-loki-stats
+    action : block
+    scope  : metricName
+    match  : "loki\\..*"
 EOF
         destination = "local/preprocessor_rules.yaml"
       }
