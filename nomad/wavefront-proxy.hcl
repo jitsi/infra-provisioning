@@ -54,7 +54,7 @@ job "[JOB_NAME]" {
       driver = "docker"
       env {
         WAVEFRONT_URL = "https://${var.wavefront_instance}.wavefront.com/api"
-        WAVEFRONT_PROXY_ARGS="--preprocessorConfigFile /local/preprocessor_rules.yaml"
+        WAVEFRONT_PROXY_ARGS="--preprocessorConfigFile /etc/wavefront/wavefront-proxy/preprocessor_rules.yaml"
       }
       template {
         data = <<EOF
@@ -76,6 +76,9 @@ EOF
       config {
         image = "wavefronthq/proxy:latest"
         ports = ["http"]
+        volumes = [
+          "local/preprocessor_rules.yaml:/etc/wavefront/wavefront-proxy/preprocessor_rules.yaml",
+        ]
       }
 
       resources {
