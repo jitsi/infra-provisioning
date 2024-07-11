@@ -76,6 +76,9 @@ WAVEFRONT_TOKEN="{{ with secret "secret/default/wavefront-proxy/token" }}{{ .Dat
       config {
         image = "wavefronthq/proxy:latest"
         ports = ["http"]
+        volumes = [
+          "local/preprocessor_rules.yaml:/etc/wavefront/wavefront-proxy/preprocessor_rules.yaml"
+        ]
       }
 
       resources {
