@@ -63,7 +63,7 @@ job "[JOB_NAME]" {
   - rule    : block-loki-stats
     action  : block
     scope   : metricName
-    match   : "loki.*"
+    match   : "loki\\..*"
 EOF
         destination = "local/preprocessor_rules.yaml"
       }
