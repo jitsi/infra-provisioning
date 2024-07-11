@@ -63,6 +63,10 @@ job "[JOB_NAME]" {
     action : block
     scope  : metricName
     match  : "loki\\..*"
+  - rule   : block-cloudprober
+    action : block
+    scope  : metricName
+    match  : "cloudprober\\..*"
 EOF
         destination = "local/preprocessor_rules.yaml"
       }
