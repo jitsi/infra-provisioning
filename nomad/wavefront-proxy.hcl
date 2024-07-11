@@ -57,7 +57,7 @@ job "[JOB_NAME]" {
       }
       template {
         data = <<EOF
-'global'
+'2878'
 # block all points with metricName that starts with loki
   ###############################################################
   - rule    : block-loki-stats
