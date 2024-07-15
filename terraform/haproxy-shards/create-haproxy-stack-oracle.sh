@@ -95,13 +95,13 @@ for LB_HOSTNAME in $SIGNAL_API_LB_HOSTNAMES; do
   SIGNAL_API_LB_HOSTNAME_JSON=$(echo $SIGNAL_API_LB_HOSTNAME_JSON "[\"$LB_HOSTNAME\"]" | jq -c --slurp 'flatten(1)')
 done
 
-[ -z "$CERTIFICATE_NAME" ] && CERTIFICATE_NAME="star_jitsi_net-2024-08-10"
+[ -z "$CERTIFICATE_NAME_VARIABLE" ] && CERTIFICATE_NAME_VARIABLE="jitsi_net_ssl_name"
 [ -z "$CA_CERTIFICATE_VARIABLE" ] && CA_CERTIFICATE_VARIABLE="jitsi_net_ssl_extras"
 [ -z "$PUBLIC_CERTIFICATE_VARIABLE" ] && PUBLIC_CERTIFICATE_VARIABLE="jitsi_net_ssl_certificate"
 [ -z "$PRIVATE_KEY_VARIABLE" ] && PRIVATE_KEY_VARIABLE="jitsi_net_ssl_key_name"
 
 [ -z "$SIGNAL_API_HOSTNAME" ] && SIGNAL_API_HOSTNAME="signal-api-$ENVIRONMENT.jitsi.net"
-[ -z "$SIGNAL_API_CERTIFICATE_NAME" ] && SIGNAL_API_CERTIFICATE_NAME="star_jitsi_net-2024-08-10"
+[ -z "$SIGNAL_API_CERTIFICATE_NAME_VARIABLE" ] && SIGNAL_API_CERTIFICATE_NAME_VARIABLE="jitsi_net_ssl_name"
 [ -z "$SIGNAL_API_CA_CERTIFICATE_VARIABLE" ] && SIGNAL_API_CA_CERTIFICATE_VARIABLE="jitsi_net_ssl_extras"
 [ -z "$SIGNAL_API_PUBLIC_CERTIFICATE_VARIABLE" ] && SIGNAL_API_PUBLIC_CERTIFICATE_VARIABLE="jitsi_net_ssl_certificate"
 [ -z "$SIGNAL_API_PRIVATE_KEY_VARIABLE" ] && SIGNAL_API_PRIVATE_KEY_VARIABLE="jitsi_net_ssl_key_name"
@@ -126,6 +126,8 @@ set -o pipefail
 CA_CERTIFICATE=$(ansible-vault view $ENCRYPTED_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${CA_CERTIFICATE_VARIABLE}" -)
 PUBLIC_CERTIFICATE=$(ansible-vault view $ENCRYPTED_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${PUBLIC_CERTIFICATE_VARIABLE}" -)
 PRIVATE_KEY=$(ansible-vault view $ENCRYPTED_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${PRIVATE_KEY_VARIABLE}" -)
+CERTIFICATE_NAME=$(ansible-vault view $ENCRYPTED_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${CERTIFICATE_NAME_VARIABLE}" -)
+SIGNAL_API_CERTIFICATE_NAME=$(ansible-vault view $ENCRYPTED_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${SIGNAL_API_CERTIFICATE_NAME_VARIABLE}" -)
 
 # export private key to variable instead of outputting on command line
 export TF_VAR_certificate_public_certificate="$PUBLIC_CERTIFICATE"
