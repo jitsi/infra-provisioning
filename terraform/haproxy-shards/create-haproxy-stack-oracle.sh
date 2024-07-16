@@ -373,6 +373,13 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
   -var "infra_customizations_repo=$INFRA_CUSTOMIZATIONS_REPO" \
   $ACTION_POST_PARAMS $TF_POST_PARAMS
 
+RET=$?
+
+if [[ "$RET" -gt 0 ]]; then
+  echo "Error during terraform $ACTION. Exiting..."
+  exit $RET
+fi
+
 LOCAL_HAPROXY_KEY="terraform-haproxy.tfstate"
 
 oci os object get --bucket-name $S3_STATE_BUCKET --name $S3_STATE_KEY --region $ORACLE_REGION --file $LOCAL_HAPROXY_KEY
@@ -430,3 +437,5 @@ if [ -z "$LB_RULE_SET_ID" ]; then
   echo "LB_RULE_SET_ID failed to be found or created, exiting..."
   exit 3
 fi
+
+exit $RET
