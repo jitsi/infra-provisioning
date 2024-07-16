@@ -363,66 +363,6 @@ resource "oci_core_instance_pool" "oci_instance_pool_3_ad" {
   defined_tags = local.common_tags
 }
 
-resource "oci_autoscaling_auto_scaling_configuration" "oci_auto_scaling_configuration" {
-  compartment_id = var.compartment_ocid
-  is_enabled = "true"
-  display_name = var.auto_scaling_config_name
-
-  defined_tags = local.common_tags
-
-  policies {
-    capacity {
-      initial = var.instance_pool_size
-      max = var.instance_pool_size
-      min = var.instance_pool_size - 1
-    }
-
-    display_name = var.policy_name
-    policy_type = "threshold"
-
-    rules {
-      action {
-        type = "CHANGE_COUNT_BY"
-        value = "1"
-      }
-
-      display_name = var.scale_out_rule_name
-
-      metric {
-        metric_type = "CPU_UTILIZATION"
-
-        threshold {
-          operator = "GT"
-          value = "1"
-        }
-      }
-    }
-
-    rules {
-      action {
-        type = "CHANGE_COUNT_BY"
-        value = "-1"
-      }
-
-      display_name = var.scale_in_rule_name
-
-      metric {
-        metric_type = "CPU_UTILIZATION"
-
-        threshold {
-          operator = "LT"
-          value = "0"
-        }
-      }
-    }
-  }
-
-  auto_scaling_resources {
-    id = length(var.availability_domains) == 3 ? oci_core_instance_pool.oci_instance_pool_3_ad[0].id : (length(var.availability_domains) == 2 ? oci_core_instance_pool.oci_instance_pool_2_ad[0].id : oci_core_instance_pool.oci_instance_pool_1_ad[0].id)
-    type = "instancePool"
-  }
-}
-
 data "oci_core_instance_pool_instances" "oci_instance_pool_instances" {
   count = 1
   compartment_id = var.compartment_ocid
