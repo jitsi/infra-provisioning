@@ -20,11 +20,11 @@ config.flags.ssrcRewritingEnabled=[[ or (env "CONFIG_jitsi_meet_enable_ssrc_rewr
 config.maxFullResolutionParticipants = 1;
 [[- end ]]
 
-[[ if env "CONFIG_jitsi_meet_jvb_preferred_codecs" -]]
 if (!config.hasOwnProperty('videoQuality')) config.videoQuality = {};
+[[ if env "CONFIG_jitsi_meet_jvb_preferred_codecs" -]]
 config.videoQuality.codecPreferenceOrder=[[ env "CONFIG_jitsi_meet_jvb_preferred_codecs" ]];
 [[- end ]]
-
+config.videoQuality.enableAdaptiveMode=[[ or (env "CONFIG_jitsi_meet_enable_adaptive_mode") "false" ]];
 [[ if eq (env "CONFIG_jitsi_meet_enable_simulcast_av1") "true" -]]
 config.videoQuality.av1.useSimulcast=true;
 [[- end ]]
@@ -272,6 +272,9 @@ config.testing.skipInterimTranscriptions = true;
 [[- end ]]
 [[ if ne (or (env "CONFIG_jitsi_meet_mobile_xmpp_ws_threshold") "false") "false" -]]
 config.testing.jitsi_meet_mobile_xmpp_ws_threshold = [[ env "CONFIG_jitsi_meet_mobile_xmpp_ws_threshold" ]];
+[[- end ]]
+[[ if eq (env "CONFIG_jitsi_meet_enable_codec_selection_api") "true" -]]
+config.testing.enableCodecSelectionAPI = true;
 [[- end ]]
 
 [[ template "config_deeplinking.js" . ]]
