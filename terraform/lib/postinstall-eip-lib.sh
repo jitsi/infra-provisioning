@@ -187,8 +187,6 @@ function check_secondary_ip() {
     echo "Secondary private IP still not available status: $ip_status" >$tmp_msg_file
     return 1
   else
-    vnic_id=$(curl -s curl http://169.254.169.254/opc/v1/vnics/ | jq .[0].vnicId -r)
-    [ -x "/usr/local/bin/oci-testcert.py" ] && /usr/local/bin/oci-testcert.py $vnic_id /tmp/vnic.json
     return 0
   fi
 }
