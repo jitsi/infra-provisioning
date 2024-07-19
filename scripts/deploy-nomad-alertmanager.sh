@@ -34,6 +34,12 @@ JOB_NAME="alertmanager-$ORACLE_REGION"
 export NOMAD_VAR_alertmanager_hostname="${RESOURCE_NAME_ROOT}.${TOP_LEVEL_DNS_ZONE_NAME}"
 export NOMAD_VAR_environment_type="${ENVIRONMENT_TYPE}"
 
+if [ -z "$DEFAULT_ALERT_SERVICE_NAME" ]; then
+    export NOMAD_VAR_default_service_name=$DEFAULT_ALERT_SERVICE_NAME
+else
+    export NOMAD_VAR_default_service_name="default"
+fi
+
 [ -z "$VAULT_PASSWORD_FILE" ] && VAULT_PASSWORD_FILE="$LOCAL_PATH/../.vault-password.txt"
 [ -z "$ENCRYPTED_NOMAD_SECRETS_FILE" ] && ENCRYPTED_NOMAD_SECRETS_FILE="$LOCAL_PATH/../ansible/secrets/nomad.yml"
 
@@ -42,6 +48,7 @@ set +x
 set -e
 set -o pipefail
 export NOMAD_VAR_slack_api_url="$(ansible-vault view $ENCRYPTED_NOMAD_SECRETS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".nomad_slack_api_url" -)"
+export NOMAD_VAR_pagerduty_keys_by_service="$(ansible-vault view $ENCRYPTED_NOMAD_SECRETS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".nomad_pagerduty_keys_by_service" -)"
 set -x
 
 sed -e "s/\[JOB_NAME\]/$JOB_NAME/" "$NOMAD_JOB_PATH/alertmanager.hcl" | nomad job run -var="dc=$NOMAD_DC" -
