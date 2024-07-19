@@ -368,6 +368,7 @@ EOF
     "jitsi_jvb_outgoing_bitrate",
     "jitsi_jvb_outgoing_loss_fraction",
     "jitsi_jvb_outgoing_packet_rate",
+    "jitsi_jvb_participants",
     "jitsi_jvb_queue_*",
     "jitsi_jvb_relay_incoming_bitrate",
     "jitsi_jvb_relay_incoming_packet_rate",
