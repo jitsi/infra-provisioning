@@ -11,7 +11,7 @@ function dump() {
 function provisioning() {
   local status_code=0
   
-  $TIMEOUT_BIN $PROVISIONING_TIMEOUT /usr/local/bin/postinstall-jigasi.sh >>/var/log/bootstrap.log 2>&1 || status_code=1
+  $TMBIN $PTIMEOUT /usr/local/bin/postinstall-jigasi.sh >>/var/log/bootstrap.log 2>&1 || status_code=1
 
   if [ $status_code -eq 1 ]; then
     echo 'Provisioning stage failed' > $tmp_msg_file;

@@ -34,7 +34,7 @@ fi
 
 function provisioning() {
   local status_code=0
-  $TIMEOUT_BIN $PROVISIONING_TIMEOUT sudo /usr/local/bin/postinstall-jibri.sh >>/var/log/bootstrap.log 2>&1 || status_code=1
+  $TMBIN $PTIMEOUT sudo /usr/local/bin/postinstall-jibri.sh >>/var/log/bootstrap.log 2>&1 || status_code=1
   if [ $status_code -eq 1 ]; then
     echo 'Provisioning stage failed' >$tmp_msg_file
   fi

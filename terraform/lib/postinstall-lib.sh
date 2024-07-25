@@ -1,21 +1,21 @@
 
-BOOTSTRAP_DIRECTORY="/tmp/bootstrap"
-LOCAL_REPO_DIRECTORY="/opt/jitsi/bootstrap"
+BSD="/tmp/bootstrap"
+LRD="/opt/jitsi/bootstrap"
 function check_private_ip() {
   local counter=1
-  local ip_status=1
+  local ips=1
   while [ $counter -le 2 ]; do
-    local my_private_ip=$(curl -s curl http://169.254.169.254/opc/v1/vnics/ | jq .[0].privateIp -r)
-    if [ -z $my_private_ip ] || [ $my_private_ip == "null" ]; then
+    local pip=$(curl -s curl http://169.254.169.254/opc/v1/vnics/ | jq .[0].privateIp -r)
+    if [ -z $pip ] || [ $pip == "null" ]; then
       sleep 30
       ((counter++))
     else
-      ip_status=0
+      ips=0
       break
     fi
   done
-  if [ $ip_status -eq 1 ]; then
-    echo "Private IP still not available status: $ip_status" > $tmp_msg_file
+  if [ $ips -eq 1 ]; then
+    echo "Private IP still not available status: $ips" > $tmp_msg_file
     return 1
   else
     return 0
@@ -140,12 +140,12 @@ mount_volume() {
   fi
 }
 function get_volumes() {
-  DETAILS="$1"
-  COMPARTMENT_ID="$(echo $DETAILS | jq -r .compartmentId)"
-  AD="$(echo $DETAILS | jq -r .availabilityDomain)"
-  REGION="$(echo $DETAILS | jq -r .regionInfo.regionIdentifier)"
-  ALL_VOLUMES=$($OCI_BIN bv volume list --compartment-id $COMPARTMENT_ID --lifecycle-state AVAILABLE --region $REGION --availability-domain $AD --auth instance_principal)
-  echo $ALL_VOLUMES
+  DTS="$1"
+  CID="$(echo $DTS | jq -r .compartmentId)"
+  AD="$(echo $DTS | jq -r .availabilityDomain)"
+  REGION="$(echo $DTS | jq -r .regionInfo.regionIdentifier)"
+  AVS=$($OCI_BIN bv volume list --compartment-id $CID --lifecycle-state AVAILABLE --region $REGION --availability-domain $AD --auth instance_principal)
+  echo $AVS
   if [[ $? -ne 0 ]]; then
     echo "Failed to get list of volumes"
     return 4
@@ -154,33 +154,33 @@ function get_volumes() {
 function mount_volumes() {
   if [[ "$VOLUMES_ENABLED" == "true" ]]; then
     [ -z "$TAG_NAMESPACE" ] && TAG_NAMESPACE="jitsi"
-    INSTANCE_DATA="$(curl --connect-timeout 10 -s curl http://169.254.169.254/opc/v1/instance/)"
-    INSTANCE_ID="$(echo $INSTANCE_DATA | jq -r .id)"
-    GROUP_INDEX="$(echo $INSTANCE_DATA | jq -r '.freeformTags."group-index"')"
-    ROLE="$(echo $INSTANCE_DATA | jq -r .definedTags.$TAG_NAMESPACE."role")"
-    ALL_VOLUMES="$(get_volumes "$INSTANCE_DATA")"
+    IDATA="$(curl -m 10 -s curl http://169.254.169.254/opc/v1/instance/)"
+    IID="$(echo $IDATA | jq -r .id)"
+    GI="$(echo $IDATA | jq -r '.freeformTags."group-index"')"
+    ROLE="$(echo $IDATA | jq -r .definedTags.$TAG_NAMESPACE."role")"
+    AVS="$(get_volumes "$IDATA")"
     if [[ $? -eq 0 ]]; then
-      ROLE_VOLUMES="$(echo $ALL_VOLUMES | jq ".data | map(select(.\"freeform-tags\".\"volume-role\" == \"$ROLE\"))")"
-      GROUP_VOLUMES="$(echo $ROLE_VOLUMES | jq "map(select(.\"freeform-tags\".\"volume-index\" == \"$GROUP_INDEX\"))")"
-      GROUP_VOLUMES_COUNT="$(echo $GROUP_VOLUMES | jq length)"
-      if [[ "$GROUP_VOLUMES_COUNT" -gt 0 ]]; then
-        for i in `seq 0 $((GROUP_VOLUMES_COUNT-1))`; do
-          VOLUME_DETAIL="$(echo $GROUP_VOLUMES | jq -r ".[$i]")"
-          VOLUME_TYPE="$(echo $VOLUME_DETAIL | jq -r .\"freeform-tags\".\"volume-type\")"
-          VOLUME_LABEL="$VOLUME_TYPE-$GROUP_INDEX"
-          mount_volume "$VOLUME_DETAIL" $VOLUME_LABEL $INSTANCE_ID
+      RVS="$(echo $AVS | jq ".data | map(select(.\"freeform-tags\".\"volume-role\" == \"$ROLE\"))")"
+      GVS="$(echo $RVS | jq "map(select(.\"freeform-tags\".\"volume-index\" == \"$GI\"))")"
+      GVC="$(echo $GVS | jq length)"
+      if [[ "$GVC" -gt 0 ]]; then
+        for i in `seq 0 $((GVC-1))`; do
+          VD="$(echo $GVS | jq -r ".[$i]")"
+          VT="$(echo $VD | jq -r .\"freeform-tags\".\"volume-type\")"
+          VL="$VT-$GROUP_INDEX"
+          mount_volume "$VD" $VL $IID
         done
       else
-        echo "No volumes found matching role $ROLE and group index $GROUP_INDEX"
+        echo "No volumes found matching role $ROLE and group index $GI"
       fi
-      NON_GROUP_VOLUMES="$(echo $ROLE_VOLUMES | jq "map(select(.\"freeform-tags\".\"volume-index\" == null))")"
-      NON_GROUP_VOLUMES_COUNT="$(echo $NON_GROUP_VOLUMES | jq length)"
-      if [[ "$NON_GROUP_VOLUMES_COUNT" -gt 0 ]]; then
-        for i in `seq 0 $((NON_GROUP_VOLUMES_COUNT-1))`; do
-          VOLUME_DETAIL="$(echo $NON_GROUP_VOLUMES | jq -r ".[$i]")"
-          VOLUME_TYPE="$(echo $VOLUME_DETAIL | jq -r .\"freeform-tags\".\"volume-type\")"
-          VOLUME_LABEL="$VOLUME_TYPE"
-          mount_volume "$VOLUME_DETAIL" $VOLUME_LABEL $INSTANCE_ID
+      NGVS="$(echo $RVS | jq "map(select(.\"freeform-tags\".\"volume-index\" == null))")"
+      NGVSC="$(echo $NGVS | jq length)"
+      if [[ "$NGVSC" -gt 0 ]]; then
+        for i in `seq 0 $((NGVSC-1))`; do
+          VD="$(echo $NGVS | jq -r ".[$i]")"
+          VT="$(echo $VD | jq -r .\"freeform-tags\".\"volume-type\")"
+          VL="$VOLUME_TYPE"
+          mount_volume "$VD" $VL $IID
         done
       else
         echo "No volumes found matching role $ROLE with no group index"
@@ -206,62 +206,63 @@ function set_hostname() {
     #clear domain if null
     [ "$DOMAIN" == "null" ] && DOMAIN=
     [ -z "$DOMAIN" ] && DOMAIN="oracle.jitsi.net"
-    MY_COMPONENT_NUMBER="$(echo $MY_IP | awk -F. '{print $2"-"$3"-"$4}')"
-    MY_HOSTNAME="$CLOUD_NAME-$TYPE-$MY_COMPONENT_NUMBER.$DOMAIN"
+    mcn="$(echo $MY_IP | awk -F. '{print $2"-"$3"-"$4}')"
+    MY_HOSTNAME="$CLOUD_NAME-$TYPE-$mcn.$DOMAIN"
   fi
   hostname $MY_HOSTNAME
   grep $MY_HOSTNAME /etc/hosts || echo "$MY_IP    $MY_HOSTNAME" >> /etc/hosts
   echo "$MY_HOSTNAME" > /etc/hostname
 }
 function checkout_repos() {
-  [ -d $BOOTSTRAP_DIRECTORY/infra-configuration ] && rm -rf $BOOTSTRAP_DIRECTORY/infra-configuration
-  [ -d $BOOTSTRAP_DIRECTORY/infra-customizations ] && rm -rf $BOOTSTRAP_DIRECTORY/infra-customizations
+  [ -d $BSD/infra-configuration ] && rm -rf $BSD/infra-configuration
+  [ -d $BSD/infra-customizations ] && rm -rf $BSD/infra-customizations
   if [ ! -n "$(grep "^github.com " ~/.ssh/known_hosts)" ]; then ssh-keyscan github.com >> ~/.ssh/known_hosts 2>/dev/null; fi
-  mkdir -p "$BOOTSTRAP_DIRECTORY"
-  if [ -d "$LOCAL_REPO_DIRECTORY" ]; then
-    echo "Found local repo copies in $LOCAL_REPO_DIRECTORY, using instead of clone"
-    cp -a $LOCAL_REPO_DIRECTORY/infra-configuration $BOOTSTRAP_DIRECTORY
-    cp -a $LOCAL_REPO_DIRECTORY/infra-customizations $BOOTSTRAP_DIRECTORY
-    cd $BOOTSTRAP_DIRECTORY/infra-configuration
+  mkdir -p "$BSD"
+  if [ -d "$LRD" ]; then
+    echo "Found local repo copies in $LRD, using instead of clone"
+    cp -a $LRD/infra-configuration $BSD
+    cp -a $LRD/infra-customizations $BSD
+    cd $BSD/infra-configuration
     git pull
     cd -
-    cd $BOOTSTRAP_DIRECTORY/infra-customizations
+    cd $BSD/infra-customizations
     git pull
     cd -
   else
     echo "No local repos found, cloning directly from github"
-    git clone $INFRA_CONFIGURATION_REPO $BOOTSTRAP_DIRECTORY/infra-configuration
-    git clone $INFRA_CUSTOMIZATIONS_REPO $BOOTSTRAP_DIRECTORY/infra-customizations
+    git clone $INFRA_CONFIGURATION_REPO $BSD/infra-configuration
+    git clone $INFRA_CUSTOMIZATIONS_REPO $BSD/infra-customizations
   fi
-  cd $BOOTSTRAP_DIRECTORY/infra-configuration
+  cd $BSD/infra-configuration
   git checkout $GIT_BRANCH
   git submodule update --init --recursive
   git show-ref heads/$GIT_BRANCH || git show-ref tags/$GIT_BRANCH
   cd -
-  cd $BOOTSTRAP_DIRECTORY/infra-customizations
+  cd $BSD/infra-customizations
   git checkout $GIT_BRANCH
   git submodule update --init --recursive
   git show-ref heads/$GIT_BRANCH || git show-ref tags/$GIT_BRANCH
-  cp -a $BOOTSTRAP_DIRECTORY/infra-customizations/* $BOOTSTRAP_DIRECTORY/infra-configuration
+  cp -a $BSD/infra-customizations/* $BSD/infra-configuration
   cd -
 }
 function run_ansible_playbook() {
-    cd $BOOTSTRAP_DIRECTORY/infra-configuration
+    cd $BSD/infra-configuration
     PLAYBOOK=$1
     VARS=$2
     DEPLOY_TAGS=${ANSIBLE_TAGS-"all"}
+    sc=0
     ansible-playbook -v \
         -i "127.0.0.1," \
         -c local \
         --tags "$DEPLOY_TAGS" \
         --extra-vars "$VARS" \
         --vault-password-file=/root/.vault-password \
-        ansible/$PLAYBOOK || status_code=1
-    if [ $status_code -eq 1 ]; then
+        ansible/$PLAYBOOK || sc=1
+    if [ $sc -eq 1 ]; then
         echo 'Provisioning stage failed' > $tmp_msg_file;
     fi
     cd -
-    return $status_code
+    return $sc
 }
 function default_dump() {
   sudo /usr/local/bin/dump-boot.sh
@@ -277,7 +278,7 @@ function default_main() {
   return $EXIT_CODE
 }
 function default_provision() {
-  local status_code=0
+  local sc=0
   . /usr/local/bin/oracle_cache.sh
   fetch_credentials $ENVIRONMENT
   [ -z "$HOST_ROLE" ] && HOST_ROLE="$SHARD_ROLE"
@@ -298,19 +299,19 @@ function default_provision() {
     export INFRA_CONFIGURATION_REPO="https://github.com/jitsi/infra-configuration.git"
   fi
   checkout_repos
-  run_ansible_playbook "$ANSIBLE_PLAYBOOK"  "$ANSIBLE_VARS" || status_code=1
-  return $status_code;
+  run_ansible_playbook "$ANSIBLE_PLAYBOOK"  "$ANSIBLE_VARS" || sc=1
+  return $sc;
 }
 function default_terminate() {
-  echo "Terminating the instance; we enable debug to have more details in case of oci cli failures"
+  echo "Terminating"
   INSTANCE_ID=`curl --connect-timeout 10 -s curl http://169.254.169.254/opc/v1/instance/ | jq -r .id`
   sudo /usr/local/bin/oci compute instance terminate --debug --instance-id "$INSTANCE_ID" --preserve-boot-volume false --auth instance_principal --force
   RET=$?
   # infinite loop on failure
   if [ $RET -gt 0 ]; then
-    echo "Failed to terminate instance, exit code: $RET, sleeping 10 then retrying"
+    echo "Failed to terminate, exit code: $RET, sleep 10 retry"
     sleep 10
     default_terminate
   fi
 }
-# end of postinstall-lib, this space intentionally left blank
+# end of postinstall-lib, next line blank
