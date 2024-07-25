@@ -201,7 +201,7 @@ export INFRA_CONFIGURATION_REPO=${var.infra_configuration_repo}
 export INFRA_CUSTOMIZATIONS_REPO=${var.infra_customizations_repo}
 export NOMAD_FLAG=${var.nomad_flag}
 INSTANCE_ID=$(curl -s curl http://169.254.169.254/opc/v1/instance/ | jq -r .id)
-echo ${jsonencode(jsonencode(local.common_tags))} | sed -e 's/${var.tag_namespace}\.//g' > /tmp/oracle_cache-$INSTANCE_ID
+echo ${jsonencode(jsonencode(local.common_tags))} | sed -e 's/"${var.tag_namespace}\./"/g' > /tmp/oracle_cache-$INSTANCE_ID
 EOT
           , # write the common tags to a file
           file("${path.cwd}/${var.user_data_file}"), # load our customizations
