@@ -1,6 +1,5 @@
 
-BOOTSTRAP_DIRECTORY="/tmp/bootstrap"
-BSD="$BOOTSTRAP_DIRECTORY"
+BSD="/tmp/bootstrap"
 LRD="/opt/jitsi/bootstrap"
 function check_private_ip() {
   local counter=1

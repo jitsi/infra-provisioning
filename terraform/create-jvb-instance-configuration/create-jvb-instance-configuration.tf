@@ -83,6 +83,11 @@ locals {
     "${var.tag_namespace}.use_eip" = var.use_eip
     "${var.tag_namespace}.autoscaler_sidecar_jvb_flag" = var.autoscaler_sidecar_jvb_flag
   }
+  freeform_tags = {
+        configuration_repo = var.infra_configuration_repo
+        customizations_repo = var.infra_customizations_repo
+        shape = var.shape
+  }
 }
 
 data "oci_core_vcns" "vcns" {
@@ -201,7 +206,8 @@ export INFRA_CONFIGURATION_REPO=${var.infra_configuration_repo}
 export INFRA_CUSTOMIZATIONS_REPO=${var.infra_customizations_repo}
 export NOMAD_FLAG=${var.nomad_flag}
 INSTANCE_ID=$(curl -s curl http://169.254.169.254/opc/v1/instance/ | jq -r .id)
-echo ${jsonencode(jsonencode(local.common_tags))} | sed -e 's/"${var.tag_namespace}\./"/g' > /tmp/oracle_cache-$INSTANCE_ID
+echo ${jsonencode(jsonencode(merge(local.common_tags, local.freeform_tags)))} | sed -e 's/"${var.tag_namespace}\./"/g' > /tmp/oracle_cache-$INSTANCE_ID
+(echo (cat /tmp/oracle_cache-$INSTANCE_ID) | jq -s 'add' > /tmp/oracle_cache-$INSTANCE_ID
 EOT
           , # write the common tags to a file
           file("${path.cwd}/${var.user_data_file}"), # load our customizations
@@ -211,11 +217,7 @@ EOT
       }
 
       defined_tags = local.common_tags
-      freeform_tags = {
-        configuration_repo = var.infra_configuration_repo
-        customizations_repo = var.infra_customizations_repo
-        shape = var.shape
-      }
+      freeform_tags = local.freeform_tags
     }
   }
 }
