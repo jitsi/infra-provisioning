@@ -12,17 +12,17 @@ def deleteConsulPin(environment, tenant) {
     )
 }
 
-def updateVersioningPin(environment, tenant, release_number) {
+def updateVersioningPin(environment, customer_id, release_number) {
     echo 'updating pin in versioning-manager'
     sh(
-        script: "ENVIRONMENT=${environment} VERSIONING_ACTION=SET_TENANT_PIN TENANT=${tenant} RELEASE_NUMBER=${release_number} scripts/versioning-manager.sh ubuntu"
+        script: "ENVIRONMENT=${environment} VERSIONING_ACTION=SET_TENANT_PIN CUSTOMER_ID=${customer_id} RELEASE_NUMBER=${release_number} scripts/versioning-manager.sh ubuntu"
     )
 }
 
-def deleteVersioningPin(environment, tenant) {
+def deleteVersioningPin(environment, customer_id) {
     echo 'deleting pin in versioning-manager'
     sh(
-        script: "ENVIRONMENT=${environment} VERSIONING_ACTION=DELETE_TENANT_PIN TENANT=${tenant} scripts/versioning-manager.sh ubuntu"
+        script: "ENVIRONMENT=${environment} VERSIONING_ACTION=DELETE_CUSTOMER_PIN CUSTOMER_ID=${customer_id} scripts/versioning-manager.sh ubuntu"
     )
 }
 
@@ -94,7 +94,7 @@ pipeline {
                                 file(credentialsId: 'asap-jwt-key-prod', variable: 'ASAP_JWT_KEY_PROD')
                             ]) {
                                 sshagent(credentials: ['ssh-ubuntu']) {
-                                    updateConsulPin(env.ENVIRONMENT, env.CUSTOMER_ID, env.RELEASE_NUMBER)
+                                    updateConsulPin(env.ENVIRONMENT, env.TENANT, env.RELEASE_NUMBER)
                                 }
                             }
                         }
@@ -107,7 +107,7 @@ pipeline {
                                 file(credentialsId: 'asap-jwt-key-prod', variable: 'ASAP_JWT_KEY_PROD')
                             ]) {
                                 sshagent(credentials: ['ssh-ubuntu']) {
-                                    deleteConsulPin(env.ENVIRONMENT, env.CUSTOMER_ID)
+                                    deleteConsulPin(env.ENVIRONMENT, env.TENANT)
                                 }
                             }
                         }
@@ -117,7 +117,7 @@ pipeline {
                 }
             }
         }
-        stage ("modify pin in versioning-manager") {
+        stage ("modify customer pin in versioning-manager") {
             when {
                 allOf {
                     expression { useReleaseBackends == 'true' }
