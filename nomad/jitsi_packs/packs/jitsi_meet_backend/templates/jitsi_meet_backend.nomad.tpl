@@ -543,7 +543,7 @@ VirtualHost "sipjibri.[[ env "CONFIG_domain" ]]"
 
 [[- end ]]
 
-VirtualHost "jigasi.[[ env "CONFIG_domain" ]]"
+VirtualHost "jigasia.[[ env "CONFIG_domain" ]]"
     modules_enabled = {
       "ping";
       "smacks";
