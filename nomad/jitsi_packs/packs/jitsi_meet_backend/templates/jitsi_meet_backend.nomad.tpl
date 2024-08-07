@@ -543,19 +543,22 @@ VirtualHost "sipjibri.[[ env "CONFIG_domain" ]]"
 
 [[- end ]]
 
-VirtualHost "jigasi.[[ env "CONFIG_domain" ]]"
+[[- if or (eq (or (env "CONFIG_jigasi_vault_enabled") "false") "true") (env "CONFIG_jigasi_shared_secret") ]]
+VirtualHost "jigasia.[[ env "CONFIG_domain" ]]"
     modules_enabled = {
       "ping";
       "smacks";
     }
     authentication = "jitsi-shared-secret"
-[[- if eq (or (env "CONFIG_jigasi_vault_enabled") "true") "true" ]]
+[[- if eq (or (env "CONFIG_jigasi_vault_enabled") "false") "true" ]]
 {{- with secret "secret/[[ env "CONFIG_environment" ]]/jigasi/xmpp" }}
     shared_secret = "{{ .Data.data.password }}"
 {{- end }}
 [[- else ]]
     shared_secret = "[[ env "CONFIG_jigasi_shared_secret" ]]"
 [[- end ]]
+[[- end ]]
+
 EOH
         destination = "local/config/conf.d/other-domains.cfg.lua"
       }
