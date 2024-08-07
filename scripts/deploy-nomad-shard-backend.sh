@@ -84,7 +84,8 @@ NOMAD_DC="$ENVIRONMENT-$ORACLE_REGION"
 JVB_XMPP_PASSWORD_VARIABLE="secrets_jvb_brewery_by_environment_A.\"$ENVIRONMENT\""
 JIBRI_XMPP_PASSWORD_VARIABLE="jibri_auth_password"
 JIBRI_RECORDER_PASSWORD_VARIABLE="jibri_selenium_auth_password"
-JIGASI_XMPP_PASSWORD_VARIABLE="jigasi_xmpp_password"
+JIGASI_XMPP_PASSWORD_VARIABLE="secrets_jigasi_brewery_by_environment_A.\"$ENVIRONMENT\""
+JIGASI_SHARED_SECRET_VARIABLE="secrets_jigasi_conference_by_environment_A.\"$ENVIRONMENT\""
 JICOFO_XMPP_PASSWORD_VARIABLE="secrets_jicofo_focus_by_environment.\"$ENVIRONMENT\""
 
 JWT_ASAP_KEYSERVER_VARIABLE="prosody_public_key_repo_url"
@@ -113,7 +114,7 @@ export CONFIG_asap_jwt_kid="$(ansible-vault view $ENCRYPTED_ASAP_KEYS_FILE --vau
 export CONFIG_aws_access_key_id="$(ansible-vault view $ENCRYPTED_PROSODY_EGRESS_AWS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".prosody_egress_aws_access_key_id_by_type.$ENVIRONMENT_TYPE" -)"
 export CONFIG_aws_secret_access_key="$(ansible-vault view $ENCRYPTED_PROSODY_EGRESS_AWS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".prosody_egress_aws_secret_access_key_by_type.$ENVIRONMENT_TYPE" -)"
 
-export CONFIG_jigasi_shared_secret="$CONFIG_jigasi_xmpp_password"
+export CONFIG_jigasi_shared_secret="$(ansible-vault view $ENCRYPTED_JIBRI_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${JIGASI_SHARED_SECRET_VARIABLE}" -)"
 
 SIP_JIBRI_SHARED_SECRET="$(ansible-vault view $ENCRYPTED_JIBRI_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${SIP_JIBRI_SHARED_SECRET_VARIABLE}" -)"
 if [[ "$SIP_JIBRI_SHARED_SECRET" != "null" ]]; then
