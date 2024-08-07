@@ -543,7 +543,7 @@ VirtualHost "sipjibri.[[ env "CONFIG_domain" ]]"
 
 [[- end ]]
 
-[[- if or (eq (or (env "CONFIG_jigasi_vault_enabled") "false") "true") (env "CONFIG_jigasi_shared_secret") ]]
+[[ if or (eq (or (env "CONFIG_jigasi_vault_enabled") "false") "true") (env "CONFIG_jigasi_shared_secret") -]]
 VirtualHost "jigasia.[[ env "CONFIG_domain" ]]"
     modules_enabled = {
       "ping";
