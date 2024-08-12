@@ -83,6 +83,11 @@ locals {
     "${var.tag_namespace}.use_eip" = var.use_eip
     "${var.tag_namespace}.autoscaler_sidecar_jvb_flag" = var.autoscaler_sidecar_jvb_flag
   }
+  freeform_tags = {
+        configuration_repo = var.infra_configuration_repo
+        customizations_repo = var.infra_customizations_repo
+        shape = var.shape
+  }
 }
 
 data "oci_core_vcns" "vcns" {
@@ -196,8 +201,14 @@ resource "oci_core_instance_configuration" "oci_instance_configuration" {
           file("${path.cwd}/${var.user_data_lib_path}/postinstall-header.sh"), # load the header
           file("${path.cwd}/${var.user_data_lib_path}/postinstall-lib.sh"), # load the lib
           file("${path.cwd}/${var.user_data_lib_path}/postinstall-eip-lib.sh"), # load the EIP lib
-          "\nexport INFRA_CONFIGURATION_REPO=${var.infra_configuration_repo}\nexport INFRA_CUSTOMIZATIONS_REPO=${var.infra_customizations_repo}\n", #repo variables
-          "\nexport NOMAD_FLAG=${var.nomad_flag}\n", # nomad variable
+          <<EOT
+export INFRA_CONFIGURATION_REPO=${var.infra_configuration_repo}
+export INFRA_CUSTOMIZATIONS_REPO=${var.infra_customizations_repo}
+export NOMAD_FLAG=${var.nomad_flag}
+INSTANCE_ID=$(curl -s curl http://169.254.169.254/opc/v1/instance/ | jq -r .id)
+echo ${jsonencode(jsonencode(merge(local.common_tags, local.freeform_tags)))} | sed -e 's/"${var.tag_namespace}\./"/g' > /tmp/oracle_cache-$INSTANCE_ID
+EOT
+          , # write the common tags to a file
           file("${path.cwd}/${var.user_data_file}"), # load our customizations
           file("${path.cwd}/${var.user_data_lib_path}/postinstall-footer.sh") # load the footer
         ]))
@@ -205,11 +216,7 @@ resource "oci_core_instance_configuration" "oci_instance_configuration" {
       }
 
       defined_tags = local.common_tags
-      freeform_tags = {
-        configuration_repo = var.infra_configuration_repo
-        customizations_repo = var.infra_customizations_repo
-        shape = var.shape
-      }
+      freeform_tags = local.freeform_tags
     }
   }
 }
