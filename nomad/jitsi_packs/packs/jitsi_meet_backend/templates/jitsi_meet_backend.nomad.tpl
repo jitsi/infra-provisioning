@@ -130,7 +130,8 @@ job [[ template "job_name" . ]] {
 [[ if (var "fabio_domain_enabled" .) ]]
         "urlprefix-[[ env "CONFIG_domain" ]]/",
 [[ end ]]
-        "urlprefix-/[[ env "CONFIG_shard" ]]/"
+        "urlprefix-/[[ env "CONFIG_shard" ]]/",
+        "urlprefix-/v1/_cdn/"
       ]
       meta {
         domain = "[[ env "CONFIG_domain" ]]"
