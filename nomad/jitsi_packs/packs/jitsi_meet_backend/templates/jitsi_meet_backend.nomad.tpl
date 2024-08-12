@@ -802,6 +802,7 @@ EOF
         ports = ["http","nginx-status"]
         volumes = [
           "local/_unlock:/usr/share/nginx/html/_unlock",
+          "local/_unlock:/usr/share/nginx/html/_health",
           "local/nginx.conf:/etc/nginx/nginx.conf",
           "local/conf.d:/etc/nginx/conf.d",
           "local/conf.stream:/etc/nginx/conf.stream",

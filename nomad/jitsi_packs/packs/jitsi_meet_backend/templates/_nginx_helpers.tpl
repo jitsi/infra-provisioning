@@ -496,6 +496,11 @@ server {
         alias /usr/share/nginx/html/_unlock;
     }
 
+    location = /_health {
+[[ template "nginx-headers" . ]]
+        alias /usr/share/nginx/html/_health;
+    }
+
     # unlock for subdomains
     location ~ ^/([^/?&:'"]+)/_unlock {
         set $subdomain "$1.";
@@ -503,6 +508,15 @@ server {
         set $prefix "$1";
 
         rewrite ^/(.*)$ /_unlock;
+    }
+
+    location ~ ^/v1/_cdn/([^/?&:'"]+)/(.*)$ {
+        add_header Strict-Transport-Security 'max-age=63072000; includeSubDomains';
+        proxy_set_header X-Jitsi-Shard '[[ env "CONFIG_shard" ]]';
+        proxy_hide_header 'X-Jitsi-Shard';
+        proxy_set_header Host $http_host;
+
+        proxy_pass http://web/$2$is_args$args;
     }
 
 [[ if ne (or (env "CONFIG_jitsi_meet_close_page_redirect_url") "false") "false" -]]
