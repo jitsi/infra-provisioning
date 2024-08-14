@@ -253,7 +253,7 @@ groups:
       summary: prometheus service is down in ${var.dc}
       description: No prometheus services are emitting metrics in ${var.dc}. This may mean that no metrics are being stored or served.
   - alert: TelegrafDown
-    expr: prometheus_target_scrape_pools_total > sum(up{job="telegraf"})
+    expr: sum(prometheus_target_scrape_pools_total) > (sum(up{job="telegraf"}) or vector(0))
     for: 5m
     labels:
       environment_type: "{{ if $labels.environment_type }}{{ $labels.environment_type }}{{ else }}${var.environment_type}{{ end }}"
@@ -262,16 +262,6 @@ groups:
     annotations:
       summary: telegraf services are down on some nodes in ${var.dc}
       description: telegraf metrics are not being emitted from all nodes in ${var.dc}. This means that metrics for some services are not being collected.
-  - alert: VectorDown
-    expr: prometheus_target_scrape_pools_total > sum(up{job="vector"})
-    for: 5m
-    labels:
-      environment_type: "{{ if $labels.environment_type }}{{ $labels.environment_type }}{{ else }}${var.environment_type}{{ end }}"
-      service: "{{ if $labels.service }}{{ $labels.service }}{{ else }}${var.default_service_name}{{ end }}"
-      severity: critical
-    annotations:
-      summary: vector services are down on some nodes in ${var.dc}
-      description: vector metrics are not being emitted from all scraped nodes in ${var.dc}. This means that logs for some services are not being collected.
   - alert: WFProxyDown
     expr: absent(up{job="wavefront-proxy"})
     for: 5m
