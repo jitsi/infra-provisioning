@@ -195,6 +195,7 @@ block
         JICOFO_AUTH_PASSWORD = "[[ env "CONFIG_jicofo_auth_password" ]]"
         JVB_AUTH_PASSWORD = "[[ env "CONFIG_jvb_auth_password" ]]"
 [[- if eq (or (env "CONFIG_jigasi_vault_enabled") "true") "false" ]]
+        JIGASI_TRANSCRIBER_USER = "[[ env "CONFIG_jigasi_transcriber_user" ]]"
         JIGASI_XMPP_PASSWORD = "[[ env "CONFIG_jigasi_xmpp_password" ]]"
         JIGASI_XMPP_USER = "[[ env "CONFIG_jigasi_xmpp_user" ]]"
 [[- end ]]
