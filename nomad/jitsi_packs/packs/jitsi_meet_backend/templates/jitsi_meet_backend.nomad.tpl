@@ -587,6 +587,7 @@ EOH
         PUBLIC_URL="https://[[ env "CONFIG_domain" ]]/"
         JICOFO_AUTH_PASSWORD = "[[ env "CONFIG_jicofo_auth_password" ]]"
         JVB_AUTH_PASSWORD = "[[ env "CONFIG_jvb_auth_password" ]]"
+        JIGASI_XMPP_USER = "jigasia"
         JIGASI_XMPP_PASSWORD = "[[ env "CONFIG_jigasi_xmpp_password" ]]"
         JIBRI_RECORDER_PASSWORD = "[[ env "CONFIG_jibri_recorder_password" ]]"
         JIBRI_XMPP_PASSWORD = "[[ env "CONFIG_jibri_xmpp_password" ]]"
