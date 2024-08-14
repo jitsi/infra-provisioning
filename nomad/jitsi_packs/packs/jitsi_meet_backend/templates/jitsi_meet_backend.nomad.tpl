@@ -445,7 +445,7 @@ EOF
 PROSODY_CFG="/config/prosody.cfg.lua"
 
 . /secrets/jigasi_xmpp
-prosodyctl --config $PROSODY_CFG register jigasia $XMPP_AUTH_DOMAIN $JIGASI_XMPP_PASSWORD
+prosodyctl --config $PROSODY_CFG register $JIGASI_XMPP_USER $XMPP_AUTH_DOMAIN $JIGASI_XMPP_PASSWORD
 
 EOF
         destination = "local/jigasi_xmpp.sh"
