@@ -124,6 +124,8 @@ if [[ "$SIP_JIBRI_SHARED_SECRET" != "null" ]]; then
     export CONFIG_sip_jibri_shared_secret="$SIP_JIBRI_SHARED_SECRET"
 fi
 
+[ -z "$CONFIG_jigasi_xmpp_user" ] && CONFIG_jigasi_xmpp_user="jigasia"
+
 set -x
 set +e
 

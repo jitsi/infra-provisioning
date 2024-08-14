@@ -196,6 +196,7 @@ block
         JVB_AUTH_PASSWORD = "[[ env "CONFIG_jvb_auth_password" ]]"
 [[- if eq (or (env "CONFIG_jigasi_vault_enabled") "true") "false" ]]
         JIGASI_XMPP_PASSWORD = "[[ env "CONFIG_jigasi_xmpp_password" ]]"
+        JIGASI_XMPP_USER = "[[ env "CONFIG_jigasi_xmpp_user" ]]"
 [[- end ]]
         JIBRI_RECORDER_PASSWORD = "[[ env "CONFIG_jibri_recorder_password" ]]"
         JIBRI_XMPP_PASSWORD = "[[ env "CONFIG_jibri_xmpp_password" ]]"
