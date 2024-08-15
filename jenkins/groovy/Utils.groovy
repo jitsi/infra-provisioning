@@ -330,7 +330,9 @@ def JVBShapeFromEnvironment(environment) {
         script: """#!/bin/bash
 . ./clouds/oracle.sh
 . ./sites/${environment}/stack-env.sh
-if [ "\$ENABLE_A_1" == "true" ]; then
+if [ "\$ENABLE_A_2" == "true" ]; then
+    echo \$SHAPE_A_2
+elif [ "\$ENABLE_A_1" == "true" ]; then
     echo \$SHAPE_A_1
 else
     echo \$JVB_SHAPE

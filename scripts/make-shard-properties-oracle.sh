@@ -262,6 +262,8 @@ fi
 ######################################################
 [ "$ENABLE_A_1" == "true" ] || AVAILABLE_SHARD_COUNT_A_1=0
 
+[ "$ENABLE_A_2" == "true" ] || AVAILABLE_SHARD_COUNT_A_2=0
+
 [ "$ENABLE_E_5" == "true" ] || AVAILABLE_SHARD_COUNT_E_5=0
 
 [ "$ENABLE_E_4" == "true" ] || AVAILABLE_SHARD_COUNT_E_4=0

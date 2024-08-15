@@ -65,6 +65,11 @@ if [ "$ENABLE_A_1" == "true" ]; then
   JVB_SHAPE="$SHAPE_A_1"
 fi
 
+# use A2 if configured
+if [ "$ENABLE_A_2" == "true" ]; then
+  JVB_SHAPE="$SHAPE_A_2"
+fi
+
 [ -z "$SHAPE" ] && SHAPE="$JVB_SHAPE"
 [ -z "$SHAPE" ] && SHAPE="$DEFAULT_SHAPE"
 
@@ -165,6 +170,11 @@ if [[ "$SHAPE" == "VM.Standard.E5.Flex" ]]; then
 fi
 
 if [[ "$SHAPE" == "VM.Standard.A1.Flex" ]]; then
+  [ -z "$OCPUS" ] && OCPUS=8
+  [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=12
+fi
+
+if [[ "$SHAPE" == "VM.Standard.A2.Flex" ]]; then
   [ -z "$OCPUS" ] && OCPUS=8
   [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=12
 fi
