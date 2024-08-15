@@ -89,7 +89,6 @@ JIGASI_SHARED_SECRET_VARIABLE="secrets_jigasi_conference_by_environment_A.\"$ENV
 JIGASI_TRANSCRIBER_SECRET_VARIABLE="secrets_jigasi_transcriber_by_environment_A.\"$ENVIRONMENT\""
 JICOFO_XMPP_PASSWORD_VARIABLE="secrets_jicofo_focus_by_environment.\"$ENVIRONMENT\""
 
-
 JWT_ASAP_KEYSERVER_VARIABLE="prosody_public_key_repo_url"
 JWT_ACCEPTED_ISSUERS_VARIABLE="prosody_asap_accepted_issuers"
 JWT_ACCEPTED_AUDIENCES_VARIABLE="prosody_asap_accepted_audiences"
