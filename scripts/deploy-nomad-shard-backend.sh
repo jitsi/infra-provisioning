@@ -86,7 +86,9 @@ JIBRI_XMPP_PASSWORD_VARIABLE="jibri_auth_password"
 JIBRI_RECORDER_PASSWORD_VARIABLE="jibri_selenium_auth_password"
 JIGASI_XMPP_PASSWORD_VARIABLE="secrets_jigasi_brewery_by_environment_A.\"$ENVIRONMENT\""
 JIGASI_SHARED_SECRET_VARIABLE="secrets_jigasi_conference_by_environment_A.\"$ENVIRONMENT\""
+JIGASI_TRANSCRIBER_SECRET_VARIABLE="secrets_jigasi_transcriber_by_environment_A.\"$ENVIRONMENT\""
 JICOFO_XMPP_PASSWORD_VARIABLE="secrets_jicofo_focus_by_environment.\"$ENVIRONMENT\""
+
 
 JWT_ASAP_KEYSERVER_VARIABLE="prosody_public_key_repo_url"
 JWT_ACCEPTED_ISSUERS_VARIABLE="prosody_asap_accepted_issuers"
@@ -105,6 +107,7 @@ export CONFIG_jvb_auth_password="$(ansible-vault view $ENCRYPTED_JVB_CREDENTIALS
 export CONFIG_jibri_xmpp_password="$(ansible-vault view $ENCRYPTED_JIBRI_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${JIBRI_XMPP_PASSWORD_VARIABLE}" -)"
 export CONFIG_jibri_recorder_password="$(ansible-vault view $ENCRYPTED_JIBRI_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${JIBRI_RECORDER_PASSWORD_VARIABLE}" -)"
 export CONFIG_jigasi_xmpp_password="$(ansible-vault view $ENCRYPTED_JIGASI_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${JIGASI_XMPP_PASSWORD_VARIABLE}" -)"
+
 export CONFIG_turnrelay_password="$(ansible-vault view $ENCRYPTED_COTURN_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${TURNRELAY_PASSWORD_VARIABLE}" -)"
 # TODO: use the separate _jvb and _visitor secrets for the different accounts.
 export CONFIG_jicofo_auth_password="$(ansible-vault view $ENCRYPTED_JICOFO_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${JICOFO_XMPP_PASSWORD_VARIABLE}" -)"
@@ -117,6 +120,11 @@ export CONFIG_aws_secret_access_key="$(ansible-vault view $ENCRYPTED_PROSODY_EGR
 export CONFIG_jigasi_shared_secret="$(ansible-vault view $ENCRYPTED_JIGASI_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${JIGASI_SHARED_SECRET_VARIABLE}" -)"
 if [[ "$CONFIG_jigasi_shared_secret" == "null" ]]; then
     export CONFIG_jigasi_shared_secret=
+fi
+
+export CONFIG_jigasi_transcriber_password="$(ansible-vault view $ENCRYPTED_JIGASI_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${JIGASI_TRANSCRIBER_SECRET_VARIABLE}" -)"
+if [[ "$CONFIG_jigasi_transcriber_password" == "null" ]]; then
+    export CONFIG_jigasi_transcriber_password=
 fi
 
 SIP_JIBRI_SHARED_SECRET="$(ansible-vault view $ENCRYPTED_JIBRI_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${SIP_JIBRI_SHARED_SECRET_VARIABLE}" -)"
