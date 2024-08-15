@@ -307,12 +307,14 @@ pipeline {
                     def branches = [:]
                     def stack_ids = split_stacks()
                     def out_shard_count_shape_a_1_as_int = shardPropertiesOracle.OUT_SHARD_COUNT_SHAPE_A_1 as int
+                    def out_shard_count_shape_a_2_as_int = shardPropertiesOracle.OUT_SHARD_COUNT_SHAPE_A_2 as int
                     def out_shard_count_shape_e_4_as_int = shardPropertiesOracle.OUT_SHARD_COUNT_SHAPE_E_4 as int
                     def out_shard_count_shape_e_5_as_int = shardPropertiesOracle.OUT_SHARD_COUNT_SHAPE_E_5 as int
                     def out_shard_count_shape_e_3_as_int = shardPropertiesOracle.OUT_SHARD_COUNT_SHAPE_E_3 as int
                     def out_shard_count_shape_2_4_as_int = shardPropertiesOracle.OUT_SHARD_COUNT_SHAPE_2_4 as int
                     def out_shard_count_shape_1_4_as_int = shardPropertiesOracle.OUT_SHARD_COUNT_SHAPE_1_4 as int
                     def out_shard_pool_size_a_1_as_int = shardPropertiesOracle.OUT_SHARD_POOL_SIZE_A_1 as int
+                    def out_shard_pool_size_a_2_as_int = shardPropertiesOracle.OUT_SHARD_POOL_SIZE_A_2 as int
                     def out_shard_pool_size_e_5_as_int = shardPropertiesOracle.OUT_SHARD_POOL_SIZE_E_5 as int
                     def out_shard_pool_size_e_4_as_int = shardPropertiesOracle.OUT_SHARD_POOL_SIZE_E_4 as int
                     def out_shard_pool_size_e_3_as_int = shardPropertiesOracle.OUT_SHARD_POOL_SIZE_E_3 as int
@@ -333,7 +335,11 @@ pipeline {
                         def shape
                         def availability_domains
                         echo "pipeline branch ${curr}";
-                        if (curr < out_shard_count_shape_a_1_as_int){
+                        if (curr < out_shard_count_shape_a_2_as_int){
+                          instance_pool_size=out_shard_pool_size_a_2_as_int
+                          shape="VM.Standard.A2.Flex"
+                          availability_domains=shardPropertiesOracle.OUT_AVAILABILITY_DOMAINS_SHAPE_A_2.toString()
+                        } else if (curr < out_shard_count_shape_a_1_as_int){
                           instance_pool_size=out_shard_pool_size_a_1_as_int
                           shape="VM.Standard.A1.Flex"
                           availability_domains=shardPropertiesOracle.OUT_AVAILABILITY_DOMAINS_SHAPE_A_1.toString()

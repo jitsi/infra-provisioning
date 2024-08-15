@@ -197,7 +197,7 @@ elif args.get_shape_compatibility:
 elif args.add_shape_compatibility:
     shapes_by_arch={
         'x86_64': ['VM.Standard.E3.Flex', 'VM.Standard.E4.Flex', 'VM.Standard.E5.Flex', 'VM.GPU.A10.1','VM.GPU.A10.2', 'VM.GPU2.1'],
-        'aarch64': ['VM.Standard.A1.Flex']
+        'aarch64': ['VM.Standard.A1.Flex','VM.Standard.A2.Flex']
     }
     if not args.image_id:
         print("No image_id provided, exiting...")

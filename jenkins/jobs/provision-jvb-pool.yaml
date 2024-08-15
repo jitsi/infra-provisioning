@@ -51,7 +51,7 @@
           description: "Pool status for JVBs, defaults to 'ready' in script"
       - string:
           name: SHAPE
-          description: "Override CPU shape for JVB node. Can be VM.Standard.E4.Flex VM.Standard.E5.Flex or VM.Standard.A1.Flex"
+          description: "Override CPU shape for JVB node. Can be VM.Standard.E4.Flex VM.Standard.E5.Flex or VM.Standard.A1.Flex or VM.Standard.A2.Flex"
           trim: true
       - string:
           name: OCPUS
