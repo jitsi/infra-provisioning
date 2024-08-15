@@ -180,6 +180,7 @@ block
 
 [[ define "common-env" -]]
         ENABLE_JVB_XMPP_SERVER = "1"
+        ENABLE_TRANSCRIPTIONS = "1"
         ENABLE_RECORDING = "1"
         ENABLE_OCTO = "1"
         ENABLE_LETSENCRYPT = "0"
