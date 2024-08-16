@@ -108,7 +108,7 @@ fi
     [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=16
   fi
   if [[ "$SHAPE" == "VM.Standard.A2.Flex" ]]; then
-    [ -z "$OCPUS" ] && OCPUS=8
+    [ -z "$OCPUS" ] && OCPUS=4
     [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=16
   fi
 
