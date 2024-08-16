@@ -49,7 +49,7 @@ CLOUD_NAME="$ENVIRONMENT-$ORACLE_REGION"
 
 [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS="16"
 [ -z "$INSTANCE_SHAPE_OCPUS" ] && INSTANCE_SHAPE_OCPUS="$SIGNAL_OCPUS"
-if [[ "$SHAPE" == "VM.Standard.A1.Flex" ]] || [[ "$SHAPE" == "VM.Standard.A2.Flex" ]]; then
+if [[ "$SHAPE" == "VM.Standard.A1.Flex" ]]; then
   [ -z "$INSTANCE_SHAPE_OCPUS" ] && INSTANCE_SHAPE_OCPUS=8
 else
   [ -z "$INSTANCE_SHAPE_OCPUS" ] && INSTANCE_SHAPE_OCPUS=4
