@@ -253,7 +253,7 @@ groups:
       summary: prometheus service is down in ${var.dc}
       description: No prometheus services are emitting metrics in ${var.dc}. This may mean that no metrics are being stored or served.
   - alert: TelegrafDown
-    expr: nomad_heartbeat_active > (sum(up{job="telegraf"}) or vector(0))
+    expr: nomad_nomad_heartbeat_active > (sum(up{job="telegraf"}) or vector(0))
     for: 5m
     labels:
       environment_type: "{{ if $labels.environment_type }}{{ $labels.environment_type }}{{ else }}${var.environment_type}{{ end }}"
