@@ -84,6 +84,10 @@ if [ "$ENABLE_A_1" == "true" ]; then
   JVB_SHAPE="$SHAPE_A_1"
 fi
 
+if [ "$ENABLE_A_2" == "true" ]; then
+  JVB_SHAPE="$SHAPE_A_2"
+fi
+
 [ -z "$SHAPE" ] && SHAPE="$JVB_SHAPE"
 
 if [[ "$SHAPE" == "VM.Standard.E3.Flex" ]]; then
@@ -97,6 +101,9 @@ elif [[ "$SHAPE" == "VM.Standard.E5.Flex" ]]; then
   [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=12
 elif [[ "$SHAPE" == "VM.Standard.A1.Flex" ]]; then
   [ -z "$OCPUS" ] && OCPUS=8
+  [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=12
+elif [[ "$SHAPE" == "VM.Standard.A2.Flex" ]]; then
+  [ -z "$OCPUS" ] && OCPUS=4
   [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=12
 else
   [ -z "$OCPUS" ] && OCPUS=4

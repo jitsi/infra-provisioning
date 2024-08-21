@@ -12,3 +12,7 @@ rsync --exclude '.git/' --exclude '.terraform' -avz $LOCAL_DEV_DIR/infra-customi
 rsync --exclude '.git/' --exclude '.terraform' -avz $LOCAL_DEV_DIR/infra-customizations-private/ $MERGED_DIR/infra-configuration
 
 cd $MERGED_DIR
+
+if [ -n "$1" ]; then
+    exec $1
+fi

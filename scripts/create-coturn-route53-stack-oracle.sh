@@ -89,21 +89,10 @@ if [[ "$TURN_TCP_HEALTH_CHECKS" == "true" ]]; then
 fi
 
 # Get Coturn instances public ips
-# For this, first get the coturn instance pool id from the TF state file
-# Then query for the public ips (as these are assigned at postinstall, they are not saved in the state file
 export ORACLE_REGION
-. $LOCAL_PATH/../terraform/coturn-state/get-coturn-state.sh
 
-INSTANCES=$(oci --region $ORACLE_REGION compute-management instance-pool list-instances --instance-pool-id $COTURN_STATE_INSTANCE_POOL_ID --compartment-id $COTURN_STATE_COMPARTMENT_ID | jq -r ".data[].id")
-for ID in $INSTANCES; do
-  INSTANCE_PRIMARY_PUBLIC_IP=$(oci compute instance list-vnics --region $ORACLE_REGION --instance-id $ID | jq -r '.data[] | select(.["is-primary"] == true) | .["public-ip"]')
-  if [ "$INSTANCE_PRIMARY_PUBLIC_IP" == "null" ]; then
-    echo "All instances must have public ip assigned before creating route53 entries. Instance $ID does not have a public ip assigned."
-    exit 210
-  fi
-  ORACLE_PUBLIC_IP_LIST="$ORACLE_PUBLIC_IP_LIST,$INSTANCE_PRIMARY_PUBLIC_IP"
-done
-ORACLE_PUBLIC_IP_LIST="${ORACLE_PUBLIC_IP_LIST:1}"
+
+ORACLE_PUBLIC_IP_LIST="$(oci network public-ip list --region "$ORACLE_REGION" --compartment-id "$COMPARTMENT_OCID" --scope REGION --lifetime RESERVED --all | jq -r '.data|map(select(."defined-tags"."jitsi"."shard-role" == "coturn")."ip-address")|join(",")')"
 
 # Comma separated list e.g. 193.123.39.211,193.123.36.31
 if [ -z "$ORACLE_PUBLIC_IP_LIST" ]; then

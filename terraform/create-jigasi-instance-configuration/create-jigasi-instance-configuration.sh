@@ -79,6 +79,8 @@ if [[ "$JIGASI_TRANSCRIBER_FLAG" == "true" ]]; then
   INSTANCE_CONFIG_SUFFIX="TranscriberInstanceConfig"
   SHARD_ROLE="jigasi-transcriber"
   [ -z "$JIGASI_SUBNET_NAME" ] && JIGASI_SUBNET_NAME="${ORACLE_REGION}-${ENVIRONMENT}-NATSubnet"
+  # no need for special security group for transcribers
+  [ -z "$JIGASI_SECURITY_GROUP_NAME" ] && JIGASI_SECURITY_GROUP_NAME="${ORACLE_REGION}-${ENVIRONMENT}-JibriSecurityGroup"
 else
   INSTANCE_CONFIG_SUFFIX="JigasiInstanceConfig"
   [ -z "$JIGASI_SUBNET_NAME" ] && JIGASI_SUBNET_NAME="${ORACLE_REGION}-${ENVIRONMENT}-JigasiSubnet"

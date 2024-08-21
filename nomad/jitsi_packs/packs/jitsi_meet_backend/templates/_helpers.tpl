@@ -180,6 +180,7 @@ block
 
 [[ define "common-env" -]]
         ENABLE_JVB_XMPP_SERVER = "1"
+        ENABLE_TRANSCRIPTIONS = "1"
         ENABLE_RECORDING = "1"
         ENABLE_OCTO = "1"
         ENABLE_LETSENCRYPT = "0"
@@ -195,7 +196,10 @@ block
         JICOFO_AUTH_PASSWORD = "[[ env "CONFIG_jicofo_auth_password" ]]"
         JVB_AUTH_PASSWORD = "[[ env "CONFIG_jvb_auth_password" ]]"
 [[- if eq (or (env "CONFIG_jigasi_vault_enabled") "true") "false" ]]
+        JIGASI_TRANSCRIBER_USER = "[[ env "CONFIG_jigasi_transcriber_user" ]]"
+        JIGASI_TRANSCRIBER_PASSWORD = "[[ env "CONFIG_jigasi_transcriber_password" ]]"
         JIGASI_XMPP_PASSWORD = "[[ env "CONFIG_jigasi_xmpp_password" ]]"
+        JIGASI_XMPP_USER = "[[ env "CONFIG_jigasi_xmpp_user" ]]"
 [[- end ]]
         JIBRI_RECORDER_PASSWORD = "[[ env "CONFIG_jibri_recorder_password" ]]"
         JIBRI_XMPP_PASSWORD = "[[ env "CONFIG_jibri_xmpp_password" ]]"

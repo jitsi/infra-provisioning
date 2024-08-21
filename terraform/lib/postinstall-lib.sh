@@ -24,7 +24,7 @@ function check_private_ip() {
 function retry() {
   local n=0
   RETRIES=$2
-  [ -z "$RETRIES" ] && RETRIES=5
+  [ -z "$RETRIES" ] && RETRIES=10
   until [ $n -ge $RETRIES ]
   do
     # call the function given as parameter

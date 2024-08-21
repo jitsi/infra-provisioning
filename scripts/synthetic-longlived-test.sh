@@ -22,10 +22,9 @@ if [ -z "$ENVIRONMENT" ]; then
   exit 2
 fi
 
-[ -e ./sites/$ENVIRONMENT/stack-env.sh ] && . ./sites/$ENVIRONMENT/stack-env.sh
-
-[ -z "$TORTURE_TEST_REPO" ] && TORTURE_TEST_REPO=git@github.com:jitsi/jitsi-meet-torture.git
-[ -z "$TORTURE_TEST_BRANCH" ] && TORTURE_TEST_BRANCH=master
+. $LOCAL_PATH/../clouds/all.sh
+. $LOCAL_PATH/../clouds/oracle.sh
+[ -e $LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh ] && . $LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh
 
 if [ -z "$TORTURE_GITHUB_USER" ]; then
   echo "## No TORTURE_GITHUB_USER found. Exiting..."
@@ -55,35 +54,6 @@ fi
   
 SUCCESS=0
 
-# Extracts the jitsi-meet-web version used from the base.html file on the shard.
-#
-# with jitsi-meet-web version we check all available meta packages from the newest
-# to the latest for that web version and when we find that one we use the meta
-# version to construct the tag to use for jitsi-meet-torture
-function getJitsiMeetTortureTag {
-  BASE_HTML=$(curl --silent --insecure ${BASE_URL}/base.html)
-  WEB_FULL_VER=$(echo $BASE_HTML | sed 's|.*web-cdn.jitsi.net/||' | sed 's|/".*||')
-  WEB_VER=$(echo $WEB_FULL_VER | sed 's|.*_|| ' | sed 's|\..*||')
-
-  set +x -a 	
-  JITSI_MEET_VERSIONS=$(apt-cache madison jitsi-meet| sort -r | awk '{print $3;}' | cut -d'-' -f1,2,3)
-  for item in $JITSI_MEET_VERSIONS
-  do
-      current_ver=$(apt-cache show jitsi-meet=$item | grep '^Depends:'  | cut -f2- -d: | cut -f2 -d,)
-      if grep -q ".${WEB_VER}-1" <<< "$current_ver"; then
-          #jitsi-meet-web version ${WEB_VER} is in jitsi-meet (meta) $item
-          BUILD_NUM=$(echo $item | sed -n "s/[0-9]*\.[0-9]*\.\([0-9]*\)-1/\1/p")
-          #"The tag is jitsi-meet_${BUILD_NUM}"
-          echo "jitsi-meet_${BUILD_NUM}";
-          break
-      fi
-  done
-  set -x +a
-  [ -z "$BUILD_NUM" ] && echo "master";
-}
-
-echo "End checking versions"
-
 function doTest {
     set -x
     TENANT_URL=$1
@@ -96,7 +66,7 @@ function doTest {
     if [[ $REPORT_ID == 1 ]]; then
         EXTRA_MVN_TARGETS="clean"
     fi
-    
+    [ -z "$REGIONAL_IP" ] && REGIONAL_IP="$(dig +short $DOMAIN | tail -1)"
 	#set +x
     mvn -U ${EXTRA_MVN_TARGETS} test \
         -Djitsi-meet.instance.url="${TENANT_URL}" \
@@ -105,6 +75,7 @@ function doTest {
         -Dweb.participant1.isRemote=true \
         -Dweb.participant2.isRemote=true \
         -Dchrome.enable.headless=true \
+        -DhostResolverRules="MAP $DOMAIN $REGIONAL_IP" \
         -Dbrowser.owner=chrome -Dbrowser.second.participant=chrome \
         -Dremote.address="${SELENIUM_HUB_URL}" \
         -Dremote.resource.path=/usr/share/jitsi-meet-torture \
@@ -114,16 +85,34 @@ function doTest {
         -Dorg.jitsi.token=$TOKEN
 }
 
+function pickRegion {
+  [ -z "$BUILD_NUMBER" ] && BUILD_NUMBER=1
+  [ -z "$SYNTHETIC_CLOUDS" ] && SYNTHETIC_CLOUDS="$RELEASE_CLOUDS"
+  REGION_COUNT=$(echo $SYNTHETIC_CLOUDS | wc -w)
+  REGION_INDEX=$(($BUILD_NUMBER % $REGION_COUNT + 1))
+  SYNTHETIC_CLOUD=$(echo $SYNTHETIC_CLOUDS | cut -d' ' -f$REGION_INDEX)
+  . $LOCAL_PATH/../clouds/$SYNTHETIC_CLOUD.sh
+  echo $ORACLE_REGION
+}
+
+function getRegionalIP {
+  REGION=$1
+  dig +short "$ENVIRONMENT-$REGION-haproxy.$ORACLE_DNS_ZONE_NAME" | tail -1
+}
+
+# determine region
+[ -n "$ORACLE_REGION" ] && SYNTHETIC_REGION="$ORACLE_REGION" || SYNTHETIC_REGION=`pickRegion`
+
+[ -n "$SYNTHETIC_REGION" ] && REGIONAL_IP=`getRegionalIP $SYNTHETIC_REGION`
+
 cd ../jitsi-meet-torture
-# clean all local branches
-git branch | grep -vx '* master' | xargs -r -n 1 git branch -D || true
-# update
-git fetch
-git reset --hard origin/$TORTURE_TEST_BRANCH
+CURRENT_COMMIT=$(git log -1 --format="%H")
+echo "jitsi-meet-torture commit is at ${CURRENT_COMMIT}"
 
 set +x
 echo "------------------------------------------------------------------------------"
 echo "- CONFERENCE WEB TEST AT ${BASE_URL} for ${TEST_DURATION_MINUTES} minutes"
+echo "- Region: $SYNTHETIC_REGION ($REGIONAL_IP)"
 echo "------------------------------------------------------------------------------"
 echo ""
 
@@ -153,8 +142,7 @@ else
     echo ""
 fi
 
-aws cloudwatch put-metric-data --namespace $CLOUDWATCH_NAMESPACE --metric-name "jitsi_longlived_test_failure" --dimensions $CLOUDWATCH_DIMENSIONS --value $CLOUDWATCH_VALUE --unit Count
-echo "jitsi.jitsi_longlived_test_failure $CLOUDWATCH_VALUE source=jenkins-internal.jitsi.net environment=$ENVIRONMENT region=$CLOUDWATCH_REGION cloud=aws" | curl -s --data @- $WAVEFRONT_PROXY_URL
+echo "jitsi_longlived_test_failure $CLOUDWATCH_VALUE source=jenkins-internal.jitsi.net environment=$ENVIRONMENT region=$CLOUDWATCH_REGION cloud=aws" | curl -s --data @- $WAVEFRONT_PROXY_URL
 
 if [[ $SUCCESS == 0 ]]; then
 	exit 0

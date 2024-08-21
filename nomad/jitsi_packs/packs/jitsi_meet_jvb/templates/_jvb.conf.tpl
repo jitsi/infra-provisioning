@@ -9,6 +9,8 @@ videobridge {
 
   initial-drain-mode = [[ or (env "CONFIG_jvb_initial_drain_mode") "false" ]]
 
+  redact-remote-addresses = [[ or (env "CONFIG_jvb_redact_remote_addresses") "true" ]]
+
   load-management {
     average-participant-stress = [[ or (env "CONFIG_jvb_average_participant_stress") "0.005" ]]
 

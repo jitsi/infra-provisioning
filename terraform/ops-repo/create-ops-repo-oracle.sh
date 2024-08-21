@@ -56,7 +56,7 @@ if [ ! -f "$VAULT_PASSWORD_FILE" ]; then
   exit 211
 fi
 
-[ -z "$CERTIFICATE_NAME" ] && CERTIFICATE_NAME="star_jitsi_net-2024-08-10"
+[ -z "$CERTIFICATE_NAME_VARIABLE" ] && CERTIFICATE_NAME_VARIABLE="jitsi_net_ssl_name"
 [ -z "$CA_CERTIFICATE_VARIABLE" ] && CA_CERTIFICATE_VARIABLE="jitsi_net_ssl_extras"
 [ -z "$PUBLIC_CERTIFICATE_VARIABLE" ] && PUBLIC_CERTIFICATE_VARIABLE="jitsi_net_ssl_certificate"
 [ -z "$PRIVATE_KEY_VARIABLE" ] && PRIVATE_KEY_VARIABLE="jitsi_net_ssl_key_name"
@@ -68,6 +68,7 @@ set -o pipefail
 CA_CERTIFICATE=$(ansible-vault view $ENCRYPTED_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${CA_CERTIFICATE_VARIABLE}" -)
 PUBLIC_CERTIFICATE=$(ansible-vault view $ENCRYPTED_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${PUBLIC_CERTIFICATE_VARIABLE}" -)
 PRIVATE_KEY=$(ansible-vault view $ENCRYPTED_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${PRIVATE_KEY_VARIABLE}" -)
+CERTIFICATE_NAME=$(ansible-vault view $ENCRYPTED_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${CERTIFICATE_NAME_VARIABLE}" -)
 
 # export private key to variable instead of outputting on command line
 export TF_VAR_certificate_public_certificate="$PUBLIC_CERTIFICATE"

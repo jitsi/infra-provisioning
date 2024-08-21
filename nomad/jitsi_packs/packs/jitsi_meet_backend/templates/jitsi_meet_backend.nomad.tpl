@@ -130,7 +130,8 @@ job [[ template "job_name" . ]] {
 [[ if (var "fabio_domain_enabled" .) ]]
         "urlprefix-[[ env "CONFIG_domain" ]]/",
 [[ end ]]
-        "urlprefix-/[[ env "CONFIG_shard" ]]/"
+        "urlprefix-/[[ env "CONFIG_shard" ]]/",
+        "urlprefix-/v1/_cdn/"
       ]
       meta {
         domain = "[[ env "CONFIG_domain" ]]"
@@ -543,19 +544,22 @@ VirtualHost "sipjibri.[[ env "CONFIG_domain" ]]"
 
 [[- end ]]
 
-VirtualHost "jigasi.[[ env "CONFIG_domain" ]]"
+[[ if or (eq (or (env "CONFIG_jigasi_vault_enabled") "false") "true") (env "CONFIG_jigasi_shared_secret") -]]
+VirtualHost "jigasia.[[ env "CONFIG_domain" ]]"
     modules_enabled = {
       "ping";
       "smacks";
     }
     authentication = "jitsi-shared-secret"
-[[- if eq (or (env "CONFIG_jigasi_vault_enabled") "true") "true" ]]
+[[- if eq (or (env "CONFIG_jigasi_vault_enabled") "false") "true" ]]
 {{- with secret "secret/[[ env "CONFIG_environment" ]]/jigasi/xmpp" }}
     shared_secret = "{{ .Data.data.password }}"
 {{- end }}
 [[- else ]]
     shared_secret = "[[ env "CONFIG_jigasi_shared_secret" ]]"
 [[- end ]]
+[[- end ]]
+
 EOH
         destination = "local/config/conf.d/other-domains.cfg.lua"
       }
@@ -799,6 +803,7 @@ EOF
         ports = ["http","nginx-status"]
         volumes = [
           "local/_unlock:/usr/share/nginx/html/_unlock",
+          "local/_unlock:/usr/share/nginx/html/_health",
           "local/nginx.conf:/etc/nginx/nginx.conf",
           "local/conf.d:/etc/nginx/conf.d",
           "local/conf.stream:/etc/nginx/conf.stream",
