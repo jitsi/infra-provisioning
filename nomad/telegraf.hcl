@@ -250,6 +250,15 @@ EOF
         host = "{{"{{"}}.Node}}"
         shard-role = "autoscaler"
         role = "autoscaler"
+# uncomment for consul connect envoy sidecar metrics (~1700 per sidecar)
+#    [[inputs.prometheus.consul.query]]
+#      name = "autoscaler-sidecar-proxy"
+#      tag = "ip-{{ env "attr.unique.network.ip-address" }}"
+#      url = 'http://{{"{{"}}if ne .ServiceAddress ""}}{{"{{"}}.ServiceAddress}}{{"{{"}}else}}{{"{{"}}.Address}}{{"{{"}}end}}:{{"{{"}}with .ServiceMeta.metrics_port_envoy}}{{"{{"}}.}}{{"{{"}}else}}{{"{{"}}.ServicePort}}{{"{{"}}end}}/metrics'
+#      [inputs.prometheus.consul.query.tags]
+#        host = "{{"{{"}}.Node}}"
+#        shard-role = "autoscaler-envoy"
+#        role = "autoscaler-envoy"
     [[inputs.prometheus.consul.query]]
       name = "skynet"
       tag = "ip-{{ env "attr.unique.network.ip-address" }}"
@@ -294,6 +303,16 @@ EOF
         jibri_release_number = "{{"{{"}}with .ServiceMeta.release_number}}{{"{{"}}.}}{{"{{"}}else}}0{{"{{"}}end}}"
         shard-role = "java-jibri"
         role = "java-jibri"
+# uncomment for consul connect envoy sidecar metrics (~1700 per sidecar)
+#    [[inputs.prometheus.consul.query]]
+#      name = "jibri-sidecar-proxy"
+#      tag = "ip-{{ env "attr.unique.network.ip-address" }}"
+#      url = 'http://{{"{{"}}if ne .ServiceAddress ""}}{{"{{"}}.ServiceAddress}}{{"{{"}}else}}{{"{{"}}.Address}}{{"{{"}}end}}:{{"{{"}}with .ServiceMeta.metrics_port_envoy}}{{"{{"}}.}}{{"{{"}}else}}{{"{{"}}.ServicePort}}{{"{{"}}end}}/metrics'
+#      [inputs.prometheus.consul.query.tags]
+#        host = "{{"{{"}}.Node}}"
+#        shard-role = "jibri-envoy"
+#        role = "jibri-envoy"
+
     [[inputs.prometheus.consul.query]]
       name = "vo-credentials-store"
       tag = "ip-{{ env "attr.unique.network.ip-address" }}"

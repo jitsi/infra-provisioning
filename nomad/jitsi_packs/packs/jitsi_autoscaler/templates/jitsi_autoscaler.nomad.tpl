@@ -41,6 +41,9 @@ job [[ template "job_name" . ]] {
       }
       port "expose2" {
       }
+      port "metrics_envoy" {
+        to = 9102
+      }
     }
 
     [[ if var "register_service" . ]]
@@ -53,6 +56,10 @@ job [[ template "job_name" . ]] {
         sidecar_service {
           tags = ["ip-${attr.unique.network.ip-address}"]
           proxy {
+            config {
+              # Expose metrics for prometheus (envoy)
+              envoy_prometheus_bind_addr = "0.0.0.0:9102"              
+            }
             local_service_port = 8080
             expose {
               path {
@@ -82,6 +89,7 @@ job [[ template "job_name" . ]] {
       }
       meta {
         metrics_port = "${NOMAD_HOST_PORT_expose2}"
+        metrics_port_envoy = "${NOMAD_HOST_PORT_metrics_envoy}"
       }
     }
     [[ end ]]
