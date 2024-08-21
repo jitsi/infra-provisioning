@@ -28,7 +28,7 @@ fi
 
 [ -z "$CDN_R2_BUCKET" ] && CDN_R2_BUCKET="$(yq '.cdn_r2_bucket' < $CONFIG_VARS_PATH)"
 
-if [ -r "$CDN_R2_BUCKET" ]; then
+if [ -n "$CDN_R2_BUCKET" ]; then
     R2_SECRETS_PATH="$LOCAL_PATH/../ansible/secrets/r2-bucket.yml"
     [ -z "$VAULT_PASSWORD_FILE" ] && VAULT_PASSWORD_FILE="$LOCAL_PATH/../.vault-password.txt"
     set +x
@@ -83,7 +83,7 @@ s3cmd --recursive modify --add-header="Cross-Origin-Resource-Policy: cross-origi
 # Default mime type mapping doesn't identify wasm files correctly
 s3cmd --recursive modify --exclude='*' --include='*.wasm' --add-header="Content-Type: application/wasm" s3://$CDN_S3_BUCKET/${VERSION_PREFIX}${BRANDING_COMPLETE_VERSION}/
 
-if [ -r "$CDN_R2_BUCKET" ]; then
+if [ -n "$CDN_R2_BUCKET" ]; then
     AWS_ACCESS_KEY_ID=$R2_ACCESS_KEY_ID \
     AWS_SECRET_ACCESS_KEY=$R2_SECRET_ACCESS_KEY \
     AWS_DEFAULT_REGION=auto \
