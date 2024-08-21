@@ -313,7 +313,11 @@ function shard_shell() {
                     return 1
                 fi
                 echo "nomad shard $SHARD alloc $SIGNAL_ALLOC task $task exec"
-                $LOCAL_PATH/nomad.sh alloc exec -task $task $SIGNAL_ALLOC /bin/bash
+                if [[ "$task" == "signal-sidecar" ]]; then
+                    $LOCAL_PATH/nomad.sh alloc exec -task $task $SIGNAL_ALLOC /bin/sh
+                else
+                    $LOCAL_PATH/nomad.sh alloc exec -task $task $SIGNAL_ALLOC /bin/bash
+                fi
             fi
         else
             echo "Nomad shards require a task name"

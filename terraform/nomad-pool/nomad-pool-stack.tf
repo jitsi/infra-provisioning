@@ -17,6 +17,9 @@ variable "security_group_id" {}
 variable "shape" {}
 variable "memory_in_gbs" {}
 variable "ocpus" {}
+variable "disk_in_gbs" {
+  default = "100"
+}
 variable "pool_subnet_ocid" {}
 variable "public_subnet_ocid" {}
 variable "instance_pool_size" {}
@@ -130,6 +133,7 @@ resource "oci_core_instance_configuration" "oci_instance_configuration" {
       source_details {
         source_type = "image"
         image_id = var.image_ocid
+        boot_volume_size_in_gbs = var.disk_in_gbs
       }
 
       metadata = {
@@ -157,7 +161,7 @@ data "oci_core_vcns" "vcns" {
 resource "oci_core_network_security_group" "nomad_lb_security_group" {
   compartment_id = var.compartment_ocid
   vcn_id = data.oci_core_vcns.vcns.virtual_networks[0].id
-  display_name = "${var.resource_name_root}-SecurityGroup"
+  display_name = "${var.resource_name_root}-LB-SecurityGroup"
 }
 
 resource "oci_core_network_security_group_security_rule" "consul_nsg_rule_egress" {
@@ -225,6 +229,11 @@ resource "oci_core_network_security_group_security_rule" "consul_nsg_rule_privat
   }
 }
 
+data "oci_waf_web_app_firewall_policies" "regional_policy" {
+    compartment_id = var.compartment_ocid
+    display_name = "${var.environment}-${var.oracle_region}-PublicWAFPolicy"
+}
+
 resource "oci_load_balancer" "public_oci_load_balancer" {
   compartment_id = var.compartment_ocid
   display_name = "${var.resource_name_root}-LoadBalancer"
@@ -239,6 +248,24 @@ resource "oci_load_balancer" "public_oci_load_balancer" {
   defined_tags = local.common_tags
   is_private = false
   network_security_group_ids = [oci_core_network_security_group.nomad_lb_security_group.id]
+}
+
+resource "oci_waf_web_app_firewall" "oci_ingress_waf_firewall" {
+    #Required
+    backend_type = "LOAD_BALANCER"
+    compartment_id = var.compartment_ocid
+    load_balancer_id = oci_load_balancer.public_oci_load_balancer.id
+    web_app_firewall_policy_id = data.oci_waf_web_app_firewall_policies.regional_policy.web_app_firewall_policy_collection[0].items[0].id
+
+    #Optional
+    defined_tags = {
+      "${var.tag_namespace}.environment" = var.environment
+      "${var.tag_namespace}.environment_type" = var.environment_type
+    }
+
+    display_name = "${var.oracle_region}-NomadPoolWAF"
+    #freeform_tags = {"bar-key"= "value"}
+    #system_tags = var.web_app_firewall_system_tags
 }
 
 resource "oci_load_balancer" "private_oci_load_balancer" {

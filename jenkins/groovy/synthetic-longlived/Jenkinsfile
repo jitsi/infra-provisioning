@@ -1,6 +1,32 @@
+def getJitsiMeetTortureTag(baseurl) {
+  def torturetag = sh(
+    returnStdout: true,
+    script: """#!/bin/bash
+        BASE_HTML=\$(curl --silent --insecure ${baseurl}/base.html)
+        WEB_FULL_VER=\$(echo \$BASE_HTML | sed 's|.*web-cdn.jitsi.net/||' | sed 's|${baseurl}/v1/_cdn/||' |  sed 's|/".*||')
+        WEB_VER=\$(echo \$WEB_FULL_VER | sed 's|.*_|| ' | sed 's|\\..*||')
+
+        set +x -a
+        JITSI_MEET_VERSIONS=\$(apt-cache madison jitsi-meet| sort -r | awk '{print \$3;}' | cut -d'-' -f1,2,3)
+        for item in \$JITSI_MEET_VERSIONS; do
+            current_ver=\$(apt-cache show jitsi-meet=\$item | grep '^Depends:'  | cut -f2- -d: | cut -f2 -d,)
+            if grep -q ".\${WEB_VER}-1" <<< "\$current_ver"; then
+                BUILD_NUM=\$(echo \$item | sed -n "s/[0-9]*\\.[0-9]*\\.\\([0-9]*\\)-1/\\1/p")
+                echo "jitsi-meet_\${BUILD_NUM}";
+                break
+            fi
+        done
+        set -x +a
+        [ -z "\$BUILD_NUM" ] && echo "master";
+        exit 0""").trim();
+  echo "torture tag is ${torturetag}"
+  return torturetag
+}
+
 def utils
 def torture_user
 def torture_secret
+def torture_test_tag
 pipeline {
     agent any
     options {
@@ -45,12 +71,31 @@ pipeline {
                 }
             }
         }
+        stage ("get torture test tag") {
+          steps {
+            script {
+              dir('infra-configuration') {
+                try {
+                  if (env.TORTURE_TEST_BRANCH == '') {
+                    torture_test_tag = getJitsiMeetTortureTag(env.BASE_URL)
+                  }
+                } catch (Exception e) {
+                  echo "Error getting torture test tag: ${e}"
+                }
+              }
+            }
+          }
+        }
         stage ("clone torture test repo") {
             steps {
                 script {
                     dir('jitsi-meet-torture') {
                         try {
-                            git branch: env.TORTURE_TEST_BRANCH, url: env.TORTURE_TEST_REPO, credentialsId: 'video-infra'
+                            if (env.TORTURE_TEST_BRANCH != "") {
+                                git branch: env.TORTURE_TEST_BRANCH, url: env.TORTURE_TEST_REPO, credentialsId: 'video-infra'
+                            } else {
+                                checkout scm: [$class: 'GitSCM', userRemoteConfigs: [[url: env.TORTURE_TEST_REPO, credentialsId: 'video-infra']], branches: [[name: torture_test_tag]]], poll: false
+                            }
                         } catch (hudson.AbortException e) {
                             if (e.toString().contains('Couldn\'t find any revision to build')) {
                                 echo "WARNING: couldn't find branch ${branch} in torture test repo, falling back to master"

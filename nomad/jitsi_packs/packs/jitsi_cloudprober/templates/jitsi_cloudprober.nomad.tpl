@@ -2,6 +2,7 @@ job [[ template "job_name" . ]] {
   [[ template "region" . ]]
   datacenters = [[ var "datacenters" . | toStringList ]]
   type = "service"
+  priority = 75
 
   update {
     max_parallel      = 1
@@ -28,7 +29,7 @@ job [[ template "job_name" . ]] {
     cloudprober_version = "[[ var "cloudprober_version" . ]]"
   }
 
-  group "oscar" {
+  group "cloudprober" {
     constraint {
       attribute  = "${meta.pool_type}"
       value     = "[[ var "pool_type" . ]]"
@@ -51,8 +52,8 @@ job [[ template "job_name" . ]] {
 
     task "cloudprober" {
       service {
-        name = "oscar"
-        tags = ["int-urlprefix-[[ var "oscar_hostname" . ]]/","ip-${attr.unique.network.ip-address}"]
+        name = "cloudprober"
+        tags = ["int-urlprefix-[[ var "cloudprober_hostname" . ]]/","ip-${attr.unique.network.ip-address}"]
         port = "http"
         check {
           name     = "alive"
@@ -83,9 +84,9 @@ EOH
         data = <<EOH
 #!/bin/sh
 
-DOMAIN=[[ var "domain" . ]] REGION=[[ var "oracle_region" . ]] /usr/bin/python3 /bin/oscar_haproxy_probe.py
+DOMAIN=[[ var "domain" . ]] REGION=[[ var "oracle_region" . ]] /usr/bin/python3 /bin/cloudprober_haproxy_probe.py
 EOH
-        destination = "local/oscar_haproxy_probe.sh"
+        destination = "local/cloudprober_haproxy_probe.sh"
         perms = "755"
       }
       template {
@@ -101,7 +102,7 @@ if req.headers['x-proxy-region'] == os.environ['REGION']:
 else:
     print("haproxy_region_check_passed 0")
 EOH
-        destination = "local/oscar_haproxy_probe.py"
+        destination = "local/cloudprober_haproxy_probe.py"
       }
       template {
         data = <<EOH
@@ -121,7 +122,7 @@ if [ $RET -ne 52 ]; then
 fi
 echo "coturn_check_passed 1"
 EOH
-        destination = "local/oscar_coturn_probe.sh"
+        destination = "local/cloudprober_coturn_probe.sh"
         perms = "755"
       }
       config {
@@ -131,13 +132,13 @@ EOH
         volumes = [
           "local/cloudprober.cfg:/etc/cloudprober.cfg",
           "local/custom_init.sh:/bin/custom_init.sh",
-          "local/oscar_haproxy_probe.sh:/bin/oscar_haproxy_probe.sh",
-          "local/oscar_haproxy_probe.py:/bin/oscar_haproxy_probe.py",
-          "local/oscar_coturn_probe.sh:/bin/oscar_coturn_probe.sh"
+          "local/cloudprober_haproxy_probe.sh:/bin/cloudprober_haproxy_probe.sh",
+          "local/cloudprober_haproxy_probe.py:/bin/cloudprober_haproxy_probe.py",
+          "local/cloudprober_coturn_probe.sh:/bin/cloudprober_coturn_probe.sh"
         ]
       }
       resources {
-          cpu = 2000
+          cpu = 1000
           memory = 256
       }
     }

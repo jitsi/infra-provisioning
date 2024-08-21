@@ -1,0 +1,69 @@
+def provisionJob(job_name,environment,oracle_region,video_infra_branch) {
+    def provision = build job: job_name, parameters: [
+        [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: environment],
+        [$class: 'StringParameterValue', name: 'ORACLE_REGION', value: oracle_region],
+        [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: video_infra_branch]
+    ]
+
+    return provision
+}
+
+def utils
+
+pipeline {
+    agent any
+    options {
+      ansiColor('xterm')
+      timestamps()
+      buildDiscarder(logRotator(numToKeepStr: '10', artifactNumToKeepStr: '10'))
+    }
+    stages {
+        stage('prepare') {
+            steps {
+                script {
+                    echo 'collector stack (vector and telegraf) release'
+                    // load utility function
+                    def rootDir = pwd()
+                    utils = load "${rootDir}/jenkins/groovy/Utils.groovy"
+                    // checkout repos
+                    utils.SetupRepos(env.VIDEO_INFRA_BRANCH)
+
+                    // setup OCI credentials
+                    utils.SetupOCI()
+                }
+            }
+        }
+
+        stage("provision collector jobs") {
+            steps {
+                script {
+                  dir('infra-provisioning') {
+                    echo "Provision collector stack in environment ${env.ENVIRONMENT}, regions ${env.REGIONS}";
+                    def region_list = utils.SplitNomadRegions(env.ENVIRONMENT,env.REGIONS);
+                    echo "regions: ${region_list}";
+                    def branches = [:]
+                    for(i = 0; i < region_list.size(); i++) {
+                        def oracle_region = region_list[i]
+                        echo "pipeline branch ${i} for ${oracle_region}";
+                        branches["Build vector-${oracle_region}"] = {
+                            provisionJob('provision-nomad-vector',
+                                env.ENVIRONMENT,
+                                oracle_region,
+                                env.VIDEO_INFRA_BRANCH
+                            )
+                        }
+                        branches["Build telegraf-${oracle_region}"] = {
+                            provisionJob('provision-nomad-telegraf',
+                                env.ENVIRONMENT,
+                                oracle_region,
+                                env.VIDEO_INFRA_BRANCH
+                            )
+                        }
+                    }
+                    parallel branches
+                  }
+                }
+            }
+        }
+    }
+}

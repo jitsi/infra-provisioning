@@ -11,6 +11,7 @@ job "[JOB_NAME]" {
 
   datacenters = ["${var.dc}"]
   type        = "service"
+  priority    = 80
 
   spread {
     attribute = "${node.unique.id}"

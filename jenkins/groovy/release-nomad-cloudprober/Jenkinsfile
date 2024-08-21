@@ -1,0 +1,62 @@
+def provisionJob(shard_environment,oracle_region,video_infra_branch) {
+    def provision = build job: 'provision-nomad-cloudprober',parameters: [
+        [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: shard_environment],
+        [$class: 'StringParameterValue', name: 'ORACLE_REGION', value: oracle_region],
+        [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: video_infra_branch]
+    ]
+
+    return provision
+}
+
+def utils
+
+pipeline {
+    agent any
+    options {
+      ansiColor('xterm')
+      timestamps()
+      buildDiscarder(logRotator(numToKeepStr: '10', artifactNumToKeepStr: '10'))
+    }
+    stages {
+        // output stage, shows off our input parameters
+        stage('prepare') {
+            steps {
+                script {
+                    echo 'cloudprober release'
+                    // load utility function
+                    def rootDir = pwd()
+                    utils = load "${rootDir}/jenkins/groovy/Utils.groovy"
+                    // checkout repos
+                    utils.SetupRepos(env.VIDEO_INFRA_BRANCH)
+
+                    // setup OCI credentials
+                    utils.SetupOCI()
+                }
+            }
+        }
+
+        stage("provision cloudprober regions") {
+            steps {
+                script {
+                  dir('infra-provisioning') {
+                    echo "Provision cloudprober in environment ${env.ENVIRONMENT}, regions ${env.REGIONS}";
+                    def region_list = utils.SplitNomadRegions(env.ENVIRONMENT,env.REGIONS);
+                    echo "region list ${region_list}";
+                    def branches = [:]
+                    for(i = 0; i < region_list.size(); i++) {
+                        def oracle_region = region_list[i]
+                        echo "pipeline branch ${i} for ${oracle_region}";
+                        branches["Build cloudprober-${oracle_region}"] = {
+                            provisionJob(env.ENVIRONMENT,
+                                oracle_region,
+                                env.VIDEO_INFRA_BRANCH
+                            )
+                        }
+                    }
+                    parallel branches
+                  }
+                }
+            }
+        }
+    }
+}

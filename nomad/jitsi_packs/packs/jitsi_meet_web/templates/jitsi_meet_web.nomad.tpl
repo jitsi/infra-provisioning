@@ -88,7 +88,11 @@ job [[ template "job_name" . ]] {
         image        = "[[ env "CONFIG_web_repo" ]]:[[ env "CONFIG_web_tag" ]]"
         ports = ["http","https","nginx-status"]
         volumes = [
+[[ if eq (env "CONFIG_jitsi_meet_cdn_cloudflare_enabled") "true" -]]
+          "local/init-cdn:/etc/cont-init.d/11-init-cdn",
+[[ end -]]
           "local/_unlock:/usr/share/[[ or (env "CONFIG_jitsi_meet_branding_override") "jitsi-meet" ]]/_unlock",
+          "local/_unlock:/usr/share/[[ or (env "CONFIG_jitsi_meet_branding_override") "jitsi-meet" ]]/_health",
           "local/nginx.conf:/defaults/nginx.conf",
           "local/config:/config",
 [[ if eq (env "CONFIG_jitsi_meet_load_test_enabled") "true" -]]
@@ -182,12 +186,16 @@ EOF
 OK
 EOF
       }
-//       template {
-//         destination = "local/base.html"
-//   data = <<EOF
-// <base href=\"{{ jitsi_meet_cdn_base_url }}/{{ jitsi_meet_cdn_prefix }}{{ jitsi_meet_branding_version }}/\" />
-// EOF
-//       }
+[[ if eq (env "CONFIG_jitsi_meet_cdn_cloudflare_enabled") "true" ]]
+      template {
+        destination = "local/init-cdn"
+        perms = "0755"
+        data = <<EOF
+#!/bin/sh
+sed -i -e "s/web-cdn.jitsi.net/[[ env "CONFIG_domain" ]]\/v1\/_cdn/" /usr/share/*/base.html
+EOF
+      }
+[[ end ]]
       template {
         destination = "local/nginx.conf"
         # overriding the delimiters to [< >] to avoid conflicts with tpl's native templating, which also uses {{ }}

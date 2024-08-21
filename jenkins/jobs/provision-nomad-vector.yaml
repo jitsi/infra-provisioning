@@ -1,14 +1,9 @@
 - job:
-    name: provision-nomad-oscar
-    display-name: provision nomad oscar
-    description: "release oscar in nomad to an oracle region in an environment"
+    name: provision-nomad-vector
+    display-name: provision nomad vector
+    description: "release vector in nomad to an oracle region in an environment"
     concurrent: true
     parameters:
-      - string:
-          name: OSCAR_TEMPLATE_TYPE
-          default: core
-          description: "The type of oscar template to use: core or ops"
-          trim: true
       - string:
           name: VIDEO_INFRA_BRANCH
           default: main
@@ -24,8 +19,8 @@
           trim: true
       - string:
           name: JOB_TYPE
-          default: oscar
-          description: "Nomad job type to provision, defaults to 'oscar' do not change"
+          default: vector
+          description: "Nomad job type to provision, defaults to 'vector' do not change"
           trim: true
       - string:
           name: INFRA_CONFIGURATION_REPO

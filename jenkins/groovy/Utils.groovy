@@ -17,8 +17,8 @@ def SplitNomadRegions(environment,region_names) {
         region_names = sh(
             returnStdout: true,
             script: """#!/bin/bash
-. ./sites/${environment}/stack-env.sh"
-echo $NOMAD_REGIONS"""
+. ./sites/${environment}/stack-env.sh
+echo \$NOMAD_REGIONS"""
         ).trim()
     }
     if (!region_names) {
@@ -330,7 +330,9 @@ def JVBShapeFromEnvironment(environment) {
         script: """#!/bin/bash
 . ./clouds/oracle.sh
 . ./sites/${environment}/stack-env.sh
-if [ "\$ENABLE_A_1" == "true" ]; then
+if [ "\$ENABLE_A_2" == "true" ]; then
+    echo \$SHAPE_A_2
+elif [ "\$ENABLE_A_1" == "true" ]; then
     echo \$SHAPE_A_1
 else
     echo \$JVB_SHAPE

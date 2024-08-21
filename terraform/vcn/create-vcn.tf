@@ -5,9 +5,6 @@ variable "environment" {}
 variable "vcn_cidr" {}
 variable "public_subnet_cidr" {}
 variable "jvb_subnet_cidr" {}
-variable "ops_peer_cidrs" {
-  type = list(string)
-}
 variable "vcn_name" {}
 variable "vcn_dns_label" {}
 variable "resource_name_root" {}
@@ -90,118 +87,6 @@ resource "oci_core_route_table" "route_table" {
     network_entity_id = oci_core_service_gateway.service_gateway.id
   }
 }
-
-// ============ SECURITY LISTS ============
-
-resource "oci_core_security_list" "private_security_list" {
-    compartment_id = var.compartment_ocid
-    vcn_id         = oci_core_vcn.vcn.id
-    display_name   = "${var.resource_name_root}-PrivateSecurityList"
-
-    // allow outbound traffic on all ports
-    egress_security_rules {
-        destination = "0.0.0.0/0"
-        protocol    = "all"
-        description = "allow outbound traffic on all ports"
-    }
-
-    egress_security_rules {
-        destination = lookup(data.oci_core_services.all_services.services[0], "cidr_block")
-        destination_type = "SERVICE_CIDR_BLOCK"
-        protocol    = "all"
-    }
-
-    // allow inbound ssh traffic from the internal network
-    ingress_security_rules {
-        protocol  = "6"         // tcp
-        source    = var.vcn_cidr
-        stateless = false
-        description = "allow inbound ssh traffic from the internal network"
-
-        tcp_options {
-            // These values correspond to the destination port range.
-            min = 22
-            max = 22
-        }
-    }
-
-    // allow inbound ssh traffic from ops networks
-    dynamic "ingress_security_rules" {
-      for_each = toset(var.ops_peer_cidrs)
-      content {
-        protocol  = "6"         // tcp
-        source    = ingress_security_rules.value
-        stateless = false
-        description = "allow inbound ssh traffic from ops networks"
-        tcp_options {
-            min = 22
-            max = 22
-        }
-      }
-    }
-
-    ingress_security_rules {
-        protocol    = 1     // icmp
-        source      = "0.0.0.0/0"
-        stateless   = false
-
-        icmp_options {
-            type = 3
-            code = 4
-        }
-    }
-
-    ingress_security_rules {
-        protocol    = 1       //icmp
-        source      = var.vcn_cidr
-        stateless   = false
-
-        icmp_options {
-            type = 3
-        }
-    }
-
-    // allow consul TCP gossip traffic internally
-    ingress_security_rules {
-        protocol  = "6"         // tcp
-        source    = "10.0.0.0/8"
-        stateless = false
-        description = "allow consul TCP gossip traffic internally"
-
-        tcp_options {
-            min = 8301
-            max = 8301
-        }
-    }
-
-    // allow consul UDP gossip traffic internally
-    ingress_security_rules {
-        protocol  = "17"         // udp
-        source    = "10.0.0.0/8"
-        stateless = false
-        description = "allow consul UDP gossip traffic internally"
-
-        udp_options {
-            min = 8301
-            max = 8301
-        }
-    }
-
-    // allow consul http traffic internally
-    ingress_security_rules {
-        protocol  = "6"         // tcp
-        source    = var.vcn_cidr
-        stateless = false
-        description = "allow telegraf scrapes"
-
-        tcp_options {
-            min = 9126
-            max = 9126
-        }
-    }
-
-}
-
 
 // ============ NETWORKS SECURITY GROUPS ============
 
@@ -329,10 +214,6 @@ output "route_table_name" {
 
 output "internet_gateway_name" {
   value = oci_core_internet_gateway.internet_gateway.display_name
-}
-
-output "public_security_list_name" {
-  value = oci_core_security_list.public_security_list.display_name
 }
 
 output "private_security_list_name" {

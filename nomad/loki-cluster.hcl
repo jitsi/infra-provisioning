@@ -31,6 +31,8 @@ locals {
 job "[JOB_NAME]" {
   datacenters = [var.dc]
   type        = "service"
+  priority    = 75
+
   update {
     max_parallel      = 1
     health_check      = "checks"
@@ -75,7 +77,7 @@ job "[JOB_NAME]" {
         user = "root"
         config {
           network_mode = "host"
-          image = "grafana/loki:2.9.1"
+          image = "grafana/loki:2.9.7"
           args = [
             "-config.file",
             "local/local-config.yaml",
@@ -156,21 +158,45 @@ job "[JOB_NAME]" {
     retention_enabled: true
     retention_delete_delay: 2h
     retention_delete_worker_count: 150
+  query_range:
+    # make queries more cache-able by aligning them with their step intervals
+    align_queries_with_step: true
+    max_retries: 5
+    cache_results: true
+
+    results_cache:
+      cache:
+        # We're going to use the in-process "FIFO" cache
+        enable_fifocache: true
+        fifocache:
+          size: 1024
+          validity: 24h
+
   limits_config:
     reject_old_samples: true
     reject_old_samples_max_age: 168h
     retention_period: ${var.retention_period}
+    retention_stream:
+    # Retain jigasi-transcriber logs for 14 days
+    - selector: '{task="jigasi-transcriber"}'
+      priority: 1
+      period: 336h
+    split_queries_by_interval: 15m
   chunk_store_config:
     max_look_back_period: 0s
   table_manager:
     retention_deletes_enabled: false
     retention_period: 0s
+  frontend:
+    log_queries_longer_than: 5s
+    compress_responses: true
+    address: 
   EOH
           destination = "local/local-config.yaml"
         }
         resources {
           cpu    = 1024
-          memory = 2048
+          memory = 4096
         }
         service {
           name = "loki"

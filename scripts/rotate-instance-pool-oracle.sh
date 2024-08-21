@@ -89,7 +89,15 @@ SHAPE_PARAMS=
 [ ! -z "$OCPUS" ] && SHAPE_PARAMS="$SHAPE_PARAMS --ocpus $OCPUS"
 [ ! -z "$MEMORY_IN_GBS" ] && SHAPE_PARAMS="$SHAPE_PARAMS --memory $MEMORY_IN_GBS"
 
+echo "Take an inventory of the existing instances in pool"
+EXISTING_INSTANCE_DATA=$(oci compute-management instance-pool list-instances --compartment-id "$COMPARTMENT_OCID" --instance-pool-id "$INSTANCE_POOL_ID" --region "$ORACLE_REGION" --all)
+EXISTING_INSTANCES="$(echo "$EXISTING_INSTANCE_DATA" | jq .data)"
+INSTANCE_COUNT=$(echo $EXISTING_INSTANCES| jq -r ".|length")
+
+export DESIRED_CAPACITY=$INSTANCE_COUNT
+
 echo "Rotating instance pool $INSTANCE_POOL_ID"
+export ROTATE_INSTANCE_POOL=true
 if [ ! -z "$ROTATE_INSTANCE_CONFIGURATION_SCRIPT" ]; then
   echo "Running provided rotation script $ROTATE_INSTANCE_CONFIGURATION_SCRIPT"
   # source this script in case any variables need to be used that were set in the pre script
@@ -118,12 +126,7 @@ if [[ "$ENVIRONMENT_TYPE" == "prod" ]]; then
   $LOCAL_PATH/oracle_custom_images.py --tag_production --image_id $IMAGE_OCID --region $ORACLE_REGION
 fi
 
-echo "Take an inventory of the existing instances in pool"
-EXISTING_INSTANCE_DATA=$(oci compute-management instance-pool list-instances --compartment-id "$COMPARTMENT_OCID" --instance-pool-id "$INSTANCE_POOL_ID" --region "$ORACLE_REGION" --all)
-EXISTING_INSTANCES="$(echo "$EXISTING_INSTANCE_DATA" | jq .data)"
-INSTANCE_COUNT=$(echo $EXISTING_INSTANCES| jq -r ".|length")
 
-export DESIRED_CAPACITY=$INSTANCE_COUNT
 
 if [[ $INSTANCE_COUNT -gt 0 ]]; then
   # more than local region found, check/perform association

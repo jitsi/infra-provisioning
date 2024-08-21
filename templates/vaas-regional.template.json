@@ -1,6 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": "Template for basic SNS topics and SQS queues run once per region",
+  "Description": "EXAMPLE TEMPLATE, NO VALUES IN THIS DOCUMENT ARE USED IN ANY ACTUAL DEPLOYMENTS.  This template should be adapted to create a template for basic SNS topics and SQS queues run once per region",
   "Parameters": {
     "PagerDutySNSTopicName": {
       "Description": "String Name for SNS topic to notify PagerDuty",

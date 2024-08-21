@@ -27,17 +27,25 @@ ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 [ -e "$LOCAL_PATH/../../clouds/${ORACLE_CLOUD_NAME}.sh" ] && . $LOCAL_PATH/../../clouds/${ORACLE_CLOUD_NAME}.sh
 
 [ -z "$SHAPE" ] && SHAPE="$DEFAULT_CONSUL_SHAPE"
+if [[ "$SHAPE" == "VM.Standard.E5.Flex" ]]; then
+  [ -z "$OCPUS" ] && OCPUS=2
+  [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=16
+fi
 if [[ "$SHAPE" == "VM.Standard.E4.Flex" ]]; then
   [ -z "$OCPUS" ] && OCPUS=2
-  [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=8
+  [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=16
 fi
 if [[ "$SHAPE" == "VM.Standard.E3.Flex" ]]; then
   [ -z "$OCPUS" ] && OCPUS=2
-  [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=8
+  [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=16
 fi
 if [[ "$SHAPE" == "VM.Standard.A1.Flex" ]]; then
   [ -z "$OCPUS" ] && OCPUS=4
-  [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=8
+  [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=16
+fi
+if [[ "$SHAPE" == "VM.Standard.A2.Flex" ]]; then
+  [ -z "$OCPUS" ] && OCPUS=2
+  [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=16
 fi
 
 [ -z "$INSTANCE_POOL_SIZE" ] && INSTANCE_POOL_SIZE=1
@@ -65,7 +73,7 @@ if [ -z "$SSL_CERTIFICATE_ID" ]; then
   exit 208
 fi
 
-[ -z "$CONSUL_CERTIFICATE_NAME" ] && CONSUL_CERTIFICATE_NAME="star_jitsi_net-2024-08-10"
+[ -z "$CONSUL_CERTIFICATE_NAME_VARIABLE" ] && CONSUL_CERTIFICATE_NAME_VARIABLE="jitsi_net_ssl_name"
 [ -z "$CONSUL_CA_CERTIFICATE_VARIABLE" ] && CONSUL_CA_CERTIFICATE_VARIABLE="jitsi_net_ssl_extras"
 [ -z "$CONSUL_PUBLIC_CERTIFICATE_VARIABLE" ] && CONSUL_PUBLIC_CERTIFICATE_VARIABLE="jitsi_net_ssl_certificate"
 [ -z "$CONSUL_PRIVATE_KEY_VARIABLE" ] && CONSUL_PRIVATE_KEY_VARIABLE="jitsi_net_ssl_key_name"
@@ -77,6 +85,7 @@ set -o pipefail
 CA_CERTIFICATE=$(ansible-vault view $ENCRYPTED_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${CONSUL_CA_CERTIFICATE_VARIABLE}" -)
 PUBLIC_CERTIFICATE=$(ansible-vault view $ENCRYPTED_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${CONSUL_PUBLIC_CERTIFICATE_VARIABLE}" -)
 PRIVATE_KEY=$(ansible-vault view $ENCRYPTED_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${CONSUL_PRIVATE_KEY_VARIABLE}" -)
+CONSUL_CERTIFICATE_NAME=$(ansible-vault view $ENCRYPTED_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${CONSUL_CERTIFICATE_NAME_VARIABLE}" -)
 set +e
 set +o pipefail
 

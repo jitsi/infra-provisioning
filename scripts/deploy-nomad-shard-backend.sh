@@ -72,6 +72,7 @@ NOMAD_DC="$ENVIRONMENT-$ORACLE_REGION"
 
 [ -z "$ENCRYPTED_JVB_CREDENTIALS_FILE" ] && ENCRYPTED_JVB_CREDENTIALS_FILE="$LOCAL_PATH/../ansible/secrets/jvb.yml"
 [ -z "$ENCRYPTED_JIBRI_CREDENTIALS_FILE" ] && ENCRYPTED_JIBRI_CREDENTIALS_FILE="$LOCAL_PATH/../ansible/secrets/jibri.yml"
+[ -z "$ENCRYPTED_JICOFO_CREDENTIALS_FILE" ] && ENCRYPTED_JICOFO_CREDENTIALS_FILE="$LOCAL_PATH/../ansible/secrets/jicofo.yml"
 [ -z "$ENCRYPTED_JIGASI_CREDENTIALS_FILE" ] && ENCRYPTED_JIGASI_CREDENTIALS_FILE="$LOCAL_PATH/../ansible/secrets/jigasi.yml"
 [ -z "$ENCRYPTED_COTURN_CREDENTIALS_FILE" ] && ENCRYPTED_COTURN_CREDENTIALS_FILE="$LOCAL_PATH/../ansible/secrets/coturn.yml"
 [ -z "$ENCRYPTED_ASAP_KEYS_FILE" ] && ENCRYPTED_ASAP_KEYS_FILE="$LOCAL_PATH/../ansible/secrets/asap-keys.yml"
@@ -80,11 +81,13 @@ NOMAD_DC="$ENVIRONMENT-$ORACLE_REGION"
 [ -z "$ENVIRONMENT_CONFIGURATION_FILE" ] && ENVIRONMENT_CONFIGURATION_FILE="$LOCAL_PATH/../sites/$ENVIRONMENT/vars.yml"
 [ -z "$MAIN_CONFIGURATION_FILE" ] && MAIN_CONFIGURATION_FILE="$LOCAL_PATH/../config/vars.yml"
 
-JVB_XMPP_PASSWORD_VARIABLE="jvb_xmpp_password"
+JVB_XMPP_PASSWORD_VARIABLE="secrets_jvb_brewery_by_environment_A.\"$ENVIRONMENT\""
 JIBRI_XMPP_PASSWORD_VARIABLE="jibri_auth_password"
 JIBRI_RECORDER_PASSWORD_VARIABLE="jibri_selenium_auth_password"
-JIGASI_XMPP_PASSWORD_VARIABLE="jigasi_xmpp_password"
-JICOFO_XMPP_PASSWORD_VARIABLE="prosody_focus_user_secret"
+JIGASI_XMPP_PASSWORD_VARIABLE="secrets_jigasi_brewery_by_environment_A.\"$ENVIRONMENT\""
+JIGASI_SHARED_SECRET_VARIABLE="secrets_jigasi_conference_by_environment_A.\"$ENVIRONMENT\""
+JIGASI_TRANSCRIBER_SECRET_VARIABLE="secrets_jigasi_transcriber_by_environment_A.\"$ENVIRONMENT\""
+JICOFO_XMPP_PASSWORD_VARIABLE="secrets_jicofo_focus_by_environment.\"$ENVIRONMENT\""
 
 JWT_ASAP_KEYSERVER_VARIABLE="prosody_public_key_repo_url"
 JWT_ACCEPTED_ISSUERS_VARIABLE="prosody_asap_accepted_issuers"
@@ -104,20 +107,31 @@ export CONFIG_jibri_xmpp_password="$(ansible-vault view $ENCRYPTED_JIBRI_CREDENT
 export CONFIG_jibri_recorder_password="$(ansible-vault view $ENCRYPTED_JIBRI_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${JIBRI_RECORDER_PASSWORD_VARIABLE}" -)"
 export CONFIG_jigasi_xmpp_password="$(ansible-vault view $ENCRYPTED_JIGASI_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${JIGASI_XMPP_PASSWORD_VARIABLE}" -)"
 export CONFIG_turnrelay_password="$(ansible-vault view $ENCRYPTED_COTURN_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${TURNRELAY_PASSWORD_VARIABLE}" -)"
-
-export CONFIG_jicofo_auth_password="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .${JICOFO_XMPP_PASSWORD_VARIABLE} -)"
+# TODO: use the separate _jvb and _visitor secrets for the different accounts.
+export CONFIG_jicofo_auth_password="$(ansible-vault view $ENCRYPTED_JICOFO_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${JICOFO_XMPP_PASSWORD_VARIABLE}" -)"
 
 export CONFIG_asap_jwt_kid="$(ansible-vault view $ENCRYPTED_ASAP_KEYS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${ASAP_KEY_VARIABLE}.id" -)"
 
 export CONFIG_aws_access_key_id="$(ansible-vault view $ENCRYPTED_PROSODY_EGRESS_AWS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".prosody_egress_aws_access_key_id_by_type.$ENVIRONMENT_TYPE" -)"
 export CONFIG_aws_secret_access_key="$(ansible-vault view $ENCRYPTED_PROSODY_EGRESS_AWS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".prosody_egress_aws_secret_access_key_by_type.$ENVIRONMENT_TYPE" -)"
 
-export CONFIG_jigasi_shared_secret="$CONFIG_jigasi_xmpp_password"
+export CONFIG_jigasi_shared_secret="$(ansible-vault view $ENCRYPTED_JIGASI_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${JIGASI_SHARED_SECRET_VARIABLE}" -)"
+if [[ "$CONFIG_jigasi_shared_secret" == "null" ]]; then
+    export CONFIG_jigasi_shared_secret=
+fi
+
+export CONFIG_jigasi_transcriber_password="$(ansible-vault view $ENCRYPTED_JIGASI_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${JIGASI_TRANSCRIBER_SECRET_VARIABLE}" -)"
+if [[ "$CONFIG_jigasi_transcriber_password" == "null" ]]; then
+    export CONFIG_jigasi_transcriber_password=
+fi
 
 SIP_JIBRI_SHARED_SECRET="$(ansible-vault view $ENCRYPTED_JIBRI_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${SIP_JIBRI_SHARED_SECRET_VARIABLE}" -)"
 if [[ "$SIP_JIBRI_SHARED_SECRET" != "null" ]]; then
     export CONFIG_sip_jibri_shared_secret="$SIP_JIBRI_SHARED_SECRET"
 fi
+
+[ -z "$CONFIG_jigasi_xmpp_user" ] && export CONFIG_jigasi_xmpp_user="jigasia"
+[ -z "$CONFIG_jigasi_transcriber_user" ] && export CONFIG_jigasi_transcriber_user="transcribera"
 
 set -x
 set +e
@@ -251,7 +265,14 @@ nomad-pack plan --name "$JOB_NAME" \
 PLAN_RET=$?
 
 if [ $PLAN_RET -gt 1 ]; then
-    echo "Failed planning shard backend job, exiting"
+    echo "Failed planning shard backend job, rendering and exiting"
+    nomad-pack render --name "$JOB_NAME" \
+    -var "job_name=$JOB_NAME" \
+    -var "datacenter=$NOMAD_DC" \
+    -var "visitors_count=$CONFIG_visitors_count" \
+    -var "fabio_domain_enabled=$CONFIG_nomad_enable_fabio_domain" \
+    $PACKS_DIR/jitsi_meet_backend
+
     exit 4
 else
     if [ $PLAN_RET -eq 1 ]; then

@@ -8,9 +8,13 @@ ARG TARGETPLATFORM
 ARG BUILDPLATFORM
 COPY --from=0 /usr/bin/yq /usr/bin/yq
 COPY ./requirements.txt /home/jenkins/requirements.txt
+COPY ./plugins.txt /home/jenkins/plugins.txt
 
 USER root
-RUN apt-get update && apt-get -y install procps dnsutils jq python3-pip wget curl gpg unzip zip git python-is-python3 maven xvfb imagemagick sudo && pip install --break-system-packages -r /home/jenkins/requirements.txt && pip install --break-system-packages jenkins-job-builder
+RUN apt-get update && \
+    apt-get -y install procps dnsutils jq python3-pip wget curl gpg unzip zip git python-is-python3 maven xvfb imagemagick sudo && \
+    pip install --break-system-packages -r /home/jenkins/requirements.txt && \
+    pip install --break-system-packages jenkins-job-builder
 RUN echo "%jenkins ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/jenkins
 
 RUN wget -O-  https://download.docker.com/linux/debian/gpg | \
@@ -24,4 +28,4 @@ RUN usermod -a -G docker jenkins && usermod -a -G shadow jenkins
 RUN adduser -q --disabled-password --gecos "" ubuntu && mkdir /home/ubuntu/.ssh && chown ubuntu /home/ubuntu/.ssh
 RUN mkdir -p /home/jenkins/triggers && touch /home/jenkins/triggers/reconfigure-users-jenkins && chown -R jenkins:jenkins /home/jenkins/triggers
 USER jenkins
-RUN jenkins-plugin-cli --plugins "ansicolor ant rebuild docker-plugin docker-slaves git-parameter aws-credentials next-build-number build-timestamp fstrigger github junit lockable-resources maven-plugin nomad parameterized-trigger plain-credentials slack ssh-agent ssh-credentials timestamper ws-cleanup script-security docker-workflow saferestart"
+RUN jenkins-plugin-cli --plugin-file /home/jenkins/plugins.txt

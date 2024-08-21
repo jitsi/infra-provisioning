@@ -1,0 +1,46 @@
+def utils
+
+pipeline {
+    agent any
+    options {
+        ansiColor('xterm')
+        timestamps()
+        buildDiscarder(logRotator(numToKeepStr: '10', artifactNumToKeepStr: '10'))
+    }
+    stages {
+        // output stage, shows off our input parameters
+        stage ("setup") {
+            steps {
+                script {
+                    def rootDir = pwd()
+                    utils = load "${rootDir}/jenkins/groovy/Utils.groovy"
+                    utils.SetupRepos(env.VIDEO_INFRA_BRANCH)
+                    utils.SetupOCI()
+                }
+            }
+        }
+        stage ("provision WAF policies in OCI") {
+            steps {
+                script {
+                    dir('infra-provisioning') {
+                        withCredentials([
+                            string(credentialsId: 'oci-jenkins-terraform-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
+                            string(credentialsId: 'oci-jenkins-terraform-aws-id', variable: 'AWS_ACCESS_KEY_ID'),
+                            sshUserPrivateKey(credentialsId: 'ssh-ubuntu', keyFileVariable: 'USER_PRIVATE_KEY_PATH', usernameVariable: 'SSH_USERNAME')
+                        ]) {
+                            utils.SetupAnsible()
+                            utils.SetupSSH()
+                            sshagent (credentials: ['ssh-ubuntu']) {
+                                sh(
+                                    returnStdout: true,
+                                    script: """#!/bin/bash
+                                    ENVIRONMENT=${env.ENVIRONMENT} ./scripts/create-waf-policies-oracle.sh"""
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

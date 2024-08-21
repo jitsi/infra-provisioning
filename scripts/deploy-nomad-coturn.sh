@@ -10,6 +10,7 @@ LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 [ -e "$LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh" ] && . "$LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh"
 
 [ -e "$LOCAL_PATH/../clouds/all.sh" ] && . "$LOCAL_PATH/../clouds/all.sh"
+[ -z "$MAIN_CONFIGURATION_FILE" ] && MAIN_CONFIGURATION_FILE="$LOCAL_PATH/../config/vars.yml"
 
 if [ -z "$ORACLE_REGION" ]; then
     echo "No ORACLE_REGION set, exiting"
@@ -36,7 +37,12 @@ export NOMAD_VAR_coturn_auth_secret="$(ansible-vault view $ENCRYPTED_COTURN_CRED
 
 set -x
 
-[ -z "$COTURN_CERTIFICATE_NAME" ] && COTURN_CERTIFICATE_NAME="star_jitsi_net-2024-08-10"
+MAIN_SITE_SSL_CERTIFICATE="$(cat $MAIN_CONFIGURATION_FILE | yq eval ".site_ssl_certificate" -)"
+if [[ "$MAIN_SITE_SSL_CERTIFICATE" == "null" ]]; then
+    MAIN_SITE_SSL_CERTIFICATE="star.jitsi.net"
+fi
+
+[ -z "$COTURN_CERTIFICATE_NAME" ] && COTURN_CERTIFICATE_NAME="$MAIN_SITE_SSL_CERTIFICATE"
 export NOMAD_VAR_ssl_cert_name="$COTURN_CERTIFICATE_NAME"
 
 [ -z "$DESIRED_CAPACITY" ] && DESIRED_CAPACITY=2

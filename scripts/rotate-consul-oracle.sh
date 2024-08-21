@@ -60,17 +60,29 @@ fi
 [ -z "$NAME" ] && NAME="$ENVIRONMENT-$ORACLE_REGION-consul"
 [ -z "$INSTANCE_POOL_BASE_NAME" ] && INSTANCE_POOL_BASE_NAME="ConsulInstancePool"
 
+if [[ "$SHAPE" == "VM.Standard.E5.Flex" ]]; then
+  [ -z "$OCPUS" ] && OCPUS=2
+  [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=16
+fi
 if [[ "$SHAPE" == "VM.Standard.E4.Flex" ]]; then
   [ -z "$OCPUS" ] && OCPUS=2
-  [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=8
+  [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=16
+fi
+if [[ "$SHAPE" == "VM.Standard.E5w.Flex" ]]; then
+  [ -z "$OCPUS" ] && OCPUS=2
+  [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=16
 fi
 if [[ "$SHAPE" == "VM.Standard.E3.Flex" ]]; then
   [ -z "$OCPUS" ] && OCPUS=2
-  [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=8
+  [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=16
 fi
 if [[ "$SHAPE" == "VM.Standard.A1.Flex" ]]; then
   [ -z "$OCPUS" ] && OCPUS=4
-  [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=8
+  [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=16
+fi
+if [[ "$SHAPE" == "VM.Standard.A2.Flex" ]]; then
+  [ -z "$OCPUS" ] && OCPUS=2
+  [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=16
 fi
 
 # by default wait 5 minutes in between rotating consul instances

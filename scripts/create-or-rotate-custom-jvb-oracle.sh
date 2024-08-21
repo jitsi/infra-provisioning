@@ -55,9 +55,19 @@ if [ "$ENABLE_E_4" == "true" ]; then
   JVB_SHAPE="$SHAPE_E_4"
 fi
 
+# next check E5 flag
+if [ "$ENABLE_E_5" == "true" ]; then
+  JVB_SHAPE="$SHAPE_E_5"
+fi
+
 # use A1 if configured
 if [ "$ENABLE_A_1" == "true" ]; then
   JVB_SHAPE="$SHAPE_A_1"
+fi
+
+# use A2 if configured
+if [ "$ENABLE_A_2" == "true" ]; then
+  JVB_SHAPE="$SHAPE_A_2"
 fi
 
 [ -z "$SHAPE" ] && SHAPE="$JVB_SHAPE"
@@ -154,8 +164,18 @@ if [[ "$SHAPE" == "VM.Standard.E4.Flex" ]]; then
   [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=12
 fi
 
+if [[ "$SHAPE" == "VM.Standard.E5.Flex" ]]; then
+  [ -z "$OCPUS" ] && OCPUS=4
+  [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=12
+fi
+
 if [[ "$SHAPE" == "VM.Standard.A1.Flex" ]]; then
   [ -z "$OCPUS" ] && OCPUS=8
+  [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=12
+fi
+
+if [[ "$SHAPE" == "VM.Standard.A2.Flex" ]]; then
+  [ -z "$OCPUS" ] && OCPUS=4
   [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=12
 fi
 

@@ -26,6 +26,7 @@ job [[ template "job_name" . ]] {
 
 
     network {
+      mode = "bridge"
       port "prosody-brewery-client" {
       }
       port "prosody-brewery-http" {
@@ -63,6 +64,9 @@ job [[ template "job_name" . ]] {
 
       port = "prosody-brewery-client"
 
+      connect {
+        sidecar_service {}
+      }
     }
 
     task "brewery" {
@@ -78,7 +82,7 @@ job [[ template "job_name" . ]] {
 
       env {
         PROSODY_MODE="brewery"
-        LOG_LEVEL = "[[ or (env "CONFIG_prosody_log_level") "debug" ]]"
+        LOG_LEVEL = "[[ or (env "CONFIG_prosody_log_level") "info" ]]"
         XMPP_DOMAIN = "[[ env "CONFIG_domain" ]]"
         PUBLIC_URL="https://[[ env "CONFIG_domain" ]]/"
         JICOFO_AUTH_PASSWORD = "[[ env "CONFIG_jicofo_auth_password" ]]"
@@ -111,7 +115,7 @@ EOF
       }
 
       resources {
-        cpu    = [[ or (env "CONFIG_nomad_prosody_brewery_cpu") "1024" ]]
+        cpu    = [[ or (env "CONFIG_nomad_prosody_brewery_cpu") "512" ]]
         memory    = [[ or (env "CONFIG_nomad_prosody_brewery_memory") "512" ]]
       }
     }

@@ -1,5 +1,5 @@
 variable "dc" {
-  type = list(string)
+  type = string
 }
 
 variable "top_level_domain" {
@@ -7,16 +7,18 @@ variable "top_level_domain" {
   default = "jitsi.net"
 }
 
-job "vector" {
-  datacenters = var.dc
-  # system job, runs on all nodes
+job "[JOB_NAME]" {
+  datacenters = ["${var.dc}"]
   type = "system"
+  priority = 75
+
   update {
     min_healthy_time = "10s"
     healthy_deadline = "5m"
     progress_deadline = "10m"
     auto_revert = true
   }
+
   group "vector" {
     count = 1
     restart {
@@ -65,8 +67,8 @@ job "vector" {
       }
       # resource limits are a good idea because you don't want your log collection to consume all resources available
       resources {
-        cpu    = 500 # 500 MHz
-        memory = 256 # 256MB
+        cpu    = 64
+        memory = 256
       }
       # template with Vector's configuration
       template {
@@ -103,13 +105,39 @@ job "vector" {
             multiline.mode = "halt_before"
             multiline.condition_pattern = "^(Jicofo|Exception) "
             multiline.start_pattern = "^(Jicofo|Exception) "
+          [sources.loki_logs]
+            type = "docker_logs"
+            include_containers = ["loki-"]
+            multiline.timeout_ms = 300
+            multiline.mode = "halt_before"
+            multiline.condition_pattern = "^level= "
+            multiline.start_pattern = "^level= "
           [sources.logs]
             type = "docker_logs"
-            exclude_containers = ["jicofo-","jvb-","jibri-"]
+            exclude_containers = ["jicofo-","jvb-","jibri-","loki-"]
           [sources.syslog]
             type = "syslog"
             address = "0.0.0.0:9000"
             mode = "tcp"
+          [sinks.loki_lokilogs]
+            remove_timestamp = false
+            type = "loki"
+            inputs = ["loki_to_structure"]
+            endpoint = "https://[[ env "meta.environment" ]]-[[ env "meta.cloud_region" ]]-loki.${var.top_level_domain}"
+            encoding.codec = "json"
+            healthcheck.enabled = true
+            # since . is used by Vector to denote a parent-child relationship, and Nomad's Docker labels contain ".",
+            # we need to escape them twice, once for TOML, once for Vector
+            # remove fields that have been converted to labels to avoid having the field twice
+            remove_label_fields = true
+                [sinks.loki_lokilogs.labels]
+                    alloc = "{{ label.\"com.hashicorp.nomad.alloc_id\" }}"
+                    job = "{{ label.\"com.hashicorp.nomad.job_name\" }}"
+                    task = "{{ label.\"com.hashicorp.nomad.task_name\" }}"
+                    group = "{{ label.\"com.hashicorp.nomad.task_group_name\" }}"
+                    namespace = "logs"
+                    node = "{{ label.\"com.hashicorp.nomad.node_name\" }}"
+                    region = "[[ env "meta.cloud_region" ]]"
           [sinks.loki_syslog]
             remove_timestamp = false
             type = "loki"
@@ -129,6 +157,17 @@ job "vector" {
                     namespace = "system"
                     node = "[[ env "node.unique.name" ]]"
                     region = "[[ env "meta.cloud_region" ]]"
+          [transforms.loki_to_structure]
+            type = "remap"
+            inputs = ["loki_logs"]
+            source = """
+
+            structured =
+              parse_key_value(.message) ??
+              parse_json(.message) ??
+              {}
+            . = merge(., structured) ?? .
+            .timestamp = parse_timestamp(.ts, "%+") ?? .timestamp"""
           [transforms.message_to_structure]
             type = "remap"
             inputs = ["logs","jibri_logs","jicofo_logs","jvb_logs"]
@@ -173,6 +212,9 @@ job "vector" {
         EOH
       }
       service {
+        name = "vector"
+        port = "api"
+        tags = ["ip-${attr.unique.network.ip-address}"]
         check {
           port     = "api"
           type     = "http"

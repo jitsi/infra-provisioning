@@ -32,6 +32,7 @@ job "[JOB_NAME]" {
     }
     task "wavefront-proxy" {
       vault {
+        change_mode = "noop"
         
       }
       service {
@@ -53,21 +54,39 @@ job "[JOB_NAME]" {
       driver = "docker"
       env {
         WAVEFRONT_URL = "https://${var.wavefront_instance}.wavefront.com/api"
+        WAVEFRONT_PROXY_ARGS="--preprocessorConfigFile /etc/wavefront/wavefront-proxy/preprocessor_rules.yaml"
+      }
+      template {
+        data = <<EOF
+'2878':
+  - rule   : block-loki-stats
+    action : block
+    scope  : metricName
+    match  : "loki\\..*"
+  - rule   : block-cloudprober
+    action : block
+    scope  : metricName
+    match  : "cloudprober\\..*"
+EOF
+        destination = "local/preprocessor_rules.yaml"
       }
       template {
         data = <<EOF
 WAVEFRONT_TOKEN="{{ with secret "secret/default/wavefront-proxy/token" }}{{ .Data.data.api_token }}{{ end }}"
-        EOF
+EOF
         destination = "secrets/env"
         env = true
       }
       config {
         image = "wavefronthq/proxy:latest"
         ports = ["http"]
+        volumes = [
+          "local/preprocessor_rules.yaml:/etc/wavefront/wavefront-proxy/preprocessor_rules.yaml",
+        ]
       }
 
       resources {
-        cpu    = 1000
+        cpu    = 512
         memory = 1024
       }
     }

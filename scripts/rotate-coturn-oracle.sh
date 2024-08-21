@@ -110,6 +110,7 @@ else
   export MEMORY_IN_GBS
   export STARTUP_GRACE_PERIOD_SECONDS
 
+  export ROTATE_INSTANCE_CONFIGURATION_SCRIPT="$LOCAL_PATH/../terraform/create-coturn-stack/create-coturn-stack-oracle.sh"
   $LOCAL_PATH/rotate-instance-pool-oracle.sh $SSH_USER
   exit $?
 fi

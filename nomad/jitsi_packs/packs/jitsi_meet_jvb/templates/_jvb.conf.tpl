@@ -9,6 +9,8 @@ videobridge {
 
   initial-drain-mode = [[ or (env "CONFIG_jvb_initial_drain_mode") "false" ]]
 
+  redact-remote-addresses = [[ or (env "CONFIG_jvb_redact_remote_addresses") "true" ]]
+
   load-management {
     average-participant-stress = [[ or (env "CONFIG_jvb_average_participant_stress") "0.005" ]]
 
@@ -49,7 +51,7 @@ videobridge {
     endpoint = true
     [[ end ]]
 
-    [[ if eq (or (env "CONFIG_jvb_enable_cryptex_relay") "false") "true" ]]
+    [[ if eq (or (env "CONFIG_jvb_enable_cryptex_relay") "true") "true" ]]
     relay = true
     [[ end ]]
   }
@@ -84,10 +86,6 @@ videobridge {
 [[ end ]]
   }
 
-  multi-stream {
-    enabled = [[ or (env "CONFIG_jvb_enable_multi_stream") "true" ]]
-  }
-
   apis {
     rest {
       enabled=true
@@ -103,6 +101,10 @@ videobridge {
 
   stats {
     enabled = true
+    transit-time {
+      enable-json = false
+      enable-prometheus = true
+    }
   }
 
   websockets {
@@ -111,7 +113,7 @@ videobridge {
     tls = true
     domain = "[[ env "CONFIG_domain" ]]:443"
     // Set both 'domain' and 'domains' for backward compat with jvb versions that don't support "domains".
-    [[ if eq (or (env "CONFIG_jvb_ws_additional_domain_enabled") "true") "true" ]]
+    [[ if eq (or (env "CONFIG_jvb_ws_additional_domain_enabled") "false") "true" ]]
     domains = [
         "[[ env "CONFIG_jvb_ws_additional_domain" ]]:443"
     ]
@@ -162,6 +164,9 @@ videobridge {
 
   sctp {
     enabled = [[ or (env "CONFIG_jvb_enable_sctp") "false" ]]
+[[ if eq (or (env "CONFIG_jvb_use_dcsctp") "true") "true" ]]
+    use-usrsctp = false
+[[ end ]]
   }
 
   shutdown {

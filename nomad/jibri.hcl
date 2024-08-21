@@ -22,16 +22,6 @@ variable "jibri_version" {
   default = "latest"
 }
 
-variable "environment_type" {
-  type = string
-  default = "stage"
-}
-
-variable "asap_jwt_kid" {
-    type = string
-    default = "replaceme"
-}
-
 variable "dc" {
   type = string
 }
@@ -47,6 +37,11 @@ variable "domain" {
 variable "release_number" {
   type = string
   default = "0"
+}
+
+variable "jibri_usage_timeout" {
+  type = string
+  default = "61"
 }
 
 # This declares a job named "docs". There can be exactly one
@@ -94,6 +89,7 @@ job "[JOB_NAME]" {
     count = 1
 
     network {
+      mode = "bridge"
       # This requests a dynamic port named "http". This will
       # be something like "46283", but we refer to it via the
       # label "http".
@@ -117,6 +113,17 @@ job "[JOB_NAME]" {
 
       port = "http"
 
+      connect {
+        sidecar_service {
+          proxy {
+            upstreams {
+              destination_name = "autoscaler"
+              local_bind_port  = 2223
+            }
+          }
+        }
+      }
+
       check {
         name     = "health"
         type     = "http"
@@ -127,16 +134,21 @@ job "[JOB_NAME]" {
       }
     }
     task "jibri" {
+      vault {
+        change_mode = "noop"
+
+      }
+
       driver = "docker"
 
       config {
+        force_pull = true
         image        = "jitsi/jibri:${var.jibri_tag}"
         cap_add = ["SYS_ADMIN"]
         # 2gb shm
         shm_size = 2147483648
         ports = ["http"]
         volumes = [
-	        "/opt/jitsi/keys:/opt/jitsi/keys",
           "local/xmpp-servers:/opt/jitsi/xmpp-servers",
           "local/01-xmpp-servers:/etc/cont-init.d/01-xmpp-servers",
           "local/11-status-cron:/etc/cont-init.d/11-status-cron",
@@ -174,18 +186,35 @@ job "[JOB_NAME]" {
         JIBRI_INSTANCE_ID = "${NOMAD_SHORT_ALLOC_ID}"
         JIBRI_FINALIZE_RECORDING_SCRIPT_PATH = "/usr/bin/jitsi_uploader.sh"
         JIBRI_RECORDING_DIR = "/mnt/recordings"
-        JIBRI_STATSD_HOST = "${attr.unique.network.ip-address}"
-        JIBRI_STATSD_PORT = "8125"
-        ENABLE_STATS_D = "true"
+        // JIBRI_STATSD_HOST = "${attr.unique.network.ip-address}"
+        // JIBRI_STATSD_PORT = "8125"
+        ENABLE_STATS_D = "false"
+        JIBRI_ENABLE_PROMETHEUS = "true"
+        JIBRI_USAGE_TIMEOUT = "${var.jibri_usage_timeout} minutes"
         LOCAL_ADDRESS = "${attr.unique.network.ip-address}"
         AUTOSCALER_SIDECAR_PORT = "6000"
-        AUTOSCALER_SIDECAR_KEY_ID = "${var.asap_jwt_kid}"
-        AUTOSCALER_URL = "https://${meta.cloud_name}-autoscaler.jitsi.net"
-        AUTOSCALER_SIDECAR_KEY_FILE = "/opt/jitsi/keys/${var.environment_type}.key"
+#        AUTOSCALER_URL = "https://${meta.cloud_name}-autoscaler.jitsi.net"
+        AUTOSCALER_URL = "http://localhost:2223"
+        AUTOSCALER_SIDECAR_KEY_FILE = "/secrets/asap.key"
         AUTOSCALER_SIDECAR_REGION = "${meta.cloud_region}"
         AUTOSCALER_SIDECAR_GROUP_NAME = "${NOMAD_META_group}"
         AUTOSCALER_SIDECAR_INSTANCE_ID = "${NOMAD_JOB_ID}"
 #        CHROMIUM_FLAGS="--start-maximized,--kiosk,--enabled,--autoplay-policy=no-user-gesture-required,--use-fake-ui-for-media-stream,--enable-logging,--v=1"
+      }
+
+      template {
+        data = <<EOF
+AUTOSCALER_SIDECAR_KEY_ID="{{ with secret "secret/${var.environment}/asap/server" }}{{ .Data.data.key_id }}{{ end }}"
+EOF
+        env = true
+        destination = "secrets/asap_key_id"
+      }
+
+      template {
+        data = <<EOF
+{{- with secret "secret/${var.environment}/asap/server" }}{{ .Data.data.private_key }}{{ end -}}
+EOF
+        destination = "secrets/asap.key"
       }
 
       template {
@@ -239,7 +268,7 @@ EOF
 #!/usr/bin/with-contenv bash
 cp /etc/jitsi/jibri/* /config
 
-apt-get update && apt-get -y install cron netcat
+apt-get update && apt-get -y install cron netcat-openbsd
 
 echo '* * * * * /opt/jitsi/scripts/jibri-status.sh' | crontab 
 
@@ -326,7 +355,7 @@ EOF
 
       resources {
         cpu    = 2500
-        memory = 2048
+        memory = 3072
       }
     }
 

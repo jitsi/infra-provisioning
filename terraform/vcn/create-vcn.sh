@@ -35,15 +35,6 @@ VCN_NAME="$VCN_NAME_ROOT-vcn"
 # Should be alfanumeric, start with a letter and have max 15 chars
 [ -z "$VCN_DNS_LABEL" ] && VCN_DNS_LABEL="${ENVIRONMENT//-}${VCN_CIDR_ROOT//.}"
 
-if [ -z "$OPS_PEER_CIDRS" ]; then
-  echo "No OPS_PEER_CIDRS found.  Exiting..."
-  exit 204
-fi
-
-if [ ! -z $"EXTRA_OPS_PEER_CIDRS" ]; then
-  OPS_PEER_CIDRS=$(echo $OPS_PEER_CIDRS $(echo $EXTRA_OPS_PEER_CIDRS |  jq '.freeformTags')  | jq -s '.|add')
-fi
-
 rm -f terraform.tfstate
 
 [ -z "$S3_PROFILE" ] && S3_PROFILE="oracle"
@@ -92,5 +83,4 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
   -var="vcn_cidr=$VCN_CIDR"\
   -var="public_subnet_cidr=$PUBLIC_SUBNET_CIDR"\
   -var="jvb_subnet_cidr=$JVB_SUBNET_CIDR"\
-  -var="ops_peer_cidrs=$OPS_PEER_CIDRS"\
   $ACTION_POST_PARAMS $TF_POST_PARAMS

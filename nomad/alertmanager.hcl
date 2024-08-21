@@ -8,12 +8,22 @@ variable "alertmanager_hostname" {
 
 variable "alertmanager_version" {
   type = string
-  default = "v0.26.0"
+  default = "v0.27.0"
 }
 
 variable "slack_api_url" {
     type = string
     default = "replaceme"
+}
+
+variable "default_service_name" {
+    type = string
+    default = "default"
+}
+
+variable "pagerduty_keys_by_service" {
+    type = string
+    default = "{ \"default\": \"replaceme\" }"
 }
 
 variable "environment_type" {
@@ -22,10 +32,9 @@ variable "environment_type" {
 }
 
 job "[JOB_NAME]" {
-  region = "global"
-
   datacenters = ["${var.dc}"]
   type        = "service"
+  priority    = 75
 
   update {
     max_parallel = 1
@@ -79,37 +88,47 @@ job "[JOB_NAME]" {
 global:
   resolve_timeout: 5m
   slack_api_url: '${var.slack_api_url}'
-
+{{{ $pagerduty_keys_by_service := (`${var.pagerduty_keys_by_service}` | parseJSON ) }}}
 route:
+  receiver: slack
   group_by:
+    - alertname
+    - environment
     - severity
-    - type
   group_wait: 10s
   group_interval: 10s
   repeat_interval: 1h
-  receiver: slack
+
+  routes:{{{ range $k, $v := $pagerduty_keys_by_service }}}
+  - match:
+      service: '{{{ $k }}}'
+    receiver: slack
+    routes:
+    - match:
+        environment_type: prod
+        severity: critical
+      receiver: 'pagerduty-{{{ $k }}}'
+{{{- end }}}
 
 receivers:
-  - name: slack
-    slack_configs:
-      - channel: '#nomad-${var.environment_type}'
-        send_resolved: true
-        title: '[{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] ({{ or .CommonLabels.alertname "Multiple Alert Types" }} in {{ .CommonLabels.environment }}) <{{- .GroupLabels.SortedPairs.Values | join " " }}>'
-        text: |-
-          <!channel>{{ range .Alerts }}
-           
-          *{{ index .Labels "alertname" }}* {{- if .Annotations.summary }}: *{{ .Annotations.summary }}* {{- end }}
-            {{- if .Annotations.description }}
-          _{{ .Annotations.description }}_
-            {{- end }}
+- name: slack
+  slack_configs:
+    - channel: '#nomad-${var.environment_type}'
+      send_resolved: true
+      title: '[{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] ({{ or .CommonLabels.alertname "Multiple Alert Types" }} in {{ .CommonLabels.environment }}) <{{- .GroupLabels.SortedPairs.Values | join " " }}>'
+      text: |-
+        <!channel>{{ range .Alerts }}
+        *{{ index .Labels "alertname" }}* {{- if .Annotations.summary }}: *{{ .Annotations.summary }}* {{- end }}
+          {{- if .Annotations.description }}
+        _{{ .Annotations.description }}_
           {{- end }}
-#        actions:
-#        - type: button
-#          text: 'Runbook :green_book:'
-#          url: '{{ (index .Alerts 0).Annotations.runbook }}'
-#        - type: button
-#          text: 'Dashboard :chart:'
-#          url: '{{ (index .Alerts 0).Annotations.dashboard }}'
+        {{- end }}
+{{{ range $k, $v := $pagerduty_keys_by_service }}}
+- name: 'pagerduty-{{{ $k }}}'
+  pagerduty_configs:
+  - service_key: '{{{ $v }}}'
+{{{ end }}}
+
 EOH
       }
 

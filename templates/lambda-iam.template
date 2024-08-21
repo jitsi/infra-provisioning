@@ -1,6 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": "Create IAM roles and policies for the HC Video",
+  "Description": "EXAMPLE TEMPLATE, NO VALUES IN THIS DOCUMENT ARE USED IN ANY ACTUAL DEPLOYMENTS.  This template should be adapted to create IAM roles and policies for the Jitsi in AWS",
   "Resources": {
     "LambdaConferenceMapperRole": {
       "Type": "AWS::IAM::Role",

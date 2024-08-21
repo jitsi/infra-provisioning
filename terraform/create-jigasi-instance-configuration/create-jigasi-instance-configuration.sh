@@ -57,6 +57,9 @@ if [[ "$SHAPE" == "VM.Standard.E3.Flex" ]]; then
 elif [[ "$SHAPE" == "VM.Standard.E4.Flex" ]]; then
   [ -z "$OCPUS" ] && OCPUS=4
   [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=16
+elif [[ "$SHAPE" == "VM.Standard.E5.Flex" ]]; then
+  [ -z "$OCPUS" ] && OCPUS=4
+  [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=16
 else
   [ -z "$OCPUS" ] && OCPUS=4
   [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=60
@@ -76,6 +79,8 @@ if [[ "$JIGASI_TRANSCRIBER_FLAG" == "true" ]]; then
   INSTANCE_CONFIG_SUFFIX="TranscriberInstanceConfig"
   SHARD_ROLE="jigasi-transcriber"
   [ -z "$JIGASI_SUBNET_NAME" ] && JIGASI_SUBNET_NAME="${ORACLE_REGION}-${ENVIRONMENT}-NATSubnet"
+  # no need for special security group for transcribers
+  [ -z "$JIGASI_SECURITY_GROUP_NAME" ] && JIGASI_SECURITY_GROUP_NAME="${ORACLE_REGION}-${ENVIRONMENT}-JibriSecurityGroup"
 else
   INSTANCE_CONFIG_SUFFIX="JigasiInstanceConfig"
   [ -z "$JIGASI_SUBNET_NAME" ] && JIGASI_SUBNET_NAME="${ORACLE_REGION}-${ENVIRONMENT}-JigasiSubnet"

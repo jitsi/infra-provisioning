@@ -225,7 +225,7 @@ function eip_main() {
       eip_assign || EXIT_CODE=1
     else
         # we should not assign eip, therefore we assume we already have a public ip
-        (retry add_ip_tags && retry $PROVISION_COMMAND) || EXIT_CODE=1
+        (retry check_private_ip && retry add_ip_tags && retry $PROVISION_COMMAND) || EXIT_CODE=1
     fi
   else
     echo "Failed to get private IP, no further provisioning possible.  This instance requires manual intervention"

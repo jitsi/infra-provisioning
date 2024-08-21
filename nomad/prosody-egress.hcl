@@ -20,16 +20,6 @@ variable cloud_provider {
     default = "oracle"
 }
 
-variable "aws_access_key_id" {
-    type = string
-    default = "replaceme"
-}
-
-variable "aws_secret_access_key" {
-    type = string
-    default = "replaceme"
-}
-
 variable environment_type {
     type = string
     default = "dev"
@@ -68,40 +58,55 @@ job "[JOB_NAME]" {
     }
 
     network {
-      port "prosody-egress" {
-        to = 8062
-      }
-      port "actuator" {
-        to = 8063
+      mode = "bridge"
+      port "expose" {
       }
     }
 
     service {
       name = "prosody-egress"
-      tags = ["int-urlprefix-/v1/events", "ip-${attr.unique.network.ip-address}"]
-      port = "prosody-egress"
+      tags = ["ip-${attr.unique.network.ip-address}"]
+      port = "8062"
       meta {
         environment = "${meta.environment}"
+        metrics_port = "${NOMAD_HOST_PORT_expose}"
+      }
+
+      connect {
+        sidecar_service {
+          proxy {
+            local_service_port = 8062
+            expose {
+              path {
+                path            = "/actuator/health"
+                protocol        = "http"
+                local_path_port = 8063
+                listener_port   = "expose"
+              }
+            }
+          }
+        }
       }
 
       check {
         name     = "health"
         type     = "http"
         path     = "/actuator/health"
-        port     = "actuator"
+        port     = "expose"
         interval = "10s"
         timeout  = "2s"
       }
     }
 
     task "prosody-egress" {
+      vault {
+        change_mode = "noop"
+      }
       driver = "docker"
       config {
         image        = "103425057857.dkr.ecr.us-west-2.amazonaws.com/jitsi-vo/prosody-egress:j-37"
-        ports = ["prosody-egress", "actuator"]
         volumes = [
           "local/logs:/var/log/prosody-egress",
-          "local/aws:/etc/prosody-egress/.aws"
         ]
       }
       env {
@@ -109,25 +114,21 @@ job "[JOB_NAME]" {
         STATSD_HOST = "${attr.unique.network.ip-address}"
       }
       resources {
-        cpu    = 1200
+        cpu    = 500
         memory = 2048
       }
       template {
         data = <<EOF
-[default]
-region = us-west-2
+AWS_DEFAULT_REGION="us-west-2"
+AWS_REGION="us-west-2"
+{{ with secret "secret/default/prosody-egress/aws" -}}
+AWS_ACCESS_KEY_ID="{{ .Data.data.access_key }}"
+AWS_SECRET_ACCESS_KEY="{{ .Data.data.secret_key }}"
+{{ end -}}
 EOF
-        destination = "local/aws/config"  
+        destination = "secrets/aws"
+        env = true
       }
-      template {
-        data = <<EOF
-[default]
-aws_access_key_id = ${var.aws_access_key_id}
-aws_secret_access_key = ${var.aws_secret_access_key}
-EOF
-        destination = "local/aws/credentials"  
-      }
-
     }
   }
 }

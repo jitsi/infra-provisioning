@@ -251,6 +251,7 @@ for SHARD in $REMOVE_SHARDS; do
     echo "Removing shard $SHARD"
     curl -H "Content-Type: application/json" -X POST -d "{\"id\":\"$SHARD\"}" $REMOVE_URL 
 done
+exit 0
 
 [[- end ]]
 
