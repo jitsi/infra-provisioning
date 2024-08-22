@@ -10,11 +10,11 @@
           trim: true
       - string:
           name: IMAGE_TYPE
-          description: "Type of base image to build, could be 'JVB', 'Jigasi', 'JavaJibri', 'Signal', 'SeleniumGrid' 'JammyBase' defaults to 'JammyBase'."
+          description: "Type of base image to build, could be 'GPU' 'JVB', 'Jigasi', 'JavaJibri', 'Signal', 'SeleniumGrid' 'JammyBase' defaults to 'JammyBase'."
           trim: true
       - string:
           name: IMAGE_ARCH
-          description: "Arch of image to build, could be 'aarch64' or 'x86_64'"
+          description: "Arch of image to build, could be 'aarch64' or 'x86_64', defaults to 'aarch64' in most cases except GPU, Jibri and SeleniumGrid"
           trim: true
       - string:
           name: ORACLE_REGION
