@@ -48,7 +48,7 @@ fi
 ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 [ -e "$LOCAL_PATH/../clouds/${ORACLE_CLOUD_NAME}.sh" ] && . $LOCAL_PATH/../clouds/${ORACLE_CLOUD_NAME}.sh
 
-[ -z "$IMAGE_ARCH" ] && IMAGE_ARCH="x86_64"
+[ -z "$IMAGE_ARCH" ] && IMAGE_ARCH="aarch64"
 
 if [[ "$IMAGE_ARCH" == "aarch64" ]]; then
   [ -z "$SHAPE" ] && SHAPE="$SHAPE_A_1"

@@ -31,10 +31,9 @@ if [ -z "$IMAGE_TYPE" ]; then
   exit 10
 fi
 
-[ -z "$IMAGE_ARCH" ] && IMAGE_ARCH="x86_64"
-
 case $IMAGE_TYPE in
 JicofoHotfix)
+  [ -z "$IMAGE_ARCH" ] && IMAGE_ARCH="aarch64"
   export IMAGE_TYPE="Signal"
   IMAGE_NAME_PREFIX="BuildSignal"
   #if we're not given versions, search for the latest image
@@ -45,6 +44,7 @@ JicofoHotfix)
   ;;
 
 Signal)
+  [ -z "$IMAGE_ARCH" ] && IMAGE_ARCH="aarch64"
   IMAGE_NAME_PREFIX="BuildSignal"
 
   #if we're not given versions, search for the latest image
@@ -56,6 +56,7 @@ Signal)
   ;;
 
 JVB)
+  [ -z "$IMAGE_ARCH" ] && IMAGE_ARCH="aarch64"
   IMAGE_NAME_PREFIX="BuildJVB"
 
   #if we're not given versions, search for the latest image
@@ -67,6 +68,7 @@ JVB)
   fi
   ;;
 Jigasi)
+  [ -z "$IMAGE_ARCH" ] && IMAGE_ARCH="aarch64"
   IMAGE_NAME_PREFIX="BuildJigasi"
 
   #if we're not given versions, search for the latest image
@@ -78,10 +80,12 @@ Jigasi)
   fi
   ;;
 coTURN)
+  [ -z "$IMAGE_ARCH" ] && IMAGE_ARCH="aarch64"
   IMAGE_NAME_PREFIX="BuildCoturn"
   SERVICE_VERSION="latest"
   ;;
 JavaJibri)
+  [ -z "$IMAGE_ARCH" ] && IMAGE_ARCH="x86_64"
   IMAGE_NAME_PREFIX="BuildJavaJibri"
 
   #if we're not given versions, search for the latest image
@@ -92,7 +96,18 @@ JavaJibri)
     [ "$SERVICE_VERSION" == "latest" ] || echo $SERVICE_VERSION | grep -q -- -1$ || SERVICE_VERSION="${SERVICE_VERSION}-1"
   fi
   ;;
+SeleniumGrid)
+  [ -z "$IMAGE_ARCH" ] && IMAGE_ARCH="x86_64"
+  IMAGE_NAME_PREFIX="Build$IMAGE_TYPE"
+  SERVICE_VERSION="latest"
+  ;;
+GPU)
+  [ -z "$IMAGE_ARCH" ] && IMAGE_ARCH="x86_64"
+  IMAGE_NAME_PREFIX="Build$IMAGE_TYPE"
+  SERVICE_VERSION="latest"
+  ;;
 *)
+  [ -z "$IMAGE_ARCH" ] && IMAGE_ARCH="aarch64"
   IMAGE_NAME_PREFIX="Build$IMAGE_TYPE"
   SERVICE_VERSION="latest"
   ;;

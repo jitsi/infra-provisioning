@@ -15,7 +15,7 @@ LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
 [ -z "$ORACLE_REGION" ] && ORACLE_REGION=$DEFAULT_ORACLE_REGION
 
-[ -z "$IMAGE_ARCH" ] && IMAGE_ARCH="x86_64"
+[ -z "$IMAGE_ARCH" ] && IMAGE_ARCH="aarch64"
 
 # #pull in region-specific variables
 # [ -e "../all/regions/${ORACLE_REGION}-oracle.sh" ] && . ../all/regions/${ORACLE_REGION}-oracle.sh
