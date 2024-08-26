@@ -37,6 +37,8 @@ parser.add_argument('--oracle', action='store_true',
                    help='Include oracle instances', default=True)
 parser.add_argument('--oracle_only', action='store_true',
                    help='Include ONLY oracle instances', default=False)
+parser.add_argument('--inverse_region', action='store_true',
+                   help='Inverse Region', default=False)
 
 parser.add_argument('--fix_node_ips', action='store_true',
                    help='Perform fix IP tag operation', default=False)
@@ -44,13 +46,24 @@ parser.add_argument('--fix_node_ips', action='store_true',
 args = parser.parse_args()
 
 
-if args.region.lower() == 'all':
+if args.inverse_region:
+    # assume starting set is 'all'
     if args.oracle_only:
-        regions = oracle_regions()
+        inverse_regions = oracle_regions()
     else:
-        regions = AWS_REGIONS
+        inverse_regions = AWS_REGIONS
+
+    # include only regions not matching the specified region
+    regions = [x for x in inverse_regions if x != args.region]
 else:
-    regions = [args.region]
+    # standard region handling
+    if args.region.lower() == 'all':
+        if args.oracle_only:
+            regions = oracle_regions()
+        else:
+            regions = AWS_REGIONS
+    else:
+        regions = [args.region]
 
 roles = []
 nodes = []
