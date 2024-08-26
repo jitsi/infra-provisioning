@@ -154,6 +154,36 @@ if [[ "$CLOUD_PROVIDER" == "nomad" ]]; then
   export AUTOSCALER_URL="https://${ENVIRONMENT}-${ORACLE_REGION}-autoscaler.${TOP_LEVEL_DNS_ZONE_NAME}"
 fi
 
+instanceGroupGetResponse=$(curl -s -w "\n %{http_code}" -X GET \
+  "$AUTOSCALER_URL"/groups/"$GROUP_NAME" \
+  -H "Authorization: Bearer $TOKEN")
+
+getGroupHttpCode=$(tail -n1 <<<"$instanceGroupGetResponse" | sed 's/[^0-9]*//g') # get the last line
+instanceGroupDetails=$(sed '$ d' <<<"$instanceGroupGetResponse")                 # get all but the last line which contains the status code
+
+if [ "$getGroupHttpCode" == 404 ]; then
+  echo "No group named $GROUP_NAME was found. Will create one"
+elif [ "$getGroupHttpCode" == 200 ]; then
+  echo "Group $GROUP_NAME was found in the autoScaler"
+  EXISTING_MAXIMUM=$(echo "$instanceGroupDetails" | jq -r ."instanceGroup.scalingOptions.maxDesired")
+  EXISTING_MINIMUM=$(echo "$instanceGroupDetails" | jq -r ."instanceGroup.scalingOptions.minDesired")
+  EXISTING_DESIRED=$(echo "$instanceGroupDetails" | jq -r ."instanceGroup.scalingOptions.desiredCount")
+  if [ -n "$EXISTING_MAXIMUM" ]; then 
+    echo "Existing maximum: $EXISTING_MAXIMUM"
+    MAX_COUNT=$EXISTING_MAXIMUM
+  fi
+
+  if [ -n "$EXISTING_MINIMUM" ]; then 
+    echo "Existing minimum: $EXISTING_MINIMUM"
+    MIN_COUNT=$EXISTING_MINIMUM
+  fi
+
+  if [ -n "$EXISTING_DESIRED" ]; then
+    echo "Existing desired: $EXISTING_DESIRED"
+    DESIRED_COUNT=$EXISTING_DESIRED
+  fi
+fi
+
 REQUEST_BODY='{
             "name": "'"$GROUP_NAME"'",
             "type": "'$TYPE'",
