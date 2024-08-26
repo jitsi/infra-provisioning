@@ -165,8 +165,8 @@ if [ "$getGroupHttpCode" == 404 ]; then
   echo "No group named $GROUP_NAME was found. Will create one"
 elif [ "$getGroupHttpCode" == 200 ]; then
   echo "Group $GROUP_NAME was found in the autoScaler"
-  EXISTING_MAXIMUM=$(echo "$instanceGroupDetails" | jq -r ."instanceGroup.scalingOptions.minDesired")
-  EXISTING_MINIMUM=$(echo "$instanceGroupDetails" | jq -r ."instanceGroup.scalingOptions.maxDesired")
+  EXISTING_MAXIMUM=$(echo "$instanceGroupDetails" | jq -r ."instanceGroup.scalingOptions.maxDesired")
+  EXISTING_MINIMUM=$(echo "$instanceGroupDetails" | jq -r ."instanceGroup.scalingOptions.minDesired")
   EXISTING_DESIRED=$(echo "$instanceGroupDetails" | jq -r ."instanceGroup.scalingOptions.desiredCount")
   if [ -n "$EXISTING_MAXIMUM" ]; then 
     echo "Existing maximum: $EXISTING_MAXIMUM"
