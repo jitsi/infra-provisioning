@@ -35,22 +35,22 @@ fi
 # check for JVB_GROUP_NAME or look it up
 if [ -z "$JVB_GROUP_NAME" ]; then
     echo "No JVB_GROUP_NAME found. Looking it up..."
-    JVB_GROUP_NAME="$(ssh $SSH_USER@$JVB_IP "cat /tmp/oracle_cache-* | jq -r '.group'")"
+    JVB_GROUP_NAME="$(ssh -o StrictHostKeyChecking=no $SSH_USER@$JVB_IP "cat /tmp/oracle_cache-* | jq -r '.group'")"
 fi
 
 if [ -z "$JVB_POOL_MODE" ]; then
     echo "No JVB_POOL_MODE found. Looking it up..."
-    JVB_POOL_MODE="$(ssh $SSH_USER@$JVB_IP "cat /tmp/oracle_cache-* | jq -r '.jvb_pool_mode'")"
+    JVB_POOL_MODE="$(ssh -o StrictHostKeyChecking=no $SSH_USER@$JVB_IP "cat /tmp/oracle_cache-* | jq -r '.jvb_pool_mode'")"
 fi
 
 if [ -z "$RELEASE_NUMBER" ]; then
     echo "No RELEASE_NUMBER found. Looking it up..."
-    RELEASE_NUMBER="$(ssh $SSH_USER@$JVB_IP "cat /tmp/oracle_cache-* | jq -r '.release_number'")"
+    RELEASE_NUMBER="$(ssh -o StrictHostKeyChecking=no $SSH_USER@$JVB_IP "cat /tmp/oracle_cache-* | jq -r '.release_number'")"
 fi
 
 
 if [ -z "$ORACLE_REGION" ]; then
-    ORACLE_REGION="$(ssh $SSH_USER@$JVB_IP "curl http://169.254.169.254/opc/v1/instance/ | jq -r '.regionInfo.regionIdentifier'")"
+    ORACLE_REGION="$(ssh -o StrictHostKeyChecking=no $SSH_USER@$JVB_IP "curl http://169.254.169.254/opc/v1/instance/ | jq -r '.regionInfo.regionIdentifier'")"
 fi
 
 # start with local shards
@@ -73,7 +73,7 @@ for SHARD_IP in $SHARD_IPS; do
     # looks like '{"movedEndpoints":6,"conferences":1}'
     echo "Attempting to move endpoints on shard $SHARD_IP"
     SHARD_CMD="curl \"0:8888/move-endpoints/move-fraction?bridge=$MUC_BRIDGE&fraction=$MOVE_FRACTION\""
-    MOVE_RESPONSE="$(ssh $SSH_USER@$SHARD_IP "$SHARD_CMD")"
+    MOVE_RESPONSE="$(ssh -o StrictHostKeyChecking=no $SSH_USER@$SHARD_IP "$SHARD_CMD")"
     MOVED_ENDPOINTS="$(echo $MOVE_RESPONSE | jq -r '.movedEndpoints')"
     echo "Moved $MOVED_ENDPOINTS endpoints on shard $SHARD_IP"
     TOTAL_MOVED_ENDPOINTS=$((TOTAL_MOVED_ENDPOINTS + MOVED_ENDPOINTS))
