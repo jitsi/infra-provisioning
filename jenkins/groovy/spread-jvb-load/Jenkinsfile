@@ -1,0 +1,51 @@
+def spreadJVBLoad(oracle_region) {
+    sh(
+        script: '''#!/bin/bash
+        export USER_PUBLIC_KEY_PATH=~/.ssh/ssh_key.pub
+        scripts/spread-jvb-load.sh $SSH_USERNAME'''
+    )
+}
+
+def utils
+pipeline {
+    agent any
+    options {
+        ansiColor('xterm')
+        timestamps()
+        buildDiscarder(logRotator(numToKeepStr: '10', artifactNumToKeepStr: '10'))
+    }
+    stages {
+        stage ("setup") {
+            steps {
+                script {
+                    // load utility function
+                    def rootDir = pwd()
+                    utils = load "${rootDir}/jenkins/groovy/Utils.groovy"
+                    // checkout repos
+                    utils.SetupRepos(env.VIDEO_INFRA_BRANCH)
+
+                    // setup OCI credentials
+                    utils.SetupOCI()
+                }
+            }
+        }
+        stage ("spread JVB load") {
+            steps {
+                script {
+                    echo 'load spread task beginning'
+                    dir('infra-provisioning') {
+                        withCredentials([
+                            sshUserPrivateKey(credentialsId: 'ssh-ubuntu', keyFileVariable: 'USER_PRIVATE_KEY_PATH', usernameVariable: 'SSH_USERNAME')
+                        ]) {
+                            utils.SetupAnsible()
+                            utils.SetupSSH()
+                            sshagent (credentials: ['ssh-ubuntu']) {
+                                spreadJVBLoad(env.ORACLE_REGION)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
