@@ -43,6 +43,17 @@ if [[ "$CDN_PREFIX" == "null" ]]; then
     CDN_PREFIX=""
 fi
 
+CDN_CLOUDFLARE_FLAG=$(yq eval ".jitsi_meet_cdn_cloudflare_enabled" $LOCAL_PATH/../sites/$ENVIRONMENT/vars.yml | tail -1)
+if [[ "$CDN_CLOUDFLARE_FLAG" == "null" ]]; then
+    CDN_CLOUDFLARE_FLAG="false"
+fi
+
+if [[ "$CDN_CLOUDFLARE_FLAG" == "true" ]]; then
+    [ -z "$CDN_BASE" ] && CDN_BASE="$DOMAIN/v1/_cdn"
+else
+    [ -z "$CDN_BASE" ] && CDN_BASE="web-cdn.jitsi.net"
+fi
+
 [ -z "$PACKAGE_NAME" ] && PACKAGE_NAME="jitsi-meet"
 
 SIGNAL_INVENTORY_PATH="./signal-release-$RELEASE_NUMBER.inventory"
@@ -55,25 +66,25 @@ echo "Building signal node inventory into $SIGNAL_INVENTORY_PATH"
 $LOCAL_PATH/node.py --environment $ENVIRONMENT --role core --region all --oracle --release $RELEASE_NUMBER --batch > $SIGNAL_INVENTORY_PATH
 
 BASE_PATH="./base.html"
-echo -n "<base href=\"https://web-cdn.jitsi.net/$CDN_PREFIX$CDN_VERSION/\" />" > $BASE_PATH
+echo -n "<base href=\"https://$CDN_BASE/$CDN_PREFIX$CDN_VERSION/\" />" > $BASE_PATH
 
-wget -q https://web-cdn.jitsi.net/$CDN_PREFIX$CDN_VERSION/libs/external_api.min.js.map
-wget -q https://web-cdn.jitsi.net/$CDN_PREFIX$CDN_VERSION/libs/external_api.min.js
-wget -q https://web-cdn.jitsi.net/$CDN_PREFIX$CDN_VERSION/libs/lib-jitsi-meet.min.js
-wget -q https://web-cdn.jitsi.net/$CDN_PREFIX$CDN_VERSION/libs/lib-jitsi-meet.min.map
+wget -q https://$CDN_BASE/$CDN_PREFIX$CDN_VERSION/libs/external_api.min.js.map
+wget -q https://$CDN_BASE/$CDN_PREFIX$CDN_VERSION/libs/external_api.min.js
+wget -q https://$CDN_BASE/$CDN_PREFIX$CDN_VERSION/libs/lib-jitsi-meet.min.js
+wget -q https://$CDN_BASE/$CDN_PREFIX$CDN_VERSION/libs/lib-jitsi-meet.min.map
 
-wget -q https://web-cdn.jitsi.net/$CDN_PREFIX$CDN_VERSION/static/recommendedBrowsers.html
-wget -q https://web-cdn.jitsi.net/$CDN_PREFIX$CDN_VERSION/static/welcomePageAdditionalContent.html
-wget -q https://web-cdn.jitsi.net/$CDN_PREFIX$CDN_VERSION/static/accessStorage.html
-wget -q https://web-cdn.jitsi.net/$CDN_PREFIX$CDN_VERSION/static/accessStorage.min.js
-wget -q https://web-cdn.jitsi.net/$CDN_PREFIX$CDN_VERSION/static/accessStorage.min.map
+wget -q https://$CDN_BASE/$CDN_PREFIX$CDN_VERSION/static/recommendedBrowsers.html
+wget -q https://$CDN_BASE/$CDN_PREFIX$CDN_VERSION/static/welcomePageAdditionalContent.html
+wget -q https://$CDN_BASE/$CDN_PREFIX$CDN_VERSION/static/accessStorage.html
+wget -q https://$CDN_BASE/$CDN_PREFIX$CDN_VERSION/static/accessStorage.min.js
+wget -q https://$CDN_BASE/$CDN_PREFIX$CDN_VERSION/static/accessStorage.min.map
 
-wget -q https://web-cdn.jitsi.net/$CDN_PREFIX$CDN_VERSION/body.html
-wget -q https://web-cdn.jitsi.net/$CDN_PREFIX$CDN_VERSION/fonts.html
-wget -q https://web-cdn.jitsi.net/$CDN_PREFIX$CDN_VERSION/head.html
-wget -q https://web-cdn.jitsi.net/$CDN_PREFIX$CDN_VERSION/interface_config.js
-wget -q https://web-cdn.jitsi.net/$CDN_PREFIX$CDN_VERSION/manifest.json
-wget -q https://web-cdn.jitsi.net/$CDN_PREFIX$CDN_VERSION/title.html
+wget -q https://$CDN_BASE/$CDN_PREFIX$CDN_VERSION/body.html
+wget -q https://$CDN_BASE/$CDN_PREFIX$CDN_VERSION/fonts.html
+wget -q https://$CDN_BASE/$CDN_PREFIX$CDN_VERSION/head.html
+wget -q https://$CDN_BASE/$CDN_PREFIX$CDN_VERSION/interface_config.js
+wget -q https://$CDN_BASE/$CDN_PREFIX$CDN_VERSION/manifest.json
+wget -q https://$CDN_BASE/$CDN_PREFIX$CDN_VERSION/title.html
 
 LIST_FILES_FROM_ROOT_DIR="$BASE_PATH ./body.html ./fonts.html ./head.html ./interface_config.js ./manifest.json ./title.html"
 
