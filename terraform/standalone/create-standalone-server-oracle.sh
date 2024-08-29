@@ -34,7 +34,11 @@ ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 [ -z "$SHAPE" ] && SHAPE="VM.Standard.A1.Flex"
 
 [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS="8"
-[ -z "$INSTANCE_SHAPE_OCPUS" ] && INSTANCE_SHAPE_OCPUS="4"
+if [[ "$SHAPE" == "VM.Standard.A1.Flex" ]]; then
+  [ -z "$INSTANCE_SHAPE_OCPUS" ] && INSTANCE_SHAPE_OCPUS="4"
+else
+  [ -z "$INSTANCE_SHAPE_OCPUS" ] && INSTANCE_SHAPE_OCPUS="2"
+fi
 
 [ -z "$DISK_IN_GBS" ] && DISK_IN_GBS="$DISK_SIZE"
 [ -z "$DISK_IN_GBS" ] && DISK_IN_GBS="50"
