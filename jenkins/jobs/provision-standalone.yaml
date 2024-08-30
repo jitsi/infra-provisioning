@@ -59,6 +59,10 @@
           description: "Enables telegraf reporting to wavefront"
           trim: true
       - string:
+          name: DOCKER_COMPOSE_FLAG
+          description: "Run jitsi components via docker-compose instead of directly in java"
+          trim: true
+      - string:
           name: JITSI_MEET_VERSION
           description: "Jitsi Meet version, defaults to latest"
           trim: true
