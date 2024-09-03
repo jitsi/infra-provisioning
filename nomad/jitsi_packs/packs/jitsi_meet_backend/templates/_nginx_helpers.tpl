@@ -434,6 +434,8 @@ server {
         proxy_pass http://jicofo/conference-request/v1$1;
         limit_req zone=conference-request burst=100;
         limit_req zone=conference-request-global burst=2000;
+        add_header 'Access-Control-Allow-Headers' 'Content-Type';
+         add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS';
 [[ template "nginx-headers" . ]]
 
     }
