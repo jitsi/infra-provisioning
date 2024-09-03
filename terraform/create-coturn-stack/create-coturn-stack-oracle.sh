@@ -40,17 +40,6 @@ fi
 ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 [ -e "$LOCAL_PATH/../../clouds/${ORACLE_CLOUD_NAME}.sh" ] && . $LOCAL_PATH/../../clouds/${ORACLE_CLOUD_NAME}.sh
 
-[ -z "$SHAPE" ] && SHAPE="$DEFAULT_COTURN_SHAPE"
-[ -z "$OCPUS" ] && OCPUS=8
-[ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=16
-
-[ -z "$USER_PUBLIC_KEY_PATH" ] && USER_PUBLIC_KEY_PATH=~/.ssh/id_ed25519.pub
-
-#required 8x8 tag
-[ -z "$SERVICE" ] && SERVICE="$DOMAIN"
-[ -z "$SERVICE" ] && SERVICE="jitsi-coturn"
-
-COTURN_IMAGE_TYPE="coTURN"
 
 NOMAD_COTURN_FLAG="$(cat $ENVIRONMENT_VARS_FILE | yq eval .${COTURN_NAME_VARIABLE} -)"
 if [[ "$NOMAD_COTURN_FLAG" == "null" ]]; then
@@ -59,8 +48,29 @@ fi
 
 if [[ "$NOMAD_COTURN_FLAG" == "true" ]]; then
   COTURN_IMAGE_TYPE="JammyBase"
-  SHAPE="VM.Standard.A1.Flex"
+  if [[ "$ORACLE_REGION" == "us-ashburn-1" ]] || [[ "$ORACLE_REGION" == "eu-frankfurt-1" ]]; then
+    SHAPE="VM.Standard.A2.Flex"
+  else
+    SHAPE="VM.Standard.A1.Flex"
+  fi
 fi
+
+[ -z "$SHAPE" ] && SHAPE="$DEFAULT_COTURN_SHAPE"
+
+if [[ "$SHAPE" == "$SHAPE_A_1" ]]; then
+  [ -z "$OCPUS" ] && OCPUS=8
+else
+  [ -z "$OCPUS" ] && OCPUS=4
+fi
+[ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=16
+
+[ -z "$USER_PUBLIC_KEY_PATH" ] && USER_PUBLIC_KEY_PATH=~/.ssh/id_ed25519.pub
+
+#required 8x8 tag
+[ -z "$SERVICE" ] && SERVICE="$DOMAIN"
+[ -z "$SERVICE" ] && SERVICE="jitsi-coturn"
+
+[ -z "$COTURN_IMAGE_TYPE" ] && COTURN_IMAGE_TYPE="coTURN"
 
 arch_from_shape $SHAPE
 
