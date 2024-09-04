@@ -121,7 +121,7 @@ if [ "$getGroupHttpCode" == 404 ]; then
     -H "Authorization: Bearer $TOKEN" \
     -d '{
             "name": "'"$GROUP_NAME"'",
-            "type": "'$TYPE'",
+            "type": "jigasi",
             "region": "'"$ORACLE_REGION"'",
             "environment": "'"$ENVIRONMENT"'",
             "compartmentId": "'"$COMPARTMENT_OCID"'",
