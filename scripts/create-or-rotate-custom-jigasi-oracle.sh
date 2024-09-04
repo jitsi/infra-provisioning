@@ -13,9 +13,15 @@ fi
 
 [ -e ./sites/$ENVIRONMENT/stack-env.sh ] && . ./sites/$ENVIRONMENT/stack-env.sh
 
-CLOUD_PROVIDER="oracle"
+[ -z "$CLOUD_PROVIDER" ] && CLOUD_PROVIDER="oracle"
 
 LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
+
+# do the needful for the nomad case
+if [[ "$CLOUD_PROVIDER" == "nomad"  ]]; then
+  $LOCAL_PATH/create-or-rotate-transcriber-nomad.sh
+  exit $?
+fi
 
 if [ -z "$CLOUD_NAME" ]; then
   echo "No aws CLOUD_NAME found.  Exiting..."
@@ -37,6 +43,8 @@ ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 
 # assume we are not a transcriber unless flag is set
 [ -z "$JIGASI_TRANSCRIBER_FLAG" ] && JIGASI_TRANSCRIBER_FLAG="false"
+
+
 
 #if we're not given versions, search for the latest of each type of image
 [ -z "$JIGASI_VERSION" ] && JIGASI_VERSION='latest'
