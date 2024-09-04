@@ -186,7 +186,6 @@ job "[JOB_NAME]" {
         XMPP_GUEST_DOMAIN = "guest.${var.domain}"
         # XMPP domain for the jibri recorder
         XMPP_RECORDER_DOMAIN = "recorder.${var.domain}"
-        DISPLAY=":0"
         BOSH_URL_PATTERN="https://{host}{subdomain}/http-bind?room={roomName}"
         JIGASI_INSTANCE_ID = "${NOMAD_SHORT_ALLOC_ID}"
         JIGASI_ENABLE_PROMETHEUS = "true"
