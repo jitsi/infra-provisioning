@@ -17,12 +17,6 @@ fi
 
 LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
-# do the needful for the nomad case
-if [[ "$CLOUD_PROVIDER" == "nomad"  ]]; then
-  $LOCAL_PATH/create-or-rotate-transcriber-nomad.sh
-  exit $?
-fi
-
 if [ -z "$CLOUD_NAME" ]; then
   echo "No aws CLOUD_NAME found.  Exiting..."
   exit 204
@@ -36,6 +30,12 @@ fi
 if [ -z "$ORACLE_REGION" ]; then
   echo "No ORACLE_REGION found.  Exiting..."
   exit 203
+fi
+
+# do the needful for the nomad case
+if [[ "$CLOUD_PROVIDER" == "nomad"  ]]; then
+  $LOCAL_PATH/create-or-rotate-transcriber-nomad.sh
+  exit $?
 fi
 
 ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
