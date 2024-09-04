@@ -34,6 +34,7 @@ fi
 
 # do the needful for the nomad case
 if [[ "$CLOUD_PROVIDER" == "nomad"  ]]; then
+  export ORACLE_REGION
   $LOCAL_PATH/create-or-rotate-transcriber-nomad.sh
   exit $?
 fi
