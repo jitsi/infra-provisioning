@@ -50,7 +50,7 @@ if [ $? -gt 0 ]; then
 fi
 
 # create health check and alarms via terraform
-$LOCAL_PATH/../terraform/shard-nomad/create-shard-nomad-oracle.sh
+#$LOCAL_PATH/../terraform/shard-nomad/create-shard-nomad-oracle.sh
 
 if [ $? -eq 0 ]; then
     # finished building shard so write to shard create output
