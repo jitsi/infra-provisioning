@@ -180,8 +180,8 @@ EOF
   [inputs.nginx.tags]
     shard = "{{ .shard }}"
     release_number = "{{ .release_number }}"
-    shard-role = "core"
     role = "core"
+    service = "nginx-shard"
 {{ end }}
 {{ end }}
 {{ end }}
@@ -200,8 +200,9 @@ EOF
         host = "{{"{{"}}.Node}}"
         shard = "{{"{{"}}with .ServiceMeta.shard}}{{"{{"}}.}}{{"{{"}}else}}shard{{"{{"}}end}}"
         release_number = "{{"{{"}}with .ServiceMeta.release_number}}{{"{{"}}.}}{{"{{"}}else}}0{{"{{"}}end}}"
-        shard-role = "core"
         role = "core"
+        service = "jicofo"
+        datacenter = "{{ env "NOMAD_META_datacenter" }}"
     [[inputs.prometheus.consul.query]]
       name = "prosody-http"
       tag = "ip-{{ env "attr.unique.network.ip-address" }}"
@@ -210,9 +211,10 @@ EOF
         host = "{{"{{"}}.Node}}"
         shard = "{{"{{"}}with .ServiceMeta.shard}}{{"{{"}}.}}{{"{{"}}else}}shard{{"{{"}}end}}"
         release_number = "{{"{{"}}with .ServiceMeta.release_number}}{{"{{"}}.}}{{"{{"}}else}}0{{"{{"}}end}}"
-        shard-role = "core"
         role = "core"
         prosody-type = "prosody"
+        service = "prosody"
+        datacenter = "{{ env "NOMAD_META_datacenter" }}"
     [[inputs.prometheus.consul.query]]
       name = "prosody-jvb-http"
       tag = "ip-{{ env "attr.unique.network.ip-address" }}"
@@ -221,9 +223,10 @@ EOF
         host = "{{"{{"}}.Node}}"
         shard = "{{"{{"}}with .ServiceMeta.shard}}{{"{{"}}.}}{{"{{"}}else}}shard{{"{{"}}end}}"
         release_number = "{{"{{"}}with .ServiceMeta.release_number}}{{"{{"}}.}}{{"{{"}}else}}0{{"{{"}}end}}"
-        shard-role = "core"
         role = "core"
         prosody-type = "prosody-jvb"
+        service = "prosody-jvb"
+        datacenter = "{{ env "NOMAD_META_datacenter" }}"
     [[inputs.prometheus.consul.query]]
       name = "signal-sidecar"
       tag = "ip-{{ env "NOMAD_IP_telegraf_statsd" }}"
@@ -232,56 +235,63 @@ EOF
         host = "{{"{{"}}.Node}}"
         shard = "{{"{{"}}with .ServiceMeta.shard}}{{"{{"}}.}}{{"{{"}}else}}shard{{"{{"}}end}}"
         release_number = "{{"{{"}}with .ServiceMeta.release_number}}{{"{{"}}.}}{{"{{"}}else}}0{{"{{"}}end}}"
-        shard-role = "core"
         role = "core"
+        service = "signal-sidecar"
+        datacenter = "{{ env "NOMAD_META_datacenter" }}"
     [[inputs.prometheus.consul.query]]
       name = "coturn"
       tag = "ip-{{ env "attr.unique.network.ip-address" }}"
       url = 'http://{{"{{"}}if ne .ServiceAddress ""}}{{"{{"}}.ServiceAddress}}{{"{{"}}else}}{{"{{"}}.Address}}{{"{{"}}end}}:9641/{{"{{"}}with .ServiceMeta.metrics_path}}{{"{{"}}.}}{{"{{"}}else}}metrics{{"{{"}}end}}'
       [inputs.prometheus.consul.query.tags]
         host = "{{"{{"}}.Node}}"
-        shard-role = "coturn"
         role = "coturn"
+        service = "coturn"
+        datacenter = "{{ env "NOMAD_META_datacenter" }}"
     [[inputs.prometheus.consul.query]]
       name = "autoscaler"
       tag = "ip-{{ env "attr.unique.network.ip-address" }}"
       url = 'http://{{"{{"}}if ne .ServiceAddress ""}}{{"{{"}}.ServiceAddress}}{{"{{"}}else}}{{"{{"}}.Address}}{{"{{"}}end}}:{{"{{"}}with .ServiceMeta.metrics_port}}{{"{{"}}.}}{{"{{"}}else}}{{"{{"}}.ServicePort}}{{"{{"}}end}}/{{"{{"}}with .ServiceMeta.metrics_path}}{{"{{"}}.}}{{"{{"}}else}}metrics{{"{{"}}end}}'
       [inputs.prometheus.consul.query.tags]
         host = "{{"{{"}}.Node}}"
-        shard-role = "autoscaler"
         role = "autoscaler"
+        service = "autoscaler"
+        datacenter = "{{ env "NOMAD_META_datacenter" }}"
     [[inputs.prometheus.consul.query]]
       name = "skynet"
       tag = "ip-{{ env "attr.unique.network.ip-address" }}"
       url = 'http://{{"{{"}}if ne .ServiceAddress ""}}{{"{{"}}.ServiceAddress}}{{"{{"}}else}}{{"{{"}}.Address}}{{"{{"}}end}}:{{"{{"}}with .ServiceMeta.metrics_port}}{{"{{"}}.}}{{"{{"}}else}}{{"{{"}}.ServicePort}}{{"{{"}}end}}/{{"{{"}}with .ServiceMeta.metrics_path}}{{"{{"}}.}}{{"{{"}}else}}metrics{{"{{"}}end}}'
       [inputs.prometheus.consul.query.tags]
         host = "{{"{{"}}.Node}}"
-        shard-role = "skynet"
         role = "skynet"
+        service = "skynet"
+        datacenter = "{{ env "NOMAD_META_datacenter" }}"
     [[inputs.prometheus.consul.query]]
       name = "recovery-agent"
       tag = "ip-{{ env "attr.unique.network.ip-address" }}"
       url = 'http://{{"{{"}}if ne .ServiceAddress ""}}{{"{{"}}.ServiceAddress}}{{"{{"}}else}}{{"{{"}}.Address}}{{"{{"}}end}}:{{"{{"}}with .ServiceMeta.metrics_port}}{{"{{"}}.}}{{"{{"}}else}}{{"{{"}}.ServicePort}}{{"{{"}}end}}{{"{{"}}with .ServiceMeta.metrics_path}}{{"{{"}}.}}{{"{{"}}else}}/metrics{{"{{"}}end}}'
       [inputs.prometheus.consul.query.tags]
         host = "{{"{{"}}.Node}}"
-        shard-role = "recovery-agent"
         role = "recovery-agent"
+        service = "recovery-agent"
+        datacenter = "{{ env "NOMAD_META_datacenter" }}"
     [[inputs.prometheus.consul.query]]
       name = "whisper"
       tag = "ip-{{ env "attr.unique.network.ip-address" }}"
       url = 'http://{{"{{"}}if ne .ServiceAddress ""}}{{"{{"}}.ServiceAddress}}{{"{{"}}else}}{{"{{"}}.Address}}{{"{{"}}end}}:{{"{{"}}with .ServiceMeta.metrics_port}}{{"{{"}}.}}{{"{{"}}else}}{{"{{"}}.ServicePort}}{{"{{"}}end}}/{{"{{"}}with .ServiceMeta.metrics_path}}{{"{{"}}.}}{{"{{"}}else}}metrics{{"{{"}}end}}'
       [inputs.prometheus.consul.query.tags]
         host = "{{"{{"}}.Node}}"
-        shard-role = "whisper"
         role = "whisper"
+        service = "whisper"
+        datacenter = "{{ env "NOMAD_META_datacenter" }}"
     [[inputs.prometheus.consul.query]]
       name = "redis-metrics"
       tag = "ip-{{ env "attr.unique.network.ip-address" }}"
       url = 'http://{{"{{"}}if ne .ServiceAddress ""}}{{"{{"}}.ServiceAddress}}{{"{{"}}else}}{{"{{"}}.Address}}{{"{{"}}end}}:{{"{{"}}with .ServiceMeta.metrics_port}}{{"{{"}}.}}{{"{{"}}else}}{{"{{"}}.ServicePort}}{{"{{"}}end}}/{{"{{"}}with .ServiceMeta.metrics_path}}{{"{{"}}.}}{{"{{"}}else}}metrics{{"{{"}}end}}'
       [inputs.prometheus.consul.query.tags]
         host = "{{"{{"}}.Node}}"
-        shard-role = "redis"
         role = "redis"
+        service = "redis"
+        datacenter = "{{ env "NOMAD_META_datacenter" }}"
         redis-index = "{{"{{"}}with .ServiceMeta.redis_index}}{{"{{"}}.}}{{"{{"}}else}}NA{{"{{"}}end}}"
     [[inputs.prometheus.consul.query]]
       name = "jibri"
@@ -292,32 +302,36 @@ EOF
         group = "{{"{{"}}with .ServiceMeta.group}}{{"{{"}}.}}{{"{{"}}else}}jibri{{"{{"}}end}}"
         jibri_version = "{{"{{"}}with .ServiceMeta.jibri_version}}{{"{{"}}.}}{{"{{"}}else}}0{{"{{"}}end}}"
         jibri_release_number = "{{"{{"}}with .ServiceMeta.release_number}}{{"{{"}}.}}{{"{{"}}else}}0{{"{{"}}end}}"
-        shard-role = "java-jibri"
         role = "java-jibri"
+        service = "jibri"
+        datacenter = "{{ env "NOMAD_META_datacenter" }}"
     [[inputs.prometheus.consul.query]]
       name = "vo-credentials-store"
       tag = "ip-{{ env "attr.unique.network.ip-address" }}"
       url = 'http://{{"{{"}}if ne .ServiceAddress ""}}{{"{{"}}.ServiceAddress}}{{"{{"}}else}}{{"{{"}}.Address}}{{"{{"}}end}}:{{"{{"}}with .ServiceMeta.metrics_port}}{{"{{"}}.}}{{"{{"}}else}}{{"{{"}}.ServicePort}}{{"{{"}}end}}{{"{{"}}with .ServiceMeta.metrics_path}}{{"{{"}}.}}{{"{{"}}else}}/metrics{{"{{"}}end}}'
       [inputs.prometheus.consul.query.tags]
         host = "{{"{{"}}.Node}}"
-        shard-role = "credentials-store"
         role = "credentials-store"
+        service = "credentials-store"
+        datacenter = "{{ env "NOMAD_META_datacenter" }}"
     [[inputs.prometheus.consul.query]]
       name = "docker-registry"
       tag = "ip-{{ env "attr.unique.network.ip-address" }}"
       url = 'http://{{"{{"}}if ne .ServiceAddress ""}}{{"{{"}}.ServiceAddress}}{{"{{"}}else}}{{"{{"}}.Address}}{{"{{"}}end}}:{{"{{"}}with .ServiceMeta.metrics_port}}{{"{{"}}.}}{{"{{"}}else}}{{"{{"}}.ServicePort}}{{"{{"}}end}}{{"{{"}}with .ServiceMeta.metrics_path}}{{"{{"}}.}}{{"{{"}}else}}/metrics{{"{{"}}end}}'
       [inputs.prometheus.consul.query.tags]
         host = "{{"{{"}}.Node}}"
-        shard-role = "docker-registry"
         role = "docker-registry"
+        service = "docker-registry"
+        datacenter = "{{ env "NOMAD_META_datacenter" }}"
     [[inputs.prometheus.consul.query]]
       name = "docker-dhmirror"
       tag = "ip-{{ env "attr.unique.network.ip-address" }}"
       url = 'http://{{"{{"}}if ne .ServiceAddress ""}}{{"{{"}}.ServiceAddress}}{{"{{"}}else}}{{"{{"}}.Address}}{{"{{"}}end}}:{{"{{"}}with .ServiceMeta.metrics_port}}{{"{{"}}.}}{{"{{"}}else}}{{"{{"}}.ServicePort}}{{"{{"}}end}}{{"{{"}}with .ServiceMeta.metrics_path}}{{"{{"}}.}}{{"{{"}}else}}/metrics{{"{{"}}end}}'
       [inputs.prometheus.consul.query.tags]
         host = "{{"{{"}}.Node}}"
-        shard-role = "docker-dhmirror"
         role = "docker-dhmirror"
+        service = "docker-dhmirror"
+        datacenter = "{{ env "NOMAD_META_datacenter" }}"
 
 [[inputs.prometheus]]
   namepass = [
@@ -395,8 +409,9 @@ EOF
         shard = "{{"{{"}}with .ServiceMeta.shard}}{{"{{"}}.}}{{"{{"}}else}}shard{{"{{"}}end}}"
         release_number = "{{"{{"}}with .ServiceMeta.release_number}}{{"{{"}}.}}{{"{{"}}else}}0{{"{{"}}end}}"
         jvb_release_number = "{{"{{"}}with .ServiceMeta.jvb_release_number}}{{"{{"}}.}}{{"{{"}}else}}0{{"{{"}}end}}"
-        shard-role = "JVB"
         role = "JVB"
+        service = "jvb"
+        datacenter = "{{ env "NOMAD_META_datacenter" }}"
         region = "{{ env "meta.cloud_region" }}"
         oracle_region = "{{ env "meta.cloud_region" }}"
         jvb_version = "{{"{{"}}with .ServiceMeta.jvb_version}}{{"{{"}}.}}{{"{{"}}else}}0{{"{{"}}end}}"
@@ -414,6 +429,7 @@ EOF
       [inputs.prometheus.consul.query.tags]
         host = "{{"{{"}}.Node}}"
         role = "cloudprober"
+        datacenter = "{{ env "NOMAD_META_datacenter" }}"
 
 [[inputs.prometheus]]
   namepass = ["DCGM_FI_DEV_GPU_UTIL*", "DCGM_FI_DEV_MEM_COPY_UTIL*"]
@@ -427,8 +443,9 @@ EOF
       url = 'http://{{"{{"}}if ne .ServiceAddress ""}}{{"{{"}}.ServiceAddress}}{{"{{"}}else}}{{"{{"}}.Address}}{{"{{"}}end}}:{{"{{"}}with .ServiceMeta.metrics_port}}{{"{{"}}.}}{{"{{"}}else}}{{"{{"}}.ServicePort}}{{"{{"}}end}}/{{"{{"}}with .ServiceMeta.metrics_path}}{{"{{"}}.}}{{"{{"}}else}}metrics{{"{{"}}end}}'
       [inputs.prometheus.consul.query.tags]
         host = "{{"{{"}}.Node}}"
-        shard-role = "gpu"
         role = "gpu"
+        service = "gpu"
+        datacenter = "{{ env "NOMAD_META_datacenter" }}"
 
 [[outputs.prometheus_client]]
   listen = ":{{ env "NOMAD_HOST_PORT_telegraf_prometheus" }}"
