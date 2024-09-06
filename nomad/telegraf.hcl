@@ -214,7 +214,6 @@ EOF
         role = "core"
         prosody-type = "prosody"
         service = "prosody"
-        datacenter = "{{ env "NOMAD_META_datacenter" }}"
     [[inputs.prometheus.consul.query]]
       name = "prosody-jvb-http"
       tag = "ip-{{ env "attr.unique.network.ip-address" }}"
@@ -226,7 +225,6 @@ EOF
         role = "core"
         prosody-type = "prosody-jvb"
         service = "prosody-jvb"
-        datacenter = "{{ env "NOMAD_META_datacenter" }}"
     [[inputs.prometheus.consul.query]]
       name = "signal-sidecar"
       tag = "ip-{{ env "NOMAD_IP_telegraf_statsd" }}"
@@ -237,7 +235,6 @@ EOF
         release_number = "{{"{{"}}with .ServiceMeta.release_number}}{{"{{"}}.}}{{"{{"}}else}}0{{"{{"}}end}}"
         role = "core"
         service = "signal-sidecar"
-        datacenter = "{{ env "NOMAD_META_datacenter" }}"
     [[inputs.prometheus.consul.query]]
       name = "coturn"
       tag = "ip-{{ env "attr.unique.network.ip-address" }}"
@@ -246,7 +243,6 @@ EOF
         host = "{{"{{"}}.Node}}"
         role = "coturn"
         service = "coturn"
-        datacenter = "{{ env "NOMAD_META_datacenter" }}"
     [[inputs.prometheus.consul.query]]
       name = "autoscaler"
       tag = "ip-{{ env "attr.unique.network.ip-address" }}"
@@ -255,7 +251,6 @@ EOF
         host = "{{"{{"}}.Node}}"
         role = "autoscaler"
         service = "autoscaler"
-        datacenter = "{{ env "NOMAD_META_datacenter" }}"
     [[inputs.prometheus.consul.query]]
       name = "skynet"
       tag = "ip-{{ env "attr.unique.network.ip-address" }}"
@@ -264,7 +259,6 @@ EOF
         host = "{{"{{"}}.Node}}"
         role = "skynet"
         service = "skynet"
-        datacenter = "{{ env "NOMAD_META_datacenter" }}"
     [[inputs.prometheus.consul.query]]
       name = "recovery-agent"
       tag = "ip-{{ env "attr.unique.network.ip-address" }}"
@@ -273,7 +267,6 @@ EOF
         host = "{{"{{"}}.Node}}"
         role = "recovery-agent"
         service = "recovery-agent"
-        datacenter = "{{ env "NOMAD_META_datacenter" }}"
     [[inputs.prometheus.consul.query]]
       name = "whisper"
       tag = "ip-{{ env "attr.unique.network.ip-address" }}"
@@ -282,7 +275,6 @@ EOF
         host = "{{"{{"}}.Node}}"
         role = "whisper"
         service = "whisper"
-        datacenter = "{{ env "NOMAD_META_datacenter" }}"
     [[inputs.prometheus.consul.query]]
       name = "redis-metrics"
       tag = "ip-{{ env "attr.unique.network.ip-address" }}"
@@ -291,7 +283,6 @@ EOF
         host = "{{"{{"}}.Node}}"
         role = "redis"
         service = "redis"
-        datacenter = "{{ env "NOMAD_META_datacenter" }}"
         redis-index = "{{"{{"}}with .ServiceMeta.redis_index}}{{"{{"}}.}}{{"{{"}}else}}NA{{"{{"}}end}}"
     [[inputs.prometheus.consul.query]]
       name = "jibri"
@@ -304,7 +295,6 @@ EOF
         jibri_release_number = "{{"{{"}}with .ServiceMeta.release_number}}{{"{{"}}.}}{{"{{"}}else}}0{{"{{"}}end}}"
         role = "java-jibri"
         service = "jibri"
-        datacenter = "{{ env "NOMAD_META_datacenter" }}"
     [[inputs.prometheus.consul.query]]
       name = "vo-credentials-store"
       tag = "ip-{{ env "attr.unique.network.ip-address" }}"
@@ -313,7 +303,6 @@ EOF
         host = "{{"{{"}}.Node}}"
         role = "credentials-store"
         service = "credentials-store"
-        datacenter = "{{ env "NOMAD_META_datacenter" }}"
     [[inputs.prometheus.consul.query]]
       name = "docker-registry"
       tag = "ip-{{ env "attr.unique.network.ip-address" }}"
@@ -322,7 +311,6 @@ EOF
         host = "{{"{{"}}.Node}}"
         role = "docker-registry"
         service = "docker-registry"
-        datacenter = "{{ env "NOMAD_META_datacenter" }}"
     [[inputs.prometheus.consul.query]]
       name = "docker-dhmirror"
       tag = "ip-{{ env "attr.unique.network.ip-address" }}"
@@ -331,7 +319,6 @@ EOF
         host = "{{"{{"}}.Node}}"
         role = "docker-dhmirror"
         service = "docker-dhmirror"
-        datacenter = "{{ env "NOMAD_META_datacenter" }}"
 
 [[inputs.prometheus]]
   namepass = [
@@ -411,7 +398,6 @@ EOF
         jvb_release_number = "{{"{{"}}with .ServiceMeta.jvb_release_number}}{{"{{"}}.}}{{"{{"}}else}}0{{"{{"}}end}}"
         role = "JVB"
         service = "jvb"
-        datacenter = "{{ env "NOMAD_META_datacenter" }}"
         region = "{{ env "meta.cloud_region" }}"
         oracle_region = "{{ env "meta.cloud_region" }}"
         jvb_version = "{{"{{"}}with .ServiceMeta.jvb_version}}{{"{{"}}.}}{{"{{"}}else}}0{{"{{"}}end}}"
@@ -429,7 +415,6 @@ EOF
       [inputs.prometheus.consul.query.tags]
         host = "{{"{{"}}.Node}}"
         role = "cloudprober"
-        datacenter = "{{ env "NOMAD_META_datacenter" }}"
 
 [[inputs.prometheus]]
   namepass = ["DCGM_FI_DEV_GPU_UTIL*", "DCGM_FI_DEV_MEM_COPY_UTIL*"]
@@ -445,7 +430,6 @@ EOF
         host = "{{"{{"}}.Node}}"
         role = "gpu"
         service = "gpu"
-        datacenter = "{{ env "NOMAD_META_datacenter" }}"
 
 [[outputs.prometheus_client]]
   listen = ":{{ env "NOMAD_HOST_PORT_telegraf_prometheus" }}"
