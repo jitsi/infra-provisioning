@@ -57,6 +57,10 @@ set +x
 set -e
 set -o pipefail
 export NOMAD_VAR_jigasi_xmpp_password="$(ansible-vault view $ENCRYPTED_JIGASI_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${JIGASI_XMPP_PASSWORD_VARIABLE}" -)"
+if [[ "$NOMAD_VAR_jigasi_xmpp_password" == "null" ]]; then
+    export NOMAD_VAR_jigasi_xmpp_password=
+fi
+
 export NOMAD_VAR_jigasi_shared_secret="$(ansible-vault view $ENCRYPTED_JIGASI_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${JIGASI_SHARED_SECRET_VARIABLE}" -)"
 if [[ "$NOMAD_VAR_jigasi_shared_secret" == "null" ]]; then
     export NOMAD_VAR_jigasi_shared_secret=
