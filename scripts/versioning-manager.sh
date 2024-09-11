@@ -4,7 +4,7 @@
 
 ## CRUD release: CREATE_RELEASE, DELETE_RELEASE, SET_RELEASE_GA, SET_RELEASE_EARLY_ACCESS, UPDATE_RELEASE_TITLE
 ## list releases: GET_RELEASE, GET_RELEASES
-## tenant release pinning management: SET_TENANT_PIN, DELETE_TENANT_PIN, UNPIN_ALL_FROM_RELEASE
+## customer release pinning management: SET_CUSTOMER_PIN, DELETE_CUSTOMER_PIN, UNPIN_ALL_FROM_RELEASE
 
 echo "# starting versioning-manager.sh"
 
@@ -249,10 +249,10 @@ elif [ "$VERSIONING_ACTION" == "UPDATE_RELEASE_TITLE" ]; then
     exit 1
   fi
 
-elif [ "$VERSIONING_ACTION" == "SET_TENANT_PIN" ]; then
-  echo "## setting tenant pin"
-  if [ -z "$TENANT" ]; then
-    echo "## no TENANT provided or found, exiting"
+elif [ "$VERSIONING_ACTION" == "SET_CUSTOMER_PIN" ]; then
+  echo "## setting customer pin"
+  if [ -z "$CUSTOMER_ID" ]; then
+    echo "## no CUSTOMER_ID provided or found, exiting"
     exit 2
   fi
   if [ -z "$RELEASE_NUMBER" ]; then
@@ -261,7 +261,7 @@ elif [ "$VERSIONING_ACTION" == "SET_TENANT_PIN" ]; then
   fi
 
   response=$(curl -s -w '\n %{http_code}' -X POST \
-      "$VERSIONING_URL"/v1/customers/"$TENANT"/pin/"$RELEASE_NUMBER"?environment="$ENVIRONMENT" \
+      "$VERSIONING_URL"/v1/customers/"$CUSTOMER_ID"/pin/"$RELEASE_NUMBER"?environment="$ENVIRONMENT" \
       -H 'accept: application/json' \
       -H 'Content-Type: application/json' \
       -H "Authorization: Bearer $TOKEN" \
@@ -269,21 +269,21 @@ elif [ "$VERSIONING_ACTION" == "SET_TENANT_PIN" ]; then
 
   httpCode=$(tail -n1 <<<"$response" | sed 's/[^0-9]*//g')
   if [ "$httpCode" == 200 ]; then
-    echo "## successfully pinned tenant $TENANT to release $RELEASE_NUMBER"
+    echo "## successfully pinned customer $CUSTOMER_ID to release $RELEASE_NUMBER"
   else
-    echo "## ERROR setting pin for $TENANT with status code $httpCode and response:\n$response"
+    echo "## ERROR setting pin for $CUSTOMER_ID with status code $httpCode and response:\n$response"
     exit 1
   fi
 
-elif [ "$VERSIONING_ACTION" == "DELETE_TENANT_PIN" ]; then
-  echo "## deleting tenant pin"
-  if [ -z "$TENANT" ]; then
-    echo "## no TENANT provided or found, exiting"
+elif [ "$VERSIONING_ACTION" == "DELETE_CUSTOMER_PIN" ]; then
+  echo "## deleting customer pin"
+  if [ -z "$CUSTOMER_ID" ]; then
+    echo "## no CUSTOMER_ID provided or found, exiting"
     exit 2
   fi
 
   response=$(curl -s -w '\n %{http_code}' -X DELETE \
-      "$VERSIONING_URL"/v1/customers/"$TENANT"/pin/?environment="$ENVIRONMENT" \
+      "$VERSIONING_URL"/v1/customers/"$CUSTOMER_ID"/pin/?environment="$ENVIRONMENT" \
       -H 'accept: application/json' \
       -H 'Content-Type: application/json' \
       -H "Authorization: Bearer $TOKEN" \
@@ -291,13 +291,13 @@ elif [ "$VERSIONING_ACTION" == "DELETE_TENANT_PIN" ]; then
 
   httpCode=$(tail -n1 <<<"$response" | sed 's/[^0-9]*//g')
   if [ "$httpCode" == 200 ]; then
-    echo "## successfully deleted pin for $TENANT"
+    echo "## successfully deleted pin for $CUSTOMER_ID"
   else
-    echo "## ERROR deleting pin for $TENANT with status code $httpCode and response:\n$response"
+    echo "## ERROR deleting pin for $CUSTOMER_ID with status code $httpCode and response:\n$response"
     exit 1
   fi
 elif [ "$VERSIONING_ACTION" == "UNPIN_ALL_FROM_RELEASE" ]; then
-  echo "## unpinning all tenants from release"
+  echo "## unpinning all customers from release"
   if [ -z "$RELEASE_NUMBER" ]; then
     echo "## no RELEASE_NUMBER set, exiting"
     exit 2
@@ -319,11 +319,11 @@ elif [ "$VERSIONING_ACTION" == "UNPIN_ALL_FROM_RELEASE" ]; then
   fi
 
   ## iterate through response and delete all pins
-  PINNED_TENANTS=$(sed '$ d' <<< "$response" | jq ".[] | select(.releaseNumber==\"${RELEASE_NUMBER}\") | .customers[] | select(.current==true) | .customerId")
-  for tenant in $(echo $PINNED_TENANTS | tr -d '"');  do
-    echo "## deleting pin for $tenant"
+  PINNED_CUSTOMERS=$(sed '$ d' <<< "$response" | jq ".[] | select(.releaseNumber==\"${RELEASE_NUMBER}\") | .customers[] | select(.current==true) | .customerId")
+  for CUSTOMER_ID in $(echo $PINNED_CUSTOMERS | tr -d '"');  do
+    echo "## deleting pin for $CUSTOMER_ID"
     response=$(curl -s -w '\n %{http_code}' -X DELETE \
-        "$VERSIONING_URL"/v1/customers/"$tenant"/pin/?environment="$ENVIRONMENT" \
+        "$VERSIONING_URL"/v1/customers/"$CUSTOMER_ID"/pin/?environment="$ENVIRONMENT" \
         -H 'accept: application/json' \
         -H 'Content-Type: application/json' \
         -H "Authorization: Bearer $TOKEN" \
@@ -331,15 +331,15 @@ elif [ "$VERSIONING_ACTION" == "UNPIN_ALL_FROM_RELEASE" ]; then
     
     httpCode=$(tail -n1 <<<"$response" | sed 's/[^0-9]*//g')
     if [ "$httpCode" == 200 ]; then
-      echo "## successfully deleted pin for $tenant"
+      echo "## successfully deleted pin for $CUSTOMER_ID"
     else
-      echo "## ERROR deleting pin for $tenant with status code $httpCode and response:\n$response"
+      echo "## ERROR deleting pin for $CUSTOMER_ID with status code $httpCode and response:\n$response"
       exit 1
     fi
   done
 
 else
   echo "## ERROR no action performed, invalid VERSIONING_ACTION: $VERSIONING_ACTION"
-  echo "## VERSIONING_ACTION must be CREATE_RELEASE, DELETE_RELEASE, GET_RELEASES, SET_RELEASE_GA, SET_RELEASE_EARLY_ACCESS, UPDATE_RELEASE_TITLE, SET_TENANT_PIN, DELETE_TENANT_PIN, or UNPIN_ALL_FROM_RELEASE"
+  echo "## VERSIONING_ACTION must be CREATE_RELEASE, DELETE_RELEASE, GET_RELEASES, SET_RELEASE_GA, SET_RELEASE_EARLY_ACCESS, UPDATE_RELEASE_TITLE, SET_CUSTOMER_PIN, DELETE_CUSTOMER_PIN, or UNPIN_ALL_FROM_RELEASE"
   exit 2
 fi

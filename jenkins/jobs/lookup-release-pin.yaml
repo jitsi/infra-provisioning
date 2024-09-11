@@ -6,7 +6,7 @@
       - string:
           name: CUSTOMER_ID
           default:
-          description: "The customer ID, i.e., the URL directory for this customer's conferences."
+          description: "The customer ID."
           trim: true
       - string:
           name: VIDEO_INFRA_BRANCH

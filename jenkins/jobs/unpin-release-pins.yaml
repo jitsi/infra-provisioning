@@ -1,7 +1,7 @@
 - job:
     name: unpin-release-pins
     display-name: unpin release pins
-    description: 'Unpin all pins from a release, typically used ahead of a release drain.'
+    description: 'Unpin all pins from a release, typically used ahead of a release drain. Only for use in environments where a versioning-manager is used, e.g., JaaS.'
     concurrent: true
     parameters:
       - string:
