@@ -107,6 +107,7 @@ global:
   evaluation_interval: 5s
 
   external_labels:
+    datacenter: '${var.dc}'
     environment: '{{ env "meta.environment" }}'
     region: '{{ env "meta.cloud_region" }}'
 
