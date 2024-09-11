@@ -326,7 +326,7 @@ groups:
       summary: a domain probe from ${var.dc} reached an haproxy outside the local region
       description: An cloudprober probe to the domain reached an haproxy outside of the local region. This means that CloudFlare may not be routing requests to ${var.dc}, likely due to failing health checks to the regional load balancer ingress.
   - alert: LatencyHigh
-    expr: (cloudprober_latency{probe="latency"} > 500) or (cloudprober_latency{probe="latency_https"} > 500)
+    expr: (cloudprober_latency{probe="latency"} > 1500) or (cloudprober_latency{probe="latency_https"} > 1500)
     for: 2m
     labels:
       environment_type: "{{ if $labels.environment_type }}{{ $labels.environment_type }}{{ else }}${var.environment_type}{{ end }}"
@@ -336,7 +336,7 @@ groups:
       summary: http probe from ${var.dc} to {{ $labels.dst }} has high latency
       description: The {{ $labels.probe }} http probe from ${var.dc} to {{ $labels.dst }} has had high latency for 2 minutes, most recently at {{ $value }} ms.
   - alert: LatencyHigh
-    expr: (cloudprober_latency{probe="latency"} > 1000) or (cloudprober_latency{probe="latency_https"} > 1000)
+    expr: (cloudprober_latency{probe="latency"} > 3000) or (cloudprober_latency{probe="latency_https"} > 3000)
     for: 5m
     labels:
       environment_type: "{{ if $labels.environment_type }}{{ $labels.environment_type }}{{ else }}${var.environment_type}{{ end }}"
