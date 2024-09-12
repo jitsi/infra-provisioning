@@ -91,6 +91,18 @@
           description: "Overrides OCI Memory size"
           trim: true
       - string:
+          name: PROSODY_FROM_URL
+          description: "Flag to control prosody from apt or URL, defaults to apt, set to 'true' for URL"
+          trim: true
+      - string:
+          name: PROSODY_URL_VERSION
+          description: "Version to use from URL, defaults to '0.11.14'"
+          trim: true
+      - string:
+          name: PROSODY_VERSION
+          description: "Version to use from apt, defaults to latest in apt"
+          trim: true
+      - string:
           name: INFRA_CONFIGURATION_REPO
           default: git@github.com:jitsi/infra-configuration.git
           description: "Repo for configuration code (ansible etc), defaults to 'git@github.com:jitsi/infra-configuration.git'."
