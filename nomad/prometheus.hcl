@@ -315,7 +315,7 @@ groups:
       severity: warning
     annotations:
       summary: a domain probe from ${var.dc} reached an haproxy outside the local region
-      description: An cloudprober probe to the domain reached an haproxy outside of the local region. This means that CloudFlare may not be routing requests to ${var.dc}, likely due to failing health checks to the regional load balancer ingress.
+      description: An cloudprober probe to the domain reached an haproxy outside of the local region. This means that Cloudflare may not be routing requests to ${var.dc}, likely due to failing health checks to the regional load balancer ingress.
   - alert: HAProxyRegionMismatch
     expr: cloudprober_haproxy_region_check_passed < 1
     for: 10m
@@ -325,7 +325,7 @@ groups:
       severity: critical
     annotations:
       summary: a domain probe from ${var.dc} reached an haproxy outside the local region
-      description: An cloudprober probe to the domain reached an haproxy outside of the local region. This means that CloudFlare may not be routing requests to ${var.dc}, likely due to failing health checks to the regional load balancer ingress.
+      description: An cloudprober probe to the domain reached an haproxy outside of the local region. This means that Cloudflare may not be routing requests to ${var.dc}, likely due to failing health checks to the regional load balancer ingress.
   - alert: LatencyHigh
     expr: (cloudprober_latency{probe="latency"} > 1500) or (cloudprober_latency{probe="latency_https"} > 1500)
     for: 2m
