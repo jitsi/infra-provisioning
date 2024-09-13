@@ -274,7 +274,7 @@ probe {
       }
   }
   interval_msec: 60000
-  timeout_msec: 5000
+  timeout_msec: 10000
   latency_unit: "ms"
 }
 
