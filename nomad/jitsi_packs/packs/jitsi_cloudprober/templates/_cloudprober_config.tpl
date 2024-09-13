@@ -63,7 +63,7 @@ probe {
       }
   }
   interval_msec: 60000
-  timeout_msec: 5000
+  timeout_msec: 10000
   latency_unit: "ms"
 }
 
@@ -87,7 +87,7 @@ probe {
       }
   }
   interval_msec: 60000
-  timeout_msec: 5000
+  timeout_msec: 10000
   latency_unit: "ms"
 }
 
@@ -226,7 +226,7 @@ probe {
       }
   }
   interval_msec: 60000
-  timeout_msec: 5000
+  timeout_msec: 10000
   latency_unit: "ms"
 }
 
@@ -250,7 +250,7 @@ probe {
       }
   }
   interval_msec: 60000
-  timeout_msec: 5000
+  timeout_msec: 10000
   latency_unit: "ms"
 }
 
@@ -274,7 +274,7 @@ probe {
       }
   }
   interval_msec: 60000
-  timeout_msec: 5000
+  timeout_msec: 10000
   latency_unit: "ms"
 }
 
@@ -293,7 +293,7 @@ probe {
       }
   }
   interval_msec: 20000
-  timeout_msec: 5000
+  timeout_msec: 10000
   latency_unit: "ms"
   additional_label {
     key: "severity"
@@ -325,7 +325,7 @@ probe {
       }
   }
   interval_msec: 60000
-  timeout_msec: 5000
+  timeout_msec: 10000
   latency_unit: "ms"
 }
 [[ end -]]
@@ -348,7 +348,7 @@ probe {
       }
   }
   interval_msec: 60000
-  timeout_msec: 5000
+  timeout_msec: 10000
   latency_unit: "ms"
 }
 [[ end -]]
