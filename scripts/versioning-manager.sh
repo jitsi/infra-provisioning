@@ -294,7 +294,7 @@ elif [ "$VERSIONING_ACTION" == "DELETE_CUSTOMER_PIN" ]; then
     echo "## successfully deleted pin for $CUSTOMER_ID"
   else
     echo "## ERROR deleting pin for $CUSTOMER_ID with status code $httpCode and response:\n$response"
-    exit 1
+    #exit 1
   fi
 elif [ "$VERSIONING_ACTION" == "UNPIN_ALL_FROM_RELEASE" ]; then
   echo "## unpinning all customers from release"
