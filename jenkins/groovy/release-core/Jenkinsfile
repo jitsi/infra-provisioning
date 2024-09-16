@@ -354,6 +354,9 @@ pipeline {
         }
 
         stage("enable shard alarms") {
+            when {
+                expression {env.CORE_CLOUD_PROVIDER == 'oracle'}
+            }
             steps {
                 sshagent (credentials: ['ssh-ubuntu']) {
                     dir('infra-provisioning') {
