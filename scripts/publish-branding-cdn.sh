@@ -76,20 +76,24 @@ curl -O $DEB_URL
 
 dpkg -x $DEB_FILENAME .
 
-aws s3 cp --recursive usr/share/${BRANDING_NAME} s3://$CDN_S3_BUCKET/${VERSION_PREFIX}${BRANDING_COMPLETE_VERSION}/
+if [ -n "$CDN_R2_BUCKET" ]; then
+    AWS_ACCESS_KEY_ID=$R2_ACCESS_KEY_ID \
+    AWS_SECRET_ACCESS_KEY=$R2_SECRET_ACCESS_KEY \
+    AWS_DEFAULT_REGION=auto \
+    aws s3 cp --recursive usr/share/${BRANDING_NAME} s3://$CDN_R2_BUCKET/v1/_cdn/${VERSION_PREFIX}${BRANDING_COMPLETE_VERSION}/ \
+    --endpoint-url $R2_ENDPOINT_URL &
+fi
+
+aws s3 cp --recursive usr/share/${BRANDING_NAME} s3://$CDN_S3_BUCKET/${VERSION_PREFIX}${BRANDING_COMPLETE_VERSION}/ &
+
+wait
+
 s3cmd --recursive modify --add-header="Cache-Control: public, max-age=31536000" s3://$CDN_S3_BUCKET/${VERSION_PREFIX}${BRANDING_COMPLETE_VERSION}/
 s3cmd --recursive modify --add-header="Access-Control-Allow-Origin: *" s3://$CDN_S3_BUCKET/${VERSION_PREFIX}${BRANDING_COMPLETE_VERSION}/
 s3cmd --recursive modify --add-header="Cross-Origin-Resource-Policy: cross-origin" s3://$CDN_S3_BUCKET/${VERSION_PREFIX}${BRANDING_COMPLETE_VERSION}/
 # Default mime type mapping doesn't identify wasm files correctly
 s3cmd --recursive modify --exclude='*' --include='*.wasm' --add-header="Content-Type: application/wasm" s3://$CDN_S3_BUCKET/${VERSION_PREFIX}${BRANDING_COMPLETE_VERSION}/
 
-if [ -n "$CDN_R2_BUCKET" ]; then
-    AWS_ACCESS_KEY_ID=$R2_ACCESS_KEY_ID \
-    AWS_SECRET_ACCESS_KEY=$R2_SECRET_ACCESS_KEY \
-    AWS_DEFAULT_REGION=auto \
-    aws s3 cp --recursive usr/share/${BRANDING_NAME} s3://$CDN_R2_BUCKET/v1/_cdn/${VERSION_PREFIX}${BRANDING_COMPLETE_VERSION}/ \
-    --endpoint-url $R2_ENDPOINT_URL 
-fi
 popd
 
 rm -rf $DEB_PATH
