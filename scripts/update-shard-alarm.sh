@@ -29,12 +29,13 @@ fi
 
 SHARD_PROVIDER=$($LOCAL_PATH/shard.sh core_provider $ANSIBLE_SSH_USER)
 
-SHARD_REGION=$(SHARD="$SHARD" $LOCAL_PATH/shard.sh shard_region $ANSIBLE_SSH_USER)
-
 # in case of nomad shards, oracle alarms are created so treat them like oracle shards
 if [[ "$SHARD_PROVIDER" == "nomad" ]]; then
-    SHARD_PROVIDER="oracle"
+    echo "No shard alarms for nomad shards, exiting..."
+    exit 0
 fi
+
+SHARD_REGION=$(SHARD="$SHARD" $LOCAL_PATH/shard.sh shard_region $ANSIBLE_SSH_USER)
 
 case "$SHARD_PROVIDER" in
     'aws')
