@@ -36,6 +36,10 @@ variable "jigasi_version" {
   type = string
   default = "latest"
 }
+variable "oci_compartment" {
+  type = string
+  default = ""
+}
 
 variable "dc" {
   type = string
@@ -164,7 +168,8 @@ job "[JOB_NAME]" {
           "local/reload-config.sh:/opt/jitsi/scripts/reload-config.sh",
 #          "local/jibri-status.sh:/opt/jitsi/scripts/jigasi-stats.sh",
 #          "local/cron-service-run:/etc/services.d/60-cron/run",
-          "local/config:/config"
+          "local/config:/config",
+          "secrets/oci:/usr/share/jigasi/.oci"
     	  ]
       }
 
@@ -190,6 +195,11 @@ job "[JOB_NAME]" {
         JIGASI_INSTANCE_ID = "${NOMAD_SHORT_ALLOC_ID}"
         JIGASI_ENABLE_PROMETHEUS = "true"
         JIGASI_MODE = "transcriber"
+        JIGASI_TRANSCRIBER_REMOTE_CONFIG_URL = "https://get-transcriber.jitsi.net"
+        JIGASI_TRANSCRIBER_OCI_REGION = "${meta.cloud_region}"
+        JIGASI_TRANSCRIBER_OCI_COMPARTMENT = "${var.oci_compartment}"
+        JIGASI_TRANSCRIBER_WHISPER_URL = "https://${var.environment}-${meta.cloud_region}-whisper.jitsi.net"
+        JIGASI_TRANSCRIBER_ENABLE_SAVING = "false"
         LOCAL_ADDRESS = "${attr.unique.network.ip-address}"
         AUTOSCALER_SIDECAR_PORT = "6000"
 #        AUTOSCALER_URL = "https://${meta.cloud_name}-autoscaler.jitsi.net"
@@ -218,7 +228,11 @@ EOF
 
       template {
         data = <<EOF
-AUTOSCALER_SIDECAR_KEY_ID="{{ with secret "secret/${var.environment}/asap/server" }}{{ .Data.data.key_id }}{{ end }}"
+{{ with secret "secret/${var.environment}/asap/server" }}
+AUTOSCALER_SIDECAR_KEY_ID="{{ .Data.data.key_id }}"
+JIGASI_TRANSCRIBER_WHISPER_PRIVATE_KEY_NAME="{{ .Data.data.key_id }}"
+JIGASI_TRANSCRIBER_WHISPER_PRIVATE_KEY="{{ .Data.data.private_key | regexReplaceAll "(-----BEGIN PRIVATE KEY-----|-----END PRIVATE KEY-----)" "" | replaceAll "\n" "" }}"
+{{ end }}
 EOF
         env = true
         destination = "secrets/asap_key_id"
@@ -229,6 +243,35 @@ EOF
 {{- with secret "secret/${var.environment}/asap/server" }}{{ .Data.data.private_key }}{{ end -}}
 EOF
         destination = "secrets/asap.key"
+      }
+
+      template {
+        data = <<EOF
+[DEFAULT]
+{{- $secret_path := printf "secret/%s/transcriber/oci_api" (env "NOMAD_NAMESPACE") }}
+{{- with secret $secret_path }}
+user={{ .Data.data.user }}
+fingerprint={{ .Data.data.fingerprint }}
+key_file=/secrets/oci/oci_api_key.pem
+tenancy={{ .Data.data.tenancy }}
+region={{ env "meta.cloud_region" }}
+{{ end -}}
+EOF
+        destination = "secrets/oci/config"
+        perms = "600"
+        uid = 998
+        gid = 1000
+      }
+
+      template {
+        data = <<EOF
+{{- $secret_path := printf "secret/%s/transcriber/oci_api" (env "NOMAD_NAMESPACE") }}
+{{- with secret $secret_path }}{{ .Data.data.private_key }}{{ end -}}
+EOF
+        destination = "secrets/oci/oci_api_key.pem"
+        perms = "600"
+        uid = 998
+        gid = 1000
       }
 
       template {
