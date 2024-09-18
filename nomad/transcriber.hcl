@@ -252,7 +252,7 @@ EOF
 {{ range $index, $item := service "all" -}}
     {{ scratch.MapSetX "shards" .ServiceMeta.domain $item  -}}
 {{ end -}}
-{{ range $sindex, $item := scratch.MapValues "shards" -}}{{ if gt $sindex 0 -}},{{end}}{{ .Address }}:{{ with .ServiceMeta.prosody_client_port}}{{.}}{{ else }}5222{{ end }}{{ end -}}
+{{ range $sindex, $item := scratch.MapValues "shards" -}}{{ if gt $sindex 0 -}},{{end}}{{ .Address }}:{{ with .ServiceMeta.prosody_client_port}}{{.}}{{ else }}5222{{ end }}:{{ .ServiceMeta.shard }}{{ end -}}
 EOF
 
         destination = "local/xmpp-servers/servers"
