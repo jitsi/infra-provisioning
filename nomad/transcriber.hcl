@@ -256,7 +256,8 @@ EOF
 EOF
 
         destination = "local/xmpp-servers/servers"
-        # instead of restarting, jibri will graceful shutdown when shard list changes
+        # instead of restarting, transcriber will rebuild configuration disk then update running jigasi
+        # re-adding every xmpp server in the configuration, and removing those no longer present on disk but still in the running configuration
         change_mode = "script"
         change_script {
           command = "/opt/jitsi/scripts/reload-config.sh"
