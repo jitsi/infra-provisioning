@@ -252,11 +252,12 @@ EOF
 {{ range $index, $item := service "all" -}}
     {{ scratch.MapSetX "shards" .ServiceMeta.domain $item  -}}
 {{ end -}}
-{{ range $sindex, $item := scratch.MapValues "shards" -}}{{ if gt $sindex 0 -}},{{end}}{{ .Address }}:{{ with .ServiceMeta.prosody_client_port}}{{.}}{{ else }}5222{{ end }}{{ end -}}
+{{ range $sindex, $item := scratch.MapValues "shards" -}}{{ if gt $sindex 0 -}},{{end}}{{ .Address }}:{{ with .ServiceMeta.prosody_client_port}}{{.}}{{ else }}5222{{ end }}:{{ .ServiceMeta.shard }}{{ end -}}
 EOF
 
         destination = "local/xmpp-servers/servers"
-        # instead of restarting, jibri will graceful shutdown when shard list changes
+        # instead of restarting, transcriber will rebuild configuration disk then update running jigasi
+        # re-adding every xmpp server in the configuration, and removing those no longer present on disk but still in the running configuration
         change_mode = "script"
         change_script {
           command = "/opt/jitsi/scripts/reload-config.sh"
@@ -270,7 +271,7 @@ EOF
 
 . /etc/cont-init.d/01-xmpp-servers
 /etc/cont-init.d/10-config
-#/opt/jitsi/jigasi/reload.sh
+CONFIG_PATH=/config/sip-communicator.properties /usr/share/jigasi/reconfigure_xmpp.sh
 EOF
         destination = "local/reload-config.sh"
         perms = "755"
