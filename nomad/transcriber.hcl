@@ -230,7 +230,7 @@ EOF
 {{ with secret "secret/${var.environment}/asap/server" }}
 AUTOSCALER_SIDECAR_KEY_ID="{{ .Data.data.key_id }}"
 JIGASI_TRANSCRIBER_WHISPER_PRIVATE_KEY_NAME="{{ .Data.data.key_id }}"
-JIGASI_TRANSCRIBER_WHISPER_PRIVATE_KEY="{{ .Data.data.private_key | replace "\n" "" }}"
+JIGASI_TRANSCRIBER_WHISPER_PRIVATE_KEY="{{ .Data.data.private_key | regexReplaceAll "^-" "" | replaceAll "\n" "" }}"
 {{ end }}
 EOF
         env = true
