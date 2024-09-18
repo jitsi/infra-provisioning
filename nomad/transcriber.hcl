@@ -168,7 +168,8 @@ job "[JOB_NAME]" {
           "local/reload-config.sh:/opt/jitsi/scripts/reload-config.sh",
 #          "local/jibri-status.sh:/opt/jitsi/scripts/jigasi-stats.sh",
 #          "local/cron-service-run:/etc/services.d/60-cron/run",
-          "local/config:/config"
+          "local/config:/config",
+          "secrets/oci:/usr/share/jigasi/.oci"
     	  ]
       }
 
@@ -242,6 +243,31 @@ EOF
 {{- with secret "secret/${var.environment}/asap/server" }}{{ .Data.data.private_key }}{{ end -}}
 EOF
         destination = "secrets/asap.key"
+      }
+
+      template {
+        data = <<EOF
+[DEFAULT]
+{{- $secret_path := printf "secret/%s/transcriber/oci_api" (env "NOMAD_NAMESPACE") }}
+{{- with secret $secret_path }}
+user={{ .Data.data.user }}
+fingerprint={{ .Data.data.fingerprint }}
+key_file=/secrets/oci/oci_api_key.pem
+tenancy={{ .Data.data.tenancy }}
+region={{ env "meta.cloud_region" }}
+{{ end -}}
+EOF
+        destination = "secrets/oci/config"
+        perms = "600"
+      }
+
+      template {
+        data = <<EOF
+{{- $secret_path := printf "secret/%s/transcriber/oci_api" (env "NOMAD_NAMESPACE") }}
+{{- with secret $secret_path }}{{ .Data.data.private_key }}{{ end -}}
+EOF
+        destination = "secrets/oci_api_key.pem"
+        perms = "600"
       }
 
       template {
