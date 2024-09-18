@@ -79,6 +79,7 @@ export NOMAD_VAR_domain="$DOMAIN"
 # [ -n "$SHARD_STATE" ] && export NOMAD_VAR_shard_state="$SHARD_STATE"
 export NOMAD_VAR_jigasi_tag="$JIGASI_TAG"
 export NOMAD_VAR_pool_type="$NOMAD_POOL_TYPE"
+export NOMAD_VAR_oci_compartment="$COMPARTMENT_OCID"
 
 export NOMAD_JOB_NAME="transcriber-${ORACLE_REGION}"
 export NOMAD_URL="https://${ENVIRONMENT}-${ORACLE_REGION}-nomad.$TOP_LEVEL_DNS_ZONE_NAME"

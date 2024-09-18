@@ -36,6 +36,10 @@ variable "jigasi_version" {
   type = string
   default = "latest"
 }
+variable "oci_compartment" {
+  type = string
+  default = ""
+}
 
 variable "dc" {
   type = string
@@ -190,6 +194,11 @@ job "[JOB_NAME]" {
         JIGASI_INSTANCE_ID = "${NOMAD_SHORT_ALLOC_ID}"
         JIGASI_ENABLE_PROMETHEUS = "true"
         JIGASI_MODE = "transcriber"
+        JIGASI_TRANSCRIBER_REMOTE_CONFIG_URL = "https://get-transcriber.jitsi.net"
+        JIGASI_TRANSCRIBER_OCI_REGION = "${meta.cloud_region}"
+        JIGASI_TRANSCRIBER_OCI_COMPARTMENT = "${var.oci_compartment}"
+        JIGASI_TRANSCRIBER_WHISPER_URL = "https://${var.environment}-${meta.cloud_region}-whisper.jitsi.net"
+        JIGASI_TRANSCRIBER_ENABLE_SAVING = "false"
         LOCAL_ADDRESS = "${attr.unique.network.ip-address}"
         AUTOSCALER_SIDECAR_PORT = "6000"
 #        AUTOSCALER_URL = "https://${meta.cloud_name}-autoscaler.jitsi.net"
@@ -218,7 +227,11 @@ EOF
 
       template {
         data = <<EOF
-AUTOSCALER_SIDECAR_KEY_ID="{{ with secret "secret/${var.environment}/asap/server" }}{{ .Data.data.key_id }}{{ end }}"
+{{ with secret "secret/${var.environment}/asap/server" }}
+AUTOSCALER_SIDECAR_KEY_ID="{{ .Data.data.key_id }}"
+JIGASI_TRANSCRIBER_WHISPER_PRIVATE_KEY_NAME="{{ .Data.data.key_id }}"
+JIGASI_TRANSCRIBER_WHISPER_PRIVATE_KEY="{{ .Data.data.private_key | regexFindGroups "^[-]" | join "" }}"
+{{ end }}
 EOF
         env = true
         destination = "secrets/asap_key_id"
