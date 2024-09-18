@@ -259,6 +259,8 @@ region={{ env "meta.cloud_region" }}
 EOF
         destination = "secrets/oci/config"
         perms = "600"
+        uid = 998
+        gid = 1000
       }
 
       template {
@@ -268,6 +270,8 @@ EOF
 EOF
         destination = "secrets/oci/oci_api_key.pem"
         perms = "600"
+        uid = 998
+        gid = 1000
       }
 
       template {
