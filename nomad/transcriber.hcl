@@ -270,7 +270,7 @@ EOF
 
 . /etc/cont-init.d/01-xmpp-servers
 /etc/cont-init.d/10-config
-#/opt/jitsi/jigasi/reload.sh
+/usr/share/jigasi/reconfigure_xmpp.sh
 EOF
         destination = "local/reload-config.sh"
         perms = "755"
