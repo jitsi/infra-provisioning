@@ -93,33 +93,38 @@ $LOCAL_PATH/custom-autoscaler-update-desired-values.sh
 RESULT=$?
 
 if [ "$RESULT" -eq 0 ]; then
-  # Wait a while until the instances gracefully terminate
-  ##################################
-  export EXPECTED_COUNT=0
-  export CHECK_SCALE_UP="false"
-  $LOCAL_PATH/check-jvb-count-custom-autoscaler-oracle.sh
 
-  # Force terminate remaining instances if there are any left
-  ##################################
-  echo "Force terminating remaining instances on group $GROUP_NAME, if any"
-  instanceGroupGetResponse=$(curl -s -w "\n %{http_code}" -X GET \
-        "$AUTOSCALER_URL"/groups/"$GROUP_NAME"/report \
-        -H "Authorization: Bearer $TOKEN")
-
-  GROUP_REPORT_STATUS_CODE=$(tail -n1 <<<"$instanceGroupGetResponse" | sed 's/[^0-9]*//g') # get the last line
-  GROUP_REPORT_VALUE=$(sed '$ d' <<<"$instanceGroupGetResponse")                 # get all but the last line which contains the status code
-
-  if [ "$GROUP_REPORT_STATUS_CODE" == 200 ]; then
-    INSTANCES=$(echo $GROUP_REPORT_VALUE | jq -r '.groupReport.instances[].instanceId')
-    for INSTANCE_ID in $INSTANCES; do
-      echo "Terminating Jigasi instance $INSTANCE_ID"
-      oci --region $ORACLE_REGION compute instance terminate --force --instance-id $INSTANCE_ID
-    done
+  if [[ "$FORCE_IMMEDIATE_DELETE" == "true" ]]; then
+    echo "Forcing immediate delete, skipping wait and check"
   else
-    echo "Failed to get remaining group report instances. Please retry the script"
-    exit 220
-  fi
 
+    # Wait a while until the instances gracefully terminate
+    ##################################
+    export EXPECTED_COUNT=0
+    export CHECK_SCALE_UP="false"
+    $LOCAL_PATH/check-jvb-count-custom-autoscaler-oracle.sh
+
+    # Force terminate remaining instances if there are any left
+    ##################################
+    echo "Force terminating remaining instances on group $GROUP_NAME, if any"
+    instanceGroupGetResponse=$(curl -s -w "\n %{http_code}" -X GET \
+          "$AUTOSCALER_URL"/groups/"$GROUP_NAME"/report \
+          -H "Authorization: Bearer $TOKEN")
+
+    GROUP_REPORT_STATUS_CODE=$(tail -n1 <<<"$instanceGroupGetResponse" | sed 's/[^0-9]*//g') # get the last line
+    GROUP_REPORT_VALUE=$(sed '$ d' <<<"$instanceGroupGetResponse")                 # get all but the last line which contains the status code
+
+    if [ "$GROUP_REPORT_STATUS_CODE" == 200 ]; then
+      INSTANCES=$(echo $GROUP_REPORT_VALUE | jq -r '.groupReport.instances[].instanceId')
+      for INSTANCE_ID in $INSTANCES; do
+        echo "Terminating Jigasi instance $INSTANCE_ID"
+        oci --region $ORACLE_REGION compute instance terminate --force --instance-id $INSTANCE_ID
+      done
+    else
+      echo "Failed to get remaining group report instances. Please retry the script"
+      exit 220
+    fi
+  fi
   # Delete the group
   ##################################
 
