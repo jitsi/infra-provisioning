@@ -319,6 +319,17 @@ EOF
         host = "{{"{{"}}.Node}}"
         role = "docker-dhmirror"
         service = "docker-dhmirror"
+    [[inputs.prometheus.consul.query]]
+      name = "transcriber"
+      tag = "ip-{{ env "attr.unique.network.ip-address" }}"
+      url = 'http://{{"{{"}}if ne .ServiceAddress ""}}{{"{{"}}.ServiceAddress}}{{"{{"}}else}}{{"{{"}}.Address}}{{"{{"}}end}}:{{"{{"}}.ServicePort}}/{{"{{"}}with .ServiceMeta.metrics_path}}{{"{{"}}.}}{{"{{"}}else}}metrics{{"{{"}}end}}'
+      [inputs.prometheus.consul.query.tags]
+        host = "{{"{{"}}.Node}}"
+        group = "{{"{{"}}with .ServiceMeta.group}}{{"{{"}}.}}{{"{{"}}else}}transcriber{{"{{"}}end}}"
+        jigasi_version = "{{"{{"}}with .ServiceMeta.jigasi_version}}{{"{{"}}.}}{{"{{"}}else}}0{{"{{"}}end}}"
+        jigasi_release_number = "{{"{{"}}with .ServiceMeta.release_number}}{{"{{"}}.}}{{"{{"}}else}}0{{"{{"}}end}}"
+        role = "transcriber"
+        service = "transcriber"
 
 [[inputs.prometheus]]
   namepass = [
