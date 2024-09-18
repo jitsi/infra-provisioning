@@ -266,7 +266,7 @@ EOF
 {{- $secret_path := printf "secret/%s/transcriber/oci_api" (env "NOMAD_NAMESPACE") }}
 {{- with secret $secret_path }}{{ .Data.data.private_key }}{{ end -}}
 EOF
-        destination = "secrets/oci_api_key.pem"
+        destination = "secrets/oci/oci_api_key.pem"
         perms = "600"
       }
 
