@@ -202,6 +202,7 @@ job "[JOB_NAME]" {
         JIGASI_TRANSCRIBER_ENABLE_SAVING = "false"
         LOCAL_ADDRESS = "${attr.unique.network.ip-address}"
         AUTOSCALER_SIDECAR_PORT = "6000"
+        SHUTDOWN_REST_ENABLED = "true"
 #        AUTOSCALER_URL = "https://${meta.cloud_name}-autoscaler.jitsi.net"
         AUTOSCALER_URL = "http://localhost:2223"
         AUTOSCALER_SIDECAR_KEY_FILE = "/secrets/asap.key"
