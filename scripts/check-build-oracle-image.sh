@@ -15,6 +15,13 @@ LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
 [ -z "$ORACLE_REGION" ] && ORACLE_REGION=$DEFAULT_ORACLE_REGION
 
+if [ -z "$IMAGE_ARCH" ]; then
+  # sensible default based on image type
+  if [[ "$IMAGE_TYPE" == "JavaJibri" ]]; then
+    IMAGE_ARCH="x86_64"
+  fi
+fi
+
 [ -z "$IMAGE_ARCH" ] && IMAGE_ARCH="aarch64"
 
 # #pull in region-specific variables
