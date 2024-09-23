@@ -357,7 +357,7 @@ EOF
 
       resources {
         cpu    = 4000
-        memory = 3072
+        memory = 4096
       }
     }
 
