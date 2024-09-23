@@ -140,7 +140,7 @@ if [ "$RESULT" -eq 0 ]; then
     echo "Successfully deleted the group $GROUP_NAME"
   else
     echo "Failed deleting the group $GROUP_NAME. Exiting"
-    exec 222
+    exit 222
   fi
 
 elif [ "$RESULT" -eq 230 ]; then
