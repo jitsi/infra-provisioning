@@ -583,6 +583,9 @@ EOH
 
       env {
         PROSODY_MODE="brewery"
+        GC_TYPE = "generational"
+        GC_GEN_MIN_TH = 40
+        GC_GEN_MAX_TH = 200
         XMPP_DOMAIN = "[[ env "CONFIG_domain" ]]"
         PUBLIC_URL="https://[[ env "CONFIG_domain" ]]/"
         JICOFO_AUTH_PASSWORD = "[[ env "CONFIG_jicofo_auth_password" ]]"
