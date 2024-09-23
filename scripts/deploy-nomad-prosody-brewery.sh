@@ -52,7 +52,7 @@ JVB_XMPP_PASSWORD_VARIABLE="secrets_jvb_brewery_by_environment_A.\"$ENVIRONMENT\
 JIBRI_XMPP_PASSWORD_VARIABLE="jibri_auth_password"
 JIBRI_RECORDER_PASSWORD_VARIABLE="jibri_selenium_auth_password"
 JIGASI_XMPP_PASSWORD_VARIABLE="jigasi_xmpp_password"
-JICOFO_XMPP_PASSWORD_VARIABLE="secrets_jicofo_focus_by_environment.\"$ENVIRONMENT\""
+JICOFO_XMPP_PASSWORD_VARIABLE="secrets_jicofo_focus_jvb_by_environment.\"$ENVIRONMENT\""
 
 SIP_JIBRI_SHARED_SECRET_VARIABLE="sip_jibri_shared_secrets.\"$ENVIRONMENT\""
 

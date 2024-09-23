@@ -187,9 +187,10 @@ block
         ENABLE_XMPP_WEBSOCKET = "1"
         DISABLE_HTTPS = "1"
         ENABLE_SCTP = "[[ env "CONFIG_jicofo_enable_sctp" ]]"
-        GC_TYPE = "generational"
-        GC_GEN_MIN_TH = 40
-        GC_GEN_MAX_TH = 200
+        GC_TYPE = "incremental"
+        GC_INC_TH = 400
+        GC_INC_SPEED = 250
+        GC_INC_STEP_SIZE = 13
         PROSODY_VISITORS_MUC_PREFIX = "conference"
         AUTH_TYPE = "jwt"
         XMPP_DOMAIN = "[[ env "CONFIG_domain" ]]"

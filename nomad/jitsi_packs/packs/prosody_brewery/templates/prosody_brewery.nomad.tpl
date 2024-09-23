@@ -82,6 +82,10 @@ job [[ template "job_name" . ]] {
 
       env {
         PROSODY_MODE="brewery"
+        GC_TYPE = "incremental"
+        GC_INC_TH = 400
+        GC_INC_SPEED = 250
+        GC_INC_STEP_SIZE = 13
         LOG_LEVEL = "[[ or (env "CONFIG_prosody_log_level") "info" ]]"
         XMPP_DOMAIN = "[[ env "CONFIG_domain" ]]"
         PUBLIC_URL="https://[[ env "CONFIG_domain" ]]/"
