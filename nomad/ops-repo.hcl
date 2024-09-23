@@ -29,6 +29,11 @@ variable "ops_repo_password" {
     default = "replaceme"
 }
 
+variable "image_version" {
+    type = string
+    default = "0.0.6"
+}
+
 job "ops-repo" {
   datacenters = ["${var.dc}"]
 
@@ -87,7 +92,7 @@ job "ops-repo" {
       }
 
       config {
-        image = "aaronkvanmeerten/ops-repo:latest"
+        image = "aaronkvanmeerten/ops-repo:${var.image_version}"
         force_pull = false
         ports = ["http"]
         cap_add = ["SYS_ADMIN"]
