@@ -18,7 +18,25 @@ def expandRelease(shard_environment,clouds,oracle_region,core_cloud_provider,clo
     return expandJob
 }
 
+def listShards(environment, release_number) {
+    shards=[:]
+    def shardStr = sh(
+        returnStdout: true,
+        script: """
+        export ENVIRONMENT="${environment}"
+        export RELEASE_NUMBER="${release_number}"
+        scripts/list-release-shards.sh ubuntu"""
+    ).trim();
+
+    if (shardStr.length() > 0) {
+        shards = shardStr.split(' ');
+    }
+    return shards
+}
+
 def utils
+def oldShards = [:]
+def newShards = [:]
 
 pipeline {				//indicate the job is written in Declarative Pipeline
     agent any				//agent specifies where the pipeline will execute. 
@@ -53,10 +71,33 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                 echo "GIT BRANCH ${env.RELEASE_BRANCH}"
             }
         }
+        stage("list existing shards") {
+            steps {
+                script {
+                    // list existing shards
+                    echo "Listing existing shards"
+                    oldShards = listShards(env.ENVIRONMENT, env.RELEASE_NUMBER)
+                    echo "existing shards found:"
+                    echo oldShards
+                }
+            }
+        }
         stage("expand release") {
             steps {
                 script {
                     expandRelease(env.ENVIRONMENT,env.CLOUDS,env.ORACLE_REGION,env.CORE_CLOUD_PROVIDER,env.CLOUD_PROVIDER,env.RELEASE_NUMBER,env.RELEASE_BRANCH,env.JVB_VERSION,env.SIGNAL_VERSION,env.VIDEO_INFRA_BRANCH)
+                }
+            }
+        }
+        stage("finding new shards") {
+            steps {
+                script {
+                    // list existing shards
+                    echo "Listing existing shards to find new shards"
+                    def cShards = listShards(env.ENVIRONMENT, env.RELEASE_NUMBER)
+                    newShards = cShards - oldShards
+                    echo "New shards found:"
+                    echo newShards
                 }
             }
         }
