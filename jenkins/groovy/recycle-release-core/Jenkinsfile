@@ -1,0 +1,113 @@
+// trigger expand release job
+def expandRelease(shard_environment,clouds,oracle_region,core_cloud_provider,cloud_provider,release_number,gitBranch,jvbVersion,signalVersion,video_infra_branch) {
+    def expandJob = build job: 'expand-release',parameters: [
+        [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: shard_environment],
+        [$class: 'StringParameterValue', name: 'CLOUDS', value: clouds],
+        [$class: 'StringParameterValue', name: 'ORACLE_REGION', value: oracle_region],
+        [$class: 'StringParameterValue', name: 'CLOUD_PROVIDER', value: cloud_provider],
+        [$class: 'StringParameterValue', name: 'CORE_CLOUD_PROVIDER', value: core_cloud_provider],
+        [$class: 'StringParameterValue', name: 'SIGNAL_VERSION', value: signalVersion],
+        [$class: 'StringParameterValue', name: 'JVB_VERSION', value: jvbVersion],
+        [$class: 'StringParameterValue', name: 'RELEASE_NUMBER', value: release_number],
+        [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: gitBranch],
+        [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: video_infra_branch],
+        [$class: 'StringParameterValue', name: 'RECYCLE_MODE', value: 'true'],        
+        [$class: 'StringParameterValue', name: 'SKIP_SHARD_READY', value: 'true'] // start new shards in drain mode        
+    ]
+
+    return expandJob
+}
+
+def utils
+
+pipeline {				//indicate the job is written in Declarative Pipeline
+    agent any				//agent specifies where the pipeline will execute. 
+    options {
+        ansiColor('xterm')
+        timestamps()
+        buildDiscarder(logRotator(numToKeepStr: '10', artifactNumToKeepStr: '10'))
+    }
+    stages {
+        stage('Prepare/Checkout') { // for display purposes
+            steps {
+                script {
+                    // load utility function
+                    def rootDir = pwd()
+                    utils = load "${rootDir}/jenkins/groovy/Utils.groovy"
+                    // checkout repos
+                    utils.SetupRepos(env.VIDEO_INFRA_BRANCH)
+
+                    // setup OCI credentials
+                    utils.SetupOCI()
+                }
+            }
+        }
+        // output stage, shows off our input parameters
+        stage ("setup") {
+            steps {
+                echo 'Jitsi Release Recycle Starting'
+                echo "JVB VERSION ${env.JVB_VERSION}"
+                echo "SIGNAL VERSION ${env.SIGNAL_VERSION}"
+                echo "CLOUDS ${env.CLOUDS}"
+                echo "RELEASE NUMBER ${env.RELEASE_NUMBER}"
+                echo "GIT BRANCH ${env.RELEASE_BRANCH}"
+            }
+        }
+        stage("expand release") {
+            steps {
+                script {
+                    expandRelease(env.ENVIRONMENT,env.CLOUDS,env.ORACLE_REGION,env.CORE_CLOUD_PROVIDER,env.CLOUD_PROVIDER,env.RELEASE_NUMBER,env.RELEASE_BRANCH,env.JVB_VERSION,env.SIGNAL_VERSION,env.VIDEO_INFRA_BRANCH)
+                }
+            }
+        }
+        stage("Wait for shards to be tested") {
+            // wait for manual approval by operator to continue
+            steps {
+                script {
+                    // just output a message to the console
+                    echo "Waiting for manual approval to continue"
+                }
+            }
+        }
+        stage("Mark new shards as ready") {
+            steps {
+                script {
+                    // mark shards as ready
+                    echo "Marking shards as ready"
+                }
+            }
+        }
+        stage("Drain old shards") {
+            steps {
+                script {
+                    // drain old shards
+                    echo "Draining old shards"
+                }
+            }
+        }
+        stage("Wait for old shards to be drained") {
+            steps {
+                script {
+                    // wait for manual approval by operator to continue
+                    echo "Waiting for manual approval to continue"
+                }
+            }
+        }
+        stage("Delete old shards") {
+            steps {
+                script {
+                    // delete old shards
+                    echo "Deleting old shards"
+                }
+            }
+        }
+        stage("Trigger autoscaler reconfiguration after delete") {
+            steps {
+                build job: 'reconfigure-autoscaler-environment',wait: true,parameters: [
+                    [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: env.ENVIRONMENT],
+                    [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH]
+                ]
+            }
+        }
+    }
+}

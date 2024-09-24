@@ -1,6 +1,6 @@
 - job:
-    name: expand-release-core
-    display-name: expand release core (shards)
+    name: recycle-release-core
+    display-name: recycle release core (shards)
     concurrent: true
     parameters:
       - string:
@@ -47,14 +47,6 @@
           description: "Cloud to build signal node in, defaults to 'oracle'."
           trim: true
       - string:
-          name: SKIP_SHARD_READY
-          description: "Flag to control whether to set shards to ready state 'false' (default) or not 'true' after health checks pass."
-          trim: true
-      - string:
-          name: RECYCLE_MODE
-          description: "Flag to control whether to expand to desired count 'false' (default) or create full replacement 'true'."
-          trim: true
-      - string:
           name: INFRA_CONFIGURATION_REPO
           default: git@github.com:jitsi/infra-configuration.git
           description: "Repo for configuration code (ansible etc), defaults to 'git@github.com:jitsi/infra-configuration.git'."
@@ -78,5 +70,5 @@
             browser-url: https://github.com/jitsi/infra-provisioning
             submodule:
               recursive: true
-      script-path: jenkins/groovy/expand-release-core/Jenkinsfile
+      script-path: jenkins/groovy/recycle-release-core/Jenkinsfile
       lightweight-checkout: true
