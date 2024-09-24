@@ -659,7 +659,9 @@ def main():
 #            log_print("Shard: %s  room count: %s session count: %s%s  rate:%s timing total:%s connect:%s reply:%s"%(sname,str(len(last_table['rooms_by_server'][server])),scount,sdetails,rdetails,stdetails,scdetails,srdetails))
 
     #whatever happened, throw the stats we have discovered
-    put_metrics(metric_data,namespace=metric_namespace,region=args.region)
+    log_print("about to put metrics to Cloudwatch")
+    resp = put_metrics(metric_data,namespace=metric_namespace,region=args.region)
+    log_print("Cloudwatch put metric response: %s"%str(resp))
 
 if __name__ == "__main__":
     main()
