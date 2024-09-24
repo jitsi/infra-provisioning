@@ -181,8 +181,9 @@ pipeline {
         }
         stage ("Make shard numbers") {
             when {
-                allOf{
-                   expression {env.CLOUD_PROVIDER == 'oracle'}
+                anyOf{
+                   expression {env.CORE_CLOUD_PROVIDER == 'oracle'};
+                   expression {env.CORE_CLOUD_PROVIDER == 'nomad'}
                 }
             }
             steps {
@@ -437,7 +438,7 @@ pipeline {
         }
         stage("Enable shard alarms") {
             when {
-                expression {env.CLOUD_PROVIDER == 'oracle'}
+                expression {env.CORE_CLOUD_PROVIDER == 'oracle'}
             }
             steps {
                 script {
