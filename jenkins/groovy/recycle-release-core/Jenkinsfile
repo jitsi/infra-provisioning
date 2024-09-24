@@ -1,6 +1,6 @@
 // trigger expand release job
 def expandRelease(shard_environment,clouds,oracle_region,core_cloud_provider,cloud_provider,release_number,gitBranch,jvbVersion,signalVersion,video_infra_branch) {
-    def expandJob = build job: 'expand-release',parameters: [
+    def expandJob = build job: 'expand-release-core',parameters: [
         [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: shard_environment],
         [$class: 'StringParameterValue', name: 'CLOUDS', value: clouds],
         [$class: 'StringParameterValue', name: 'ORACLE_REGION', value: oracle_region],
