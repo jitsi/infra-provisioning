@@ -660,7 +660,7 @@ def main():
 
     #whatever happened, throw the stats we have discovered
     resp = put_metrics(metric_data,namespace=metric_namespace,region=args.region)
-    log_print(resp)
+    log_print("Cloudwatch put metric response: %s"%str(resp))
 
 if __name__ == "__main__":
     main()
