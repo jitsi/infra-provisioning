@@ -32,6 +32,11 @@
           description: "Release number for shards"
           trim: true
       - string:
+          name: DRAIN_WAIT_PERIOD
+          description: "Seconds to wait before deleting old shards after drain"
+          default: 3600
+          trim: true
+      - string:
           name: VIDEO_INFRA_BRANCH
           default: main
           description: "Controls checkout branch for infra repos, defaults to 'main'."
