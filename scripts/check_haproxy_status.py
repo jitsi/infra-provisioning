@@ -645,7 +645,6 @@ def main():
         log_print("Total sessions: %s"%str(combined_stats['server_stats']['totals']['scur']))
         log_print("Current server request rate: %s"%str(combined_stats['server_stats']['totals']['rate']))
         #log_print("Current frontend request rate: %s"%str(combined_stats['frontend_stats']['www-http']['req_rate']))
-        log_print("debug A")
         for server in list(last_table['rooms_by_server'].keys()):
             sname = 'UNKNOWN'
             scount = 0
@@ -658,10 +657,9 @@ def main():
             srdetails = stat_details(stats,server,'rtime')
             rdetails = stat_details(stats,server,'rate')
 #            log_print("Shard: %s  room count: %s session count: %s%s  rate:%s timing total:%s connect:%s reply:%s"%(sname,str(len(last_table['rooms_by_server'][server])),scount,sdetails,rdetails,stdetails,scdetails,srdetails))
-        log_print("debug B")
 
     #whatever happened, throw the stats we have discovered
-    log_print("About to put Cloudwatch metric")
+    log_print("about to put metrics to Cloudwatch")
     resp = put_metrics(metric_data,namespace=metric_namespace,region=args.region)
     log_print("Cloudwatch put metric response: %s"%str(resp))
 
