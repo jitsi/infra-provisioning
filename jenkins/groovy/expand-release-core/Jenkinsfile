@@ -134,7 +134,7 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                                             createShard(env.ENVIRONMENT,
                                                 cloud_list[curr],
                                                 env.CORE_CLOUD_PROVIDER,
-                                                "oracle",
+                                                env.CLOUD_PROVIDER,
                                                 '1',
                                                 oracle_shards[s],
                                                 env.RELEASE_NUMBER,
