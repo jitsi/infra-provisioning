@@ -79,7 +79,7 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                         echo "Listing existing shards"
                         oldShards = listShards(env.ENVIRONMENT, env.RELEASE_NUMBER)
                         echo "existing shards found:"
-                        echo oldShards
+                        echo "${oldShards}"
                     }
                 }
             }
@@ -98,9 +98,13 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                         // list existing shards
                         echo "Listing existing shards to find new shards"
                         def cShards = listShards(env.ENVIRONMENT, env.RELEASE_NUMBER)
+                        echo "Full shards found:"
+                        echo "${cShards}"
+                        echo "Olds shards from before expand:"
+                        echo "${oldShards}"
                         newShards = cShards - oldShards
-                        echo "New shards found:"
-                        echo newShards
+                        echo "New shards deduced:"
+                        echo "${newShards}"
                     }
                 }
             }
