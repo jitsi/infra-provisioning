@@ -126,7 +126,7 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                 script {
                     // just output a message to the console
                     echo "TODO: implement check of torture results, or waiting for manual approval to continue"
-                    sleep 30
+                    sleep env.NEW_WAIT_PERIOD
                 }
             }
         }

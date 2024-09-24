@@ -37,6 +37,11 @@
           default: 3600
           trim: true
       - string:
+          name: NEW_WAIT_PERIOD
+          description: "Seconds to wait before readying new shards and draining old shards"
+          default: 300
+          trim: true
+      - string:
           name: VIDEO_INFRA_BRANCH
           default: main
           description: "Controls checkout branch for infra repos, defaults to 'main'."
