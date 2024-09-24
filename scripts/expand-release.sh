@@ -20,8 +20,8 @@ fi
 
 [ -e ./sites/$ENVIRONMENT/stack-env.sh ] && . ./sites/$ENVIRONMENT/stack-env.sh
 
-[ -z "$SHARD_DEFAULT_COUNT_AWS" ] && SHARD_DEFAULT_COUNT_AWS=1
-[ -z "$SHARD_DEFAULT_COUNT_ORACLE" ] && SHARD_DEFAULT_COUNT_ORACLE=0
+[ -z "$SHARD_DEFAULT_COUNT_AWS" ] && SHARD_DEFAULT_COUNT_AWS=0
+[ -z "$SHARD_DEFAULT_COUNT_ORACLE" ] && SHARD_DEFAULT_COUNT_ORACLE=1
 
 # set to true to ignore existing shards and expand to desired count with the intent of replacing existing shards
 [ -z "$RECYCLE_MODE" ] && RECYCLE_MODE="false"
