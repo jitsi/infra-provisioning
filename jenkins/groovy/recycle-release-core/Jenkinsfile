@@ -74,11 +74,13 @@ pipeline {				//indicate the job is written in Declarative Pipeline
         stage("list existing shards") {
             steps {
                 script {
-                    // list existing shards
-                    echo "Listing existing shards"
-                    oldShards = listShards(env.ENVIRONMENT, env.RELEASE_NUMBER)
-                    echo "existing shards found:"
-                    echo oldShards
+                    dir('infra-provisioning') {
+                        // list existing shards
+                        echo "Listing existing shards"
+                        oldShards = listShards(env.ENVIRONMENT, env.RELEASE_NUMBER)
+                        echo "existing shards found:"
+                        echo oldShards
+                    }
                 }
             }
         }
@@ -92,12 +94,14 @@ pipeline {				//indicate the job is written in Declarative Pipeline
         stage("finding new shards") {
             steps {
                 script {
-                    // list existing shards
-                    echo "Listing existing shards to find new shards"
-                    def cShards = listShards(env.ENVIRONMENT, env.RELEASE_NUMBER)
-                    newShards = cShards - oldShards
-                    echo "New shards found:"
-                    echo newShards
+                    dir('infra-provisioning') {
+                        // list existing shards
+                        echo "Listing existing shards to find new shards"
+                        def cShards = listShards(env.ENVIRONMENT, env.RELEASE_NUMBER)
+                        newShards = cShards - oldShards
+                        echo "New shards found:"
+                        echo newShards
+                    }
                 }
             }
         }
