@@ -198,7 +198,7 @@ job "[JOB_NAME]" {
         JIGASI_TRANSCRIBER_REMOTE_CONFIG_URL = "https://get-transcriber.jitsi.net"
         JIGASI_TRANSCRIBER_OCI_REGION = "${meta.cloud_region}"
         JIGASI_TRANSCRIBER_OCI_COMPARTMENT = "${var.oci_compartment}"
-        JIGASI_TRANSCRIBER_WHISPER_URL = "wss://prod-8x8-api.jitsi.net/whisper/streaming-whisper/ws/"
+        JIGASI_TRANSCRIBER_WHISPER_URL = "wss://stage-8x8-api.jitsi.net/whisper/streaming-whisper/ws/"
         JIGASI_TRANSCRIBER_ENABLE_SAVING = "false"
         LOCAL_ADDRESS = "${attr.unique.network.ip-address}"
         AUTOSCALER_SIDECAR_PORT = "6000"
