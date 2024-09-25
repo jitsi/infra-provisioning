@@ -353,6 +353,7 @@ EOF
 EOF
         destination = "local/reload-shards.sh"
         perms = "755"
+        change_mode = "noop"
       }
 
       resources {
