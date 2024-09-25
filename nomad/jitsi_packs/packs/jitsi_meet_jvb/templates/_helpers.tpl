@@ -185,6 +185,7 @@ block
 #!/usr/bin/with-contenv bash
 
 SHARD_FILE=/config/shards.json
+cp $SHARD_FILE /config/shards-$(date +%Y%m%d%H%M%S).json
 UPLOAD_FILE=/config/upload.json
 DRAIN_URL="http://localhost:8080/colibri/drain"
 LIST_URL="http://localhost:8080/colibri/muc-client/list"
