@@ -334,7 +334,7 @@ EOF
         change_script {
           command = "/opt/jitsi/scripts/reload-shards.sh"
           timeout = "6h"
-          fail_on_error = true
+          #fail_on_error = true
         }
       }
 
