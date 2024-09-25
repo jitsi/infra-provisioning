@@ -14,7 +14,7 @@ def expand_release() {
 def shards_created = false;
 
 // trigger create shard job with appopriate parameters
-def createShard(shard_environment,cloud_name,core_cloud_provider,cloud_provider,shard_count,shard_numbers,release_number,gitBranch,jvbVersion,signalVersion,video_infra_branch) {
+def createShard(shard_environment,cloud_name,core_cloud_provider,cloud_provider,shard_count,shard_numbers,release_number,gitBranch,jvbVersion,signalVersion,video_infra_branch,skipShardReady) {
     def createShard = build job: 'provision-shard',parameters: [
         [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: shard_environment],
         [$class: 'StringParameterValue', name: 'CLOUD_NAME', value: cloud_name],
@@ -26,7 +26,8 @@ def createShard(shard_environment,cloud_name,core_cloud_provider,cloud_provider,
         [$class: 'StringParameterValue', name: 'JVB_VERSION', value: jvbVersion],
         [$class: 'StringParameterValue', name: 'RELEASE_NUMBER', value: release_number],
         [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: gitBranch],
-        [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: video_infra_branch]
+        [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: video_infra_branch],
+        [$class: 'StringParameterValue', name: 'SKIP_SHARD_READY', value: skipShardReady] // start new shards in drain mode        
     ]
 
     return createShard
@@ -133,14 +134,15 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                                             createShard(env.ENVIRONMENT,
                                                 cloud_list[curr],
                                                 env.CORE_CLOUD_PROVIDER,
-                                                "oracle",
+                                                env.CLOUD_PROVIDER,
                                                 '1',
                                                 oracle_shards[s],
                                                 env.RELEASE_NUMBER,
                                                 env.RELEASE_BRANCH,
                                                 env.JVB_VERSION,
                                                 env.SIGNAL_VERSION,
-                                                env.VIDEO_INFRA_BRANCH
+                                                env.VIDEO_INFRA_BRANCH,
+                                                env.SKIP_SHARD_READY
                                             ) 
                                         }
                                     }

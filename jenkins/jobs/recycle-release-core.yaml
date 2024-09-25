@@ -1,6 +1,6 @@
 - job:
-    name: expand-release-core
-    display-name: expand release core (shards)
+    name: recycle-release-core
+    display-name: recycle release core (shards)
     concurrent: true
     parameters:
       - string:
@@ -32,6 +32,16 @@
           description: "Release number for shards"
           trim: true
       - string:
+          name: DRAIN_WAIT_PERIOD
+          description: "Seconds to wait before deleting old shards after drain"
+          default: 3600
+          trim: true
+      - string:
+          name: NEW_WAIT_PERIOD
+          description: "Seconds to wait before readying new shards and draining old shards"
+          default: 300
+          trim: true
+      - string:
           name: VIDEO_INFRA_BRANCH
           default: main
           description: "Controls checkout branch for infra repos, defaults to 'main'."
@@ -45,14 +55,6 @@
           name: CORE_CLOUD_PROVIDER
           default: oracle
           description: "Cloud to build signal node in, defaults to 'oracle'."
-          trim: true
-      - string:
-          name: SKIP_SHARD_READY
-          description: "Flag to control whether to set shards to ready state 'false' (default) or not 'true' after health checks pass."
-          trim: true
-      - string:
-          name: RECYCLE_MODE
-          description: "Flag to control whether to expand to desired count 'false' (default) or create full replacement 'true'."
           trim: true
       - string:
           name: INFRA_CONFIGURATION_REPO
@@ -78,5 +80,5 @@
             browser-url: https://github.com/jitsi/infra-provisioning
             submodule:
               recursive: true
-      script-path: jenkins/groovy/expand-release-core/Jenkinsfile
+      script-path: jenkins/groovy/recycle-release-core/Jenkinsfile
       lightweight-checkout: true

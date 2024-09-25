@@ -1,0 +1,190 @@
+// trigger expand release job
+def expandRelease(shard_environment,clouds,oracle_region,core_cloud_provider,cloud_provider,release_number,gitBranch,jvbVersion,signalVersion,video_infra_branch) {
+    def expandJob = build job: 'expand-release-core',wait: true,parameters: [
+        [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: shard_environment],
+        [$class: 'StringParameterValue', name: 'CLOUDS', value: clouds],
+        [$class: 'StringParameterValue', name: 'ORACLE_REGION', value: oracle_region],
+        [$class: 'StringParameterValue', name: 'CLOUD_PROVIDER', value: cloud_provider],
+        [$class: 'StringParameterValue', name: 'CORE_CLOUD_PROVIDER', value: core_cloud_provider],
+        [$class: 'StringParameterValue', name: 'SIGNAL_VERSION', value: signalVersion],
+        [$class: 'StringParameterValue', name: 'JVB_VERSION', value: jvbVersion],
+        [$class: 'StringParameterValue', name: 'RELEASE_NUMBER', value: release_number],
+        [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: gitBranch],
+        [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: video_infra_branch],
+        [$class: 'StringParameterValue', name: 'RECYCLE_MODE', value: 'true'],        
+        [$class: 'StringParameterValue', name: 'SKIP_SHARD_READY', value: 'true'] // start new shards in drain mode        
+    ]
+
+    return expandJob
+}
+
+// trigger create shard JVBs job with appropriate parameters
+def deleteShard(hcv_environment,shard_name) {
+    def deleteShard = build job: 'destroy-shards',parameters: [
+        [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: hcv_environment],
+        [$class: 'StringParameterValue', name: 'SHARDS', value: shard_name],
+        [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH]
+    ]
+
+    return deleteShard
+}
+
+def listShards(environment, release_number) {
+    shards=[:]
+    def shardStr = sh(
+        returnStdout: true,
+        script: """
+        export ENVIRONMENT="${environment}"
+        export RELEASE_NUMBER="${release_number}"
+        scripts/list-release-shards.sh ubuntu"""
+    ).trim();
+
+    if (shardStr.length() > 0) {
+        shards = shardStr.split(' ');
+    }
+    return shards
+}
+
+def utils
+def oldShards = [:]
+def newShards = [:]
+
+pipeline {				//indicate the job is written in Declarative Pipeline
+    agent any				//agent specifies where the pipeline will execute. 
+    options {
+        ansiColor('xterm')
+        timestamps()
+        buildDiscarder(logRotator(numToKeepStr: '10', artifactNumToKeepStr: '10'))
+    }
+    stages {
+        stage('Prepare/Checkout') { // for display purposes
+            steps {
+                script {
+                    // load utility function
+                    def rootDir = pwd()
+                    utils = load "${rootDir}/jenkins/groovy/Utils.groovy"
+                    // checkout repos
+                    utils.SetupRepos(env.VIDEO_INFRA_BRANCH)
+
+                    // setup OCI credentials
+                    utils.SetupOCI()
+                }
+            }
+        }
+        // output stage, shows off our input parameters
+        stage ("setup") {
+            steps {
+                echo 'Jitsi Release Recycle Starting'
+                echo "JVB VERSION ${env.JVB_VERSION}"
+                echo "SIGNAL VERSION ${env.SIGNAL_VERSION}"
+                echo "CLOUDS ${env.CLOUDS}"
+                echo "RELEASE NUMBER ${env.RELEASE_NUMBER}"
+                echo "GIT BRANCH ${env.RELEASE_BRANCH}"
+            }
+        }
+        stage("list existing shards") {
+            steps {
+                script {
+                    dir('infra-provisioning') {
+                        // list existing shards
+                        echo "Listing existing shards"
+                        oldShards = listShards(env.ENVIRONMENT, env.RELEASE_NUMBER)
+                        echo "existing shards found:"
+                        echo "${oldShards}"
+                    }
+                }
+            }
+        }
+        stage("expand release") {
+            steps {
+                script {
+                    expandRelease(env.ENVIRONMENT,env.CLOUDS,env.ORACLE_REGION,env.CORE_CLOUD_PROVIDER,env.CLOUD_PROVIDER,env.RELEASE_NUMBER,env.RELEASE_BRANCH,env.JVB_VERSION,env.SIGNAL_VERSION,env.VIDEO_INFRA_BRANCH)
+                }
+            }
+        }
+        stage("finding new shards") {
+            steps {
+                script {
+                    dir('infra-provisioning') {
+                        // list existing shards
+                        echo "Listing existing shards to find new shards"
+                        def cShards = listShards(env.ENVIRONMENT, env.RELEASE_NUMBER)
+                        echo "Full shards found:"
+                        echo "${cShards}"
+                        echo "Olds shards from before expand:"
+                        echo "${oldShards}"
+                        newShards = cShards - oldShards
+                        echo "New shards deduced:"
+                        echo "${newShards}"
+                    }
+                }
+            }
+        }
+        stage("Wait for shards to be tested") {
+            // wait for manual approval by operator to continue
+            steps {
+                script {
+                    // just output a message to the console
+                    echo "TODO: implement check of torture results, or waiting for manual approval to continue"
+                    sleep env.NEW_WAIT_PERIOD
+                }
+            }
+        }
+        stage("Reconfigure shards") {
+            steps {
+                script {
+                    build job: 'reconfigure-shard-states',
+                        wait: true,
+                        parameters: [
+                            [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: env.ENVIRONMENT],
+                            [$class: 'StringParameterValue', name: 'SHARDS_READY', value: newShards.join(' ')],
+                            [$class: 'StringParameterValue', name: 'SHARDS_DRAIN', value: oldShards.join(' ')],
+                            [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH]
+                        ]
+                }
+            }
+        }
+        stage("Wait for old shards to be drained") {
+            steps {
+                script {
+                    // could wait for manual approval by operator to continue?
+                    echo "Sleeping for ${env.DRAIN_WAIT_PERIOD} seconds to allow old shards to drain"
+                    sleep env.DRAIN_WAIT_PERIOD
+                }
+            }
+        }
+        stage("Delete old shards") {
+            steps {
+                script {
+                    def branches = [:]
+                    if (oldShards.size() > 0) {
+                        for(i = 0; i < oldShards.size(); i++) {
+                            def scurr = i
+                            branches["Shard ${oldShards[scurr]}"] = {
+                                deleteShard(
+                                    env.ENVIRONMENT,
+                                    oldShards[scurr]
+                                )
+                            }
+                        }
+                        // delete old shards
+                        echo "Deleting old shards"
+                        // branch out here, run all deploy JVBs pool jobs at once
+                        // only succeed if all branches succeed
+                        parallel branches
+                    } else {
+                        echo 'No JVB pools or shards found in release, skipping delete'
+                    }
+                }
+            }
+        }
+        stage("Trigger autoscaler reconfiguration after delete") {
+            steps {
+                build job: 'reconfigure-autoscaler-environment',wait: true,parameters: [
+                    [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: env.ENVIRONMENT],
+                    [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH]
+                ]
+            }
+        }
+    }
+}

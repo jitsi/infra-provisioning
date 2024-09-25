@@ -20,8 +20,11 @@ fi
 
 [ -e ./sites/$ENVIRONMENT/stack-env.sh ] && . ./sites/$ENVIRONMENT/stack-env.sh
 
-[ -z "$SHARD_DEFAULT_COUNT_AWS" ] && SHARD_DEFAULT_COUNT_AWS=1
-[ -z "$SHARD_DEFAULT_COUNT_ORACLE" ] && SHARD_DEFAULT_COUNT_ORACLE=0
+[ -z "$SHARD_DEFAULT_COUNT_AWS" ] && SHARD_DEFAULT_COUNT_AWS=0
+[ -z "$SHARD_DEFAULT_COUNT_ORACLE" ] && SHARD_DEFAULT_COUNT_ORACLE=1
+
+# set to true to ignore existing shards and expand to desired count with the intent of replacing existing shards
+[ -z "$RECYCLE_MODE" ] && RECYCLE_MODE="false"
 
 #Look for JVB counts by region in current directory
 SHARD_COUNT_FILE_AWS="./sites/$ENVIRONMENT/shards-by-region-aws"
@@ -57,26 +60,15 @@ TOTAL_NEW_SHARDS=0
 for CLOUD in $CLOUDS; do
     . $LOCAL_PATH/../clouds/$CLOUD.sh
 
-    # deprecated, to be removed: expand shards with AWS JVBs
-    # SHARDS=$(INCLUDE_AWS="true" INCLUDE_OCI="false" CLOUD_NAME="$CLOUD" RELEASE_NUMBER="$RELEASE_NUMBER" ENVIRONMENT="$ENVIRONMENT" $LOCAL_PATH/cloud_shards.sh $ANSIBLE_SSH_USER)
-    # SHARD_COUNT=$(echo $SHARDS | wc -w)
-    # DESIRED_COUNT=$SHARD_DEFAULT_COUNT_AWS
-    # if [ -f "$SHARD_COUNT_FILE_AWS" ]; then
-    #     # check if JVB count by region is defined, if so use it
-    #     REGION_SHARD_COUNT=$(cat $SHARD_COUNT_FILE_AWS | grep $EC2_REGION | awk 'BEGIN { FS = "|" } ; {print $2}')
-    #     [ ! -z "$REGION_SHARD_COUNT" ] && DESIRED_COUNT="$REGION_SHARD_COUNT"
-    # fi
-
-    # ADD_COUNT=$((DESIRED_COUNT - SHARD_COUNT))
-    # if (( $ADD_COUNT > 0 )); then
-    #     # add this many new shards for the region
-    #     echo "$CLOUD $ADD_COUNT" >> $ADD_SHARD_COUNT_FILE_AWS
-    #     TOTAL_NEW_SHARDS=$((TOTAL_NEW_SHARDS + ADD_COUNT))
-    # fi
-
     # now find all shards with oracle provider
-    SHARDS=$(CLOUD_NAME="$CLOUD" RELEASE_NUMBER="$RELEASE_NUMBER" ENVIRONMENT="$ENVIRONMENT" $LOCAL_PATH/cloud_shards.sh $ANSIBLE_SSH_USER)
-    SHARD_COUNT=$(echo $SHARDS | wc -w)
+    if [[ "$RECYCLE_MODE" == "true" ]]; then
+        # if in recycle mode, ignore existing shards and expand to desired count
+        SHARDS=""
+        SHARD_COUNT=0
+    else
+        SHARDS=$(CLOUD_NAME="$CLOUD" RELEASE_NUMBER="$RELEASE_NUMBER" ENVIRONMENT="$ENVIRONMENT" $LOCAL_PATH/cloud_shards.sh $ANSIBLE_SSH_USER)
+        SHARD_COUNT=$(echo $SHARDS | wc -w)
+    fi
     DESIRED_COUNT=$SHARD_DEFAULT_COUNT_ORACLE
     if [ -f "$SHARD_COUNT_FILE_ORACLE" ]; then
         # check if JVB count by region is defined, if so use it
