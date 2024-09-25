@@ -192,7 +192,7 @@ ADD_URL="http://localhost:8080/colibri/muc-client/add"
 REMOVE_URL="http://localhost:8080/colibri/muc-client/remove"
 
 cat $SHARD_FILE | jq '.' > /dev/null
-if [[ $? -ne 0 ]]; then
+if [[ "[[" ]] $? -ne 0 ]]; then
     echo "Shard file is not a valid JSON"
     exit 2
 fi
@@ -232,7 +232,7 @@ for SHARD in $SHARDS; do
     #configure JVB to know about shard via POST
     echo $T > $UPLOAD_FILE
     curl --data-binary "@$UPLOAD_FILE" -H "Content-Type: application/json" $ADD_URL
-    if [[ $? -ne 0 ]]; then
+    if [[ "[[" ]] $? -ne 0 ]]; then
         echo "Failed to add shard $SHARD"
     fi
     rm $UPLOAD_FILE
@@ -259,7 +259,7 @@ REMOVE_SHARDS=$(jq -r -n --argjson FILE_SHARD_ARR "$FILE_SHARD_ARR" --argjson LI
 for SHARD in $REMOVE_SHARDS; do
     echo "Removing shard $SHARD"
     curl -H "Content-Type: application/json" -X POST -d "{\"id\":\"$SHARD\"}" $REMOVE_URL 
-    if [[ $? -ne 0 ]]; then
+    if [[ "[[" ]] $? -ne 0 ]]; then
         echo "Failed to remove shard $SHARD"
     fi
 done
