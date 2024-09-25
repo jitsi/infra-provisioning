@@ -181,7 +181,7 @@ block
 [[ end -]]
 [[- end ]]
 
-[[ define "reload-shards" ]]
+[[ define "reload-shards" -]]
 #!/usr/bin/with-contenv bash
 
 SHARD_FILE=/config/shards.json
