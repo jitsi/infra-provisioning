@@ -15,7 +15,7 @@ def deleteConsulPin(environment, tenant) {
 def updateVersioningPin(environment, customer_id, release_number) {
     echo 'updating pin in versioning-manager'
     sh(
-        script: "ENVIRONMENT=${environment} VERSIONING_ACTION=SET_TENANT_PIN CUSTOMER_ID=${customer_id} RELEASE_NUMBER=${release_number} scripts/versioning-manager.sh ubuntu"
+        script: "ENVIRONMENT=${environment} VERSIONING_ACTION=SET_CUSTOMER_PIN CUSTOMER_ID=${customer_id} RELEASE_NUMBER=${release_number} scripts/versioning-manager.sh ubuntu"
     )
 }
 
