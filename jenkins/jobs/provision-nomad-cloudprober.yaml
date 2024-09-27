@@ -23,6 +23,10 @@
           description: "Nomad job type to provision, defaults to 'cloudprober' do not change"
           trim: true
       - string:
+          name: TEMPLATE_TYPE_OVERRIDE
+          description: "Overrides the CLOUDPROBER_TEMPLATE_TYPE - can be base, core, or ops"
+          trim: true
+      - string:
           name: INFRA_CONFIGURATION_REPO
           default: git@github.com:jitsi/infra-configuration.git
           description: "Repo for configuration code (ansible etc), defaults to 'git@github.com:jitsi/infra-configuration.git'."
