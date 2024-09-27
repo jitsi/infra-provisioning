@@ -81,6 +81,7 @@ job [[ template "job_name" . ]] {
         timeout  = "2s"
       }
       meta {
+        health_port = "${NOMAD_HOST_PORT_expose}"
         metrics_port = "${NOMAD_HOST_PORT_expose2}"
       }
     }
@@ -104,7 +105,7 @@ job [[ template "job_name" . ]] {
 
       config {
         image = "jitsi/autoscaler:[[ var "version" . ]]"
-        ports = ["http","metrics"]
+        ports = ["http"]
         volumes = [
           "local/groups.json:/config/groups.json",
         ]
