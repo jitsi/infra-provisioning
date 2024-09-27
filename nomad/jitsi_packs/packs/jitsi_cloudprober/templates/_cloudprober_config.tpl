@@ -51,7 +51,7 @@ probe {
   name: "autoscaler"
   type: HTTP
   targets {
-    host_names: "{{ range $index, $service := service "autoscaler"}}{{ if gt $index 0 }},{{ end }}{{ .Address }}:{{ .ServiceMeta.metrics_port }}{{ end }}"
+    host_names: "{{ range $index, $service := service "autoscaler"}}{{ if gt $index 0 }},{{ end }}{{ .Address }}:{{ .ServiceMeta.health_port }}{{ end }}"
   }
   http_probe {
     relative_url: "/health?deep=true"
@@ -321,7 +321,7 @@ probe {
   validator {
       name: "status_code_2xx"
       http_validator {
-          success_status_codes: "200-299"
+          success_status_codes: "200-299,429"
       }
   }
   interval_msec: 60000
@@ -344,7 +344,7 @@ probe {
   validator {
       name: "status_code_2xx"
       http_validator {
-          success_status_codes: "200-299"
+          success_status_codes: "200-299,429"
       }
   }
   interval_msec: 60000
