@@ -321,7 +321,7 @@ probe {
   validator {
       name: "status_code_2xx"
       http_validator {
-          success_status_codes: "200-299,429"
+          success_status_codes: "200-299"
       }
   }
   interval_msec: 60000
