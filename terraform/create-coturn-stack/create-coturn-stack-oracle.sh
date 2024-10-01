@@ -48,11 +48,6 @@ fi
 
 if [[ "$NOMAD_COTURN_FLAG" == "true" ]]; then
   COTURN_IMAGE_TYPE="JammyBase"
-  if [[ "$ORACLE_REGION" == "us-ashburn-1" ]] || [[ "$ORACLE_REGION" == "eu-frankfurt-1" ]]; then
-    SHAPE="VM.Standard.A2.Flex"
-  else
-    SHAPE="VM.Standard.A1.Flex"
-  fi
 fi
 
 [ -z "$SHAPE" ] && SHAPE="$DEFAULT_COTURN_SHAPE"

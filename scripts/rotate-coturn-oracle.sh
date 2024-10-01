@@ -55,11 +55,6 @@ if [[ "$NOMAD_COTURN_FLAG" == "null" ]]; then
 fi
 
 if [[ "$NOMAD_COTURN_FLAG" == "true" ]]; then
-  if [[ "$ORACLE_REGION" == "us-ashburn-1" ]] || [[ "$ORACLE_REGION" == "eu-frankfurt-1" ]]; then
-    SHAPE="VM.Standard.A2.Flex"
-  else
-    SHAPE="VM.Standard.A1.Flex"
-  fi
   COTURN_IMAGE_TYPE="JammyBase"
   # with coturn in nomad, wait 5 minutes in between rotating instances
   [ -z "$STARTUP_GRACE_PERIOD_SECONDS" ] && STARTUP_GRACE_PERIOD_SECONDS=300

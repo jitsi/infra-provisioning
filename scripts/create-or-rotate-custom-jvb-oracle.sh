@@ -67,7 +67,9 @@ fi
 
 # use A2 if configured
 if [ "$ENABLE_A_2" == "true" ]; then
-  JVB_SHAPE="$SHAPE_A_2"
+  if [[ "$JVB_A2_AVAILABLE" == "true" ]]; then
+    JVB_SHAPE="$SHAPE_A_2"
+  fi
 fi
 
 [ -z "$SHAPE" ] && SHAPE="$JVB_SHAPE"
