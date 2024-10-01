@@ -549,6 +549,10 @@ resource "oci_load_balancer_listener" "nomad_listener" {
   name = "NomadListener"
   port = 443
   default_backend_set_name = oci_load_balancer_backend_set.oci_load_balancer_nomad_bs.name
+  connection_configuration {
+      #Required
+      idle_timeout_in_seconds = 319 # from https://developer.hashicorp.com/nomad/tutorials/manage-clusters/reverse-proxy-ui#extend-connection-timeout
+  }
   protocol = "HTTP"
   hostname_names = [oci_load_balancer_hostname.nomad_hostname.name]
   ssl_configuration {
