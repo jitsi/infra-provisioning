@@ -3,9 +3,6 @@ set -x
 
 LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
-# Extract tenant ocid, SHAPE_2_4, SHAPE_1_4
-. $LOCAL_PATH/../clouds/oracle.sh
-
 # Input
 #############################
 
@@ -24,6 +21,17 @@ if [ -z "$HCV_ENVIRONMENT" ]; then
 fi
 
 source $LOCAL_PATH/../sites/$HCV_ENVIRONMENT/stack-env.sh
+
+# Extract tenant ocid, SHAPE_2_4, SHAPE_1_4
+. $LOCAL_PATH/../clouds/oracle.sh
+
+if [ -z "$ORACLE_REGION" ]; then
+  echo "No ORACLE_REGION set or detected, exiting..."
+  exit 1
+fi
+
+ORACLE_CLOUD_NAME="$ORACLE_REGION-$HCV_ENVIRONMENT-oracle"
+[ -e "$LOCAL_PATH/../clouds/${ORACLE_CLOUD_NAME}.sh" ] && . $LOCAL_PATH/../clouds/${ORACLE_CLOUD_NAME}.sh
 
 # check regional settings for JVB pool sizes, use if found
 REGION_JVB_POOL_SIZE_FILE="$LOCAL_PATH/../sites/$HCV_ENVIRONMENT/jvb-shard-sizes-by-region"
@@ -283,6 +291,9 @@ fi
 # Split shards per shape; Consume first the 2.4 shape unless e.3 enabled is set
 ######################################################
 [ "$ENABLE_A_1" == "true" ] || AVAILABLE_SHARD_COUNT_A_1=0
+
+# only consume A2 shards if JVB_A2_AVAILABLE is set
+[ "$JVB_A2_AVAILABLE" == "true" ] || AVAILABLE_SHARD_COUNT_A_2=0
 
 [ "$ENABLE_A_2" == "true" ] || AVAILABLE_SHARD_COUNT_A_2=0
 

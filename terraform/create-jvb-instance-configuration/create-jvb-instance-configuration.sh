@@ -85,7 +85,9 @@ if [ "$ENABLE_A_1" == "true" ]; then
 fi
 
 if [ "$ENABLE_A_2" == "true" ]; then
-  JVB_SHAPE="$SHAPE_A_2"
+  if [[ "$JVB_A2_AVAILABLE" == "true" ]]; then
+    JVB_SHAPE="$SHAPE_A_2"
+  fi
 fi
 
 [ -z "$SHAPE" ] && SHAPE="$JVB_SHAPE"
