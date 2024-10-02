@@ -42,21 +42,23 @@ fi
 
 [ -z "$TOKEN" ] && TOKEN=$(JWT_ENV_FILE=$JWT_ENV_FILE /opt/jitsi/jitsi-autoscaler-sidecar/scripts/jwt.sh)
 
-if [ -z "$TYPE" ]; then
-  echo "No TYPE provided or found. Exiting.. "
-  exit 213
-fi
+if [ -z "$GROUP_NAME" ]; then
+  if [ -z "$TYPE" ]; then
+    echo "No TYPE provided or found. Exiting.. "
+    exit 213
+  fi
 
-if [ "$TYPE" == 'jibri' ]; then
-  [ -z "$NAME_ROOT_SUFFIX" ] && NAME_ROOT_SUFFIX="JibriCustomGroup"
-  [ -z "$GROUP_NAME" ] && GROUP_NAME="$ENVIRONMENT-$ORACLE_REGION-$NAME_ROOT_SUFFIX"
-elif [ "$TYPE" == "sip-jibri" ]; then
-  [ -z "$NAME_ROOT_SUFFIX" ] && NAME_ROOT_SUFFIX="SipJibriCustomGroup"
-  [ -z "$GROUP_NAME" ] && GROUP_NAME="$ENVIRONMENT-$ORACLE_REGION-$NAME_ROOT_SUFFIX"
-else
-  if [ -z "$GROUP_NAME" ]; then
-    echo "No GROUP_NAME provided or found. Exiting.. "
-    exit 214
+  if [ "$TYPE" == 'jibri' ]; then
+    [ -z "$NAME_ROOT_SUFFIX" ] && NAME_ROOT_SUFFIX="JibriCustomGroup"
+    [ -z "$GROUP_NAME" ] && GROUP_NAME="$ENVIRONMENT-$ORACLE_REGION-$NAME_ROOT_SUFFIX"
+  elif [ "$TYPE" == "sip-jibri" ]; then
+    [ -z "$NAME_ROOT_SUFFIX" ] && NAME_ROOT_SUFFIX="SipJibriCustomGroup"
+    [ -z "$GROUP_NAME" ] && GROUP_NAME="$ENVIRONMENT-$ORACLE_REGION-$NAME_ROOT_SUFFIX"
+  else
+    if [ -z "$GROUP_NAME" ]; then
+      echo "No GROUP_NAME provided or found. Exiting.. "
+      exit 214
+    fi
   fi
 fi
 
