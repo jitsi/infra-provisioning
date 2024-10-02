@@ -1,0 +1,82 @@
+def utils
+// global var to track git branch from env or new tags
+def git_branch
+
+// jenkinsfile for the rotate-nomad-jvb-pool pipeline
+def releaseJVBNomadPools(shard_environment,cloud_name,cloud_provider,release_number,gitBranch,jvbShape) {
+    def jvbPools = build job: 'release-jvb-pools',parameters: [
+        [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: shard_environment],
+        [$class: 'StringParameterValue', name: 'CLOUD_NAME', value: cloud_name],
+        [$class: 'StringParameterValue', name: 'CLOUD_PROVIDER', value: cloud_provider],
+        [$class: 'StringParameterValue', name: 'SHAPE', value: jvbShape],
+        [$class: 'StringParameterValue', name: 'RELEASE_NUMBER', value: release_number],
+        [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: gitBranch],
+        [$class: 'StringParameterValue', name: 'NOMAD_JVB_FLAG', value: 'true'],
+        [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH]
+    ]
+
+    return jvbPools
+}
+
+pipeline {
+    agent any
+    options {
+        ansiColor('xterm')
+        timestamps()
+        buildDiscarder(logRotator(numToKeepStr: '50', artifactNumToKeepStr: '50'))
+    }
+    stages {
+        // output stage, shows off our input parameters
+        stage('Prepare/Checkout') {
+            steps {
+                echo 'JVB nomad pool Release Creation Beginning'
+                script {
+                    // load utility function
+                    def rootDir = pwd()
+                    utils = load "${rootDir}/jenkins/groovy/Utils.groovy"
+                    // checkout repos
+                    utils.SetupRepos(env.VIDEO_INFRA_BRANCH)
+
+                    // setup OCI credentials
+                    // utils.SetupOCI()
+                }
+            }
+        }
+        // tag the new release or load git_branch from input parameters
+        stage("tag release") {
+            steps {
+                script {
+                   // use incoming branch/tag or tag repo with new tag based on build ID
+                    // either way set it into git_branch variable to use later
+                    git_branch = utils.TagRelease('jvb-nomad-release',env.BUILD_ID, env.RELEASE_BRANCH)
+                    env.RELEASE_BRANCH = git_branch
+                }
+            }
+        }
+        stage('Release JVB Nomad Pools') {
+            steps {
+                script {
+                    dir('infra-provisioning') {
+                        echo "Create new nomad JVB pools in ${env.ENVIRONMENT} clouds ${env.CLOUDS}";
+                        def cloud_list = utils.SplitClouds(env.ENVIRONMENT,env.CLOUDS);
+                        echo "cloud list ${cloud_list}";
+                        def branches = [:]
+                        for(i = 0; i < cloud_list.size(); i++) {
+                            def curr = i
+                            branches["JVB Pools ${cloud_list[curr]}"] = {
+                                releaseJVBNomadPools(env.ENVIRONMENT,
+                                    cloud_list[curr],
+                                    env.CLOUD_PROVIDER,
+                                    env.BUILD_ID,
+                                    git_branch,
+                                    env.SHAPE
+                                )
+                            }
+                        }
+                        parallel branches
+                    }
+                }
+            }
+        }
+    }
+}
