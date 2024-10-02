@@ -24,6 +24,13 @@ else
     [ -z "$ENABLE_JVB_REMOTE_POOLS" ] && ENABLE_JVB_REMOTE_POOLS="false"
 fi
 
+# when nomad JVB flag is on, only use global pools
+if [[ "$NOMAD_JVB_FLAG" == "true" ]]; then
+    ENABLE_JVB_GLOBAL_POOLS="true"
+    ENABLE_JVB_LOCAL_POOLS="false"
+    ENABLE_JVB_REMOTE_POOLS="false"
+fi
+
 OUT=""
 
 if [[ "$ENABLE_JVB_GLOBAL_POOLS" == "true" ]]; then
