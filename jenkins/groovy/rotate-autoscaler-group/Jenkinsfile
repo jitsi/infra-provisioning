@@ -1,0 +1,39 @@
+def utils
+pipeline {
+  agent any
+  options {
+      ansiColor('xterm')
+      timestamps()
+      buildDiscarder(logRotator(numToKeepStr: '10', artifactNumToKeepStr: '10'))
+  }
+  stages {
+    stage('Prepare/Checkout') { // for display purposes
+      steps {
+        script {
+          // load utility function
+          def rootDir = pwd()
+          utils = load "${rootDir}/jenkins/groovy/Utils.groovy"
+          // checkout repos
+          utils.SetupRepos(env.VIDEO_INFRA_BRANCH)
+        }
+      }
+    }
+    stage('Reconfigure') {
+      steps {
+        dir('infra-provisioning') {
+          script {
+            withCredentials([
+                string(credentialsId: 'asap-jwt-kid-dev', variable: 'ASAP_JWT_KID_DEV'),
+                string(credentialsId: 'asap-jwt-kid-prod', variable: 'ASAP_JWT_KID_PROD'),
+                file(credentialsId: 'asap-jwt-key-dev', variable: 'ASAP_JWT_KEY_DEV'),
+                file(credentialsId: 'asap-jwt-key-prod', variable: 'ASAP_JWT_KEY_PROD')
+            ]) {
+                sh '''#!/bin/bash
+                    scripts/custom-autoscaler-rotate-group.sh'''
+            }
+          }
+        }
+      }
+    }
+  }
+}
