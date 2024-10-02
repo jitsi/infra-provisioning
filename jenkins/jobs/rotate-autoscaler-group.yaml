@@ -16,6 +16,23 @@
           name: ORACLE_REGION
           description: "Region of group to trigger reconfiguration."
           trim: true
+
+      - string:
+          name: PROTECTED_TTL_SEC
+          description: "Seconds to leave instances protected after launch, defaults 900"
+          trim: true
+      - string:
+          name: PROTECTED_INSTANCES_COUNT
+          description: "Instances to launch, defaults to current desired count"
+          trim: true
+      - string:
+          name: ROTATE_SLEEP_SECONDS
+          description: "Seconds to sleep after instance launch, before scaling down group"
+          trim: true
+      - string:
+          name: SKIP_SCALE_DOWN
+          description: "Set to true to skip the scale down part of the operation"
+          trim: true
       - string:
           name: AUTOSCALER_BACKEND
           description: "Used to control which autoscaler to reconfigure"
