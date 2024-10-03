@@ -34,7 +34,7 @@
       - string:
           name: DRAIN_WAIT_PERIOD
           description: "Seconds to wait before deleting old shards after drain"
-          default: 3600
+          default: 21600
           trim: true
       - string:
           name: NEW_WAIT_PERIOD
