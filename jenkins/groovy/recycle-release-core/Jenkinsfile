@@ -120,17 +120,15 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                 }
             }
         }
-        stage("Wait for shards to be tested") {
-            // wait for manual approval by operator to continue
-            steps {
-                script {
-                    // just output a message to the console
-                    echo "TODO: implement check of torture results, or waiting for manual approval to continue"
-                    sleep env.NEW_WAIT_PERIOD
+        stage("Reconfigure shards") {
+            when {
+                expression {
+                    input message: 'Are the new shards tested and ready for use?'
+                    // if input is Aborted, the whole build will fail, otherwise
+                    // we must return true to continue
+                    return true
                 }
             }
-        }
-        stage("Reconfigure shards") {
             steps {
                 script {
                     build job: 'reconfigure-shard-states',
