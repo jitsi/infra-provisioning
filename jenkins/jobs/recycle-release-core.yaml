@@ -34,12 +34,7 @@
       - string:
           name: DRAIN_WAIT_PERIOD
           description: "Seconds to wait before deleting old shards after drain"
-          default: 3600
-          trim: true
-      - string:
-          name: NEW_WAIT_PERIOD
-          description: "Seconds to wait before readying new shards and draining old shards"
-          default: 300
+          default: 21600
           trim: true
       - string:
           name: VIDEO_INFRA_BRANCH
