@@ -62,6 +62,8 @@ fi
 
 RESOURCE_NAME_ROOT="${NAME_ROOT}"
 
+[ -z "$POSTRUNNER_PATH" ] && export POSTRUNNER_PATH="terraform/nomad-instance-pool/user-data/postinstall-runner-oracle.sh"
+
 if [[ "$POOL_PUBLIC" == "true" ]]; then
   POOL_SUBNET_OCID="$PUBLIC_SUBNET_OCID"
   EPHEMERAL_INGRESS_CIDR="0.0.0.0/0"
@@ -235,4 +237,5 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
   -var="vcn_name=$VCN_NAME" \
   -var "infra_configuration_repo=$INFRA_CONFIGURATION_REPO" \
   -var "infra_customizations_repo=$INFRA_CUSTOMIZATIONS_REPO" \
+  -var "user_data_file=$POSTRUNNER_PATH" \
   $ACTION_POST_PARAMS $TF_POST_PARAMS
