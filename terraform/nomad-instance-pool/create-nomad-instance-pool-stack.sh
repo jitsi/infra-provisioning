@@ -15,11 +15,9 @@ fi
 LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
 [ -z "$ROLE" ] && ROLE="$POOL_TYPE"
-[ -z "$POOL_TYPE" ] && POOL_TYPE="skynet"
+[ -z "$POOL_TYPE" ] && POOL_TYPE="general"
 [ -z "$NAME" ] && NAME="$ENVIRONMENT-$ORACLE_REGION-$ROLE-$POOL_TYPE"
 [ -z "$ORACLE_GIT_BRANCH" ] && ORACLE_GIT_BRANCH="main"
-
-[ -z "$DISK_IN_GBS" ] && DISK_IN_GBS="100"
 
 [ -z "$POOL_PUBLIC" ] && POOL_PUBLIC="false"
 
@@ -44,10 +42,16 @@ fi
 ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 [ -e "$LOCAL_PATH/../../clouds/${ORACLE_CLOUD_NAME}.sh" ] && . $LOCAL_PATH/../../clouds/${ORACLE_CLOUD_NAME}.sh
 
-[ -z "$SHAPE" ] && SHAPE="VM.GPU.A10.1"
+[ -z "$SHAPE" ] && SHAPE="$DEFAULT_NOMAD_POOL_SHAPE"
+[ -z "$SHAPE" ] && SHAPE="$SHAPE_A_1"
 
-[ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS="240"
-[ -z "$OCPUS" ] && OCPUS="15"
+[ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS="64"
+if [[ "$SHAPE" == "VM.Standard.A1.Flex" ]]; then
+  [ -z "$OCPUS" ] && OCPUS="12"
+fi
+
+[ -z "$OCPUS" ] && OCPUS="6"
+[ -z "$DISK_IN_GBS" ] && DISK_IN_GBS="100"
 
 [ -z "$INSTANCE_POOL_SIZE" ] && INSTANCE_POOL_SIZE=1
 
@@ -97,10 +101,10 @@ fi
 [ -z "$S3_PROFILE" ] && S3_PROFILE="oracle"
 [ -z "$S3_STATE_BUCKET" ] && S3_STATE_BUCKET="tf-state-$ENVIRONMENT"
 [ -z "$S3_ENDPOINT" ] && S3_ENDPOINT="https://$ORACLE_S3_NAMESPACE.compat.objectstorage.$ORACLE_REGION.oraclecloud.com"
-[ -z "$S3_STATE_KEY" ] && S3_STATE_KEY="$ENVIRONMENT/nomad-gpu-pool/$POOL_TYPE/terraform.tfstate"
+[ -z "$S3_STATE_KEY" ] && S3_STATE_KEY="$ENVIRONMENT/nomad-instance-pool/$POOL_TYPE/terraform.tfstate"
 
-[ -z "$BASE_IMAGE_TYPE" ] && BASE_IMAGE_TYPE="$GPU_POOL_IMAGE_TYPE"
-[ -z "$BASE_IMAGE_TYPE" ] && BASE_IMAGE_TYPE="GPU"
+[ -z "$BASE_IMAGE_TYPE" ] && BASE_IMAGE_TYPE="$NOMAD_BASE_IMAGE_TYPE"
+[ -z "$BASE_IMAGE_TYPE" ] && BASE_IMAGE_TYPE="JammyBase"
 
 arch_from_shape $SHAPE
 
@@ -134,7 +138,7 @@ else
 fi
 
 # first find or create the nomad security group
-[ -z "$S3_STATE_KEY_NOMAD_SG" ] && S3_STATE_KEY_NOMAD_SG="$ENVIRONMENT/nomad-gpu-pool/$POOL_TYPE/terraform-nomad-sg.tfstate"
+[ -z "$S3_STATE_KEY_NOMAD_SG" ] && S3_STATE_KEY_NOMAD_SG="$ENVIRONMENT/nomad-instance-pool/$POOL_TYPE/terraform-nomad-sg.tfstate"
 LOCAL_NOMAD_SG_KEY="terraform-nomad-sg.tfstate"
 
 oci os object get --bucket-name $S3_STATE_BUCKET --name $S3_STATE_KEY_NOMAD_SG --region $ORACLE_REGION --file $LOCAL_NOMAD_SG_KEY
@@ -144,6 +148,10 @@ if [ $? -eq 0 ]; then
       | select(.type == "oci_core_network_security_group")
       | .instances[]
       | .attributes.id')"
+fi
+
+if [ "$UPDATE_SECURITY_GROUP" == "true" ]; then
+  NOMAD_SECURITY_GROUP_ID=
 fi
 
 if [ -z "$NOMAD_SECURITY_GROUP_ID" ]; then
