@@ -8,6 +8,5 @@ unset SSH_USER
 [ -z "$OCPUS" ] && export OCPUS="15"
 [ -z "$BASE_IMAGE_TYPE" ] && export BASE_IMAGE_TYPE="GPU"
 [ -z "$POSTRUNNER_PATH" ] && export POSTRUNNER_PATH="terraform/nomad-instance-pool/user-data/postinstall-runner-gpu-oracle.sh"
-
 LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
-$LOCAL_PATH/create-nomad-instance-pool-stack.sh
+$LOCAL_PATH/create-nomad-instance-pool-stack.sh $@
