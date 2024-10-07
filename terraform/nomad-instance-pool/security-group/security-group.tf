@@ -69,7 +69,7 @@ resource "oci_core_network_security_group_security_rule" "nsg_rule_ingress_nomad
   tcp_options {
     destination_port_range {
       min = 4646
-      max = 4647
+      max = 4648
     }
   }
 }
