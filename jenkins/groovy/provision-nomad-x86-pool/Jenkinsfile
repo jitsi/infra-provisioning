@@ -24,10 +24,10 @@ pipeline {
                 }
             }
         }
-        stage ("nomad GPU pool provisioning") {
+        stage ("nomad x86 pool provisioning") {
             steps {
                 script {
-                    echo 'nomad GPU pool provision beginning'
+                    echo 'nomad x86 pool provision beginning'
                     dir('infra-provisioning') {
                         withCredentials([
                             string(credentialsId: 'oci-jenkins-terraform-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
@@ -40,7 +40,7 @@ pipeline {
                                 sh '''#!/bin/bash
                                 export USER_PUBLIC_KEY_PATH=~/.ssh/ssh_key.pub
                                 export ORACLE_GIT_BRANCH=\"$RELEASE_BRANCH\"
-                                terraform/nomad-instance-pool/create-nomad-gpu-pool-stack.sh $SSH_USERNAME'''
+                                terraform/nomad-instance-pool/create-nomad-x86-pool-stack.sh $SSH_USERNAME'''
                             }
                         }
                     }
