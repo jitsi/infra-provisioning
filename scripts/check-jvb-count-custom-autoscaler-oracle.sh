@@ -53,7 +53,7 @@ while true; do
     COUNT=$(echo "$GROUP_REPORT_VALUE" | jq -r '.groupReport.count')
     PROVISIONING_COUNT=$(echo "$GROUP_REPORT_VALUE" | jq -r '.groupReport.provisioningCount')
     SHUTTING_DOWN_COUNT=$(echo "$GROUP_REPORT_VALUE" | jq -r '.groupReport.shuttingDownCount')
-    SHUTDOWN_COUNT=$(echo "$GROUP_REPORT_VALUE" | jq -r '.groupReport.instances|map(select(.cloudStatus=="SHUTDOWN" or .cloudStatus=="unknown" or .shutdownComplete!=null))|length')
+    SHUTDOWN_COUNT=$(echo "$GROUP_REPORT_VALUE" | jq -r '.groupReport.instances|map(select(.cloudStatus=="SHUTDOWN" or .cloudStatus=="unknown" or (.shutdownComplete!=null and .shutdownComplete!=false)))|length')
     COUNT_TO_CHECK="$((COUNT - SHUTDOWN_COUNT))"
 
     if [ "$CHECK_SCALE_UP" == "true" ]; then
