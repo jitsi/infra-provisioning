@@ -34,7 +34,7 @@ pipeline {
                             def pool_type = env.POOL_TYPE.toLowerCase()
                             def create_script = "create-nomad-${pool_type}-pool-stack.sh"
 
-                            if (!fileExists("terraform/nomad-instance-pool/$build_script_name")) {
+                            if (!fileExists("terraform/nomad-instance-pool/$create_script")) {
                                 error("No known job type: ${env.JOB_TYPE}")
                             }
 
