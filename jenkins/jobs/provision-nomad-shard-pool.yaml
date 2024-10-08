@@ -1,7 +1,7 @@
 - job:
-    name: provision-nomad-gpu-pool
-    display-name: provision nomad gpu instance pool
-    description: 'Provision a nomad GPU instance pool for a new environment/region.'
+    name: provision-nomad-shard-pool
+    display-name: provision nomad shard instance pool
+    description: 'Provision a nomad shard pool for a new environment/region.'
     concurrent: true
     parameters:
       - string:
@@ -16,7 +16,8 @@
           trim: true
       - string:
           name: POOL_TYPE
-          description: "Type of pool to build, defaults to 'skynet' in scripts."
+          default: "shard"
+          description: "Type of pool to build, defaults to 'shard'."
           trim: true
       - string:
           name: POOL_PUBLIC

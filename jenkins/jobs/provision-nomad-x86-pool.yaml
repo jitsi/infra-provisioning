@@ -1,6 +1,6 @@
 - job:
     name: provision-nomad-x86-pool
-    display-name: provision nomad x86 pool
+    display-name: provision nomad x86 instance pool
     description: 'Provision a nomad x86 pool for a new environment/region.'
     concurrent: true
     parameters:
@@ -16,7 +16,8 @@
           trim: true
       - string:
           name: POOL_TYPE
-          description: "Type of pool to build, defaults to 'general' in scripts."
+          default: "x86"
+          description: "Type of pool to build, defaults to 'x86'."
           trim: true
       - string:
           name: POOL_PUBLIC
@@ -60,5 +61,5 @@
             browser-url: https://github.com/jitsi/infra-provisioning
             submodule:
               recursive: true
-      script-path: jenkins/groovy/provision-nomad-x86-pool/Jenkinsfile
+      script-path: jenkins/groovy/provision-nomad-instance-pool/Jenkinsfile
       lightweight-checkout: true
