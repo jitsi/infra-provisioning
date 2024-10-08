@@ -16,7 +16,8 @@
           trim: true
       - string:
           name: POOL_TYPE
-          description: "Type of pool to build, defaults to 'skynet' in scripts."
+          default: skynet
+          description: "Type of pool to build, defaults to 'skynet'."
           trim: true
       - string:
           name: POOL_PUBLIC
