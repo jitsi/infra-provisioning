@@ -318,7 +318,9 @@ job [[ template "job_name" . ]] {
         PROSODY_ENABLE_RATE_LIMITS="1"
         PROSODY_RATE_LIMIT_ALLOW_RANGES="[[ env "CONFIG_prosody_rate_limit_allow_ranges" ]]"
         PROSODY_REGION_NAME="[[ env "CONFIG_octo_region" ]]"
-        MAX_PARTICIPANTS=500
+[[- if ne (env "CONFIG_prosody_muc_max_occupants") "false"]]
+        MAX_PARTICIPANTS=[[ env "CONFIG_prosody_muc_max_occupants" ]]
+[[- end ]]
         TURN_TRANSPORT="udp"
       }
 [[ template "prosody_artifacts" . ]]
@@ -434,7 +436,9 @@ EOF
         JWT_ACCEPTED_AUDIENCES="[[ env "CONFIG_jwt_accepted_audiences" ]]"
         JWT_ASAP_KEYSERVER="[[ env "CONFIG_prosody_public_key_repo_url" ]]"
         JWT_APP_ID="jitsi"
-        MAX_PARTICIPANTS=500
+[[- if ne (env "CONFIG_prosody_muc_max_occupants") "false"]]
+        MAX_PARTICIPANTS=[[ env "CONFIG_prosody_muc_max_occupants" ]]
+[[- end ]]
       }
 [[ template "prosody_artifacts" . ]]
 
@@ -527,7 +531,11 @@ muc_limit_messages_count = [[ env "CONFIG_prosody_limit_messages" ]];\nmuc_limit
 [[- end -]]
 [[- if eq (env "CONFIG_prosody_meet_webhooks_enabled") "true" -]]
 muc_prosody_egress_url = \"http://localhost:9880/v1/events\";\nmuc_prosody_egress_fallback_url = \"[[ env "CONFIG_prosody_egress_fallback_url" ]]\";\n
-[[- end -]]"
+[[- end -]]
+[[- if eq (env "CONFIG_prosody_muc_require_token_for_moderation") "true" -]]
+token_verification_require_token_for_moderation = true;\n
+[[- end -]]
+"
 
 [[ if env "CONFIG_prosody_mod_log_ringbuffer_size" ]]
 PROSODY_LOG_CONFIG="{level = \"debug\", to = \"ringbuffer\",size = [[ or (env "CONFIG_prosody_mod_log_ringbuffer_size") "1014*1024*4" ]], filename_template = \"traceback.txt\", event = \"debug_traceback/triggered\";};"
@@ -541,17 +549,45 @@ GLOBAL_MODULES="admin_telnet,http_openmetrics,
 [[- if eq (env "CONFIG_prosody_enable_presence_identity") "true" ]]presence_identity,[[ end -]]
 muc_census,muc_end_meeting,secure_interfaces,external_services,turncredentials_http"
 
-XMPP_MODULES="[[ if eq (env "CONFIG_prosody_enable_filter_iq_rayo") "true" ]]filter_iq_rayo,[[ end ]]jiconop,persistent_lobby"
+XMPP_MODULES="
+[[- if eq (env "CONFIG_prosody_enable_filter_iq_rayo") "true" ]]filter_iq_rayo,[[ end -]]
+jiconop,persistent_lobby"
+
 XMPP_INTERNAL_MUC_MODULES="muc_hide_all,muc_filter_access"
 # hack to avoid token_verification when firebase auth is on
 JWT_TOKEN_AUTH_MODULE=muc_hide_all
-XMPP_CONFIGURATION="[[ if ne (or (env "CONFIG_prosody_cache_keys_url") "false") "false" ]]cache_keys_url=\"[[ env "CONFIG_prosody_cache_keys_url" ]]\",[[ end ]]shard_name=\"[[ env "CONFIG_shard" ]]\",region_name=\"{{ env "meta.cloud_region" }}\",release_number=\"[[ env "CONFIG_release_number" ]]\",max_number_outgoing_calls=[[ or (env "CONFIG_prosody_max_number_outgoing_calls") "3" ]]"
-XMPP_MUC_CONFIGURATION="allowners_moderated_subdomains = {\n 
-[[- range (env "CONFIG_muc_moderated_subdomains" | split ",") ]]\"[[ . ]]\";\n[[ end -]]},\nallowners_moderated_rooms = {\n [[ range (env "CONFIG_muc_moderated_rooms" | split ",") ]]    \"[[ . ]]\";\n[[ end ]]    }"
+XMPP_CONFIGURATION="
+[[- if ne (or (env "CONFIG_prosody_cache_keys_url") "false") "false" -]]
+cache_keys_url=\"[[ env "CONFIG_prosody_cache_keys_url" ]]\",
+[[- end -]]
+[[- if env "CONFIG_prosody_vpaas_public_key_repo_url" -]]
+vpaas_asap_key_server = \"[[ env "CONFIG_prosody_vpaas_public_key_repo_url" ]]\",
+[[- end -]]
+shard_name=\"[[ env "CONFIG_shard" ]]\",region_name=\"{{ env "meta.cloud_region" }}\",release_number=\"[[ env "CONFIG_release_number" ]]\",max_number_outgoing_calls=[[ or (env "CONFIG_prosody_max_number_outgoing_calls") "3" ]]"
+XMPP_MUC_CONFIGURATION="
+[[- if env "CONFIG_prosody_vpaas_public_key_repo_url" -]]
+vpaas_asap_key_server = \"[[ env "CONFIG_prosody_vpaas_public_key_repo_url" ]]\",
+[[- end -]]
+[[- if env "CONFIG_muc_moderated_subdomains" -]]
+allowners_moderated_subdomains = {\n 
+  [[- range (env "CONFIG_muc_moderated_subdomains" | split ",") -]]
+    \"[[ . ]]\";\n
+  [[- end -]]
+},
+[[- end -]]
+[[- if env "CONFIG_muc_moderated_rooms" -]]
+allowners_moderated_rooms = {\n
+  [[- range (env "CONFIG_muc_moderated_rooms" | split ",") -]]
+    \"[[ . ]]\";\n
+  [[- end -]]
+}
+[[- end -]]
+"
 
 XMPP_MUC_MODULES="
 [[- if eq (env "CONFIG_prosody_enable_muc_events" ) "true" ]]muc_events,[[ end -]]
 [[- if eq (env "CONFIG_prosody_meet_flip_enabled") "true" ]]muc_flip,[[ end -]]
+[[- if eq (env "CONFIG_prosody_meet_permissions_vpaas_enabled") "true" ]]muc_permissions_vpaas,[[ end -]]
 [[- if eq (env "CONFIG_prosody_meet_auth_vpaas_enabled") "true" ]]muc_auth_vpaas,[[ end -]]
 [[- if eq (env "CONFIG_prosody_meet_moderator_enabled") "true" ]]muc_moderators,[[ end -]]
 [[- if eq (env "CONFIG_prosody_meet_ban_auth_enabled") "true" ]]muc_auth_ban,[[ end -]]
