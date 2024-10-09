@@ -16,6 +16,10 @@ variable wavefront_proxy_url {
     default = "http://localhost:2878"
 }
 
+variable wavefront_enabled {
+  type = bool
+  default = false
+}
 
 job "[JOB_NAME]" {
   datacenters = [var.dc]
@@ -446,13 +450,13 @@ EOF
   listen = ":{{ env "NOMAD_HOST_PORT_telegraf_prometheus" }}"
   path = "/metrics"
 
-[[outputs.wavefront]]
+%{ if var.wavefront_enabled}[[outputs.wavefront]]
   url = "${var.wavefront_proxy_url}"
   metric_separator = "."
   source_override = ["hostname", "snmp_host", "node_host"]
   convert_paths = true
   use_regex = false
-
+%{ endif }
 [global_tags]
   environment = "{{ env "NOMAD_META_environment" }}"
   region = "{{ env "meta.cloud_region" }}"
