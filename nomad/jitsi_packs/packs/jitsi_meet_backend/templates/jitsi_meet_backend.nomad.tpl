@@ -555,8 +555,12 @@ XMPP_MODULES="
 jiconop,persistent_lobby"
 
 XMPP_INTERNAL_MUC_MODULES="muc_hide_all,muc_filter_access"
+
+[[- if eq (env "CONFIG_prosody_enable_token_room_verification") "false" ]]
 # hack to avoid token_verification when firebase auth is on
 JWT_TOKEN_AUTH_MODULE=muc_hide_all
+[[- end ]]
+
 XMPP_CONFIGURATION="
 [[- if ne (or (env "CONFIG_prosody_cache_keys_url") "false") "false" -]]
 cache_keys_url=\"[[ env "CONFIG_prosody_cache_keys_url" ]]\",
