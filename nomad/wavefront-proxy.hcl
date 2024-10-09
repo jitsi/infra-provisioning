@@ -9,6 +9,11 @@ variable "wavefront_proxy_hostname" {
   type = string
 }
 
+variable wavefront_enabled {
+  type = bool
+  default = false
+}
+
 job "[JOB_NAME]" {
   datacenters = [var.dc]
   type = "service"
@@ -67,6 +72,12 @@ job "[JOB_NAME]" {
     action : block
     scope  : metricName
     match  : "cloudprober\\..*"
+%{ if ! var.wavefront_enabled }
+  - rule   : block-all
+    action : block
+    scope  : metricName
+    match  : ".*"
+%{ endif }
 EOF
         destination = "local/preprocessor_rules.yaml"
       }

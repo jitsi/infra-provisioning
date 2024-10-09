@@ -35,7 +35,10 @@ fi
 
 export RESOURCE_NAME_ROOT="${ENVIRONMENT}-${ORACLE_REGION}-wfproxy"
 
+[ -z "$WAVEFRONT_ENABLED" ] && WAVEFRONT_ENABLED="false"
+
 export NOMAD_VAR_dc="$NOMAD_DC"
+export NOMAD_VAR_wavefront_enabled="$WAVEFRONT_ENABLED"
 export NOMAD_VAR_wavefront_proxy_hostname="${RESOURCE_NAME_ROOT}.${TOP_LEVEL_DNS_ZONE_NAME}"
 JOB_NAME="wavefront-proxy-$ORACLE_REGION"
 

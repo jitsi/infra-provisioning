@@ -33,6 +33,8 @@ NOMAD_DC="$ENVIRONMENT-$ORACLE_REGION"
 
 # WAVEFRONT_PROXY_URL="https://ops-prod-us-phoenix-1-wfproxy.jitsi.net"
 
+[ -z "$WAVEFRONT_ENABLED" ] && WAVEFRONT_ENABLED="false"
+
 if [ -z "$WAVEFRONT_PROXY_URL" ]; then
     WAVEFRONT_PROXY_VARIABLE="wavefront_proxy_host_by_cloud.$ENVIRONMENT-$ORACLE_REGION"
     WAVEFRONT_PROXY_URL="$(cat $CONFIG_VARS_FILE | yq eval .${WAVEFRONT_PROXY_VARIABLE} -)"
@@ -44,6 +46,7 @@ if [ -z "$WAVEFRONT_PROXY_URL" ]; then
     fi
 fi
 
+export NOMAD_VAR_wavefront_enabled="$WAVEFRONT_ENABLED"
 export NOMAD_VAR_wavefront_proxy_url="$WAVEFRONT_PROXY_URL"
 export NOMAD_VAR_environment="$ENVIRONMENT"
 
