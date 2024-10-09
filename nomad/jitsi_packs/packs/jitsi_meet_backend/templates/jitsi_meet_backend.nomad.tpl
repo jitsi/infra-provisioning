@@ -427,7 +427,7 @@ EOF
         PROSODY_ENABLE_RATE_LIMITS="1"
         PROSODY_RATE_LIMIT_ALLOW_RANGES="[[ env "CONFIG_prosody_rate_limit_allow_ranges" ]]"
         PROSODY_C2S_LIMIT="512kb/s"
-        PROSODY_S2S_LIMIT=""
+        PROSODY_DISABLE_S2S_LIMIT="1"
         PROSODY_RATE_LIMIT_SESSION_RATE="2000"
         TURN_TRANSPORT="udp"
         JWT_ALLOW_EMPTY="[[ env "CONFIG_prosody_token_allow_empty" ]]"
@@ -597,8 +597,14 @@ XMPP_MUC_MODULES="
 [[- if eq (env "CONFIG_prosody_enable_wait_for_host") "true" ]]muc_wait_for_host,[[ end ]]
 [[- if eq (env "CONFIG_prosody_enable_mod_measure_message_count") "true" ]]measure_message_count,[[ end -]]
 muc_hide_all"
-XMPP_LOBBY_MUC_MODULES="[[ if eq (env "CONFIG_prosody_meet_webhooks_enabled") "true" ]]muc_webhooks[[ end ]]"
-XMPP_BREAKOUT_MUC_MODULES="[[ if eq (env "CONFIG_prosody_meet_webhooks_enabled") "true" ]]muc_webhooks[[ end ]][[ if eq (env "CONFIG_prosody_enable_mod_measure_message_count") "true" ]][[ if eq (env "CONFIG_prosody_meet_webhooks_enabled") "true" ]],[[ end ]]measure_message_count[[ end ]]"
+XMPP_LOBBY_MUC_MODULES="[[- if eq (env "CONFIG_prosody_meet_webhooks_enabled") "true" ]]muc_webhooks[[ end ]]"
+XMPP_BREAKOUT_MUC_MODULES="
+[[- if eq (env "CONFIG_prosody_meet_webhooks_enabled") "true" ]]muc_webhooks[[ end -]]
+[[- if eq (env "CONFIG_prosody_enable_mod_measure_message_count") "true" -]]
+  [[- if eq (env "CONFIG_prosody_meet_webhooks_enabled") "true" ]],[[ end -]]
+  measure_message_count
+[[- end -]]"
+XMPP_SPEAKERSTATS_MODULES="[[- if eq (env "CONFIG_prosody_enable_muc_events" ) "true" ]]muc_events[[ end -]]"
 XMPP_SERVER=localhost
 XMPP_PORT={{  env "NOMAD_HOST_PORT_prosody_client" }}
 XMPP_BOSH_URL_BASE=http://{{ env "NOMAD_IP_prosody_http" }}:{{ env "NOMAD_HOST_PORT_prosody_http" }}
