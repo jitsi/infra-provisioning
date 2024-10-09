@@ -72,7 +72,7 @@ job "[JOB_NAME]" {
     action : block
     scope  : metricName
     match  : "cloudprober\\..*"
-%{ if !var.wavefront_enabled }
+%{ if var.wavefront_enabled == false }
   - rule   : block-all
     action : block
     scope  : metricName
