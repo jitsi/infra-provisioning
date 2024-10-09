@@ -450,7 +450,7 @@ EOF
   listen = ":{{ env "NOMAD_HOST_PORT_telegraf_prometheus" }}"
   path = "/metrics"
 
-%{ if var.wavefront_enabled}[[outputs.wavefront]]
+%{ if var.wavefront_enabled }[[outputs.wavefront]]
   url = "${var.wavefront_proxy_url}"
   metric_separator = "."
   source_override = ["hostname", "snmp_host", "node_host"]
