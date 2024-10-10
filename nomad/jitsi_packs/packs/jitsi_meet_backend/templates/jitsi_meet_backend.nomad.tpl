@@ -318,8 +318,8 @@ job [[ template "job_name" . ]] {
         PROSODY_ENABLE_RATE_LIMITS="1"
         PROSODY_RATE_LIMIT_ALLOW_RANGES="[[ env "CONFIG_prosody_rate_limit_allow_ranges" ]]"
         PROSODY_REGION_NAME="[[ env "CONFIG_octo_region" ]]"
-[[- if ne (env "CONFIG_prosody_muc_max_occupants") "false"]]
-        MAX_PARTICIPANTS=[[ env "CONFIG_prosody_muc_max_occupants" ]]
+[[- if and (env "CONFIG_prosody_visitors_muc_max_occupants") (ne (env "CONFIG_prosody_visitors_muc_max_occupants") "false") ]]
+        VISITORS_MAX_VISITORS_PER_NODE=[[ env "CONFIG_prosody_visitors_muc_max_occupants" ]]
 [[- end ]]
         TURN_TRANSPORT="udp"
       }
@@ -338,12 +338,31 @@ PROSODY_S2S_PORT=[[ add $VNODE_STS_PORT $i ]]
 GLOBAL_CONFIG="console_ports={ 7582+[[ $i ]] };\nstatistics = \"internal\"\nstatistics_interval = \"manual\"\nopenmetrics_allow_cidr = \"0.0.0.0/0\";\n
 [[- if eq (env "CONFIG_prosody_meet_webhooks_enabled") "true" -]]
 muc_prosody_egress_url = \"http://localhost:9880/v1/events\";\nmuc_prosody_egress_fallback_url = \"[[ env "CONFIG_prosody_egress_fallback_url" ]]\";\n
-[[- end -]]"
-
+[[- end -]]
+[[- if (env "CONFIG_prosody_jaas_actuator_url") -]]
+muc_prosody_jaas_actuator_url = \"[[ env "CONFIG_prosody_jaas_actuator_url" ]]\";\n
+[[- end -]]
+[[- if eq (env "CONFIG_prosody_meet_ban_auth_enabled") "true" -]]
+muc_prosody_jitsi_access_manager_url = \"[[ env "CONFIG_jitsi_access_manager_url" ]]\";\n
+[[- end -]]
+"
 GLOBAL_MODULES="admin_telnet,http_openmetrics,log_ringbuffer,firewall,muc_census,secure_interfaces,external_services,turncredentials_http[[ if eq (env "CONFIG_prosody_mod_measure_stanza_counts") "true" ]],measure_stanza_counts[[ end ]][[ if eq (env "CONFIG_prosody_enable_password_preset" ) "true" ]],muc_password_preset[[ end ]]"
+
+XMPP_CONFIG="
+[[- if ne (or (env "CONFIG_prosody_cache_keys_url") "false") "false" -]]
+cache_keys_url=\"[[ env "CONFIG_prosody_cache_keys_url" ]]\",
+[[- end -]]
+[[- if env "CONFIG_prosody_vpaas_public_key_repo_url" -]]
+vpaas_asap_key_server = \"[[ env "CONFIG_prosody_vpaas_public_key_repo_url" ]]\",
+[[- end -]]
+"
 XMPP_MODULES="jiconop"
-XMPP_INTERNAL_MUC_MODULES="muc_hide_all,muc_filter_access[[ if eq (env "CONFIG_prosody_enable_muc_events" ) "true" ]],muc_events[[ end ]]"
-XMPP_MUC_MODULES="[[ if eq (env "CONFIG_prosody_meet_webhooks_enabled") "true" ]]muc_visitors_webhooks[[ end ]]"
+XMPP_MUC_MODULES="
+[[- if eq (env "CONFIG_prosody_meet_auth_vpaas_enabled") "true" ]]muc_auth_vpaas,[[ end -]]
+[[- if eq (env "CONFIG_prosody_meet_permissions_vpaas_enabled") "true" ]]muc_permissions_vpaas,[[ end -]]
+[[- if eq (env "CONFIG_prosody_meet_ban_auth_enabled") "true" ]]muc_auth_ban,[[ end -]]
+[[- if eq (env "CONFIG_prosody_enable_muc_events" ) "true" -]]muc_events,[[ end -]]
+[[- if eq (env "CONFIG_prosody_meet_webhooks_enabled") "true" -]]muc_visitors_webhooks[[- end -]]"
 XMPP_PORT=[[ add $VNODE_CLIENT_PORT $i ]]
 
 EOF
@@ -554,8 +573,6 @@ XMPP_MODULES="
 [[- if eq (env "CONFIG_prosody_enable_filter_iq_rayo") "true" ]]filter_iq_rayo,[[ end -]]
 jiconop,persistent_lobby"
 
-XMPP_INTERNAL_MUC_MODULES="muc_hide_all,muc_filter_access"
-
 [[- if eq (env "CONFIG_prosody_enable_token_room_verification") "false" ]]
 # hack to avoid token_verification when firebase auth is on
 JWT_TOKEN_AUTH_MODULE=muc_hide_all
@@ -570,9 +587,6 @@ vpaas_asap_key_server = \"[[ env "CONFIG_prosody_vpaas_public_key_repo_url" ]]\"
 [[- end -]]
 shard_name=\"[[ env "CONFIG_shard" ]]\",region_name=\"{{ env "meta.cloud_region" }}\",release_number=\"[[ env "CONFIG_release_number" ]]\",max_number_outgoing_calls=[[ or (env "CONFIG_prosody_max_number_outgoing_calls") "3" ]]"
 XMPP_MUC_CONFIGURATION="
-[[- if env "CONFIG_prosody_vpaas_public_key_repo_url" -]]
-vpaas_asap_key_server = \"[[ env "CONFIG_prosody_vpaas_public_key_repo_url" ]]\",
-[[- end -]]
 [[- if env "CONFIG_muc_moderated_subdomains" -]]
 allowners_moderated_subdomains = {\n 
   [[- range (env "CONFIG_muc_moderated_subdomains" | split ",") -]]
