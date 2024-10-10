@@ -298,6 +298,11 @@ job [[ template "job_name" . ]] {
     task "prosody-vnode-[[ $i ]]" {
       driver = "docker"
 
+      vault {
+        change_mode = "noop"
+
+      }
+
       config {
         force_pull = [[ or (env "CONFIG_force_pull") "false" ]]
         image        = "jitsi/prosody:[[ env "CONFIG_prosody_tag" ]]"
