@@ -36,7 +36,7 @@ if [ -z "$SHARD_NAME" ]; then
     export SHARD_NAME="${SHARD_BASE}-${ORACLE_REGION}-s${SHARD_NUMBER}"
 fi
 
-[ -z "$NOMAD_POOL_TYPE" ] && export NOMAD_POOL_TYPE="general"
+[ -z "$NOMAD_POOL_TYPE" ] && export NOMAD_POOL_TYPE="shard"
 
 [ -z "$POSTINSTALL_STATUS_FILE" ] && export POSTINSTALL_STATUS_FILE="$(dirname $SHARD_CREATE_OUTPUT_FILE)/postinstall_status-$SHARD_NAME.txt"
 

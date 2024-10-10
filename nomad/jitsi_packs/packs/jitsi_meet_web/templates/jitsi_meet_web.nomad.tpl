@@ -39,7 +39,7 @@ job [[ template "job_name" . ]] {
 
     constraint {
       attribute  = "${meta.pool_type}"
-      value     = "[[ or (env "CONFIG_pool_type") "general" ]]"
+      value     = "[[ or (env "CONFIG_pool_type") "shard" ]]"
     }
 
     network {
