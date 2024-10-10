@@ -98,7 +98,7 @@ job [[ template "job_name" . ]] {
       }
 
       port = "http"
-[[- if or (eq (env "CONFIG_prosody_meet_webhooks_enabled") "true") (ne (or (env "CONFIG_prosody_brewery_shard_enabled") "true") "true") ]]
+[[- if or (eq (env "CONFIG_prosody_meet_webhooks_enabled") "true") (eq (env "CONFIG_prosody_enable_muc_events" ) "true") (ne (or (env "CONFIG_prosody_brewery_shard_enabled") "true") "true") ]]
       connect {
         sidecar_service {
           proxy {
@@ -108,7 +108,7 @@ job [[ template "job_name" . ]] {
               local_bind_port  = 6222
             }
 [[- end ]]
-[[- if eq (env "CONFIG_prosody_meet_webhooks_enabled") "true" ]]
+[[- if or (eq (env "CONFIG_prosody_meet_webhooks_enabled") "true") (eq (env "CONFIG_prosody_enable_muc_events" ) "true") ]]
             upstreams {
               destination_name = "prosody-egress"
               local_bind_port  = 9880
