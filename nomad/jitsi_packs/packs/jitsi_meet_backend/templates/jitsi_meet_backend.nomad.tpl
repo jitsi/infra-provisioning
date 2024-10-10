@@ -371,7 +371,7 @@ cache_keys_url=\"[[ env "CONFIG_prosody_cache_keys_url" ]]\",
 vpaas_asap_key_server = \"[[ env "CONFIG_prosody_vpaas_public_key_repo_url" ]]\",
 [[- end -]]
 "
-XMPP_MODULES="jiconop"
+XMPP_MODULES="jiconop,system_chat_message"
 XMPP_MUC_MODULES="
 [[- if eq (env "CONFIG_prosody_meet_auth_vpaas_enabled") "true" ]]muc_auth_vpaas,[[ end -]]
 [[- if eq (env "CONFIG_prosody_meet_permissions_vpaas_enabled") "true" ]]muc_permissions_vpaas,[[ end -]]
