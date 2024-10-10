@@ -594,7 +594,8 @@ muc_census,muc_end_meeting,secure_interfaces,external_services,turncredentials_h
 
 XMPP_MODULES="
 [[- if eq (env "CONFIG_prosody_enable_filter_iq_rayo") "true" ]]filter_iq_rayo,[[ end -]]
-jiconop,persistent_lobby"
+[[- if eq (env "CONFIG_prosody_enable_persistent_lobby") "true" ]]persistent_lobby,[[ end -]]
+jiconop"
 
 [[- if eq (env "CONFIG_prosody_enable_token_room_verification") "false" ]]
 # hack to avoid token_verification when firebase auth is on
