@@ -346,6 +346,9 @@ muc_prosody_jaas_actuator_url = \"[[ env "CONFIG_prosody_jaas_actuator_url" ]]\"
 [[- if eq (env "CONFIG_prosody_meet_ban_auth_enabled") "true" -]]
 muc_prosody_jitsi_access_manager_url = \"[[ env "CONFIG_jitsi_access_manager_url" ]]\";\n
 [[- end -]]
+[[- if eq (env "CONFIG_prosody_enable_muc_events") "true" -]]
+asap_key_path = \"/secrets/asap.key\";\nasap_key_id = \"{{ with secret "secret/[[ env "CONFIG_environment" ]]/asap/server" }}{{ .Data.data.key_id }}{{ end }}\";\nasap_issuer = \"[[ or (env "CONFIG_prosody_asap_issuer") "jitsi" ]]\";\nasap_audience = \"[[ or (env "CONFIG_prosody_asap_audience") "jitsi" ]]\";\n
+[[- end -]]
 "
 GLOBAL_MODULES="admin_telnet,http_openmetrics,log_ringbuffer,firewall,muc_census,secure_interfaces,external_services,turncredentials_http[[ if eq (env "CONFIG_prosody_mod_measure_stanza_counts") "true" ]],measure_stanza_counts[[ end ]][[ if eq (env "CONFIG_prosody_enable_password_preset" ) "true" ]],muc_password_preset[[ end ]]"
 
@@ -371,6 +374,14 @@ EOF
         destination = "local/prosody.env"
         env = true
       }
+
+      template {
+        data = <<EOF
+{{- with secret "secret/[[ env "CONFIG_environment" ]]/asap/server" }}{{ .Data.data.private_key }}{{ end -}}
+EOF
+        destination = "secrets/asap.key"
+      }
+
 
       resources {
         cpu    = [[ or (env "CONFIG_nomad_prosody_vnode_cpu") "200" ]]
