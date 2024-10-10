@@ -298,6 +298,11 @@ job [[ template "job_name" . ]] {
     task "prosody-vnode-[[ $i ]]" {
       driver = "docker"
 
+      vault {
+        change_mode = "noop"
+
+      }
+
       config {
         force_pull = [[ or (env "CONFIG_force_pull") "false" ]]
         image        = "jitsi/prosody:[[ env "CONFIG_prosody_tag" ]]"
@@ -307,18 +312,21 @@ job [[ template "job_name" . ]] {
 
       env {
         PROSODY_MODE="visitors"
-        VISITORS_MAX_PARTICIPANTS=5
-        VISITORS_MAX_VISITORS_PER_NODE=250
 [[ template "common-env" . ]]
         ENABLE_VISITORS="true"
-        ENABLE_GUESTS="true"
+#        ENABLE_GUESTS="true"
         ENABLE_AUTH="true"
 #        LOG_LEVEL="debug"
         PROSODY_VISITOR_INDEX="[[ $i ]]"
         PROSODY_ENABLE_RATE_LIMITS="1"
         PROSODY_RATE_LIMIT_ALLOW_RANGES="[[ env "CONFIG_prosody_rate_limit_allow_ranges" ]]"
         PROSODY_REGION_NAME="[[ env "CONFIG_octo_region" ]]"
-        MAX_PARTICIPANTS=500
+        VISITORS_MAX_VISITORS_PER_NODE=
+          [[- if and (env "CONFIG_prosody_visitors_muc_max_occupants") (ne (env "CONFIG_prosody_visitors_muc_max_occupants") "false") -]]
+            [[ env "CONFIG_prosody_visitors_muc_max_occupants" ]]
+          [[- else -]]
+            250
+        [[- end ]]
         TURN_TRANSPORT="udp"
       }
 [[ template "prosody_artifacts" . ]]
@@ -336,12 +344,40 @@ PROSODY_S2S_PORT=[[ add $VNODE_STS_PORT $i ]]
 GLOBAL_CONFIG="console_ports={ 7582+[[ $i ]] };\nstatistics = \"internal\"\nstatistics_interval = \"manual\"\nopenmetrics_allow_cidr = \"0.0.0.0/0\";\n
 [[- if eq (env "CONFIG_prosody_meet_webhooks_enabled") "true" -]]
 muc_prosody_egress_url = \"http://localhost:9880/v1/events\";\nmuc_prosody_egress_fallback_url = \"[[ env "CONFIG_prosody_egress_fallback_url" ]]\";\n
-[[- end -]]"
+[[- end -]]
+[[- if (env "CONFIG_prosody_jaas_actuator_url") -]]
+muc_prosody_jaas_actuator_url = \"[[ env "CONFIG_prosody_jaas_actuator_url" ]]\";\n
+[[- end -]]
+[[- if eq (env "CONFIG_prosody_meet_ban_auth_enabled") "true" -]]
+muc_prosody_jitsi_access_manager_url = \"[[ env "CONFIG_jitsi_access_manager_url" ]]\";\n
+[[- end -]]
+[[- if eq (env "CONFIG_prosody_enable_muc_events") "true" -]]
+asap_key_path = \"/secrets/asap.key\";\nasap_key_id = \"{{ with secret "secret/[[ env "CONFIG_environment" ]]/asap/server" }}{{ .Data.data.key_id }}{{ end }}\";\nasap_issuer = \"[[ or (env "CONFIG_prosody_asap_issuer") "jitsi" ]]\";\nasap_audience = \"[[ or (env "CONFIG_prosody_asap_audience") "jitsi" ]]\";\n
+[[- end -]]
+[[- if (env "CONFIG_prosody_conference_info_url") -]]
+muc_conference_info_url = "[[ env "CONFIG_prosody_conference_info_url" ]]\";\n
+[[- if (env "CONFIG_prosody_password_public_key_repo_url") -]]
+prosody_password_public_key_repo_url = \"[[ env "CONFIG_prosody_password_public_key_repo_url" ]]\";\n
+[[- end -]]
+[[- end -]]
+"
+GLOBAL_MODULES="admin_telnet,http_openmetrics,log_ringbuffer,firewall,muc_census,secure_interfaces,external_services,turncredentials_http[[ if eq (env "CONFIG_prosody_mod_measure_stanza_counts") "true" ]],measure_stanza_counts[[ end ]][[ if eq (env "CONFIG_prosody_enable_password_preset" ) "true" ]],muc_password_preset[[ end ]]"
 
-GLOBAL_MODULES="admin_telnet,http_openmetrics,log_ringbuffer,firewall,muc_census,secure_interfaces,external_services,turncredentials_http[[ if eq (env "CONFIG_prosody_mod_measure_stanza_counts") "true" ]],measure_stanza_counts[[ end ]]"
-XMPP_MODULES="jiconop"
-XMPP_INTERNAL_MUC_MODULES="muc_hide_all,muc_filter_access[[ if eq (env "CONFIG_prosody_enable_muc_events" ) "true" ]],muc_events[[ end ]]"
-XMPP_MUC_MODULES="[[ if eq (env "CONFIG_prosody_meet_webhooks_enabled") "true" ]]muc_visitors_webhooks[[ end ]]"
+XMPP_CONFIG="
+[[- if ne (or (env "CONFIG_prosody_cache_keys_url") "false") "false" -]]
+cache_keys_url=\"[[ env "CONFIG_prosody_cache_keys_url" ]]\",
+[[- end -]]
+[[- if env "CONFIG_prosody_vpaas_public_key_repo_url" -]]
+vpaas_asap_key_server = \"[[ env "CONFIG_prosody_vpaas_public_key_repo_url" ]]\",
+[[- end -]]
+"
+XMPP_MODULES="jiconop,system_chat_message"
+XMPP_MUC_MODULES="
+[[- if eq (env "CONFIG_prosody_meet_auth_vpaas_enabled") "true" ]]muc_auth_vpaas,[[ end -]]
+[[- if eq (env "CONFIG_prosody_meet_permissions_vpaas_enabled") "true" ]]muc_permissions_vpaas,[[ end -]]
+[[- if eq (env "CONFIG_prosody_meet_ban_auth_enabled") "true" ]]muc_auth_ban,[[ end -]]
+[[- if eq (env "CONFIG_prosody_enable_muc_events" ) "true" -]]muc_events,[[ end -]]
+[[- if eq (env "CONFIG_prosody_meet_webhooks_enabled") "true" -]]muc_visitors_webhooks[[- end -]]"
 XMPP_PORT=[[ add $VNODE_CLIENT_PORT $i ]]
 
 EOF
@@ -349,6 +385,14 @@ EOF
         destination = "local/prosody.env"
         env = true
       }
+
+      template {
+        data = <<EOF
+{{- with secret "secret/[[ env "CONFIG_environment" ]]/asap/server" }}{{ .Data.data.private_key }}{{ end -}}
+EOF
+        destination = "secrets/asap.key"
+      }
+
 
       resources {
         cpu    = [[ or (env "CONFIG_nomad_prosody_vnode_cpu") "200" ]]
@@ -420,12 +464,12 @@ EOF
         ENABLE_AV_MODERATION="1"
         ENABLE_BREAKOUT_ROOMS="1"
         ENABLE_AUTH="1"
-        ENABLE_GUESTS="1"
+#        ENABLE_GUESTS="1"
         ENABLE_END_CONFERENCE="0"
         PROSODY_ENABLE_RATE_LIMITS="1"
         PROSODY_RATE_LIMIT_ALLOW_RANGES="[[ env "CONFIG_prosody_rate_limit_allow_ranges" ]]"
         PROSODY_C2S_LIMIT="512kb/s"
-        PROSODY_S2S_LIMIT=""
+        PROSODY_DISABLE_S2S_LIMIT="1"
         PROSODY_RATE_LIMIT_SESSION_RATE="2000"
         TURN_TRANSPORT="udp"
         JWT_ALLOW_EMPTY="[[ env "CONFIG_prosody_token_allow_empty" ]]"
@@ -434,7 +478,9 @@ EOF
         JWT_ACCEPTED_AUDIENCES="[[ env "CONFIG_jwt_accepted_audiences" ]]"
         JWT_ASAP_KEYSERVER="[[ env "CONFIG_prosody_public_key_repo_url" ]]"
         JWT_APP_ID="jitsi"
-        MAX_PARTICIPANTS=500
+[[- if ne (env "CONFIG_prosody_muc_max_occupants") "false"]]
+        MAX_PARTICIPANTS=[[ env "CONFIG_prosody_muc_max_occupants" ]]
+[[- end ]]
       }
 [[ template "prosody_artifacts" . ]]
 
@@ -484,7 +530,31 @@ PROSODY_S2S_PORT=[[ $STS_PORT ]]
 # prosody main configuration options
 #
 
-GLOBAL_CONFIG="console_ports={ 5582 };\nstatistics = \"internal\"\nstatistics_interval = \"manual\"\nopenmetrics_allow_cidr = \"0.0.0.0/0\";\ntoken_verification_allowlist = { \"recorder.[[ env "CONFIG_domain" ]]\" };\n
+GLOBAL_CONFIG="console_ports={ 5582 };\nstatistics = \"internal\"\nstatistics_interval = \"manual\"\nopenmetrics_allow_cidr = \"0.0.0.0/0\";\ntoken_verification_allowlist = { \"recorder.[[ env "CONFIG_domain" ]]\" };\nmuc_mapper_log_not_allowed_errors = true;\n
+[[- if (env "CONFIG_prosody_meet_chat_history_url") -]]
+muc_chat_history_url = \"[[ env "CONFIG_prosody_meet_chat_history_url" ]]\";\n
+[[- end -]]
+[[- if (env "CONFIG_prosody_jaas_actuator_url") -]]
+muc_prosody_jaas_actuator_url = \"[[ env "CONFIG_prosody_jaas_actuator_url" ]]\";\n
+[[- end -]]
+[[- if (env "CONFIG_prosody_meet_speaker_stats_url") -]]
+muc_speaker_stats_url = \"[[ env "CONFIG_prosody_meet_speaker_stats_url" ]]\";\n
+[[- end -]]
+[[- if (env "CONFIG_prosody_meet_transcriptions_url") -]]
+muc_transcriptions_url = \"[[ env "CONFIG_prosody_meet_transcriptions_url" ]]\";\n
+[[- end -]]
+[[- if eq (env "CONFIG_prosody_meet_ban_auth_enabled") "true" -]]
+muc_prosody_jitsi_access_manager_url = \"[[ env "CONFIG_jitsi_access_manager_url" ]]\";\n
+[[- end -]]
+[[- if (env "CONFIG_prosody_conference_info_url") -]]
+muc_conference_info_url = "[[ env "CONFIG_prosody_conference_info_url" ]]\";\n
+[[- if (env "CONFIG_prosody_password_public_key_repo_url") -]]
+prosody_password_public_key_repo_url = \"[[ env "CONFIG_prosody_password_public_key_repo_url" ]]\";\n
+[[- end -]]
+[[- end -]]
+[[- if (env "CONFIG_prosody_visitors_queue_service_url") -]]
+visitors_queue_service = \"[[ env "CONFIG_prosody_visitors_queue_service_url" ]]\";\n
+[[- end -]]
 [[- if eq (env "CONFIG_prosody_disable_required_room_claim") "true" -]]
 asap_require_room_claim = false;\n
 [[- end -]]
@@ -503,22 +573,80 @@ muc_limit_messages_count = [[ env "CONFIG_prosody_limit_messages" ]];\nmuc_limit
 [[- end -]]
 [[- if eq (env "CONFIG_prosody_meet_webhooks_enabled") "true" -]]
 muc_prosody_egress_url = \"http://localhost:9880/v1/events\";\nmuc_prosody_egress_fallback_url = \"[[ env "CONFIG_prosody_egress_fallback_url" ]]\";\n
-[[- end -]]"
+[[- end -]]
+[[- if eq (env "CONFIG_prosody_muc_require_token_for_moderation") "true" -]]
+token_verification_require_token_for_moderation = true;\n
+[[- end -]]
+"
 
+[[ if env "CONFIG_prosody_mod_log_ringbuffer_size" ]]
 PROSODY_LOG_CONFIG="{level = \"debug\", to = \"ringbuffer\",size = [[ or (env "CONFIG_prosody_mod_log_ringbuffer_size") "1014*1024*4" ]], filename_template = \"traceback.txt\", event = \"debug_traceback/triggered\";};"
+[[ end -]]
 # our networks and cloudflare ip-ranges (cloudflare ranges come from https://www.cloudflare.com/en-gb/ips/)
 PROSODY_TRUSTED_PROXIES="127.0.0.1,::1,10.0.0.0/8,103.21.244.0/22,103.22.200.0/22,103.31.4.0/22,104.16.0.0/13,104.24.0.0/14,108.162.192.0/18,131.0.72.0/22,141.101.64.0/18,162.158.0.0/15,172.64.0.0/13,173.245.48.0/20,188.114.96.0/20,190.93.240.0/20,197.234.240.0/22,198.41.128.0/17,2400:cb00::/32,2405:8100::/32,2405:b500::/32,2606:4700::/32,2803:f800::/32,2a06:98c0::/29,2c0f:f248::/32"
 
-GLOBAL_MODULES="admin_telnet,debug_traceback,http_openmetrics,log_ringbuffer,muc_census,muc_end_meeting,secure_interfaces,external_services,turncredentials_http[[ if eq (env "CONFIG_prosody_mod_measure_stanza_counts") "true" ]],measure_stanza_counts[[ end ]]"
-XMPP_MODULES="[[ if eq (env "CONFIG_prosody_enable_filter_iq_rayo") "true" ]]filter_iq_rayo,[[ end ]]jiconop,persistent_lobby"
-XMPP_INTERNAL_MUC_MODULES="muc_hide_all,muc_filter_access[[ if eq (env "CONFIG_prosody_enable_muc_events" ) "true" ]],muc_events[[ end ]]"
+GLOBAL_MODULES="admin_telnet,http_openmetrics,
+[[- if eq (env "CONFIG_prosody_enable_password_preset" ) "true" ]]muc_password_preset,[[ end ]]
+[[- if env "CONFIG_prosody_mod_log_ringbuffer_size" ]]log_ringbuffer,debug_traceback,[[ end -]]
+[[- if eq (env "CONFIG_prosody_mod_measure_stanza_counts") "true" ]]measure_stanza_counts,[[ end -]]
+[[- if eq (env "CONFIG_prosody_enable_presence_identity") "true" ]]presence_identity,[[ end -]]
+muc_census,muc_end_meeting,secure_interfaces,external_services,turncredentials_http"
+
+XMPP_MODULES="
+[[- if eq (env "CONFIG_prosody_enable_filter_iq_rayo") "true" ]]filter_iq_rayo,[[ end -]]
+[[- if eq (env "CONFIG_prosody_enable_persistent_lobby") "true" ]]persistent_lobby,[[ end -]]
+jiconop"
+
+[[- if eq (env "CONFIG_prosody_enable_token_room_verification") "false" ]]
 # hack to avoid token_verification when firebase auth is on
 JWT_TOKEN_AUTH_MODULE=muc_hide_all
-XMPP_CONFIGURATION="[[ if ne (or (env "CONFIG_prosody_cache_keys_url") "false") "false" ]]cache_keys_url=\"[[ env "CONFIG_prosody_cache_keys_url" ]]\",[[ end ]]shard_name=\"[[ env "CONFIG_shard" ]]\",region_name=\"{{ env "meta.cloud_region" }}\",release_number=\"[[ env "CONFIG_release_number" ]]\",max_number_outgoing_calls=[[ or (env "CONFIG_prosody_max_number_outgoing_calls") "3" ]]"
-XMPP_MUC_CONFIGURATION="allowners_moderated_subdomains = {\n [[ range (env "CONFIG_muc_moderated_subdomains" | split ",") ]]    \"[[ . ]]\";\n[[ end ]]    },allowners_moderated_rooms = {\n [[ range (env "CONFIG_muc_moderated_rooms" | split ",") ]]    \"[[ . ]]\";\n[[ end ]]    }"
-XMPP_MUC_MODULES="[[ if eq (env "CONFIG_prosody_meet_webhooks_enabled") "true" ]]muc_webhooks,[[ end ]][[ if eq (env "CONFIG_prosody_muc_allowners") "true" ]]muc_allowners,[[ end ]][[ if eq (env "CONFIG_prosody_enable_wait_for_host") "true" ]]muc_wait_for_host,[[ end ]][[ if eq (env "CONFIG_prosody_enable_mod_measure_message_count") "true" ]]measure_message_count,[[ end ]]muc_hide_all"
-XMPP_LOBBY_MUC_MODULES="[[ if eq (env "CONFIG_prosody_meet_webhooks_enabled") "true" ]]muc_webhooks[[ end ]]"
-XMPP_BREAKOUT_MUC_MODULES="[[ if eq (env "CONFIG_prosody_meet_webhooks_enabled") "true" ]]muc_webhooks[[ end ]][[ if eq (env "CONFIG_prosody_enable_mod_measure_message_count") "true" ]][[ if eq (env "CONFIG_prosody_meet_webhooks_enabled") "true" ]],[[ end ]]measure_message_count[[ end ]]"
+[[- end ]]
+
+XMPP_CONFIGURATION="
+[[- if ne (or (env "CONFIG_prosody_cache_keys_url") "false") "false" -]]
+cache_keys_url=\"[[ env "CONFIG_prosody_cache_keys_url" ]]\",
+[[- end -]]
+[[- if env "CONFIG_prosody_vpaas_public_key_repo_url" -]]
+vpaas_asap_key_server = \"[[ env "CONFIG_prosody_vpaas_public_key_repo_url" ]]\",
+[[- end -]]
+shard_name=\"[[ env "CONFIG_shard" ]]\",region_name=\"{{ env "meta.cloud_region" }}\",release_number=\"[[ env "CONFIG_release_number" ]]\",max_number_outgoing_calls=[[ or (env "CONFIG_prosody_max_number_outgoing_calls") "3" ]]"
+XMPP_MUC_CONFIGURATION="
+[[- if env "CONFIG_muc_moderated_subdomains" -]]
+allowners_moderated_subdomains = {\n 
+  [[- range (env "CONFIG_muc_moderated_subdomains" | split ",") -]]
+    \"[[ . ]]\";\n
+  [[- end -]]
+},
+[[- end -]]
+[[- if env "CONFIG_muc_moderated_rooms" -]]
+allowners_moderated_rooms = {\n
+  [[- range (env "CONFIG_muc_moderated_rooms" | split ",") -]]
+    \"[[ . ]]\";\n
+  [[- end -]]
+}
+[[- end -]]
+"
+
+XMPP_MUC_MODULES="
+[[- if eq (env "CONFIG_prosody_enable_muc_events" ) "true" ]]muc_events,[[ end -]]
+[[- if eq (env "CONFIG_prosody_meet_flip_enabled") "true" ]]muc_flip,[[ end -]]
+[[- if eq (env "CONFIG_prosody_meet_permissions_vpaas_enabled") "true" ]]muc_permissions_vpaas,[[ end -]]
+[[- if eq (env "CONFIG_prosody_meet_auth_vpaas_enabled") "true" ]]muc_auth_vpaas,[[ end -]]
+[[- if eq (env "CONFIG_prosody_meet_moderator_enabled") "true" ]]muc_moderators,[[ end -]]
+[[- if eq (env "CONFIG_prosody_meet_ban_auth_enabled") "true" ]]muc_auth_ban,[[ end -]]
+[[- if eq (env "CONFIG_prosody_meet_webhooks_enabled") "true" ]]muc_webhooks,[[ end -]]
+[[- if eq (env "CONFIG_prosody_muc_allowners") "true" -]]muc_allowners,[[ end ]]
+[[- if eq (env "CONFIG_prosody_enable_wait_for_host") "true" ]]muc_wait_for_host,[[ end ]]
+[[- if eq (env "CONFIG_prosody_enable_mod_measure_message_count") "true" ]]measure_message_count,[[ end -]]
+muc_hide_all"
+XMPP_LOBBY_MUC_MODULES="[[- if eq (env "CONFIG_prosody_meet_webhooks_enabled") "true" ]]muc_webhooks[[ end ]]"
+XMPP_BREAKOUT_MUC_MODULES="
+[[- if eq (env "CONFIG_prosody_meet_webhooks_enabled") "true" ]]muc_webhooks[[ end -]]
+[[- if eq (env "CONFIG_prosody_enable_mod_measure_message_count") "true" -]]
+  [[- if eq (env "CONFIG_prosody_meet_webhooks_enabled") "true" ]],[[ end -]]
+  measure_message_count
+[[- end -]]"
+XMPP_SPEAKERSTATS_MODULES="[[- if eq (env "CONFIG_prosody_enable_muc_events" ) "true" ]]muc_events[[ end -]]"
 XMPP_SERVER=localhost
 XMPP_PORT={{  env "NOMAD_HOST_PORT_prosody_client" }}
 XMPP_BOSH_URL_BASE=http://{{ env "NOMAD_IP_prosody_http" }}:{{ env "NOMAD_HOST_PORT_prosody_http" }}
