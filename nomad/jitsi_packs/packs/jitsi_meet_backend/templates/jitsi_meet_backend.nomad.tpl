@@ -371,7 +371,7 @@ cache_keys_url=\"[[ env "CONFIG_prosody_cache_keys_url" ]]\",
 vpaas_asap_key_server = \"[[ env "CONFIG_prosody_vpaas_public_key_repo_url" ]]\",
 [[- end -]]
 "
-XMPP_MODULES="jiconop,system_chat_message"
+XMPP_MODULES="jiconop"
 XMPP_MUC_MODULES="
 [[- if eq (env "CONFIG_prosody_meet_auth_vpaas_enabled") "true" ]]muc_auth_vpaas,[[ end -]]
 [[- if eq (env "CONFIG_prosody_meet_permissions_vpaas_enabled") "true" ]]muc_permissions_vpaas,[[ end -]]
@@ -595,7 +595,7 @@ muc_census,muc_end_meeting,secure_interfaces,external_services,turncredentials_h
 XMPP_MODULES="
 [[- if eq (env "CONFIG_prosody_enable_filter_iq_rayo") "true" ]]filter_iq_rayo,[[ end -]]
 [[- if eq (env "CONFIG_prosody_enable_persistent_lobby") "true" ]]persistent_lobby,[[ end -]]
-jiconop"
+jiconop,system_chat_message"
 
 [[- if eq (env "CONFIG_prosody_enable_token_room_verification") "false" ]]
 # hack to avoid token_verification when firebase auth is on
