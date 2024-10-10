@@ -20,7 +20,7 @@ if [ -z "$NOMAD_ADDR" ]; then
     export NOMAD_ADDR="https://$ENVIRONMENT-$LOCAL_REGION-nomad.$TOP_LEVEL_DNS_ZONE_NAME"
 fi
 
-[ -z "$NOMAD_POOL_TYPE" ] && NOMAD_POOL_TYPE="general"
+[ -z "$NOMAD_POOL_TYPE" ] && NOMAD_POOL_TYPE="shard"
 
 [ -z "$DOCKER_TAG" ] && DOCKER_TAG="unstable-$(date +%Y-%m-%d)"
 
