@@ -321,7 +321,7 @@ job [[ template "job_name" . ]] {
             [[ env "CONFIG_prosody_visitors_muc_max_occupants" ]]
           [[- else -]]
             250
-        [[- end -]]
+        [[- end ]]
         TURN_TRANSPORT="udp"
       }
 [[ template "prosody_artifacts" . ]]
