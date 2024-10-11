@@ -315,6 +315,9 @@ job [[ template "job_name" . ]] {
 [[ template "common-env" . ]]
         ENABLE_VISITORS="true"
         ENABLE_AUTH="true"
+[[- if eq (env "CONFIG_prosody_enable_guest_auth") "true" ]]
+        ENABLE_GUESTS="true"
+[[- end ]]
 #        LOG_LEVEL="debug"
         PROSODY_VISITOR_INDEX="[[ $i ]]"
         PROSODY_ENABLE_RATE_LIMITS="1"
