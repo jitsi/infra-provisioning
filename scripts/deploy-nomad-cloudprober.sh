@@ -66,7 +66,7 @@ CLOUDPROBER_ENABLE_WHISPER="false"
 # add probes based on template type
 if [[ "$CLOUDPROBER_TEMPLATE_TYPE" == "core" ]]; then
     CLOUDPROBER_ENABLE_AUTOSCALER="true"
-    CLOUDPROBER_ENABLE_COTURN="true"
+    #CLOUDPROBER_ENABLE_COTURN="true"          # temporarily disabled until probe can be improved
     CLOUDPROBER_ENABLE_HAPROXY_REGION="true"
     CLOUDPROBER_ENABLE_SHARD="true"
     CLOUDPROBER_ENABLE_SHARD_LATENCY="true"
