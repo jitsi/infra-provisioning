@@ -51,7 +51,7 @@ probe {
   name: "autoscaler"
   type: HTTP
   targets {
-    host_names: "{{ range $index, $service := service "autoscaler"}}{{ if gt $index 0 }},{{ end }}{{ .Address }}:{{ .ServiceMeta.health_port }}{{ end }}"
+    host_names: "{{ range $index, $service := service "autoscaler"}}{{ if gt $index 0 }},{{ end }}{{ .Address }}:{{ .ServiceMeta.metrics_port }}{{ end }}"
   }
   http_probe {
     relative_url: "/health?deep=true"
