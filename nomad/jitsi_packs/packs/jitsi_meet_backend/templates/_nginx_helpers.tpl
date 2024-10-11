@@ -500,6 +500,7 @@ server {
 
     location = /_health {
 [[ template "nginx-headers" . ]]
+        access_log   off;
         alias /usr/share/nginx/html/_health;
     }
 
