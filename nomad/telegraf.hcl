@@ -137,7 +137,7 @@ EOF
   perdevice = false
   total = true
   tagexclude = ["org.opencontainers.image.revision","engine_host","org.opencontainers.image.version","container_status","container_name","container_id","com.hashicorp.nomad.alloc_id","org.opencontainers.image.title","container_verison", "com.hashicorp.nomad.namespace","server_version","container_image"]
-  namepass = ["docker_container_cpu*","docker_container_mem*","docker_container_net"]
+  namepass = ["docker_container_cpu*","docker_container_mem*","docker_container_net*"]
 
 [[inputs.cpu]]
   percpu = false
