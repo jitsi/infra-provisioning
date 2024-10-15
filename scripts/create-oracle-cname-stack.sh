@@ -35,7 +35,13 @@ AZ_REGION="us-east-1"
 
 [ -z "$ORACLE_CLOUD_NAME" ] && ORACLE_CLOUD_NAME="${ENVIRONMENT}-${ORACLE_REGION}"
 
-[ -z "$CNAME_TARGET" ] && CNAME_TARGET="${ORACLE_CLOUD_NAME}-${UNIQUE_ID}.$ORACLE_DNS_ZONE_NAME"
+if [ -z "$CNAME_TARGET" ]; then
+    if [[ "$PUBLIC_FLAG" == "true" ]]; then
+        CNAME_TARGET="${ORACLE_CLOUD_NAME}-${UNIQUE_ID}.$ORACLE_DNS_ZONE_NAME"
+    else
+        CNAME_TARGET="${ORACLE_CLOUD_NAME}-${UNIQUE_ID}-internal.$ORACLE_DNS_ZONE_NAME"
+    fi
+fi
 [ -z "$CNAME_VALUE" ] && CNAME_VALUE="${UNIQUE_ID}"
 
 CF_TEMPLATE_YAML="$LOCAL_PATH/../templates/oracle-cname.template"
