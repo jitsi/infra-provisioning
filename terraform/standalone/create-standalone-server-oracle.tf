@@ -178,6 +178,7 @@ resource "oci_core_instance" "instance" {
     create_vnic_details {
         subnet_id = var.subnet_ocid
         nsg_ids = [oci_core_network_security_group.instance_security_group.id]
+        assign_public_ip = var.public_flag == "true" ? true : false
     }
 
     source_details {
