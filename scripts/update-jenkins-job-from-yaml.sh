@@ -18,8 +18,8 @@ if [[ "$JOB_NAME" == "ALL" ]]; then
     JOB_FILE="*.yaml"
 else
     JOB_FILE="$JOB_NAME.yaml"
-    if [ ! -e "$JOB_FILE" ]; then
-        echo "No job file $JOB_FILE found, exiting"
+    if [ ! -e "$JOB_PATH/$JOB_FILE" ]; then
+        echo "No job file $JOB_PATH/$JOB_FILE found, exiting"
         exit 2
     fi
 fi
