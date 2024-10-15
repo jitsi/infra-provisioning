@@ -38,7 +38,7 @@ variable "user_data_file" {
 variable "infra_configuration_repo" {}
 variable "infra_customizations_repo" {}
 variable "public_flag" {
-  type = "string"
+  type = string
   default = "false"
 }
 
