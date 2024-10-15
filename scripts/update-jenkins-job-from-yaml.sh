@@ -40,6 +40,8 @@ set +x
 [ -z "$JJB_USER" ] && JJB_USER="admin"
 [ -z "$JJB_PASSWORD" ] && JJB_PASSWORD="replaceme"
 
+cd $JOB_PATH
+
 if [ -z "$JJB_CONF_FILE" ]; then
     ACTIVE_JJB_CONF_FILE="./jenkins_jobs.ini"
     cat > $ACTIVE_JJB_CONF_FILE <<EOF
@@ -50,8 +52,6 @@ EOF
 else
     ACTIVE_JJB_CONF_FILE="$JJB_CONF_FILE"
 fi
-
-cd $JOB_PATH
 
 echo "Testing job definition for $JOB_NAME"
 jenkins-jobs --flush-cache --conf $ACTIVE_JJB_CONF_FILE test $JOB_FILE
