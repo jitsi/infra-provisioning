@@ -8,10 +8,6 @@
           description: "Environment to build in"
           trim: true
       - string:
-          name: ORACLE_REGION
-          description: "Region to build in"
-          trim: true
-      - string:
           name: CLOUDS
           description: "Clouds to build in, defaults to environment specific clouds"
           trim: true
@@ -56,7 +52,7 @@
             url: git@github.com:jitsi/infra-provisioning.git
             credentials-id: "video-infra"
             branches:
-              - "origin/${VIDEO_INFRA_BRANCH}"
+              - "origin/${{VIDEO_INFRA_BRANCH}}"
             browser: githubweb
             browser-url: https://github.com/jitsi/infra-provisioning
             submodule:

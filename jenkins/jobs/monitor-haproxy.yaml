@@ -32,7 +32,7 @@
             url: git@github.com:jitsi/infra-provisioning.git
             credentials-id: "video-infra"
             branches:
-              - "origin/${VIDEO_INFRA_BRANCH}"
+              - "origin/${{VIDEO_INFRA_BRANCH}}"
             browser: githubweb
             browser-url: https://github.com/jitsi/infra-provisioning
             submodule:
