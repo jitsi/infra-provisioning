@@ -15,9 +15,9 @@ JOB_PATH="$LOCAL_PATH/../jenkins/jobs"
 if [[ "$JOB_NAME" == "ALL" ]]; then
     echo "JOB_NAME set to 'ALL', applying all jobs in $JOB_PATH"
     JOB_NAME=""
-    JOB_FILE="$JOB_PATH/*.yaml"
+    JOB_FILE="*.yaml"
 else
-    JOB_FILE="$JOB_PATH/$JOB_NAME.yaml"
+    JOB_FILE="$JOB_NAME.yaml"
     if [ ! -e "$JOB_FILE" ]; then
         echo "No job file $JOB_FILE found, exiting"
         exit 2
@@ -51,12 +51,14 @@ else
     ACTIVE_JJB_CONF_FILE="$JJB_CONF_FILE"
 fi
 
+cd $JOB_PATH
+
 echo "Testing job definition for $JOB_NAME"
-jenkins-jobs --flush-cache --conf $ACTIVE_JJB_CONF_FILE test $JOB_PATH $JOB_NAME
+jenkins-jobs --flush-cache --conf $ACTIVE_JJB_CONF_FILE test $JOB_FILE
 RET=$?
 
 if [ $RET -eq 0 ]; then
-    jenkins-jobs --flush-cache --conf $ACTIVE_JJB_CONF_FILE update $JOB_PATH $JOB_NAME
+    jenkins-jobs --flush-cache --conf $ACTIVE_JJB_CONF_FILE update $JOB_FILE
     RET=$?
 else
     echo "Failed during job definition test, skipping update"
