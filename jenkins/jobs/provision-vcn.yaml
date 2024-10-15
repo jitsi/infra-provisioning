@@ -20,7 +20,7 @@
           trim: true
       - string:
           name: VCN_CIDR_ROOT
-          description: "Root for the CIDR. The result cidr will be {root_cidr}.0.0/16"
+          description: "Root for the CIDR. The result cidr will be {{root_cidr}}.0.0/16"
           trim: true
       - bool:
           name: PROVISION_VCN
