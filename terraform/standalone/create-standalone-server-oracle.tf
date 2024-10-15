@@ -37,6 +37,10 @@ variable "user_data_file" {
 }
 variable "infra_configuration_repo" {}
 variable "infra_customizations_repo" {}
+variable "public_flag" {
+  type = "string"
+  default = "false"
+}
 
 locals {
   common_tags = {
@@ -102,7 +106,7 @@ resource "oci_core_network_security_group_security_rule" "instance_nsg_rule_ingr
   }
 }
 
-# TCP Ingress for iperf server
+# TCP Ingress for nginx server
 resource "oci_core_network_security_group_security_rule" "instance_nsg_rule_ingress_tcp" {
   network_security_group_id = oci_core_network_security_group.instance_security_group.id
   direction = "INGRESS"
@@ -217,7 +221,6 @@ resource "oci_core_instance" "instance" {
 
 locals {
   private_ip = oci_core_instance.instance.private_ip
-  public_ip = oci_core_instance.instance.public_ip
 }
 
 resource "oci_dns_rrset" "instance_dns_record_internal" {
@@ -234,6 +237,7 @@ resource "oci_dns_rrset" "instance_dns_record_internal" {
 }
 
 resource "oci_dns_rrset" "instance_dns_record" {
+  count = var.public_flag == "true" ? 1 : 0
   zone_name_or_id = var.dns_zone_name
   domain = var.dns_name
   rtype = "A"
@@ -245,6 +249,7 @@ resource "oci_dns_rrset" "instance_dns_record" {
     rdata = oci_core_instance.instance.public_ip
    }
 }
+
 resource "null_resource" "verify_cloud_init" {
   count = 1
   depends_on = [oci_core_instance.instance]
@@ -282,8 +287,4 @@ resource "null_resource" "cloud_init_output" {
 
 output "private_ip" {
   value = local.private_ip
-}
-
-output "public_ip" {
-  value = local.public_ip
 }

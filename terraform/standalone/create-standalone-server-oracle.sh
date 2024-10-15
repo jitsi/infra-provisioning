@@ -92,6 +92,15 @@ fi
 
 [ -z "$INGRESS_NSG_CIDR" ] && INGRESS_NSG_CIDR="0.0.0.0/0"
 
+[ -z "$PUBLIC_FLAG" ] && PUBLIC_FLAG="false"
+
+# set SUBNET_OCID based on PUBLIC_FLAG
+if [[ "$PUBLIC_FLAG" == "true" ]]; then
+  SUBNET_OCID="$JVB_SUBNET_OCID"
+else
+  SUBNET_OCID="$NAT_SUBNET_OCID"
+fi
+
 VCN_NAME_ROOT="$ORACLE_REGION-$ENVIRONMENT"
 VCN_NAME="$VCN_NAME_ROOT-vcn"
 POSTINSTALL_STATUS_FILE="/tmp/postinstall_status.txt"
@@ -139,7 +148,8 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
   -var="compartment_ocid=$COMPARTMENT_OCID" \
   -var="vcn_name=$VCN_NAME" \
   -var="resource_name_root=$RESOURCE_NAME_ROOT" \
-  -var="subnet_ocid=$JVB_SUBNET_OCID" \
+  -var="subnet_ocid=$SUBNET_OCID" \
+  -var="public_flag=$PUBLIC_FLAG" \
   -var="image_ocid=$IMAGE_OCID" \
   -var="internal_dns_name=$INTERNAL_DNS_NAME" \
   -var="dns_name=$DNS_NAME" \
