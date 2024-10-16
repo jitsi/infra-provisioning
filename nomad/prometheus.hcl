@@ -117,8 +117,8 @@ alerting:
     - server: '{{ env "NOMAD_IP_prometheus_ui" }}:8500'
       services: ['alertmanager']
 
-rule_files:
-  - "alerts.yml"
+#rule_files:
+#  - "alerts.yml"
 
 scrape_configs:
 
