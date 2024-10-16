@@ -127,39 +127,6 @@ scrape_configs:
     - server: '{{ env "NOMAD_IP_prometheus_ui" }}:8500'
       services: ['alertmanager']
 
-#  - job_name: 'consul'
-#    consul_sd_configs:
-#    - server: '{{ env "NOMAD_IP_prometheus_ui" }}:8500'
-#      services: ['consul']
-#    relabel_configs:
-#    - source_labels: ['__address__']
-#      separator:     ':'
-#      regex:         '(.*):(8300)'
-#      target_label:  '__address__'
-#      replacement:   '$${1}:8500'
-#    metrics_path: /v1/agent/metrics
-#    params:
-#      format: ['prometheus']
-#
-#  - job_name: 'nomad'
-#    consul_sd_configs:
-#    - server: '{{ env "NOMAD_IP_prometheus_ui" }}:8500'
-#      services: ['nomad-clients', 'nomad-servers']
-#    relabel_configs:
-#    - source_labels: ['__address__']
-#      separator:     ':'
-#      regex:         '(.*):(4647)'
-#      target_label:  '__address__'
-#      replacement:   '$${1}:4646'
-#    - source_labels: ['__address__']
-#      separator:     ':'
-#      regex:         '(.*):(4648)'
-#      target_label:  '__address__'
-#      replacement:   '$${1}:4646'
-#    metrics_path: /v1/metrics
-#    params:
-#      format: ['prometheus']
-
   - job_name: 'cloudprober'
     scrape_interval: 10s
     consul_sd_configs:
@@ -379,23 +346,6 @@ groups:
     annotations:
       summary: {{ $labels.host }} in ${var.dc} is using over 90% of its disk space
       description: {{ $labels.host }} in ${var.dc} is using over 90% of its disk space. It was most recently at {{ $value }}.
-
-#- name: service_alerts
-#  rules:
-#    - alert: JicofoJibriCount
-#      expr: jitsi_jicofo_jibri_instances_available < 1
-#    for: 10m
-#    labels:
-#      environment_type: "{{ if $labels.environment_type }}{{ $labels.environment_type }}{{ else }}${var.environment_type}{{ end }}"
-#      service: "{{ if $labels.service }}{{ $labels.service }}{{ else }}${var.default_service_name}{{ end }}"
-#      severity: warning
-#    annotations:
-#      summary: {{ $labels.host }} in ${var.dc} is using over 90% of its disk space
-#      description: {{ $labels.host }} in ${var.dc} is using over 90% of its disk space. It was most recently at {{ $value }}.
-#- alert: JicofoTranscriberCount
-#- alert: JicofoJibris
-#    - jicofo count of jibris
-#- Jicofo transcribers, Jicofo transcribers, Jicofo SIP jigasis - page worthy in prod
 
 EOH
     }
