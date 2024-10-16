@@ -314,28 +314,28 @@ groups:
       summary: http probe from ${var.dc} to {{ $labels.dst }} has extremely high latency
       description: The {{ $labels.probe }} http probe from ${var.dc} to {{ $labels.dst }} has extremely high latency for 5 minutes, most recently at {{ $value }} ms.
 
-#- name: system_alerts
-#  rules:
-#  - alert: System_CPU_Usage_High
-#    expr: 100 - cpu.usage.idle > 70
-#    for: 5m
-#    labels:
-#      environment_type: "{{ if $labels.environment_type }}{{ $labels.environment_type }}{{ else }}${var.environment_type}{{ end }}"
-#      service: "{{ if $labels.service }}{{ $labels.service }}{{ else }}${var.default_service_name}{{ end }}"
-#      severity: warning
-#    annotations:
-#      summary: {{ $labels.host }} in ${var.dc} has had CPU usage > 70% for 5 minutes
-#      description: {{ $labels.host }} in ${var.dc} has had a CPU running at over 70% in the last 5 minutes. It was most recently at {{ $value }}.
-#  - alert: System_Memory_Available_Low
-#    expr: (mem.total - mem.available) / mem.total * 100 > 80
-#    for: 5m
-#    labels:
-#      environment_type: "{{ if $labels.environment_type }}{{ $labels.environment_type }}{{ else }}${var.environment_type}{{ end }}"
-#      service: "{{ if $labels.service }}{{ $labels.service }}{{ else }}${var.default_service_name}{{ end }}"
-#      severity: warning
-#    annotations:
-#      summary: {{ $labels.host }} in ${var.dc} has had memory usage > 80% for 5 minutes.
-#      description: {{ $labels.host }} in ${var.dc} is utilizing over 80% of its memory in the last 5 minutes. It was most recently at {{ $value }}.
+- name: system_alerts
+  rules:
+  - alert: System_CPU_Usage_High
+    expr: 100 - cpu.usage.idle > 70
+    for: 5m
+    labels:
+      environment_type: "{{ if $labels.environment_type }}{{ $labels.environment_type }}{{ else }}${var.environment_type}{{ end }}"
+      service: "{{ if $labels.service }}{{ $labels.service }}{{ else }}${var.default_service_name}{{ end }}"
+      severity: warning
+    annotations:
+      summary: {{ $labels.host }} in ${var.dc} has had CPU usage > 70% for 5 minutes
+      description: {{ $labels.host }} in ${var.dc} has had a CPU running at over 70% in the last 5 minutes. It was most recently at {{ $value }}.
+  - alert: System_Memory_Available_Low
+    expr: (mem.total - mem.available) / mem.total * 100 > 80
+    for: 5m
+    labels:
+      environment_type: "{{ if $labels.environment_type }}{{ $labels.environment_type }}{{ else }}${var.environment_type}{{ end }}"
+      service: "{{ if $labels.service }}{{ $labels.service }}{{ else }}${var.default_service_name}{{ end }}"
+      severity: warning
+    annotations:
+      summary: {{ $labels.host }} in ${var.dc} has had memory usage > 80% for 5 minutes.
+      description: {{ $labels.host }} in ${var.dc} is utilizing over 80% of its memory in the last 5 minutes. It was most recently at {{ $value }}.
 #  - alert: System_Disk_Used_High
 #    expr: disk_used_percent > 90
 #    for: 5m
@@ -346,6 +346,23 @@ groups:
 #    annotations:
 #      summary: {{ $labels.host }} in ${var.dc} is using over 90% of its disk space
 #      description: {{ $labels.host }} in ${var.dc} is using over 90% of its disk space. It was most recently at {{ $value }}.
+
+#- name: service_alerts
+#  rules:
+#    - alert: JicofoJibriCount
+#      expr: jitsi_jicofo_jibri_instances_available < 1
+#    for: 10m
+#    labels:
+#      environment_type: "{{ if $labels.environment_type }}{{ $labels.environment_type }}{{ else }}${var.environment_type}{{ end }}"
+#      service: "{{ if $labels.service }}{{ $labels.service }}{{ else }}${var.default_service_name}{{ end }}"
+#      severity: warning
+#    annotations:
+#      summary: {{ $labels.host }} in ${var.dc} is using over 90% of its disk space
+#      description: {{ $labels.host }} in ${var.dc} is using over 90% of its disk space. It was most recently at {{ $value }}.
+#- alert: JicofoTranscriberCount
+#- alert: JicofoJibris
+#    - jicofo count of jibris
+#- Jicofo transcribers, Jicofo transcribers, Jicofo SIP jigasis - page worthy in prod
 EOH
     }
 
