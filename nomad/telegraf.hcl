@@ -446,6 +446,11 @@ EOF
         role = "gpu"
         service = "gpu"
 
+[[ inputs.internal ]]
+  name_prefix = "telegraf_"
+  collect_memstats = false
+  collect_gostats = false
+
 [[outputs.prometheus_client]]
   listen = ":{{ env "NOMAD_HOST_PORT_telegraf_prometheus" }}"
   path = "/metrics"
