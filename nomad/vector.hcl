@@ -188,8 +188,8 @@ job "[JOB_NAME]" {
               parse_regex(.message, r'^(?P<app>Jibri) (?P<timestamp>\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}\\.\\d{3}) (?P<level>\\w+): \\[(?P<pid>\\d+)\\] (?P<message>[\\S\\s]*)$') ??
               parse_regex(.message, r'^(?P<app>Jibri) (?P<timestamp>\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}\\.\\d{3}) (?P<message>[\\S\\s]*)$') ??
               parse_regex(.message, r'^(?P<timestamp>\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}\\.\\d{3}) (?P<level>\\w+): \\[(?P<pid>\\d+)\\] (?P<message>[\\S\\s]*)$') ??
-              parse_regex(.message, r'^(?P<datetime>\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}) (?P<component>\\w+)(\\s+)(?P<level>\\w+)\\t(?P<message>[\\S\\s]*)$') ??
-              parse_regex(.message, r'^(?P<component>\\w+)(\\s+)(?P<level>\\w+)\\t(?P<message>[\\S\\s]*)$') ??
+              parse_regex(.message, r'^(?P<datetime>\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}) (?P<component>[^\\s]+)(\\s+)(?P<level>\\w+)\\t(?P<message>[\\S\\s]*)$') ??
+              parse_regex(.message, r'^(?P<component>[^\\s]+)(\\s+)(?P<level>\\w+)\\t(?P<message>[\\S\\s]*)$') ??
               parse_syslog(.message) ??
               parse_common_log(.message) ??
               parse_regex(.message, r'^(?P<timestamp>\\d+/\\d+/\\d+ \\d+:\\d+:\\d+) \\[(?P<severity>\\w+)\\] (?P<pid>\\d+)#(?P<tid>\\d+):(?: \\*(?P<connid>\\d+))? (?P<message>.*)$') ??
