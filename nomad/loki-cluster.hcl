@@ -181,6 +181,10 @@ job "[JOB_NAME]" {
     - selector: '{task="jigasi-transcriber"}'
       priority: 1
       period: 336h
+    # Retain prosody audit logs for 90 days
+    - selector: '{group="signal", task="prosody", level="audit"}'
+      priority: 1
+      period: 2160h
     split_queries_by_interval: 15m
   chunk_store_config:
     max_look_back_period: 0s

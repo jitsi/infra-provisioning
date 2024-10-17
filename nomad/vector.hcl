@@ -48,7 +48,7 @@ job "[JOB_NAME]" {
     task "vector" {
       driver = "docker"
       config {
-        image = "timberio/vector:0.28.1-alpine"
+        image = "timberio/vector:0.41.1-alpine"
         ports = ["api","syslog"]
         volumes = [
           "/var/log/syslog:/var/log/syslog:ro",
