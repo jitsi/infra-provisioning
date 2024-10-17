@@ -181,6 +181,46 @@ groups:
     annotations:
       summary: cloudprober service is down in ${var.dc}
       description: Metrics from cloudprober are not being received in ${var.dc}. This means that data from synthetic probes is not being collected or alerted on in this datacenter.
+  - alert: Consul_Down
+    expr: count(consul_server_isLeader) < 3
+    for: 5m
+    labels:
+      environment_type: "{{ if $labels.environment_type }}{{ $labels.environment_type }}{{ else }}${var.environment_type}{{ end }}"
+      service: "{{ if $labels.service }}{{ $labels.service }}{{ else }}${var.default_service_name}{{ end }}"
+      severity: warning
+    annotations:
+      summary: there are fewer than 3 consul servers in ${var.dc}
+      description: There are fewer than 3 consul servers in ${var.dc}, which means the cluster is not complete. This may mean that service discovery may not be functioning. Currently there are {{ $value }} servers.
+  - alert: Consul_Down
+    expr: absent(count(consul_server_isLeader)
+    for: 5m
+    labels:
+      environment_type: "{{ if $labels.environment_type }}{{ $labels.environment_type }}{{ else }}${var.environment_type}{{ end }}"
+      service: "{{ if $labels.service }}{{ $labels.service }}{{ else }}${var.default_service_name}{{ end }}"
+      severity: critical
+    annotations:
+      summary: the consul cluster is down in ${var.dc}
+      description: The consul cluster in ${var.dc} is not emitting metrics and may be entirely down. This may mean that service discovery may not be functioning and all service may be compromised.
+  - alert: Nomad_Down
+    expr: count(nomad_runtime_alloc_bytes) < 3
+    for: 5m
+    labels:
+      environment_type: "{{ if $labels.environment_type }}{{ $labels.environment_type }}{{ else }}${var.environment_type}{{ end }}"
+      service: "{{ if $labels.service }}{{ $labels.service }}{{ else }}${var.default_service_name}{{ end }}"
+      severity: warning
+    annotations:
+      summary: nomad service is compromised in ${var.dc}
+      description: There are fewer than 3 nomad clients emitting metrics in ${var.dc}. This may mean that service orchestration and job placement are not functioning.
+  - alert: Nomad_Down
+    expr: absent(nomad_runtime_alloc_bytes)
+    for: 5m
+    labels:
+      environment_type: "{{ if $labels.environment_type }}{{ $labels.environment_type }}{{ else }}${var.environment_type}{{ end }}"
+      service: "{{ if $labels.service }}{{ $labels.service }}{{ else }}${var.default_service_name}{{ end }}"
+      severity: critical
+    annotations:
+      summary: nomad service is completely down in ${var.dc}
+      description: No nomad clients are emitting metrics in ${var.dc}. This may mean that service orchestration and job placement are not functioning.
   - alert: Prometheus_Down
     expr: absent(up{job="prometheus"})
     for: 5m
