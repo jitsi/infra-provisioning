@@ -4,7 +4,7 @@ set -x #echo on
 LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
 #pull in cloud-specific variables, e.g. tenancy
-. $LOCAL_PATH/../../../clouds/oracle.sh
+[ -e "$LOCAL_PATH/../../clouds/oracle.sh" ] && . $LOCAL_PATH/../../clouds/oracle.sh
 
 if [ -z "$COMPARTMENT_NAME" ]; then
   echo "No COMPARTMENT_NAME found.  Exiting..."
