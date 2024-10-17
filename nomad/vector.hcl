@@ -211,6 +211,7 @@ job "[JOB_NAME]" {
             # remove fields that have been converted to labels to avoid having the field twice
             remove_label_fields = true
                 [sinks.loki.labels]
+                    level = "{{ .level }}"
                     alloc = "{{ label.\"com.hashicorp.nomad.alloc_id\" }}"
                     job = "{{ label.\"com.hashicorp.nomad.job_name\" }}"
                     task = "{{ label.\"com.hashicorp.nomad.task_name\" }}"
