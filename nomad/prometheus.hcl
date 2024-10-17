@@ -192,7 +192,7 @@ groups:
       summary: there are fewer than 3 consul servers in ${var.dc}
       description: There are fewer than 3 consul servers in ${var.dc}, which means the cluster is not complete. This may mean that service discovery may not be functioning. Currently there are {{ $value }} servers.
   - alert: Consul_Down
-    expr: absent(count(consul_server_isLeader)
+    expr: absent(consul_server_isLeader)
     for: 5m
     labels:
       environment_type: "{{ if $labels.environment_type }}{{ $labels.environment_type }}{{ else }}${var.environment_type}{{ end }}"
