@@ -584,10 +584,10 @@ token_verification_require_token_for_moderation = true;\n
 "
 
 PROSODY_LOG_CONFIG="
-[[- if eq (env "CONFIG_prosody_enable_wait_for_host") "true" ]]
+[[- if eq (env "CONFIG_prosody_enable_wait_for_host") "true" -]]
 { levels = { \"audit\" }, to = "console", timestamps = "%Y-%m-%d %X"};
 [[- end -]]
-[[- if env "CONFIG_prosody_mod_log_ringbuffer_size" ]]
+[[- if env "CONFIG_prosody_mod_log_ringbuffer_size" -]]
 {level = \"debug\", to = \"ringbuffer\",size = [[ or (env "CONFIG_prosody_mod_log_ringbuffer_size") "1014*1024*4" ]], filename_template = \"traceback.txt\", event = \"debug_traceback/triggered\";};
 [[- end -]]
 "
