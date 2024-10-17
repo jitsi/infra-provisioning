@@ -121,34 +121,25 @@ rule_files:
   - "alerts.yml"
 
 scrape_configs:
-
   - job_name: 'alertmanager'
     consul_sd_configs:
     - server: '{{ env "NOMAD_IP_prometheus_ui" }}:8500'
       services: ['alertmanager']
-
   - job_name: 'cloudprober'
     scrape_interval: 10s
     consul_sd_configs:
     - server: '{{ env "NOMAD_IP_prometheus_ui" }}:8500'
       services: ['cloudprober']
-
   - job_name: 'prometheus'
     scrape_interval: 5s
     static_configs:
       - targets: ['localhost:9090']
-
   - job_name: 'telegraf'
     consul_sd_configs:
     - server: '{{ env "NOMAD_IP_prometheus_ui" }}:8500'
       services: ['telegraf']
     scrape_interval: 30s
     metrics_path: /metrics
-
-  - job_name: 'wavefront-proxy'
-    consul_sd_configs:
-    - server: '{{ env "NOMAD_IP_prometheus_ui" }}:8500'
-      services: ['wavefront-proxy']
 
 remote_write:
   - url: '${var.remote_write_url}'
@@ -346,23 +337,6 @@ groups:
     annotations:
       summary: host {{ $labels.host }} in ${var.dc} is using over 90% of its disk space
       description: host {{ $labels.host }} in ${var.dc} is using over 90% of its disk space. It was most recently at {{ $value }}.
-
-#- name: service_alerts
-#  rules:
-#    - alert: JicofoJibriCount
-#      expr: jitsi_jicofo_jibri_instances_available < 1
-#    for: 10m
-#    labels:
-#      environment_type: "{{ if $labels.environment_type }}{{ $labels.environment_type }}{{ else }}${var.environment_type}{{ end }}"
-#      service: "{{ if $labels.service }}{{ $labels.service }}{{ else }}${var.default_service_name}{{ end }}"
-#      severity: warning
-#    annotations:
-#      summary: {{ $labels.host }} in ${var.dc} is using over 90% of its disk space
-#      description: {{ $labels.host }} in ${var.dc} is using over 90% of its disk space. It was most recently at {{ $value }}.
-#- alert: JicofoTranscriberCount
-#- alert: JicofoJibris
-#    - jicofo count of jibris
-#- Jicofo transcribers, Jicofo transcribers, Jicofo SIP jigasis - page worthy in prod
 EOH
     }
 
