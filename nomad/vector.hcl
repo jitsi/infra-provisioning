@@ -112,9 +112,16 @@ job "[JOB_NAME]" {
             multiline.mode = "halt_before"
             multiline.condition_pattern = "^level= "
             multiline.start_pattern = "^level= "
+          [sources.prosody_logs]
+            type = "docker_logs"
+            include_containers = ["prosody-"]
+            multiline.timeout_ms = 300
+            multiline.mode = "continue_through"
+            multiline.condition_pattern = "^\\t"
+            multiline.start_pattern = "^(\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}) "
           [sources.logs]
             type = "docker_logs"
-            exclude_containers = ["jicofo-","jvb-","jibri-","loki-"]
+            exclude_containers = ["jicofo-","jvb-","jibri-","loki-","prosody-"]
           [sources.syslog]
             type = "syslog"
             address = "0.0.0.0:9000"
@@ -170,7 +177,7 @@ job "[JOB_NAME]" {
             .timestamp = parse_timestamp(.ts, "%+") ?? .timestamp"""
           [transforms.message_to_structure]
             type = "remap"
-            inputs = ["logs","jibri_logs","jicofo_logs","jvb_logs"]
+            inputs = ["logs","jibri_logs","jicofo_logs","jvb_logs","prosody_logs"]
             source = """
             structured =
               parse_json(.message) ??
