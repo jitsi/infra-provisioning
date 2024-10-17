@@ -135,7 +135,7 @@ EOF
 [[inputs.docker]]
   endpoint = "unix:///var/run/docker.sock"
   perdevice = false
-  total = true
+  total_include = ["cpu", "network"]
   tagexclude = ["org.opencontainers.image.revision","engine_host","org.opencontainers.image.version","container_status","container_name","container_id","com.hashicorp.nomad.alloc_id","org.opencontainers.image.title","container_verison", "com.hashicorp.nomad.namespace","server_version","container_image"]
   namepass = ["docker_container_cpu*","docker_container_mem*","docker_container_net*"]
 
@@ -145,22 +145,23 @@ EOF
   collect_cpu_time = false
   report_active = false
   fielddrop = ["time_*"]
-  fieldpass = ["usage_system*", "usage_user*", "usage_iowait*", "usage_idle*", "usage_steal*"]
+  fieldinclude = ["usage_system*", "usage_user*", "usage_iowait*", "usage_idle*", "usage_steal*"]
 
 [[inputs.mem]]
-  fieldpass = [ "active", "available", "buffered", "cached", "free", "total",  "used" ]
+  fieldinclude = [ "active", "available", "buffered", "cached", "free", "total",  "used" ]
 
 [[inputs.net]]
-  fieldpass = ["bytes*","drop*","packets*","err*","tcp*","udp*"]
+  fieldinclude = ["bytes*","drop*","packets*","err*","tcp*","udp*"]
+  ignore_protocol_stats = true
 
 [[inputs.processes]]
-  fieldpass = ["blocked", "idle", "paging", "running", "total*"]
+  fieldinclude = ["blocked", "idle", "paging", "running", "total*"]
 
 [[inputs.swap]]
-  fieldpass = ["total", "used"]
+  fieldinclude = ["total", "used"]
 
 [[inputs.system]]
-  fieldpass = ["load*"]
+  fieldinclude = ["load*"]
 
 [[inputs.linux_sysctl_fs]]
 
@@ -445,6 +446,11 @@ EOF
         host = "{{"{{"}}.Node}}"
         role = "gpu"
         service = "gpu"
+
+[[ inputs.internal ]]
+  name_prefix = "telegraf_"
+  collect_memstats = false
+  collect_gostats = false
 
 [[outputs.prometheus_client]]
   listen = ":{{ env "NOMAD_HOST_PORT_telegraf_prometheus" }}"
