@@ -8,7 +8,7 @@ variable "prometheus_hostname" {
 
 variable "prometheus_version" {
   type = string
-  default = "v2.49.1"
+  default = "v2.54.1"
 }
 
 variable "enable_remote_write" {
@@ -121,67 +121,25 @@ rule_files:
   - "alerts.yml"
 
 scrape_configs:
-
   - job_name: 'alertmanager'
     consul_sd_configs:
     - server: '{{ env "NOMAD_IP_prometheus_ui" }}:8500'
       services: ['alertmanager']
-
-  - job_name: 'consul'
-    consul_sd_configs:
-    - server: '{{ env "NOMAD_IP_prometheus_ui" }}:8500'
-      services: ['consul']
-    relabel_configs:
-    - source_labels: ['__address__']
-      separator:     ':'
-      regex:         '(.*):(8300)'
-      target_label:  '__address__'
-      replacement:   '$${1}:8500'
-    metrics_path: /v1/agent/metrics
-    params:
-      format: ['prometheus']
-
-  - job_name: 'nomad'
-    consul_sd_configs:
-    - server: '{{ env "NOMAD_IP_prometheus_ui" }}:8500'
-      services: ['nomad-clients', 'nomad-servers']
-    relabel_configs:
-    - source_labels: ['__address__']
-      separator:     ':'
-      regex:         '(.*):(4647)'
-      target_label:  '__address__'
-      replacement:   '$${1}:4646'
-    - source_labels: ['__address__']
-      separator:     ':'
-      regex:         '(.*):(4648)'
-      target_label:  '__address__'
-      replacement:   '$${1}:4646'
-    metrics_path: /v1/metrics
-    params:
-      format: ['prometheus']
-
   - job_name: 'cloudprober'
     scrape_interval: 10s
     consul_sd_configs:
     - server: '{{ env "NOMAD_IP_prometheus_ui" }}:8500'
       services: ['cloudprober']
-
   - job_name: 'prometheus'
     scrape_interval: 5s
     static_configs:
       - targets: ['localhost:9090']
-
   - job_name: 'telegraf'
     consul_sd_configs:
     - server: '{{ env "NOMAD_IP_prometheus_ui" }}:8500'
       services: ['telegraf']
     scrape_interval: 30s
     metrics_path: /metrics
-
-  - job_name: 'wavefront-proxy'
-    consul_sd_configs:
-    - server: '{{ env "NOMAD_IP_prometheus_ui" }}:8500'
-      services: ['wavefront-proxy']
 
 remote_write:
   - url: '${var.remote_write_url}'
@@ -201,9 +159,9 @@ EOH
         data = <<EOH
 ---
 groups:
-- name: service_alerts
+- name: infra_service_alerts
   rules:
-  - alert: AlertmanagerDown
+  - alert: Alertmanager_Down
     expr: absent(up{job="alertmanager"})
     for: 5m
     labels:
@@ -213,7 +171,7 @@ groups:
     annotations:
       summary: alertmanager service is down in ${var.dc}
       description: Metrics from alertmanager are not being received in ${var.dc}. This means that alerts are not being emitted from the datacenter. Thus, the fact that you received an alert from this datacenter is quite curious indeed.
-  - alert: CloudproberDown
+  - alert: Cloudprober_Down
     expr: absent(up{job="cloudprober"})
     for: 5m
     labels:
@@ -223,7 +181,7 @@ groups:
     annotations:
       summary: cloudprober service is down in ${var.dc}
       description: Metrics from cloudprober are not being received in ${var.dc}. This means that data from synthetic probes is not being collected or alerted on in this datacenter.
-  - alert: ConsulDown
+  - alert: Consul_Down
     expr: absent(up{job="consul"})
     for: 5m
     labels:
@@ -233,7 +191,7 @@ groups:
     annotations:
       summary: consul service is down in ${var.dc}
       description: No consul services are emitting metrics in ${var.dc}. This may mean that service discovery is not functioning.
-  - alert: NomadDown
+  - alert: Nomad_Down
     expr: absent(up{job="nomad"})
     for: 5m
     labels:
@@ -243,7 +201,7 @@ groups:
     annotations:
       summary: nomad service is down in ${var.dc}
       description: No nomad services are emitting metrics in ${var.dc}. This may mean that service orchestration is not functioning.
-  - alert: PrometheusDown
+  - alert: Prometheus_Down
     expr: absent(up{job="prometheus"})
     for: 5m
     labels:
@@ -253,7 +211,7 @@ groups:
     annotations:
       summary: prometheus service is down in ${var.dc}
       description: No prometheus services are emitting metrics in ${var.dc}. This may mean that no metrics are being stored or served.
-  - alert: TelegrafDown
+  - alert: Telegraf_Down
     expr: nomad_nomad_heartbeat_active > (sum(up{job="telegraf"}) or vector(0))
     for: 5m
     labels:
@@ -263,7 +221,7 @@ groups:
     annotations:
       summary: telegraf services are down on some nodes in ${var.dc}
       description: telegraf metrics are not being emitted from all nodes in ${var.dc}. This means that metrics for some services are not being collected.
-  - alert: WFProxyDown
+  - alert: WFProxy_Down
     expr: absent(up{job="wavefront-proxy"})
     for: 5m
     labels:
@@ -276,76 +234,109 @@ groups:
 
 - name: cloudprober_alerts
   rules:
-  - alert: ProbeUnhealthy
+  - alert: Probe_Unhealthy
     expr: (cloudprober_failure{probe!="shard"} > 0) or (cloudprober_timeouts{probe!="shard"} > 0)
     for: 2m
     labels:
       environment_type: "{{ if $labels.environment_type }}{{ $labels.environment_type }}{{ else }}${var.environment_type}{{ end }}"
-      service: "{{ if $labels.service }}{{ $labels.service }}{{ else }}${var.default_service_name}{{ end }}"
+      probe: "{{ if $labels.probe }}{{ $labels.probe }}{{ else }}probe{{ end }}"
       severity: warning
     annotations:
       summary: "{{ $labels.probe }} probe from ${var.dc} to {{ $labels.dst }} timed-out or is unhealthy"
       description: The {{ $labels.probe }} http probe from ${var.dc} to {{ $labels.dst }} timed-out or received an unhealthy response.
-  - alert: ProbeUnhealthy
+  - alert: Probe_Unhealthy
     expr: (cloudprober_failure{probe!="shard"} > 0) or (cloudprober_timeouts{probe!="shard"} > 0)
     for: 5m
     labels:
       environment_type: "{{ if $labels.environment_type }}{{ $labels.environment_type }}{{ else }}${var.environment_type}{{ end }}"
-      service: "{{ if $labels.service }}{{ $labels.service }}{{ else }}${var.default_service_name}{{ end }}"
+      probe: "{{ if $labels.probe }}{{ $labels.probe }}{{ else }}probe{{ end }}"
       severity: critical
     annotations:
       summary: "{{ $labels.probe }} probe from ${var.dc} to {{ $labels.dst }} timed-out or is unhealthy"
       description: The {{ $labels.probe }} http probe from ${var.dc} to {{ $labels.dst }} timed-out or received an unhealthy response.
-  - alert: ShardUnhealthy
+  - alert: Probe_Shard_Unhealthy
     expr: ((cloudprober_failure{probe="shard"} > 0) and on() count_over_time(cloudprober_failure{probe="shard"}[5m:1m]) > 5) or (cloudprober_timeouts{probe="shard"} > 0)
     for: 2m
     labels:
       environment_type: "{{ if $labels.environment_type }}{{ $labels.environment_type }}{{ else }}${var.environment_type}{{ end }}"
-      service: "{{ if $labels.service }}{{ $labels.service }}{{ else }}${var.default_service_name}{{ end }}"
+      probe: "{{ if $labels.probe }}{{ $labels.probe }}{{ else }}probe{{ end }}"
       severity: critical
     annotations:
       summary: shard {{ $labels.dst }} probe returned failed or timed-out from ${var.dc}
       description: An internal probe from ${var.dc} to the {{ $labels.dst }} shard timed-out or received an unhealthy response from signal-sidecar. This may be due to a variety of issues. If a local probe failed it is likely due to an unhealthy prosody or jicofo, if it's a remote probe then there may be a network issue between regions.
-  - alert: HAProxyRegionMismatch
+  - alert: Probe_Ingress_Region_Unhealthy
     expr: cloudprober_haproxy_region_check_passed < 1
     for: 2m
     labels:
       environment_type: "{{ if $labels.environment_type }}{{ $labels.environment_type }}{{ else }}${var.environment_type}{{ end }}"
-      service: "{{ if $labels.service }}{{ $labels.service }}{{ else }}${var.default_service_name}{{ end }}"
+      probe: "{{ if $labels.probe }}{{ $labels.probe }}{{ else }}probe{{ end }}"
       severity: warning
     annotations:
       summary: a domain probe from ${var.dc} reached an haproxy outside the local region
       description: A cloudprober probe to the domain reached an haproxy outside of the local region. This means that cloudflare may not be routing requests to ${var.dc}, likely due to failing health checks to the regional load balancer ingress.
-  - alert: HAProxyRegionMismatch
+  - alert: Probe_Ingress_Region_Unhealthy
     expr: cloudprober_haproxy_region_check_passed < 1
     for: 10m
     labels:
       environment_type: "{{ if $labels.environment_type }}{{ $labels.environment_type }}{{ else }}${var.environment_type}{{ end }}"
-      service: "{{ if $labels.service }}{{ $labels.service }}{{ else }}${var.default_service_name}{{ end }}"
+      probe: "{{ if $labels.probe }}{{ $labels.probe }}{{ else }}probe{{ end }}"
       severity: critical
     annotations:
       summary: a domain probe from ${var.dc} reached an haproxy outside the local region
       description: A cloudprober probe to the domain reached an haproxy outside of the local region. This means that cloudflare may not be routing requests to ${var.dc}, likely due to failing health checks to the regional load balancer ingress.
-  - alert: LatencyHigh
+  - alert: Probe_Latency_High
     expr: (cloudprober_latency{probe="latency"} > 1500) or (cloudprober_latency{probe="latency_https"} > 1500)
     for: 2m
     labels:
       environment_type: "{{ if $labels.environment_type }}{{ $labels.environment_type }}{{ else }}${var.environment_type}{{ end }}"
-      service: "{{ if $labels.service }}{{ $labels.service }}{{ else }}${var.default_service_name}{{ end }}"
+      probe: "{{ if $labels.probe }}{{ $labels.probe }}{{ else }}probe{{ end }}"
       severity: warning
     annotations:
       summary: http probe from ${var.dc} to {{ $labels.dst }} has high latency
       description: The {{ $labels.probe }} http probe from ${var.dc} to {{ $labels.dst }} has had high latency for 2 minutes, most recently at {{ $value }} ms.
-  - alert: LatencyHigh
+  - alert: Probe_Latency_High
     expr: (cloudprober_latency{probe="latency"} > 3000) or (cloudprober_latency{probe="latency_https"} > 3000)
     for: 5m
     labels:
       environment_type: "{{ if $labels.environment_type }}{{ $labels.environment_type }}{{ else }}${var.environment_type}{{ end }}"
-      service: "{{ if $labels.service }}{{ $labels.service }}{{ else }}${var.default_service_name}{{ end }}"
+      probe: "{{ if $labels.probe }}{{ $labels.probe }}{{ else }}probe{{ end }}"
       severity: critical
     annotations:
       summary: http probe from ${var.dc} to {{ $labels.dst }} has extremely high latency
       description: The {{ $labels.probe }} http probe from ${var.dc} to {{ $labels.dst }} has extremely high latency for 5 minutes, most recently at {{ $value }} ms.
+
+- name: system_alerts
+  rules:
+  - alert: System_CPU_Usage_High
+    expr: 100 - cpu_usage_idle > 70
+    for: 5m
+    labels:
+      environment_type: "{{ if $labels.environment_type }}{{ $labels.environment_type }}{{ else }}${var.environment_type}{{ end }}"
+      host: "{{ $labels.host }}"
+      severity: warning 
+    annotations:
+      summary: host {{ $labels.host }} in ${var.dc} has had CPU usage > 70% for 5 minutes
+      description: host {{ $labels.host }} in ${var.dc} has had a CPU running at over 70% in the last 5 minutes. It was most recently at {{ $value }}.
+  - alert: System_Memory_Available_Low
+    expr: (mem_total - mem_available) / mem_total * 100 > 80
+    for: 5m
+    labels:
+      environment_type: "{{ if $labels.environment_type }}{{ $labels.environment_type }}{{ else }}${var.environment_type}{{ end }}"
+      host: "{{ $labels.host }}"
+      severity: warning
+    annotations:
+      summary: host {{ $labels.host }} in ${var.dc} has had memory usage > 80% for 5 minutes.
+      description: host {{ $labels.host }} in ${var.dc} is utilizing over 80% of its memory in the last 5 minutes. It was most recently at {{ $value }}.
+  - alert: System_Disk_Used_High
+    expr: disk_used_percent > 90
+    for: 5m
+    labels:
+      environment_type: "{{ if $labels.environment_type }}{{ $labels.environment_type }}{{ else }}${var.environment_type}{{ end }}"
+      host: "{{ $labels.host }}"
+      severity: warning
+    annotations:
+      summary: host {{ $labels.host }} in ${var.dc} is using over 90% of its disk space
+      description: host {{ $labels.host }} in ${var.dc} is using over 90% of its disk space. It was most recently at {{ $value }}.
 EOH
     }
 
