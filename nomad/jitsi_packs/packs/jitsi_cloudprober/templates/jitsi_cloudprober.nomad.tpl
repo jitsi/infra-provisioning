@@ -75,6 +75,7 @@ EOH
 #!bin/sh
 
 apk add curl python3 py3-requests
+pip install pystun3
 /cloudprober --logtostderr
 EOH
         destination = "local/custom_init.sh"
@@ -105,6 +106,29 @@ EOH
         destination = "local/cloudprober_haproxy_probe.py"
       }
       template {
+        data = << EOH
+import stun, socket
+
+coturn_host = os.environ['COTURN_HOST']
+coturn_port = 443
+source_host = '0.0.0.0'
+source_port = 42000
+
+stun._initialize()
+s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+s.settimeout(4)
+s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+s.bind((source_host, source_port))
+results = stun.stun_test(s, coturn_host, coturn_port, source_host, source_port)
+s.close()
+if results['Resp']:
+    print("coturn_stun_check_passed 1")
+else:
+    print("coturn_stun_check_passed 0")
+EOH
+        destination = "local/cloudprober_coturn_probe.py"
+      }
+      template {
         data = <<EOH
 #!/bin/sh
 
@@ -113,14 +137,7 @@ if [ -z $1 ]; then
   exit 1
 fi
 
-OUT=$(curl -s https://[[ var "environment" . ]]-turnrelay-oracle.jitsi.net/ --resolve "[[ var "environment" . ]]-turnrelay-oracle.jitsi.net:443:$1")
-RET=$?
-if [ $RET -ne 52 ]; then
-  echo "coturn probe failed: target $1 ; code $RET ; output $OUT" 1>&2
-  echo "coturn_check_passed 0"
-  exit 1
-fi
-echo "coturn_check_passed 1"
+COTURN_HOST=$1 /usr/bin/python3 /bin/cloudprober_coturn_probe.py
 EOH
         destination = "local/cloudprober_coturn_probe.sh"
         perms = "755"
