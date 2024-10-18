@@ -95,10 +95,10 @@ EOH
 import requests
 import os
 
-url = 'https://' + os.environ['DOMAIN'] + "/about/health"
+url = "https://" + os.environ["DOMAIN"] + "/about/health"
 req = requests.get(url)
 
-if req.headers['x-proxy-region'] == os.environ['REGION']:
+if req.headers["x-proxy-region"] == os.environ["REGION"]:
     print("haproxy_region_check_passed 1")
 else:
     print("haproxy_region_check_passed 0")
@@ -109,9 +109,9 @@ EOH
         data = << EOH
 import stun, socket
 
-coturn_host = os.environ['COTURN_HOST']
+coturn_host = os.environ["COTURN_HOST"]
 coturn_port = 443
-source_host = '0.0.0.0'
+source_host = "0.0.0.0"
 source_port = 42000
 
 stun._initialize()
@@ -121,7 +121,7 @@ s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 s.bind((source_host, source_port))
 results = stun.stun_test(s, coturn_host, coturn_port, source_host, source_port)
 s.close()
-if results['Resp']:
+if results["Resp"]:
     print("coturn_stun_check_passed 1")
 else:
     print("coturn_stun_check_passed 0")
