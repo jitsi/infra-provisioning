@@ -320,6 +320,9 @@ job [[ template "job_name" . ]] {
 [[- end ]]
 #        LOG_LEVEL="debug"
         PROSODY_VISITOR_INDEX="[[ $i ]]"
+[[ if or (eq (or (env "CONFIG_jigasi_vault_enabled") "false") "true") (env "CONFIG_jigasi_shared_secret") -]]
+        PROSODY_VISITORS_S2S_VHOSTS="jigasia.v[[ $i ]].meet.jitsi"
+[[ end]]
         PROSODY_ENABLE_RATE_LIMITS="1"
         PROSODY_RATE_LIMIT_ALLOW_RANGES="[[ env "CONFIG_prosody_rate_limit_allow_ranges" ]]"
         PROSODY_REGION_NAME="[[ env "CONFIG_octo_region" ]]"
@@ -395,6 +398,28 @@ EOF
         destination = "secrets/asap.key"
       }
 
+      template {
+        data = <<EOH
+
+[[ if or (eq (or (env "CONFIG_jigasi_vault_enabled") "false") "true") (env "CONFIG_jigasi_shared_secret") -]]
+VirtualHost "jigasia.v[[ $i ]].meet.jitsi"
+    modules_enabled = {
+      "smacks";
+    }
+    authentication = "jitsi-shared-secret"
+    smacks_max_old_sessions = 2000;
+[[- if eq (or (env "CONFIG_jigasi_vault_enabled") "false") "true" ]]
+{{- with secret "secret/[[ env "CONFIG_environment" ]]/jigasi/xmpp" }}
+    shared_secret = "{{ .Data.data.password }}"
+{{- end }}
+[[- else ]]
+    shared_secret = "[[ env "CONFIG_jigasi_shared_secret" ]]"
+[[- end ]]
+
+[[- end ]]
+EOH
+        destination = "local/config/conf.d/other-domains.cfg.lua"
+      }
 
       resources {
         cpu    = [[ or (env "CONFIG_nomad_prosody_vnode_cpu") "200" ]]
@@ -689,6 +714,7 @@ VirtualHost "jigasia.[[ env "CONFIG_domain" ]]"
       "smacks";
     }
     authentication = "jitsi-shared-secret"
+    smacks_max_old_sessions = 2000;
 [[- if eq (or (env "CONFIG_jigasi_vault_enabled") "false") "true" ]]
 {{- with secret "secret/[[ env "CONFIG_environment" ]]/jigasi/xmpp" }}
     shared_secret = "{{ .Data.data.password }}"
