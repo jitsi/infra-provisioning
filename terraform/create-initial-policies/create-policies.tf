@@ -31,7 +31,8 @@ resource "oci_identity_policy" "policy" {
     "Allow dynamic-group ${var.dynamic_group_name} to manage volume-family in compartment ${var.compartment_name}",
     "Allow dynamic-group ${var.dynamic_group_name} to manage load-balancers in compartment ${var.compartment_name}",
     "Allow dynamic-group ${var.dynamic_group_name} to read instance-pools in compartment ${var.compartment_name}",
-    "Allow dynamic-group ${var.dynamic_group_name} to use work-requests in compartment ${var.compartment_name}"
+    "Allow dynamic-group ${var.dynamic_group_name} to use work-requests in compartment ${var.compartment_name}",
+    "Allow dynamic-group ${var.dynamic_group_name} to use ons-topics in compartment ${var.compartment_name}"
   ]
 }
 
