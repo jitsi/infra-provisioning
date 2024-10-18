@@ -151,7 +151,8 @@ EOH
           "local/custom_init.sh:/bin/custom_init.sh",
           "local/cloudprober_haproxy_probe.sh:/bin/cloudprober_haproxy_probe.sh",
           "local/cloudprober_haproxy_probe.py:/bin/cloudprober_haproxy_probe.py",
-          "local/cloudprober_coturn_probe.sh:/bin/cloudprober_coturn_probe.sh"
+          "local/cloudprober_coturn_probe.sh:/bin/cloudprober_coturn_probe.sh",
+          "local/cloudprober_coturn_probe.py:/bin/cloudprober_coturn_probe.py"
         ]
       }
       resources {
