@@ -118,7 +118,7 @@ source_port = 42000
 
 stun._initialize()
 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-s.settimeout(4)
+s.settimeout(10)
 s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 s.bind((source_host, source_port))
 results = stun.stun_test(s, coturn_host, coturn_port, source_host, source_port)

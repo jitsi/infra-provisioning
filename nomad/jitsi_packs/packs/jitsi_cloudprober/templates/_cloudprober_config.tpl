@@ -105,7 +105,7 @@ probe {
     command: "/bin/cloudprober_coturn_probe.sh @target@"
   }
   interval_msec: 20000
-  timeout_msec: 5000
+  timeout_msec: 15000
   latency_unit: "ms"
 }
 
