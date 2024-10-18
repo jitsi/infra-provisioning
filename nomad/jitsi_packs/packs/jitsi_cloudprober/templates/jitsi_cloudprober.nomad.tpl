@@ -74,8 +74,8 @@ EOH
         data = <<EOH
 #!bin/sh
 
-apk add curl python3 py3-requests
-pip install pystun3
+apk add curl python3 py3-pip py3-requests
+pip install --break-system-packages pystun3
 /cloudprober --logtostderr
 EOH
         destination = "local/custom_init.sh"
