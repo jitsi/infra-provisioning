@@ -107,7 +107,9 @@ EOH
       }
       template {
         data = <<EOH
-import stun, socket
+import stun
+import socket
+import os
 
 coturn_host = os.environ['COTURN_HOST']
 coturn_port = 443
