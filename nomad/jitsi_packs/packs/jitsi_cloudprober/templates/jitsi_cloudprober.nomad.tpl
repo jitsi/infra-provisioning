@@ -98,7 +98,7 @@ import os
 url = 'https://' + os.environ['DOMAIN'] + '/about/health'
 req = requests.get(url)
 
-if req.headers['x-proxy-region'] == os.environ['REGION']:
+if req.headers['x-proxy-region'] and req.headers['x-proxy-region'] == os.environ['REGION']:
     print('haproxy_region_check_passed 1')
 else:
     print('haproxy_region_check_passed 0')
