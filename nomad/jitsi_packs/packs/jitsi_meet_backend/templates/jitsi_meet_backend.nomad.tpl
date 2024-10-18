@@ -321,7 +321,7 @@ job [[ template "job_name" . ]] {
 #        LOG_LEVEL="debug"
         PROSODY_VISITOR_INDEX="[[ $i ]]"
 [[ if or (eq (or (env "CONFIG_jigasi_vault_enabled") "false") "true") (env "CONFIG_jigasi_shared_secret") -]]
-        PROSODY_VISITORS_S2S_VHOSTS="jigasia.v[[ $i ]].meet.jitsi"
+        PROSODY_VISITORS_S2S_VHOSTS="jigasia.[[ env "CONFIG_domain" ]]"
 [[ end]]
         PROSODY_ENABLE_RATE_LIMITS="1"
         PROSODY_RATE_LIMIT_ALLOW_RANGES="[[ env "CONFIG_prosody_rate_limit_allow_ranges" ]]"
