@@ -20,10 +20,14 @@ fi
 [ -z "$LOCAL_REGION" ] && LOCAL_REGION="$OCI_LOCAL_REGION"
 [ -z "$LOCAL_REGION" ] && LOCAL_REGION="us-phoenix-1"
 
-[ -z "$ENVIRONMENT_TYPE" ] && ENVIRONMENT_TYPE="dev"
+[ -z "$ALERT_SLACK_CHANNEL_SUFFIX" ] && ALERT_SLACK_CHANNEL_SUFFIX="dev"
 
 if [ -z "$NOMAD_ADDR" ]; then
     export NOMAD_ADDR="https://$ENVIRONMENT-$LOCAL_REGION-nomad.$TOP_LEVEL_DNS_ZONE_NAME"
+fi
+
+if [ -z "$NOTIFICATION_WEBHOOK_URK " ]; then
+    export NOTIFICATION_WEBHOOK_URL="https://$ENVIRONMENT-$LOCAL_REGION-shimmy.$TOP_LEVEL_DNS_ZONE_NAME"
 fi
 
 export RESOURCE_NAME_ROOT="${ENVIRONMENT}-${ORACLE_REGION}-alertmanager"
@@ -31,14 +35,9 @@ export RESOURCE_NAME_ROOT="${ENVIRONMENT}-${ORACLE_REGION}-alertmanager"
 NOMAD_JOB_PATH="$LOCAL_PATH/../nomad"
 NOMAD_DC="$ENVIRONMENT-$ORACLE_REGION"
 JOB_NAME="alertmanager-$ORACLE_REGION"
+export NOMAD_VAR_notification_webhook_url=$NOTIFICATION_WEBHOOK_URL
 export NOMAD_VAR_alertmanager_hostname="${RESOURCE_NAME_ROOT}.${TOP_LEVEL_DNS_ZONE_NAME}"
-export NOMAD_VAR_environment_type="${ENVIRONMENT_TYPE}"
-
-if [ -z "$DEFAULT_ALERT_SERVICE_NAME" ]; then
-    export NOMAD_VAR_default_service_name=$DEFAULT_ALERT_SERVICE_NAME
-else
-    export NOMAD_VAR_default_service_name="default"
-fi
+export NOMAD_VAR_slack_channel_suffix="${ALERT_SLACK_CHANNEL_SUFFIX}"
 
 [ -z "$VAULT_PASSWORD_FILE" ] && VAULT_PASSWORD_FILE="$LOCAL_PATH/../.vault-password.txt"
 [ -z "$ENCRYPTED_NOMAD_SECRETS_FILE" ] && ENCRYPTED_NOMAD_SECRETS_FILE="$LOCAL_PATH/../ansible/secrets/nomad.yml"
