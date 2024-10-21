@@ -36,9 +36,9 @@ variable "remote_write_org_id" {
   default = ""
 }
 
-variable "default_service_name" {
-  type = string
-  default = "default"
+variable "paranoid" {
+  type = bool
+  default = false
 }
 
 job "[JOB_NAME]" {
@@ -315,15 +315,15 @@ groups:
 - name: system_alerts
   rules:
   - alert: System_CPU_Usage_High
-    expr: 100 - cpu_usage_idle > 70
+    expr: 100 - cpu_usage_idle > %{ if var.paranoid }70%{ else }90%{ end }
     for: 5m
     labels:
       host: "{{ $labels.host }}"
       service: infra
       severity: warning 
     annotations:
-      summary: host {{ $labels.host }} in ${var.dc} has had CPU usage > 70% for 5 minutes
-      description: host {{ $labels.host }} in ${var.dc} has had a CPU running at over 70% in the last 5 minutes. It was most recently at {{ $value | printf "%.2f" }}%.
+      summary: host {{ $labels.host }} in ${var.dc} has had CPU usage > %{ if var.paranoid }70%{ else }90%{ end }% for 5 minutes
+      description: host {{ $labels.host }} in ${var.dc} has had a CPU running at over %{ if var.paranoid }70%{ else }90%{ end }% in the last 5 minutes. It was most recently at {{ $value | printf "%.2f" }}%.
   - alert: System_Memory_Available_Low
     expr: (mem_total - mem_available) / mem_total * 100 > 80
     for: 5m

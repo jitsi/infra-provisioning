@@ -17,6 +17,10 @@ if [ -z "$ORACLE_REGION" ]; then
     exit 2
 fi
 
+if [ -z "$ALERT_PARANOIA" ]; then
+    ALERT_PARANOIA="false"
+fi
+
 [ -z "$LOCAL_REGION" ] && LOCAL_REGION="$OCI_LOCAL_REGION"
 [ -z "$LOCAL_REGION" ] && LOCAL_REGION="us-phoenix-1"
 
@@ -32,6 +36,7 @@ NOMAD_JOB_PATH="$LOCAL_PATH/../nomad"
 NOMAD_DC="$ENVIRONMENT-$ORACLE_REGION"
 export NOMAD_VAR_prometheus_hostname="${RESOURCE_NAME_ROOT}.${TOP_LEVEL_DNS_ZONE_NAME}"
 export NOMAD_VAR_dc="$NOMAD_DC"
+export NOMAD_VAR_paranoid="$ALERT_PARANOIA"
 
 if [[ "$PROMETHEUS_ENABLE_REMOTE_WRITE" == "true" ]]; then
   export NOMAD_VAR_enable_remote_write="true"
