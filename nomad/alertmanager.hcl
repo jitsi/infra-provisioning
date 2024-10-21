@@ -11,24 +11,23 @@ variable "alertmanager_version" {
   default = "v0.27.0"
 }
 
+variable "notification_webhook_url" {
+  type = string
+}
+
+variable "slack_channel_suffix" {
+  type = string
+  default = "dev"
+}
+
 variable "slack_api_url" {
     type = string
     default = "replaceme"
 }
 
-variable "default_service_name" {
-    type = string
-    default = "default"
-}
-
 variable "pagerduty_keys_by_service" {
     type = string
     default = "{ \"default\": \"replaceme\" }"
-}
-
-variable "environment_type" {
-  type = string
-  default = "dev"
 }
 
 job "[JOB_NAME]" {
@@ -90,30 +89,43 @@ global:
   slack_api_url: '${var.slack_api_url}'
 {{{ $pagerduty_keys_by_service := (`${var.pagerduty_keys_by_service}` | parseJSON ) }}}
 route:
-  receiver: slack
+  receiver: notification_hook
   group_by:
     - alertname
     - environment
+    - service
     - severity
   group_wait: 10s
   group_interval: 10s
   repeat_interval: 1h
 
-  routes:{{{ range $k, $v := $pagerduty_keys_by_service }}}
-  - match:
+  routes:
+  - receiver: 'notification_hook'
+    matcher:
+      - severity =~ "low|warning|critical"
+  - receiver: 'slack_infra'
+    matcher:
+      - service = 'infra'
+      - severity =~ "warning|critical"
+  - receiver: 'slack_jitsi'
+    matcher:
+      - service = 'jitsi'
+      - severity =~ "warning|critical"
+  {{{ range $k, $v := $pagerduty_keys_by_service -}}}
+  - receiver: 'pagerduty-{{{ $k }}}'
+    match:
       service: '{{{ $k }}}'
-    receiver: slack
-    routes:
-    - match:
-        environment_type: prod
-        severity: critical
-      receiver: 'pagerduty-{{{ $k }}}'
-{{{- end }}}
+      severity: critical
+  {{{- end }}}
 
 receivers:
-- name: slack
+- name: notification_hook
+  webhook_configs:
+    - send_resolved: true
+      url: '${var.notification_webhook_url}'
+- name: slack_jitsi
   slack_configs:
-    - channel: '#nomad-${var.environment_type}'
+    - channel: '#jitsi-${var.slack_channel_suffix}'
       send_resolved: true
       title: '[{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] ({{ or .CommonLabels.alertname "Multiple Alert Types" }} in {{ .CommonLabels.environment }}) <{{- .GroupLabels.SortedPairs.Values | join " " }}>'
       text: |-
@@ -123,7 +135,19 @@ receivers:
         _{{ .Annotations.description }}_
           {{- end }}
         {{- end }}
-{{{ range $k, $v := $pagerduty_keys_by_service }}}
+- name: slack_infra
+  slack_configs:
+    - channel: '#infra-${var.slack_channel_suffix}'
+      send_resolved: true
+      title: '[{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] ({{ or .CommonLabels.alertname "Multiple Alert Types" }} in {{ .CommonLabels.environment }}) <{{- .GroupLabels.SortedPairs.Values | join " " }}>'
+      text: |-
+        {{ if eq .GroupLabels.severity "critical" }}<!here>{{ end }}{{ range .Alerts }}
+        *{{ index .Labels "alertname" }}* {{- if .Annotations.summary }}: *{{ .Annotations.summary }}* {{- end }}
+          {{- if .Annotations.description }}
+        _{{ .Annotations.description }}_
+          {{- end }}
+        {{- end }}
+{{{ range $k, $v := $pagerduty_keys_by_service -}}}
 - name: 'pagerduty-{{{ $k }}}'
   pagerduty_configs:
   - service_key: '{{{ $v }}}'
