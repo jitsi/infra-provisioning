@@ -36,12 +36,6 @@ variable "remote_write_org_id" {
   default = ""
 }
 
-# assumes "dev", "stage", or "prod"
-variable "environment_type" {
-  type = string
-  default = "dev"
-}
-
 variable "default_service_name" {
   type = string
   default = "default"
@@ -165,8 +159,7 @@ groups:
     expr: absent(up{job="alertmanager"})
     for: 5m
     labels:
-      environment_type: "{{ if $labels.environment_type }}{{ $labels.environment_type }}{{ else }}${var.environment_type}{{ end }}"
-      service: "{{ if $labels.service }}{{ $labels.service }}{{ else }}${var.default_service_name}{{ end }}"
+      service: infra
       severity: critical
     annotations:
       summary: alertmanager service is down in ${var.dc}
@@ -175,8 +168,7 @@ groups:
     expr: absent(up{job="cloudprober"})
     for: 5m
     labels:
-      environment_type: "{{ if $labels.environment_type }}{{ $labels.environment_type }}{{ else }}${var.environment_type}{{ end }}"
-      service: "{{ if $labels.service }}{{ $labels.service }}{{ else }}${var.default_service_name}{{ end }}"
+      service: infra
       severity: critical
     annotations:
       summary: cloudprober service is down in ${var.dc}
@@ -185,8 +177,7 @@ groups:
     expr: count(consul_server_isLeader) < 3
     for: 5m
     labels:
-      environment_type: "{{ if $labels.environment_type }}{{ $labels.environment_type }}{{ else }}${var.environment_type}{{ end }}"
-      service: "{{ if $labels.service }}{{ $labels.service }}{{ else }}${var.default_service_name}{{ end }}"
+      service: infra
       severity: warning
     annotations:
       summary: there are fewer than 3 consul servers in ${var.dc}
@@ -195,8 +186,7 @@ groups:
     expr: absent(consul_server_isLeader)
     for: 5m
     labels:
-      environment_type: "{{ if $labels.environment_type }}{{ $labels.environment_type }}{{ else }}${var.environment_type}{{ end }}"
-      service: "{{ if $labels.service }}{{ $labels.service }}{{ else }}${var.default_service_name}{{ end }}"
+      service: infra
       severity: critical
     annotations:
       summary: the consul cluster is down in ${var.dc}
@@ -205,8 +195,7 @@ groups:
     expr: count(nomad_runtime_alloc_bytes) < 3
     for: 5m
     labels:
-      environment_type: "{{ if $labels.environment_type }}{{ $labels.environment_type }}{{ else }}${var.environment_type}{{ end }}"
-      service: "{{ if $labels.service }}{{ $labels.service }}{{ else }}${var.default_service_name}{{ end }}"
+      service: infra
       severity: warning
     annotations:
       summary: nomad service is compromised in ${var.dc}
@@ -215,8 +204,7 @@ groups:
     expr: absent(nomad_runtime_alloc_bytes)
     for: 5m
     labels:
-      environment_type: "{{ if $labels.environment_type }}{{ $labels.environment_type }}{{ else }}${var.environment_type}{{ end }}"
-      service: "{{ if $labels.service }}{{ $labels.service }}{{ else }}${var.default_service_name}{{ end }}"
+      service: infra
       severity: critical
     annotations:
       summary: nomad service is completely down in ${var.dc}
@@ -225,8 +213,7 @@ groups:
     expr: absent(up{job="prometheus"})
     for: 5m
     labels:
-      environment_type: "{{ if $labels.environment_type }}{{ $labels.environment_type }}{{ else }}${var.environment_type}{{ end }}"
-      service: "{{ if $labels.service }}{{ $labels.service }}{{ else }}${var.default_service_name}{{ end }}"
+      service: infra
       severity: critical
     annotations:
       summary: prometheus service is down in ${var.dc}
@@ -235,8 +222,7 @@ groups:
     expr: nomad_nomad_heartbeat_active > (sum(up{job="telegraf"}) or vector(0))
     for: 5m
     labels:
-      environment_type: "{{ if $labels.environment_type }}{{ $labels.environment_type }}{{ else }}${var.environment_type}{{ end }}"
-      service: "{{ if $labels.service }}{{ $labels.service }}{{ else }}${var.default_service_name}{{ end }}"
+      service: infra
       severity: critical
     annotations:
       summary: telegraf services are down on some nodes in ${var.dc}
@@ -244,22 +230,38 @@ groups:
 
 - name: cloudprober_alerts
   rules:
-  - alert: Probe_Unhealthy
-    expr: (cloudprober_failure{probe!="shard"} > 0) or (cloudprober_timeouts{probe!="shard"} > 0)
+  - alert: Probe_Infra_Unhealthy
+    expr: (cloudprober_failure{probe!="shard",service="infra"} > 0) or (cloudprober_timeouts{probe!="shard",service="infra"} > 0)
     for: 2m
     labels:
-      environment_type: "{{ if $labels.environment_type }}{{ $labels.environment_type }}{{ else }}${var.environment_type}{{ end }}"
-      probe: "{{ if $labels.probe }}{{ $labels.probe }}{{ else }}probe{{ end }}"
+      service: infra
       severity: warning
     annotations:
       summary: "{{ $labels.probe }} probe from ${var.dc} to {{ $labels.dst }} timed-out or is unhealthy"
       description: The {{ $labels.probe }} http probe from ${var.dc} to {{ $labels.dst }} timed-out or received an unhealthy response.
-  - alert: Probe_Unhealthy
-    expr: (cloudprober_failure{probe!="shard"} > 0) or (cloudprober_timeouts{probe!="shard"} > 0)
+  - alert: Probe_Infra_Unhealthy
+    expr: (cloudprober_failure{probe!="shard",service="infra"} > 0) or (cloudprober_timeouts{probe!="shard",service="infra"} > 0)
     for: 5m
     labels:
-      environment_type: "{{ if $labels.environment_type }}{{ $labels.environment_type }}{{ else }}${var.environment_type}{{ end }}"
-      probe: "{{ if $labels.probe }}{{ $labels.probe }}{{ else }}probe{{ end }}"
+      service: infra
+      severity: critical
+    annotations:
+      summary: "{{ $labels.probe }} probe from ${var.dc} to {{ $labels.dst }} timed-out or is unhealthy"
+      description: The {{ $labels.probe }} http probe from ${var.dc} to {{ $labels.dst }} timed-out or received an unhealthy response.
+  - alert: Probe_Jitsi_Unhealthy
+    expr: (cloudprober_failure{probe!="shard",service="jitsi"} > 0) or (cloudprober_timeouts{probe!="shard",service="jitsi"} > 0)
+    for: 2m
+    labels:
+      service: jitsi
+      severity: warning
+    annotations:
+      summary: "{{ $labels.probe }} probe from ${var.dc} to {{ $labels.dst }} timed-out or is unhealthy"
+      description: The {{ $labels.probe }} http probe from ${var.dc} to {{ $labels.dst }} timed-out or received an unhealthy response.
+  - alert: Probe_Jitsi_Unhealthy
+    expr: (cloudprober_failure{probe!="shard",service="jitsi"} > 0) or (cloudprober_timeouts{probe!="shard",service="jitsi"} > 0)
+    for: 5m
+    labels:
+      service: jitsi
       severity: critical
     annotations:
       summary: "{{ $labels.probe }} probe from ${var.dc} to {{ $labels.dst }} timed-out or is unhealthy"
@@ -268,8 +270,7 @@ groups:
     expr: ((cloudprober_failure{probe="shard"} > 0) and on() count_over_time(cloudprober_failure{probe="shard"}[5m:1m]) > 5) or (cloudprober_timeouts{probe="shard"} > 0)
     for: 2m
     labels:
-      environment_type: "{{ if $labels.environment_type }}{{ $labels.environment_type }}{{ else }}${var.environment_type}{{ end }}"
-      probe: "{{ if $labels.probe }}{{ $labels.probe }}{{ else }}probe{{ end }}"
+      service: jitsi
       severity: critical
     annotations:
       summary: shard {{ $labels.dst }} probe returned failed or timed-out from ${var.dc}
@@ -278,8 +279,7 @@ groups:
     expr: cloudprober_haproxy_region_check_passed < 1
     for: 2m
     labels:
-      environment_type: "{{ if $labels.environment_type }}{{ $labels.environment_type }}{{ else }}${var.environment_type}{{ end }}"
-      probe: "{{ if $labels.probe }}{{ $labels.probe }}{{ else }}probe{{ end }}"
+      service: infra
       severity: warning
     annotations:
       summary: a domain probe from ${var.dc} reached an haproxy outside the local region
@@ -288,8 +288,7 @@ groups:
     expr: cloudprober_haproxy_region_check_passed < 1
     for: 10m
     labels:
-      environment_type: "{{ if $labels.environment_type }}{{ $labels.environment_type }}{{ else }}${var.environment_type}{{ end }}"
-      probe: "{{ if $labels.probe }}{{ $labels.probe }}{{ else }}probe{{ end }}"
+      service: infra
       severity: critical
     annotations:
       summary: a domain probe from ${var.dc} reached an haproxy outside the local region
@@ -298,8 +297,7 @@ groups:
     expr: (cloudprober_latency{probe="latency"} > 1500) or (cloudprober_latency{probe="latency_https"} > 1500)
     for: 2m
     labels:
-      environment_type: "{{ if $labels.environment_type }}{{ $labels.environment_type }}{{ else }}${var.environment_type}{{ end }}"
-      probe: "{{ if $labels.probe }}{{ $labels.probe }}{{ else }}probe{{ end }}"
+      service: infra
       severity: warning
     annotations:
       summary: http probe from ${var.dc} to {{ $labels.dst }} has high latency
@@ -308,8 +306,7 @@ groups:
     expr: (cloudprober_latency{probe="latency"} > 3000) or (cloudprober_latency{probe="latency_https"} > 3000)
     for: 5m
     labels:
-      environment_type: "{{ if $labels.environment_type }}{{ $labels.environment_type }}{{ else }}${var.environment_type}{{ end }}"
-      probe: "{{ if $labels.probe }}{{ $labels.probe }}{{ else }}probe{{ end }}"
+      service: infra
       severity: critical
     annotations:
       summary: http probe from ${var.dc} to {{ $labels.dst }} has extremely high latency
@@ -321,8 +318,8 @@ groups:
     expr: 100 - cpu_usage_idle > 70
     for: 5m
     labels:
-      environment_type: "{{ if $labels.environment_type }}{{ $labels.environment_type }}{{ else }}${var.environment_type}{{ end }}"
       host: "{{ $labels.host }}"
+      service: infra
       severity: warning 
     annotations:
       summary: host {{ $labels.host }} in ${var.dc} has had CPU usage > 70% for 5 minutes
@@ -331,8 +328,8 @@ groups:
     expr: (mem_total - mem_available) / mem_total * 100 > 80
     for: 5m
     labels:
-      environment_type: "{{ if $labels.environment_type }}{{ $labels.environment_type }}{{ else }}${var.environment_type}{{ end }}"
       host: "{{ $labels.host }}"
+      service: infra
       severity: warning
     annotations:
       summary: host {{ $labels.host }} in ${var.dc} has had memory usage > 80% for 5 minutes.
@@ -341,8 +338,8 @@ groups:
     expr: disk_used_percent > 90
     for: 5m
     labels:
-      environment_type: "{{ if $labels.environment_type }}{{ $labels.environment_type }}{{ else }}${var.environment_type}{{ end }}"
       host: "{{ $labels.host }}"
+      service: infra
       severity: warning
     annotations:
       summary: host {{ $labels.host }} in ${var.dc} is using over 90% of its disk space
