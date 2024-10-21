@@ -19,10 +19,14 @@ probe {
   timeout_msec: 5000
   latency_unit: "ms"
   validator {
-      name: "status_code_2xx"
-      http_validator {
-          success_status_codes: "200-299"
-      }
+    name: "status_code_2xx"
+    http_validator {
+      success_status_codes: "200-299"
+    }
+  }
+  additional_label {
+    key: "service"
+    value: "jitsi"
   }
 }
 
@@ -42,6 +46,10 @@ probe {
   interval_msec: 10000
   timeout_msec: 5000
   latency_unit: "ms"
+  additional_label {
+    key: "service"
+    value: "jitsi"
+  }
 }
 
 [[ end -]]
@@ -65,6 +73,10 @@ probe {
   interval_msec: 60000
   timeout_msec: 10000
   latency_unit: "ms"
+  additional_label {
+    key: "service"
+    value: "jitsi"
+  }
 }
 
 [[ end -]]
@@ -89,6 +101,10 @@ probe {
   interval_msec: 60000
   timeout_msec: 10000
   latency_unit: "ms"
+  additional_label {
+    key: "service"
+    value: "infra"
+  }
 }
 
 [[ end -]]
@@ -107,6 +123,10 @@ probe {
   interval_msec: 20000
   timeout_msec: 15000
   latency_unit: "ms"
+  additional_label {
+    key: "service"
+    value: "jitsi"
+  }
 }
 
 [[ end -]]
@@ -138,6 +158,10 @@ probe {
   interval_msec: 10000
   timeout_msec: 5000
   latency_unit: "ms"
+  additional_label {
+    key: "service"
+    value: "jitsi"
+  }
 }
 
 [[ end -]]
@@ -169,6 +193,10 @@ probe {
   interval_msec: 10000
   timeout_msec: 10000
   latency_unit: "ms"
+  additional_label {
+    key: "service"
+    value: "jitsi"
+  }
 }
 
 # measures between datacenters using shard _health endpoints
@@ -204,6 +232,10 @@ probe {
   interval_msec: 10000
   timeout_msec: 10000
   latency_unit: "ms"
+  additional_label {
+    key: "service"
+    value: "jitsi"
+  }
 }
 
 [[ end -]]
@@ -228,6 +260,10 @@ probe {
   interval_msec: 60000
   timeout_msec: 10000
   latency_unit: "ms"
+  additional_label {
+    key: "service"
+    value: "infra"
+  }
 }
 
 [[ end -]]
@@ -252,6 +288,10 @@ probe {
   interval_msec: 60000
   timeout_msec: 10000
   latency_unit: "ms"
+  additional_label {
+    key: "service"
+    value: "infra"
+  }
 }
 
 [[ end -]]
@@ -276,6 +316,10 @@ probe {
   interval_msec: 60000
   timeout_msec: 10000
   latency_unit: "ms"
+  additional_label {
+    key: "service"
+    value: "infra"
+  }
 }
 
 [[ end -]]
@@ -303,6 +347,10 @@ probe {
     key: "team"
     value: "@target.label.team@"
   }
+  additional_label {
+    key: "service"
+    value: "infra"
+  }
 }
 
 [[ end -]]
@@ -327,6 +375,10 @@ probe {
   interval_msec: 60000
   timeout_msec: 10000
   latency_unit: "ms"
+  additional_label {
+    key: "service"
+    value: "infra"
+  }
 }
 [[ end -]]
 [[ if var "enable_vault" . -]]
@@ -350,6 +402,10 @@ probe {
   interval_msec: 60000
   timeout_msec: 10000
   latency_unit: "ms"
+  additional_label {
+    key: "service"
+    value: "infra"
+  }
 }
 [[ end -]]
 
