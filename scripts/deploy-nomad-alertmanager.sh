@@ -1,7 +1,5 @@
 #!/bin/bash
 
-set -x
-
 if [ -z "$ENVIRONMENT" ]; then
     echo "No ENVIRONMENT set, exiting"
     exit 2
@@ -28,7 +26,7 @@ if [ -z "$NOMAD_ADDR" ]; then
     export NOMAD_ADDR="https://$ENVIRONMENT-$LOCAL_REGION-nomad.$TOP_LEVEL_DNS_ZONE_NAME"
 fi
 
-if [ -z "$NOTIFICATION_WEBHOOK_URK " ]; then
+if [ -z "$NOTIFICATION_WEBHOOK_URL" ]; then
     export NOTIFICATION_WEBHOOK_URL="https://$ENVIRONMENT-$LOCAL_REGION-shimmy.$TOP_LEVEL_DNS_ZONE_NAME"
 fi
 
