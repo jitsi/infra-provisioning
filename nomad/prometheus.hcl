@@ -242,7 +242,7 @@ groups:
     expr: (cloudprober_failure{probe!="shard"} > 0) or (cloudprober_timeouts{probe!="shard"} > 0)
     for: 5m
     labels:
-      severity: {{ if $labels.severity }}{{ $labels.severity }}{{ else }}critical{{ end }}
+      severity: "{{ if $labels.severity }}{{ $labels.severity }}{{ else }}critical{{ end }}"
     annotations:
       summary: "{{ $labels.probe }} probe from ${var.dc} to {{ $labels.dst }} unhealthy for 5+ minutes"
       description: The {{ $labels.probe }} http probe from ${var.dc} to {{ $labels.dst }} timed-out or received unhealthy responses for 5+ minutes.
@@ -294,7 +294,7 @@ groups:
     for: 5m
     labels:
       service: infra
-      severity: {{ if ${var.production_alerts} }}critical{{ else }}low{{ end }}
+      severity: "{{ if ${var.production_alerts} }}critical{{ else }}low{{ end }}"
     annotations:
       summary: host {{ $labels.host }} in ${var.dc} has had CPU usage > 90% for 5 minutes
       description: host {{ $labels.host }} in ${var.dc} has had a CPU running at over 90% in the last 5 minutes. It was most recently at {{ $value | printf "%.2f" }}%.
@@ -303,7 +303,7 @@ groups:
     for: 5m
     labels:
       service: infra
-      severity: {{ if ${var.production_alerts} }}critical{{ else }}low{{ end }}
+      severity: "{{ if ${var.production_alerts} }}critical{{ else }}low{{ end }}"
       severity: warning
     annotations:
       summary: host {{ $labels.host }} in ${var.dc} has had memory usage > 80% for 5 minutes.
@@ -313,7 +313,7 @@ groups:
     for: 5m
     labels:
       service: infra
-      severity: {{ if ${var.production_alerts} }}critical{{ else }}low{{ end }}
+      severity: "{{ if ${var.production_alerts} }}critical{{ else }}low{{ end }}"
     annotations:
       summary: host {{ $labels.host }} in ${var.dc} is using over 90% of its disk space
       description: host {{ $labels.host }} in ${var.dc} is using over 90% of its disk space. It was most recently at {{ $value | printf "%.2f" }}%.
