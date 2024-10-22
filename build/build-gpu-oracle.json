@@ -32,6 +32,7 @@
       "region": "{{user `region`}}",
       "base_image_ocid": "{{user `base_image_ocid`}}",
       "compartment_ocid": "{{user `compartment_ocid`}}",
+      "disk_size": 100,
       "subnet_ocid": "{{user `subnet_ocid`}}",
       "shape": "{{user `shape`}}",
       "shape_config": {
