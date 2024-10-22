@@ -63,6 +63,11 @@ variable "gcloud_environment_type" {
   default = "stage"
 }
 
+variable "remote_config_url" {
+  type = string
+  default = "https://get-transcriber.jitsi.net"
+}
+
 # This declares a job named "docs". There can be exactly one
 # job declaration per job file.
 job "[JOB_NAME]" {
@@ -195,7 +200,9 @@ job "[JOB_NAME]" {
         JIGASI_INSTANCE_ID = "${NOMAD_SHORT_ALLOC_ID}"
         JIGASI_ENABLE_PROMETHEUS = "true"
         JIGASI_MODE = "transcriber"
-        JIGASI_TRANSCRIBER_REMOTE_CONFIG_URL = "https://get-transcriber.jitsi.net"
+        JIGASI_TRANSCRIBER_REMOTE_CONFIG_URL = "${var.remote_config_url}"
+        JIGASI_TRANSCRIBER_REMOTE_CONFIG_URL_AUD = "jitsi"
+        JIGASI_TRANSCRIBER_REMOTE_CONFIG_URL_KEY_PATH = "/secrets/asap.key"
         JIGASI_TRANSCRIBER_OCI_REGION = "${meta.cloud_region}"
         JIGASI_TRANSCRIBER_OCI_COMPARTMENT = "${var.oci_compartment}"
         JIGASI_TRANSCRIBER_WHISPER_URL = "wss://stage-8x8-api.jitsi.net/whisper/streaming-whisper/ws/"
@@ -233,6 +240,7 @@ EOF
 AUTOSCALER_SIDECAR_KEY_ID="{{ .Data.data.key_id }}"
 JIGASI_TRANSCRIBER_WHISPER_PRIVATE_KEY_NAME="{{ .Data.data.key_id }}"
 JIGASI_TRANSCRIBER_WHISPER_PRIVATE_KEY="{{ .Data.data.private_key | regexReplaceAll "(-----BEGIN PRIVATE KEY-----|-----END PRIVATE KEY-----)" "" | replaceAll "\n" "" }}"
+JIGASI_TRANSCRIBER_REMOTE_CONFIG_URL_KEY_ID="{{ .Data.data.key_id }}"
 {{ end }}
 EOF
         env = true
