@@ -99,19 +99,23 @@ route:
     - matchers:
       - severity =~ "low|warning|critical"
       receiver: 'notification_hook'
+      continue: true
     - matchers:
       - service = "infra"
       - severity =~ "warning|critical"
       receiver: 'slack_infra'
+      continue: true
     - matchers:
       - service = "jitsi"
       - severity =~ "warning|critical"
       receiver: 'slack_jitsi'
+      continue: true
   {{{ range $k, $v := $pagerduty_keys_by_service -}}}
     - matchers:
       - service = "{{{ $k }}}"
       - severity = "critical"
       receiver: 'pagerduty-{{{ $k }}}'
+      continue: true
   {{{- end }}}
 
 receivers:
