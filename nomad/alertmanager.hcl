@@ -89,15 +89,14 @@ global:
   slack_api_url: '${var.slack_api_url}'
 {{{ $pagerduty_keys_by_service := (`${var.pagerduty_keys_by_service}` | parseJSON ) }}}
 route:
-  receiver: notification_hook
   group_by:
     - alertname
-    - environment
     - service
     - severity
   group_wait: 10s
   group_interval: 10s
   repeat_interval: 1h
+  receiver: notification_hook
 
   routes:
   - receiver: 'notification_hook'

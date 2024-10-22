@@ -36,7 +36,7 @@ variable "remote_write_org_id" {
   default = ""
 }
 
-variable "paranoid" {
+variable "production_alerts" {
   type = bool
   default = false
 }
@@ -230,106 +230,80 @@ groups:
 
 - name: cloudprober_alerts
   rules:
-  - alert: Probe_Infra_Unhealthy
-    expr: (cloudprober_failure{probe!="shard",service="infra"} > 0) or (cloudprober_timeouts{probe!="shard",service="infra"} > 0)
+  - alert: Probe_Unhealthy_Warn
+    expr: (cloudprober_failure{probe!="shard"} > 0) or (cloudprober_timeouts{probe!="shard"} > 0)
     for: 2m
     labels:
-      service: infra
       severity: warning
     annotations:
-      summary: "{{ $labels.probe }} probe from ${var.dc} to {{ $labels.dst }} timed-out or is unhealthy"
-      description: The {{ $labels.probe }} http probe from ${var.dc} to {{ $labels.dst }} timed-out or received an unhealthy response.
-  - alert: Probe_Infra_Unhealthy
-    expr: (cloudprober_failure{probe!="shard",service="infra"} > 0) or (cloudprober_timeouts{probe!="shard",service="infra"} > 0)
+      summary: "{{ $labels.probe }} probe from ${var.dc} to {{ $labels.dst }} unhealthy for 2+ minutes"
+      description: The {{ $labels.probe }} http probe from ${var.dc} to {{ $labels.dst }} timed-out or received unhealthy responses for 2 minutes.
+  - alert: Probe_Unhealthy_Critical
+    expr: (cloudprober_failure{probe!="shard"} > 0) or (cloudprober_timeouts{probe!="shard"} > 0)
     for: 5m
     labels:
-      service: infra
-      severity: critical
+      severity: {{ if $labels.severity }}{{ $labels.severity }}{{ else }}critical{{ end }}
     annotations:
-      summary: "{{ $labels.probe }} probe from ${var.dc} to {{ $labels.dst }} timed-out or is unhealthy"
-      description: The {{ $labels.probe }} http probe from ${var.dc} to {{ $labels.dst }} timed-out or received an unhealthy response.
-  - alert: Probe_Jitsi_Unhealthy
-    expr: (cloudprober_failure{probe!="shard",service="jitsi"} > 0) or (cloudprober_timeouts{probe!="shard",service="jitsi"} > 0)
-    for: 2m
-    labels:
-      service: jitsi
-      severity: warning
-    annotations:
-      summary: "{{ $labels.probe }} probe from ${var.dc} to {{ $labels.dst }} timed-out or is unhealthy"
-      description: The {{ $labels.probe }} http probe from ${var.dc} to {{ $labels.dst }} timed-out or received an unhealthy response.
-  - alert: Probe_Jitsi_Unhealthy
-    expr: (cloudprober_failure{probe!="shard",service="jitsi"} > 0) or (cloudprober_timeouts{probe!="shard",service="jitsi"} > 0)
-    for: 5m
-    labels:
-      service: jitsi
-      severity: critical
-    annotations:
-      summary: "{{ $labels.probe }} probe from ${var.dc} to {{ $labels.dst }} timed-out or is unhealthy"
-      description: The {{ $labels.probe }} http probe from ${var.dc} to {{ $labels.dst }} timed-out or received an unhealthy response.
+      summary: "{{ $labels.probe }} probe from ${var.dc} to {{ $labels.dst }} unhealthy for 5+ minutes"
+      description: The {{ $labels.probe }} http probe from ${var.dc} to {{ $labels.dst }} timed-out or received unhealthy responses for 5+ minutes.
   - alert: Probe_Shard_Unhealthy
     expr: ((cloudprober_failure{probe="shard"} > 0) and on() count_over_time(cloudprober_failure{probe="shard"}[5m:1m]) > 5) or (cloudprober_timeouts{probe="shard"} > 0)
     for: 2m
-    labels:
-      service: jitsi
-      severity: critical
     annotations:
       summary: shard {{ $labels.dst }} probe returned failed or timed-out from ${var.dc}
       description: An internal probe from ${var.dc} to the {{ $labels.dst }} shard timed-out or received an unhealthy response from signal-sidecar. This may be due to a variety of issues. If a local probe failed it is likely due to an unhealthy prosody or jicofo, if it's a remote probe then there may be a network issue between regions.
-  - alert: Probe_Ingress_Region_Unhealthy
+  - alert: Probe_Ingress_Region_Unhealthy_Warn
     expr: cloudprober_haproxy_region_check_passed < 1
     for: 2m
     labels:
-      service: infra
       severity: warning
     annotations:
-      summary: a domain probe from ${var.dc} reached an haproxy outside the local region
+      summary: domain probe from ${var.dc} reached an haproxy outside the local region for 2+ minutes
       description: A cloudprober probe to the domain reached an haproxy outside of the local region. This means that cloudflare may not be routing requests to ${var.dc}, likely due to failing health checks to the regional load balancer ingress.
-  - alert: Probe_Ingress_Region_Unhealthy
+  - alert: Probe_Ingress_Region_Unhealthy_Critical
     expr: cloudprober_haproxy_region_check_passed < 1
     for: 10m
     labels:
       service: infra
       severity: critical
     annotations:
-      summary: a domain probe from ${var.dc} reached an haproxy outside the local region
-      description: A cloudprober probe to the domain reached an haproxy outside of the local region. This means that cloudflare may not be routing requests to ${var.dc}, likely due to failing health checks to the regional load balancer ingress.
-  - alert: Probe_Latency_High
+      summary: domain probes from ${var.dc} reached an haproxy outside the local region for 10+ minutes
+      description: Cloudprober probes from ${var.dc} to the domain reached an haproxy outside of the local region for over ten minutes. This means that cloudflare may not be routing requests to ${var.dc}, likely due to failing health checks to the regional load balancer ingress.
+  - alert: Probe_Latency_Warn
     expr: (cloudprober_latency{probe="latency"} > 1500) or (cloudprober_latency{probe="latency_https"} > 1500)
     for: 2m
     labels:
-      service: infra
       severity: warning
     annotations:
-      summary: http probe from ${var.dc} to {{ $labels.dst }} has high latency
-      description: The {{ $labels.probe }} http probe from ${var.dc} to {{ $labels.dst }} has had high latency for 2 minutes, most recently at {{ $value }} ms.
-  - alert: Probe_Latency_High
+      summary: http probe from ${var.dc} to {{ $labels.dst }} has had high latency 2+ minutes
+      description: The {{ $labels.probe }} http probe from ${var.dc} to {{ $labels.dst }} has had latency over 1.5 seconds for 2 minutes, most recently at {{ $value }} ms.
+  - alert: Probe_Latency_Critical
     expr: (cloudprober_latency{probe="latency"} > 3000) or (cloudprober_latency{probe="latency_https"} > 3000)
     for: 5m
     labels:
       service: infra
       severity: critical
     annotations:
-      summary: http probe from ${var.dc} to {{ $labels.dst }} has extremely high latency
-      description: The {{ $labels.probe }} http probe from ${var.dc} to {{ $labels.dst }} has extremely high latency for 5 minutes, most recently at {{ $value }} ms.
+      summary: http probe from ${var.dc} to {{ $labels.dst }} has extremely high latency for 5+ minutes
+      description: The {{ $labels.probe }} http probe from ${var.dc} to {{ $labels.dst }} has had latency over 3 seconds for 5 minutes, most recently at {{ $value }} ms.
 
 - name: system_alerts
   rules:
   - alert: System_CPU_Usage_High
-    expr: 100 - cpu_usage_idle > %{ if var.paranoid }70%{ else }90%{ end }
+    expr: 100 - cpu_usage_idle > 90
     for: 5m
     labels:
-      host: "{{ $labels.host }}"
       service: infra
-      severity: warning 
+      severity: {{ if ${var.production_alerts} }}critical{{ else }}low{{ end }}
     annotations:
-      summary: host {{ $labels.host }} in ${var.dc} has had CPU usage > %{ if var.paranoid }70%{ else }90%{ end }% for 5 minutes
-      description: host {{ $labels.host }} in ${var.dc} has had a CPU running at over %{ if var.paranoid }70%{ else }90%{ end }% in the last 5 minutes. It was most recently at {{ $value | printf "%.2f" }}%.
+      summary: host {{ $labels.host }} in ${var.dc} has had CPU usage > 90% for 5 minutes
+      description: host {{ $labels.host }} in ${var.dc} has had a CPU running at over 90% in the last 5 minutes. It was most recently at {{ $value | printf "%.2f" }}%.
   - alert: System_Memory_Available_Low
     expr: (mem_total - mem_available) / mem_total * 100 > 80
     for: 5m
     labels:
-      host: "{{ $labels.host }}"
       service: infra
+      severity: {{ if ${var.production_alerts} }}critical{{ else }}low{{ end }}
       severity: warning
     annotations:
       summary: host {{ $labels.host }} in ${var.dc} has had memory usage > 80% for 5 minutes.
@@ -338,12 +312,16 @@ groups:
     expr: disk_used_percent > 90
     for: 5m
     labels:
-      host: "{{ $labels.host }}"
       service: infra
-      severity: warning
+      severity: {{ if ${var.production_alerts} }}critical{{ else }}low{{ end }}
     annotations:
       summary: host {{ $labels.host }} in ${var.dc} is using over 90% of its disk space
       description: host {{ $labels.host }} in ${var.dc} is using over 90% of its disk space. It was most recently at {{ $value | printf "%.2f" }}%.
+
+
+
+
+
 EOH
     }
 

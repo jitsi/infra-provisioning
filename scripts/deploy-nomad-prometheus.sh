@@ -36,7 +36,7 @@ NOMAD_JOB_PATH="$LOCAL_PATH/../nomad"
 NOMAD_DC="$ENVIRONMENT-$ORACLE_REGION"
 export NOMAD_VAR_prometheus_hostname="${RESOURCE_NAME_ROOT}.${TOP_LEVEL_DNS_ZONE_NAME}"
 export NOMAD_VAR_dc="$NOMAD_DC"
-export NOMAD_VAR_paranoid="$ALERT_PARANOIA"
+export NOMAD_VAR_production_alerts="$ALERT_PARANOIA"
 
 if [[ "$PROMETHEUS_ENABLE_REMOTE_WRITE" == "true" ]]; then
   export NOMAD_VAR_enable_remote_write="true"

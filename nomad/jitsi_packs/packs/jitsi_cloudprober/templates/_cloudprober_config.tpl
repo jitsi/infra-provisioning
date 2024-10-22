@@ -195,7 +195,7 @@ probe {
   latency_unit: "ms"
   additional_label {
     key: "service"
-    value: "jitsi"
+    value: "infra"
   }
 }
 
@@ -344,12 +344,8 @@ probe {
     value: "@target.label.severity@"
   }
   additional_label {
-    key: "team"
-    value: "@target.label.team@"
-  }
-  additional_label {
     key: "service"
-    value: "infra"
+    value: "@target.label.service@"
   }
 }
 
