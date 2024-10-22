@@ -89,32 +89,29 @@ global:
   slack_api_url: '${var.slack_api_url}'
 {{{ $pagerduty_keys_by_service := (`${var.pagerduty_keys_by_service}` | parseJSON ) }}}
 route:
-  group_by:
-    - alertname
-    - service
-    - severity
+  group_by: ['alertname', 'service', 'severity']
   group_wait: 10s
   group_interval: 10s
   repeat_interval: 1h
   receiver: notification_hook
 
   routes:
-  - receiver: 'notification_hook'
-    matcher:
+    - matchers:
       - severity =~ "low|warning|critical"
-  - receiver: 'slack_infra'
-    matcher:
-      - service = 'infra'
+      receiver: 'notification_hook'
+    - matchers:
+      - service = "infra"
       - severity =~ "warning|critical"
-  - receiver: 'slack_jitsi'
-    matcher:
-      - service = 'jitsi'
+      receiver: 'slack_infra'
+    - matchers:
+      - service = "jitsi"
       - severity =~ "warning|critical"
+      receiver: 'slack_jitsi'
   {{{ range $k, $v := $pagerduty_keys_by_service -}}}
-  - receiver: 'pagerduty-{{{ $k }}}'
-    match:
-      service: '{{{ $k }}}'
-      severity: critical
+    - matchers:
+      - service = "{{{ $k }}}"
+      - severity = "critical"
+      receiver: 'pagerduty-{{{ $k }}}'
   {{{- end }}}
 
 receivers:
