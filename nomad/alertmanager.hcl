@@ -125,7 +125,7 @@ receivers:
       url: '${var.notification_webhook_url}'
 - name: slack_jitsi
   slack_configs:
-    - channel: '#jitsi-${var.slack_channel_suffix}'
+    - channel: '#nomad-${var.slack_channel_suffix}'
       send_resolved: true
       title: '[{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] ({{ or .CommonLabels.alertname "Multiple Alert Types" }} in {{ .CommonLabels.environment }}) <{{- .GroupLabels.SortedPairs.Values | join " " }}>'
       text: |-
@@ -137,7 +137,7 @@ receivers:
         {{- end }}
 - name: slack_infra
   slack_configs:
-    - channel: '#infra-${var.slack_channel_suffix}'
+    - channel: '#nomad-${var.slack_channel_suffix}'
       send_resolved: true
       title: '[{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] ({{ or .CommonLabels.alertname "Multiple Alert Types" }} in {{ .CommonLabels.environment }}) <{{- .GroupLabels.SortedPairs.Values | join " " }}>'
       text: |-
