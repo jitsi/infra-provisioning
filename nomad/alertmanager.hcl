@@ -93,10 +93,11 @@ route:
   group_wait: 10s
   group_interval: 10s
   repeat_interval: 1h
-  receiver: notification_hook
+  receiver: slack_jitsi
 
   routes:
     - matchers:
+      - service = "skip"
       - severity =~ "low|warning|critical"
       receiver: 'notification_hook'
       continue: true
