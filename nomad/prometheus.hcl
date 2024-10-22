@@ -304,7 +304,6 @@ groups:
     labels:
       service: infra
       severity: "{{ if ${var.production_alerts} }}critical{{ else }}low{{ end }}"
-      severity: warning
     annotations:
       summary: host {{ $labels.host }} in ${var.dc} has had memory usage > 80% for 5 minutes.
       description: host {{ $labels.host }} in ${var.dc} is utilizing over 80% of its memory in the last 5 minutes. It was most recently at {{ $value | printf "%.2f"}}%.
@@ -317,10 +316,6 @@ groups:
     annotations:
       summary: host {{ $labels.host }} in ${var.dc} is using over 90% of its disk space
       description: host {{ $labels.host }} in ${var.dc} is using over 90% of its disk space. It was most recently at {{ $value | printf "%.2f" }}%.
-
-
-
-
 
 EOH
     }
