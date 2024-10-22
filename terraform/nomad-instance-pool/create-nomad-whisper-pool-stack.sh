@@ -3,6 +3,7 @@ set -x
 unset SSH_USER
 
 [ -z "$POOL_TYPE" ] && export POOL_TYPE="whisper"
+[ -z "$ROLE" ] && export ROLE="whisper"
 [ -z "$MEMORY_IN_GBS" ] && export MEMORY_IN_GBS="240"
 [ -z "$SHAPE" ] && export SHAPE="VM.GPU.A10.1"
 [ -z "$OCPUS" ] && export OCPUS="15"
