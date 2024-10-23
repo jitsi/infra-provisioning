@@ -125,10 +125,12 @@ receivers:
       text: |-
         {{ if eq .GroupLabels.severity "critical" }}<!here>{{ end }}{{ range .Alerts }}
         *{{ index .Labels "alertname" }}* {{- if .Annotations.summary }}: *{{ .Annotations.summary }}* {{- end }}
-          {{- if .Annotations.description }}
+        {{- if eq .Status "firing" }}
+        {{- if .Annotations.description }}
         _{{ .Annotations.description }}_
-          {{- end }}
-          view this alert in prometheus: {{ if .Annotations.url }}{{ .Annotations.url }}{{ end }}
+        {{- end }}
+        view this alert in prometheus: {{ if .Annotations.url }}{{ .Annotations.url }}{{ end }}
+        {{- end }}
         {{- end }}
 %{ if var.pagerduty_enabled }- name: 'pagerduty_alerts'
   pagerduty_configs:
@@ -142,10 +144,12 @@ receivers:
       text: |-
         {{ if eq .GroupLabels.severity "critical" }}<!here>{{ end }}{{ range .Alerts }}
         *{{ index .Labels "alertname" }}* {{- if .Annotations.summary }}: *{{ .Annotations.summary }}* {{- end }}
-          {{- if .Annotations.description }}
+        {{- if eq .Status "firing" }}
+        {{- if .Annotations.description }}
         _{{ .Annotations.description }}_
-          {{- end }}
-          view this alert in prometheus: {{ if .Annotations.url }}{{ .Annotations.url }}{{ end }}
+        {{- end }}
+        view this alert in prometheus: {{ if .Annotations.url }}{{ .Annotations.url }}{{ end }}
+        {{- end }}
         {{- end }}
 %{ endif }
 EOH
