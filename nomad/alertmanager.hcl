@@ -93,7 +93,7 @@ route:
   group_wait: 10s
   group_interval: 10s
   repeat_interval: 1h
-  receiver: slack_jitsi
+  receiver: slack_alerts
 
   routes:
     - matchers:
