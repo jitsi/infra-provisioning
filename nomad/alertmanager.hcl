@@ -63,6 +63,10 @@ job "[JOB_NAME]" {
       user = "root"
       driver = "docker"
 
+      vault {
+        change_mode = "noop"
+      }
+
       config {
         image = "prom/alertmanager:${var.alertmanager_version}"
         force_pull = false
@@ -81,7 +85,7 @@ job "[JOB_NAME]" {
 ---
 global:
   resolve_timeout: 5m
-  slack_api_url: "{{ with secret "secret/default/alertmanager/receivers/slack" }}{{ .Data.data.integration_webhook }}{{ end }}"
+  {{ with secret "secret/default/alertmanager/receivers/slack" }}slack_api_url: "{{ .Data.data.integration_webhook }}"{{ end }}
 
 route:
   group_by: ['alertname', 'service', 'severity']
