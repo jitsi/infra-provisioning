@@ -128,9 +128,7 @@ receivers:
           {{- if .Annotations.description }}
         _{{ .Annotations.description }}_
           {{- end }}
-          see this alert in prometheus: {{- if .Annotations.url }}
-        _{{ .Annotations.url }}_
-          {{- end }}
+          view this alert in prometheus: {{ if .Annotations.url }}{{ .Annotations.url }}{{ end }}
         {{- end }}
 %{ if var.pagerduty_enabled }- name: 'pagerduty_alerts'
   pagerduty_configs:
@@ -147,9 +145,7 @@ receivers:
           {{- if .Annotations.description }}
         _{{ .Annotations.description }}_
           {{- end }}
-          see this alert in prometheus: {{- if .Annotations.url }}
-        _{{ .Annotations.url }}_
-          {{- end }}
+          view this alert in prometheus: {{ if .Annotations.url }}{{ .Annotations.url }}{{ end }}
         {{- end }}
 %{ endif }
 EOH
