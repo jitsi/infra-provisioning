@@ -404,5 +404,31 @@ probe {
   }
 }
 [[ end -]]
+[[ if var "enable_canary" . -]]
+# probes canary health in the local datacenter
+probe {
+  name: "canary"
+  type: HTTP
+  targets {
+    host_names: "{{ range $index, $service := service "canary"}}{{ if gt $index 0 }},{{ end }}{{ .Address }}:{{ if .ServiceMeta.http_port }}{{ .ServiceMeta.http_port }}{{ else }}8080{{ end }}{{ end }}"
+  }
+  http_probe {
+    relative_url: "/health"
+  }
+  validator {
+      name: "status_code_2xx"
+      http_validator {
+          success_status_codes: "200-299"
+      }
+  }
+  interval_msec: 60000
+  timeout_msec: 10000
+  latency_unit: "ms"
+  additional_label {
+    key: "service"
+    value: "infra"
+  }
+}
+[[ end -]]
 
 [[ end -]]

@@ -37,6 +37,8 @@ if [ -z "$NOMAD_ADDR" ]; then
     export NOMAD_ADDR="https://$ENVIRONMENT-$LOCAL_REGION-nomad.$TOP_LEVEL_DNS_ZONE_NAME"
 fi
 
+[ -z "$ENVIRONMENT_TYPE" ] && ENVIRONMENT_TYPE="dev"
+
 NOMAD_DC="$ENVIRONMENT-$ORACLE_REGION"
 
 JOB_NAME="cloudprober-$ORACLE_REGION"
@@ -62,6 +64,7 @@ CLOUDPROBER_ENABLE_SKYNET="false"
 CLOUDPROBER_ENABLE_SITE_INGRESS="false"
 CLOUDPROBER_ENABLE_VAULT="false"
 CLOUDPROBER_ENABLE_WHISPER="false"
+CLOUDPROBER_ENABLE_CANARY="false"
 
 # add probes based on template type
 if [[ "$CLOUDPROBER_TEMPLATE_TYPE" == "core" ]]; then
@@ -76,6 +79,10 @@ elif [[ "$CLOUDPROBER_TEMPLATE_TYPE" == "ops" ]]; then
 elif [[ "$CLOUDPROBER_TEMPLATE_TYPE" != "base" ]]; then
     echo "Unsupported CLOUDPROBER_TEMPLATE_TYPE (should be base, core, or ops), exiting"
     exit 3
+fi
+
+if [[ "$ENVIRONMENT_TYPE" == "prod" ]]; then
+    CLOUDPROBER_ENABLE_CANARY="true"
 fi
 
 # add custom https probes for environments that have them (typically just ops)
@@ -108,6 +115,7 @@ enable_prometheus=$CLOUDPROBER_ENABLE_PROMETHEUS
 enable_alertmanager=$CLOUDPROBER_ENABLE_ALERTMANAGER
 enable_cloudprober=$CLOUDPROBER_ENABLE_CLOUDPROBER
 enable_vault=$CLOUDPROBER_ENABLE_VAULT
+enable_canary=$CLOUDPROBER_ENABLE_CANARY
 EOF
 
 nomad-pack plan --name "$JOB_NAME" \
