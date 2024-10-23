@@ -194,7 +194,7 @@ EOF
 {{ range $index, $service := service "consul"}}
 {{if eq .Address (env "attr.unique.network.ip-address") }}
 [[inputs.prometheus]]
-  urls = ["http://{{ .Address }}:8500/v1/agent/metrics"]
+  urls = ["http://{{ .Address }}:8500/v1/agent/metrics?format=prometheus"]
   [inputs.prometheus.tags]
     host = "{{"{{"}}.Node}}"
     role = "consul"
