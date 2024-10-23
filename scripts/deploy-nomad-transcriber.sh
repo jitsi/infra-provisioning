@@ -81,6 +81,12 @@ export NOMAD_VAR_jigasi_tag="$JIGASI_TAG"
 export NOMAD_VAR_pool_type="$NOMAD_POOL_TYPE"
 export NOMAD_VAR_oci_compartment="$COMPARTMENT_OCID"
 
+export NOMAD_VAR_remote_config_url="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval '.jigasi_transcriber_remote_select')"
+
+if [[ "$NOMAD_VAR_remote_config_url" == "null" ]]; then
+    export NOMAD_VAR_remote_config_url=
+fi
+
 export NOMAD_JOB_NAME="transcriber-${ORACLE_REGION}"
 export NOMAD_URL="https://${ENVIRONMENT}-${ORACLE_REGION}-nomad.$TOP_LEVEL_DNS_ZONE_NAME"
 
