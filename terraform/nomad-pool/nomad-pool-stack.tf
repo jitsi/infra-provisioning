@@ -229,6 +229,21 @@ resource "oci_core_network_security_group_security_rule" "consul_nsg_rule_privat
   }
 }
 
+resource "oci_core_network_security_group_security_rule" "consul_nsg_rule_private_ingress_consul_web_redirect" {
+  network_security_group_id = oci_core_network_security_group.nomad_private_lb_security_group.id
+  direction = "INGRESS"
+  protocol = "6"
+  source = "10.0.0.0/8"
+  stateless = false
+
+  tcp_options {
+    destination_port_range {
+      max = 80
+      min = 80
+    }
+  }
+}
+
 data "oci_waf_web_app_firewall_policies" "regional_policy" {
     compartment_id = var.compartment_ocid
     display_name = "${var.environment}-${var.oracle_region}-PublicWAFPolicy"
@@ -405,6 +420,34 @@ resource "oci_load_balancer_rule_set" "redirect_rule_set" {
     name = "RedirectToHTTPS"
 }
 
+resource "oci_load_balancer_rule_set" "private_redirect_rule_set" {
+    #Required
+    items {
+        #Required
+        action = "REDIRECT"
+
+        conditions {
+            #Required
+            attribute_name = "PATH"
+            attribute_value = "/"
+            #Optional
+            operator = "PREFIX_MATCH"
+        }
+        description = "redirect http to https"
+        redirect_uri {
+            #Optional
+            host = "{host}"
+            path = "{path}"
+            port = 443
+            protocol = "https"
+            query = "{query}"
+        }
+        response_code = 301
+    }
+    load_balancer_id = oci_load_balancer.private_oci_load_balancer.id
+    name = "RedirectToHTTPS"
+}
+
 resource "oci_load_balancer_listener" "redirect_listener" {
   load_balancer_id = oci_load_balancer.public_oci_load_balancer.id
   name = "NomadHTTPListener"
@@ -457,6 +500,15 @@ resource "oci_load_balancer_listener" "private_listener" {
       certificate_name = oci_load_balancer_certificate.private_certificate.certificate_name
       verify_peer_certificate = false
   }
+}
+
+resource "oci_load_balancer_listener" "private_redirect_listener" {
+  load_balancer_id = oci_load_balancer.private_oci_load_balancer.id
+  name = "NomadHTTPListener"
+  port = 80
+  default_backend_set_name = oci_load_balancer_backend_set.oci_load_balancer_private_bs.name
+  rule_set_names = [oci_load_balancer_rule_set.private_redirect_rule_set.name]
+  protocol = "HTTP"
 }
 
 resource "oci_dns_rrset" "pool_dns_record" {
