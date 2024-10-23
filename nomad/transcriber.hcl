@@ -65,7 +65,7 @@ variable "gcloud_environment_type" {
 
 variable "remote_config_url" {
   type = string
-  default = "https://get-transcriber.jitsi.net"
+  default = "https://api-vo-pilot.jitsi.net/passcode/v1/settings"
 }
 
 # This declares a job named "docs". There can be exactly one
