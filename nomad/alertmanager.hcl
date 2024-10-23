@@ -85,7 +85,7 @@ job "[JOB_NAME]" {
 ---
 global:
   resolve_timeout: 5m
-  {{{ with secret "secret/default/alertmanager/receivers/slack" }}}slack_api_url: "{{{ .Data.data.integration_webhook }}}"{{{ end }}}
+  slack_api_url: "{{{ with secret "secret/default/alertmanager/receivers/slack" }}}{{{ .Data.data.slack_general_webhook }}}{{{ end }}}"
 
 route:
   group_by: ['alertname', 'service', 'severity']
@@ -100,13 +100,17 @@ route:
       - severity =~ "low|warning|critical"
       receiver: 'notification_hook'
       continue: true
-    - matchers:
+    - matchers::w
+
       - severity =~ "warning|critical"
       receiver: 'slack_alerts'
       continue: true
     %{ if var.pagerduty_enabled }- matchers:
       - severity = "critical"
       receiver: 'pagerduty_alerts'
+      continue: true
+      - severity = "critical"
+      receiver: 'slack_pages'
       continue: true%{ endif }
 
 receivers:
@@ -131,7 +135,23 @@ receivers:
         {{- end }}
 %{ if var.pagerduty_enabled }- name: 'pagerduty_alerts'
   pagerduty_configs:
-  - service_key: '{{{ with secret "secret/default/alertmanager/receivers/pagerduty" }}}{{{ .Data.data.integration_key }}}{{{ end }}'
+  - service_key: '{{{ with secret "secret/default/alertmanager/receivers/pagerduty" }}}{{{ .Data.data.integration_key }}}{{{ end }}}'
+- name: slack_pages
+  slack_configs:
+    - channel: '#ops'
+      api_url: '{{{ with secret "secret/default/alertmanager/receivers/slack" }}}{{{ .Data.data.slack_pages_webhook }}}{{{ end }}}'
+      send_resolved: true
+      title: '[{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] ({{ or .CommonLabels.alertname "Multiple Alert Types" }} in {{ .CommonLabels.environment }}) <{{- .GroupLabels.SortedPairs.Values | join " " }}>'
+      text: |-
+        {{ if eq .GroupLabels.severity "critical" }}<!here>{{ end }}{{ range .Alerts }}
+        *{{ index .Labels "alertname" }}* {{- if .Annotations.summary }}: *{{ .Annotations.summary }}* {{- end }}
+          {{- if .Annotations.description }}
+        _{{ .Annotations.description }}_
+          {{- end }}
+          see this alert in prometheus: {{- if .Annotations.url }}
+        _{{ .Annotations.url }}_
+          {{- end }}
+        {{- end }}
 %{ endif }
 EOH
       }
