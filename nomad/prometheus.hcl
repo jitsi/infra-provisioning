@@ -246,7 +246,7 @@ groups:
     annotations:
       summary: "{{ $labels.probe }} probe from ${var.dc} to {{ $labels.dst }} unhealthy for 2+ minutes"
       description: The {{ $labels.probe }} http probe from ${var.dc} to {{ $labels.dst }} timed-out or received unhealthy responses for 2 minutes.
-      url: https://${var.prometheus_hostname}/alerts?search=probe_unhealthy_warn
+      url: https://${var.prometheus_hostname}/alerts?search=probe_unhealthy
   - alert: Probe_Unhealthy_Critical
     expr: (cloudprober_failure{probe!="shard"} > 0) or (cloudprober_timeouts{probe!="shard"} > 0)
     for: 5m
@@ -255,7 +255,7 @@ groups:
     annotations:
       summary: "{{ $labels.probe }} probe from ${var.dc} to {{ $labels.dst }} unhealthy for 5+ minutes"
       description: The {{ $labels.probe }} http probe from ${var.dc} to {{ $labels.dst }} timed-out or received unhealthy responses for 5+ minutes.
-      url: https://${var.prometheus_hostname}/alerts?search=probe_unhealthy_critical
+      url: https://${var.prometheus_hostname}/alerts?search=probe_unhealthy
   - alert: Probe_Shard_Unhealthy
     expr: ((cloudprober_failure{probe="shard"} > 0) and on() count_over_time(cloudprober_failure{probe="shard"}[5m:1m]) > 5) or (cloudprober_timeouts{probe="shard"} > 0)
     for: 2m
@@ -271,7 +271,7 @@ groups:
     annotations:
       summary: domain probe from ${var.dc} reached an haproxy outside the local region for 2+ minutes
       description: A cloudprober probe to the domain reached an haproxy outside of the local region. This means that cloudflare may not be routing requests to ${var.dc}, likely due to failing health checks to the regional load balancer ingress.
-      url: https://${var.prometheus_hostname}/alerts?search=probe_ingress_region_unhealthy_warn
+      url: https://${var.prometheus_hostname}/alerts?search=probe_ingress_region_unhealthy
   - alert: Probe_Ingress_Region_Unhealthy_Critical
     expr: cloudprober_haproxy_region_check_passed < 1
     for: 10m
@@ -281,7 +281,7 @@ groups:
     annotations:
       summary: domain probes from ${var.dc} reached an haproxy outside the local region for 10+ minutes
       description: Cloudprober probes from ${var.dc} to the domain reached an haproxy outside of the local region for over ten minutes. This means that cloudflare may not be routing requests to ${var.dc}, likely due to failing health checks to the regional load balancer ingress.
-      url: https://${var.prometheus_hostname}/alerts?search=probe_ingress_region_unhealthy_critical
+      url: https://${var.prometheus_hostname}/alerts?search=probe_ingress_region_unhealthy
   - alert: Probe_Latency_Warn
     expr: (cloudprober_latency{probe="latency"} > 1500) or (cloudprober_latency{probe="latency_https"} > 1500)
     for: 2m
@@ -290,7 +290,7 @@ groups:
     annotations:
       summary: http probe from ${var.dc} to {{ $labels.dst }} has had high latency 2+ minutes
       description: The {{ $labels.probe }} http probe from ${var.dc} to {{ $labels.dst }} has had latency over 1.5 seconds for 2 minutes, most recently at {{ $value }} ms.
-      url: https://${var.prometheus_hostname}/alerts?search=probe_latency_warn
+      url: https://${var.prometheus_hostname}/alerts?search=probe_latency
   - alert: Probe_Latency_Critical
     expr: (cloudprober_latency{probe="latency"} > 3000) or (cloudprober_latency{probe="latency_https"} > 3000)
     for: 5m
@@ -300,7 +300,7 @@ groups:
     annotations:
       summary: http probe from ${var.dc} to {{ $labels.dst }} has extremely high latency for 5+ minutes
       description: The {{ $labels.probe }} http probe from ${var.dc} to {{ $labels.dst }} has had latency over 3 seconds for 5 minutes, most recently at {{ $value }} ms.
-      url: https://${var.prometheus_hostname}/alerts?search=probe_latency_critical
+      url: https://${var.prometheus_hostname}/alerts?search=probe_latency
 
 - name: system_alerts
   rules:
