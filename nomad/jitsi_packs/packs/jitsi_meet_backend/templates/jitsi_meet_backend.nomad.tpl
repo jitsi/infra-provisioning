@@ -811,6 +811,7 @@ EOF
         JICOFO_ENABLE_BRIDGE_HEALTH_CHECKS="1"
         JICOFO_HEALTH_CHECKS_USE_PRESENCE="[[ or (env "CONFIG_jicofo_use_presence_for_jvb_health") "false" ]]"
         ENABLE_AUTO_OWNER="[[ if eq (or (env "CONFIG_jicofo_disable_auto_owner") "false") "true" ]]false[[ else ]]true[[ end ]]"
+        ENABLE_MODERATOR_CHECKS="[[ if eq (or (env "CONFIG_jicofo_disable_moderator_checks") "false") "true" ]]false[[ else ]]true[[ end ]]"
         OCTO_BRIDGE_SELECTION_STRATEGY="RegionBasedBridgeSelectionStrategy"
         // BRIDGE_STRESS_THRESHOLD=""
         BRIDGE_AVG_PARTICIPANT_STRESS="0.005"
