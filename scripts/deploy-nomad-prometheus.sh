@@ -17,8 +17,9 @@ if [ -z "$ORACLE_REGION" ]; then
     exit 2
 fi
 
-if [ -z "$ALERT_PARANOIA" ]; then
-    ALERT_PARANOIA="false"
+# use more aggressive alert thresholds in some cases
+if [ -z "$PRODUCTION_ALERTS" ]; then
+    PRODUCTION_ALERTS="false"
 fi
 
 [ -z "$LOCAL_REGION" ] && LOCAL_REGION="$OCI_LOCAL_REGION"
@@ -36,7 +37,7 @@ NOMAD_JOB_PATH="$LOCAL_PATH/../nomad"
 NOMAD_DC="$ENVIRONMENT-$ORACLE_REGION"
 export NOMAD_VAR_prometheus_hostname="${RESOURCE_NAME_ROOT}.${TOP_LEVEL_DNS_ZONE_NAME}"
 export NOMAD_VAR_dc="$NOMAD_DC"
-export NOMAD_VAR_production_alerts="$ALERT_PARANOIA"
+export NOMAD_VAR_production_alerts="$PRODUCTION_ALERTS"
 
 if [[ "$PROMETHEUS_ENABLE_REMOTE_WRITE" == "true" ]]; then
   export NOMAD_VAR_enable_remote_write="true"
