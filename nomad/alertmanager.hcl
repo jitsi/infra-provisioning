@@ -123,6 +123,9 @@ receivers:
           {{- if .Annotations.description }}
         _{{ .Annotations.description }}_
           {{- end }}
+          {{- if .Annotations.url }}
+        _{{ .Annotations.url }}_
+          {{- end }}
         {{- end }}
 %{ if ! var.pagerduty_enabled -}
 - name: 'pagerduty_alerts'
