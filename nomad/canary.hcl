@@ -33,9 +33,6 @@ job "[JOB_NAME]" {
         timeout  = "2s"
       }
     }
-    meta {
-      http_port = "${NOMAD_HOST_PORT_http}"
-    }
 
     task "canary" {
       driver = "docker"
