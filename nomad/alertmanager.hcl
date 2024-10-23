@@ -89,7 +89,7 @@ global:
   slack_api_url: '${var.slack_api_url}'
 {{{ $pagerduty_keys_by_service := (`${var.pagerduty_keys_by_service}` | parseJSON ) }}}
 route:
-  group_by: ['alertname', 'service', 'severity']
+  group_by: ['alertname', 'service']
   group_wait: 10s
   group_interval: 10s
   repeat_interval: 1h
@@ -102,14 +102,8 @@ route:
       receiver: 'notification_hook'
       continue: true
     - matchers:
-      - service = "infra"
       - severity =~ "warning|critical"
-      receiver: 'slack_infra'
-      continue: true
-    - matchers:
-      - service = "jitsi"
-      - severity =~ "warning|critical"
-      receiver: 'slack_jitsi'
+      receiver: 'slack_alerts'
       continue: true
   {{{ range $k, $v := $pagerduty_keys_by_service -}}}
     - matchers:
@@ -124,21 +118,9 @@ receivers:
   webhook_configs:
     - send_resolved: true
       url: '${var.notification_webhook_url}'
-- name: slack_jitsi
+- name: slack_alerts
   slack_configs:
-    - channel: '#nomad-${var.slack_channel_suffix}'
-      send_resolved: true
-      title: '[{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] ({{ or .CommonLabels.alertname "Multiple Alert Types" }} in {{ .CommonLabels.environment }}) <{{- .GroupLabels.SortedPairs.Values | join " " }}>'
-      text: |-
-        {{ if eq .GroupLabels.severity "critical" }}<!here>{{ end }}{{ range .Alerts }}
-        *{{ index .Labels "alertname" }}* {{- if .Annotations.summary }}: *{{ .Annotations.summary }}* {{- end }}
-          {{- if .Annotations.description }}
-        _{{ .Annotations.description }}_
-          {{- end }}
-        {{- end }}
-- name: slack_infra
-  slack_configs:
-    - channel: '#nomad-${var.slack_channel_suffix}'
+    - channel: '#jitsi-${var.slack_channel_suffix}'
       send_resolved: true
       title: '[{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] ({{ or .CommonLabels.alertname "Multiple Alert Types" }} in {{ .CommonLabels.environment }}) <{{- .GroupLabels.SortedPairs.Values | join " " }}>'
       text: |-
