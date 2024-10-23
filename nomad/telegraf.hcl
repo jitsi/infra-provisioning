@@ -196,7 +196,7 @@ EOF
 [[inputs.prometheus]]
   urls = ["http://{{ .Address }}:8500/v1/agent/metrics?format=prometheus"]
   [inputs.prometheus.tags]
-    host = "{{"{{"}}.Node}}"
+    host = "{{.Node}}"
     role = "consul"
     service = "consul"
 {{ end }}
