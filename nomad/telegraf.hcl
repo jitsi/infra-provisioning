@@ -191,6 +191,17 @@ EOF
 {{ end }}
 {{ end }}
 
+{{ range $index, $service := service "consul"}}
+{{if eq .Address (env "attr.unique.network.ip-address") }}
+[[inputs.prometheus]]
+  urls = ["http://{{ .Address }}:8500/v1/agent/metrics"]
+  [inputs.prometheus.tags]
+    host = "{{"{{"}}.Node}}"
+    role = "consul"
+    service = "consul"
+{{ end }}
+{{ end }}
+
 [[inputs.prometheus]]
   http_headers = {"Accept" = "text/plain; version=0.0.4"}
   [inputs.prometheus.consul]
