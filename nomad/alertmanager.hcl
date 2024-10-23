@@ -125,7 +125,7 @@ receivers:
         _{{ .Annotations.url }}_
           {{- end }}
         {{- end }}
-%{ if var.pagerduty_enabled -}- name: 'pagerduty_alerts'
+%{ if var.pagerduty_enabled }- name: 'pagerduty_alerts'
   pagerduty_configs:
   - service_key: '{{ with secret "secret/default/alertmanager/receivers/pagerduty" }}{{ .Data.data.integration_key }}{{ end }}'
 %{ endif }
