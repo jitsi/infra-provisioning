@@ -165,80 +165,6 @@ probe {
 }
 
 [[ end -]]
-[[ if var "enable_shard_latency" . -]]
-# measures between datacenters using shard _health endpoints
-probe {
-  name: "latency"
-  type: HTTP
-
-  targets {
-    {{ $shard_count := 0 -}}
-    {{ range $dc := datacenters -}}{{ $dc_shards := print "signal@" $dc -}}{{ range $shard := service $dc_shards -}}
-    {{ if ne .ServiceMeta.http_backend_port "443" }}{{ $shard_count = add $shard_count 1 -}}
-    endpoint {
-      name: "{{ .ServiceMeta.shard }}"
-      url: "http://{{ .Address }}:{{ if .ServiceMeta.http_backend_port }}{{ .ServiceMeta.http_backend_port }}{{ else }}80{{ end }}/_health"
-    }
-    {{ end }}{{ end }}{{ end -}}
-    {{ if eq $shard_count 0 -}}
-    host_names: ""
-    {{- end }}
-  }
-  validator {
-      name: "status_code_2xx"
-      http_validator {
-          success_status_codes: "200-299"
-      }
-  }
-  interval_msec: 10000
-  timeout_msec: 10000
-  latency_unit: "ms"
-  additional_label {
-    key: "service"
-    value: "infra"
-  }
-}
-
-# measures between datacenters using shard _health endpoints
-probe {
-  name: "latency_https"
-  type: HTTP
-
-  targets {
-    {{ $shard_count := 0 -}}
-    {{ range $dc := datacenters -}}{{ $dc_shards := print "signal@" $dc -}}{{ range $shard := service $dc_shards -}}
-    {{ if eq .ServiceMeta.http_backend_port "443" }}{{ $shard_count = add $shard_count 1 -}}
-    endpoint {
-      name: "{{ .ServiceMeta.shard }}"
-      url: "https://{{ .Address }}/_health"
-    }
-    {{ end }}{{ end }}{{ end -}}
-    {{ if eq $shard_count 0 -}}
-    host_names: ""
-    {{- end }}
-  }
-  http_probe {
-    protocol: HTTPS
-    tls_config {
-        disable_cert_validation: true
-    }
-  }
-  validator {
-      name: "status_code_2xx"
-      http_validator {
-          success_status_codes: "200-299"
-      }
-  }
-  interval_msec: 10000
-  timeout_msec: 10000
-  latency_unit: "ms"
-  additional_label {
-    key: "service"
-    value: "jitsi"
-  }
-}
-
-[[ end -]]
 [[ if var "enable_prometheus" . -]]
 # probes prometheus health in all datacenters
 probe {
@@ -397,6 +323,39 @@ probe {
   }
   interval_msec: 60000
   timeout_msec: 10000
+  latency_unit: "ms"
+  additional_label {
+    key: "service"
+    value: "infra"
+  }
+}
+[[ end -]]
+[[ if var "enable_canary" . -]]
+# probes canary health and latency across datacenters
+probe {
+  name: "canary"
+  type: HTTP
+
+  targets {
+    {{ $canary_count := 0 -}}
+    {{ range $dc := datacenters -}}{{ $dc_canaries := print "canary@" $dc -}}{{ range $canary := service $dc_canaries -}}
+    {{ $canary_count = add $canary_count 1 -}}
+    endpoint {
+      name: "canary-{{ $dc }}"
+      url: "http://{{ .Address }}:{{ .Port }}/health"
+    }{{ end }}{{ end }}
+    {{- if eq $canary_count 0 -}}
+    host_names: ""
+    {{- end }}
+  }
+  validator {
+      name: "status_code_2xx"
+      http_validator {
+          success_status_codes: "200-299"
+      }
+  }
+  interval_msec: 30000
+  timeout_msec: 20000
   latency_unit: "ms"
   additional_label {
     key: "service"

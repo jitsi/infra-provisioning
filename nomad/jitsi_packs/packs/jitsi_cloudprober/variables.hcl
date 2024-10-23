@@ -117,3 +117,8 @@ variable "enable_vault" {
   type        = bool
   default     = false
 }
+variable "enable_canary" {
+  description = "Whether to enable the canary webserver"
+  type        = bool
+  default     = false
+}
