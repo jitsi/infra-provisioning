@@ -22,8 +22,10 @@ fi
 
 if [ "$ENVIRONMENT_TYPE" == "prod" ]; then
     ALERT_SLACK_CHANNEL=$ENVIRONMENT
+    PAGERDUTY_ENABLED="true"
 else
     ALERT_SLACK_CHANNEL="dev"
+    PAGERDUTY_ENABLED="false"
 fi
 
 if [ -z "$NOMAD_ADDR" ]; then
@@ -42,17 +44,7 @@ JOB_NAME="alertmanager-$ORACLE_REGION"
 export NOMAD_VAR_notification_webhook_url=$NOTIFICATION_WEBHOOK_URL
 export NOMAD_VAR_alertmanager_hostname="${RESOURCE_NAME_ROOT}.${TOP_LEVEL_DNS_ZONE_NAME}"
 export NOMAD_VAR_slack_channel_suffix="${ALERT_SLACK_CHANNEL}"
-
-[ -z "$VAULT_PASSWORD_FILE" ] && VAULT_PASSWORD_FILE="$LOCAL_PATH/../.vault-password.txt"
-[ -z "$ENCRYPTED_NOMAD_SECRETS_FILE" ] && ENCRYPTED_NOMAD_SECRETS_FILE="$LOCAL_PATH/../ansible/secrets/nomad.yml"
-
-# ensure no output for ansible vault contents and fail if ansible-vault fails
-set +x
-set -e
-set -o pipefail
-export NOMAD_VAR_slack_api_url="$(ansible-vault view $ENCRYPTED_NOMAD_SECRETS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".nomad_slack_api_url" -)"
-export NOMAD_VAR_pagerduty_keys_by_service="$(ansible-vault view $ENCRYPTED_NOMAD_SECRETS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".nomad_pagerduty_keys_by_service" -)"
-set -x
+export NOMAD_VAR_pagerduty_enabled="${PAGERDUTY_ENABLED}"
 
 sed -e "s/\[JOB_NAME\]/$JOB_NAME/" "$NOMAD_JOB_PATH/alertmanager.hcl" | nomad job run -var="dc=$NOMAD_DC" -
 RET=$?

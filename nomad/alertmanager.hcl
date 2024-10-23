@@ -20,14 +20,9 @@ variable "slack_channel_suffix" {
   default = "dev"
 }
 
-variable "slack_api_url" {
-    type = string
-    default = "replaceme"
-}
-
-variable "pagerduty_keys_by_service" {
-    type = string
-    default = "{ \"default\": \"replaceme\" }"
+variable "pagerduty_enabled" {
+    type = bool
+    default = false
 }
 
 job "[JOB_NAME]" {
@@ -86,10 +81,10 @@ job "[JOB_NAME]" {
 ---
 global:
   resolve_timeout: 5m
-  slack_api_url: '${var.slack_api_url}'
-{{{ $pagerduty_keys_by_service := (`${var.pagerduty_keys_by_service}` | parseJSON ) }}}
+  slack_api_url: "{{ with secret "secret/default/alertmanager/receivers/slack" }}{{ .Data.data.integration_webhook }}{{ end }}"
+
 route:
-  group_by: ['alertname', 'service']
+  group_by: ['alertname', 'service', 'severity']
   group_wait: 10s
   group_interval: 10s
   repeat_interval: 1h
@@ -105,13 +100,12 @@ route:
       - severity =~ "warning|critical"
       receiver: 'slack_alerts'
       continue: true
-  {{{ range $k, $v := $pagerduty_keys_by_service -}}}
+    %{ if ! var.pagerduty_enabled -}
     - matchers:
-      - service = "{{{ $k }}}"
       - severity = "critical"
-      receiver: 'pagerduty-{{{ $k }}}'
+      receiver: 'pagerduty_alerts'
       continue: true
-  {{{- end }}}
+    %{- endif }
 
 receivers:
 - name: notification_hook
@@ -130,12 +124,11 @@ receivers:
         _{{ .Annotations.description }}_
           {{- end }}
         {{- end }}
-{{{ range $k, $v := $pagerduty_keys_by_service -}}}
-- name: 'pagerduty-{{{ $k }}}'
+%{ if ! var.pagerduty_enabled -}
+- name: 'pagerduty_alerts'
   pagerduty_configs:
-  - service_key: '{{{ $v }}}'
-{{{ end }}}
-
+  - service_key: '{{ with secret "secret/default/alertmanager/receivers/pagerduty" }}{{ .Data.data.integration_key }}{{ end }}'
+%{ endif }
 EOH
       }
 

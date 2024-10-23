@@ -230,7 +230,7 @@ groups:
 
 - name: cloudprober_alerts
   rules:
-  - alert: Probe_Unhealthy
+  - alert: Probe_Unhealthy_Warn
     expr: (cloudprober_failure{probe!="shard"} > 0) or (cloudprober_timeouts{probe!="shard"} > 0)
     for: 2m
     labels:
@@ -238,7 +238,7 @@ groups:
     annotations:
       summary: "{{ $labels.probe }} probe from ${var.dc} to {{ $labels.dst }} unhealthy for 2+ minutes"
       description: The {{ $labels.probe }} http probe from ${var.dc} to {{ $labels.dst }} timed-out or received unhealthy responses for 2 minutes.
-  - alert: Probe_Unhealthy
+  - alert: Probe_Unhealthy_Critical
     expr: (cloudprober_failure{probe!="shard"} > 0) or (cloudprober_timeouts{probe!="shard"} > 0)
     for: 5m
     labels:
