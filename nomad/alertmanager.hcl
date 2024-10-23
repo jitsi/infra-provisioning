@@ -85,7 +85,7 @@ job "[JOB_NAME]" {
 ---
 global:
   resolve_timeout: 5m
-  {{ with secret "secret/default/alertmanager/receivers/slack" }}slack_api_url: "{{ .Data.data.integration_webhook }}"{{ end }}
+  {{{ with secret "secret/default/alertmanager/receivers/slack" }}}slack_api_url: "{{{ .Data.data.integration_webhook }}}"{{{ end }}}
 
 route:
   group_by: ['alertname', 'service', 'severity']
@@ -125,13 +125,13 @@ receivers:
           {{- if .Annotations.description }}
         _{{ .Annotations.description }}_
           {{- end }}
-          {{- if .Annotations.url }}
+          see this alert in prometheus: {{- if .Annotations.url }}
         _{{ .Annotations.url }}_
           {{- end }}
         {{- end }}
 %{ if var.pagerduty_enabled }- name: 'pagerduty_alerts'
   pagerduty_configs:
-  - service_key: '{{ with secret "secret/default/alertmanager/receivers/pagerduty" }}{{ .Data.data.integration_key }}{{ end }}'
+  - service_key: '{{{ with secret "secret/default/alertmanager/receivers/pagerduty" }}}{{{ .Data.data.integration_key }}}{{{ end }}'
 %{ endif }
 EOH
       }
