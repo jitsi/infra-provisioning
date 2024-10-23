@@ -11,24 +11,18 @@ variable "alertmanager_version" {
   default = "v0.27.0"
 }
 
-variable "slack_api_url" {
-    type = string
-    default = "replaceme"
+variable "notification_webhook_url" {
+  type = string
 }
 
-variable "default_service_name" {
-    type = string
-    default = "default"
-}
-
-variable "pagerduty_keys_by_service" {
-    type = string
-    default = "{ \"default\": \"replaceme\" }"
-}
-
-variable "environment_type" {
+variable "slack_channel_suffix" {
   type = string
   default = "dev"
+}
+
+variable "pagerduty_enabled" {
+    type = bool
+    default = false
 }
 
 job "[JOB_NAME]" {
@@ -69,6 +63,10 @@ job "[JOB_NAME]" {
       user = "root"
       driver = "docker"
 
+      vault {
+        change_mode = "noop"
+      }
+
       config {
         image = "prom/alertmanager:${var.alertmanager_version}"
         force_pull = false
@@ -87,48 +85,73 @@ job "[JOB_NAME]" {
 ---
 global:
   resolve_timeout: 5m
-  slack_api_url: '${var.slack_api_url}'
-{{{ $pagerduty_keys_by_service := (`${var.pagerduty_keys_by_service}` | parseJSON ) }}}
+  slack_api_url: "{{{ with secret "secret/default/alertmanager/receivers/slack" }}}{{{ .Data.data.slack_general_webhook }}}{{{ end }}}"
+
 route:
-  receiver: slack
-  group_by:
-    - alertname
-    - environment
-    - severity
+  group_by: ['alertname', 'service', 'severity']
   group_wait: 10s
   group_interval: 10s
   repeat_interval: 1h
+  receiver: slack_alerts
 
-  routes:{{{ range $k, $v := $pagerduty_keys_by_service }}}
-  - match:
-      service: '{{{ $k }}}'
-    receiver: slack
-    routes:
-    - match:
-        environment_type: prod
-        severity: critical
-      receiver: 'pagerduty-{{{ $k }}}'
-{{{- end }}}
+  routes:
+    - matchers:
+      - service = "skip"
+      - severity =~ "low|warning|critical"
+      receiver: 'notification_hook'
+      continue: true
+    - matchers:
+      - severity =~ "warning|critical"
+      receiver: 'slack_alerts'
+      continue: true
+    %{ if var.pagerduty_enabled }- matchers:
+      - severity = "critical"
+      receiver: 'pagerduty_alerts'
+      continue: true
+      - severity = "critical"
+      receiver: 'slack_pages'
+      continue: true%{ endif }
 
 receivers:
-- name: slack
+- name: notification_hook
+  webhook_configs:
+    - send_resolved: true
+      url: '${var.notification_webhook_url}'
+- name: slack_alerts
   slack_configs:
-    - channel: '#nomad-${var.environment_type}'
+    - channel: '#jitsi-${var.slack_channel_suffix}'
       send_resolved: true
       title: '[{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] ({{ or .CommonLabels.alertname "Multiple Alert Types" }} in {{ .CommonLabels.environment }}) <{{- .GroupLabels.SortedPairs.Values | join " " }}>'
       text: |-
         {{ if eq .GroupLabels.severity "critical" }}<!here>{{ end }}{{ range .Alerts }}
         *{{ index .Labels "alertname" }}* {{- if .Annotations.summary }}: *{{ .Annotations.summary }}* {{- end }}
-          {{- if .Annotations.description }}
+        {{- if eq .Status "firing" }}
+        {{- if .Annotations.description }}
         _{{ .Annotations.description }}_
-          {{- end }}
         {{- end }}
-{{{ range $k, $v := $pagerduty_keys_by_service }}}
-- name: 'pagerduty-{{{ $k }}}'
+        view this alert in prometheus: {{ if .Annotations.url }}{{ .Annotations.url }}{{ end }}
+        {{- end }}
+        {{- end }}
+%{ if var.pagerduty_enabled }- name: 'pagerduty_alerts'
   pagerduty_configs:
-  - service_key: '{{{ $v }}}'
-{{{ end }}}
-
+  - service_key: '{{{ with secret "secret/default/alertmanager/receivers/pagerduty" }}}{{{ .Data.data.integration_key }}}{{{ end }}}'
+- name: slack_pages
+  slack_configs:
+    - channel: '#ops'
+      api_url: '{{{ with secret "secret/default/alertmanager/receivers/slack" }}}{{{ .Data.data.slack_pages_webhook }}}{{{ end }}}'
+      send_resolved: true
+      title: '[{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] ({{ or .CommonLabels.alertname "Multiple Alert Types" }} in {{ .CommonLabels.environment }}) <{{- .GroupLabels.SortedPairs.Values | join " " }}>'
+      text: |-
+        {{ if eq .GroupLabels.severity "critical" }}<!here>{{ end }}{{ range .Alerts }}
+        *{{ index .Labels "alertname" }}* {{- if .Annotations.summary }}: *{{ .Annotations.summary }}* {{- end }}
+        {{- if eq .Status "firing" }}
+        {{- if .Annotations.description }}
+        _{{ .Annotations.description }}_
+        {{- end }}
+        view this alert in prometheus: {{ if .Annotations.url }}{{ .Annotations.url }}{{ end }}
+        {{- end }}
+        {{- end }}
+%{ endif }
 EOH
       }
 

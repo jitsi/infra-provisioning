@@ -17,6 +17,11 @@ if [ -z "$ORACLE_REGION" ]; then
     exit 2
 fi
 
+# use more aggressive alert thresholds in some cases
+if [ -z "$PRODUCTION_ALERTS" ]; then
+    PRODUCTION_ALERTS="false"
+fi
+
 [ -z "$LOCAL_REGION" ] && LOCAL_REGION="$OCI_LOCAL_REGION"
 [ -z "$LOCAL_REGION" ] && LOCAL_REGION="us-phoenix-1"
 
@@ -32,19 +37,13 @@ NOMAD_JOB_PATH="$LOCAL_PATH/../nomad"
 NOMAD_DC="$ENVIRONMENT-$ORACLE_REGION"
 export NOMAD_VAR_prometheus_hostname="${RESOURCE_NAME_ROOT}.${TOP_LEVEL_DNS_ZONE_NAME}"
 export NOMAD_VAR_dc="$NOMAD_DC"
-
-if [ -z "$ENVIRONMENT_TYPE" ]; then
-    ENVIRONMENT_TYPE="dev"
-fi
-export NOMAD_VAR_environment_type=$ENVIRONMENT_TYPE
-
-if [ -z "$DEFAULT_ALERT_SERVICE_NAME" ]; then
-    DEFAULT_ALERT_SERVICE_NAME="default"
-fi
-export NOMAD_VAR_default_service_name=$DEFAULT_ALERT_SERVICE_NAME
+export NOMAD_VAR_production_alerts="$PRODUCTION_ALERTS"
 
 if [[ "$PROMETHEUS_ENABLE_REMOTE_WRITE" == "true" ]]; then
   export NOMAD_VAR_enable_remote_write="true"
+  if [ -z "$ENVIRONMENT_TYPE" ]; then
+      ENVIRONMENT_TYPE="dev"
+  fi
   if [[ "$ENVIRONMENT_TYPE" = "prod" ]]; then
     MIMIR_ENVIRONMENT_TYPE="prod"
   else
