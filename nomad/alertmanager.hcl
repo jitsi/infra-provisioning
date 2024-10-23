@@ -100,8 +100,7 @@ route:
       - severity =~ "low|warning|critical"
       receiver: 'notification_hook'
       continue: true
-    - matchers::w
-
+    - matchers:
       - severity =~ "warning|critical"
       receiver: 'slack_alerts'
       continue: true
