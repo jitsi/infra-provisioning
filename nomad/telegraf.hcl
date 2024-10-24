@@ -191,6 +191,16 @@ EOF
 {{ end }}
 {{ end }}
 
+{{ range $index, $service := service "canary" }}
+{{ if eq .Address (env "attr.unique.network.ip-address") }}
+[[inputs.nginx]]
+  urls = ["http://{{ .Address }}:{{ .Port }}/nginx_status"]
+  [inputs.nginx.tags]
+    host = "{{.Node}}"
+    service = "canary"
+{{ end }}
+{{ end }}
+
 {{ range $index, $service := service "consul"}}
 {{if eq .Address (env "attr.unique.network.ip-address") }}
 [[inputs.prometheus]]
@@ -346,14 +356,6 @@ EOF
         jigasi_release_number = "{{"{{"}}with .ServiceMeta.release_number}}{{"{{"}}.}}{{"{{"}}else}}0{{"{{"}}end}}"
         role = "transcriber"
         service = "transcriber"
-    [[inputs.prometheus.consul.query]]
-      name = "canary"
-      tag = "ip-{{ env "attr.unique.network.ip-address" }}"
-      url = 'http://{{"{{"}}if ne .ServiceAddress ""}}{{"{{"}}.ServiceAddress}}{{"{{"}}else}}{{"{{"}}.Address}}{{"{{"}}end}}:{{"{{"}}.ServicePort}}/{{"{{"}}with .ServiceMeta.metrics_path}}{{"{{"}}.}}{{"{{"}}else}}metrics{{"{{"}}end}}'
-      [inputs.prometheus.consul.query.tags]
-        host = "{{"{{"}}.Node}}"
-        role = "canary"
-        service = "canary"
 
 [[inputs.prometheus]]
   namepass = [

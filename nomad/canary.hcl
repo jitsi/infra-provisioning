@@ -17,7 +17,7 @@ job "[JOB_NAME]" {
 
     network {
       port "http" {
-        to = 8080
+        to = 80
       }
     }
 
@@ -41,8 +41,6 @@ job "[JOB_NAME]" {
         data = <<EOF
 user nginx;
 worker_processes auto;
-
-error_log  /dev/null crit;
 pid        /var/run/nginx.pid;
 
 events {
@@ -54,10 +52,11 @@ http {
     default_type  application/octet-stream;
 
     log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
-                      '$status $body_bytes_sent "$http_referer" '
-                      '"$http_user_agent" "$http_x_forwarded_for"';
+        '$status $body_bytes_sent "$http_referer" '
+        '"$http_user_agent" "$http_x_forwarded_for"';
 
-    access_log      off;
+    access_log /dev/stdout main;
+    error_log /dev/stderr;
     sendfile        on;
     keepalive_timeout  65;
     include /etc/nginx/conf.d/*.conf;
@@ -70,19 +69,17 @@ EOF
       template {
         data = <<EOF
 server {
-    listen       8080;
+    listen       80;
     server_name  localhost;
 
     location /health {
-        access_log off;
         add_header 'Content-Type' 'text/plain';
         return 200 "OK\n";
     }
 
-    location /metrics {
+    location /nginx_status {
+        stub_status on;
         access_log off;
-        add_header 'Content-Type' 'text/plain';
-        return 200 "nginx_up 1\n";
     }
 }
 EOF
@@ -93,7 +90,6 @@ EOF
       config {
         image = "nginx:alpine"
         ports = ["http"]
-        #entrypoint = ["tail", "-f", "/dev/null"]
         volumes = [
           "local/nginx.conf:/etc/nginx/nginx.conf",
           "local/default.conf:/etc/nginx/conf.d/default.conf"
