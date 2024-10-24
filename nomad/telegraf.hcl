@@ -151,8 +151,8 @@ EOF
   fieldinclude = [ "active", "available", "buffered", "cached", "free", "total",  "used" ]
 
 [[inputs.net]]
-  fieldinclude = ["bytes*","drop*","packets*","err*","tcp*","udp*"]
-  ignore_protocol_stats = true
+  fieldinclude = ["bytes*","drop*","packets*","err*","tcp_retranssegs","udp_rcvbuferrors"]
+  ignore_protocol_stats = false
 
 [[inputs.processes]]
   fieldinclude = ["blocked", "idle", "paging", "running", "total*"]
