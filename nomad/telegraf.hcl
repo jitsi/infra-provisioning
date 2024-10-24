@@ -349,7 +349,7 @@ EOF
     [[inputs.prometheus.consul.query]]
       name = "canary"
       tag = "ip-{{ env "attr.unique.network.ip-address" }}"
-      url = 'http://{{ .Address }}:{{ .Port }}/metrics'
+      url = 'http://{{"{{"}}if ne .ServiceAddress ""}}{{"{{"}}.ServiceAddress}}{{"{{"}}else}}{{"{{"}}.Address}}{{"{{"}}end}}:{{"{{"}}.ServicePort}}/{{"{{"}}with .ServiceMeta.metrics_path}}{{"{{"}}.}}{{"{{"}}else}}metrics{{"{{"}}end}}'
       [inputs.prometheus.consul.query.tags]
         host = "{{"{{"}}.Node}}"
         role = "canary"
