@@ -191,6 +191,16 @@ EOF
 {{ end }}
 {{ end }}
 
+{{ range $index, $service := service "canary" }}
+{{ if eq .Address (env "attr.unique.network.ip-address") }}
+[[inputs.nginx]]
+  urls = ["http://{{ .Address }}:{{ .Port }}/nginx_status"]
+  [inputs.nginx.tags]
+    host = "{{.Node}}"
+    service = "canary"
+{{ end }}
+{{ end }}
+
 {{ range $index, $service := service "consul"}}
 {{if eq .Address (env "attr.unique.network.ip-address") }}
 [[inputs.prometheus]]

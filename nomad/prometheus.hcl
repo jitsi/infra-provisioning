@@ -91,7 +91,6 @@ job "[JOB_NAME]" {
       }
 
       template {
-        change_mode = "noop"
         destination = "local/prometheus.yml"
 
         data = <<EOH
@@ -146,7 +145,6 @@ EOH
     }
 
     template {
-        change_mode = "noop"
         destination = "local/alerts.yml"
         left_delimiter = "{{{"
         right_delimiter = "}}}"
@@ -233,8 +231,18 @@ groups:
       severity: critical
     annotations:
       summary: telegraf services are down on some nodes in ${var.dc}
-      description: telegraf metrics are not being emitted from all nodes in ${var.dc}. This means that metrics for some services are not being collected.
+      description: telegraf metrics are not being emitted from all nodes in ${var.dc}. Metrics for some services are not being collected.
       url: https://${var.prometheus_hostname}/alerts?search=telegraf_down
+  - alert: Canary_Down
+    expr: absent(nginx_accepts{service="canary"})
+    for: 5m
+    labels:
+      service: infra
+      severity: critical
+    annotations:
+      summary: canary service is down in ${var.dc}
+      description: the canary service is down in ${var.dc}. Latency metrics are not being collected.
+      url: https://${var.prometheus_hostname}/alerts?search=canary_down
 
 - name: cloudprober_alerts
   rules:
