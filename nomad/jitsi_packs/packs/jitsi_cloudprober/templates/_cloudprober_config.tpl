@@ -361,6 +361,10 @@ probe {
     key: "service"
     value: "infra"
   }
+  additional_label {
+    key: "severity"
+    value: "warning"
+  }
 }
 [[ end -]]
 
