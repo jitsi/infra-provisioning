@@ -673,6 +673,7 @@ XMPP_MUC_MODULES="
 [[- if eq (env "CONFIG_prosody_muc_allowners") "true" -]]muc_allowners,[[ end ]]
 [[- if eq (env "CONFIG_prosody_enable_wait_for_host") "true" ]]muc_wait_for_host,[[ end ]]
 [[- if eq (env "CONFIG_prosody_enable_mod_measure_message_count") "true" ]]measure_message_count,[[ end -]]
+[[- if eq (env "CONFIG_visitors_enabled") "true" ]]s2sout_override,[[ end -]]
 muc_hide_all"
 XMPP_LOBBY_MUC_MODULES="[[- if eq (env "CONFIG_prosody_meet_webhooks_enabled") "true" ]]muc_webhooks[[ end ]]"
 XMPP_BREAKOUT_MUC_MODULES="
