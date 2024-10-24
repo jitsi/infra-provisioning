@@ -77,7 +77,6 @@ job "[JOB_NAME]" {
       }
 
       template {
-        change_mode = "noop"
         destination = "local/alertmanager.yml"
         left_delimiter = "{{{"
         right_delimiter = "}}}"

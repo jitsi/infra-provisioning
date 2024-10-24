@@ -91,7 +91,6 @@ job "[JOB_NAME]" {
       }
 
       template {
-        change_mode = "noop"
         destination = "local/prometheus.yml"
 
         data = <<EOH
@@ -146,7 +145,6 @@ EOH
     }
 
     template {
-        change_mode = "noop"
         destination = "local/alerts.yml"
         left_delimiter = "{{{"
         right_delimiter = "}}}"
