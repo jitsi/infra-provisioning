@@ -143,7 +143,7 @@ receivers:
       title: '[{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] ({{ or .CommonLabels.alertname "Multiple Alert Types" }} in {{ .CommonLabels.environment }}) <{{- .GroupLabels.SortedPairs.Values | join " " }}>'
       text: |-
         {{ if eq .GroupLabels.severity "critical" }}<!here>{{ end }}{{ range .Alerts }}
-        *{{ index .Labels "alertname" }}* {{- if .Annotations.summary }}: *{{ .Annotations.summary }}* {{- end }} - {{ if .Annotations.url }}{{ .Annotations.url }}{{ end }}
+        *{{ index .Labels "alertname" }}* {{- if .Annotations.summary }}: *{{ .Annotations.summary }}* {{- end }}{{ if eq .Status "firing" }} - {{ if .Annotations.url }}{{ .Annotations.url }}{{ end }}{{ end }}
         {{- end }}
 %{ endif }
 EOH
