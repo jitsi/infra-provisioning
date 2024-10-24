@@ -78,6 +78,12 @@ server {
         add_header 'Content-Type' 'text/plain';
         return 200 "OK\n";
     }
+
+    location /metrics {
+        access_log off;
+        add_header 'Content-Type' 'text/plain';
+        return 200 "nginx_up 1\n";
+    }
 }
 EOF
         destination = "local/default.conf"

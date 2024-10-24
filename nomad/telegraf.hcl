@@ -346,6 +346,14 @@ EOF
         jigasi_release_number = "{{"{{"}}with .ServiceMeta.release_number}}{{"{{"}}.}}{{"{{"}}else}}0{{"{{"}}end}}"
         role = "transcriber"
         service = "transcriber"
+    [[inputs.prometheus.consul.query]]
+      name = "canary"
+      tag = "ip-{{ env "attr.unique.network.ip-address" }}"
+      url = 'http://{{ .Address }}:{{ .Port }}/metrics'
+      [inputs.prometheus.consul.query.tags]
+        host = "{{"{{"}}.Node}}"
+        role = "canary"
+        service = "canary"
 
 [[inputs.prometheus]]
   namepass = [
