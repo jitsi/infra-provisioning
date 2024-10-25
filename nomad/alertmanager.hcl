@@ -96,19 +96,19 @@ route:
   routes:
     - matchers:
       - service = "skip"
-      - severity =~ "warning|severe|critical"
+      - severity =~ "severe|warn|smoke"
       receiver: 'notification_hook'
       continue: true
     - matchers:
-      - severity =~ "severe|critical"
+      - severity =~ "severe|warn"
       receiver: 'slack_alerts'
       continue: true
     %{ if var.pagerduty_enabled }- matchers:
-      - severity = "critical"
+      - severity = "severe"
       receiver: 'slack_pages'
       continue: true
     - matchers:
-      - severity = "critical"
+      - severity = "severe"
       - page = "true"
       receiver: 'pagerduty_alerts'
       continue: true%{ endif }
@@ -125,11 +125,11 @@ receivers:
       send_resolved: true
       title: '[{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] ({{ or .CommonLabels.alertname "Multiple Alert Types" }} in {{ .CommonLabels.environment }}) <{{- .GroupLabels.SortedPairs.Values | join " " }}>'
       text: |-
-        {{ if eq .GroupLabels.severity "critical" }}{{ if eq .Status "firing" }}<!here>{{ end }}{{ end }}{{ range .Alerts }}
+        {{ if eq .GroupLabels.severity "severe" }}{{ if eq .Status "firing" }}<!here>{{ end }}{{ end }}{{ range .Alerts }}
         *{{ index .Labels "alertname" }}* {{- if .Annotations.summary }}: *{{ .Annotations.summary }}* {{- end }}
         {{- if eq .Status "firing" }}
         {{- if .Annotations.description }}
-        _{{ .Annotations.description }}_
+        _{{- .Annotations.description -}}_
         {{- end }}
         view this alert in prometheus: {{ if .Annotations.url }}{{ .Annotations.url }}{{ end }}
         {{- end }}
@@ -144,7 +144,7 @@ receivers:
       send_resolved: false
       title: '[{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] ({{ or .CommonLabels.alertname "Multiple Alert Types" }} in {{ .CommonLabels.environment }}) <{{- .GroupLabels.SortedPairs.Values | join " " }}>'
       text: |-
-        {{ if eq .GroupLabels.severity "critical" }}{{ if eq .Status "firing" }}<!here>{{ end }}{{ end }}{{ range .Alerts }}
+        {{ if eq .GroupLabels.severity "severe" }}{{ if eq .Status "firing" }}<!here>{{ end }}{{ end }}{{ range .Alerts }}
         *{{ index .Labels "alertname" }}* {{- if .Annotations.summary }}: *{{ .Annotations.summary }}* {{- end }}{{ if eq .Status "firing" }} - {{ if .Annotations.url }}{{ .Annotations.url }}{{ end }}{{ end }}
         {{- end }}
 %{ endif }
