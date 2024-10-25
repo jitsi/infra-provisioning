@@ -221,35 +221,8 @@ probe {
 }
 
 [[ end -]]
-[[ if var "enable_cloudprober" . -]]
-# probes cloudprober health in all other datacenters
-probe {
-  name: "cloudprober"
-  type: HTTP
-  targets {
-    host_names: "{{ range $dcidx, $dc := datacenters -}}{{ if ne $dcidx 0 }}{{ if ne $dcidx 1 }},{{ end }}{{ $dc }}-cloudprober.[[ var "top_level_domain" . ]]{{ end }}{{ end }}"
-  }
-  http_probe {
-    protocol: HTTPS
-    relative_url: "/health"
-  }
-  validator {
-      name: "status_code_2xx"
-      http_validator {
-          success_status_codes: "200-299"
-      }
-  }
-  interval_msec: 60000
-  timeout_msec: 10000
-  latency_unit: "ms"
-  additional_label {
-    key: "service"
-    value: "infra"
-  }
-}
-
-[[ end -]]
 [[ if var "enable_custom_https" . -]]
+# loads a list of custom targets
 probe {
   name: "custom"
   type: HTTP

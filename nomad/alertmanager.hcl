@@ -96,19 +96,21 @@ route:
   routes:
     - matchers:
       - service = "skip"
-      - severity =~ "low|warning|critical"
+      - severity =~ "warning|severe|critical"
       receiver: 'notification_hook'
       continue: true
     - matchers:
-      - severity =~ "warning|critical"
+      - severity =~ "severe|critical"
       receiver: 'slack_alerts'
       continue: true
     %{ if var.pagerduty_enabled }- matchers:
       - severity = "critical"
-      receiver: 'pagerduty_alerts'
-      continue: true
-      - severity = "critical"
       receiver: 'slack_pages'
+      continue: true
+    - matchers:
+      - severity = "critical"
+      - page = "true"
+      receiver: 'pagerduty_alerts'
       continue: true%{ endif }
 
 receivers:
@@ -119,10 +121,11 @@ receivers:
 - name: slack_alerts
   slack_configs:
     - channel: '#jitsi-${var.slack_channel_suffix}'
+      api_url: '{{{ with secret "secret/default/alertmanager/receivers/slack" }}}{{{ .Data.data.slack_general_webhook }}}{{{ end }}}'
       send_resolved: true
       title: '[{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] ({{ or .CommonLabels.alertname "Multiple Alert Types" }} in {{ .CommonLabels.environment }}) <{{- .GroupLabels.SortedPairs.Values | join " " }}>'
       text: |-
-        {{ if eq .GroupLabels.severity "critical" }}<!here>{{ end }}{{ range .Alerts }}
+        {{ if eq .GroupLabels.severity "critical" }}{{ if eq .Status "firing" }}<!here>{{ end }}{{ end }}{{ range .Alerts }}
         *{{ index .Labels "alertname" }}* {{- if .Annotations.summary }}: *{{ .Annotations.summary }}* {{- end }}
         {{- if eq .Status "firing" }}
         {{- if .Annotations.description }}
@@ -136,19 +139,13 @@ receivers:
   - service_key: '{{{ with secret "secret/default/alertmanager/receivers/pagerduty" }}}{{{ .Data.data.integration_key }}}{{{ end }}}'
 - name: slack_pages
   slack_configs:
-    - channel: '#ops'
+    - channel: '#pages'
       api_url: '{{{ with secret "secret/default/alertmanager/receivers/slack" }}}{{{ .Data.data.slack_pages_webhook }}}{{{ end }}}'
-      send_resolved: true
+      send_resolved: false
       title: '[{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] ({{ or .CommonLabels.alertname "Multiple Alert Types" }} in {{ .CommonLabels.environment }}) <{{- .GroupLabels.SortedPairs.Values | join " " }}>'
       text: |-
-        {{ if eq .GroupLabels.severity "critical" }}<!here>{{ end }}{{ range .Alerts }}
-        *{{ index .Labels "alertname" }}* {{- if .Annotations.summary }}: *{{ .Annotations.summary }}* {{- end }}
-        {{- if eq .Status "firing" }}
-        {{- if .Annotations.description }}
-        _{{ .Annotations.description }}_
-        {{- end }}
-        view this alert in prometheus: {{ if .Annotations.url }}{{ .Annotations.url }}{{ end }}
-        {{- end }}
+        {{ if eq .GroupLabels.severity "critical" }}{{ if eq .Status "firing" }}<!here>{{ end }}{{ end }}{{ range .Alerts }}
+        *{{ index .Labels "alertname" }}* {{- if .Annotations.summary }}: *{{ .Annotations.summary }}* {{- end }}{{ if eq .Status "firing" }} - {{ if .Annotations.url }}{{ .Annotations.url }}{{ end }}{{ end }}
         {{- end }}
 %{ endif }
 EOH

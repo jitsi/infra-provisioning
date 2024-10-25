@@ -168,7 +168,7 @@ groups:
     for: 5m
     labels:
       service: infra
-      severity: critical
+      severity: severe
     annotations:
       summary: cloudprober service is down in ${var.dc}
       description: Metrics from cloudprober are not being received in ${var.dc}. This means that data from synthetic probes is not being collected or alerted on in this datacenter.
@@ -237,6 +237,7 @@ groups:
     expr: absent(nginx_accepts{service="canary"})
     for: 5m
     labels:
+      page: true
       service: infra
       severity: critical
     annotations:
