@@ -323,6 +323,8 @@ job [[ template "job_name" . ]] {
 [[ if or (eq (or (env "CONFIG_jigasi_vault_enabled") "false") "true") (env "CONFIG_jigasi_shared_secret") -]]
         PROSODY_VISITORS_S2S_VHOSTS="jigasia.[[ env "CONFIG_domain" ]]"
 [[ end]]
+        PROSODY_C2S_LIMIT="512kb/s"
+        PROSODY_DISABLE_S2S_LIMIT="1"
         PROSODY_ENABLE_RATE_LIMITS="1"
         PROSODY_RATE_LIMIT_ALLOW_RANGES="[[ env "CONFIG_prosody_rate_limit_allow_ranges" ]]"
         PROSODY_REGION_NAME="[[ env "CONFIG_octo_region" ]]"
