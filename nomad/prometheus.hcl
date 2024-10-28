@@ -507,13 +507,24 @@ groups:
         Transcribers are missing. Consider running a transcriber release job, using the
         same git branch as those of the running nodes.
       url: https://${var.prometheus_hostname}/alerts?search=jicofo_transcribers_missing
+  - alert: Jicofo_ICE_Restarts_High [Jicofo ICE Restart Notifications]
+    expr: increase(jitsi_jicofo_participants_restart_requested_total[$__rate_interval]) > 300
+    for: 2m
+    labels:
+      service: jitsi
+      severity: warn
+    annotations:
+      summary: jicofo in ${var.dc} has had an unusually high number of ICE restarts
+      description: >
+        A jicofo in ${var.dc} has had too many ICE restarts and should be
+        investigated.
+      url: https://${var.prometheus_hostname}/alerts?search=jicofo_ice_restarts_high
   - alert: Coturn_UDP_Errors_High [Coturn UDP Errors]
     expr: sum(net_udp_rcvbuferrors{pool_type='coturn'}) by (environment) > 2000 # 5000 severe 2000 warn, 200 smoke
     for: 2m
     labels:
       service: jitsi
       severity: warn 
-      page: false
     annotations:
       summary: coturn UDP errors are high in ${var.dc}
       description: >
@@ -539,7 +550,6 @@ groups:
     labels:
       service: jitsi
       severity: warn
-      page: false
     annotations:
       summary: a JVB in ${var.dc} has had too many ICE failures
       description: >
@@ -552,7 +562,6 @@ groups:
     labels:
       service: jitsi
       severity: warn
-      page: false
     annotations:
       summary: a JVB in ${var.dc} has too much RTP delayed > 50ms
       description: >
@@ -565,9 +574,8 @@ groups:
     labels:
       service: jitsi
       severity: smoke
-      page: false
     annotations:
-      summary: too many whisper concurrent sessions in ${var.dc}
+      summary: too many concurrent whisper sessions in ${var.dc}
       description: >
         Whisper will give a bad experience if it has more than 10 sessions at
         once. When an instance is handling more than 6 sessions, it is time to
@@ -594,7 +602,6 @@ groups:
     labels:
       service: jitsi
       severity: warn
-      page: false
     annotations:
       summary: a jigasi in ${var.dc} has dropped media
       description: >
@@ -624,7 +631,6 @@ groups:
     labels:
       service: jitsi
       severity: smoke
-      page: false
     annotations:
       summary: skynet queue depth is high in ${var.dc}
       description: >
@@ -638,21 +644,13 @@ groups:
     labels:
       service: jitsi
       severity: smoke
-      page: false
     annotations:
       summary: skynet system load is high in ${var.dc}
       description: >
         Skynet has a higher than expected system load in ${var.dc}. Skynet may
         be stuck and deserve operator attention.
       url: https://${var.prometheus_hostname}/alerts?search=skynet_system_load_high
-
-  #- alert: Jicofo_ICE_Restarts_High [Jicofo ICE Restart Notifications]
-  #- alert: Synthetic_Longlived_Failed [jitsi longlived]
-  #- alert: Meetings_Dialout_Activity [Meetings Dial-Out Activity]
-  %{ endif }
-
-
-
+%{ endif }
 EOH
     }
 
