@@ -508,7 +508,7 @@ groups:
         same git branch as those of the running nodes.
       url: https://${var.prometheus_hostname}/alerts?search=jicofo_transcribers_missing
   - alert: Jicofo_ICE_Restarts_High [Jicofo ICE Restart Notifications]
-    expr: increase(jitsi_jicofo_participants_restart_requested_total[$__rate_interval]) > 300
+    expr: increase(jitsi_jicofo_participants_restart_requested_total[10m]) > 200
     for: 2m
     labels:
       service: jitsi
