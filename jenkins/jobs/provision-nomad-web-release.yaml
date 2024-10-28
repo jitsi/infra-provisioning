@@ -12,6 +12,10 @@
           description: "Controls the versions to run."
           trim: true
       - string:
+          name: WEB_TAG
+          description: "Overrides the specific tag to run."
+          trim: true
+      - string:
           name: RELEASE_NUMBER
           description: "Release number for the deployment."
           trim: true
