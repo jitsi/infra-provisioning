@@ -37,10 +37,8 @@ else
 fi
 
 if [ -n "$JITSI_MEET_VERSION" ]; then
-    WEB_TAG="web-1.0.$JITSI_MEET_VERSION-1"
+    [ -z "$WEB_TAG" ] && WEB_TAG="web-1.0.$JITSI_MEET_VERSION-1"
 fi
-
-[ -z "$WEB_TAG" ] && WEB_TAG="$DOCKER_TAG"
 
 [ -z "$ENVIRONMENT_CONFIGURATION_FILE" ] && ENVIRONMENT_CONFIGURATION_FILE="$LOCAL_PATH/../sites/$ENVIRONMENT/vars.yml"
 [ -z "$MAIN_CONFIGURATION_FILE" ] && MAIN_CONFIGURATION_FILE="$LOCAL_PATH/../config/vars.yml"
@@ -57,15 +55,17 @@ if [[ "$BRANDING_NAME" != "null" ]]; then
     set -x
     BRANDING_TAG="$(curl -v "https://$BRANDING_HOST/debian/unstable/" | grep "${BRANDING_NAME}_1.0.${JITSI_MEET_VERSION}" | grep "_all.deb" | cut -d'"' -f4 | cut -d '_' -f2 | cut -d'-' -f1 | cut -d'.' -f3,4)"
     if [[ $? -eq 0 ]]; then
-        WEB_TAG="$BRANDING_TAG"
+        [ -z "$WEB_TAG" ] && WEB_TAG="$BRANDING_TAG"
     else
-        WEB_TAG="$JITSI_MEET_VERSION"
+        [ -z "$WEB_TAG" ] && WEB_TAG="$JITSI_MEET_VERSION"
     fi
     export CONFIG_web_repo="$AWS_ECR_REPO_HOST/jitsi/$BRANDING_NAME"
 else
     export CONFIG_web_repo="jitsi/web"
     BRANDING_NAME="jitsi-meet"
 fi
+
+[ -z "$WEB_TAG" ] && WEB_TAG="$DOCKER_TAG"
 
 if [[ "$BRANDING_NAME" == "jitsi-meet" ]]; then
     # check for branding
