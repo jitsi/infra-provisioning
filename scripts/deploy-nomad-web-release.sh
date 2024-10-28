@@ -44,12 +44,24 @@ fi
 
 [ -z "$ENVIRONMENT_CONFIGURATION_FILE" ] && ENVIRONMENT_CONFIGURATION_FILE="$LOCAL_PATH/../sites/$ENVIRONMENT/vars.yml"
 [ -z "$MAIN_CONFIGURATION_FILE" ] && MAIN_CONFIGURATION_FILE="$LOCAL_PATH/../config/vars.yml"
+ENCRYPTED_REPO_CREDENTIALS_FILE="$LOCAL_PATH/../ansible/secrets/repo.yml"
 
 
 BRANDING_NAME="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_branding_override -)"
 if [[ "$BRANDING_NAME" != "null" ]]; then
+    set +x
+    REPO_PASSWORD="$(ansible-vault view $ENCRYPTED_REPO_CREDENTIALS_FILE --vault-password .vault-password.txt | yq -r eval ".jitsi_repo_password" -)"
+    REPO_USERNAME="$(ansible-vault view $ENCRYPTED_REPO_CREDENTIALS_FILE --vault-password .vault-password.txt | yq -r eval ".jitsi_repo_username" -)"
+    REPO_HOST="$(ansible-vault view $ENCRYPTED_REPO_CREDENTIALS_FILE --vault-password .vault-password.txt | yq -r eval ".jitsi_repo_host" -)"
+    export BRANDING_HOST="$REPO_USERNAME:$REPO_PASSWORD@$REPO_HOST"
+    set -x
+    BRANDING_TAG="$(curl -v "https://$BRANDING_HOST/debian/unstable/" | grep "${BRANDING_NAME}_1.0.${JITSI_MEET_VERSION}" | grep "_all.deb" | cut -d'"' -f4 | cut -d '_' -f2 | cut -d'-' -f1 | cut -d'.' -f3,4)"
+    if [[ $? -eq 0 ]]; then
+        WEB_TAG="$BRANDING_TAG"
+    else
+        WEB_TAG="$JITSI_MEET_VERSION"
+    fi
     export CONFIG_web_repo="$AWS_ECR_REPO_HOST/jitsi/$BRANDING_NAME"
-    WEB_TAG="$JITSI_MEET_VERSION"
 else
     export CONFIG_web_repo="jitsi/web"
     BRANDING_NAME="jitsi-meet"
