@@ -16,24 +16,9 @@ variable "enable_remote_write" {
   default = "false"
 }
 
-variable "remote_write_url" {
+variable "remote_write_environment_type" {
   type = string
-  default = ""
-}
-
-variable "remote_write_username" {
-  type = string
-  default = ""
-}
-
-variable "remote_write_password" {
-  type = string
-  default = ""
-}
-
-variable "remote_write_org_id" {
-  type = string
-  default = ""
+  default = "nonprod"
 }
 
 variable "core_deployment" {
@@ -81,6 +66,10 @@ job "[JOB_NAME]" {
       user = "root"
       driver = "docker"
 
+      vault {
+        change_mode = "noop"
+      }
+
       config {
         image = "prom/prometheus:${var.prometheus_version}"
         force_pull = false
@@ -99,7 +88,8 @@ job "[JOB_NAME]" {
 
       template {
         destination = "local/prometheus.yml"
-
+        left_delimiter = "{{{"
+        right_delimiter = "}}}"
         data = <<EOH
 ---
 global:
@@ -141,13 +131,15 @@ scrape_configs:
     scrape_interval: 30s
     metrics_path: /metrics
 
+{{{ with secret "secret/default/prometheus/remote_write/${ var.remote_write_environment_type }" }}}
 remote_write:
-  - url: '${var.remote_write_url}'
+  - url: "{{{ .Data.data.endpoint }}}"
     basic_auth:
-      username: ${var.remote_write_username}
-      password: ${var.remote_write_password}
+      username: "{{{ .Data.data.username }}}"
+      password: "{{{ .Data.data.password }}}"
     headers:
-      X-Scope-OrgID: ${var.remote_write_org_id}
+      X-Scope-OrgID: "{{{ .Data.data.username }}}"
+{{{ end }}}
 EOH
     }
 
