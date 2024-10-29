@@ -36,10 +36,6 @@ else
     fi
 fi
 
-if [ -n "$JITSI_MEET_VERSION" ]; then
-    [ -z "$WEB_TAG" ] && WEB_TAG="web-1.0.$JITSI_MEET_VERSION-1"
-fi
-
 [ -z "$ENVIRONMENT_CONFIGURATION_FILE" ] && ENVIRONMENT_CONFIGURATION_FILE="$LOCAL_PATH/../sites/$ENVIRONMENT/vars.yml"
 [ -z "$MAIN_CONFIGURATION_FILE" ] && MAIN_CONFIGURATION_FILE="$LOCAL_PATH/../config/vars.yml"
 ENCRYPTED_REPO_CREDENTIALS_FILE="$LOCAL_PATH/../ansible/secrets/repo.yml"
@@ -63,6 +59,10 @@ if [[ "$BRANDING_NAME" != "null" ]]; then
 else
     export CONFIG_web_repo="jitsi/web"
     BRANDING_NAME="jitsi-meet"
+fi
+
+if [ -n "$JITSI_MEET_VERSION" ]; then
+    [ -z "$WEB_TAG" ] && WEB_TAG="web-1.0.$JITSI_MEET_VERSION-1"
 fi
 
 [ -z "$WEB_TAG" ] && WEB_TAG="$DOCKER_TAG"
