@@ -22,11 +22,11 @@ fi
 
 if [ "$ENVIRONMENT_TYPE" == "prod" ]; then
     ALERT_SLACK_CHANNEL=$ENVIRONMENT
-    PAGERDUTY_ENABLED="true"
 else
     ALERT_SLACK_CHANNEL="dev"
-    PAGERDUTY_ENABLED="false"
 fi
+
+[ -z "$ALERTMANAGER_PAGES_ENABLED" ] && ALERTMANAGER_PAGES_ENABLED="false"
 
 if [ -z "$NOMAD_ADDR" ]; then
     export NOMAD_ADDR="https://$ENVIRONMENT-$LOCAL_REGION-nomad.$TOP_LEVEL_DNS_ZONE_NAME"
@@ -44,7 +44,7 @@ JOB_NAME="alertmanager-$ORACLE_REGION"
 export NOMAD_VAR_notification_webhook_url=$NOTIFICATION_WEBHOOK_URL
 export NOMAD_VAR_alertmanager_hostname="${RESOURCE_NAME_ROOT}.${TOP_LEVEL_DNS_ZONE_NAME}"
 export NOMAD_VAR_slack_channel_suffix="${ALERT_SLACK_CHANNEL}"
-export NOMAD_VAR_pagerduty_enabled="${PAGERDUTY_ENABLED}"
+export NOMAD_VAR_pagerduty_enabled="${ALERTMANAGER_PAGES_ENABLED}"
 
 sed -e "s/\[JOB_NAME\]/$JOB_NAME/" "$NOMAD_JOB_PATH/alertmanager.hcl" | nomad job run -var="dc=$NOMAD_DC" -
 RET=$?

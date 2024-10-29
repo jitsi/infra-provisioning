@@ -17,11 +17,6 @@ if [ -z "$ORACLE_REGION" ]; then
     exit 2
 fi
 
-# use more aggressive alert thresholds in some cases
-if [ -z "$PRODUCTION_ALERTS" ]; then
-    PRODUCTION_ALERTS="false"
-fi
-
 [ -z "$LOCAL_REGION" ] && LOCAL_REGION="$OCI_LOCAL_REGION"
 [ -z "$LOCAL_REGION" ] && LOCAL_REGION="us-phoenix-1"
 
@@ -33,16 +28,22 @@ export RESOURCE_NAME_ROOT="${ENVIRONMENT}-${ORACLE_REGION}-prometheus"
 
 [ -z "$PROMETHEUS_ENABLE_REMOTE_WRITE" ] && PROMETHEUS_ENABLE_REMOTE_WRITE="false"
 
+# the environment has a core deployment (shards, jvbs, etc)
 [ -z "$CLOUDPROBER_TEMPLATE_TYPE" ] && CLOUDPROBER_TEMPLATE_TYPE="base"
 if [ "$CLOUDPROBER_TEMPLATE_TYPE" == "core" ]; then
     export NOMAD_VAR_core_deployment="true"
+fi
+
+# the environment offers extended services (jibri, jicofo, etc)
+[ -z "$PROMETHEUS_CORE_EXTENDED_SERVICES" ] && PROMETHEUS_CORE_EXTENDED_SERVICES="false"
+if [ "$PROMETHEUS_CORE_EXTENDED_SERVICES" == "true" ]; then
+    export NOMAD_VAR_core_extended_services="true"
 fi
 
 NOMAD_JOB_PATH="$LOCAL_PATH/../nomad"
 NOMAD_DC="$ENVIRONMENT-$ORACLE_REGION"
 export NOMAD_VAR_prometheus_hostname="${RESOURCE_NAME_ROOT}.${TOP_LEVEL_DNS_ZONE_NAME}"
 export NOMAD_VAR_dc="$NOMAD_DC"
-export NOMAD_VAR_production_alerts="$PRODUCTION_ALERTS"
 
 if [[ "$PROMETHEUS_ENABLE_REMOTE_WRITE" == "true" ]]; then
   export NOMAD_VAR_enable_remote_write="true"
