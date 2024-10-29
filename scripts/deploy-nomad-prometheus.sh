@@ -51,23 +51,10 @@ if [[ "$PROMETHEUS_ENABLE_REMOTE_WRITE" == "true" ]]; then
       ENVIRONMENT_TYPE="dev"
   fi
   if [[ "$ENVIRONMENT_TYPE" = "prod" ]]; then
-    MIMIR_ENVIRONMENT_TYPE="prod"
+    export NOMAD_VAR_remote_write_environment_type="prod"
   else
-    MIMIR_ENVIRONMENT_TYPE="non_prod"
+    export NOMAD_VAR_remote_write_environment_type="nonprod"
   fi
-
-  [ -z "$VAULT_PASSWORD_FILE" ] && VAULT_PASSWORD_FILE="$LOCAL_PATH/../.vault-password.txt"
-  [ -z "$ENCRYPTED_PROMETHEUS_FILE" ] && ENCRYPTED_PROMETHEUS_FILE="$LOCAL_PATH/../ansible/secrets/prometheus.yml"
-
-  # ensure no output for ansible vault contents and fail if ansible-vault fails
-  set +x
-  set -e
-  set -o pipefail
-  export NOMAD_VAR_remote_write_url="$(ansible-vault view $ENCRYPTED_PROMETHEUS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".prometheus_endpoints_by_type.$MIMIR_ENVIRONMENT_TYPE" -)"
-  export NOMAD_VAR_remote_write_username="$(ansible-vault view $ENCRYPTED_PROMETHEUS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".prometheus_credentials_by_type.$MIMIR_ENVIRONMENT_TYPE.username" -)"
-  export NOMAD_VAR_remote_write_password="$(ansible-vault view $ENCRYPTED_PROMETHEUS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".prometheus_credentials_by_type.$MIMIR_ENVIRONMENT_TYPE.password" -)"
-  export NOMAD_VAR_remote_write_org_id="$(ansible-vault view $ENCRYPTED_PROMETHEUS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".prometheus_credentials_by_type.$MIMIR_ENVIRONMENT_TYPE.username" -)"
-  set -x
 fi
 
 JOB_NAME="prometheus-$ORACLE_REGION"
