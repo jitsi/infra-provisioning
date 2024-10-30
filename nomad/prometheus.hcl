@@ -88,8 +88,6 @@ job "[JOB_NAME]" {
 
       template {
         destination = "local/prometheus.yml"
-        left_delimiter = "{{{"
-        right_delimiter = "}}}"
         data = <<EOH
 ---
 global:
@@ -131,15 +129,15 @@ scrape_configs:
     scrape_interval: 30s
     metrics_path: /metrics
 
-{{{ with secret "secret/default/prometheus/remote_write/${ var.remote_write_environment_type }" }}}
+{{ with secret "secret/default/prometheus/remote_write/${ var.remote_write_environment_type }" }}
 remote_write:
-  - url: "{{{ .Data.data.endpoint }}}"
+  - url: "{{ .Data.data.endpoint }}"
     basic_auth:
-      username: "{{{ .Data.data.username }}}"
-      password: "{{{ .Data.data.password }}}"
+      username: "{{ .Data.data.username }}"
+      password: "{{ .Data.data.password }}"
     headers:
-      X-Scope-OrgID: "{{{ .Data.data.username }}}"
-{{{ end }}}
+      X-Scope-OrgID: "{{ .Data.data.username }}"
+{{ end }}
 EOH
     }
 
