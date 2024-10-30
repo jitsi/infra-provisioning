@@ -392,7 +392,7 @@ groups:
         recently at {{ $value | printf "%.2f"}}%.
       url: https://${var.prometheus_hostname}/alerts?search=system_memory_available_low
   - alert: System_Disk_Used_High
-    expr: disk_used_percent > 80
+    expr: disk_used_percent{path="/"} > 80
     for: 5m
     labels:
       service: infra
@@ -405,7 +405,7 @@ groups:
         printf "%.2f" }}%.
       url: https://${var.prometheus_hostname}/alerts?search=system_disk_used_high
   - alert: System_Disk_Used_High
-    expr: disk_used_percent > 90
+    expr: disk_used_percent{path="/"} > 90
     for: 5m
     labels:
       service: infra
@@ -420,18 +420,6 @@ groups:
 %{ if var.core_deployment }
 - name: core_service_alerts
   rules:
-  - alert: Coturn_UDP_Errors_High
-    expr: sum(net_udp_rcvbuferrors{pool_type='coturn'}) by (environment) > 2000 # 5000 severe 2000 warn, 200 smoke
-    for: 2m
-    labels:
-      service: jitsi
-      severity: warn 
-    annotations:
-      summary: coturn UDP errors are high in ${var.dc}
-      description: >-
-        Coturn UDP errors are high in ${var.dc}, likely due to them being
-        overloaded or possibly due to network issues.
-      url: https://${var.prometheus_hostname}/alerts?search=coturn_udp_errors_high
   - alert: HAProxy_Redispatch_Rate_High
     expr: haproxy_wredis > 4     # 4 sev 3 warn 2 smoke
     for: 5m
@@ -568,6 +556,20 @@ groups:
         number of participants on each shard is over 4000 users.
       url: https://${var.prometheus_hostname}/alerts?search=shard_cpu_high
 %{ if var.core_extended_services }
+- name: core_extended_service_alerts
+  rules:
+  - alert: Coturn_UDP_Errors_High
+    expr: sum(net_udp_rcvbuferrors{pool_type='coturn'}) by (environment) > 2000 # 5000 severe 2000 warn, 200 smoke
+    for: 2m
+    labels:
+      service: jitsi
+      severity: warn
+    annotations:
+      summary: coturn UDP errors are high in ${var.dc}
+      description: >-
+        Coturn UDP errors are high in ${var.dc}, likely due to them being
+        overloaded or possibly due to network issues.
+      url: https://${var.prometheus_hostname}/alerts?search=coturn_udp_errors_high
   - alert: Jibris_Available_None
     expr: sum(jibri_available) == 0 or absent(jibri_available)
     for: 5m
