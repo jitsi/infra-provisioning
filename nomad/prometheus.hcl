@@ -378,7 +378,7 @@ groups:
         had a CPU running at over 90% in the last 5 minutes. It was most
         recently at {{ $value | printf "%.2f" }}%.
       url: https://${var.prometheus_hostname}/alerts?search=system_cpu_usage_high
-  - alert: System_Memory_Available_Low
+  - alert: System_Memory_Usage_High
     expr: (mem_total - mem_available) / mem_total * 100 > 80
     for: 5m
     labels:
@@ -391,8 +391,8 @@ groups:
         utilizing over 80% of its memory in the last 5 minutes. It was most
         recently at {{ $value | printf "%.2f"}}%.
       url: https://${var.prometheus_hostname}/alerts?search=system_memory_available_low
-  - alert: System_Disk_Used_High
-    expr: disk_used_percent{path="/"} > 80
+  - alert: System_Disk_Usage_High
+    expr: (disk_used_percent{path="/"} or max(100-(disk_free{path="/."}/disk_total{path="/."})*100) by (host)) > 80
     for: 5m
     labels:
       service: infra
@@ -404,8 +404,8 @@ groups:
         using over 80% of its disk space. It was most recently at {{ $value |
         printf "%.2f" }}%.
       url: https://${var.prometheus_hostname}/alerts?search=system_disk_used_high
-  - alert: System_Disk_Used_High
-    expr: disk_used_percent{path="/"} > 90
+  - alert: System_Disk_Usage_High
+    expr: (disk_used_percent{path="/"} or max(100-(disk_free{path="/."}/disk_total{path="/."})*100) by (host)) > 90
     for: 5m
     labels:
       service: infra
@@ -450,7 +450,7 @@ groups:
         The HealthAnyAlarm email has also likely been triggered.
       url: https://${var.prometheus_hostname}/alerts?search=haproxy_unhealthy_agent
   - alert: Jicofo_ICE_Restarts_High
-    expr: increase(jitsi_jicofo_participants_restart_requested_total[10m]) > 200
+    expr: sum(increase(jitsi_jicofo_participants_restart_requested_total[10m])) > 200
     for: 2m
     labels:
       service: jitsi
@@ -489,7 +489,7 @@ groups:
         mean that some sort of failure is occurring.
       url: https://${var.prometheus_hostname}/alerts?search=jicofo_jvbs_lost_high
   - alert: Jicofo_JVBs_Missing
-    expr: jitsi_jicofo_bridge_selector_bridge_count < 2    # 2 because remote + local
+    expr: min(jitsi_jicofo_bridge_selector_bridge_count) by (shard) < 1
     for: 5m
     labels:
       service: jitsi
@@ -514,18 +514,6 @@ groups:
         A JVB in ${var.dc} has had a CPU running at over 80% in the last 5
         minutes. It was most recently at {{ $value | printf "%.2f" }}%.
       url: https://${var.prometheus_hostname}/alerts?search=jvb_cpu_high
-  - alert: JVB_ICE_Failures_High
-    expr: jitsi_JVB_total_ice_failed > 1000
-    for: 5m
-    labels:
-      service: jitsi
-      severity: warn
-    annotations:
-      summary: a JVB in ${var.dc} has had too many ICE failures
-      description: >-
-        A JVB in ${var.dc} has had too many ICE failures and should be
-        investigated.
-      url: https://${var.prometheus_hostname}/alerts?search=jvb_ice_failures_high
   - alert: JVB_RTP_Delay_High
     expr: 100 * jitsi_JVB_transit_rtp_gt50ms / (jitsi_JVB_transit_rtp_total + 0.001) > 15
     for: 10m
@@ -559,7 +547,7 @@ groups:
 - name: core_extended_service_alerts
   rules:
   - alert: Coturn_UDP_Errors_High
-    expr: sum(net_udp_rcvbuferrors{pool_type='coturn'}) by (environment) > 2000 # 5000 severe 2000 warn, 200 smoke
+    expr: sum(increase(net_udp_rcvbuferrors{pool_type='coturn'}[2m]) by (environment) > 2000 # 5000 severe 2000 warn, 200 smoke
     for: 2m
     labels:
       service: jitsi
@@ -571,7 +559,7 @@ groups:
         overloaded or possibly due to network issues.
       url: https://${var.prometheus_hostname}/alerts?search=coturn_udp_errors_high
   - alert: Jibris_Available_None
-    expr: sum(jibri_available) == 0 or absent(jibri_available)
+    expr: sum(jibri_available) == 0
     for: 5m
     labels:
       service: jitsi
