@@ -111,7 +111,7 @@ probe {
 [[ if var "enable_coturn" . -]]
 # probes coturn health in the local datacenter using public IP
 probe {
-  name: "coturn"
+  name: "coturn_stun"
   type: EXTERNAL
   targets {
     host_names: "{{ range $index, $service := service "coturn"}}{{ if gt $index 0 }},{{ end }}{{ .ServiceMeta.public_ip }}{{ end }}"
