@@ -49,7 +49,7 @@ if [[ "$BRANDING_NAME" != "null" ]]; then
     REPO_HOST="$(ansible-vault view $ENCRYPTED_REPO_CREDENTIALS_FILE --vault-password .vault-password.txt | yq -r eval ".jitsi_repo_host" -)"
     export BRANDING_HOST="$REPO_USERNAME:$REPO_PASSWORD@$REPO_HOST"
     set -x
-    BRANDING_TAG="$(curl -v "https://$BRANDING_HOST/debian/unstable/" | grep "${BRANDING_NAME}_1.0.${JITSI_MEET_VERSION}" | grep "_all.deb" | cut -d'"' -f4 | cut -d '_' -f2 | cut -d'-' -f1 | cut -d'.' -f3,4)"
+    BRANDING_TAG="$(curl -v "https://$BRANDING_HOST/debian/unstable/" | grep "${BRANDING_NAME}_1.0.${JITSI_MEET_VERSION}" | grep "_all.deb" | cut -d'"' -f4 | cut -d '_' -f2 | cut -d'-' -f1 | cut -d'.' -f3,4| sort | tail -n1)"
     if [[ $? -eq 0 ]]; then
         [ -z "$WEB_TAG" ] && WEB_TAG="$BRANDING_TAG"
     else
