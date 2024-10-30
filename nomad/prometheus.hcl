@@ -166,6 +166,17 @@ groups:
         fact that you received an alert from this datacenter is quite curious
         indeed.
       url: https://${var.prometheus_hostname}/alerts?search=alertmanager_down
+  - alert: Canary_Down
+    expr: absent(nginx_accepts{service="canary"})
+    for: 5m
+    labels:
+      service: infra
+      severity: severe
+      page: true
+    annotations:
+      summary: canary service is down in ${var.dc}
+      description: The canary service is down in ${var.dc}. Latency metrics are not being collected.
+      url: https://${var.prometheus_hostname}/alerts?search=canary_down
   - alert: Cloudprober_Down
     expr: absent(up{job="cloudprober"})
     for: 5m
@@ -179,7 +190,7 @@ groups:
         that data from synthetic probes is not being collected or alerted on in
         this datacenter.
       url: https://${var.prometheus_hostname}/alerts?search=cloudprober_down
-  - alert: Consul_Down
+  - alert: Consul_Down_Warn
     expr: count(consul_server_isLeader) < 3
     for: 5m
     labels:
@@ -205,7 +216,7 @@ groups:
         entirely down. This may mean that service discovery may not be
         functioning and all service may be compromised.
       url: https://${var.prometheus_hostname}/alerts?search=consul_down
-  - alert: Nomad_Down
+  - alert: Nomad_Down_Warn
     expr: count(nomad_runtime_alloc_bytes) < 3
     for: 5m
     labels:
@@ -253,17 +264,6 @@ groups:
         telegraf metrics are not being emitted from all nodes in ${var.dc}.
         Metrics for some services are not being collected.
       url: https://${var.prometheus_hostname}/alerts?search=telegraf_down
-  - alert: Canary_Down
-    expr: absent(nginx_accepts{service="canary"})
-    for: 5m
-    labels:
-      service: infra
-      severity: severe
-      page: true
-    annotations:
-      summary: canary service is down in ${var.dc}
-      description: The canary service is down in ${var.dc}. Latency metrics are not being collected.
-      url: https://${var.prometheus_hostname}/alerts?search=canary_down
 
 - name: cloudprober_alerts
   rules:
@@ -286,7 +286,7 @@ groups:
     annotations:
       summary: "{{ $labels.probe }} probe from ${var.dc} to {{ $labels.dst }} unhealthy for 5+ minutes"
       description: >-
-        The {{ $labels.probe }} http probe from ${var.dc} to {{ $labels.dst }}
+        The {{ $labels.probe }} probe from ${var.dc} to {{ $labels.dst }}
         timed-out or received unhealthy responses for 5+ minutes.
       url: https://${var.prometheus_hostname}/alerts?search=probe_unhealthy
   - alert: Probe_Shard_Unhealthy
@@ -361,10 +361,11 @@ groups:
       service: infra
       severity: warn
     annotations:
-      summary: host {{ $labels.host }} in ${var.dc} has had CPU usage > 90% for 5 minutes
+      summary: host {{ $labels.host }} in ${var.dc} has had CPU usage > 70% for 5 minutes
       description: >-
-        host {{ $labels.host }} in ${var.dc} has had a CPU running at over 90%
-        in the last 5 minutes. It was most recently at {{ $value | printf "%.2f" }}%.
+        host {{ $labels.host }} in ${var.dc} with role {{ $labels.role }} has
+        had a CPU running at over 70% in the last 5 minutes. It was most
+        recently at {{ $value | printf "%.2f" }}%.
       url: https://${var.prometheus_hostname}/alerts?search=system_cpu_usage_high
   - alert: System_CPU_Usage_High
     expr: 100 - cpu_usage_idle > 90
@@ -375,8 +376,9 @@ groups:
     annotations:
       summary: host {{ $labels.host }} in ${var.dc} has had CPU usage > 90% for 5 minutes
       description: >-
-        host {{ $labels.host }} in ${var.dc} has had a CPU running at over 90%
-        in the last 5 minutes. It was most recently at {{ $value | printf "%.2f" }}%.
+        host {{ $labels.host }} in ${var.dc} with role {{ $labels.role }} has
+        had a CPU running at over 90% in the last 5 minutes. It was most
+        recently at {{ $value | printf "%.2f" }}%.
       url: https://${var.prometheus_hostname}/alerts?search=system_cpu_usage_high
   - alert: System_Memory_Available_Low
     expr: (mem_total - mem_available) / mem_total * 100 > 80
@@ -387,8 +389,9 @@ groups:
     annotations:
       summary: host {{ $labels.host }} in ${var.dc} has had memory usage > 80% for 5 minutes.
       description: >-
-        host {{ $labels.host }} in ${var.dc} is utilizing over 80% of its memory
-        in the last 5 minutes. It was most recently at {{ $value | printf "%.2f"}}%.
+        host {{ $labels.host }} in ${var.dc} with role {{ $labels.role }} is
+        utilizing over 80% of its memory in the last 5 minutes. It was most
+        recently at {{ $value | printf "%.2f"}}%.
       url: https://${var.prometheus_hostname}/alerts?search=system_memory_available_low
   - alert: System_Disk_Used_High
     expr: disk_used_percent > 80
@@ -397,10 +400,11 @@ groups:
       service: infra
       severity: warn
     annotations:
-      summary: host {{ $labels.host }} in ${var.dc} is using over 90% of its disk space
+      summary: host {{ $labels.host }} in ${var.dc} is using over 80% of its disk space
       description: >-
-        host {{ $labels.host }} in ${var.dc} is using over 90% of its disk
-        space. It was most recently at {{ $value | printf "%.2f" }}%.
+        host {{ $labels.host }} in ${var.dc} with role {{ $labels.role }} is
+        using over 80% of its disk space. It was most recently at {{ $value |
+        printf "%.2f" }}%.
       url: https://${var.prometheus_hostname}/alerts?search=system_disk_used_high
   - alert: System_Disk_Used_High
     expr: disk_used_percent > 90
@@ -411,8 +415,9 @@ groups:
     annotations:
       summary: host {{ $labels.host }} in ${var.dc} is using over 90% of its disk space
       description: >-
-        host {{ $labels.host }} in ${var.dc} is using over 90% of its disk
-        space. It was most recently at {{ $value | printf "%.2f" }}%.
+        host {{ $labels.host }} in ${var.dc} with role {{ $labels.role }} is
+        using over 90% of its disk space. It was most recently at {{ $value |
+        printf "%.2f" }}%.
       url: https://${var.prometheus_hostname}/alerts?search=system_disk_used_high
 %{ if var.core_deployment }
 - name: core_service_alerts
