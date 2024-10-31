@@ -136,7 +136,7 @@ scrape_configs:
 
 {{ with secret "secret/default/prometheus/remote_write/${ var.remote_write_environment_type }" }}
 remote_write:
-  - alert_url: "{{ .Data.data.endpoint }}"
+  - url: "{{ .Data.data.endpoint }}"
     basic_auth:
       username: "{{ .Data.data.username }}"
       password: "{{ .Data.data.password }}"
