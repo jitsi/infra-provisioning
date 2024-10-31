@@ -37,8 +37,7 @@ fi
 # the environment offers extended services (jibri, jicofo, etc)
 [ -z "$PROMETHEUS_CORE_EXTENDED_SERVICES" ] && PROMETHEUS_CORE_EXTENDED_SERVICES="false"
 if [ "$PROMETHEUS_CORE_EXTENDED_SERVICES" == "true" ]; then
-    #export NOMAD_VAR_core_extended_services="true"
-    export NOMAD_VAR_core_extended_services="false"
+    export NOMAD_VAR_core_extended_services="true"
 fi
 
 NOMAD_JOB_PATH="$LOCAL_PATH/../nomad"
