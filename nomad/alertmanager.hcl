@@ -137,7 +137,9 @@ receivers:
         *{{ index .Labels "alertname" }}* {{- if .Annotations.summary }}: *{{ .Annotations.summary }}* {{- end }}
         {{- if eq .Status "firing" }}{{- if .Annotations.description }}
         _{{ .Annotations.description }}_
-        {{ end }}view this alert in prometheus: {{ if .Annotations.url }}{{ .Annotations.url }}{{ end }}
+        {{ end }}{{ if ne .Annotations.dashboard_url "" }}alert dashboard: {{ .Annotations.dashboard_url }}{{ end }}
+        {{- if .Annotations.alert_url }}
+        this alert: {{ .Annotations.alert_url }}{{ end }}
         {{- end }}
         {{- end }}
 %{ if var.pagerduty_enabled }- name: 'pagerduty_alerts'
