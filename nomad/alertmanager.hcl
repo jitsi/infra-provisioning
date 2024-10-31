@@ -149,6 +149,7 @@ receivers:
   slack_configs:
     - channel: '#pages'
       api_url: '{{{ with secret "secret/default/alertmanager/receivers/slack" }}}{{{ .Data.data.slack_pages_webhook }}}{{{ end }}}'
+      send_resolved: true
       title: '[{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] ({{ or .CommonLabels.alertname "Multiple Alert Types" }} in ${var.dc}) <{{- .GroupLabels.SortedPairs.Values | join " " }}>'
       text: |-
         {{ if eq .GroupLabels.severity "severe" }}{{ if eq .Status "firing" }}<!here>{{ end }}{{ end }}{{ range .Alerts }}
