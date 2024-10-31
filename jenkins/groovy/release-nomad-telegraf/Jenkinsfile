@@ -39,18 +39,15 @@ pipeline {				//indicate the job is written in Declarative Pipeline
             steps {
                 script {
                   dir('infra-provisioning') {
-                    echo "provision telegraf in environment ${env.ENVIRONMENT}, clouds ${env.CLOUDS}";
-                    def cloud_list = utils.SplitClouds(env.ENVIRONMENT,env.CLOUDS);
-                    echo "cloud list ${cloud_list}";
+                    echo "provision telegraf in environment ${env.ENVIRONMENT}, regions ${env.REGIONS}";
+                    def region_list = utils.SplitNomadRegions(env.ENVIRONMENT,env.REGIONS);
+                    echo "region list ${region_list}";
                     def branches = [:]
-                    for(i = 0; i < cloud_list.size(); i++) {
-                        def curr = i
-                        def oracle_region = utils.OracleRegionFromCloud(cloud_list[curr])
-                        echo "pipeline branch ${curr} for ${cloud_list[curr]} ${oracle_region}";
-                        branches["Build ${cloud_list[curr]}"] = {
+                    for(i = 0; i < region_list.size(); i++) {
+                        def oracle_region = region_list[i]
+                        echo "pipeline branch ${i} for ${oracle_region}";
+                        branches["Build telegraf-${oracle_region}"] = {
                             provisionJob(env.ENVIRONMENT,
-                                cloud_list[curr],
-                                env.BUILD_ID,
                                 oracle_region,
                                 env.VIDEO_INFRA_BRANCH
                             )
