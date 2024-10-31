@@ -139,7 +139,7 @@ receivers:
         _{{ .Annotations.description }}_
         {{ end }}{{ if ne .Annotations.dashboard_url "" }}alert dashboard: {{ .Annotations.dashboard_url }}{{ end }}
         {{- if .Annotations.alert_url }}
-        view this alert in prometheus: {{ .Annotations.alert_url }}{{ end }}
+        this alert: {{ .Annotations.alert_url }}{{ end }}
         {{- end }}
         {{- end }}
 %{ if var.pagerduty_enabled }- name: 'pagerduty_alerts'
