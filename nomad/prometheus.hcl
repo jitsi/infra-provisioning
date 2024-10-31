@@ -582,7 +582,7 @@ groups:
 - name: core_extended_service_alerts
   rules:
   - alert: Coturn_UDP_Errors_High
-    expr: sum(increase(net_udp_rcvbuferrors{pool_type='coturn'}[2m]) by (environment) > 2000 # 5000 severe 2000 warn, 200 smoke
+    expr: sum(increase(net_udp_rcvbuferrors{pool_type='coturn'}[2m])) > 2000
     for: 2m
     labels:
       service: jitsi
