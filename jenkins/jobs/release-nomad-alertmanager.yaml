@@ -1,7 +1,7 @@
 - job:
-    name: release-nomad-prometheus
-    display-name: release nomad prometheus
-    description: "release prometheus to nomad in one or more regions in an environment."
+    name: release-nomad-alertmanager
+    display-name: release nomad alertmanager
+    description: "release alertmanager to nomad in one or more regions in an environment."
     concurrent: true
     parameters:
       - string:
@@ -42,5 +42,5 @@
             browser-url: https://github.com/jitsi/infra-provisioning
             submodule:
               recursive: true
-      script-path: jenkins/groovy/release-nomad-prometheus/Jenkinsfile
+      script-path: jenkins/groovy/release-nomad-alertmanager/Jenkinsfile
       lightweight-checkout: true
