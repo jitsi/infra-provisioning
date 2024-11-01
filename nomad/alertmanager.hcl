@@ -91,7 +91,11 @@ route:
   group_interval: 10s
   repeat_interval: 1h
   receiver: slack_alerts
-
+{{{ range $index, $item := service "shimmy" -}}}
+  {{{- scratch.SetX "shimmy_exists" "true" -}}}
+  {{{- scratch.SetX "shimmy_address" .Address -}}}
+  {{{- scratch.SetX "shimmy_port" .Port -}}}
+{{{- end }}}
   routes:
     - matchers:
       - service = "skip"
@@ -119,11 +123,11 @@ inhibit_rules:
     equal: [alertname, service]
 
 receivers:
-{{{ range $index, $service := service "shimmy" }}}{{{ if eq $index 0 }}}
+{{{ if scratch.Get "shimmy_exists" -}}}
 - name: notification_hook
   webhook_configs:
     - send_resolved: true
-      url: 'http://{{{ .Address }}}:{{{ .Port }}}/alerts'{{{ end }}}{{{ end }}}
+      url: 'http://{{{ scratch.Get "shimmy_address" }}}:{{{ scratch.get "shimmy_port" }}}/alerts'{{{ end }}}
 - name: slack_alerts
   slack_configs:
     - channel: '#jitsi-${var.slack_channel_suffix}'
