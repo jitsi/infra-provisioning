@@ -123,7 +123,8 @@ receivers:
 - name: notification_hook
   webhook_configs:
     - send_resolved: true
-      url: 'http://{{{ range $index, $service := service "shimmy" }}}{{{ if eq $index 0 }}}{{{ .Address }}}:{{{ .Port }}}{{{ end }}}{{{ end }}}/alerts'
+#      url: 'http://{{{ range $index, $service := service "shimmy" }}}{{{ if eq $index 0 }}}{{{ .Address }}}:{{{ .Port }}}{{{ end }}}{{{ end }}}/alerts'
+      url: 'http://{{{ range $index, $service := service "shimmy" }}}{{{ .Address }}}:{{{ .Port }}}{{{ end }}}/alerts'
 - name: slack_alerts
   slack_configs:
     - channel: '#jitsi-${var.slack_channel_suffix}'
