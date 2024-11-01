@@ -150,7 +150,7 @@ receivers:
       send_resolved: true
       title: '[{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] ({{ or .CommonLabels.alertname "Multiple Alert Types" }} in ${var.dc}) <{{- .GroupLabels.SortedPairs.Values | join " " }}>'
       text: |-
-        {{ if eq .GroupLabels.severity "severe" }}{{ if eq .Status "firing" }}<!here> - PAGE{{ if ne .GroupLabels.page "true" }}-CANDIDATE{{ end }}{{ end }}{{ end }}{{ range .Alerts }}
+        {{ if eq .GroupLabels.severity "severe" }}{{ if eq .Status "firing" }}<!here> - PAGE{{ if ne .Annotations.page "true" }}-CANDIDATE{{ end }}{{ end }}{{ end }}{{ range .Alerts }}
         *{{ index .Labels "alertname" }}* {{- if .Annotations.summary }}: *{{ .Annotations.summary }}* {{- end }}{{ if eq .Status "firing" }} - {{ if .Annotations.alert_url }}{{ .Annotations.alert_url }}{{ end }}{{ end }}
         {{- end }}
 %{ endif }
