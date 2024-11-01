@@ -22,7 +22,7 @@ pipeline {
         stage('prepare') {
             steps {
                 script {
-                    echo 'prometheus and alertmanager release'
+                    echo 'prometheus release'
                     // load utility function
                     def rootDir = pwd()
                     utils = load "${rootDir}/jenkins/groovy/Utils.groovy"
@@ -48,13 +48,6 @@ pipeline {
                         echo "pipeline branch ${i} for ${oracle_region}";
                         branches["Build prometheus-${oracle_region}"] = {
                             provisionJob('provision-nomad-prometheus',
-                                env.ENVIRONMENT,
-                                oracle_region,
-                                env.VIDEO_INFRA_BRANCH
-                            )
-                        }
-                        branches["Build alertmanager-${oracle_region}"] = {
-                            provisionJob('provision-nomad-alertmanager',
                                 env.ENVIRONMENT,
                                 oracle_region,
                                 env.VIDEO_INFRA_BRANCH
