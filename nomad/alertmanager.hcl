@@ -95,16 +95,10 @@ route:
   receiver: slack_alerts
   routes:
     {{{ range $item := scratch.MapValues "shimmy" -}}}
-    - receiver: notification_hook
-      match:
-        service: "skip"
-        severity: "severe|warn|smoke"
-      continue: true{{{ end }}}
     - matchers:
-      - service = "skip"
       - severity =~ "severe|warn|smoke"
       receiver: 'notification_hook'
-      continue: true
+      continue: true{{{ end }}}
     - matchers:
       - severity =~ "severe|warn"
       receiver: 'slack_alerts'
