@@ -38,6 +38,12 @@ variable "core_extended_services" {
   default = false
 }
 
+variable "production_alerts" {
+  type = bool
+  description = "use production alert thresholds for this deployment"
+  default = false
+}
+
 job "[JOB_NAME]" {
   datacenters = ["${var.dc}"]
   type        = "service"
@@ -279,7 +285,7 @@ groups:
 
 - name: cloudprober_alerts
   rules:
-  - alert: Probe_Unhealthy_Warn
+  - alert: Probe_Unhealthy
     expr: (cloudprober_failure{probe!="shard"} > 0) or (cloudprober_timeouts{probe!="shard"} > 0)
     for: 2m
     labels:
@@ -291,7 +297,7 @@ groups:
         timed-out or received unhealthy responses for 2 minutes.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=probe_unhealthy
-  - alert: Probe_Unhealthy_Severe
+  - alert: Probe_Unhealthy
     expr: (cloudprober_failure{probe!="shard"} > 0) or (cloudprober_timeouts{probe!="shard"} > 0)
     for: 5m
     labels:
@@ -316,7 +322,7 @@ groups:
         may be a network issue between regions.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=probe_shard_unhealthy
-  - alert: Probe_Ingress_Region_Unhealthy_Warn
+  - alert: Probe_Ingress_Region_Unhealthy
     expr: cloudprober_haproxy_region_check_passed < 1
     for: 2m
     labels:
@@ -330,7 +336,7 @@ groups:
         balancer ingress.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=probe_ingress_region_unhealthy
-  - alert: Probe_Ingress_Region_Unhealthy_Severe
+  - alert: Probe_Ingress_Region_Unhealthy
     expr: cloudprober_haproxy_region_check_passed < 1
     for: 10m
     labels:
@@ -345,8 +351,8 @@ groups:
         failing health checks to the regional load balancer ingress.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=probe_ingress_region_unhealthy
-  - alert: Probe_Latency_Warn
-    expr: (cloudprober_latency{probe="latency"} > 1500) or (cloudprober_latency{probe="latency_https"} > 1500)
+  - alert: Probe_Latency
+    expr: (cloudprober_latency{probe="canary"} > 1500)
     for: 2m
     labels:
       severity: warn
@@ -357,8 +363,8 @@ groups:
         has had latency over 1.5 seconds for 2 minutes, most recently at {{ $value }} ms.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=probe_latency
-  - alert: Probe_Latency_Severe
-    expr: (cloudprober_latency{probe="latency"} > 3000) or (cloudprober_latency{probe="latency_https"} > 3000)
+  - alert: Probe_Latency
+    expr: (cloudprober_latency{probe="canary"} > 3000)
     for: 5m
     labels:
       service: infra
@@ -373,12 +379,12 @@ groups:
 
 - name: system_alerts
   rules:
-  - alert: System_CPU_Usage_High
+  %{ if var.production_alerts }- alert: System_CPU_Usage_High
     expr: 100 - cpu_usage_idle > 70
     for: 5m
     labels:
       service: infra
-      severity: warn
+      severity: smoke
     annotations:
       summary: host {{ $labels.host }} in ${var.dc} has had CPU usage > 70% for 5 minutes
       description: >-
@@ -387,6 +393,20 @@ groups:
         recently at {{ $value | printf "%.2f" }}%.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=system_cpu_usage_high
+  - alert: System_CPU_Usage_High
+    expr: 100 - cpu_usage_idle > 80
+    for: 5m
+    labels:
+      service: infra
+      severity: warn
+    annotations:
+      summary: host {{ $labels.host }} in ${var.dc} has had CPU usage > 80% for 5 minutes
+      description: >-
+        host {{ $labels.host }} in ${var.dc} with role {{ $labels.role }} has
+        had a CPU running at over 80% in the last 5 minutes. It was most
+        recently at {{ $value | printf "%.2f" }}%.
+      dashboard_url: ${var.grafana_url}
+      alert_url: https://${var.prometheus_hostname}/alerts?search=system_cpu_usage_high%{ else }
   - alert: System_CPU_Usage_High
     expr: 100 - cpu_usage_idle > 90
     for: 5m
@@ -400,7 +420,7 @@ groups:
         had a CPU running at over 90% in the last 5 minutes. It was most
         recently at {{ $value | printf "%.2f" }}%.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=system_cpu_usage_high
+      alert_url: https://${var.prometheus_hostname}/alerts?search=system_cpu_usage_high%{ endif }
   - alert: System_Memory_Usage_High
     expr: (mem_total - mem_available) / mem_total * 100 > 80
     for: 5m
@@ -447,7 +467,7 @@ groups:
 - name: core_service_alerts
   rules:
   - alert: HAProxy_Redispatch_Rate_High
-    expr: haproxy_wredis > 4     # 4 sev 3 warn 2 smoke
+    expr: haproxy_wredis > 4
     for: 5m
     labels:
       service: jitsi
@@ -534,16 +554,16 @@ groups:
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=jicofo_jvbs_missing
   - alert: JVB_CPU_High
-    expr: 100 - cpu_usage_idle{role="JVB"} > 80  # 60 warn 50 smoke
+    expr: 100 - cpu_usage_idle{role="JVB"} > 90
     for: 5m
     labels:
       service: jitsi
       severity: warn
       page: true
     annotations:
-      summary: a JVB in ${var.dc} has had CPU usage > 80% for 5 minutes
+      summary: a JVB in ${var.dc} has had CPU usage > 90% for 5 minutes
       description: >-
-        A JVB in ${var.dc} has had a CPU running at over 80% in the last 5
+        A JVB in ${var.dc} has had a CPU running at over 90% in the last 5
         minutes. It was most recently at {{ $value | printf "%.2f" }}%.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=jvb_cpu_high
@@ -561,7 +581,7 @@ groups:
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=jvb_rtp_delay_high
   - alert: Shard_CPU_High
-    expr: 100 - cpu_usage_idle{role="core"} > 90    # 80 warn 60 smoke
+    expr: 100 - cpu_usage_idle{role="core"} > 90
     for: 5m
     labels:
       service: jitsi
@@ -590,8 +610,7 @@ groups:
     annotations:
       summary: coturn UDP errors are high in ${var.dc}
       description: >-
-        Coturn UDP errors are high in ${var.dc}, likely due to them being
-        overloaded or possibly due to network issues.
+        There has been a spike of Coturn UDP errors in ${var.dc}. This could indicate that they are overloaded or that there are network issues.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=coturn_udp_errors_high
   - alert: Jibris_Available_None
@@ -631,10 +650,10 @@ groups:
     annotations:
       summary: there are too few SIP jigasis in ${var.dc}
       description: >-
-        There are too few jicofo SIP jigasis in ${var.dc}. If this alarm is in
-        SEVERE, they are missing; trigger a jigasi release. and override the git
-        branch to match the running nodes. Consider expanding the release if the
-        alarm is not SEVERE.
+        There are too few SIP jigasis in ${var.dc} from the perspective of
+        jicofo.  If this alarm is in SEVERE, they are missing; trigger a jigasi
+        release. and override the git branch to match the running nodes.
+        Consider expanding the release if the alarm is not SEVERE.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=jicofo_sip-jigasi_missing
   - alert: Jicofo_Transcribers_Missing
@@ -647,8 +666,9 @@ groups:
     annotations:
       summary: there are too few transcribers in ${var.dc}
       description: >-
-        Transcribers are missing. Consider running a transcriber release job, using the
-        same git branch as those of the running nodes.
+        Transcribers are completely missing in ${var.dc} from the perspective of
+        jicofo. Consider running a transcriber release job, using the same git
+        branch as those of the running nodes.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=jicofo_transcribers_missing
   - alert: Jigasi_Dropped_Media
@@ -673,9 +693,10 @@ groups:
     annotations:
       summary: skynet queue depth is high in ${var.dc}
       description: >-
-        Skynet has gotten behind in its queue in ${var.dc}. If all existing
-        nodes are operating as expected, it may be neccessary to scale up the
-        instance pool manually.
+        The Skynet queue depth is over 100, which means it may have gotten
+        behind in ${var.dc}. If all existing nodes are operating as expected, it
+        may be neccessary to scale up the instance pool manually. The queue
+        depth was most recently at {{ $value | printf "%.2f" }}.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=skynet_queue_depth_high
   - alert: Skynet_System_Load_High
@@ -688,7 +709,8 @@ groups:
       summary: skynet system load is high in ${var.dc}
       description: >-
         Skynet has a higher than expected system load in ${var.dc}. Skynet may
-        be stuck and deserve operator attention.
+        be stuck and deserve operator attention. The load was most recently at
+        {{ $value | printf "%.2f"  }}.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=skynet_system_load_high
   - alert: Whisper_Sessions_High
@@ -702,7 +724,7 @@ groups:
       description: >-
         Whisper will give a bad experience if it has more than 10 sessions at
         once. When an instance is handling more than 6 sessions, it is time to
-        scale up.
+        scale up. Most recently, there were {{ $value | printf "%.2f"  }} sessions.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=whisper_sessions_high
 %{ endif }

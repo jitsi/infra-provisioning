@@ -40,6 +40,12 @@ if [ "$PROMETHEUS_CORE_EXTENDED_SERVICES" == "true" ]; then
     export NOMAD_VAR_core_extended_services="true"
 fi
 
+# apply more aggressive production alert thresholds to the environment
+[ -z "$PROMETHEUS_PRODUCTION_ALERTS" ] && PROMETHEUS_PRODUCTION_ALERTS="false"
+if [ "$PROMETHEUS_PRODUCTION_ALERTS" == "true" ]; then
+    export NOMAD_VAR_production_alerts="true"
+fi
+
 NOMAD_JOB_PATH="$LOCAL_PATH/../nomad"
 NOMAD_DC="$ENVIRONMENT-$ORACLE_REGION"
 export NOMAD_VAR_prometheus_hostname="${RESOURCE_NAME_ROOT}.${TOP_LEVEL_DNS_ZONE_NAME}"
