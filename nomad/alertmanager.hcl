@@ -84,19 +84,22 @@ job "[JOB_NAME]" {
 global:
   resolve_timeout: 5m
   slack_api_url: "{{{ with secret "secret/default/alertmanager/receivers/slack" }}}{{{ .Data.data.slack_general_webhook }}}{{{ end }}}"
-
+{{{ range $index, $item := service "shimmy" -}}}
+    {{{ scratch.MapSetX "shimmy" "shimmy" $item -}}}
+{{{- end }}}
 route:
   group_by: ['alertname', 'service', 'severity']
   group_wait: 10s
   group_interval: 10s
   repeat_interval: 1h
   receiver: slack_alerts
-{{{ range $index, $item := service "shimmy" -}}}
-  {{{- scratch.SetX "shimmy_exists" "true" -}}}
-  {{{- scratch.SetX "shimmy_address" .Address -}}}
-  {{{- scratch.SetX "shimmy_port" .Port -}}}
-{{{- end }}}
   routes:
+    {{{ range $item := scratch.MapValues "shimmy" -}}}
+    - receiver: notification_hook
+      match:
+        service: "skip"
+        severity: "severe|warn|smoke"
+      continue: true{{{ end }}}
     - matchers:
       - service = "skip"
       - severity =~ "severe|warn|smoke"
@@ -123,11 +126,11 @@ inhibit_rules:
     equal: [alertname, service]
 
 receivers:
-{{{ if scratch.Get "shimmy_exists" -}}}
+{{{ range $item := scratch.MapValues "shimmy" -}}}
 - name: notification_hook
   webhook_configs:
     - send_resolved: true
-      url: 'http://{{{ scratch.Get "shimmy_address" }}}:{{{ scratch.get "shimmy_port" }}}/alerts'{{{ end }}}
+      url: 'http://{{{ .Address }}}:{{{ .Port }}}/alerts'{{{ end }}}
 - name: slack_alerts
   slack_configs:
     - channel: '#jitsi-${var.slack_channel_suffix}'
