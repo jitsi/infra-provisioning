@@ -64,7 +64,6 @@ job "[JOB_NAME]" {
       driver = "docker"
 
       vault {
-        change_mode = "noop"
       }
 
       config {
@@ -120,11 +119,11 @@ inhibit_rules:
     equal: [alertname, service]
 
 receivers:
+{{{ range $index, $service := service "shimmy" }}}{{{ if eq $index 0 }}}
 - name: notification_hook
   webhook_configs:
     - send_resolved: true
-#      url: 'http://{{{ range $index, $service := service "shimmy" }}}{{{ if eq $index 0 }}}{{{ .Address }}}:{{{ .Port }}}{{{ end }}}{{{ end }}}/alerts'
-      url: 'http://{{{ range $index, $service := service "shimmy" }}}{{{ .Address }}}:{{{ .Port }}}{{{ end }}}/alerts'
+      url: 'http://{{{ .Address }}}:{{{ .Port }}}/alerts'{{{ end }}}{{{ end }}}
 - name: slack_alerts
   slack_configs:
     - channel: '#jitsi-${var.slack_channel_suffix}'
