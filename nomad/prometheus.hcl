@@ -352,7 +352,7 @@ groups:
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=probe_ingress_region_unhealthy
   - alert: Probe_Latency
-    expr: (cloudprober_latency{probe="latency"} > 1500) or (cloudprober_latency{probe="latency_https"} > 1500)
+    expr: (cloudprober_latency{probe="canary"} > 1500)
     for: 2m
     labels:
       severity: warn
@@ -364,7 +364,7 @@ groups:
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=probe_latency
   - alert: Probe_Latency
-    expr: (cloudprober_latency{probe="latency"} > 3000) or (cloudprober_latency{probe="latency_https"} > 3000)
+    expr: (cloudprober_latency{probe="canary"} > 3000)
     for: 5m
     labels:
       service: infra
