@@ -51,7 +51,12 @@ if [[ "$BRANDING_NAME" != "null" ]]; then
     set -x
     BRANDING_TAG="$(curl -v "https://$BRANDING_HOST/debian/unstable/" | grep "${BRANDING_NAME}_1.0.${JITSI_MEET_VERSION}" | grep "_all.deb" | cut -d'"' -f4 | cut -d '_' -f2 | cut -d'-' -f1 | cut -d'.' -f3,4| sort | tail -n1)"
     if [[ $? -eq 0 ]]; then
-        [ -z "$WEB_TAG" ] && WEB_TAG="$BRANDING_TAG"
+        if [ -n "$BRANDING_TAG" ]; then
+            [ -z "$WEB_TAG" ] && WEB_TAG="$BRANDING_TAG"
+        else
+            echo "Failed to find branding ${BRANDING_NAME}_1.0.${JITSI_MEET_VERSION} at $BRANDING_HOST/debian/unstable/, exiting"
+            exit 2
+        fi
     else
         [ -z "$WEB_TAG" ] && WEB_TAG="$JITSI_MEET_VERSION"
     fi
