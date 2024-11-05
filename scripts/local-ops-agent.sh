@@ -3,7 +3,7 @@ LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
 [ -z "$LOCAL_DEV_DIR" ] && LOCAL_DEV_DIR="$(realpath "$LOCAL_PATH/../..")"
 
-[ -z "$ASAP_KEY_DIR" ] && ASAP_KEY_DIR="/opt/jitsi/keys"
+[ -z "$ASAP_KEY_DIR" ] && ASAP_KEY_DIR="$(realpath ~/asap/keys)"
 [ -z "$OPS_AGENT_VERSION" ] && OPS_AGENT_VERSION="latest"
 [ -z "$VAULT_PASSWORD_FILE" ] && VAULT_PASSWORD_FILE="$LOCAL_PATH/../.vault-password.txt"
 
