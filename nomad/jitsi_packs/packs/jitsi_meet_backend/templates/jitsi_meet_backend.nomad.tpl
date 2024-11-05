@@ -735,7 +735,7 @@ EOH
 
       resources {
         cpu    = [[ or (env "CONFIG_nomad_prosody_cpu") "200" ]]
-        memory    = [[ or (env "CONFIG_nomad_prosody_memory") "1024" ]]
+        memory    = [[ or (env "CONFIG_nomad_prosody_memory") "2048" ]]
       }
     }
 [[- if eq (or (env "CONFIG_prosody_brewery_shard_enabled") "true") "true" ]]
