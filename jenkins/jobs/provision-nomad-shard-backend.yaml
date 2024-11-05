@@ -33,6 +33,10 @@
           description: "Enables local jvb brewery for shard, defaults true in script, set to false to use shared prosody-brewery service"
           trim: true
       - string:
+          name: WEB_TAG
+          description: "Overrides the web tag to use for the deployment."
+          trim: true
+      - string:
           name: JOB_TYPE
           default: shard-backend
           description: "Nomad job type to provision, defaults to 'web-release' do not change"

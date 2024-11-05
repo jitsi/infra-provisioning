@@ -131,7 +131,7 @@ job [[ template "job_name" . ]] {
         "urlprefix-[[ env "CONFIG_domain" ]]/",
 [[ end ]]
         "urlprefix-/[[ env "CONFIG_shard" ]]/",
-        "urlprefix-/v1/_cdn/"
+        "urlprefix-/v1/_cdn/[[ env "CONFIG_jitsi_meet_cdn_prefix" ]]_[[ env "CONFIG_web_tag" ]]/"
       ]
       meta {
         domain = "[[ env "CONFIG_domain" ]]"
