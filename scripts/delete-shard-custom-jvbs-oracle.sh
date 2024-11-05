@@ -201,6 +201,7 @@ fi
 if [[ "$CLOUD_PROVIDER" == "nomad" ]]; then
   # find all running jobs matching prefix and stop them
   $LOCAL_PATH/nomad.sh status jvb-$SHARD | grep "dispatch-" | grep -v 'dead' | awk '{print $1}' | xargs -n1 $LOCAL_PATH/nomad.sh job stop
+  sleep 30
   $LOCAL_PATH/nomad.sh system gc
   sleep 30
   $LOCAL_PATH/nomad-pack.sh stop jitsi_meet_jvb --name jvb-$SHARD
