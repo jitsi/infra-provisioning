@@ -1,12 +1,13 @@
 [[ define "nginx.conf" -]]
 user www-data;
-worker_processes 4;
+worker_processes 8;
 pid /run/nginx.pid;
 #include /etc/nginx/modules-enabled/*.conf;
 
 events {
-	worker_connections 1024;
-	# multi_accept on;
+    worker_connections  50000;
+    multi_accept        on;
+    use                 epoll;
 }
 
 http {
