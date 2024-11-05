@@ -26,7 +26,7 @@ http {
 	# server_names_hash_bucket_size 64;
 	# server_name_in_redirect off;
 
-	client_max_body_size 0;
+	# client_max_body_size 0;
 
 
  	include /etc/nginx/mime.types;
@@ -77,9 +77,10 @@ log_format anon '$remote_addr_anon - $remote_user [$time_local] "$request_anon" 
 	##
 
 	gzip on;
-	gzip_types text/plain text/css application/javascript application/json;
-	gzip_vary on;
-	gzip_min_length 860;
+    gzip_disable "msie6";
+	# gzip_types text/plain text/css application/javascript application/json;
+	# gzip_vary on;
+	# gzip_min_length 860;
 
 	##
 	# Connection header for WebSocket reverse proxy
@@ -120,6 +121,7 @@ log_format anon '$remote_addr_anon - $remote_user [$time_local] "$request_anon" 
 stream {
     include /etc/nginx/conf.stream/*.conf;
 }
+worker_rlimit_nofile 150000;
 
 #daemon off;
 [[ end -]]
@@ -357,6 +359,15 @@ server {
         tcp_nodelay on;
     }
 
+    location = /send-system-chat-message {
+        proxy_pass http://prosodylimited/send-system-chat-message$is_args$args;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header Host [[ env "CONFIG_domain" ]];
+
+        proxy_buffering off;
+        tcp_nodelay on;
+    }
+
     location = /invite-jigasi{
             proxy_pass http://prosodylimited/invite-jigasi$is_args$args;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -380,6 +391,14 @@ server {
         set $prefix "$1";
 
         rewrite ^/(.*)$ /end-meeting;
+    }
+
+    location ~ ^/([^/?&:'"]+)/send-system-chat-message$ {
+        set $subdomain "$1.";
+        set $subdir "$1/";
+        set $prefix "$1";
+
+        rewrite ^/(.*)$ /send-system-chat-message;
     }
 
     location ~ ^/([^/?&:'"]+)/invite-jigasi$ {

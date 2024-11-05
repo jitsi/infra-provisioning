@@ -229,7 +229,7 @@ http {
 	# server_names_hash_bucket_size 64;
 	# server_name_in_redirect off;
 
-	client_max_body_size 0;
+	# client_max_body_size 0;
 
 	{{ if .Env.NGINX_RESOLVER }}
 	resolver {{ .Env.NGINX_RESOLVER }};
