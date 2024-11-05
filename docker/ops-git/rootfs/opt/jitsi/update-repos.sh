@@ -17,6 +17,9 @@ git pull
 cd /home/git/jitsi/infra-customizations-private.git
 git pull
 
+cd /home/git/jitsi/jitsi-meet.git
+git pull
+
 mkdir -p $UPDATE_DIR
 cd $UPDATE_DIR
 
@@ -41,5 +44,10 @@ git fetch -p origin
 git push --mirror
 cd ..
 
-cd
+/usr/bin/git clone --mirror git@github.com:jitsi/jitsi-meet.git
+cd jitsi-meet.git
+git remote set-url --push origin git@localhost:jitsi/jitsi-meet.git
+git fetch -p origin
+git push --mirror
+cd ..
 rm -rf $UPDATE_DIR
