@@ -114,10 +114,10 @@ route:
       continue: true%{ endif }
 
 # suppress warn/smoke alerts if a severe alert is already firing with the same alertname
-inhibit_rules:
-  - source_matchers: [severity="severe"]
-    target_matchers: [severity=~"warn|smoke"]
-    equal: [alertname, service]
+#inhibit_rules:
+#  - source_matchers: [severity="severe"]
+#    target_matchers: [severity=~"warn|smoke"]
+#    equal: [alertname, service]
 
 receivers:
 - name: notification_hook
