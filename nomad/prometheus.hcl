@@ -507,7 +507,7 @@ groups:
       summary: jicofo in ${var.dc} has had an unusually high number of ICE restarts
       description: >-
         A jicofo in ${var.dc} has had too many ICE restarts and should be
-        investigated.
+        investigated. There were {{ $value }} restarts in the last 10 minutes.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=jicofo_ice_restarts_high
   - alert: Jicofo_JVB_Version_Mismatch
