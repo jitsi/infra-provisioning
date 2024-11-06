@@ -497,19 +497,6 @@ groups:
         The HealthAnyAlarm email has also likely been triggered.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=haproxy_unhealthy_agent
-  - alert: Jicofo_ICE_Restarts_High
-    expr: sum(increase(jitsi_jicofo_participants_restart_requested_total[10m])) > 200
-    for: 2m
-    labels:
-      service: jitsi
-      severity: warn
-    annotations:
-      summary: jicofo in ${var.dc} has had an unusually high number of ICE restarts
-      description: >-
-        A jicofo in ${var.dc} has had too many ICE restarts and should be
-        investigated. There were {{ $value }} restarts in the last 10 minutes.
-      dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=jicofo_ice_restarts_high
   - alert: Jicofo_JVB_Version_Mismatch
     expr: jitsi_jicofo_bridge_selector_bridge_version_count > 1
     for: 2h
