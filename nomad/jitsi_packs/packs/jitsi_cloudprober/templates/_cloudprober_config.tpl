@@ -70,7 +70,7 @@ probe {
           success_status_codes: "200-299"
       }
   }
-  interval_msec: 60000
+  interval_msec: 30000
   timeout_msec: 10000
   latency_unit: "ms"
   additional_label {
@@ -98,7 +98,7 @@ probe {
           success_status_codes: "200-299"
       }
   }
-  interval_msec: 60000
+  interval_msec: 30000
   timeout_msec: 10000
   latency_unit: "ms"
   additional_label {
@@ -142,7 +142,7 @@ probe {
     {{ $shard_count = add $shard_count 1 -}}
     endpoint {
       name: "{{ .ServiceMeta.shard }}"
-      url: "http://{{ .Address }}:{{ if .ServiceMeta.signal_sidecar_http_port }}{{ .ServiceMeta.signal_sidecar_http_port }}{{ else }}6000{{ end }}/about/health"
+      url: "http://{{ .Address }}:{{ .Port }}/about/health"
     }
     {{ end }}{{ end -}}
     {{ if eq $shard_count 0 -}}
@@ -183,7 +183,7 @@ probe {
           success_status_codes: "200-299"
       }
   }
-  interval_msec: 60000
+  interval_msec: 30000
   timeout_msec: 10000
   latency_unit: "ms"
   additional_label {
@@ -211,7 +211,7 @@ probe {
           success_status_codes: "200-299"
       }
   }
-  interval_msec: 60000
+  interval_msec: 30000
   timeout_msec: 10000
   latency_unit: "ms"
   additional_label {
@@ -267,7 +267,7 @@ probe {
           success_status_codes: "200-299"
       }
   }
-  interval_msec: 60000
+  interval_msec: 30000
   timeout_msec: 10000
   latency_unit: "ms"
   additional_label {
@@ -294,7 +294,7 @@ probe {
           success_status_codes: "200-299,429"
       }
   }
-  interval_msec: 60000
+  interval_msec: 30000
   timeout_msec: 10000
   latency_unit: "ms"
   additional_label {
