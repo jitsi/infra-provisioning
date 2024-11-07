@@ -60,9 +60,9 @@ job "[JOB_NAME]" {
       driver = "docker"
 
       config {
-        image        = "selenium/node-docker:latest"
+        image        = "selenium/node-docker:4.26"
         ports = ["http","vnc","no-vnc"]
-        volumes = ["local:/opt/selenium/assets","local/config.toml:/opt/bin/config.toml","/var/run/docker.sock:/var/run/docker.sock"]
+        volumes = ["local:/opt/selenium/assets","local/config.toml:/opt/selenium/config.toml","/var/run/docker.sock:/var/run/docker.sock"]
 
         # 2gb shm
         shm_size = 2147483648
