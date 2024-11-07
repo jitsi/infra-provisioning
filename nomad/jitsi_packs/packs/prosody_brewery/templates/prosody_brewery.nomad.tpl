@@ -93,7 +93,9 @@ job [[ template "job_name" . ]] {
         JVB_AUTH_PASSWORD = "[[ env "CONFIG_jvb_auth_password" ]]"
         JIGASI_XMPP_PASSWORD = "[[ env "CONFIG_jigasi_xmpp_password" ]]"
         JIBRI_RECORDER_PASSWORD = "[[ env "CONFIG_jibri_recorder_password" ]]"
+        JIBRI_RECORDER_USER = "[[ env "CONFIG_jibri_recorder_username" ]]"
         JIBRI_XMPP_PASSWORD = "[[ env "CONFIG_jibri_xmpp_password" ]]"
+        JIBRI_XMPP_USER = "[[ env "CONFIG_jibri_xmpp_username" ]]"
         JVB_XMPP_AUTH_DOMAIN = "auth.jvb.[[ env "CONFIG_domain" ]]"
         JVB_XMPP_INTERNAL_MUC_DOMAIN = "muc.jvb.[[ env "CONFIG_domain" ]]"
         # match any muc in the brewery muc component as per https://modules.prosody.im/mod_firewall
