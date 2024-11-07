@@ -135,19 +135,55 @@ probe {
 probe {
   name: "shard"
   type: HTTP
-
   targets {
-    {{ $shard_count := 0 -}}
-    {{ range $dc := datacenters -}}{{ $dc_shards := print "signal@" $dc -}}{{ range $shard := service $dc_shards -}}
-    {{ $shard_count = add $shard_count 1 -}}
+    {{ $http_shard_count := 0 -}}
+    {{ range $dc := datacenters -}}{{ $dc_shards := print "signal@" $dc -}}{{ range $shard := service $dc_shards }}{{ if ne $shard.ServiceMeta.http_backend_port "443" -}}
+    {{ $http_shard_count = add $http_shard_count 1 -}}
     endpoint {
       name: "{{ .ServiceMeta.shard }}"
-      url: "http://{{ .Address }}:{{ .Port }}/about/health"
+      url: "https://{{ .Address }}:{{ .Port }}/about/health"
     }
-    {{ end }}{{ end -}}
-    {{ if eq $shard_count 0 -}}
+    {{ end }}{{ end }}{{ end -}}
+    {{ if eq $http_shard_count 0 -}}
     host_names: ""
     {{- end }}
+  }
+  http_probe {
+    protocol: HTTPS
+  }
+  validator {
+      name: "status_code_2xx"
+      http_validator {
+          success_status_codes: "200-299"
+      }
+  }
+  interval_msec: 10000
+  timeout_msec: 5000
+  latency_unit: "ms"
+  additional_label {
+    key: "service"
+    value: "jitsi"
+  }
+}
+
+probe {
+  name: "shard_https"
+  type: HTTP
+  targets {
+    {{ $https_shard_count := 0 -}}
+    {{ range $dc := datacenters -}}{{ $dc_shards := print "signal@" $dc -}}{{ range $shard := service $dc_shards }}{{ if eq $shard.ServiceMeta.http_backend_port "443" -}}
+    {{ $https_shard_count = add $https_shard_count 1 -}}
+    endpoint {
+      name: "{{ .ServiceMeta.shard }}"
+      url: "https://{{ .Address }}/about/health"
+    }
+    {{ end }}{{ end }}{{ end -}}
+    {{ if eq $https_shard_count 0 -}}
+    host_names: ""
+    {{- end }}
+  }
+  http_probe {
+    protocol: HTTPS
   }
   validator {
       name: "status_code_2xx"
