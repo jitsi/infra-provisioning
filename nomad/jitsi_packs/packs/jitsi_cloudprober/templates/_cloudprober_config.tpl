@@ -181,6 +181,7 @@ probe {
   }
   http_probe {
     protocol: HTTPS
+    disable_cert_validation: true
   }
   validator {
       name: "status_code_2xx"
