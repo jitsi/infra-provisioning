@@ -141,15 +141,12 @@ probe {
     {{ $http_shard_count = add $http_shard_count 1 -}}
     endpoint {
       name: "{{ .ServiceMeta.shard }}"
-      url: "https://{{ .Address }}:{{ .Port }}/about/health"
+      url: "http://{{ .Address }}:{{ .Port }}/about/health"
     }
     {{ end }}{{ end }}{{ end -}}
     {{ if eq $http_shard_count 0 -}}
     host_names: ""
     {{- end }}
-  }
-  http_probe {
-    protocol: HTTPS
   }
   validator {
       name: "status_code_2xx"
