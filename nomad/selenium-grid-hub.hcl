@@ -76,7 +76,7 @@ job "[JOB_NAME]" {
       }
 
       config {
-        image        = "selenium/hub:latest"
+        image        = "selenium/hub:4.26"
         ports = ["http","publish","subscribe"]
       }
       resources {
