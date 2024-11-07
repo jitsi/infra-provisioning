@@ -77,10 +77,10 @@ max-sessions = ${var.max_sessions}
 # Configs have a mapping between the Docker image to use and the capabilities that need to be matched to
 # start a container with the given image.
 configs = [
-    "jitsi/selenium-standalone-firefox:daily-2024-04-09", "{\"browserName\": \"firefox\"}",
-    "jitsi/selenium-standalone-chrome:daily-2024-04-09", "{\"browserName\": \"chrome\"}",
-    "jitsi/selenium-standalone-firefox:beta-daily-2024-04-09", "{\"browserName\": \"firefox-beta\"}",
-    "jitsi/selenium-standalone-chrome:beta-daily-2024-04-09", "{\"browserName\": \"chrome-beta\"}"
+    "jitsi/selenium-standalone-firefox:daily-2024-11-07", "{\"browserName\": \"firefox\"}",
+    "jitsi/selenium-standalone-chrome:daily-2024-11-07", "{\"browserName\": \"chrome\"}",
+    "jitsi/selenium-standalone-firefox:beta-daily-2024-11-07", "{\"browserName\": \"firefox-beta\"}",
+    "jitsi/selenium-standalone-chrome:beta-daily-2024-11-07", "{\"browserName\": \"chrome-beta\"}"
     ]
 
 # URL for connecting to the docker daemon
