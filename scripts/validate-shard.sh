@@ -152,6 +152,9 @@ $LOCAL_PATH/set_shard_tested.py $ENVIRONMENT $SHARD testing $BUILD_NUMBER
 
 cd $ANSIBLE_BUILD_PATH
 
+GRID_ADDRESS_PARAM=
+[ -n "$GRID_URL" ] && GRID_ADDRESS_PARAM="-e jitsi_torture_grid_address=$GRID_URL"
+
 ansible-playbook --verbose ansible/torturetest-shard-locally.yml \
 -i 'somehost,' \
 --extra-vars "hcv_environment=$ENVIRONMENT hcv_domain=$TEST_DOMAIN prosody_domain_name=$TEST_DOMAIN shard_name=$SHARD shard_ip_address=$SHARD_IP torture_longtest_duration=$TEST_DURATION ec2_torture_instance_count=$TORTURE_COUNT torture_longtest_only=$TORTURE_LONG" \
@@ -163,6 +166,7 @@ ansible-playbook --verbose ansible/torturetest-shard-locally.yml \
 -e "ec2_torture_image_id=$TORTURE_IMAGE_ID" \
 -e "infra_path=$(realpath $LOCAL_PATH/../../..)" \
 -e "jitsi_torture_jwt=$TOKEN" \
+$GRID_ADDRESS_PARAM \
 --vault-password-file .vault-password.txt \
 --tags "$DEPLOY_TAGS"
 
