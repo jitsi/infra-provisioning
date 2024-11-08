@@ -72,6 +72,7 @@ job "[JOB_NAME]" {
         SE_HUB_HOST = "${attr.unique.network.ip-address}"
         SE_EVENT_BUS_HOST = "${attr.unique.network.ip-address}"
         SE_NODE_HOST = "${attr.unique.network.ip-address}"
+        SE_ENABLE_TRACING = "false"
 #        SE_OPTS="--log-level FINE"
       }
 
