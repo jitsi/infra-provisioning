@@ -118,6 +118,7 @@ SE_NODE_HOST="{{env "attr.unique.network.ip-address" }}"
 SE_NODE_PORT="{{ env "NOMAD_HOST_PORT_http" }}"
 SE_VNC_PORT="{{ env "NOMAD_HOST_PORT_vnc" }}"
 SE_NO_VNC_PORT="{{ env "NOMAD_HOST_PORT_no_vnc" }}"
+SE_ENABLE_TRACING="false"
 #SE_OPTS="--log-level FINE"
         EOF
         destination = "local/selenium.env"
