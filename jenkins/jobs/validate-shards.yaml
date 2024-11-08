@@ -14,7 +14,10 @@
           trim: true
       - string:
           name: SHARDS
-          description: "Pool mode for JVBs, defaults to 'global'"
+          description: "Shards to validate."
+      - string:
+          name: GRID_URL
+          description: "Override grid URL to use for validate"
       - string:
           name: TORTURE_BRANCH
           description: "Branch for torture test checkout, defaults to version for shard"
