@@ -286,7 +286,7 @@ groups:
 - name: cloudprober_alerts
   rules:
   - alert: Probe_Unhealthy
-    expr: (cloudprober_failure{probe!="shard"} > 0) or (cloudprober_timeouts{probe!="shard"} > 0)
+    expr: (cloudprober_failure{probe!~"shard|shard_https"} > 0) or (cloudprober_timeouts{probe!~"shard|shard_https"} > 0)
     for: 2m
     labels:
       severity: warn
@@ -298,7 +298,7 @@ groups:
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=probe_unhealthy
   - alert: Probe_Unhealthy
-    expr: (cloudprober_failure{probe!="shard"} > 0) or (cloudprober_timeouts{probe!="shard"} > 0)
+    expr: (cloudprober_failure{probe!~"shard|shard_https"} > 0) or (cloudprober_timeouts{probe!~"shard|shard_https"} > 0)
     for: 5m
     labels:
       severity: "{{ if $labels.severity }}{{ $labels.severity }}{{ else }}severe{{ end }}"
@@ -310,7 +310,7 @@ groups:
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=probe_unhealthy
   - alert: Probe_Shard_Unhealthy
-    expr: ((cloudprober_failure{probe="shard"} > 0) and on() count_over_time(cloudprober_failure{probe="shard"}[5m:1m]) > 5) or (cloudprober_timeouts{probe="shard"} > 0)
+    expr: ((cloudprober_failure{probe=~"shard|shard_https"} > 0) and on() count_over_time(cloudprober_failure{probe=~"shard|shard_https"}[5m:1m]) > 5) or (cloudprober_timeouts{probe=~"shard|shard_https"} > 0)
     for: 2m
     annotations:
       summary: shard {{ $labels.dst }} probe returned failed or timed-out from ${var.dc}
