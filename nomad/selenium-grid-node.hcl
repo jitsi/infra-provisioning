@@ -62,11 +62,124 @@ job "[JOB_NAME]" {
       config {
         image        = "selenium/node-docker:4.26"
         ports = ["http","vnc","no-vnc"]
-        volumes = ["local:/opt/selenium/assets","local/config.toml:/opt/selenium/config.toml","/var/run/docker.sock:/var/run/docker.sock"]
+        volumes = [
+          "local:/opt/selenium/assets",
+          "local/config.toml:/opt/selenium/config.toml",
+          "local/selenium-grid-docker.conf:/etc/supervisor/conf.d/selenium-grid-docker.conf",
+          "/var/run/docker.sock:/var/run/docker.sock"
+        ]
 
         # 2gb shm
         shm_size = 2147483648
       }
+
+      template {
+        data = <<EOF
+#!/usr/bin/python3
+import sys
+import os
+import logging
+import subprocess
+import time
+
+from supervisor.childutils import listener
+
+def main(args):
+    logging.basicConfig(stream=sys.stderr, level=logging.DEBUG, format='%(asctime)s %(levelname)s %(filename)s: %(message)s')
+    logger = logging.getLogger("supervisord-watchdog")
+    debug_mode = True if 'DEBUG' in os.environ else False
+
+    while True:
+        logger.info("Listening for events...")
+        headers, body = listener.wait(sys.stdin, sys.stdout)
+        body = dict([pair.split(":") for pair in body.split(" ")])
+
+        logger.debug("Headers: %r", repr(headers))
+        logger.debug("Body: %r", repr(body))
+        logger.debug("Args: %r", repr(args))
+
+        if debug_mode: continue
+
+        try:
+            if headers["eventname"] == "PROCESS_STATE_FATAL":
+                logger.info("Process entered FATAL state...")
+                if not args or body["processname"] in args:
+                    logger.error("Killing off supervisord instance ...")
+                    res = subprocess.call(["/usr/bin/pkill", "-15", "supervisord"], stdout=sys.stderr)
+                    logger.info("Sent TERM signal to init process")
+                    time.sleep( 5 )
+                    logger.critical("Why am I still alive? Send KILL to all processes...")
+                    res = subprocess.call(["/bin/kill", "-9", "-1"], stdout=sys.stderr)
+        except Exception as e:
+            logger.critical("Unexpected Exception: %s", str(e))
+            listener.fail(sys.stdout)
+            exit(1)
+        else:
+            listener.ok(sys.stdout)
+
+if __name__ == '__main__':
+    main(sys.argv[1:])
+EOF
+        destination = "local/supervisord-watchdog"
+        perms = "755"
+
+      }
+
+      template {
+        data = <<EOF
+#!/bin/bash
+sleep 10
+tail -f /tmp/selenium-grid-docker-stdout*.log >> /proc/1/fd/1 &
+tail -f /tmp/selenium-grid-docker-stderr*.log >> /proc/1/fd/1 &
+wait
+EOF
+        destination = "local/tail-grid-logs.sh"
+        perms = "755"
+      }
+
+      template {
+        data = <<EOF
+; Documentation of this file format -> http://supervisord.org/configuration.html
+
+; Priority 0 - socat 5 - selenium-docker
+
+[program:socat]
+priority=0
+command=/opt/bin/start-socat.sh
+autostart=true
+autorestart=false
+startsecs=0
+startretries=0
+
+[program:selenium-grid-docker]
+priority=5
+command=/opt/bin/start-selenium-grid-docker.sh
+autostart=true
+autorestart=true
+startsecs=0
+startretries=3
+
+[program:selenium-grid-logs]
+priority=6
+command=/local/tail-grid-logs.sh
+autostart=true
+autorestart=false
+startsecs=0
+startretries=0
+
+[eventlistener:supervisord-watchdog]
+command=/local/supervisord-watchdog
+events=PROCESS_STATE_FATAL
+
+;Logs (all Hub activity redirected to stdout so it can be seen through "docker logs"
+;cannot use with eventlistener
+;redirect_stderr=true
+stdout_logfile=/proc/1/fd/1
+stdout_logfile_maxbytes=0
+EOF
+        destination = "local/selenium-grid-docker.conf"
+      }
+
       template {
         data = <<EOF
 [node]
