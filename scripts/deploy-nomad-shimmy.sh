@@ -1,5 +1,4 @@
 #!/bin/bash
-
 if [ -z "$ENVIRONMENT" ]; then
     echo "No ENVIRONMENT set, exiting"
     exit 2
@@ -8,9 +7,9 @@ fi
 LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
 [ -e "$LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh" ] && . "$LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh"
-
 [ -e "$LOCAL_PATH/../clouds/all.sh" ] && . "$LOCAL_PATH/../clouds/all.sh"
 [ -e "$LOCAL_PATH/../clouds/oracle.sh" ] && . "$LOCAL_PATH/../clouds/oracle.sh"
+[ -z "$ENVIRONMENT_CONFIGURATION_FILE" ] && ENVIRONMENT_CONFIGURATION_FILE="$LOCAL_PATH/../sites/$ENVIRONMENT/vars.yml"
 
 if [ -z "$ORACLE_REGION" ]; then
     echo "No ORACLE_REGION set, exiting"
@@ -20,33 +19,19 @@ fi
 [ -z "$LOCAL_REGION" ] && LOCAL_REGION="$OCI_LOCAL_REGION"
 [ -z "$LOCAL_REGION" ] && LOCAL_REGION="us-phoenix-1"
 
-if [ "$ENVIRONMENT_TYPE" == "prod" ]; then
-    ALERT_SLACK_CHANNEL=$ENVIRONMENT
-else
-    ALERT_SLACK_CHANNEL="dev"
-fi
-
-[ -z "$ALERTMANAGER_PAGES_ENABLED" ] && ALERTMANAGER_PAGES_ENABLED="false"
-
 if [ -z "$NOMAD_ADDR" ]; then
     export NOMAD_ADDR="https://$ENVIRONMENT-$LOCAL_REGION-nomad.$TOP_LEVEL_DNS_ZONE_NAME"
 fi
 
-if [ -z "$NOTIFICATION_WEBHOOK_URL" ]; then
-    export NOTIFICATION_WEBHOOK_URL="https://$ENVIRONMENT-$LOCAL_REGION-shimmy.$TOP_LEVEL_DNS_ZONE_NAME/alerts"
-fi
-
-export RESOURCE_NAME_ROOT="${ENVIRONMENT}-${ORACLE_REGION}-alertmanager"
+export RESOURCE_NAME_ROOT="${ENVIRONMENT}-${ORACLE_REGION}-shimmy"
 
 NOMAD_JOB_PATH="$LOCAL_PATH/../nomad"
 NOMAD_DC="$ENVIRONMENT-$ORACLE_REGION"
-JOB_NAME="alertmanager-$ORACLE_REGION"
-export NOMAD_VAR_notification_webhook_url=$NOTIFICATION_WEBHOOK_URL
-export NOMAD_VAR_alertmanager_hostname="${RESOURCE_NAME_ROOT}.${TOP_LEVEL_DNS_ZONE_NAME}"
-export NOMAD_VAR_slack_channel_suffix="${ALERT_SLACK_CHANNEL}"
-export NOMAD_VAR_pagerduty_enabled="${ALERTMANAGER_PAGES_ENABLED}"
+export NOMAD_VAR_dc="$NOMAD_DC"
+export NOMAD_VAR_shimmy_hostname="${RESOURCE_NAME_ROOT}.${TOP_LEVEL_DNS_ZONE_NAME}"
+JOB_NAME="shimmy-$ORACLE_REGION"
 
-sed -e "s/\[JOB_NAME\]/$JOB_NAME/" "$NOMAD_JOB_PATH/alertmanager.hcl" | nomad job run -var="dc=$NOMAD_DC" -
+sed -e "s/\[JOB_NAME\]/$JOB_NAME/" "$NOMAD_JOB_PATH/shimmy.hcl" | nomad job run -var="dc=$NOMAD_DC" -
 RET=$?
 
 export CNAME_VALUE="$RESOURCE_NAME_ROOT"
