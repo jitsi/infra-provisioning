@@ -203,7 +203,9 @@ block
         JIGASI_XMPP_USER = "[[ env "CONFIG_jigasi_xmpp_user" ]]"
 [[- end ]]
         JIBRI_RECORDER_PASSWORD = "[[ env "CONFIG_jibri_recorder_password" ]]"
+        JIBRI_RECORDER_USER = "[[ env "CONFIG_jibri_recorder_username" ]]"
         JIBRI_XMPP_PASSWORD = "[[ env "CONFIG_jibri_xmpp_password" ]]"
+        JIBRI_XMPP_USER = "[[ env "CONFIG_jibri_xmpp_username" ]]"
         PUBLIC_URL = "https://[[ env "CONFIG_domain" ]]/"
         TURN_CREDENTIALS = "[[ env "CONFIG_turnrelay_password" ]]"
         TURNS_HOST = "[[ env "CONFIG_turnrelay_host" ]]"

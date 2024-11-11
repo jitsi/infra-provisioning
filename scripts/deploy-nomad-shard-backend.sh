@@ -82,9 +82,33 @@ NOMAD_DC="$ENVIRONMENT-$ORACLE_REGION"
 [ -z "$ENVIRONMENT_CONFIGURATION_FILE" ] && ENVIRONMENT_CONFIGURATION_FILE="$LOCAL_PATH/../sites/$ENVIRONMENT/vars.yml"
 [ -z "$MAIN_CONFIGURATION_FILE" ] && MAIN_CONFIGURATION_FILE="$LOCAL_PATH/../config/vars.yml"
 
+JIBRI_AUTH_TYPE="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jibri_auth_type -)"
+if [[ "$JIBRI_AUTH_TYPE" == "null" ]]; then
+    JIBRI_AUTH_TYPE="legacy"
+fi
+
+if [[ "$JIBRI_AUTH_TYPE" == "legacy" ]]; then
+    JIBRI_XMPP_PASSWORD_VARIABLE="jibri_auth_password"
+    JIBRI_XMPP_USERNAME="jibri"
+    JIBRI_RECORDER_PASSWORD_VARIABLE="jibri_selenium_auth_password"
+    JIBRI_RECORDER_USERNAME="recorder"
+elif [[ "$JIBRI_AUTH_TYPE" == "A" ]]; then
+    JIBRI_XMPP_PASSWORD_VARIABLE="secrets_jibri_brewery_by_environment_A.\"$ENVIRONMENT\""
+    JIBRI_XMPP_USERNAME="jibria"
+    JIBRI_RECORDER_PASSWORD_VARIABLE="secrets_jibri_selenium_by_environment_A.\"$ENVIRONMENT\""
+    JIBRI_RECORDER_USERNAME="recordera"
+if [[ "$JIBRI_AUTH_TYPE" == "B" ]]; then
+    JIBRI_XMPP_PASSWORD_VARIABLE="secrets_jibri_brewery_by_environment_B.\"$ENVIRONMENT\""
+    JIBRI_XMPP_USERNAME="jibrib"
+    JIBRI_RECORDER_PASSWORD_VARIABLE="secrets_jibri_selenium_by_environment_B.\"$ENVIRONMENT\""
+    JIBRI_RECORDER_USERNAME="recorderb"
+else
+    echo "Invalid JIBRI_AUTH_TYPE $JIBRI_AUTH_TYPE"
+    exit 1
+fi
+
+
 JVB_XMPP_PASSWORD_VARIABLE="secrets_jvb_brewery_by_environment_A.\"$ENVIRONMENT\""
-JIBRI_XMPP_PASSWORD_VARIABLE="jibri_auth_password"
-JIBRI_RECORDER_PASSWORD_VARIABLE="jibri_selenium_auth_password"
 JIGASI_XMPP_PASSWORD_VARIABLE="secrets_jigasi_brewery_by_environment_A.\"$ENVIRONMENT\""
 JIGASI_SHARED_SECRET_VARIABLE="secrets_jigasi_conference_by_environment_A.\"$ENVIRONMENT\""
 JIGASI_TRANSCRIBER_SECRET_VARIABLE="secrets_jigasi_transcriber_by_environment_A.\"$ENVIRONMENT\""
@@ -105,7 +129,9 @@ set -e
 set -o pipefail
 export CONFIG_jvb_auth_password="$(ansible-vault view $ENCRYPTED_JVB_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${JVB_XMPP_PASSWORD_VARIABLE}" -)"
 export CONFIG_jibri_xmpp_password="$(ansible-vault view $ENCRYPTED_JIBRI_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${JIBRI_XMPP_PASSWORD_VARIABLE}" -)"
+export CONFIG_jibri_xmpp_username="$JIBRI_XMPP_USERNAME"
 export CONFIG_jibri_recorder_password="$(ansible-vault view $ENCRYPTED_JIBRI_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${JIBRI_RECORDER_PASSWORD_VARIABLE}" -)"
+export CONFIG_jibri_recorder_username="$JIBRI_RECORDER_USERNAME"
 export CONFIG_jigasi_xmpp_password="$(ansible-vault view $ENCRYPTED_JIGASI_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${JIGASI_XMPP_PASSWORD_VARIABLE}" -)"
 export CONFIG_turnrelay_password="$(ansible-vault view $ENCRYPTED_COTURN_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${TURNRELAY_PASSWORD_VARIABLE}" -)"
 # TODO: use the separate _jvb and _visitor secrets for the different accounts.
