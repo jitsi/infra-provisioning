@@ -91,13 +91,13 @@ route:
   group_wait: 10s
   group_interval: 10s
   repeat_interval: 1h
-  receiver: slack_alerts
+  receiver: email_alerts
 
   routes:
     - matchers:
       - service = "skip"
       - severity =~ "severe|warn|smoke"
-      receiver: 'notification_hook'
+      receiver: 'email_alerts'
       continue: true
     - matchers:
       - severity =~ "severe|warn"
@@ -120,7 +120,7 @@ inhibit_rules:
     equal: [alertname, service]
 
 receivers:
-- name: notification_hook
+- name: email_alerts
   webhook_configs:
     - send_resolved: true
       url: '${var.notification_webhook_url}'
