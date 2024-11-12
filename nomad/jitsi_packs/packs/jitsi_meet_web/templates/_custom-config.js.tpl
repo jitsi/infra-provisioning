@@ -21,9 +21,7 @@ config.maxFullResolutionParticipants = 1;
 [[- end ]]
 
 if (!config.hasOwnProperty('videoQuality')) config.videoQuality = {};
-[[ if env "CONFIG_jitsi_meet_jvb_preferred_codecs" -]]
-config.videoQuality.codecPreferenceOrder=[[ env "CONFIG_jitsi_meet_jvb_preferred_codecs" ]];
-[[- end ]]
+config.videoQuality.codecPreferenceOrder=[[ or (env "CONFIG_jitsi_meet_jvb_preferred_codecs") "[ 'AV1', 'VP9', 'VP8', 'H264' ]" ]];
 config.videoQuality.enableAdaptiveMode=[[ or (env "CONFIG_jitsi_meet_enable_adaptive_mode") "false" ]];
 [[ if eq (env "CONFIG_jitsi_meet_enable_simulcast_av1") "true" -]]
 config.videoQuality.av1.useSimulcast=true;
