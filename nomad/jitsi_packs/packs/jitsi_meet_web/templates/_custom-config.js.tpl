@@ -124,24 +124,24 @@ config.brandingDataUrl='[[ env "CONFIG_jitsi_meet_api_branding_data_url" ]]';
 config.dialInNumbersUrl='[[ or (env "CONFIG_jitsi_meet_api_dialin_numbers_url") "https://api.jitsi.net/phoneNumberList" ]]';
 config.dialInConfCodeUrl= '[[ or (env "CONFIG_jitsi_meet_api_conference_mapper_url") "https://api.jitsi.net/conferenceMapper" ]]';
 
-[[ if ne (env "CONFIG_jitsi_meet_api_dialout_codes_url") "false" -]]
-config.dialOutCodesUrl= '[[ or (env "CONFIG_jitsi_meet_api_dialout_codes_url") "https://api.jitsi.net/countrycodes" ]]';
+[[ if env "CONFIG_jitsi_meet_api_dialout_codes_url" -]]
+config.dialOutCodesUrl= '[[ env "CONFIG_jitsi_meet_api_dialout_codes_url" ]]';
 [[- end ]]
 
-[[ if ne (env "CONFIG_jitsi_meet_api_dialout_auth_url") "false" -]]
-config.dialOutAuthUrl='[[ or (env "CONFIG_jitsi_meet_api_dialout_auth_url") "https://api.jitsi.net/authorizephone" ]]';
+[[ if env "CONFIG_jitsi_meet_api_dialout_auth_url" -]]
+config.dialOutAuthUrl='[[ env "CONFIG_jitsi_meet_api_dialout_auth_url" ]]';
 [[- end ]]
-[[ if ne (env "CONFIG_jitsi_meet_api_dialout_region_url") "false" -]]
-config.dialOutRegionUrl='[[ or (env "CONFIG_jitsi_meet_api_dialout_region_url") "https://api.jitsi.net/outbounddestination" ]]';
+[[ if env "CONFIG_jitsi_meet_api_dialout_region_url" -]]
+config.dialOutRegionUrl='[[ env "CONFIG_jitsi_meet_api_dialout_region_url" ]]';
 [[- end ]]
-[[ if ne (env "CONFIG_jitsi_meet_api_directory_search_url") "false" -]]
-config.peopleSearchUrl='[[ or (env "CONFIG_jitsi_meet_api_directory_search_url") "https://api.jitsi.net/directorySearch" ]]';
+[[ if env "CONFIG_jitsi_meet_api_directory_search_url" -]]
+config.peopleSearchUrl='[[ env "CONFIG_jitsi_meet_api_directory_search_url" ]]';
 [[- end ]]
-[[ if ne (env "CONFIG_jitsi_meet_api_conference_invite_url") "false" -]]
-config.inviteServiceUrl='[[ or (env "CONFIG_jitsi_meet_api_conference_invite_url") "https://api.jitsi.net/conferenceInvite" ]]';
+[[ if env "CONFIG_jitsi_meet_api_conference_invite_url" -]]
+config.inviteServiceUrl='[[ env "CONFIG_jitsi_meet_api_conference_invite_url" ]]';
 [[- end ]]
-[[ if ne (env "CONFIG_jitsi_meet_api_conference_invite_callflows_url") "false" -]]
-config.inviteServiceCallFlowsUrl='[[ or (env "CONFIG_jitsi_meet_api_conference_invite_callflows_url") "https://api.jitsi.net/conferenceinvitecallflows" ]]';
+[[ if env "CONFIG_jitsi_meet_api_conference_invite_callflows_url" -]]
+config.inviteServiceCallFlowsUrl='[[ env "CONFIG_jitsi_meet_api_conference_invite_callflows_url" ]]';
 [[- end ]]
 [[ if and (env "CONFIG_jitsi_meet_api_guest_dial_out_url") (ne (env "CONFIG_jitsi_meet_api_guest_dial_out_url") "false") -]]
 config.guestDialOutUrl='[[ env "CONFIG_jitsi_meet_api_guest_dial_out_url" ]]';
@@ -267,9 +267,6 @@ config.testing.dumpTranscript = true;
 [[- end ]]
 [[ if eq (env "CONFIG_jitsi_meet_skip_interim_transcriptions") "true" -]]
 config.testing.skipInterimTranscriptions = true;
-[[- end ]]
-[[ if ne (or (env "CONFIG_jitsi_meet_mobile_xmpp_ws_threshold") "false") "false" -]]
-config.testing.jitsi_meet_mobile_xmpp_ws_threshold = [[ env "CONFIG_jitsi_meet_mobile_xmpp_ws_threshold" ]];
 [[- end ]]
 [[ if eq (env "CONFIG_jitsi_meet_enable_codec_selection_api") "true" -]]
 config.testing.enableCodecSelectionAPI = true;
