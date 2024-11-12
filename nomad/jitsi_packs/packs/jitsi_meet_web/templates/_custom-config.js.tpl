@@ -76,7 +76,7 @@ config.analytics.rtcstatsPollInterval=[[ or (env "CONFIG_jitsi_meet_rtcstats_pol
 config.analytics.rtcstatsSendSdp=[[ or (env "CONFIG_jitsi_meet_rtcstats_log_sdp") "false" ]];
 
 config.constraints.video.aspectRatio=16/9;
-config.constraints.video.frameRate={max: 30, min: 15};
+config.constraints.video.frameRate={max: 30};
 
 [[ if eq (env "CONFIG_jitsi_meet_enable_conference_request_http") "true" -]]
 config.conferenceRequestUrl='https://<!--# echo var="http_host" default="[[ env "CONFIG_domain" ]]" -->/<!--# echo var="subdir" default="" -->conference-request/v1';
