@@ -152,6 +152,7 @@ job [[ template "job_name" . ]] {
         START_AUDIO_MUTED = "[[ or (env "CONFIG_jitsi_meet_start_audio_muted_count") "25" ]]"
         WHITEBOARD_ENABLED = "[[ or (env "CONFIG_jitsi_meet_whiteboard_enabled") "false" ]]"
         WHITEBOARD_COLLAB_SERVER_PUBLIC_URL = "[[ env "CONFIG_jitsi_meet_whiteboard_collab_server_base_url" ]]"
+        WEB_CONFIG_PREFIX="/**\n * Hey there Hacker One bounty hunters! None of the contents of this file are security sensitive.\n * Sorry, but your princess is in another castle :-)\n * Happy hunting!\n*/\n"
       }
 
 [[ if eq (env "CONFIG_jitsi_meet_load_test_enabled") "true" -]]
