@@ -36,7 +36,7 @@ job "fabio" {
 
       resources {
         cpu    = 200
-        memory = 128
+        memory = 512
       }
     }
     task "int-fabio" {
@@ -55,7 +55,7 @@ job "fabio" {
 
       resources {
         cpu    = 200
-        memory = 128
+        memory = 512
       }
     }
   }
