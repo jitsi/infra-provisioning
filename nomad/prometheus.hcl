@@ -529,7 +529,7 @@ groups:
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=jicofo_jvb_version_mismatch
   - alert: Jicofo_JVBs_Lost_High
-    expr: increase(jitsi_jicofo_bridge_selector_lost_bridges_total[1m]) > 4   # severe, >2 warn, >1 smoke
+    expr: max_over_time(increase(jitsi_jicofo_bridge_selector_lost_bridges_total[1m])[5m:1m]) > 4   # severe, >2 warn, >1 smoke
     for: 1m
     labels:
       service: jitsi
@@ -543,7 +543,7 @@ groups:
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=jicofo_jvbs_lost_high
   - alert: Jicofo_JVBs_Missing
-    expr: min(jitsi_jicofo_bridge_selector_bridge_count) by (shard) < 1
+    expr: min_over_time(min(jitsi_jicofo_bridge_selector_bridge_count) by (shard)[5m:1m]) < 1
     for: 5m
     labels:
       service: jitsi
