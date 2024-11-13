@@ -257,14 +257,20 @@ def load_table_file(dirpath, tfile):
         for line in f:
             # old line looks like "0x22cd484: key=leecee use=0 exp=299198 server_id=6518987"
             # new line looks like "0x55925131cac0: key=zzzzblah use=0 exp=283168 server_id=12 server_name=jitsi-net-us-west-2a-s2"
+            # newest line looks like "0xecc7674a6b10: key=8x8/group4 use=0 exp=196159 shard=0 server_id=64 server_key=10.71.76.252:443"
             if len(line.strip())>0:
                 #extract fields from the line by first spliting it on ' ' then taking each key/value and splitting it on =,taking the last item (value) and removing whitespace
-                table_fields = [ x.split('=')[-1].strip() for x in line.split(' ') ]
-                tkey=table_fields[0]
-                room=table_fields[1]
-                use=table_fields[2]
-                expires=table_fields[3]
-                server=table_fields[4]
+                table_keys=[]
+                table_values=[]
+                table_parts=line.split(' ')
+                table_parts.pop(0)                
+                for x in table_parts:
+                    table_keys.append(x.split('=')[0].strip())
+                    table_values.append(x.split('=')[1].strip())
+                table_fields = dict(list(zip(table_keys,table_values)))
+                room=table_fields['key']
+                expires=table_fields['exp']
+                server=table_fields['server_id']
                 #split the list by room, storing server and expiry
                 servers_by_room[room]=server
                 expire_by_room[room]=expires
