@@ -4,6 +4,10 @@ variable "dc" {
 variable "grid" {
   type = string
 }
+variable "registry_prefix" {
+  type = string
+  default = ""
+}
 
 variable "max_sessions" {
   type = number
@@ -60,7 +64,7 @@ job "[JOB_NAME]" {
       driver = "docker"
 
       config {
-        image        = "selenium/node-chrome:4.26"
+        image        = "${var.registry_prefix}selenium/node-chrome:4.26"
         ports = ["http","vnc","no-vnc"]
         volumes = [
           "/opt/jitsi/jitsi-meet-torture:/usr/share/jitsi-meet-torture:ro",
