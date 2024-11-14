@@ -64,6 +64,7 @@ job "[JOB_NAME]" {
         XMPP_GUEST_DOMAIN = "guest.${var.domain}"
         # XMPP domain for the jibri recorder
         XMPP_RECORDER_DOMAIN = "recorder.${var.domain}"
+        XMPP_HIDDEN_DOMAIN = "recorder.${var.domain}"
       }
 
       template {
@@ -569,6 +570,7 @@ EOF
         XMPP_GUEST_DOMAIN = "guest.${var.domain}"
         # XMPP domain for the jibri recorder
         XMPP_RECORDER_DOMAIN = "recorder.${var.domain}"
+        XMPP_HIDDEN_DOMAIN = "recorder.${var.domain}"
       }
 
       template {
@@ -994,6 +996,7 @@ EOF
         XMPP_GUEST_DOMAIN = "guest.${var.domain}"
         # XMPP domain for the jibri recorder
         XMPP_RECORDER_DOMAIN = "recorder.${var.domain}"
+        XMPP_HIDDEN_DOMAIN = "recorder.${var.domain}"
       }
 
       template {
@@ -1418,6 +1421,7 @@ EOF
         XMPP_GUEST_DOMAIN = "guest.${var.domain}"
         # XMPP domain for the jibri recorder
         XMPP_RECORDER_DOMAIN = "recorder.${var.domain}"
+        XMPP_HIDDEN_DOMAIN = "recorder.${var.domain}"
       }
 
       template {

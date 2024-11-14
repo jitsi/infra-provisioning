@@ -229,5 +229,6 @@ block
         XMPP_GUEST_DOMAIN = "guest.[[ env "CONFIG_domain" ]]"
         # XMPP domain for the jibri recorder
         XMPP_RECORDER_DOMAIN = "recorder.[[ env "CONFIG_domain" ]]"
+        XMPP_HIDDEN_DOMAIN = "recorder.[[ env "CONFIG_domain" ]]"
         JICOFO_OCTO_REGION = "[[ env "CONFIG_octo_region" ]]"
 [[ end -]]

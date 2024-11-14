@@ -197,6 +197,7 @@ EOF
         XMPP_GUEST_DOMAIN = "guest.[[ env "CONFIG_domain" ]]"
         # XMPP domain for the jibri recorder
         XMPP_RECORDER_DOMAIN = "recorder.[[ env "CONFIG_domain" ]]"
+        XMPP_HIDDEN_DOMAIN = "recorder.[[ env "CONFIG_domain" ]]"
         DISPLAY=":0"
         JVB_INSTANCE_ID = "${NOMAD_SHORT_ALLOC_ID}"
         LOCAL_ADDRESS = "${attr.unique.network.ip-address}"

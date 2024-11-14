@@ -115,6 +115,7 @@ job [[ template "job_name" . ]] {
         XMPP_GUEST_DOMAIN = "guest.[[ env "CONFIG_domain" ]]"
         # XMPP domain for the jibri recorder
         XMPP_RECORDER_DOMAIN = "recorder.[[ env "CONFIG_domain" ]]"
+        XMPP_HIDDEN_DOMAIN = "recorder.[[ env "CONFIG_domain" ]]"
         DEPLOYMENTINFO_ENVIRONMENT = "[[ env "CONFIG_environment" ]]"
         DEPLOYMENTINFO_SHARD = "release-[[ env "CONFIG_release_number" ]]"
         DEPLOYMENTINFO_REGION = "${meta.cloud_region}"

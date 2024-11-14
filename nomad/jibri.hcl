@@ -182,6 +182,7 @@ job "[JOB_NAME]" {
         XMPP_GUEST_DOMAIN = "guest.${var.domain}"
         # XMPP domain for the jibri recorder
         XMPP_RECORDER_DOMAIN = "recorder.${var.domain}"
+        XMPP_HIDDEN_DOMAIN = "recorder.${var.domain}"
         DISPLAY=":0"
         JIBRI_INSTANCE_ID = "${NOMAD_SHORT_ALLOC_ID}"
         JIBRI_FINALIZE_RECORDING_SCRIPT_PATH = "/usr/bin/jitsi_uploader.sh"
