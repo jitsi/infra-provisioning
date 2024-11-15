@@ -642,6 +642,7 @@ GLOBAL_MODULES="admin_telnet,http_openmetrics,
 muc_census,muc_end_meeting,secure_interfaces,external_services,turncredentials_http"
 
 XMPP_MODULES="
+[[- if eq (env "CONFIG_prosody_enable_filter_iq_jibri") "true" ]]filter_iq_jibri,[[ end -]]
 [[- if eq (env "CONFIG_prosody_enable_filter_iq_rayo") "true" ]]filter_iq_rayo,[[ end -]]
 [[- if eq (env "CONFIG_prosody_enable_persistent_lobby") "true" ]]persistent_lobby,[[ end -]]
 jiconop,system_chat_message"
@@ -657,6 +658,9 @@ cache_keys_url=\"[[ env "CONFIG_prosody_cache_keys_url" ]]\",
 [[- end -]]
 [[- if env "CONFIG_prosody_vpaas_public_key_repo_url" -]]
 vpaas_asap_key_server = \"[[ env "CONFIG_prosody_vpaas_public_key_repo_url" ]]\",
+[[- end -]]
+[[- if ne (or (env "CONFIG_prosody_recording_rate_per_minute_per_ip") "false") "false" -]]
+max_number_ip_attempts_per_minute=[[ env "CONFIG_prosody_recording_rate_per_minute_per_ip" ]],
 [[- end -]]
 shard_name=\"[[ env "CONFIG_shard" ]]\",region_name=\"{{ env "meta.cloud_region" }}\",release_number=\"[[ env "CONFIG_release_number" ]]\",max_number_outgoing_calls=[[ or (env "CONFIG_prosody_max_number_outgoing_calls") "3" ]]"
 XMPP_MUC_CONFIGURATION="
