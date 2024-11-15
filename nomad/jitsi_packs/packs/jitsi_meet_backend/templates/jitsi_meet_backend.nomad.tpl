@@ -484,6 +484,7 @@ EOF
         image        = "jitsi/prosody:[[ env "CONFIG_prosody_tag" ]]"
         ports = ["prosody-http","prosody-client"]
         volumes = [
+          "local/patch-prosody.sh:/etc/cont-init.d/08-patch-prosody",
           "local/prosody-plugins-custom:/prosody-plugins-custom",
           "local/config:/config",
         ]
@@ -517,6 +518,14 @@ EOF
 [[- end ]]
       }
 [[ template "prosody_artifacts" . ]]
+      template {
+        data = <<EOF
+#!/usr/bin/with-contenv bash
+sed -i 's/"debug", "Client XML parse error/"info", Client XML parse error/' /usr/lib/prosody/modules/mod_c2s.lua
+EOF
+        destination = "local/patch-prosody.sh"
+        perms = "755"
+      }
 
 [[ if eq (or (env "CONFIG_jigasi_vault_enabled") "true") "true" ]]
       template {
