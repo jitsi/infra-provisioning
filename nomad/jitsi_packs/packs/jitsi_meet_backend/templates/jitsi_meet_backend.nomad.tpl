@@ -521,7 +521,7 @@ EOF
       template {
         data = <<EOF
 #!/usr/bin/with-contenv bash
-sed -i 's/"debug", "Client XML parse error/"info", Client XML parse error/' /usr/lib/prosody/modules/mod_c2s.lua
+sed -i 's/"debug", "Client XML parse error/"info", "Client XML parse error/' /usr/lib/prosody/modules/mod_c2s.lua
 EOF
         destination = "local/patch-prosody.sh"
         perms = "755"
