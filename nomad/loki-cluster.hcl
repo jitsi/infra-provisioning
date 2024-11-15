@@ -77,7 +77,7 @@ job "[JOB_NAME]" {
         user = "root"
         config {
           network_mode = "host"
-          image = "grafana/loki:2.9.7"
+          image = "grafana/loki:3.0.1"
           args = [
             "-config.file",
             "local/local-config.yaml",
@@ -128,7 +128,7 @@ job "[JOB_NAME]" {
     chunk_target_size: 1048576
     # Must be greater than index read cache TTL if using an index cache (Default index read cache TTL is 5m)
     chunk_retain_period: 30s
-    max_transfer_retries: 0     # Chunk transfers disabled
+    #max_transfer_retries: 0     # Chunk transfers disabled
   schema_config:
     configs:
       # New TSDB schema below
@@ -139,12 +139,18 @@ job "[JOB_NAME]" {
         object_store: s3
         schema: v12
         store: tsdb
+      - from: "2024-11-16" # <---- A date in the future
+        index:
+          period: 24h
+          prefix: index_
+        object_store: s3
+        schema: v13
+        store: tsdb
 
   storage_config:
     tsdb_shipper:
       active_index_directory: /loki/data/tsdb-index
       cache_location: /loki/data/tsdb-cache
-      shared_store: s3
     aws:
       s3: s3://${var.oracle_s3_credentials}@${var.oracle_s3_namespace}.compat.objectstorage.{{ env "meta.cloud_region" }}.oraclecloud.com/loki-{{ env "meta.environment" }}
       region: {{ env "meta.cloud_region" }}
@@ -153,26 +159,27 @@ job "[JOB_NAME]" {
       insecure: false
   compactor:
     working_directory: /tmp/loki/boltdb-shipper-compactor
-    shared_store: s3
     compaction_interval: 10m
     retention_enabled: true
     retention_delete_delay: 2h
     retention_delete_worker_count: 150
+    delete_request_store: aws
   query_range:
     # make queries more cache-able by aligning them with their step intervals
     align_queries_with_step: true
     max_retries: 5
     cache_results: true
 
-    results_cache:
-      cache:
-        # We're going to use the in-process "FIFO" cache
-        enable_fifocache: true
-        fifocache:
-          size: 1024
-          validity: 24h
+    # results_cache:
+    #   cache:
+    #     # We're going to use the in-process "FIFO" cache
+    #     #enable_fifocache: true
+#        fifocache:
+#          size: 1024
+#          validity: 24h
 
   limits_config:
+    allow_structured_metadata: false
     reject_old_samples: true
     reject_old_samples_max_age: 168h
     retention_period: ${var.retention_period}
@@ -187,7 +194,7 @@ job "[JOB_NAME]" {
       period: 2160h
     split_queries_by_interval: 15m
   chunk_store_config:
-    max_look_back_period: 0s
+#    max_look_back_period: 0s
   table_manager:
     retention_deletes_enabled: false
     retention_period: 0s
