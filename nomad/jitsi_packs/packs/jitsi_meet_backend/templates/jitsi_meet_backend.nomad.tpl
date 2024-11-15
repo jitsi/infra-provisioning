@@ -87,7 +87,7 @@ job [[ template "job_name" . ]] {
         prosody_http_ip = "${NOMAD_IP_prosody_http}"
         nginx_status_ip = "${NOMAD_IP_nginx_status}"
         nginx_status_port = "${NOMAD_HOST_PORT_nginx_status}"
-        nginx_metrics_port = "${NOMAD_HOST_PORT_nginx_web_prometheus_exporter}"
+        nginx_metrics_port = "${NOMAD_HOST_PORT_web_nginx_prometheus_exporter}"
         prosody_client_ip = "${NOMAD_IP_prosody_client}"
         prosody_http_port = "${NOMAD_HOST_PORT_prosody_http}"
         prosody_client_port = "${NOMAD_HOST_PORT_prosody_client}"
@@ -145,7 +145,7 @@ job [[ template "job_name" . ]] {
         release_number = "[[ env "CONFIG_release_number" ]]"
         environment = "${meta.environment}"
         nomad_allocation = "${NOMAD_ALLOC_ID}"
-        metrics_port = "${NOMAD_HOST_PORT_nginx_web_prometheus_exporter}"
+        metrics_port = "${NOMAD_HOST_PORT_web_nginx_prometheus_exporter}"
       }
 
       port = "http"
