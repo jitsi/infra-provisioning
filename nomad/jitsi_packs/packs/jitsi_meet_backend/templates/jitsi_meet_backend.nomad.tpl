@@ -39,6 +39,9 @@ job [[ template "job_name" . ]] {
       port "nginx-status" {
         to = 888
       }
+      port "web-nginx-prometheus-exporter" {
+        to = 9113
+      }
       port "prosody-http" {
       }
       port "signal-sidecar-agent" {
@@ -84,6 +87,7 @@ job [[ template "job_name" . ]] {
         prosody_http_ip = "${NOMAD_IP_prosody_http}"
         nginx_status_ip = "${NOMAD_IP_nginx_status}"
         nginx_status_port = "${NOMAD_HOST_PORT_nginx_status}"
+        nginx_metrics_port = "${NOMAD_HOST_PORT_nginx_web_prometheus_exporter}"
         prosody_client_ip = "${NOMAD_IP_prosody_client}"
         prosody_http_port = "${NOMAD_HOST_PORT_prosody_http}"
         prosody_client_port = "${NOMAD_HOST_PORT_prosody_client}"
@@ -131,7 +135,8 @@ job [[ template "job_name" . ]] {
         "urlprefix-[[ env "CONFIG_domain" ]]/",
 [[ end ]]
         "urlprefix-/[[ env "CONFIG_shard" ]]/",
-        "urlprefix-/v1/_cdn/[[ env "CONFIG_jitsi_meet_cdn_prefix" ]][[ env "CONFIG_web_tag" ]]/"
+        "urlprefix-/v1/_cdn/[[ env "CONFIG_jitsi_meet_cdn_prefix" ]][[ env "CONFIG_web_tag" ]]/",
+        "ip-${attr.unique.network.ip-address}"
       ]
       meta {
         domain = "[[ env "CONFIG_domain" ]]"
@@ -140,6 +145,7 @@ job [[ template "job_name" . ]] {
         release_number = "[[ env "CONFIG_release_number" ]]"
         environment = "${meta.environment}"
         nomad_allocation = "${NOMAD_ALLOC_ID}"
+        metrics_port = "${NOMAD_HOST_PORT_nginx_web_prometheus_exporter}"
       }
 
       port = "http"
@@ -971,6 +977,23 @@ EOF
       resources {
         cpu    = [[ or (env "CONFIG_nomad_jicofo_cpu") "200" ]]
         memory    = [[ or (env "CONFIG_nomad_jicofo_memory") "3072" ]]
+      }
+    }
+
+    task "web-nginx-prometheus-exporter" {
+      driver = "docker"
+      config {
+        image        = "nginx/nginx-prometheus-exporter:1.3.0"
+        ports = ["web-nginx-prometheus-exporter"]
+      }
+
+      env {
+        SCRAPE_URI="http://localhost:888/nginx_status"
+      }
+
+      resources {
+        cpu    = [[ or (env "CONFIG_nomad_web_nginx_prometheus_exporter_cpu") "100" ]]
+        memory    = [[ or (env "CONFIG_nomad_web_nginx_prometheus_exporter_memory") "512" ]]
       }
     }
 
