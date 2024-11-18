@@ -16,14 +16,19 @@ job "[JOB_NAME]" {
     count = 1
 
     network {
+      mode = "bridge"
       port "http" {
         to = 80
+      }
+      port "metrics" {
+        to = 9113
       }
     }
 
     service {
       name = "canary"
       port = "http"
+      tags = ["ip-${attr.unique.network.ip-address}"]
       check {
         name     = "alive"
         type     = "http"
@@ -32,6 +37,23 @@ job "[JOB_NAME]" {
         interval = "10s"
         timeout  = "2s"
       }
+
+      meta {
+        metrics_port = "${NOMAD_HOST_PORT_metrics}"
+      }
+    }
+
+    task "web-nginx-prometheus-exporter" {
+      driver = "docker"
+      config {
+        image        = "nginx/nginx-prometheus-exporter:1.3.0"
+        ports = ["web-nginx-prometheus-exporter"]
+      }
+
+      env {
+        SCRAPE_URI="http://localhost:888/nginx_status"
+      }
+
     }
 
     task "canary" {
@@ -76,6 +98,11 @@ server {
         add_header 'Content-Type' 'text/plain';
         return 200 "OK\n";
     }
+}
+
+server {
+    listen       888;
+    server_name  localhost;
 
     location /nginx_status {
         stub_status on;

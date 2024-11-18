@@ -177,16 +177,6 @@ EOF
   percentile_limit = 1000
   datadog_extensions = true
 
-{{ range $index, $service := service "canary" }}
-{{ if eq .Address (env "attr.unique.network.ip-address") }}
-[[inputs.nginx]]
-  urls = ["http://{{ .Address }}:{{ .Port }}/nginx_status"]
-  [inputs.nginx.tags]
-    host = "{{.Node}}"
-    service = "canary"
-{{ end }}
-{{ end }}
-
 [[inputs.prometheus]]
   http_headers = {"Accept" = "text/plain; version=0.0.4"}
   [inputs.prometheus.consul]
@@ -341,6 +331,13 @@ EOF
         jigasi_release_number = "{{"{{"}}with .ServiceMeta.release_number}}{{"{{"}}.}}{{"{{"}}else}}0{{"{{"}}end}}"
         role = "transcriber"
         service = "transcriber"
+    [[inputs.prometheus.consul.query]]
+      name = "canary"
+      tag = "ip-{{ env "attr.unique.network.ip-address" }}"
+      url = 'http://{{"{{"}}if ne .ServiceAddress ""}}{{"{{"}}.ServiceAddress}}{{"{{"}}else}}{{"{{"}}.Address}}{{"{{"}}end}}:{{"{{"}}with .ServiceMeta.metrics_port}}{{"{{"}}.}}{{"{{"}}else}}{{"{{"}}.ServicePort}}{{"{{"}}end}}/{{"{{"}}with .ServiceMeta.metrics_path}}{{"{{"}}.}}{{"{{"}}else}}metrics{{"{{"}}end}}'
+      [inputs.prometheus.consul.query.tags]
+        host = "{{"{{"}}.Node}}"
+        service = "canary"
 
 [[inputs.prometheus]]
   namepass = [
