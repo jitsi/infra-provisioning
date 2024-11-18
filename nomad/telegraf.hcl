@@ -116,7 +116,7 @@ EOF
       template {
         data = <<EOF
 [agent]
-  interval = "60s"
+  interval = "20s"
   round_interval = false
   metric_batch_size = 1000
   metric_buffer_limit = 10000
@@ -177,20 +177,6 @@ EOF
   percentile_limit = 1000
   datadog_extensions = true
 
-{{ range $index, $service := service "signal"}}
-{{if eq .ServiceMeta.nginx_status_ip (env "attr.unique.network.ip-address") }}
-[[inputs.nginx]]
-{{ with .ServiceMeta }}
-  urls = ["http://{{ .nginx_status_ip }}:{{ .nginx_status_port }}/nginx_status"]
-  [inputs.nginx.tags]
-    shard = "{{ .shard }}"
-    release_number = "{{ .release_number }}"
-    role = "core"
-    service = "nginx-shard"
-{{ end }}
-{{ end }}
-{{ end }}
-
 {{ range $index, $service := service "canary" }}
 {{ if eq .Address (env "attr.unique.network.ip-address") }}
 [[inputs.nginx]]
@@ -240,6 +226,16 @@ EOF
         role = "core"
         prosody-type = "prosody-jvb"
         service = "prosody-jvb"
+    [[inputs.prometheus.consul.query]]
+      name = "shard-web"
+      tag = "ip-{{ env "attr.unique.network.ip-address" }}"
+      url = 'http://{{"{{"}}if ne .ServiceAddress ""}}{{"{{"}}.ServiceAddress}}{{"{{"}}else}}{{"{{"}}.Address}}{{"{{"}}end}}:{{"{{"}}with .ServiceMeta.metrics_port}}{{"{{"}}.}}{{"{{"}}else}}{{"{{"}}.ServicePort}}{{"{{"}}end}}/{{"{{"}}with .ServiceMeta.metrics_path}}{{"{{"}}.}}{{"{{"}}else}}metrics{{"{{"}}end}}'
+      [inputs.prometheus.consul.query.tags]
+        host = "{{"{{"}}.Node}}"
+        shard = "{{"{{"}}with .ServiceMeta.shard}}{{"{{"}}.}}{{"{{"}}else}}shard{{"{{"}}end}}"
+        release_number = "{{"{{"}}with .ServiceMeta.release_number}}{{"{{"}}.}}{{"{{"}}else}}0{{"{{"}}end}}"
+        role = "core"
+        service = "nginx-shard"
     [[inputs.prometheus.consul.query]]
       name = "signal-sidecar"
       tag = "ip-{{ env "NOMAD_IP_telegraf_statsd" }}"
@@ -313,7 +309,7 @@ EOF
     [[inputs.prometheus.consul.query]]
       name = "vo-credentials-store"
       tag = "ip-{{ env "attr.unique.network.ip-address" }}"
-      url = 'http://{{"{{"}}if ne .ServiceAddress ""}}{{"{{"}}.ServiceAddress}}{{"{{"}}else}}{{"{{"}}.Address}}{{"{{"}}end}}:{{"{{"}}with .ServiceMeta.metrics_port}}{{"{{"}}.}}{{"{{"}}else}}{{"{{"}}.ServicePort}}{{"{{"}}end}}{{"{{"}}with .ServiceMeta.metrics_path}}{{"{{"}}.}}{{"{{"}}else}}/metrics{{"{{"}}end}}'
+      url = 'http://{{"{{"}}if ne .ServiceAddress ""}}{{"{{"}}.ServiceAddress}}{{"{{"}}else}}{{"{{"}}.Address}}{{"{{"}}end}}:{{"{{"}}with .ServiceMeta.metrics_port}}{{"{{"}}.}}{{"{{"}}else}}{{"{{"}}.ServicePort}}{{"{{"}}end}}/{{"{{"}}with .ServiceMeta.metrics_path}}{{"{{"}}.}}{{"{{"}}else}}metrics{{"{{"}}end}}'
       [inputs.prometheus.consul.query.tags]
         host = "{{"{{"}}.Node}}"
         role = "credentials-store"
