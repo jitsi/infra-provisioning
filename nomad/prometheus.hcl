@@ -177,7 +177,7 @@ groups:
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=alertmanager_down
   - alert: Canary_Down
-    expr: absent(nginx_accepts{service="canary"})
+    expr: absent(nginx_connections_accepted{service="canary"})
     for: 5m
     labels:
       service: infra
