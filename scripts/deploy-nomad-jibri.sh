@@ -50,15 +50,34 @@ NOMAD_DC="$ENVIRONMENT-$ORACLE_REGION"
 
 ASAP_KEY_VARIABLE="asap_key_$ENVIRONMENT_TYPE"
 
-JIBRI_XMPP_PASSWORD_VARIABLE="jibri_auth_password"
-JIBRI_RECORDER_PASSWORD_VARIABLE="jibri_selenium_auth_password"
+JIBRI_AUTH_TYPE="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jibri_auth_type -)"
+if [[ "$JIBRI_AUTH_TYPE" == "null" ]]; then
+    JIBRI_AUTH_TYPE="B"
+fi
+
+if [[ "$JIBRI_AUTH_TYPE" == "A" ]]; then
+    JIBRI_XMPP_PASSWORD_VARIABLE="secrets_jibri_brewery_by_environment_A.\"$ENVIRONMENT\""
+    JIBRI_XMPP_USERNAME="jibria"
+    JIBRI_RECORDER_PASSWORD_VARIABLE="secrets_jibri_selenium_by_environment_A.\"$ENVIRONMENT\""
+    JIBRI_RECORDER_USERNAME="jibria"
+if [[ "$JIBRI_AUTH_TYPE" == "B" ]]; then
+    JIBRI_XMPP_PASSWORD_VARIABLE="secrets_jibri_brewery_by_environment_B.\"$ENVIRONMENT\""
+    JIBRI_XMPP_USERNAME="jibrib"
+    JIBRI_RECORDER_PASSWORD_VARIABLE="secrets_jibri_selenium_by_environment_B.\"$ENVIRONMENT\""
+    JIBRI_RECORDER_USERNAME="jibrib"
+else
+    echo "Invalid JIBRI_AUTH_TYPE $JIBRI_AUTH_TYPE"
+    exit 1
+fi
 
 # ensure no output for ansible vault contents and fail if ansible-vault fails
 set +x
 set -e
 set -o pipefail
 export NOMAD_VAR_jibri_xmpp_password="$(ansible-vault view $ENCRYPTED_JIBRI_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${JIBRI_XMPP_PASSWORD_VARIABLE}" -)"
+export NOMAD_VAR_jibri_xmpp_username="$JIBRI_XMPP_USERNAME"
 export NOMAD_VAR_jibri_recorder_password="$(ansible-vault view $ENCRYPTED_JIBRI_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${JIBRI_RECORDER_PASSWORD_VARIABLE}" -)"
+export NOMAD_VAR_jibri_recorder_username="$JIBRI_RECORDER_USERNAME"
 export NOMAD_VAR_asap_jwt_kid="$(ansible-vault view $ENCRYPTED_ASAP_KEYS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${ASAP_KEY_VARIABLE}.id" -)"
 
 set -x
