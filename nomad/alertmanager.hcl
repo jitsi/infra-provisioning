@@ -95,7 +95,6 @@ route:
 
   routes:
     - matchers:
-      - service = "skip"
       - severity =~ "severe|warn|smoke"
       receiver: 'notification_hook'
       continue: true
