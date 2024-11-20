@@ -766,9 +766,17 @@ EOH
       driver = "docker"
       config {
         # force_pull = [[ or (env "CONFIG_force_pull") "false" ]]
-        image        = "mitmproxy:latest"
+        image        = "mitmproxy/mitmproxy:latest"
         ports = ["prosody-mitm"]
-        command = "mitmdump --mode reverse:tls://localhost:${NOMAD_HOST_PORT_prosody_client}@${NOMAD_HOST_PORT_prosody_mitm} --insecure"
+        command = "/usr/local/bin/mitmdump"
+        args = [
+          "--mode",
+          "reverse:tcp://${NOMAD_IP_prosody_client}:${NOMAD_HOST_PORT_prosody_client}@${NOMAD_HOST_PORT_prosody_mitm}",
+          "--ssl-insecure",
+          "-w",
+          "/proc/1/fd/1",
+          "~all"
+        ]
       }
     }
 [[ end ]]
