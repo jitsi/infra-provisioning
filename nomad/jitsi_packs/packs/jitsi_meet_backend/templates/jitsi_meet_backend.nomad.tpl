@@ -314,6 +314,11 @@ job [[ template "job_name" . ]] {
         image        = "jitsi/prosody:[[ env "CONFIG_prosody_tag" ]]"
         ports = ["prosody-vnode-[[ $i ]]-http"]
         volumes = ["local/prosody-plugins-custom:/prosody-plugins-custom","local/config:/config"]
+        labels {
+          release = "[[ env "CONFIG_release_number" ]]"
+          version = "[[ env "CONFIG_prosody_tag" ]]"
+          vindex = "[[ $i ]]"
+        }
       }
 
       env {
@@ -447,6 +452,9 @@ EOH
         force_pull = [[ or (env "CONFIG_force_pull") "false" ]]
         image        = "jitsi/signal-sidecar:latest"
         ports = ["signal-sidecar-agent","signal-sidecar-http"]
+        labels {
+          release = "[[ env "CONFIG_release_number" ]]"
+        }
       }
 
       env {
@@ -494,6 +502,10 @@ EOF
           "local/prosody-plugins-custom:/prosody-plugins-custom",
           "local/config:/config",
         ]
+        labels {
+          release = "[[ env "CONFIG_release_number" ]]"
+          version = "[[ env "CONFIG_prosody_tag" ]]"
+        }
       }
 
       env {
@@ -766,6 +778,10 @@ EOH
         image        = "jitsi/prosody:[[ env "CONFIG_prosody_tag" ]]"
         ports = ["prosody-jvb-client","prosody-jvb-http"]
         volumes = ["local/prosody-plugins-custom:/prosody-plugins-custom","local/config:/config"]
+        labels {
+          release = "[[ env "CONFIG_release_number" ]]"
+          version = "[[ env "CONFIG_prosody_tag" ]]"
+        }
       }
 
 
@@ -826,6 +842,10 @@ EOF
           "local/11-jicofo-rtcstats-push:/etc/cont-init.d/11-jicofo-rtcstats-push",
           "local/jicofo-rtcstats-push-service-run:/etc/services.d/60-jicofo-rtcstats-push/run"
         ]
+        labels {
+          release = "[[ env "CONFIG_release_number" ]]"
+          version = "[[ env "CONFIG_jicofo_tag" ]]"
+        }
       }
 
       env {
@@ -989,6 +1009,10 @@ EOF
       config {
         image        = "nginx/nginx-prometheus-exporter:1.3.0"
         ports = ["web-nginx-prometheus-exporter"]
+        labels {
+          release = "[[ env "CONFIG_release_number" ]]"
+          version = "[[ env "CONFIG_web_tag" ]]"
+        }
       }
 
       env {
@@ -1021,6 +1045,10 @@ EOF
           "local/conf.stream:/etc/nginx/conf.stream",
           "local/consul-resolved.conf:/etc/systemd/resolved.conf.d/consul.conf"
         ]
+        labels {
+          release = "[[ env "CONFIG_release_number" ]]"
+          version = "[[ env "CONFIG_web_tag" ]]"
+        }
       }
       env {
         NGINX_WORKER_PROCESSES = 4
