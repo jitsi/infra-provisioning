@@ -773,10 +773,23 @@ EOH
           "--mode",
           "reverse:tcp://${NOMAD_IP_prosody_client}:${NOMAD_HOST_PORT_prosody_client}@${NOMAD_HOST_PORT_prosody_mitm}",
           "--ssl-insecure",
-          "-w",
-          "/proc/1/fd/1",
+          "-s",
+          "/local/save.py",
           "~all"
         ]
+      }
+      template {
+        data = <<EOF
+from mitmproxy.net.http.http1.assemble import assemble_request, assemble_response
+
+f = open('/proc/1/fd/1', 'w')
+
+def response(flow):
+    f.write(assemble_request(flow.request).decode('utf-8'))
+    f.write(assemble_response(flow.response).decode('utf-8', 'replace'))
+EOF
+        destination = "local/save.py"
+        perms = "755"
       }
     }
 [[ end ]]
