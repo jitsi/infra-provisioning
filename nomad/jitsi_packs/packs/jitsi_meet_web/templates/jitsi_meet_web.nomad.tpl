@@ -102,6 +102,10 @@ job [[ template "job_name" . ]] {
           "local/well-known:/usr/share/[[ or (env "CONFIG_jitsi_meet_branding_override") "jitsi-meet" ]]/.well-known",
           "local/nginx-status.conf:/config/nginx/site-confs/status.conf"
         ]
+        labels {
+          release = "[[ env "CONFIG_release_number" ]]"
+          version = "[[ env "CONFIG_web_tag" ]]"
+        }
       }
 
       env {

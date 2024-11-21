@@ -48,7 +48,7 @@ job "[JOB_NAME]" {
     task "vector" {
       driver = "docker"
       config {
-        image = "timberio/vector:0.41.1-alpine"
+        image = "timberio/vector:0.42.0-alpine"
         ports = ["api","syslog"]
         volumes = [
           "/var/log/syslog:/var/log/syslog:ro",
@@ -194,7 +194,15 @@ job "[JOB_NAME]" {
               parse_common_log(.message) ??
               parse_regex(.message, r'^(?P<timestamp>\\d+/\\d+/\\d+ \\d+:\\d+:\\d+) \\[(?P<severity>\\w+)\\] (?P<pid>\\d+)#(?P<tid>\\d+):(?: \\*(?P<connid>\\d+))? (?P<message>.*)$') ??
               {}
-            . = merge(., structured) ?? ."""
+            . = merge(., structured) ?? .
+            if exists(.label.release) {
+              .release = .label.release
+            } else {
+              .release = "default"
+            }
+            if !exists(.level) {
+              .level = "info"
+            }"""
           [sinks.out]
             type = "console"
             inputs = [ "message_to_structure" ]
@@ -211,6 +219,7 @@ job "[JOB_NAME]" {
             # remove fields that have been converted to labels to avoid having the field twice
             remove_label_fields = true
                 [sinks.loki.labels]
+                    release = "{{ .release }}"
                     level = "{{ .level }}"
                     alloc = "{{ label.\"com.hashicorp.nomad.alloc_id\" }}"
                     job = "{{ label.\"com.hashicorp.nomad.job_name\" }}"
