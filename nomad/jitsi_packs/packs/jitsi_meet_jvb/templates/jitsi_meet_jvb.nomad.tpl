@@ -166,6 +166,10 @@ EOF
           "local/jvb-rtcstats-push-service-run:/etc/services.d/60-jvb-rtcstats-push/run"
 
     	  ]
+        labels {
+          release = "[[ env "CONFIG_release_number" ]]"
+          version = "[[ env "CONFIG_jvb_tag" ]]"
+        }
       }
 
       env {
