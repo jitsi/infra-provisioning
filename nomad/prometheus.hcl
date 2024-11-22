@@ -533,8 +533,7 @@ groups:
     for: 1m
     labels:
       service: jitsi
-      severity: severe
-      page: true
+      severity: warn
     annotations:
       summary: jicofo lost more than 4 jvbs in ${var.dc} within 1 minute.
       description: >-
@@ -601,6 +600,19 @@ groups:
         number of participants on each shard is over 4000 users.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=shard_cpu_high
+  - alert: Autoscaler_Down
+    expr: absent(autoscaling_groups_managed)
+    for: 5m
+    labels:
+      service: jitsi
+      severity: severe
+    annotations:
+      summary: the autoscaler is down in ${var.dc}
+      description: >-
+        The autoscaler is not emitting metrics in ${var.dc}. This means that
+        the autoscaler may be not scaling JVBs.
+      dashboard_url: ${var.grafana_url}
+      alert_url: https://${var.prometheus_hostname}/alerts?search=autoscaler_down
 %{ if var.core_extended_services }
 - name: core_extended_service_alerts
   rules:
