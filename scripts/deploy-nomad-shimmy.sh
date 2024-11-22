@@ -16,16 +16,19 @@ if [ -z "$ORACLE_REGION" ]; then
     exit 2
 fi
 
-if [ -z "$COMPARTMENT_OCID "]; then
+if [ -z "$COMPARTMENT_OCID" ]; then
     echo "No COMPARTMENT_OCID set, exiting"
     exit 2
 fi
 
-export NOMAD_compartment_ocid=$COMPARTMENT_OCID
-export NOMAD_topic_name="$ENVIRONMENT-alert-topic"
+set -x
 
 [ -z "$LOCAL_REGION" ] && LOCAL_REGION="$OCI_LOCAL_REGION"
 [ -z "$LOCAL_REGION" ] && LOCAL_REGION="us-phoenix-1"
+
+export NOMAD_VAR_compartment_ocid=$COMPARTMENT_OCID
+export NOMAD_VAR_topic_name="$ENVIRONMENT-alert-topic"
+export NOMAD_VAR_default_region="$LOCAL_REGION"
 
 if [ -z "$NOMAD_ADDR" ]; then
     export NOMAD_ADDR="https://$ENVIRONMENT-$LOCAL_REGION-nomad.$TOP_LEVEL_DNS_ZONE_NAME"
@@ -46,6 +49,5 @@ export UNIQUE_ID="${RESOURCE_NAME_ROOT}"
 export CNAME_TARGET="${ENVIRONMENT}-${ORACLE_REGION}-nomad-pool-general-internal.${DEFAULT_DNS_ZONE_NAME}"
 export CNAME_VALUE="${RESOURCE_NAME_ROOT}"
 $LOCAL_PATH/create-oracle-cname-stack.sh
-
 
 exit $RET

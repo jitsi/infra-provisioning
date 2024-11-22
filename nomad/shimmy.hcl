@@ -128,7 +128,7 @@ EOF
         ports = ["http"]
         entrypoint = ["/bin/custom_init.sh"]
         volumes = [
-          "local/custom_init.sh:/bin/custom_init.sh"
+          "local/custom_init.sh:/bin/custom_init.sh",
           "local/shimmy.py:/opt/shimmy.py"
         ]
       }
