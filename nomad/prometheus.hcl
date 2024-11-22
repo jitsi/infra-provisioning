@@ -16,6 +16,11 @@ variable "enable_remote_write" {
   default = "false"
 }
 
+variable "enable_incoming_write" {
+  type = string
+  default = "true"
+}
+
 variable "grafana_url" {
   type = string
   default = ""
@@ -85,9 +90,9 @@ job "[JOB_NAME]" {
         image = "prom/prometheus:${var.prometheus_version}"
         force_pull = false
         ports = ["prometheus_ui"]
-        volumes = [
-          "local/alerts.yml:/etc/prometheus/alerts.yml",
-          "local/prometheus.yml:/etc/prometheus/prometheus.yml"
+        args = [
+          "--web.enable-remote-write-receiver",
+          "--config.file=/local/prometheus.yml"
         ]
       }
 
