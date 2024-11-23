@@ -467,7 +467,7 @@ groups:
 - name: core_service_alerts
   rules:
   - alert: HAProxy_Redispatch_Rate_High
-    expr: increase(haproxy_wredis) > 4
+    expr: increase(haproxy_wredis[1m]) > 4
     for: 1m
     labels:
       service: jitsi
