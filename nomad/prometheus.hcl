@@ -60,6 +60,14 @@ job "[JOB_NAME]" {
   }
 
   group "prometheus" {
+    count = 1
+
+    restart {
+      attempts = 3
+      delay    = "25s"
+      interval = "5m"
+      mode = "delay"
+    }
 
     constraint {
       attribute  = "${meta.pool_type}"
@@ -181,18 +189,18 @@ groups:
         indeed.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=alertmanager_down
-  - alert: Canary_Down
-    expr: absent(nginx_connections_accepted{service="canary"})
-    for: 5m
-    labels:
-      service: infra
-      severity: severe
-      page: true
-    annotations:
-      summary: canary service is down in ${var.dc}
-      description: The canary service is down in ${var.dc}. Latency metrics are not being collected.
-      dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=canary_down
+#  - alert: Canary_Down
+#    expr: absent(nginx_connections_accepted{service="canary"})
+#    for: 5m
+#    labels:
+#      service: infra
+#      severity: severe
+#      page: true
+#    annotations:
+#      summary: canary service is down in ${var.dc}
+#      description: The canary service is down in ${var.dc}. Latency metrics are not being collected.
+#      dashboard_url: ${var.grafana_url}
+#      alert_url: https://${var.prometheus_hostname}/alerts?search=canary_down
   - alert: Cloudprober_Down
     expr: absent(up{job="cloudprober"})
     for: 5m
@@ -472,8 +480,8 @@ groups:
 - name: core_service_alerts
   rules:
   - alert: HAProxy_Redispatch_Rate_High
-    expr: haproxy_wredis > 4
-    for: 5m
+    expr: increase(haproxy_wredis[1m]) > 4
+    for: 1m
     labels:
       service: jitsi
       severity: severe
@@ -605,19 +613,19 @@ groups:
         number of participants on each shard is over 4000 users.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=shard_cpu_high
-  - alert: Autoscaler_Down
-    expr: absent(autoscaling_groups_managed)
-    for: 5m
-    labels:
-      service: jitsi
-      severity: severe
-    annotations:
-      summary: the autoscaler is down in ${var.dc}
-      description: >-
-        The autoscaler is not emitting metrics in ${var.dc}. This means that
-        the autoscaler may be not scaling JVBs.
-      dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=autoscaler_down
+#  - alert: Autoscaler_Down
+#    expr: absent(autoscaling_groups_managed)
+#    for: 5m
+#    labels:
+#      service: jitsi
+#      severity: severe
+#    annotations:
+#      summary: the autoscaler is down in ${var.dc}
+#      description: >-
+#        The autoscaler is not emitting metrics in ${var.dc}. This means that
+#        the autoscaler may be not scaling JVBs.
+#      dashboard_url: ${var.grafana_url}
+#      alert_url: https://${var.prometheus_hostname}/alerts?search=autoscaler_down
 %{ if var.core_extended_services }
 - name: core_extended_service_alerts
   rules:
