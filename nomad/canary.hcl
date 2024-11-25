@@ -15,6 +15,11 @@ job "[JOB_NAME]" {
   group "canary" {
     count = 1
 
+    constraint {
+      attribute  = "${meta.pool_type}"
+      value     = "general"
+    }
+
     network {
       mode = "bridge"
       port "http" {
