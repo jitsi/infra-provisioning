@@ -55,6 +55,14 @@ job "[JOB_NAME]" {
   }
 
   group "prometheus" {
+    count = 1
+
+    restart {
+      attempts = 3
+      delay    = "25s"
+      interval = "5m"
+      mode = "delay"
+    }
 
     constraint {
       attribute  = "${meta.pool_type}"
