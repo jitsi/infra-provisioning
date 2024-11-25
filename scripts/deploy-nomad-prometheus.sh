@@ -46,6 +46,12 @@ if [ "$PROMETHEUS_PRODUCTION_ALERTS" == "true" ]; then
     export NOMAD_VAR_production_alerts="true"
 fi
 
+# autoscaler is deployed in this environment
+[ -z "$PROMETHEUS_AUTOSCALER_ALERTS" ] && PROMETHEUS_AUTOSCALER_ALERTS="false"
+if [ "$PROMETHEUS_AUTOSCALER_ALERTS" == "true" ]; then
+    export NOMAD_VAR_autoscaler_alerts="true"
+fi
+
 NOMAD_JOB_PATH="$LOCAL_PATH/../nomad"
 NOMAD_DC="$ENVIRONMENT-$ORACLE_REGION"
 export NOMAD_VAR_prometheus_hostname="${RESOURCE_NAME_ROOT}.${TOP_LEVEL_DNS_ZONE_NAME}"
