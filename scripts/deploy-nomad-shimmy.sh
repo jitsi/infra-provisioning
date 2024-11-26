@@ -21,10 +21,9 @@ if [ -z "$COMPARTMENT_OCID" ]; then
     exit 2
 fi
 
-set -x
-
-[ -z "$LOCAL_REGION" ] && LOCAL_REGION="$OCI_LOCAL_REGION"
-[ -z "$LOCAL_REGION" ] && LOCAL_REGION="us-phoenix-1"
+#[ -z "$LOCAL_REGION" ] && LOCAL_REGION="$OCI_LOCAL_REGION"
+#[ -z "$LOCAL_REGION" ] && LOCAL_REGION="us-phoenix-1"
+LOCAL_REGION="us-phoenix-1"
 
 export RESOURCE_NAME_ROOT="${ENVIRONMENT}-${ORACLE_REGION}-shimmy"
 
