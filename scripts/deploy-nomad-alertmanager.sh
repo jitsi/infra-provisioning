@@ -32,8 +32,8 @@ if [ -z "$NOMAD_ADDR" ]; then
     export NOMAD_ADDR="https://$ENVIRONMENT-$LOCAL_REGION-nomad.$TOP_LEVEL_DNS_ZONE_NAME"
 fi
 
-if [ -z "$NOTIFICATION_WEBHOOK_URL" ]; then
-    export NOTIFICATION_WEBHOOK_URL="https://$ENVIRONMENT-$LOCAL_REGION-shimmy.$TOP_LEVEL_DNS_ZONE_NAME/alerts"
+if [ -z "$EMAIL_ALERT_URL" ]; then
+    export EMAIL_ALERT_URL="https://$ENVIRONMENT-$LOCAL_REGION-shimmy.$TOP_LEVEL_DNS_ZONE_NAME/alerts"
 fi
 
 export RESOURCE_NAME_ROOT="${ENVIRONMENT}-${ORACLE_REGION}-alertmanager"
@@ -41,7 +41,7 @@ export RESOURCE_NAME_ROOT="${ENVIRONMENT}-${ORACLE_REGION}-alertmanager"
 NOMAD_JOB_PATH="$LOCAL_PATH/../nomad"
 NOMAD_DC="$ENVIRONMENT-$ORACLE_REGION"
 JOB_NAME="alertmanager-$ORACLE_REGION"
-export NOMAD_VAR_notification_webhook_url=$NOTIFICATION_WEBHOOK_URL
+export NOMAD_VAR_email_alert_url=$EMAIL_ALERT_URL
 export NOMAD_VAR_alertmanager_hostname="${RESOURCE_NAME_ROOT}.${TOP_LEVEL_DNS_ZONE_NAME}"
 export NOMAD_VAR_slack_channel_suffix="${ALERT_SLACK_CHANNEL}"
 export NOMAD_VAR_pagerduty_enabled="${ALERTMANAGER_PAGES_ENABLED}"

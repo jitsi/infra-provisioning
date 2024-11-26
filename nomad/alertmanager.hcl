@@ -11,7 +11,7 @@ variable "alertmanager_version" {
   default = "v0.27.0"
 }
 
-variable "notification_webhook_url" {
+variable "email_alert_url" {
   type = string
 }
 
@@ -91,12 +91,12 @@ route:
   group_wait: 10s
   group_interval: 10s
   repeat_interval: 1h
-  receiver: slack_alerts
+  receiver: email_alerts
 
   routes:
     - matchers:
       - severity =~ "severe|warn|smoke"
-      receiver: 'notification_hook'
+      receiver: 'email_alerts'
       continue: true
     - matchers:
       - severity =~ "severe|warn"
@@ -113,16 +113,16 @@ route:
       continue: true%{ endif }
 
 # suppress warn/smoke alerts if a severe alert is already firing with the same alertname
-inhibit_rules:
-  - source_matchers: [severity="severe"]
-    target_matchers: [severity=~"warn|smoke"]
-    equal: [alertname, service]
+#inhibit_rules:
+#  - source_matchers: [severity="severe"]
+#    target_matchers: [severity=~"warn|smoke"]
+#    equal: [alertname, service]
 
 receivers:
-- name: notification_hook
+- name: email_alerts
   webhook_configs:
     - send_resolved: true
-      url: '${var.notification_webhook_url}'
+      url: '${var.email_alert_url}'
 - name: slack_alerts
   slack_configs:
     - channel: '#jitsi-${var.slack_channel_suffix}'
