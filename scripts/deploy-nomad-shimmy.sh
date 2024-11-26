@@ -26,15 +26,16 @@ set -x
 [ -z "$LOCAL_REGION" ] && LOCAL_REGION="$OCI_LOCAL_REGION"
 [ -z "$LOCAL_REGION" ] && LOCAL_REGION="us-phoenix-1"
 
+export RESOURCE_NAME_ROOT="${ENVIRONMENT}-${ORACLE_REGION}-shimmy"
+
 export NOMAD_VAR_compartment_ocid=$COMPARTMENT_OCID
 export NOMAD_VAR_topic_name="$ENVIRONMENT-alert-topic"
 export NOMAD_VAR_default_region="$LOCAL_REGION"
+export NOMAD_VAR_shimmy_hostname="${RESOURCE_NAME_ROOT}.${TOP_LEVEL_DNS_ZONE_NAME}"
 
 if [ -z "$NOMAD_ADDR" ]; then
     export NOMAD_ADDR="https://$ENVIRONMENT-$LOCAL_REGION-nomad.$TOP_LEVEL_DNS_ZONE_NAME"
 fi
-
-export RESOURCE_NAME_ROOT="${ENVIRONMENT}-${ORACLE_REGION}-shimmy"
 
 NOMAD_JOB_PATH="$LOCAL_PATH/../nomad"
 NOMAD_DC="$ENVIRONMENT-$ORACLE_REGION"

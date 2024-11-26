@@ -2,6 +2,10 @@ variable "dc" {
   type = string
 }
 
+variable "shimmy_hostname" {
+  type = string
+}
+
 variable "compartment_ocid" {
   type = string
 }
@@ -27,6 +31,11 @@ job "[JOB_NAME]" {
   group "shimmy" {
     count = 1
 
+    constraint {
+      attribute  = "${meta.pool_type}"
+      value     = "general"
+    }
+
     network {
       port "http" {
         to = 8000
@@ -35,6 +44,7 @@ job "[JOB_NAME]" {
 
     service {
       name = "shimmy"
+      tags = ["int-urlprefix-${var.shimmy_hostname}/"]
       port = "http"
       check {
         name     = "alive"
@@ -53,7 +63,7 @@ job "[JOB_NAME]" {
         data = <<EOF
 #!/bin/sh
 apk add --no-cache py3-pip
-pip install --break-system-packages "fastapi[standard] oci"
+pip install --break-system-packages "fastapi[standard]" oci
 
 cd /opt
 uvicorn shimmy:app --host 0.0.0.0 --port 8000 --workers 4
@@ -70,6 +80,7 @@ from pydantic import BaseModel
 import oci
 import uvicorn
 import logging
+import sys
 
 compartment_ocid = "${var.compartment_ocid}"
 topic_name = "${var.topic_name}"
@@ -79,8 +90,17 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger('uvicorn.error')
 logger.info("shimmy is starting up")
 
-signer = oci.auth.signers.InstancePrincipalsSecurityTokenSigner()
-ndpc = oci.ons.NotificationDataPlaneClient(config={'region': '${var.default_region}'}, signer=signer)
+oci_signer = oci.auth.signers.InstancePrincipalsSecurityTokenSigner()
+ndpc = oci.ons.NotificationDataPlaneClient(config={'region': '${var.default_region}'}, signer=oci_signer)
+ncpc = oci.ons.NotificationControlPlaneClient(config={'region': '${var.default_region}'}, signer=oci_signer)
+
+topics = ncpc.list_topics(compartment_id=compartment_ocid).data
+email_topic = next((t for t in topics if t.name == topic_name), None)
+if email_topic:
+  logger.info(f"found alert email topic {topic_name} in {compartment_ocid}")
+  email_topic_id = email_topic.topic_id
+else:
+  sys.exit(f"failed to find alert email topic {topic_name} in {compartment_ocid}")
 
 class Alert(BaseModel):
   version: str             # alertmanager version
@@ -104,6 +124,13 @@ async def alerts(alert: Alert):
     send_email(alert)
     return {"message": "Alert received"}
 
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    exc_str = f'{exc}'.replace('\n', ' ').replace('   ', ' ')
+    logger.error(request, exc_str)
+    content = {'status_code': 10422, 'message': exc_str, 'data': None}
+    return JSONResponse(content=content, status_code=status.HTTP_422_UNPROCESSABLE_ENTITY)
+
 def send_email(alert: Alert):
   email_title = f"{alert.commonLabels['alertname']} ALERT [{alert.status.upper()}]: {alert.commonAnnotations['summary']}"
   email_body = \
@@ -114,7 +141,7 @@ def send_email(alert: Alert):
   # TO ADD: runbook URL, any other useful dashboards in grafana
   logger.debug("sending an email with\ntitle: {email_title}\nbody: {email_body}")
   message = oci.ons.models.MessageDetails(body=email_body, title=email_title)
-  result = ndpc.publish_message('ocid1.onstopic.oc1.phx.amaaaaaas3fd7mqaf25unw5ngr3kginpfix4akmtfzefnyqhh5ks4mhqsubq',message)
+  result = ndpc.publish_message(email_topic_id,message)
 
 if __name__ == "__main__":
   uvicorn.run(app, host="0.0.0.0", port=8000)
