@@ -82,6 +82,7 @@ SE_HUB_PORT="{{ .Port }}"
 SE_EVENT_BUS_HOST="{{ .Address }}"
 SE_EVENT_BUS_PUBLISH_PORT="{{ .ServiceMeta.publish_port }}"
 SE_EVENT_BUS_SUBSCRIBE_PORT="{{ .ServiceMeta.subscribe_port }}"
+SE_NODE_GRID_URL="http://{{ .Address }}:{{ .Port }}"
 {{ end -}}
 SE_NODE_HOST="{{env "attr.unique.network.ip-address" }}"
 SE_NODE_PORT="{{ env "NOMAD_HOST_PORT_http" }}"
