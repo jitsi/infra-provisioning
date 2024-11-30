@@ -126,6 +126,9 @@ job [[ template "job_name" . ]] {
         ASAP_JWT_AUD = "[[ var "asap_jwt_aud" . ]]"
         ASAP_JWT_ACCEPTED_HOOK_ISS = "[[ var "asap_accepted_hook_iss" . ]]"
         GROUP_CONFIG_FILE = "/config/groups.json"
+# faster group job processing
+        GROUP_JOBS_CREATION_INTERVAL_SEC = 10
+        GROUP_JOBS_CREATION_GRACE_PERIOD_SEC = 20
 [[ if var "enable_oci" . ]]
         OCI_CONFIGURATION_FILE_PATH =  "/secrets/oci.config"
         OCI_CONFIGURATION_PROFILE = "DEFAULT"
