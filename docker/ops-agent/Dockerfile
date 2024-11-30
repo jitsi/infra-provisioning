@@ -7,6 +7,7 @@ FROM  --platform=$TARGETPLATFORM jenkins/agent:latest-jdk17
 ARG TARGETPLATFORM
 ARG BUILDPLATFORM
 ARG DOCKER_GID=996
+ARG GIT_GID=1049
 
 COPY --from=0 /usr/bin/yq /usr/bin/yq
 COPY ./requirements.txt /home/jenkins/requirements.txt
@@ -58,6 +59,8 @@ RUN mkdir -p /opt/jitsi && git clone https://github.com/jitsi/token-generator.gi
 RUN if [ "$TARGETPLATFORM" = "linux/amd64" ]; then ARCHITECTURE="amd64"; elif [ "$TARGETPLATFORM" = "linux/arm64" ]; then ARCHITECTURE="arm64"; else ARCHITECTURE="amd64"; fi \
     && curl -L https://github.com/regclient/regclient/releases/latest/download/regctl-linux-$ARCHITECTURE > /usr/bin/regctl \
     && chmod 755 /usr/bin/regctl
+
+RUN groupadd -g $GIT_GID git && usermod -a -G git jenkins
 
 USER jenkins
 RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash

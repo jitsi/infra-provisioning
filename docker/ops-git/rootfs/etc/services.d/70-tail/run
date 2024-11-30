@@ -1,0 +1,5 @@
+#!/usr/bin/with-contenv bash
+
+touch /tmp/update.log
+chmod 777 /tmp/update.log
+exec tail -f /tmp/update.log

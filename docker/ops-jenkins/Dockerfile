@@ -6,6 +6,7 @@ ARG BUILDPLATFORM
 FROM  --platform=$TARGETPLATFORM jenkins/jenkins:lts-jdk17
 ARG TARGETPLATFORM
 ARG BUILDPLATFORM
+ARG GIT_GID=1049
 COPY --from=0 /usr/bin/yq /usr/bin/yq
 COPY ./requirements.txt /home/jenkins/requirements.txt
 COPY ./plugins.txt /home/jenkins/plugins.txt
@@ -27,5 +28,7 @@ RUN apt-get -y install docker-ce docker-ce-cli containerd.io docker-compose-plug
 RUN usermod -a -G docker jenkins && usermod -a -G shadow jenkins
 RUN adduser -q --disabled-password --gecos "" ubuntu && mkdir /home/ubuntu/.ssh && chown ubuntu /home/ubuntu/.ssh
 RUN mkdir -p /home/jenkins/triggers && touch /home/jenkins/triggers/reconfigure-users-jenkins && chown -R jenkins:jenkins /home/jenkins/triggers
+RUN groupadd -g $GIT_GID git && usermod -a -G git jenkins
+
 USER jenkins
 RUN jenkins-plugin-cli --plugin-file /home/jenkins/plugins.txt
