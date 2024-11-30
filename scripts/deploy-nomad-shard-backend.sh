@@ -84,15 +84,10 @@ NOMAD_DC="$ENVIRONMENT-$ORACLE_REGION"
 
 JIBRI_AUTH_TYPE="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jibri_auth_type -)"
 if [[ "$JIBRI_AUTH_TYPE" == "null" ]]; then
-    JIBRI_AUTH_TYPE="legacy"
+    JIBRI_AUTH_TYPE="B"
 fi
 
-if [[ "$JIBRI_AUTH_TYPE" == "legacy" ]]; then
-    JIBRI_XMPP_PASSWORD_VARIABLE="jibri_auth_password"
-    JIBRI_XMPP_USERNAME="jibri"
-    JIBRI_RECORDER_PASSWORD_VARIABLE="jibri_selenium_auth_password"
-    JIBRI_RECORDER_USERNAME="recorder"
-elif [[ "$JIBRI_AUTH_TYPE" == "A" ]]; then
+if [[ "$JIBRI_AUTH_TYPE" == "A" ]]; then
     JIBRI_XMPP_PASSWORD_VARIABLE="secrets_jibri_brewery_by_environment_A.\"$ENVIRONMENT\""
     JIBRI_XMPP_USERNAME="jibria"
     JIBRI_RECORDER_PASSWORD_VARIABLE="secrets_jibri_selenium_by_environment_A.\"$ENVIRONMENT\""
