@@ -76,7 +76,7 @@ events {
 
 http {
     include       /etc/nginx/mime.types;
-    default_type  application/octet-stream;
+    default_type  text/plain;
 
     log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
         '$status $body_bytes_sent "$http_referer" '
@@ -100,7 +100,6 @@ server {
     server_name  localhost;
 
     location /health {
-        add_header 'Content-Type' 'text/plain';
         return 200 "OK\n";
     }
 }
