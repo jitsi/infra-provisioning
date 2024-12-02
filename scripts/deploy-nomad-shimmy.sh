@@ -27,8 +27,8 @@ fi
 export RESOURCE_NAME_ROOT="${ENVIRONMENT}-${ORACLE_REGION}-shimmy"
 
 export NOMAD_VAR_compartment_ocid=$COMPARTMENT_OCID
-export NOMAD_VAR_topic_name="$ENVIRONMENT-alert-topic"
-export NOMAD_VAR_default_region="us-phoenix-1"
+export NOMAD_VAR_topic_name="$ENVIRONMENT-topic"
+export NOMAD_VAR_region="$ORACLE_REGION"
 export NOMAD_VAR_shimmy_hostname="${RESOURCE_NAME_ROOT}.${TOP_LEVEL_DNS_ZONE_NAME}"
 
 if [ -z "$NOMAD_ADDR" ]; then
