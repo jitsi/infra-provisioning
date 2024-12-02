@@ -139,9 +139,10 @@ def send_email(alert: Alert):
     f"view the alert in the datacenter's Prometheus: {alert.commonAnnotations['alert_url']}\n" + \
     f"see the global alert dashboard: {alert.commonAnnotations['dashboard_url']}"
   # TO ADD: runbook URL, any other useful dashboards in grafana
-  logger.debug("sending an email with\ntitle: {email_title}\nbody: {email_body}")
+  logger.info("sending an email with\ntitle: {email_title}\nbody: {email_body}")
   message = oci.ons.models.MessageDetails(body=email_body, title=email_title)
   result = ndpc.publish_message(email_topic_id,message)
+  logger.info(f"result: {result.data}")
 
 if __name__ == "__main__":
   uvicorn.run(app, host="0.0.0.0", port=8000)
