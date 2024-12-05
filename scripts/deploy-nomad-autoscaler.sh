@@ -47,6 +47,16 @@ else
     REDIS_TLS="true"
 fi
 
+METRICS_PROVIDER="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval ".autoscaler_metrics_provider" -)"
+if [[ "$METRICS_PROVIDER" == "null" ]]; then
+    METRICS_PROVIDER=""
+fi
+
+ENABLE_PROMETHEUS="false"
+if [[ "$METRICS_PROVIDER" == "prometheus" ]]; then
+    ENABLE_PROMETHEUS="true"
+fi
+
 NOMAD_DC="$ENVIRONMENT-$ORACLE_REGION"
 # for ORACLE_REGION in $REGIONS; do
 #     NOMAD_DC="$( echo "$NOMAD_DC" "[\"$ENVIRONMENT-$ORACLE_REGION\"]" | jq -c -s '.|add')"
@@ -71,6 +81,8 @@ $ASAP_BASE_URL_CONFIG
 redis_from_consul=$REDIS_FROM_CONSUL
 redis_host="$REDIS_HOST"
 redis_tls=$REDIS_TLS
+enable_prometheus=$ENABLE_PROMETHEUS
+prometheus_url="https://$ENVIRONMENT-$ORACLE_REGION-prometheus.$TOP_LEVEL_DNS_ZONE_NAME"
 EOF
 
 JOB_NAME="autoscaler-$ORACLE_REGION"
