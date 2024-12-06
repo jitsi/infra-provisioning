@@ -26,7 +26,7 @@ job "[JOB_NAME]" {
     value     = "linux"
   }
 
-  group "node" {
+  group "grid-node" {
     constraint {
       attribute  = "${meta.pool_type}"
       value     = "selenium-grid"
@@ -60,11 +60,11 @@ job "[JOB_NAME]" {
         timeout  = "2s"
       }
     }
-    task "node" {
+    task "node-chrome" {
       driver = "docker"
 
       config {
-        image        = "${var.registry_prefix}selenium/node-chrome:4.26"
+        image        = "${var.registry_prefix}selenium/node-chrome:4.27"
         ports = ["http","vnc","no-vnc"]
         volumes = [
           "/opt/jitsi/jitsi-meet-torture:/usr/share/jitsi-meet-torture:ro",
