@@ -126,6 +126,10 @@ job [[ template "job_name" . ]] {
         ASAP_JWT_AUD = "[[ var "asap_jwt_aud" . ]]"
         ASAP_JWT_ACCEPTED_HOOK_ISS = "[[ var "asap_accepted_hook_iss" . ]]"
         GROUP_CONFIG_FILE = "/config/groups.json"
+[[ if var "enable_prometheus" . ]]
+        PROMETHEUS_URL = "[[ var "prometheus_url" . ]]"
+        METRICS_STORE_PROVIDER = "prometheus"
+[[ end ]]
 [[ if var "enable_oci" . ]]
         OCI_CONFIGURATION_FILE_PATH =  "/secrets/oci.config"
         OCI_CONFIGURATION_PROFILE = "DEFAULT"

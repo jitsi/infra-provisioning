@@ -117,6 +117,18 @@ variable "oci_compartment_id" {
   type        = string
 }
 
+variable "enable_prometheus" {
+  description = "If you want to enable prometheus metrics store"
+  type        = bool
+  default     = false
+}
+
+variable "prometheus_url" {
+  description = "URL for prometheus backend"
+  type        = string
+  default     = ""
+}
+
 variable "resources" {
   description = "The resources to use for the job"
   type        = object({
