@@ -10,7 +10,7 @@ variable jibri_recorder_password {
 
 variable jibri_recorder_username {
     type = string
-    default = "jibrib"
+    default = "jibri"
 }
 
 variable jibri_xmpp_password {
