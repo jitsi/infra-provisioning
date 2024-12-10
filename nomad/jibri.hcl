@@ -20,7 +20,7 @@ variable jibri_xmpp_password {
 
 variable jibri_xmpp_username {
     type = string
-    default = "jibrib"
+    default = "jibri"
 }
 
 variable "jibri_tag" {
