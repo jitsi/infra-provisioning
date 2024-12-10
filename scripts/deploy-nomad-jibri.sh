@@ -60,7 +60,7 @@ if [[ "$JIBRI_AUTH_TYPE" == "A" ]]; then
     JIBRI_XMPP_USERNAME="jibria"
     JIBRI_RECORDER_PASSWORD_VARIABLE="secrets_jibri_selenium_by_environment_A.\"$ENVIRONMENT\""
     JIBRI_RECORDER_USERNAME="jibria"
-if [[ "$JIBRI_AUTH_TYPE" == "B" ]]; then
+elif [[ "$JIBRI_AUTH_TYPE" == "B" ]]; then
     JIBRI_XMPP_PASSWORD_VARIABLE="secrets_jibri_brewery_by_environment_B.\"$ENVIRONMENT\""
     JIBRI_XMPP_USERNAME="jibrib"
     JIBRI_RECORDER_PASSWORD_VARIABLE="secrets_jibri_selenium_by_environment_B.\"$ENVIRONMENT\""
