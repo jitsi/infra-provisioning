@@ -87,7 +87,7 @@ global:
   slack_api_url: "{{{ with secret "secret/default/alertmanager/receivers/slack" }}}{{{ .Data.data.slack_general_webhook }}}{{{ end }}}"
 
 route:
-  group_by: ['alertname', 'service', 'severity']
+  group_by: ['alertname']
   group_wait: 10s
   group_interval: 10s
   repeat_interval: 1h
