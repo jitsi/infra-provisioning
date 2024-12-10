@@ -195,18 +195,18 @@ groups:
         indeed.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=alertmanager_down
-#  - alert: Canary_Down
-#    expr: absent(nginx_connections_accepted{service="canary"})
-#    for: 5m
-#    labels:
-#      service: infra
-#      severity: severe
-#      page: true
-#    annotations:
-#      summary: canary service is down in ${var.dc}
-#      description: The canary service is down in ${var.dc}. Latency metrics are not being collected.
-#      dashboard_url: ${var.grafana_url}
-#      alert_url: https://${var.prometheus_hostname}/alerts?search=canary_down
+  - alert: Canary_Down
+    expr: absent(nginx_connections_accepted{service="canary"})
+    for: 5m
+    labels:
+      service: infra
+      severity: severe
+      page: true
+    annotations:
+      summary: canary service is down in ${var.dc}
+      description: The canary service is down in ${var.dc}. Latency metrics are not being collected.
+      dashboard_url: ${var.grafana_url}
+      alert_url: https://${var.prometheus_hostname}/alerts?search=canary_down
   - alert: Cloudprober_Down
     expr: absent(up{job="cloudprober"})
     for: 5m
