@@ -116,7 +116,7 @@ route:
 inhibit_rules:
   - source_matchers: [severity="severe"]
     target_matchers: [severity=~"warn|smoke"]
-    equal: [alertname, service]
+    equal: ['alertname']
 
 receivers:
 - name: email_alerts
