@@ -8,9 +8,19 @@ variable jibri_recorder_password {
     default = "replaceme_recorder"
 }
 
+variable jibri_recorder_username {
+    type = string
+    default = "jibri"
+}
+
 variable jibri_xmpp_password {
     type = string
     default = "replaceme_jibri"
+}
+
+variable jibri_xmpp_username {
+    type = string
+    default = "jibri"
 }
 
 variable "jibri_tag" {
@@ -168,9 +178,9 @@ job "[JOB_NAME]" {
         XMPP_ENV_NAME = "${var.environment}"
         XMPP_DOMAIN = "${var.domain}"
         PUBLIC_URL="https://${var.domain}/"
-        JIBRI_RECORDER_USER = "recorder"
+        JIBRI_RECORDER_USER = "${var.jibri_recorder_username}"
         JIBRI_RECORDER_PASSWORD = "${var.jibri_recorder_password}"
-        JIBRI_XMPP_USER = "jibri"
+        JIBRI_XMPP_USER = "${var.jibri_xmpp_username}"
         JIBRI_XMPP_PASSWORD = "${var.jibri_xmpp_password}"
         # Internal XMPP domain for authenticated services
         XMPP_AUTH_DOMAIN = "auth.${var.domain}"
