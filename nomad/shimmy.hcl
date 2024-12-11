@@ -132,7 +132,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     return JSONResponse(content=content, status_code=status.HTTP_422_UNPROCESSABLE_ENTITY)
 
 def send_email(alert: Alert):
-  email_title = f"[{alert.commonLabels['severity'].upper()}] ${var.dc} {alert.commonLabels['alertname']}: {alert.commonAnnotations['summary']}"
+  email_title = f"[{alert.commonLabels['severity'].upper()}] ${var.dc}: {alert.commonLabels['alertname']}: {alert.commonAnnotations['summary']}"
   email_body = \
     f"[{alert.status.upper()}]: {alert.commonLabels['alertname']} from {alert.commonLabels['datacenter']}.\n" + \
     f"{alert.commonAnnotations['description']}\n\n" + \

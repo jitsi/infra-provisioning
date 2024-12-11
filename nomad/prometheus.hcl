@@ -544,7 +544,8 @@ groups:
       description: >-
         A jicofo instance has bridges with different version-release strings in
         ${var.dc}. This may happen during a JVB pool upgrade; if this is not the
-        case then cross-regional octo is likely broken, which will result in degraded service.
+        case then cross-regional octo is likely broken, which will result in
+        degraded service.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=jicofo_jvb_version_mismatch
   - alert: Jicofo_JVBs_Lost_High
@@ -556,7 +557,7 @@ groups:
     annotations:
       summary: jicofo lost more than 4 jvbs in ${var.dc} within 1 minute.
       description: >-
-        Jicofo lost more than 4 jvbs in ${var.dc} within 1 minute, which may
+        Jicofo lost {{ $value | printf "%.1f" }} jvbs in ${var.dc} within 1 minute, which may
         mean that some sort of failure is occurring.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=jicofo_jvbs_lost_high
