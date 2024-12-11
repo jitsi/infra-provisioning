@@ -195,18 +195,18 @@ groups:
         indeed.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=alertmanager_down
-#  - alert: Canary_Down
-#    expr: absent(nginx_connections_accepted{service="canary"})
-#    for: 5m
-#    labels:
-#      service: infra
-#      severity: severe
-#      page: true
-#    annotations:
-#      summary: canary service is down in ${var.dc}
-#      description: The canary service is down in ${var.dc}. Latency metrics are not being collected.
-#      dashboard_url: ${var.grafana_url}
-#      alert_url: https://${var.prometheus_hostname}/alerts?search=canary_down
+  - alert: Canary_Down
+    expr: absent(nginx_connections_accepted{service="canary"})
+    for: 5m
+    labels:
+      service: infra
+      severity: severe
+      page: true
+    annotations:
+      summary: canary service is down in ${var.dc}
+      description: The canary service is down in ${var.dc}. Latency metrics are not being collected.
+      dashboard_url: ${var.grafana_url}
+      alert_url: https://${var.prometheus_hostname}/alerts?search=canary_down
   - alert: Cloudprober_Down
     expr: absent(up{job="cloudprober"})
     for: 5m
@@ -523,7 +523,7 @@ groups:
       service: jitsi
       severity: smoke
     annotations:
-      summary: jicofo in ${var.dc} has had an unusually high number of ICE restarts
+      summary: {{ labels.shard }} in ${var.dc} has had an unusually high number of ICE restarts
       description: >-
         The jicofo for {{ $labels.shard }} in ${var.dc} has had an unusual
         number of ICE restarts. This is typically due to network issues on the
@@ -540,11 +540,12 @@ groups:
       severity: warn
       page: true
     annotations:
-      summary: at least one jicofo in ${var.dc} has bridges with different version-release strings
+      summary: {{ labels.shard }} in ${var.dc} has bridges with different version-release strings
       description: >-
-        A jicofo instance has bridges with different version-release strings in
-        ${var.dc}. This may happen during a JVB pool upgrade; if this is not the
-        case then cross-regional octo is likely broken, which will result in degraded service.
+        The jicofo for {{ labels.shard }} has bridges with different
+        version-release strings in ${var.dc}. This may happen during a JVB pool
+        upgrade; if this is not the case then cross-regional octo is likely
+        broken, which will result in degraded service.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=jicofo_jvb_version_mismatch
   - alert: Jicofo_JVBs_Lost_High
@@ -554,10 +555,11 @@ groups:
       service: jitsi
       severity: warn
     annotations:
-      summary: jicofo lost more than 4 jvbs in ${var.dc} within 1 minute.
+      summary: {{ labels.shard }} lost more than 4 jvbs in ${var.dc} within 1 minute.
       description: >-
-        Jicofo lost more than 4 jvbs in ${var.dc} within 1 minute, which may
-        mean that some sort of failure is occurring.
+        The jicofo for {{ labels.shard }} lost {{ $value | printf "%.1f" }} jvbs
+        in ${var.dc} within 1 minute, which may mean that some sort of failure
+        is occurring.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=jicofo_jvbs_lost_high
   - alert: Jicofo_JVBs_Missing
@@ -570,8 +572,8 @@ groups:
     annotations:
       summary: no jvbs are available in ${var.dc}
       description: >-
-        No jvbs are available in ${var.dc}. This means that no jvb instances
-        are available to host meetings.
+        According to {{ labels.shard }}, no jvbs are available in ${var.dc}.
+        This means that no jvb instances are available to host meetings.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=jicofo_jvbs_missing
   - alert: JVB_CPU_High

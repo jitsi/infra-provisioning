@@ -87,7 +87,7 @@ global:
   slack_api_url: "{{{ with secret "secret/default/alertmanager/receivers/slack" }}}{{{ .Data.data.slack_general_webhook }}}{{{ end }}}"
 
 route:
-  group_by: ['alertname', 'service', 'severity']
+  group_by: ['alertname']
   group_wait: 10s
   group_interval: 10s
   repeat_interval: 1h
@@ -113,10 +113,10 @@ route:
       continue: true%{ endif }
 
 # suppress warn/smoke alerts if a severe alert is already firing with the same alertname
-#inhibit_rules:
-#  - source_matchers: [severity="severe"]
-#    target_matchers: [severity=~"warn|smoke"]
-#    equal: [alertname, service]
+inhibit_rules:
+  - source_matchers: [severity="severe"]
+    target_matchers: [severity=~"warn|smoke"]
+    equal: ['alertname']
 
 receivers:
 - name: email_alerts
@@ -130,7 +130,7 @@ receivers:
       send_resolved: true
       title: '[{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] ({{ or .CommonLabels.alertname "Multiple Alert Types" }} in ${var.dc}) <{{- .GroupLabels.SortedPairs.Values | join " " }}>'
       text: |-
-        {{ if eq .GroupLabels.severity "severe" }}{{ if eq .Status "firing" }}<!here>{{ end }}{{ end }}{{ range .Alerts }}
+        *[{{ .CommonLabels.severity | toUpper }}]* {{ if eq .GroupLabels.severity "severe" }}{{ if eq .Status "firing" }}<!here>{{ end }}{{ end }}{{ range .Alerts }}
         *{{ index .Labels "alertname" }}* {{- if .Annotations.summary }}: *{{ .Annotations.summary }}* {{- end }}
         {{- if eq .Status "firing" }}{{- if .Annotations.description }}
         _{{ .Annotations.description }}_
@@ -149,7 +149,7 @@ receivers:
       send_resolved: true
       title: '[{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] ({{ or .CommonLabels.alertname "Multiple Alert Types" }} in ${var.dc}) <{{- .GroupLabels.SortedPairs.Values | join " " }}>'
       text: |-
-        {{ if eq .GroupLabels.severity "severe" }}{{ if eq .Status "firing" }}<!here> - PAGE{{ if .CommonLabels.page }}{{ if ne .CommonLabels.page "true" }}-CANDIDATE{{ end }}{{ end }}{{ end }}{{ end }}{{ range .Alerts }}
+        {{ if eq .GroupLabels.severity "severe" }}{{ if eq .Status "firing" }}<!here> - PAGE{{ if .CommonLabels.page }}{{ if ne .CommonLabels.page "true" }}-CANDIDATE{{ end }}{{ else }}-CANDIDATE{{ end }}{{ end }}{{ end }}{{ range .Alerts }}
         *{{ index .Labels "alertname" }}* {{- if .Annotations.summary }}: *{{ .Annotations.summary }}* {{- end }}{{ if eq .Status "firing" }} - {{ if .Annotations.alert_url }}{{ .Annotations.alert_url }}{{ end }}{{ end }}
         {{- end }}
 %{ endif }
