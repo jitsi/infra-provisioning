@@ -523,7 +523,7 @@ groups:
       service: jitsi
       severity: smoke
     annotations:
-      summary: {{ $labels.shard }} in ${var.dc} has had an unusually high number of ICE restarts
+      summary: shard {{ $labels.shard }} in ${var.dc} has had an unusually high number of ICE restarts
       description: >-
         The jicofo for {{ $labels.shard }} in ${var.dc} has had an unusual
         number of ICE restarts. This is typically due to network issues on the
@@ -540,7 +540,7 @@ groups:
       severity: warn
       page: true
     annotations:
-      summary: {{ $labels.shard }} in ${var.dc} has bridges with different version-release strings
+      summary: shard {{ $labels.shard }} in ${var.dc} has bridges with different version-release strings
       description: >-
         The jicofo for {{ $labels.shard }} has bridges with different
         version-release strings in ${var.dc}. This may happen during a JVB pool
@@ -555,7 +555,7 @@ groups:
       service: jitsi
       severity: warn
     annotations:
-      summary: {{ $labels.shard }} lost more than 4 jvbs in ${var.dc} within 1 minute.
+      summary: shard {{ $labels.shard }} lost more than 4 jvbs in ${var.dc} within 1 minute.
       description: >-
         The jicofo for {{ $labels.shard }} lost {{ $value | printf "%.1f" }} jvbs
         in ${var.dc} within 1 minute, which may mean that some sort of failure
