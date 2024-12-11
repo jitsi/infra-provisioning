@@ -130,7 +130,7 @@ receivers:
       send_resolved: true
       title: '[{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] ({{ or .CommonLabels.alertname "Multiple Alert Types" }} in ${var.dc}) <{{- .GroupLabels.SortedPairs.Values | join " " }}>'
       text: |-
-        *[{{ .GroupLabels.severity | toUpper }}]* {{ if eq .GroupLabels.severity "severe" }}{{ if eq .Status "firing" }}<!here>{{ end }}{{ end }}{{ range .Alerts }}
+        *[{{ .CommonLabels.severity | toUpper }}]* {{ if eq .GroupLabels.severity "severe" }}{{ if eq .Status "firing" }}<!here>{{ end }}{{ end }}{{ range .Alerts }}
         *{{ index .Labels "alertname" }}* {{- if .Annotations.summary }}: *{{ .Annotations.summary }}* {{- end }}
         {{- if eq .Status "firing" }}{{- if .Annotations.description }}
         _{{ .Annotations.description }}_
