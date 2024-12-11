@@ -523,7 +523,7 @@ groups:
       service: jitsi
       severity: smoke
     annotations:
-      summary: {{ labels.shard }} in ${var.dc} has had an unusually high number of ICE restarts
+      summary: {{ $labels.shard }} in ${var.dc} has had an unusually high number of ICE restarts
       description: >-
         The jicofo for {{ $labels.shard }} in ${var.dc} has had an unusual
         number of ICE restarts. This is typically due to network issues on the
@@ -540,9 +540,9 @@ groups:
       severity: warn
       page: true
     annotations:
-      summary: {{ labels.shard }} in ${var.dc} has bridges with different version-release strings
+      summary: {{ $labels.shard }} in ${var.dc} has bridges with different version-release strings
       description: >-
-        The jicofo for {{ labels.shard }} has bridges with different
+        The jicofo for {{ $labels.shard }} has bridges with different
         version-release strings in ${var.dc}. This may happen during a JVB pool
         upgrade; if this is not the case then cross-regional octo is likely
         broken, which will result in degraded service.
@@ -555,9 +555,9 @@ groups:
       service: jitsi
       severity: warn
     annotations:
-      summary: {{ labels.shard }} lost more than 4 jvbs in ${var.dc} within 1 minute.
+      summary: {{ $labels.shard }} lost more than 4 jvbs in ${var.dc} within 1 minute.
       description: >-
-        The jicofo for {{ labels.shard }} lost {{ $value | printf "%.1f" }} jvbs
+        The jicofo for {{ $labels.shard }} lost {{ $value | printf "%.1f" }} jvbs
         in ${var.dc} within 1 minute, which may mean that some sort of failure
         is occurring.
       dashboard_url: ${var.grafana_url}
@@ -572,7 +572,7 @@ groups:
     annotations:
       summary: no jvbs are available in ${var.dc}
       description: >-
-        According to {{ labels.shard }}, no jvbs are available in ${var.dc}.
+        According to {{ $labels.shard }}, no jvbs are available in ${var.dc}.
         This means that no jvb instances are available to host meetings.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=jicofo_jvbs_missing
