@@ -22,7 +22,7 @@ config.maxFullResolutionParticipants = 1;
 if (!config.hasOwnProperty('videoQuality')) config.videoQuality = {};
 config.videoQuality.codecPreferenceOrder=[[ or (env "CONFIG_jitsi_meet_jvb_preferred_codecs") "[ 'AV1', 'VP9', 'VP8', 'H264' ]" ]];
 config.videoQuality.mobileCodecPreferenceOrder = [[ or (env "CONFIG_jitsi_meet_jvb_preferred_mobile_codecs") "[ 'VP8', 'H264', 'VP9' ]" ]];
-config.videoQuality.enableAdaptiveMode=[[ or (env "CONFIG_jitsi_meet_enable_adaptive_mode") "false" ]];
+config.videoQuality.enableAdaptiveMode=[[ or (env "CONFIG_jitsi_meet_enable_adaptive_mode") "true" ]];
 [[ if eq (env "CONFIG_jitsi_meet_enable_simulcast_av1") "true" -]]
 config.videoQuality.av1.useSimulcast=true;
 [[- end ]]
@@ -268,9 +268,8 @@ config.testing.dumpTranscript = true;
 [[ if eq (env "CONFIG_jitsi_meet_skip_interim_transcriptions") "true" -]]
 config.testing.skipInterimTranscriptions = true;
 [[- end ]]
-[[ if eq (env "CONFIG_jitsi_meet_enable_codec_selection_api") "true" -]]
-config.testing.enableCodecSelectionAPI = true;
-[[- end ]]
+
+config.testing.enableCodecSelectionAPI = [[ or (env "CONFIG_jitsi_meet_enable_codec_selection_api") "true" ]];
 
 [[ template "config_deeplinking.js" . ]]
 
