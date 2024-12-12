@@ -221,7 +221,7 @@ groups:
         this datacenter.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=cloudprober_down
-  - alert: Consul_Down_Warn
+  - alert: Consul_Down
     expr: count(consul_server_isLeader) < 3
     for: 5m
     labels:
@@ -231,7 +231,7 @@ groups:
       summary: there are fewer than 3 consul servers in ${var.dc}
       description: >-
         There are fewer than 3 consul servers in ${var.dc}, which means the
-        cluster is not complete. This may mean that service discovery may not be
+        cluster is incomplete. This may mean that service discovery may not be
         functioning. Currently there are {{ $value }} servers.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=consul_down
@@ -249,7 +249,7 @@ groups:
         functioning and all service may be compromised.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=consul_down
-  - alert: Nomad_Down_Warn
+  - alert: Nomad_Down
     expr: count(nomad_runtime_alloc_bytes) < 3
     for: 5m
     labels:
@@ -528,8 +528,9 @@ groups:
         The jicofo for {{ $labels.shard }} in ${var.dc} has had an unusual
         number of ICE restarts. This is typically due to network issues on the
         client side so is likely not a concern, but should be investigated if
-        the situation persists or affects multiple shards. There were {{ $value }}
-        restarts per participant per shard in the last 10 minutes.
+        the situation persists or affects multiple shards. There were
+        {{ $value | printf "%.2f" }} restarts per participant per shard in the
+        last 10 minutes.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=jicofo_ice_restarts_high
   - alert: Jicofo_JVB_Version_Mismatch
