@@ -1,0 +1,50 @@
+def utils
+pipeline {
+    agent any
+    options {
+        ansiColor('xterm')
+        timestamps()
+        buildDiscarder(logRotator(numToKeepStr: '10', artifactNumToKeepStr: '10'))
+    }
+    stages {
+        stage ("setup") {
+            steps {
+                script {
+                    def rootDir = pwd()
+                    utils = load "${rootDir}/jenkins/groovy/Utils.groovy"
+                    utils.SetupRepos(env.VIDEO_INFRA_BRANCH)
+                    utils.SetupOCI()
+                    sh 'mkdir -p test-results'
+                }
+            }
+        }
+        stage ("Whisper instance configuration provisioning") {
+            steps {
+                script {
+                    echo 'Start provisioning whisper instance configuration'
+                    dir('infra-provisioning') {
+                        withCredentials([
+                            string(credentialsId: 'oci-jenkins-terraform-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
+                            string(credentialsId: 'oci-jenkins-terraform-aws-id', variable: 'AWS_ACCESS_KEY_ID'),
+                            sshUserPrivateKey(credentialsId: 'ssh-ubuntu', keyFileVariable: 'USER_PRIVATE_KEY_PATH', usernameVariable: 'SSH_USERNAME')
+                        ]) {
+                            utils.SetupAnsible()
+                            utils.SetupSSH()
+
+                            if (!fileExists("terraform/nomad-whisper/create-nomad-whisper-configuration.sh")) {
+                                error("No known job type: ${env.JOB_TYPE}")
+                            }
+
+                            sshagent (credentials: ['ssh-ubuntu']) {
+                                sh """#!/bin/bash
+                                export USER_PUBLIC_KEY_PATH=~/.ssh/ssh_key.pub
+                                export ORACLE_GIT_BRANCH=\"$RELEASE_BRANCH\"
+                                terraform/nomad-whisper/create-nomad-whisper-configuration.sh $SSH_USERNAME"""
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
