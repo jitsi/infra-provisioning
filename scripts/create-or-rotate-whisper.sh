@@ -123,7 +123,7 @@ export SCALE_DOWN_PERIODS_COUNT=${SCALE_DOWN_PERIODS_COUNT}
 
 ####
 
-echo "Creating jvb group"
+echo "Creating Whisper autoscaling group"
 $LOCAL_PATH/custom-autoscaler-create-group.sh
 CREATE_GROUP_RESULT="$?"
 
@@ -149,7 +149,7 @@ fi
 [ -z "$TOKEN" ] && TOKEN=$(JWT_ENV_FILE=$JWT_ENV_FILE /opt/jitsi/jitsi-autoscaler-sidecar/scripts/jwt.sh)
 
 if [ $WAIT_FOR_POSTINSTALL == "TRUE" ]; then
-  echo "Wait for JVB instances to launch"
+  echo "Wait for Whisper instances to launch"
 
   if [ $SLEEP_SECONDS_BEFORE_POSTINSTALL_CHECKS -gt 0 ]; then
     echo "Sleeping for $SLEEP_SECONDS_BEFORE_POSTINSTALL_CHECKS seconds before checking postinstall result"
@@ -161,9 +161,9 @@ if [ $WAIT_FOR_POSTINSTALL == "TRUE" ]; then
   export SIDECAR_ENV_VARIABLES
   export AUTOSCALER_URL
   export TOKEN
-  export EXPECTED_COUNT="$MIN_COUNT"
+  export EXPECTED_COUNT="$DESIRED_COUNT"
   export CHECK_SCALE_UP="true"
-  $LOCAL_PATH/check-jvb-count-custom-autoscaler-oracle.sh
+  $LOCAL_PATH/check-count-custom-autoscaler-oracle.sh
   POSTINSTALL_RESULT=$?
 
   if [ $POSTINSTALL_RESULT -gt 0 ]; then
