@@ -869,6 +869,7 @@ EOF
         ENABLE_CODEC_H264="[[ or (env "CONFIG_jicofo_enable_h264") "true" ]]"
         ENABLE_CODEC_OPUS_RED="[[ env "CONFIG_jicofo_enable_opus_red" ]]"
         ENABLE_OCTO_SCTP="[[ env "CONFIG_jicofo_enable_sctp_relay" ]]"
+        ENABLE_VLA="[[ env "CONFIG_jicofo_enable_video_layers_allocation" ]]"
         JICOFO_TRUSTED_DOMAINS="auth.[[ env "CONFIG_domain" ]],recorder.[[ env "CONFIG_domain" ]],jigasia.[[ env "CONFIG_domain" ]],jigasib.[[ env "CONFIG_domain" ]]"
         JICOFO_CONF_SSRC_REWRITING="[[ env "CONFIG_jicofo_ssrc_rewriting" ]]"
         JICOFO_CONF_MAX_AUDIO_SENDERS="[[ env "CONFIG_jicofo_max_audio_senders" ]]"

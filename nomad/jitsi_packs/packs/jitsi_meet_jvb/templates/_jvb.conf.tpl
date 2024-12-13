@@ -45,6 +45,10 @@ videobridge {
     [[ if ne (or (env "CONFIG_jvb_assumed_bandwidth_limit") "10 Mbps") "false" ]]
     assumed-bandwidth-limit = [[ or (env "CONFIG_jvb_assumed_bandwidth_limit") "10 Mbps" ]]
     [[ end ]]
+
+    [[ if ne (or (env "CONFIG_jvb_use_vla_target_bitrate") "false") "false" ]]
+    use-vla-target-bitrate =  [[ or (env "CONFIG_jvb_use_vla_target_bitrate") "false" ]]
+    [[ end ]]
   }
   cryptex {
     [[ if eq (or (env "CONFIG_jvb_enable_cryptex_endpoint") "false") "true" ]]
