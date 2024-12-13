@@ -163,7 +163,7 @@ if [ $WAIT_FOR_POSTINSTALL == "TRUE" ]; then
   export TOKEN
   export EXPECTED_COUNT="$DESIRED_COUNT"
   export CHECK_SCALE_UP="true"
-  $LOCAL_PATH/check-count-custom-autoscaler-oracle.sh
+  $LOCAL_PATH/check-jvb-count-custom-autoscaler-oracle.sh
   POSTINSTALL_RESULT=$?
 
   if [ $POSTINSTALL_RESULT -gt 0 ]; then
