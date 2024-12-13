@@ -9,23 +9,16 @@ variable "pool_type" {}
 variable "git_branch" {}
 variable "tenancy_ocid" {}
 variable "compartment_ocid" {}
-variable "resource_name_root" {}
 variable "instance_config_name" {}
 variable "image_ocid" {}
 variable "user_public_key_path" {}
-variable "security_group_id" {}
 variable "shape" {}
 variable "memory_in_gbs" {}
 variable "ocpus" {}
 variable "pool_subnet_ocid" {}
-variable "public_subnet_ocid" {}
-variable "instance_pool_size" {}
-variable "instance_pool_name" {}
 variable "environment_type" {}
 variable "tag_namespace" {}
 variable "user" {}
-variable "user_private_key_path" {}
-variable "vcn_name" {}
 
 variable "postinstall_status_file" {}
 variable "user_data_lib_path" {
@@ -71,6 +64,14 @@ terraform {
   }
 }
 
+data "oci_core_network_security_groups" "nomad_network_security_groups" {
+  compartment_id = var.compartment_ocid
+  filter {
+    name = "display_name"
+    values = ["${var.environment}-${var.oracle_region}-nomad-pool-shared-SecurityGroup"]
+  }
+}
+
 resource "oci_core_instance_configuration" "oci_instance_configuration" {
   lifecycle {
       create_before_destroy = true
@@ -96,7 +97,7 @@ resource "oci_core_instance_configuration" "oci_instance_configuration" {
 
       create_vnic_details {
         subnet_id = var.pool_subnet_ocid
-        nsg_ids = [var.security_group_id]
+        nsg_ids = data.oci_core_network_security_groups.nomad_network_security_groups.network_security_groups[*].id
       }
 
       source_details {
@@ -122,16 +123,3 @@ resource "oci_core_instance_configuration" "oci_instance_configuration" {
   }
 }
 
-data "oci_core_vcns" "vcns" {
-  compartment_id = var.compartment_ocid
-  display_name = var.vcn_name
-}
-
-
-locals {
-  private_ips = data.oci_core_instance.oci_instance_datasources.*.private_ip
-}
-
-output "private_ips" {
-  value = local.private_ips
-}
