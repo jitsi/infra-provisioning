@@ -149,7 +149,6 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
   -var="tenancy_ocid=$TENANCY_OCID" \
   -var="compartment_ocid=$COMPARTMENT_OCID" \
   -var="pool_subnet_ocid=$POOL_SUBNET_OCID" \
-  -var="environment_type=$ENVIRONMENT_TYPE" \
   -var="tag_namespace=$TAG_NAMESPACE" \
   -var="user=$SSH_USER" \
   -var="instance_config_name=$INSTANCE_CONFIG_NAME" \
