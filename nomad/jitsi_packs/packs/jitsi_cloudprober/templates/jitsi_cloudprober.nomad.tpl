@@ -103,6 +103,7 @@ if 'x-proxy-region' in req.headers:
   proxy_region = req.headers['x-proxy-region']
   if proxy_region == os.environ['REGION']:
     print('haproxy_region_check_passed{response_region="' + proxy_region + '"} 1')
+    print('test stderr', file=sys.stderr)
   else:
     print('haproxy_region_check_passed{response_region="' + proxy_region + '"} 0')
     print('haproxy_region_check hit ' + proxy_region + ' instead of local region ' + os.environ['REGION'], file=sys.stderr)
