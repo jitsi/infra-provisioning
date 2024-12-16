@@ -22,8 +22,6 @@ fi
 
 LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
-[ -z "$ROLE" ] && ROLE="nomad-pool"
-[ -z "$POOL_TYPE" ] && POOL_TYPE="general"
 [ -z "$NAME" ] && NAME="$ENVIRONMENT-$ORACLE_REGION-$ROLE-$POOL_TYPE"
 [ -z "$ORACLE_GIT_BRANCH" ] && ORACLE_GIT_BRANCH="main"
 
@@ -59,16 +57,12 @@ ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 
 [ -z "$NAME_ROOT" ] && NAME_ROOT="$NAME"
 
-[ -z "$INSTANCE_POOL_NAME" ] && INSTANCE_POOL_NAME="${NAME_ROOT}-InstancePool"
 [ -z "$INSTANCE_CONFIG_NAME" ] && INSTANCE_CONFIG_NAME="${NAME_ROOT}-InstanceConfig"
 
 [ -z "$POSTRUNNER_PATH" ] && export POSTRUNNER_PATH="terraform/nomad-whisper/user-data/postinstall-runner-nomad-whisper-oracle.sh"
 
-if [[ "$POOL_PUBLIC" == "true" ]]; then
-  POOL_SUBNET_OCID="$PUBLIC_SUBNET_OCID"
-else
-  POOL_SUBNET_OCID="$NAT_SUBNET_OCID"
-fi
+POOL_SUBNET_OCID="$NAT_SUBNET_OCID"
+
 
 [ -z "$ENCRYPTED_CREDENTIALS_FILE" ] && ENCRYPTED_CREDENTIALS_FILE="$LOCAL_PATH/../../ansible/secrets/ssl-certificates.yml"
 [ -z "$VAULT_PASSWORD_FILE" ] && VAULT_PASSWORD_FILE="$LOCAL_PATH/../../.vault-password.txt"
@@ -93,12 +87,11 @@ fi
 [ -z "$S3_ENDPOINT" ] && S3_ENDPOINT="https://$ORACLE_S3_NAMESPACE.compat.objectstorage.$ORACLE_REGION.oraclecloud.com"
 [ -z "$S3_STATE_KEY" ] && S3_STATE_KEY="$ENVIRONMENT/nomad-whisper/$POOL_TYPE/terraform.tfstate"
 
-[ -z "$BASE_IMAGE_TYPE" ] && BASE_IMAGE_TYPE="$NOMAD_BASE_IMAGE_TYPE"
-[ -z "$BASE_IMAGE_TYPE" ] && BASE_IMAGE_TYPE="JammyBase"
+[ -z "$IMAGE_TYPE" ] && IMAGE_TYPE="GPU"
 
 arch_from_shape $SHAPE
 
-[ -z "$IMAGE_OCID" ] && IMAGE_OCID=$($LOCAL_PATH/../../scripts/oracle_custom_images.py --type $BASE_IMAGE_TYPE --architecture "$IMAGE_ARCH" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
+[ -z "$IMAGE_OCID" ] && IMAGE_OCID=$($LOCAL_PATH/../../scripts/oracle_custom_images.py --type $IMAGE_TYPE --architecture "$IMAGE_ARCH" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
 if [ -z "$IMAGE_OCID" ]; then
   echo "No IMAGE_OCID found.  Exiting..."
   exit 210
@@ -163,4 +156,3 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
   -var "infra_customizations_repo=$INFRA_CUSTOMIZATIONS_REPO" \
   -var "user_data_file=$POSTRUNNER_PATH" \
   $ACTION_POST_PARAMS $TF_POST_PARAMS
-

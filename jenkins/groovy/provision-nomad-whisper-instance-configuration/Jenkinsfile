@@ -18,7 +18,7 @@ pipeline {
                 }
             }
         }
-        stage ("Whisper instance configuration provisioning") {
+        stage ("Whisper Instance Configuration and Autoscaling Group Provisioning") {
             steps {
                 script {
                     echo 'Start provisioning whisper instance configuration'
@@ -31,7 +31,7 @@ pipeline {
                             utils.SetupAnsible()
                             utils.SetupSSH()
 
-                            if (!fileExists("terraform/nomad-whisper/create-nomad-whisper-configuration.sh")) {
+                            if (!fileExists("scripts/create-or-rotate-whisper.sh")) {
                                 error("No known job type: ${env.JOB_TYPE}")
                             }
 
@@ -39,7 +39,9 @@ pipeline {
                                 sh """#!/bin/bash
                                 export USER_PUBLIC_KEY_PATH=~/.ssh/ssh_key.pub
                                 export ORACLE_GIT_BRANCH=\"$RELEASE_BRANCH\"
-                                terraform/nomad-whisper/create-nomad-whisper-configuration.sh $SSH_USERNAME"""
+                                export ENVIRONMENT=\"$ENVIRONMENT\"
+                                
+                                scripts/create-or-rotate-whisper.sh $SSH_USERNAME"""
                             }
                         }
                     }
