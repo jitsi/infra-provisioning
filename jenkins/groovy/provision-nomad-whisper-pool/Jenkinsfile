@@ -30,11 +30,6 @@ pipeline {
                         ]) {
                             utils.SetupAnsible()
                             utils.SetupSSH()
-
-                            if (!fileExists("scripts/create-or-rotate-whisper.sh")) {
-                                error("No known job type: ${env.JOB_TYPE}")
-                            }
-
                             sshagent (credentials: ['ssh-ubuntu']) {
                                 sh """#!/bin/bash
                                 export USER_PUBLIC_KEY_PATH=~/.ssh/ssh_key.pub
