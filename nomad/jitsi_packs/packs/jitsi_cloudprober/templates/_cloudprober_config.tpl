@@ -65,10 +65,12 @@ probe {
     endpoint {
       name: "[[ var "environment" . ]]-[[ var "oracle_region" . ]]-autoscaler-{{ $index }}"
       url: "http://{{ .Address }}:{{ if .ServiceMeta.health_port}}{{ .ServiceMeta.health_port }}{{ else }}{{ .ServiceMeta.metrics_port }}{{ end }}/health?deep=true"
-    }{{ end }}
-    {{ if eq $autoscaler_count 0 -}}
+    }
+    {{ end }}
+    {{- if eq $autoscaler_count 0 -}}
     host_names: ""
     {{- end }}
+  }
   validator {
       name: "status_code_2xx"
       http_validator {
