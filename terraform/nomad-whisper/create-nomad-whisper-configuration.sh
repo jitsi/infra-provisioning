@@ -45,6 +45,7 @@ fi
 ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 [ -e "$LOCAL_PATH/../../clouds/${ORACLE_CLOUD_NAME}.sh" ] && . $LOCAL_PATH/../../clouds/${ORACLE_CLOUD_NAME}.sh
 
+[ -z "$ENVIRONMENT_TYPE" ] && ENVIRONMENT_TYPE="stage"
 
 [ -z "$INSTANCE_POOL_SIZE" ] && INSTANCE_POOL_SIZE=1
 
@@ -118,6 +119,7 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
   -var="environment=$ENVIRONMENT" \
   -var="name=$NAME" \
   -var="oracle_region=$ORACLE_REGION" \
+  -var="environment_type=$ENVIRONMENT_TYPE" \
   -var="availability_domains=$AVAILABILITY_DOMAINS" \
   -var="role=$ROLE" \
   -var="pool_type=$POOL_TYPE" \
