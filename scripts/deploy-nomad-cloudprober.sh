@@ -85,7 +85,7 @@ if [[ "$CLOUDPROBER_CUSTOM_HTTPS_TARGETS" != "null" ]]; then
     CLOUDPROBER_ENABLE_CUSTOM_HTTPS="true"
 fi
 
-[ -z "$CLOUDPROBER_VERSION" ] && CLOUDPROBER_VERSION="v0.13.7"
+[ -z "$CLOUDPROBER_VERSION" ] && CLOUDPROBER_VERSION="v0.13.8"
 
 cat > "./cloudprober.hcl" <<EOF
 datacenters=["$NOMAD_DC"]
