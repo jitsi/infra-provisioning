@@ -34,8 +34,8 @@ source $LOCAL_PATH/../clouds/"$CLOUD_NAME".sh
 export AUTOSCALER_BACKEND="${ENVIRONMENT}-${ORACLE_REGION}"
 export AUTOSCALER_URL="https://${ENVIRONMENT}-${ORACLE_REGION}-autoscaler.$TOP_LEVEL_DNS_ZONE_NAME"
 
-[ -z $ENABLE_AUTO_SCALE ] && ENABLE_AUTO_SCALE="false"
-[ -z $ENABLE_LAUNCH ] && ENABLE_LAUNCH="false"
+[ -z $ENABLE_AUTO_SCALE ] && ENABLE_AUTO_SCALE="true"
+[ -z $ENABLE_LAUNCH ] && ENABLE_LAUNCH="true"
 
 # run as user
 if [ -z "$1" ]; then
