@@ -232,7 +232,7 @@ groups:
       description: >-
         At least one consul server is reporting that there are fewer than 3
         consul servers in ${var.dc}, which means the cluster is incomplete. This
-        may mean that service discovery may not be functioning. Currently there
+        may mean that service discovery may be compromised. Currently there 
         are {{ $value }} servers reported.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=consul_down
