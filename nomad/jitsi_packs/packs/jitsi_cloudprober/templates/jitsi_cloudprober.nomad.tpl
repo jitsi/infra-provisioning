@@ -101,9 +101,9 @@ req = requests.get(url)
 if 'x-proxy-region' in req.headers:
   proxy_region = req.headers['x-proxy-region']
   if proxy_region == os.environ['REGION']:
-    print(f"haproxy_region_check_passed\{proxy_region=\"{proxy_region}\"\} 1")
+    print('haproxy_region_check_passed{proxy_region="' + proxy_region + '"} 1')
   else:
-    print(f"haproxy_region_check_passed\{proxy_region=\"{proxy_region}\"\} 0")
+    print('haproxy_region_check_passed{proxy_region="' + proxy_region + '"} 0')
 
 EOH
         destination = "local/cloudprober_haproxy_probe.py"
