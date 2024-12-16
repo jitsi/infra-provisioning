@@ -6,7 +6,7 @@ unset SSH_USER
 [ -z "$ROLE" ] && export ROLE="whisper"
 [ -z "$SHAPE" ] && export SHAPE="VM.GPU.A10.1"
 [ -z "$MEMORY_IN_GBS" ] && export MEMORY_IN_GBS="240"
-[ -z "$OCPUS" ] && export OCPUS="30"
+[ -z "$OCPUS" ] && export OCPUS="15"
 [ -z "$DISK_IN_GBS" ] && DISK_IN_GBS="100"
 [ -z "$POSTRUNNER_PATH" ] && export POSTRUNNER_PATH="terraform/nomad-whisper/user-data/postinstall-runner-nomad-whisper-oracle.sh"
 
