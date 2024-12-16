@@ -54,16 +54,21 @@ probe {
 
 [[ end -]]
 [[ if var "enable_autoscaler" . -]]
-# probes autoscaler health in the local datacenter
+# probes health of all autoscalers in the local datacenter
 probe {
   name: "autoscaler"
   type: HTTP
   targets {
-    host_names: "{{ range $index, $service := service "autoscaler"}}{{ if gt $index 0 }},{{ end }}{{ .Address }}:{{ if .ServiceMeta.health_port}}{{ .ServiceMeta.health_port }}{{ else }}{{ .ServiceMeta.metrics_port }}{{ end }}{{ end }}"
-  }
-  http_probe {
-    relative_url: "/health?deep=true"
-  }
+    {{ $autoscaler_count := 0 -}}
+    {{ range $index, $service := service "autoscaler" -}}
+    {{ $autoscaler_count = add $autoscaler_count 1 -}}
+    endpoint {
+      name: "[[ var "environment" . ]]-[[ var "oracle_region" . ]]-autoscaler-{{ $index }}"
+      url: "http://{{ .Address }}:{{ if .ServiceMeta.health_port}}{{ .ServiceMeta.health_port }}{{ else }}{{ .ServiceMeta.metrics_port }}{{ end }}/health?deep=true"
+    }{{ end }}
+    {{ if eq $autoscaler_count 0 -}}
+    host_names: ""
+    {{- end }}
   validator {
       name: "status_code_2xx"
       http_validator {
