@@ -3,11 +3,11 @@ set -x
 unset SSH_USER
 
 [ -z "$POOL_TYPE" ] && export POOL_TYPE="whisper"
-[ -z "$ROLE" ] && export ROLE="whisper-pool"
-[ -z "$MEMORY_IN_GBS" ] && export MEMORY_IN_GBS="240"
+[ -z "$ROLE" ] && export ROLE="whisper"
 [ -z "$SHAPE" ] && export SHAPE="VM.GPU.A10.1"
+[ -z "$MEMORY_IN_GBS" ] && export MEMORY_IN_GBS="240"
 [ -z "$OCPUS" ] && export OCPUS="30"
-[ -z "$BASE_IMAGE_TYPE" ] && export BASE_IMAGE_TYPE="GPU"
+[ -z "$DISK_IN_GBS" ] && DISK_IN_GBS="100"
 [ -z "$POSTRUNNER_PATH" ] && export POSTRUNNER_PATH="terraform/nomad-whisper/user-data/postinstall-runner-nomad-whisper-oracle.sh"
 
 # IF THE CURRENT DIRECTORY HAS stack-env.sh THEN INCLUDE IT
@@ -22,10 +22,8 @@ fi
 
 LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
-[ -z "$NAME" ] && NAME="$ENVIRONMENT-$ORACLE_REGION-$ROLE-$POOL_TYPE"
+[ -z "$NAME" ] && NAME="$ENVIRONMENT-$ORACLE_REGION-$ROLE"
 [ -z "$ORACLE_GIT_BRANCH" ] && ORACLE_GIT_BRANCH="main"
-
-[ -z "$POOL_PUBLIC" ] && POOL_PUBLIC="false"
 
 [ -e "$LOCAL_PATH/../../clouds/all.sh" ] && . $LOCAL_PATH/../../clouds/all.sh
 [ -e "$LOCAL_PATH/../../clouds/oracle.sh" ] && . $LOCAL_PATH/../../clouds/oracle.sh
@@ -36,8 +34,7 @@ if [ -z "$ORACLE_REGION" ]; then
 fi
 
 if [ -z "$INFRA_CONFIGURATION_REPO" ]; then
-  echo "No INFRA_CONFIGURATION_REPO found. Exiting..."
-  exit 203
+    INFRA_CONFIGURATION_REPO="https://github.com/jitsi/infra-configuration.git"
 fi
 
 if [ -z "$INFRA_CUSTOMIZATIONS_REPO" ]; then
@@ -48,24 +45,14 @@ fi
 ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 [ -e "$LOCAL_PATH/../../clouds/${ORACLE_CLOUD_NAME}.sh" ] && . $LOCAL_PATH/../../clouds/${ORACLE_CLOUD_NAME}.sh
 
-[ -z "$SHAPE" ] && SHAPE="VM.GPU.A10.1"
-[ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS="240"
-[ -z "$OCPUS" ] && OCPUS="30"
-[ -z "$DISK_IN_GBS" ] && DISK_IN_GBS="100"
 
 [ -z "$INSTANCE_POOL_SIZE" ] && INSTANCE_POOL_SIZE=1
 
 [ -z "$NAME_ROOT" ] && NAME_ROOT="$NAME"
 
-[ -z "$INSTANCE_CONFIG_NAME" ] && INSTANCE_CONFIG_NAME="${NAME_ROOT}-InstanceConfig"
-
-[ -z "$POSTRUNNER_PATH" ] && export POSTRUNNER_PATH="terraform/nomad-whisper/user-data/postinstall-runner-nomad-whisper-oracle.sh"
+[ -z "$INSTANCE_CONFIG_NAME" ] && INSTANCE_CONFIG_NAME="$ENVIRONMENT-$ORACLE_REGION-whisper-InstanceConfig"
 
 POOL_SUBNET_OCID="$NAT_SUBNET_OCID"
-
-
-[ -z "$ENCRYPTED_CREDENTIALS_FILE" ] && ENCRYPTED_CREDENTIALS_FILE="$LOCAL_PATH/../../ansible/secrets/ssl-certificates.yml"
-[ -z "$VAULT_PASSWORD_FILE" ] && VAULT_PASSWORD_FILE="$LOCAL_PATH/../../.vault-password.txt"
 
 # run as user
 if [ -z "$1" ]; then
@@ -78,14 +65,10 @@ fi
 
 [ -z "$USER_PUBLIC_KEY_PATH" ] && USER_PUBLIC_KEY_PATH="~/.ssh/id_ed25519.pub"
 
-[ -z "$USER_PRIVATE_KEY_PATH" ] && USER_PRIVATE_KEY_PATH="~/.ssh/id_ed25519"
-
-[ -z "$POSTINSTALL_STATUS_FILE" ] && POSTINSTALL_STATUS_FILE="$(realpath $LOCAL_PATH/../../..)/test-results/nomad_postinstall_status.txt"
-
 [ -z "$S3_PROFILE" ] && S3_PROFILE="oracle"
 [ -z "$S3_STATE_BUCKET" ] && S3_STATE_BUCKET="tf-state-$ENVIRONMENT"
 [ -z "$S3_ENDPOINT" ] && S3_ENDPOINT="https://$ORACLE_S3_NAMESPACE.compat.objectstorage.$ORACLE_REGION.oraclecloud.com"
-[ -z "$S3_STATE_KEY" ] && S3_STATE_KEY="$ENVIRONMENT/nomad-whisper/$POOL_TYPE/terraform.tfstate"
+[ -z "$S3_STATE_KEY" ] && S3_STATE_KEY="$ENVIRONMENT/nomad-whisper/terraform.tfstate"
 
 [ -z "$IMAGE_TYPE" ] && IMAGE_TYPE="GPU"
 
@@ -151,7 +134,6 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
   -var="memory_in_gbs=$MEMORY_IN_GBS" \
   -var="ocpus=$OCPUS" \
   -var="disk_in_gbs=$DISK_IN_GBS" \
-  -var="postinstall_status_file=$POSTINSTALL_STATUS_FILE" \
   -var "infra_configuration_repo=$INFRA_CONFIGURATION_REPO" \
   -var "infra_customizations_repo=$INFRA_CUSTOMIZATIONS_REPO" \
   -var "user_data_file=$POSTRUNNER_PATH" \

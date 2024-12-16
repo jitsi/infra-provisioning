@@ -20,7 +20,6 @@ variable "environment_type" {}
 variable "tag_namespace" {}
 variable "user" {}
 
-variable "postinstall_status_file" {}
 variable "user_data_lib_path" {
   default = "terraform/lib"
 }
@@ -40,6 +39,7 @@ locals {
     "${var.tag_namespace}.environment" = var.environment
     "${var.tag_namespace}.environment_type" = var.environment_type
     "${var.tag_namespace}.git_branch" = var.git_branch
+    "${var.tag_namespace}.shard-role" = var.role
     "${var.tag_namespace}.role" = var.role
     "${var.tag_namespace}.Name" = var.name
   }

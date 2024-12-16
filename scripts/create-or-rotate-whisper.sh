@@ -65,17 +65,12 @@ else
     exit 214
 fi
 
-INSTANCE_CONFIGURATION=$(oci compute-management instance-configuration list --region "$ORACLE_REGION" -c "$COMPARTMENT_OCID" --sort-by TIMECREATED --sort-order DESC --all --query 'data[?"defined-tags".'\"$TAG_NAMESPACE\"'."role" == "whisper-pool"]' | jq .[0])
+export INSTANCE_CONFIG_NAME="$ENVIRONMENT-$ORACLE_REGION-whisper-InstanceConfig"
+INSTANCE_CONFIGURATION_ID=$(oci compute-management instance-configuration list --region "$ORACLE_REGION" -c "$COMPARTMENT_OCID" --sort-by TIMECREATED --sort-order DESC --all --query "data[?\"display-name\" == '$INSTANCE_CONFIG_NAME'].id" | jq -r  '.[0]')
 
-if [ -z "$INSTANCE_CONFIGURATION" ]; then
+if [ -z "$INSTANCE_CONFIGURATION_ID" ]; then
     echo "No Instance configuration was found. Exiting ..."
     exit 201
-fi
-
-INSTANCE_CONFIGURATION_ID=$(echo "$INSTANCE_CONFIGURATION" | jq -r '.id')
-if [ -z "$INSTANCE_CONFIGURATION_ID" ]; then
-    echo "No Instance configuration id was found. Exiting.."
-    exit 215
 fi
 
 echo "Instance configuration id is: $INSTANCE_CONFIGURATION_ID"
