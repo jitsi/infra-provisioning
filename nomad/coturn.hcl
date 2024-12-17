@@ -61,7 +61,7 @@ job "[JOB_NAME]" {
       user = "root"
       config {
         network_mode = "host"
-        image = "coturn/coturn"
+        image = "coturn/coturn:4.6.3"
         args = [
           "-c",
           "/local/coturn.conf",
