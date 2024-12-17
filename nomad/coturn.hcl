@@ -66,7 +66,7 @@ job "[JOB_NAME]" {
           "-c",
           "/local/coturn.conf",
         ]
-        ports = ["coturn"]
+        ports = ["coturn","metrics"]
         volumes = ["local/coturn.conf:/local/coturn.conf"]
       }
       template {
@@ -146,7 +146,7 @@ EOF
           name     = "coturn healthcheck"
           port     = "metrics"
           type     = "http"
-          path     = "/"
+          path     = "/metrics"
           interval = "20s"
           timeout  = "5s"
           check_restart {
