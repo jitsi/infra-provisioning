@@ -56,7 +56,7 @@ export NOMAD_VAR_slack_channel_suffix="${ALERT_SLACK_CHANNEL}"
 export NOMAD_VAR_pagerduty_enabled="${ALERTMANAGER_PAGES_ENABLED}"
 export NOMAD_VAR_global_alertmanager="${GLOBAL_ALERTMANAGER}"
 
-sed -e "s/\[JOB_NAME\]/$JOB_NAME/" "$NOMAD_JOB_PATH/alertmanager.hcl" | nomad job run -var="dc=$NOMAD_DC" -
+sed -e "s/\[JOB_NAME\]/$JOB_NAME/" "$NOMAD_JOB_PATH/alertmanager.hcl" | nomad job run -var="dc=$NOMAD_DC" -verbose -
 RET=$?
 
 export CNAME_VALUE="$RESOURCE_NAME_ROOT"
