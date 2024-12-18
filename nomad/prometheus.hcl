@@ -302,7 +302,20 @@ groups:
         Metrics for some services are not being collected.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=telegraf_down
-
+  - alert: Service_Restarts_High
+    expr: sum(sum_over_time(nomad_client_allocs_restart_sum[1h])) by (task) > 12 
+    for: 5m
+    labels:
+      service: infra
+      severity: warn
+    annotations:
+      summary: jobs for {{ labels.task }} in ${var.dc} have had high restarts
+      description: >-
+        The {{ $labels.task }} task in ${var.dc} has restarted on average of
+        once every 5 minutes in the last hour. This may mean that the service is
+        not stable or is being killed for some reason.
+      dashboard_url: ${var.grafana_url}
+      alert_url: https://${var.prometheus_hostname}/alerts?search=service_restarts_high
 - name: cloudprober_alerts
   rules:
   - alert: Probe_Unhealthy
@@ -344,31 +357,18 @@ groups:
       alert_url: https://${var.prometheus_hostname}/alerts?search=probe_shard_unhealthy
   - alert: Probe_Ingress_Region_Unhealthy
     expr: cloudprober_haproxy_region_check_passed < 1
-    for: 2m
+    for: 5m
     labels:
-      severity: warn 
+      severity: disabled 
     annotations:
       summary: domain probe from ${var.dc} reached an haproxy outside the local region for 2+ minutes
       description: >-
         A cloudprober probe to the domain reached an haproxy outside of the
         local region. This means that cloudflare may not be routing requests to
-        ${var.dc}, likely due to failing health checks to the regional load
-        balancer ingress.
-      dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=probe_ingress_region_unhealthy
-  - alert: Probe_Ingress_Region_Unhealthy
-    expr: cloudprober_haproxy_region_check_passed < 1
-    for: 10m
-    labels:
-      service: infra
-      severity: severe
-    annotations:
-      summary: domain probes from ${var.dc} reached an haproxy outside the local region for 10+ minutes
-      description: >-
-        Cloudprober probes from ${var.dc} to the domain reached an haproxy
-        outside of the local region for over ten minutes. This means that
-        cloudflare may not be routing requests to ${var.dc}, likely due to
-        failing health checks to the regional load balancer ingress.
+        ${var.dc} for some reason. This could mean that health checks are
+        failing on a regional load balancer, it may have something to do with
+        the way that cloudflare is chosing destinations via proximity, or it
+        could perhaps be due to the vicissitudes of life.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=probe_ingress_region_unhealthy
   - alert: Probe_Latency
