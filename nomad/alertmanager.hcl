@@ -100,14 +100,14 @@ route:
 
   routes:
     - matchers:
-      - severity =~ "severe|warn|smoke"
+      - severity =~ "severe|warn|smoke"%{ if var.global_alertmanager }
+      - global = "true"%{~ endif }
       receiver: 'email_alerts'
-      %{ if var.global_alertmanager }-global = "true"%{ endif ~}
       continue: true
     - matchers:
-      - severity =~ "severe|warn"
+      - severity =~ "severe|warn"%{ if var.global_alertmanager }
+      - global = "true"%{~ endif }
       receiver: 'slack_alerts'
-      %{ if var.global_alertmanager }-global = "true"%{ endif ~}
       continue: true
     %{ if var.pagerduty_enabled }- matchers:
       - severity = "severe"
