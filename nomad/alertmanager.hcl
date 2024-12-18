@@ -102,10 +102,12 @@ route:
     - matchers:
       - severity =~ "severe|warn|smoke"
       receiver: 'email_alerts'
+      %{ if var.global_alertmanager }-global = "true"%{ endif }
       continue: true
     - matchers:
       - severity =~ "severe|warn"
       receiver: 'slack_alerts'
+      %{ if var.global_alertmanager }-global = "true"%{ endif }
       continue: true
     %{ if var.pagerduty_enabled }- matchers:
       - severity = "severe"
