@@ -309,7 +309,7 @@ groups:
       service: infra
       severity: warn
     annotations:
-      summary: jobs for {{ labels.task }} in ${var.dc} have had high restarts
+      summary: jobs for {{ $labels.task }} in ${var.dc} have had high restarts
       description: >-
         The {{ $labels.task }} task in ${var.dc} has restarted on average of
         once every 5 minutes in the last hour. This may mean that the service is
