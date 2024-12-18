@@ -512,7 +512,7 @@ groups:
     annotations:
       summary: unhealthy shard in ${var.dc}
       description: >-
-        The shard {{ $labesl.sv }} is being reported as unhealthy by at least
+        The shard {{ $labels.sv }} is being reported as unhealthy by at least
         one HAProxy in ${var.dc}. Check signal-sidecar logs on the shard to
         understand more.  The HealthAnyAlarm email has also likely been
         triggered.
