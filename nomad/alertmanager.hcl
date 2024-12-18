@@ -96,7 +96,7 @@ route:
   group_wait: 10s
   group_interval: 10s
   repeat_interval: 1h
-  receiver: email_alerts
+  receiver: silence
 
   routes:
     - matchers:
@@ -128,6 +128,7 @@ inhibit_rules:
     equal: ['alertname']
 
 receivers:
+- name: silence
 - name: email_alerts
   webhook_configs:
     - send_resolved: true
