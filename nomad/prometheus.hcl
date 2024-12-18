@@ -26,6 +26,11 @@ variable "grafana_url" {
   default = ""
 }
 
+variable "global_alertmanager_url" {
+  type = string
+  default = ""
+}
+
 variable "remote_write_environment_type" {
   type = string
   default = "nonprod"
@@ -134,6 +139,8 @@ alerting:
   - consul_sd_configs:
     - server: '{{ env "NOMAD_IP_prometheus_ui" }}:8500'
       services: ['alertmanager']
+  %{ if var.global_alertmanager_url != "" }- http_sd_config:
+    - url: '{{ var.global_alertmanager_url }}'%{ endif }
 
 rule_files:
   - "alerts.yml"
@@ -509,6 +516,7 @@ groups:
       service: jitsi
       severity: severe
       page: true
+      scope: global
     annotations:
       summary: unhealthy shard in ${var.dc}
       description: >-

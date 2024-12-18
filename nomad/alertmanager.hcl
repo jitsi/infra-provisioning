@@ -11,6 +11,11 @@ variable "alertmanager_version" {
   default = "v0.27.0"
 }
 
+variable "global_alertmanager" {
+  type = bool
+  default = false
+}
+
 variable "email_alert_url" {
   type = string
 }
@@ -104,11 +109,13 @@ route:
       continue: true
     %{ if var.pagerduty_enabled }- matchers:
       - severity = "severe"
+      - global %{ if var.global_alertmanager }= "true"%{ else }!= "true"%{ endif }
       receiver: 'slack_pages'
       continue: true
     - matchers:
       - severity = "severe"
       - page = "true"
+      - global %{ if var.global_alertmanager }= "true"%{ else }!= "true"%{ endif }
       receiver: 'pagerduty_alerts'
       continue: true%{ endif }
 

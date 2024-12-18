@@ -18,6 +18,11 @@
           description: "Region to provision in"
           trim: true
       - string:
+          name: GLOBAL_ALERTMANAGER
+          description: "This is a global alertmanager"
+          default: false
+          trim: true
+      - string:
           name: JOB_TYPE
           default: alertmanager
           description: "Nomad job type to provision, defaults to 'alertmanager' do not change"
