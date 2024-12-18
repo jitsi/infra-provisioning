@@ -26,8 +26,6 @@ else
     ALERT_SLACK_CHANNEL="dev"
 fi
 
-set -x
-
 [ -z "$ALERTMANAGER_PAGES_ENABLED" ] && ALERTMANAGER_PAGES_ENABLED="false"
 
 [ -z "$GLOBAL_ALERTMANAGER" ] && GLOBAL_ALERTMANAGER="false"
@@ -56,7 +54,7 @@ export NOMAD_VAR_slack_channel_suffix="${ALERT_SLACK_CHANNEL}"
 export NOMAD_VAR_pagerduty_enabled="${ALERTMANAGER_PAGES_ENABLED}"
 export NOMAD_VAR_global_alertmanager="${GLOBAL_ALERTMANAGER}"
 
-sed -e "s/\[JOB_NAME\]/$JOB_NAME/" "$NOMAD_JOB_PATH/alertmanager.hcl" | nomad job run -var="dc=$NOMAD_DC" -verbose -
+sed -e "s/\[JOB_NAME\]/$JOB_NAME/" "$NOMAD_JOB_PATH/alertmanager.hcl" | nomad job run -var="dc=$NOMAD_DC" -
 RET=$?
 
 export CNAME_VALUE="$RESOURCE_NAME_ROOT"
