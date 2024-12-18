@@ -19,8 +19,7 @@
           trim: true
       - string:
           name: GLOBAL_ALERTMANAGER
-          description: "This is a global alertmanager"
-          default: false
+          description: "Set 'true' if this is a global alertmanager"
           trim: true
       - string:
           name: JOB_TYPE
