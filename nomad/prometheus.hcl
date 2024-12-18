@@ -503,18 +503,19 @@ groups:
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=haproxy_redispatch_rate_high
   - alert: HAProxy_Shard_Unhealthy
-    expr: min(haproxy_agent_health) < 1
+    expr: min(haproxy_agent_health) by (sv) < 1
     for: 1m
     labels:
       service: jitsi
       severity: severe
       page: true
     annotations:
-      summary: unhealthy shard(s) in ${var.dc}
+      summary: unhealthy shard in ${var.dc}
       description: >-
-        One or more shards is reporting unhealthy to at least one HAProxy in
-        ${var.dc}. Check signal-sidecar logs on the shard to understand more.
-        The HealthAnyAlarm email has also likely been triggered.
+        The shard {{ $labesl.sv }} is being reported as unhealthy by at least
+        one HAProxy in ${var.dc}. Check signal-sidecar logs on the shard to
+        understand more.  The HealthAnyAlarm email has also likely been
+        triggered.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=haproxy_unhealthy_agent
   - alert: Jicofo_ICE_Restarts_High
