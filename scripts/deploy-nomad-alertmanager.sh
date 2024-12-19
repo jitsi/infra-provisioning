@@ -35,7 +35,7 @@ if [ -z "$NOMAD_ADDR" ]; then
 fi
 
 if [ -z "$EMAIL_ALERT_URL" ]; then
-    export EMAIL_ALERT_URL="https://$ENVIRONMENT-$LOCAL_REGION-shimmy.$TOP_LEVEL_DNS_ZONE_NAME/alerts"
+    export EMAIL_ALERT_URL="https://$ENVIRONMENT-$ORACLE_REGION-shimmy.$TOP_LEVEL_DNS_ZONE_NAME/alerts"
 fi
 
 if [ "$GLOBAL_ALERTMANAGER" == "true" ]; then
