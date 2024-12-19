@@ -33,12 +33,19 @@ fi
 ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 [ -e "$LOCAL_PATH/../../clouds/${ORACLE_CLOUD_NAME}.sh" ] && . $LOCAL_PATH/../../clouds/${ORACLE_CLOUD_NAME}.sh
 
-[ -z "$SHAPE" ] && SHAPE="$DEFAULT_SELENIUM_GRID_SHAPE"
+[ -z "$SHAPE_X86" ] && SHAPE_X86="$SHAPE_E_5"
+[ -z "$SHAPE_X86" ] && SHAPE_X86="VM.Standard.E5.Flex"
+[ -z "$SHAPE_ARM" ] && SHAPE_ARM="$SHAPE_A_1"
+[ -z "$SHAPE_ARM" ] && SHAPE_ARM="VM.Standard.A1.Flex"
 
-[ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS="8"
-[ -z "$OCPUS" ] && OCPUS="2"
+[ -z "$MEMORY_IN_GBS_X86" ] && MEMORY_IN_GBS_X86="16"
+[ -z "$OCPUS_X86" ] && OCPUS_X86="4"
 
-[ -z "$INSTANCE_POOL_SIZE" ] && INSTANCE_POOL_SIZE=2
+[ -z "$MEMORY_IN_GBS_ARM" ] && MEMORY_IN_GBS_ARM="16"
+[ -z "$OCPUS_ARM" ] && OCPUS_ARM="8"
+
+[ -z "$INSTANCE_POOL_SIZE_X86" ] && INSTANCE_POOL_SIZE_X86=1
+[ -z "$INSTANCE_POOL_SIZE_ARM" ] && INSTANCE_POOL_SIZE_ARM=1
 
 [ -z "$INSTANCE_POOL_NAME" ] && INSTANCE_POOL_NAME="GridInstancePool"
 
@@ -82,19 +89,28 @@ fi
 S3_STATE_BASE="$ENVIRONMENT/grid/$GRID_NAME/components"
 [ -z "$S3_STATE_KEY" ] && S3_STATE_KEY="${S3_STATE_BASE}/terraform.tfstate"
 
-arch_from_shape $SHAPE
-
 if [[ "$SELENIUM_GRID_NOMAD_ENABLED" == "true" ]]; then
   IMAGE_TYPE="JammyBase"
 else
   IMAGE_TYPE="SeleniumGrid"
 fi
 
-[ -z "$IMAGE_OCID" ] && IMAGE_OCID=$($LOCAL_PATH/../../scripts/oracle_custom_images.py --type $IMAGE_TYPE --architecture "$IMAGE_ARCH" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
-if [ -z "$IMAGE_OCID" ]; then
-  echo "No IMAGE_OCID found.  Exiting..."
+arch_from_shape $SHAPE_X86
+
+[ -z "$IMAGE_OCID_X86" ] && IMAGE_OCID_X86=$($LOCAL_PATH/../../scripts/oracle_custom_images.py --type $IMAGE_TYPE --architecture "$IMAGE_ARCH" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
+if [ -z "$IMAGE_OCID_X86" ]; then
+  echo "No IMAGE_OCID_X86 found.  Exiting..."
   exit 210
 fi
+
+arch_from_shape $SHAPE_ARM
+
+[ -z "$IMAGE_OCID_ARM" ] && IMAGE_OCID_ARM=$($LOCAL_PATH/../../scripts/oracle_custom_images.py --type $IMAGE_TYPE --architecture "$IMAGE_ARCH" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
+if [ -z "$IMAGE_OCID_ARM" ]; then
+  echo "No IMAGE_OCID_ARM found.  Exiting..."
+  exit 210
+fi
+
 
 [ -z "$AVAILABILITY_DOMAINS" ] && AVAILABILITY_DOMAINS=$(oci iam availability-domain list --region=$ORACLE_REGION | jq .data[].name | jq --slurp .)
 if [ -z "$AVAILABILITY_DOMAINS" ]; then
@@ -338,13 +354,18 @@ if $RUN_TF; then
         -var="compartment_ocid=$COMPARTMENT_OCID" \
         -var="resource_name_root=$RESOURCE_NAME_ROOT" \
         -var="subnet_ocid=$NAT_SUBNET_OCID" \
-        -var="instance_pool_size=$INSTANCE_POOL_SIZE" \
-        -var="shape=$SHAPE" \
-        -var="image_ocid=$IMAGE_OCID" \
+        -var="instance_pool_size_x86=$INSTANCE_POOL_SIZE_X86" \
+        -var="instance_pool_size_arm=$INSTANCE_POOL_SIZE_ARM" \
+        -var="shape_x86=$SHAPE_X86" \
+        -var="shape_arm=$SHAPE_ARM" \
+        -var="image_ocid_x86=$IMAGE_OCID_X86" \
+        -var="image_ocid_arm=$IMAGE_OCID_ARM" \
         -var="node_security_group_id=$NODE_SECURITY_GROUP_ID" \
         -var="user_public_key_path=$USER_PUBLIC_KEY_PATH" \
-        -var="memory_in_gbs=$MEMORY_IN_GBS" \
-        -var="ocpus=$OCPUS" \
+        -var="memory_in_gbs_x86=$MEMORY_IN_GBS_X86" \
+        -var="memory_in_gbs_arm=$MEMORY_IN_GBS_ARM" \
+        -var="ocpus_x86=$OCPUS_X86" \
+        -var="ocpus_arm=$OCPUS_ARM" \
         -var="environment_type=$ENVIRONMENT_TYPE" \
         -var="tag_namespace=$TAG_NAMESPACE" \
         -var="jitsi_tag_namespace=$JITSI_TAG_NAMESPACE" \
@@ -368,14 +389,14 @@ if $RUN_TF; then
         -var="compartment_ocid=$COMPARTMENT_OCID" \
         -var="resource_name_root=$RESOURCE_NAME_ROOT" \
         -var="subnet_ocid=$NAT_SUBNET_OCID" \
-        -var="instance_pool_size=$INSTANCE_POOL_SIZE" \
-        -var="shape=$SHAPE" \
-        -var="image_ocid=$IMAGE_OCID" \
+        -var="instance_pool_size=$INSTANCE_POOL_SIZE_X86" \
+        -var="shape=$SHAPE_X86" \
+        -var="image_ocid=$IMAGE_OCID_X86" \
         -var="hub_security_group_id=$HUB_SECURITY_GROUP_ID" \
         -var="node_security_group_id=$NODE_SECURITY_GROUP_ID" \
         -var="user_public_key_path=$USER_PUBLIC_KEY_PATH" \
-        -var="memory_in_gbs=$MEMORY_IN_GBS" \
-        -var="ocpus=$OCPUS" \
+        -var="memory_in_gbs=$MEMORY_IN_GBS_X86" \
+        -var="ocpus=$OCPUS_X86" \
         -var="environment_type=$ENVIRONMENT_TYPE" \
         -var="tag_namespace=$TAG_NAMESPACE" \
         -var="jitsi_tag_namespace=$JITSI_TAG_NAMESPACE" \
@@ -401,16 +422,35 @@ if $RUN_TF; then
   fi
 fi
 
-NODE_POOL_ID="$(cat $LOCAL_IP_KEY | jq -r '.resources[]
-    | select(.type == "oci_core_instance_pool" and .name == "oci_instance_pool_node")
-    | .instances[0].attributes.id')"
+if [[ "$SELENIUM_GRID_NOMAD_ENABLED" == "true" ]]; then
+  NODE_POOL_ID_X86="$(cat $LOCAL_IP_KEY | jq -r '.resources[]
+      | select(.type == "oci_core_instance_pool" and .name == "oci_instance_pool_node_x86")
+      | .instances[0].attributes.id')"
 
-if [ -z "$NODE_POOL_ID" ]; then
-  echo "NODE_POOL_ID failed to be found or created, exiting..."
-  exit 4
-fi
+  if [ -z "$NODE_POOL_ID_X86" ]; then
+    echo "NODE_POOL_ID_X86 failed to be found or created, exiting..."
+    exit 4
+  fi
 
-if [[ "$SELENIUM_GRID_NOMAD_ENABLED" != "true" ]]; then
+  NODE_POOL_ID_ARM="$(cat $LOCAL_IP_KEY | jq -r '.resources[]
+      | select(.type == "oci_core_instance_pool" and .name == "oci_instance_pool_node_arm")
+      | .instances[0].attributes.id')"
+
+  if [ -z "$NODE_POOL_ID_ARM" ]; then
+    echo "NODE_POOL_ID_ARM failed to be found or created, exiting..."
+    exit 4
+  fi
+
+
+else
+  NODE_POOL_ID="$(cat $LOCAL_IP_KEY | jq -r '.resources[]
+      | select(.type == "oci_core_instance_pool" and .name == "oci_instance_pool_node")
+      | .instances[0].attributes.id')"
+
+  if [ -z "$NODE_POOL_ID" ]; then
+    echo "NODE_POOL_ID failed to be found or created, exiting..."
+    exit 4
+  fi
 
   HUB_POOL_ID="$(cat $LOCAL_IP_KEY | jq -r '.resources[]
       | select(.type == "oci_core_instance_pool" and .name == "oci_instance_pool_hub")
