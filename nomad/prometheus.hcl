@@ -141,7 +141,7 @@ alerting:
       services: ['alertmanager']
   %{ if var.global_alertmanager_url != "" ~}
   - http_sd_config:
-    - url: '${ var.global_alertmanager_url }'%{~ endif }
+    - url: '${ var.global_alertmanager_url }'%{ endif }
 
 rule_files:
   - "alerts.yml"
