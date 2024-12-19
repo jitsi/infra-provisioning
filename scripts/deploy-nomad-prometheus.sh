@@ -72,6 +72,9 @@ fi
 [ -z "$GRAFANA_ALERTS_DASHBOARD_URL" ] && GRAFANA_ALERTS_DASHBOARD_URL=""
 export NOMAD_VAR_grafana_url="$GRAFANA_ALERTS_DASHBOARD_URL"
 
+[ -z "$GLOBAL_ALERTMANAGER_URL" ] && GLOBAL_ALERTMANAGER_URL=""
+export NOMAD_VAR_global_alertmanager_url="$GLOBAL_ALERTMANAGER_URL"
+
 JOB_NAME="prometheus-$ORACLE_REGION"
 sed -e "s/\[JOB_NAME\]/$JOB_NAME/" "$NOMAD_JOB_PATH/prometheus.hcl" | nomad job run -var="dc=$NOMAD_DC" -
 RET=$?

@@ -11,6 +11,11 @@ variable "alertmanager_version" {
   default = "v0.27.0"
 }
 
+variable "global_alertmanager" {
+  type = bool
+  default = false
+}
+
 variable "email_alert_url" {
   type = string
 }
@@ -91,24 +96,28 @@ route:
   group_wait: 10s
   group_interval: 10s
   repeat_interval: 1h
-  receiver: email_alerts
+  receiver: silence
 
   routes:
     - matchers:
-      - severity =~ "severe|warn|smoke"
+      - severity =~ "severe|warn|smoke"%{ if var.global_alertmanager }
+      - global = "true"%{~ endif }
       receiver: 'email_alerts'
       continue: true
     - matchers:
-      - severity =~ "severe|warn"
+      - severity =~ "severe|warn"%{ if var.global_alertmanager }
+      - global = "true"%{~ endif }
       receiver: 'slack_alerts'
       continue: true
     %{ if var.pagerduty_enabled }- matchers:
       - severity = "severe"
+      - global %{ if var.global_alertmanager }= "true"%{ else }!= "true"%{ endif }
       receiver: 'slack_pages'
       continue: true
     - matchers:
       - severity = "severe"
       - page = "true"
+      - global %{ if var.global_alertmanager }= "true"%{ else }!= "true"%{ endif }
       receiver: 'pagerduty_alerts'
       continue: true%{ endif }
 
@@ -119,6 +128,7 @@ inhibit_rules:
     equal: ['alertname']
 
 receivers:
+- name: silence
 - name: email_alerts
   webhook_configs:
     - send_resolved: true
@@ -130,6 +140,7 @@ receivers:
       send_resolved: true
       title: '[{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] ({{ or .CommonLabels.alertname "Multiple Alert Types" }} in ${var.dc})'
       text: |-
+        %{ if var.global_alertmanager }*GLOBAL ALERT* %{ endif ~}
         {{ if eq .CommonLabels.severity "severe" }}{{ if eq .Status "firing" }}<!here>{{ end }}{{ end }}{{ range .Alerts }}
         *[{{ index .Labels "severity" | toUpper }}] {{ index .Labels "alertname" }}* {{- if .Annotations.summary }}: *{{ .Annotations.summary }}* {{- end }}
         {{- if eq .Status "firing" }}{{- if .Annotations.description }}
@@ -147,7 +158,7 @@ receivers:
     - channel: '#pages'
       api_url: '{{{ with secret "secret/default/alertmanager/receivers/slack" }}}{{{ .Data.data.slack_pages_webhook }}}{{{ end }}}'
       send_resolved: true
-      title: '[{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] ({{ or .CommonLabels.alertname "Multiple Alert Types" }} in ${var.dc})'
+      title: '[{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] %{ if var.global_alertmanager }*[GLOBAL ALERT]* %{ endif }({{ or .CommonLabels.alertname "Multiple Alert Types" }} in ${var.dc})'
       text: |-
         {{ if eq .CommonLabels.severity "severe" }}{{ if eq .Status "firing" }}<!here> - PAGE{{ if .CommonLabels.page }}{{ if ne .CommonLabels.page "true" }}-CANDIDATE{{ end }}{{ else }}-CANDIDATE{{ end }}{{ end }}{{ end }}{{ range .Alerts }}
         *{{ index .Labels "alertname" }}* {{- if .Annotations.summary }}: *{{ .Annotations.summary }}* {{- end }}{{ if eq .Status "firing" }} - {{ if .Annotations.alert_url }}{{ .Annotations.alert_url }}{{ end }}{{ end }}

@@ -132,12 +132,33 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     return JSONResponse(content=content, status_code=status.HTTP_422_UNPROCESSABLE_ENTITY)
 
 def send_email(alert: Alert):
-  email_title = f"[{alert.commonLabels['severity'].upper()}] {alert.commonLabels['alertname']} in ${var.dc}"
-  email_body = \
-    f"[{alert.status.upper()}]: {alert.commonLabels['alertname']} in {alert.commonLabels['datacenter']}: {alert.commonAnnotations['summary']}\n\n" + \
-    f"{alert.commonAnnotations['description']}\n\n" + \
-    f"view the alert in the datacenter's Prometheus: {alert.commonAnnotations['alert_url']}\n" + \
-    f"see the global alert dashboard: {alert.commonAnnotations['dashboard_url']}"
+  if 'alertname' not in alert.commonLabels:
+    logger.error('alerts are not grouped by alertname')
+    email_title = f"[???] MUNGED ALERTS IN ${var.dc}"
+    email_body = f"alerts are not grouped by alertname; something is broken in alertmanager\n\n{alert}"
+  elif 'severity' not in alert.commonLabels:
+    severity = 'SMOKE'
+    for a in alert.alerts:
+      if a.labels['severity'] == 'SEVERE':
+        severity = 'SEVERE'
+        break
+      if if a.labels['severity'] == 'WARN':
+        severity = 'WARN'
+    email_title = f"[{severity}] {alert.commonLabels['alertname']} in ${var.dc}"
+    email_body = ""
+    for a in alert.alerts:
+      email_body += f"[{a.status.upper()}]: {a.labels['alertname']} in {a.labels['datacenter']}: {a.annotations['summary']}\n\n" + \
+        f"{a.annotations['description']}\n\n" + \
+        f"view the alert in the datacenter's Prometheus: {a.annotations['alert_url']}\n" + \
+        f"see the global alert dashboard: {a.annotations['dashboard_url']}\n\n"
+  else:
+    email_title = f"[{alert.commonLabels['severity'].upper()}] {alert.commonLabels['alertname']} in ${var.dc}"
+    email_body = \
+      f"[{alert.status.upper()}]: {alert.commonLabels['alertname']} in {alert.commonLabels['datacenter']}: {alert.commonAnnotations['summary']}\n\n" + \
+      f"{alert.commonAnnotations['description']}\n\n" + \
+      f"view the alert in the datacenter's Prometheus: {alert.commonAnnotations['alert_url']}\n" + \
+      f"see the global alert dashboard: {alert.commonAnnotations['dashboard_url']}"
+
   # TO ADD: runbook URL, any other useful dashboards in grafana
   logger.info("sending an email with\ntitle: {email_title}\nbody: {email_body}")
   message = oci.ons.models.MessageDetails(body=email_body, title=email_title)
