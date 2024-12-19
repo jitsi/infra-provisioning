@@ -14,6 +14,11 @@ variable "service_tag_urlprefix" {
   default = "int-"
 }
 
+variable "selenium_version" {
+  type = string
+  default = "4.27"
+}
+
 job "[JOB_NAME]" {
   region = "global"
   datacenters = [var.dc]
@@ -78,7 +83,7 @@ job "[JOB_NAME]" {
       }
 
       config {
-        image        = "selenium/hub:4.26"
+        image        = "selenium/hub:${var.selenium_version}"
         ports = ["http","publish","subscribe"]
       }
       resources {
