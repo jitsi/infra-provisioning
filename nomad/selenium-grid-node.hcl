@@ -276,6 +276,8 @@ SE_ENABLE_TRACING="false"
         ports = ["http-docker","vnc-docker","no-vnc-docker"]
         volumes = [
           "/opt/jitsi/jitsi-meet-torture:/usr/share/jitsi-meet-torture:ro",
+          "local/config.toml:/opt/selenium/config.toml",
+          "/var/run/docker.sock:/var/run/docker.sock",
         ]
 
         # 2gb shm
@@ -399,9 +401,9 @@ max-sessions = ${var.max_sessions}
 # Configs have a mapping between the Docker image to use and the capabilities that need to be matched to
 # start a container with the given image.
 configs = [
-    "jitsi/selenium-standalone-firefox:daily-2024-12-06", "{\"browserName\": \"firefox\"}",
-    "jitsi/selenium-standalone-firefox:beta-daily-2024-12-06", "{\"browserName\": \"firefox-beta\"}",
-    "jitsi/selenium-standalone-chrome:beta-daily-2024-12-06", "{\"browserName\": \"chrome-beta\"}"
+    "jitsi/selenium-standalone-firefox:daily-2024-12-19", "{\"browserName\": \"firefox\"}",
+    "jitsi/selenium-standalone-firefox:beta-daily-2024-12-19", "{\"browserName\": \"firefox-beta\"}",
+    "jitsi/selenium-standalone-chrome:beta-daily-2024-12-19", "{\"browserName\": \"chrome-beta\"}"
     ]
 
 # URL for connecting to the docker daemon
@@ -421,7 +423,7 @@ video-image = "selenium/video:ffmpeg-6.1-20240402"
 # Fill out the placeholders with appropriate values
 [server]
 host = "{{env "attr.unique.network.ip-address" }}"
-port = {{ env "NOMAD_HOST_PORT_http" }}
+port = {{ env "NOMAD_HOST_PORT_http_docker" }}
 EOF
         destination = "local/config.toml"
       }
@@ -434,6 +436,7 @@ SE_HUB_PORT="{{ .Port }}"
 SE_EVENT_BUS_HOST="{{ .Address }}"
 SE_EVENT_BUS_PUBLISH_PORT="{{ .ServiceMeta.publish_port }}"
 SE_EVENT_BUS_SUBSCRIBE_PORT="{{ .ServiceMeta.subscribe_port }}"
+SE_NODE_GRID_URL="http://{{ .Address }}:{{ .Port }}"
 {{ end -}}
 SE_NODE_HOST="{{env "attr.unique.network.ip-address" }}"
 SE_NODE_PORT="{{ env "NOMAD_HOST_PORT_http_docker" }}"
@@ -450,5 +453,5 @@ SE_ENABLE_TRACING="false"
         memory = 2048
       }
     }
-
+  }
 }
