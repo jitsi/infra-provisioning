@@ -180,7 +180,7 @@ resource "oci_core_instance_configuration" "oci_instance_configuration_node_x86"
         configuration_repo = var.infra_configuration_repo
         customizations_repo = var.infra_customizations_repo
         shape = var.shape_x86
-        arch = "x86_64"
+        arch = "amd64"
         nomad = "true"
       }
     }
@@ -224,7 +224,7 @@ resource "oci_core_instance_pool" "oci_instance_pool_node_x86" {
 
   defined_tags = local.node_tags
   freeform_tags = {
-    arch = "x86_64"
+    arch = "amd64"
   }
 
 }
