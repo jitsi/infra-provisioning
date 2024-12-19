@@ -142,7 +142,7 @@ def send_email(alert: Alert):
       if a.labels['severity'] == 'SEVERE':
         severity = 'SEVERE'
         break
-      if if a.labels['severity'] == 'WARN':
+      if a.labels['severity'] == 'WARN':
         severity = 'WARN'
     email_title = f"[{severity}] {alert.commonLabels['alertname']} in ${var.dc}"
     email_body = ""
