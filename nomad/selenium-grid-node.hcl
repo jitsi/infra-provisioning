@@ -41,7 +41,7 @@ job "[JOB_NAME]" {
       value     = "${var.grid}"
     }
     constraint {
-      attribute  = "cpu.arch"
+      attribute  = "${attr.cpu.arch}"
       value     = "arm64"
     }
 
@@ -179,7 +179,7 @@ SE_ENABLE_TRACING="false"
       value     = "${var.grid}"
     }
     constraint {
-      attribute  = "cpu.arch"
+      attribute  = "${attr.cpu.arch}"
       value     = "amd64"
     }
 
