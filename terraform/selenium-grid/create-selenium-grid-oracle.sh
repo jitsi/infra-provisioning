@@ -97,7 +97,7 @@ fi
 
 arch_from_shape $SHAPE_X86
 
-[ -z "$IMAGE_OCID_X86" ] && IMAGE_OCID=$($LOCAL_PATH/../../scripts/oracle_custom_images.py --type $IMAGE_TYPE --architecture "$IMAGE_ARCH" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
+[ -z "$IMAGE_OCID_X86" ] && IMAGE_OCID_X86=$($LOCAL_PATH/../../scripts/oracle_custom_images.py --type $IMAGE_TYPE --architecture "$IMAGE_ARCH" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
 if [ -z "$IMAGE_OCID_X86" ]; then
   echo "No IMAGE_OCID_X86 found.  Exiting..."
   exit 210
@@ -105,7 +105,7 @@ fi
 
 arch_from_shape $SHAPE_ARM
 
-[ -z "$IMAGE_OCID_ARM" ] && IMAGE_OCID=$($LOCAL_PATH/../../scripts/oracle_custom_images.py --type $IMAGE_TYPE --architecture "$IMAGE_ARCH" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
+[ -z "$IMAGE_OCID_ARM" ] && IMAGE_OCID_ARM=$($LOCAL_PATH/../../scripts/oracle_custom_images.py --type $IMAGE_TYPE --architecture "$IMAGE_ARCH" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
 if [ -z "$IMAGE_OCID_ARM" ]; then
   echo "No IMAGE_OCID_ARM found.  Exiting..."
   exit 210
