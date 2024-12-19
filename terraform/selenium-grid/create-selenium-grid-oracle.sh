@@ -422,16 +422,35 @@ if $RUN_TF; then
   fi
 fi
 
-NODE_POOL_ID="$(cat $LOCAL_IP_KEY | jq -r '.resources[]
-    | select(.type == "oci_core_instance_pool" and .name == "oci_instance_pool_node")
-    | .instances[0].attributes.id')"
+if [[ "$SELENIUM_GRID_NOMAD_ENABLED" == "true" ]]; then
+  NODE_POOL_ID_X86="$(cat $LOCAL_IP_KEY | jq -r '.resources[]
+      | select(.type == "oci_core_instance_pool" and .name == "oci_instance_pool_node_x86")
+      | .instances[0].attributes.id')"
 
-if [ -z "$NODE_POOL_ID" ]; then
-  echo "NODE_POOL_ID failed to be found or created, exiting..."
-  exit 4
-fi
+  if [ -z "$NODE_POOL_ID_X86" ]; then
+    echo "NODE_POOL_ID_X86 failed to be found or created, exiting..."
+    exit 4
+  fi
 
-if [[ "$SELENIUM_GRID_NOMAD_ENABLED" != "true" ]]; then
+  NODE_POOL_ID_ARM="$(cat $LOCAL_IP_KEY | jq -r '.resources[]
+      | select(.type == "oci_core_instance_pool" and .name == "oci_instance_pool_node_arm")
+      | .instances[0].attributes.id')"
+
+  if [ -z "$NODE_POOL_ID_ARM" ]; then
+    echo "NODE_POOL_ID_ARM failed to be found or created, exiting..."
+    exit 4
+  fi
+
+
+else
+  NODE_POOL_ID="$(cat $LOCAL_IP_KEY | jq -r '.resources[]
+      | select(.type == "oci_core_instance_pool" and .name == "oci_instance_pool_node")
+      | .instances[0].attributes.id')"
+
+  if [ -z "$NODE_POOL_ID" ]; then
+    echo "NODE_POOL_ID failed to be found or created, exiting..."
+    exit 4
+  fi
 
   HUB_POOL_ID="$(cat $LOCAL_IP_KEY | jq -r '.resources[]
       | select(.type == "oci_core_instance_pool" and .name == "oci_instance_pool_hub")
