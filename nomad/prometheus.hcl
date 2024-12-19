@@ -139,8 +139,9 @@ alerting:
   - consul_sd_configs:
     - server: '{{ env "NOMAD_IP_prometheus_ui" }}:8500'
       services: ['alertmanager']
-  %{ if var.global_alertmanager_url != "" }- http_sd_config:
-    - url: '{{ var.global_alertmanager_url }}'%{ endif }
+  %{ if var.global_alertmanager_url != "" ~}
+  - http_sd_config:
+    - url: '${ var.global_alertmanager_url }'%{~ endif }
 
 rule_files:
   - "alerts.yml"
