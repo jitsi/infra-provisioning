@@ -103,7 +103,7 @@ route:
       - severity =~ "severe|warn|smoke"
       - scope %{ if var.global_alertmanager }= "global"%{ else }!= "global"%{ endif }
       receiver: 'email_alerts'
-      repeat_interval: 168h
+      repeat_interval: 120h
       continue: true
     - matchers:
       - severity =~ "severe|warn"
