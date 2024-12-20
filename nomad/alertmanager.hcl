@@ -142,8 +142,7 @@ receivers:
       send_resolved: true
       title: '[{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] ({{ or .CommonLabels.alertname "Multiple Alert Types" }} in ${var.dc})'
       text: |-
-        %{ if var.global_alertmanager }*GLOBAL ALERT* %{ endif ~}
-        {{ if eq .CommonLabels.severity "severe" }}{{ if eq .Status "firing" }}<!here>{{ end }}{{ end }}{{ range .Alerts }}
+        %{ if var.global_alertmanager }*GLOBAL ALERT* %{ endif }{{ if eq .CommonLabels.severity "severe" }}{{ if eq .Status "firing" }}<!here>{{ end }}{{ end }}{{ range .Alerts }}
         *[{{ index .Labels "severity" | toUpper }}] {{ index .Labels "alertname" }}* in {{ index .Labels "datacenter" }} {{- if .Annotations.summary }}: *{{ .Annotations.summary }}* {{- end }}
         {{- if eq .Status "firing" }}{{- if .Annotations.description }}
         _{{ .Annotations.description }}_
