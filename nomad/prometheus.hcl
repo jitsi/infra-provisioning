@@ -139,8 +139,16 @@ alerting:
   - consul_sd_configs:
     - server: '{{ env "NOMAD_IP_prometheus_ui" }}:8500'
       services: ['alertmanager']
-  %{ if var.global_alertmanager_url != "" }- http_sd_configs:
-    - url: '${ var.global_alertmanager_url }'%{~ endif }
+  %{ if var.global_alertmanager_url != "" }- static_configs:
+    - targets:
+      - '${ var.global_alertmanager_url }'
+    scheme: https%{~ endif }
+  %{ if var.remote_write_environment_type != "prod" }alert_relabel_configs:
+    - action: replace
+      source_labels: [severity]
+      target_label: severity
+      regex: 'severe'
+      replacement: 'warn'%{~ endif }
 
 rule_files:
   - "alerts.yml"
