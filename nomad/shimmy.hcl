@@ -132,6 +132,10 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     return JSONResponse(content=content, status_code=status.HTTP_422_UNPROCESSABLE_ENTITY)
 
 def send_email(alert: Alert):
+  if 'scope' in alert.commonLabels and alert.commonLabels['scope'] == 'global':
+    global = "GLOBAL "
+  else:
+    global = ""
   if 'alertname' not in alert.commonLabels:
     logger.error('alerts are not grouped by alertname')
     email_title = f"[???] MUNGED ALERTS IN ${var.dc}"
@@ -144,9 +148,9 @@ def send_email(alert: Alert):
         break
       if a.labels['severity'] == 'WARN':
         severity = 'WARN'
-    email_title = f"[{severity}] {alert.commonLabels['alertname']} in ${var.dc}"
+    email_title = f"[{severity}] {global}{alert.commonLabels['alertname']} in ${var.dc}"
   else:
-    email_title = f"[{alert.commonLabels['severity'].upper()}] {alert.commonLabels['alertname']} in ${var.dc}"
+    email_title = f"[{alert.commonLabels['severity'].upper()}] {global}{alert.commonLabels['alertname']} in ${var.dc}"
 
   email_body = ""
   resolved_alerts = []
