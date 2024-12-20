@@ -11,6 +11,11 @@ variable "alertmanager_version" {
   default = "v0.27.0"
 }
 
+variable "global_alertmanager" {
+  type = bool
+  default = false
+}
+
 variable "email_alert_url" {
   type = string
 }
@@ -87,28 +92,34 @@ global:
   slack_api_url: "{{{ with secret "secret/default/alertmanager/receivers/slack" }}}{{{ .Data.data.slack_general_webhook }}}{{{ end }}}"
 
 route:
-  group_by: ['alertname']
-  group_wait: 10s
-  group_interval: 10s
-  repeat_interval: 1h
-  receiver: email_alerts
+  group_by: ['alertname','environment']
+  group_wait:     %{ if var.global_alertmanager }20s%{ else }10s%{ endif }  # wait time to create a new group
+  group_interval:  1m  # wait time for a new alert that matches an existing group 
+  repeat_interval: 4h  # wait time before re-sending a notification
+  receiver: silence
 
   routes:
     - matchers:
       - severity =~ "severe|warn|smoke"
+      - scope %{ if var.global_alertmanager }= "global"%{ else }!= "global"%{ endif }
       receiver: 'email_alerts'
+      repeat_interval: 120h
       continue: true
     - matchers:
       - severity =~ "severe|warn"
+      - scope %{ if var.global_alertmanager }= "global"%{ else }!= "global"%{ endif }
       receiver: 'slack_alerts'
+      repeat_interval: 24h
       continue: true
     %{ if var.pagerduty_enabled }- matchers:
       - severity = "severe"
+      - scope %{ if var.global_alertmanager }= "global"%{ else }!= "global"%{ endif }
       receiver: 'slack_pages'
       continue: true
     - matchers:
       - severity = "severe"
       - page = "true"
+      - scope %{ if var.global_alertmanager }= "global"%{ else }!= "global"%{ endif }
       receiver: 'pagerduty_alerts'
       continue: true%{ endif }
 
@@ -119,6 +130,7 @@ inhibit_rules:
     equal: ['alertname']
 
 receivers:
+- name: silence
 - name: email_alerts
   webhook_configs:
     - send_resolved: true
@@ -128,10 +140,10 @@ receivers:
     - channel: '#jitsi-${var.slack_channel_suffix}'
       api_url: '{{{ with secret "secret/default/alertmanager/receivers/slack" }}}{{{ .Data.data.slack_general_webhook }}}{{{ end }}}'
       send_resolved: true
-      title: '[{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] ({{ or .CommonLabels.alertname "Multiple Alert Types" }} in ${var.dc})'
+      title: '[{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] ({{ or .CommonLabels.alertname "Multiple Alert Types" }}) in %{ if var.global_alertmanager }{{ .CommonLabels.environment }} (GLOBAL)%{ else }${var.dc}%{ endif }'
       text: |-
         {{ if eq .CommonLabels.severity "severe" }}{{ if eq .Status "firing" }}<!here>{{ end }}{{ end }}{{ range .Alerts }}
-        *[{{ index .Labels "severity" | toUpper }}] {{ index .Labels "alertname" }}* {{- if .Annotations.summary }}: *{{ .Annotations.summary }}* {{- end }}
+        *[{{ index .Labels "severity" | toUpper }}] {{ index .Labels "alertname" }}* in {{ index .Labels "datacenter" }} {{- if .Annotations.summary }}: *{{ .Annotations.summary }}* {{- end }}
         {{- if eq .Status "firing" }}{{- if .Annotations.description }}
         _{{ .Annotations.description }}_
         {{ end }}{{ if ne .Annotations.dashboard_url "" }}alert dashboard: {{ .Annotations.dashboard_url }}{{ end }}
@@ -147,10 +159,10 @@ receivers:
     - channel: '#pages'
       api_url: '{{{ with secret "secret/default/alertmanager/receivers/slack" }}}{{{ .Data.data.slack_pages_webhook }}}{{{ end }}}'
       send_resolved: true
-      title: '[{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] ({{ or .CommonLabels.alertname "Multiple Alert Types" }} in ${var.dc})'
+      title: '[{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] ({{ or .CommonLabels.alertname "Multiple Alert Types" }}) in %{ if var.global_alertmanager }{{ .CommonLabels.environment }} (GLOBAL)%{ else }${var.dc}%{ endif }'
       text: |-
         {{ if eq .CommonLabels.severity "severe" }}{{ if eq .Status "firing" }}<!here> - PAGE{{ if .CommonLabels.page }}{{ if ne .CommonLabels.page "true" }}-CANDIDATE{{ end }}{{ else }}-CANDIDATE{{ end }}{{ end }}{{ end }}{{ range .Alerts }}
-        *{{ index .Labels "alertname" }}* {{- if .Annotations.summary }}: *{{ .Annotations.summary }}* {{- end }}{{ if eq .Status "firing" }} - {{ if .Annotations.alert_url }}{{ .Annotations.alert_url }}{{ end }}{{ end }}
+        *{{ index .Labels "alertname" }}* {{ index .Labels "datacenter" }}{{- if .Annotations.summary }}: *{{ .Annotations.summary }}* {{- end }}{{ if eq .Status "firing" }} - {{ if .Annotations.alert_url }}{{ .Annotations.alert_url }}{{ end }}{{ end }}
         {{- end }}
 %{ endif }
 EOH
@@ -162,7 +174,7 @@ EOH
       }
         
       service {
-        name = "alertmanager"
+        name = "alertmanager%{ if var.global_alertmanager }-global%{ endif }"
         tags = ["int-urlprefix-${var.alertmanager_hostname}/"]
         port = "alertmanager_ui"
 
