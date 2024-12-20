@@ -148,9 +148,9 @@ def send_email(alert: Alert):
         break
       if a.labels['severity'] == 'WARN':
         severity = 'WARN'
-    email_title = f"ALERT {global_str}[{severity}] {alert.commonLabels['alertname']} in ${var.dc}"
+    email_title = f"ALERT {global_str}[{severity}] {alert.commonLabels['alertname']} in {alert.commonLabels['environment']}"
   else:
-    email_title = f"ALERT {global_str}[{alert.commonLabels['severity'].upper()}] {alert.commonLabels['alertname']} in ${var.dc}"
+    email_title = f"ALERT {global_str}[{alert.commonLabels['severity'].upper()}] {alert.commonLabels['alertname']} in {alert.commonLabels['environment']}"
 
   email_body = ""
   resolved_alerts = []

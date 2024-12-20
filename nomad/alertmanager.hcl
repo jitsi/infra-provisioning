@@ -92,7 +92,7 @@ global:
   slack_api_url: "{{{ with secret "secret/default/alertmanager/receivers/slack" }}}{{{ .Data.data.slack_general_webhook }}}{{{ end }}}"
 
 route:
-  group_by: ['alertname']
+  group_by: ['alertname','environment']
   group_wait:     %{ if var.global_alertmanager }20s%{ else }10s%{ endif }  # wait time to create a new group
   group_interval:  1m  # wait time for a new alert that matches an existing group 
   repeat_interval: 4h  # wait time before re-sending a notification
@@ -140,7 +140,7 @@ receivers:
     - channel: '#jitsi-${var.slack_channel_suffix}'
       api_url: '{{{ with secret "secret/default/alertmanager/receivers/slack" }}}{{{ .Data.data.slack_general_webhook }}}{{{ end }}}'
       send_resolved: true
-      title: '[{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] ({{ or .CommonLabels.alertname "Multiple Alert Types" }} in ${var.dc})'
+      title: '[{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] ({{ or .CommonLabels.alertname "Multiple Alert Types" }} in {{ .CommonLabels.environment }}'
       text: |-
         %{ if var.global_alertmanager }*GLOBAL ALERT* %{ endif }{{ if eq .CommonLabels.severity "severe" }}{{ if eq .Status "firing" }}<!here>{{ end }}{{ end }}{{ range .Alerts }}
         *[{{ index .Labels "severity" | toUpper }}] {{ index .Labels "alertname" }}* in {{ index .Labels "datacenter" }} {{- if .Annotations.summary }}: *{{ .Annotations.summary }}* {{- end }}
@@ -159,7 +159,7 @@ receivers:
     - channel: '#pages'
       api_url: '{{{ with secret "secret/default/alertmanager/receivers/slack" }}}{{{ .Data.data.slack_pages_webhook }}}{{{ end }}}'
       send_resolved: true
-      title: '[{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] %{ if var.global_alertmanager }*[GLOBAL ALERT]* %{ endif }({{ or .CommonLabels.alertname "Multiple Alert Types" }} in ${var.dc})'
+      title: '[{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] %{ if var.global_alertmanager }*[GLOBAL ALERT]* %{ endif }({{ or .CommonLabels.alertname "Multiple Alert Types" }} in {{ .CommonLabels.environment }})'
       text: |-
         {{ if eq .CommonLabels.severity "severe" }}{{ if eq .Status "firing" }}<!here> - PAGE{{ if .CommonLabels.page }}{{ if ne .CommonLabels.page "true" }}-CANDIDATE{{ end }}{{ else }}-CANDIDATE{{ end }}{{ end }}{{ end }}{{ range .Alerts }}
         *{{ index .Labels "alertname" }}* {{ index .Labels "datacenter" }}{{- if .Annotations.summary }}: *{{ .Annotations.summary }}* {{- end }}{{ if eq .Status "firing" }} - {{ if .Annotations.alert_url }}{{ .Annotations.alert_url }}{{ end }}{{ end }}
