@@ -142,13 +142,13 @@ alerting:
   %{ if var.global_alertmanager_host != "" }- static_configs:
     - targets:
       - '${ var.global_alertmanager_host}'
-    scheme: https%{~ endif }
-  %{ if var.remote_write_environment_type != "prod" }alert_relabel_configs:
-    - action: replace
-      source_labels: [severity]
-      target_label: severity
-      regex: 'severe'
-      replacement: 'warn'%{~ endif }
+    scheme: https
+    %{ if var.remote_write_environment_type != "prod" }alert_relabel_configs:
+      - action: replace
+        source_labels: [severity]
+        target_label: severity
+        regex: 'severe'
+        replacement: 'warn'%{~ endif }%{~ endif }
 
 rule_files:
   - "alerts.yml"
