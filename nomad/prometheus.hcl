@@ -26,7 +26,7 @@ variable "grafana_url" {
   default = ""
 }
 
-variable "global_alertmanager_url" {
+variable "global_alertmanager_host" {
   type = string
   default = ""
 }
@@ -139,9 +139,9 @@ alerting:
   - consul_sd_configs:
     - server: '{{ env "NOMAD_IP_prometheus_ui" }}:8500'
       services: ['alertmanager']
-  %{ if var.global_alertmanager_url != "" }- static_configs:
+  %{ if var.global_alertmanager_host != "" }- static_configs:
     - targets:
-      - '${ var.global_alertmanager_url }'
+      - '${ var.global_alertmanager_host}'
     scheme: https%{~ endif }
   %{ if var.remote_write_environment_type != "prod" }alert_relabel_configs:
     - action: replace
