@@ -133,12 +133,12 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 
 def send_email(alert: Alert):
   if 'scope' in alert.commonLabels and alert.commonLabels['scope'] == 'global':
-    global = "[GLOBAL] "
+    global_str = "[GLOBAL] "
   else:
-    global = ""
+    global_str = ""
   if 'alertname' not in alert.commonLabels:
     logger.error('alerts are not grouped by alertname')
-    email_title = f"ALERT {global}[???] MUNGED ALERTS IN ${var.dc}"
+    email_title = f"ALERT {global_str}[???] MUNGED ALERTS IN ${var.dc}"
     email_body = f"alerts are not grouped by alertname; something is broken in alertmanager\n\n{alert}"
   elif 'severity' not in alert.commonLabels:
     severity = 'SMOKE'
@@ -148,9 +148,9 @@ def send_email(alert: Alert):
         break
       if a.labels['severity'] == 'WARN':
         severity = 'WARN'
-    email_title = f"ALERT {global}[{severity}] {alert.commonLabels['alertname']} in ${var.dc}"
+    email_title = f"ALERT {global_str}[{severity}] {alert.commonLabels['alertname']} in ${var.dc}"
   else:
-    email_title = f"ALERT {global}[{alert.commonLabels['severity'].upper()}] {alert.commonLabels['alertname']} in ${var.dc}"
+    email_title = f"ALERT {global_str}[{alert.commonLabels['severity'].upper()}] {alert.commonLabels['alertname']} in ${var.dc}"
 
   email_body = ""
   resolved_alerts = []
