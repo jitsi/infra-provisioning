@@ -93,31 +93,33 @@ global:
 
 route:
   group_by: ['alertname']
-  group_wait: 10s
-  group_interval: 10s
-  repeat_interval: 1h
+  group_wait:     %{ if var.global_alertmanager }20s%{ else }10s%{ endif }  # wait time to create a new group
+  group_interval:  1m  # wait time for a new alert that matches an existing group 
+  repeat_interval: 4h  # wait time before re-sending a notification
   receiver: silence
 
   routes:
     - matchers:
-      - severity =~ "severe|warn|smoke"%{ if var.global_alertmanager }
-      - global = "true"%{~ endif }
+      - severity =~ "severe|warn|smoke"
+      - scope %{ if var.global_alertmanager }= "global"%{ else }!= "global"%{ endif }
       receiver: 'email_alerts'
+      repeat_interval: 168h
       continue: true
     - matchers:
-      - severity =~ "severe|warn"%{ if var.global_alertmanager }
-      - global = "true"%{~ endif }
+      - severity =~ "severe|warn"
+      - scope %{ if var.global_alertmanager }= "global"%{ else }!= "global"%{ endif }
       receiver: 'slack_alerts'
+      repeat_interval: 24h
       continue: true
     %{ if var.pagerduty_enabled }- matchers:
       - severity = "severe"
-      - global %{ if var.global_alertmanager }= "true"%{ else }!= "true"%{ endif }
+      - scope %{ if var.global_alertmanager }= "global"%{ else }!= "global"%{ endif }
       receiver: 'slack_pages'
       continue: true
     - matchers:
       - severity = "severe"
       - page = "true"
-      - global %{ if var.global_alertmanager }= "true"%{ else }!= "true"%{ endif }
+      - scope %{ if var.global_alertmanager }= "global"%{ else }!= "global"%{ endif }
       receiver: 'pagerduty_alerts'
       continue: true%{ endif }
 
@@ -142,7 +144,7 @@ receivers:
       text: |-
         %{ if var.global_alertmanager }*GLOBAL ALERT* %{ endif ~}
         {{ if eq .CommonLabels.severity "severe" }}{{ if eq .Status "firing" }}<!here>{{ end }}{{ end }}{{ range .Alerts }}
-        *[{{ index .Labels "severity" | toUpper }}] {{ index .Labels "alertname" }}* {{- if .Annotations.summary }}: *{{ .Annotations.summary }}* {{- end }}
+        *[{{ index .Labels "severity" | toUpper }}] {{ index .Labels "alertname" }}* in {{ index .Labels "datacenter" }} {{- if .Annotations.summary }}: *{{ .Annotations.summary }}* {{- end }}
         {{- if eq .Status "firing" }}{{- if .Annotations.description }}
         _{{ .Annotations.description }}_
         {{ end }}{{ if ne .Annotations.dashboard_url "" }}alert dashboard: {{ .Annotations.dashboard_url }}{{ end }}
@@ -161,7 +163,7 @@ receivers:
       title: '[{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] %{ if var.global_alertmanager }*[GLOBAL ALERT]* %{ endif }({{ or .CommonLabels.alertname "Multiple Alert Types" }} in ${var.dc})'
       text: |-
         {{ if eq .CommonLabels.severity "severe" }}{{ if eq .Status "firing" }}<!here> - PAGE{{ if .CommonLabels.page }}{{ if ne .CommonLabels.page "true" }}-CANDIDATE{{ end }}{{ else }}-CANDIDATE{{ end }}{{ end }}{{ end }}{{ range .Alerts }}
-        *{{ index .Labels "alertname" }}* {{- if .Annotations.summary }}: *{{ .Annotations.summary }}* {{- end }}{{ if eq .Status "firing" }} - {{ if .Annotations.alert_url }}{{ .Annotations.alert_url }}{{ end }}{{ end }}
+        *{{ index .Labels "alertname" }}* {{ index .Labels "datacenter" }}{{- if .Annotations.summary }}: *{{ .Annotations.summary }}* {{- end }}{{ if eq .Status "firing" }} - {{ if .Annotations.alert_url }}{{ .Annotations.alert_url }}{{ end }}{{ end }}
         {{- end }}
 %{ endif }
 EOH
@@ -173,7 +175,7 @@ EOH
       }
         
       service {
-        name = "alertmanager"
+        name = "alertmanager%{ if var.global_alertmanager }-global%{ endif }"
         tags = ["int-urlprefix-${var.alertmanager_hostname}/"]
         port = "alertmanager_ui"
 
