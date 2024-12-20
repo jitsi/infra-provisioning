@@ -143,8 +143,11 @@ alerting:
     - targets:
       - '${ var.global_alertmanager_host}'
     scheme: https
-    %{ if var.remote_write_environment_type != "prod" }alert_relabel_configs:
-      - action: replace
+    alert_relabel_configs:
+      - action: keep
+        source_labels: [scope]
+        regex: 'global'
+      %{ if var.remote_write_environment_type != "prod" }- action: replace
         source_labels: [severity]
         target_label: severity
         regex: 'severe'
