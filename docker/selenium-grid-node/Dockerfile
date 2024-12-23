@@ -170,8 +170,10 @@ RUN if [ "$(dpkg --print-architecture)" = "amd64" ]; then \
   else \
     echo "installing chromium on arm64" \
     && apt-get update -y \
-    && apt-get install -y chromium-browser \
-    && snap install chromium; \
+    && apt-get install -y software-properties-common \
+    && add-apt-repository ppa:xtradeb/apps \
+    && apt-get update -y \
+    && apt-get install -y chromium; \
   fi
 
 #=================================
