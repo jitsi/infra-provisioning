@@ -14,3 +14,4 @@ stereotype = '{"browserName": "{{ $BROWSER_NAME }}", "browserVersion": "{{ $BROW
 {{- end -}}
 , "se:containerName": ""}'
 max-sessions = {{ $BROWSER_MAX_SESSIONS }}
+
