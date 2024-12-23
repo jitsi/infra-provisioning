@@ -1,0 +1,22 @@
+#!/bin/bash
+
+tpl /defaults/config.toml.tpl > /local/config.toml
+
+
+export BROWSER_OPTIONS="$(cat /opt/selenium/chrome_stable_binary_location)"
+export BROWSER_DISPLAY_NAME="Chrome"
+export BROWSER_NAME="chrome"
+if [ "$(dpkg --print-architecture)" = "amd64" ]; then
+    export BROWSER_VERSION="$(google-chrome --version | awk '{print $3}')"
+else
+    export BROWSER_VERSION="$(chromium --version | awk '{print $2}')"
+fi
+tpl /defaults/driver_config.toml.tpl >> /local/config.toml
+
+if [[ -f "/opt/selenium/firefox_stable_binary_location" ]]; then 
+    export BROWSER_OPTIONS="$(cat /opt/selenium/firefox_stable_binary_location)"
+    export BROWSER_DISPLAY_NAME="Firefox"
+    export BROWSER_NAME="firefox"
+    export BROWSER_VERSION="$(firefox --version | awk '{print $3}')"
+    tpl /defaults/driver_config.toml.tpl >> /local/config.toml
+fi
