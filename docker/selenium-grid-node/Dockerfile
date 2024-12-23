@@ -189,18 +189,4 @@ RUN if [ "$(dpkg --print-architecture)" = "amd64" ]; then echo "skipping wrap_ch
 COPY chrome-cleanup.sh /opt/bin/chrome-cleanup.sh
 COPY chrome-cleanup.conf /etc/supervisor/conf.d/chrome-cleanup.conf
 
-
 USER ${SEL_UID}
-
-#============================================
-# Dumping Browser information for config
-#============================================
-RUN firefox --version | awk '{print $3}' > /opt/selenium/firefox_stable_version \
-  && echo "\"moz:firefoxOptions\": {\"binary\": \"/usr/bin/firefox\"}" > /opt/selenium/firefox_stable_binary_location
-
-RUN if [ "$(dpkg --print-architecture)" = "amd64" ]; then \
-  google-chrome --version | awk '{print $3}' > /opt/selenium/chrome_stable_version \
-  && echo "\"goog:chromeOptions\": {\"binary\": \"/usr/bin/google-chrome\"}" > /opt/selenium/chrome_stable_binary_location \
-  else chromium --version | awk '{print $2}' > /opt/selenium/chrome_stable_version \
-  && echo "\"goog:chromeOptions\": {\"binary\": \"/usr/bin/chromium\"}" > /opt/selenium/chrome_stable_binary_location; \
-  fi
