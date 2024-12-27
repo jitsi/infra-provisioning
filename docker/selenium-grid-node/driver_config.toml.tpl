@@ -4,6 +4,7 @@
 {{ $BROWSER_DISPLAY_NAME := .Env.BROWSER_DISPLAY_NAME | default "Chrome" -}}
 {{ $BROWSER_BINARY_CHROME := .Env.BROWSER_BINARY_CHROME | default "/usr/bin/google-chrome" -}}
 {{ $BROWSER_BINARY_FIREFOX := .Env.BROWSER_BINARY_FIREFOX | default "/usr/bin/firefox" -}}
+{{ $CONTAINER_NAME := .Env.NOMAD_ALLOC_ID | default "" -}}
 [[node.driver-configuration]]
 display-name = "{{ $BROWSER_DISPLAY_NAME }}"
 stereotype = '{"browserName": "{{ $BROWSER_NAME }}", "browserVersion": "{{ $BROWSER_VERSION }}", "platformName": "Linux",
@@ -12,6 +13,6 @@ stereotype = '{"browserName": "{{ $BROWSER_NAME }}", "browserVersion": "{{ $BROW
 {{- else -}}
 "goog:chromeOptions":{"binary":"{{ $BROWSER_BINARY_CHROME }}"}
 {{- end -}}
-, "se:containerName": ""}'
+, "se:containerName": "{{ $CONTAINER_NAME }}"}'
 max-sessions = {{ $BROWSER_MAX_SESSIONS }}
 
