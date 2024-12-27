@@ -7,11 +7,24 @@ export BROWSER_NAME="chrome"
 if [ "$(dpkg --print-architecture)" = "amd64" ]; then
     export BROWSER_VERSION="$(google-chrome --version | awk '{print $3}')"
     export BROWSER_BINARY_CHROME="$(which google-chrome)"
+    tpl /defaults/driver_config.toml.tpl >> /local/config.toml
+
+    export BROWSER_DISPLAY_NAME="Chrome Beta"
+    export BROWSER_VERSION="beta"
+    export BROWSER_BINARY_CHROME="$(which google-chrome-beta)"
+    tpl /defaults/driver_config.toml.tpl >> /local/config.toml
+
+    export BROWSER_DISPLAY_NAME="Firefox Beta"
+    export BROWSER_NAME="firefox"
+    export BROWSER_VERSION="beta"
+    export BROWSER_BINARY_FIREFOX="$(which firefox-beta)"
+    tpl /defaults/driver_config.toml.tpl >> /local/config.toml
+
 else
     export BROWSER_VERSION="$(chromium --version | awk '{print $2}')"
     export BROWSER_BINARY_CHROME="$(which chromium)"
+    tpl /defaults/driver_config.toml.tpl >> /local/config.toml
 fi
-tpl /defaults/driver_config.toml.tpl >> /local/config.toml
 
 export BROWSER_DISPLAY_NAME="Firefox"
 export BROWSER_NAME="firefox"

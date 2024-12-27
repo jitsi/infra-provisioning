@@ -36,11 +36,10 @@ RUN apt-get update -y && \
       FIREFOX_DOWNLOAD_URL="https://download.mozilla.org/?product=firefox-$FIREFOX_VERSION-ssl&os=linux64&lang=en-US"; \
       /opt/bin/install-firefox-apt.sh \
       && FIREFOX_VERSION=$(echo "-$FIREFOX_VERSION" | sed 's/-latest//') \
-      && apt install -y firefox$FIREFOX_VERSION \
+      && apt install -y firefox firefox-beta \
       && INSTALL_VIA_APT=true \
-      && if [ $FIREFOX_VERSION = "-beta" ] || [ $FIREFOX_VERSION = "-nightly" ] || [ $FIREFOX_VERSION = "-devedition" ] || [ $FIREFOX_VERSION = "-esr" ]; then \
-        ln -fs $(which firefox$FIREFOX_VERSION) /usr/bin/firefox ; \
-      fi ; \
+      && ln -fs $(which firefox) /usr/bin/firefox ; \
+      && ln -fs $(which firefox-beta) /usr/bin/firefox-beta ; \
     else \
       FIREFOX_DOWNLOAD_URL="https://download-installer.cdn.mozilla.net/pub/firefox/releases/$FIREFOX_VERSION/linux-x86_64/en-US/firefox-$FIREFOX_VERSION.tar.bz2" ; \
     fi \
@@ -108,18 +107,9 @@ RUN if [ "$(dpkg --print-architecture)" = "amd64" ]; then echo "installing chrom
   && wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | gpg --dearmor | tee /etc/apt/trusted.gpg.d/google.gpg >/dev/null \
   && echo "deb http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list \
   && apt-get update -qqy \
-  && if echo "${CHROME_VERSION}" | grep -qE "google-chrome-stable[_|=][0-9]*"; \
-    then \
-      CHROME_VERSION=$(echo "$CHROME_VERSION" | tr '=' '_') \
-      && wget -qO google-chrome.deb "https://dl.google.com/linux/chrome/deb/pool/main/g/google-chrome-stable/${CHROME_VERSION}_$(dpkg --print-architecture).deb" \
-      && apt-get -qqy --no-install-recommends install --allow-downgrades ./google-chrome.deb \
-      && rm -rf google-chrome.deb ; \
-    else \
-      apt-get -qqy --no-install-recommends install ${CHROME_VERSION} ; \
-    fi \
+  && apt-get -qqy --no-install-recommends install google-chrome-stable google-chrome-beta \
   && rm /etc/apt/sources.list.d/google-chrome.list \
   && rm -rf /var/lib/apt/lists/* /var/cache/apt/*
-
 
 #=================================
 # Chrome Launch Script Wrapper
