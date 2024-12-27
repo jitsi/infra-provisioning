@@ -224,10 +224,10 @@ function checkout_repos() {
     cp -a $LOCAL_REPO_DIRECTORY/infra-customizations $BOOTSTRAP_DIRECTORY
     cd $BOOTSTRAP_DIRECTORY/infra-configuration
     git pull
-    cd -
+    cd /root
     cd $BOOTSTRAP_DIRECTORY/infra-customizations
     git pull
-    cd -
+    cd /root
   else
     echo "No local repos found, cloning directly from github"
     git clone $INFRA_CONFIGURATION_REPO $BOOTSTRAP_DIRECTORY/infra-configuration
@@ -237,13 +237,13 @@ function checkout_repos() {
   git checkout $GIT_BRANCH
   git submodule update --init --recursive
   git show-ref heads/$GIT_BRANCH || git show-ref tags/$GIT_BRANCH
-  cd -
+  cd /root
   cd $BOOTSTRAP_DIRECTORY/infra-customizations
   git checkout $GIT_BRANCH
   git submodule update --init --recursive
   git show-ref heads/$GIT_BRANCH || git show-ref tags/$GIT_BRANCH
   cp -a $BOOTSTRAP_DIRECTORY/infra-customizations/* $BOOTSTRAP_DIRECTORY/infra-configuration
-  cd -
+  cd /root
 }
 function run_ansible_playbook() {
     cd $BOOTSTRAP_DIRECTORY/infra-configuration
@@ -260,7 +260,7 @@ function run_ansible_playbook() {
     if [ $status_code -eq 1 ]; then
         echo 'Provisioning stage failed' > $tmp_msg_file;
     fi
-    cd -
+    cd /root
     return $status_code
 }
 function default_dump() {
