@@ -5,7 +5,7 @@ set -e
 
 cleanup_stuck_chrome_processes() {
   echo -n "Killing Chrome processes older than ${SE_BROWSER_LEFTOVERS_PROCESSES_SECS} seconds... "
-  ps -e -o pid,etimes,command | grep -v grep | grep chrome/chrome | awk '{if($2>'${SE_BROWSER_LEFTOVERS_PROCESSES_SECS}') print $0}' | awk '{print $1}' | xargs -r kill -9
+  ps -e -o pid,etimes,command | grep -v grep | egrep 'chrome/chrome|chrome-beta/chrome' | awk '{if($2>'${SE_BROWSER_LEFTOVERS_PROCESSES_SECS}') print $0}' | awk '{print $1}' | xargs -r kill -9
   echo "DONE."
 }
 
