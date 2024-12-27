@@ -30,9 +30,11 @@ if [ -z "$ORACLE_REGION" ]; then
 fi
 
 if [ -z "$INFRA_CONFIGURATION_REPO" ]; then
-  echo "No INFRA_CONFIGURATION_REPO found. Exiting..."
-  exit 203
+  echo "No INFRA_CONFIGURATION_REPO found. using default..."
+  export INFRA_CONFIGURATION_REPO="https://github.com/jitsi/infra-configuration.git"
 fi
+
+[ -z "$INFRA_CUSTOMIZATIONS_REPO" ] && INFRA_CUSTOMIZATIONS_REPO="$PRIVATE_CUSTOMIZATIONS_REPO"
 
 if [ -z "$INFRA_CUSTOMIZATIONS_REPO" ]; then
   echo "No INFRA_CUSTOMIZATIONS_REPO found. Exiting..."
