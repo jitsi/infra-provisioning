@@ -153,6 +153,9 @@ def CreateImageOracle(image_type) {
         case 'JammyBase':
             image_script = 'build-jammy-base-oracle.sh'
         break;
+        case 'NobleBase':
+            image_script = 'build-noble-base-oracle.sh'
+        break;
         default:
             def build_script_part_lower = env.IMAGE_TYPE.toLowerCase()
             def build_script_name = "build-${build_script_part_lower}-oracle.sh"
