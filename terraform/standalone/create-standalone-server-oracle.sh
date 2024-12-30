@@ -74,7 +74,7 @@ fi
 [ -z "$S3_STATE_KEY" ] && S3_STATE_KEY="$ENVIRONMENT/standalone/$UNIQUE_ID/terraform.tfstate"
 
 [ -z "$BASE_IMAGE_TYPE" ] && BASE_IMAGE_TYPE="$STANDALONE_BASE_IMAGE_TYPE"
-[ -z "$BASE_IMAGE_TYPE" ] && BASE_IMAGE_TYPE="JammyBase"
+[ -z "$BASE_IMAGE_TYPE" ] && BASE_IMAGE_TYPE="NobleBase"
 
 arch_from_shape $SHAPE
 
