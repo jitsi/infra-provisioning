@@ -15,8 +15,11 @@ RUN mkdir /home/jenkins/.docker
 COPY ./docker-config.json /home/jenkins/.docker/config.json
 
 USER root
-RUN apt-get update && apt-get -y install procps dnsutils jq python3-pip python3-venv rsync wget curl gpg unzip zip git python-is-python3 maven xvfb imagemagick s3cmd s3fs mini-dinstall sudo devscripts dpkg-dev amazon-ecr-credential-helper
-RUN pip install --break-system-packages -r /home/jenkins/requirements.txt && pip install --break-system-packages jenkins-job-builder
+RUN apt-get update && apt-get -y install procps dnsutils \
+  jq python3-pip python3-venv rsync wget curl gpg unzip zip git python-is-python3 maven xvfb imagemagick s3cmd s3fs mini-dinstall \
+  sudo devscripts dpkg-dev amazon-ecr-credential-helper netcat-openbsd \
+  && pip install --break-system-packages -r /home/jenkins/requirements.txt \
+  && pip install --break-system-packages jenkins-job-builder
 
 RUN echo "%jenkins ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/jenkins
 RUN wget -O- https://apt.releases.hashicorp.com/gpg | \
