@@ -49,7 +49,7 @@ if [[ "$CDN_CLOUDFLARE_FLAG" == "null" ]]; then
 fi
 
 if [[ "$CDN_CLOUDFLARE_FLAG" == "true" ]]; then
-    [ -z "$CDN_BASE" ] && CDN_BASE="$DOMAIN/v1/_cdn"
+    [ -z "$CDN_BASE" ] && CDN_BASE="/v1/_cdn"
 else
     [ -z "$CDN_BASE" ] && CDN_BASE="web-cdn.jitsi.net"
 fi
