@@ -37,6 +37,11 @@ job [[ template "job_name" . ]] {
       value     = "true"
     }
 
+    constraint {
+      attribute  = "${meta.pool_type}"
+      operator     = "set_contains_any"
+      value    = "consul,general,shard"
+    }
 
 [[ if ne (env "CONFIG_pool_type") "consul" ]]
     affinity {

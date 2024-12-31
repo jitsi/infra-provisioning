@@ -27,6 +27,12 @@ job [[ template "job_name" . ]] {
   group "autoscaler" {
     count = [[ var "count" . ]]
 
+    constraint {
+      attribute  = "${meta.pool_type}"
+      operator     = "set_contains_any"
+      value    = "consul,general"
+    }
+
 [[ if ne (var "pool_type" .) "consul" ]]
     affinity {
       attribute  = "${meta.pool_type}"
