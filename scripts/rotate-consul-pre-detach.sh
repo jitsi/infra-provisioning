@@ -20,7 +20,7 @@ LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 # first archive the keyring material from the old server if nomad version is less than 1.9
 echo "## rotate-consul-pre-detach: checking for nomad keyring material from $INSTANCE_PRIMARY_PRIVATE_IP"
 export ARCHIVE_KEYRING="true"
-timeout 120 ssh -F $LOCAL_PATH/../config/ssh.config $SSH_USER@$INSTANCE_PRIMARY_PRIVATE_IP  "[ $(nomad --version | head -1 | awk '{print $2}' | cut -d '.' -f2) -ge 9 ] && echo 'nomad version is 1.9 or greater, no keyring needed' && exit 1 || sudo tar -czf /tmp/nomad-keyring.tar.gz /var/nomad/server/keystore"
+timeout 120 ssh -F $LOCAL_PATH/../config/ssh.config $SSH_USER@$INSTANCE_PRIMARY_PRIVATE_IP  "[ \$(nomad --version | head -1 | awk '{print $2}' | cut -d '.' -f2) -ge 9 ] && echo 'nomad version is 1.9 or greater, no keyring needed' && exit 1 || sudo tar -czf /tmp/nomad-keyring.tar.gz /var/nomad/server/keystore"
 RET=$?
 if [[ $RET -gt 0 ]]; then
     if [ $RET -eq 1 ]; then
