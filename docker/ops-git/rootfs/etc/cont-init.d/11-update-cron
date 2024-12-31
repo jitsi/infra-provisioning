@@ -1,0 +1,3 @@
+#!/usr/bin/with-contenv bash
+
+echo '* * * * * /usr/bin/timeout 50 /opt/jitsi/update-repos.sh > /tmp/update.log 2>&1' | crontab -u git -
