@@ -27,9 +27,27 @@ job [[ template "job_name" . ]] {
   group "autoscaler" {
     count = [[ var "count" . ]]
 
-    constraint {
+[[ if ne (var "pool_type" .) "consul" ]]
+    affinity {
+      attribute  = "${meta.pool_type}"
+      operator = "="
+      value     = "consul"
+      weight    = -100
+    }
+[[ end ]]
+[[ if ne (var "pool_type" .) "general" ]]
+    affinity {
+      attribute  = "${meta.pool_type}"
+      operator = "="
+      value     = "general"
+      weight    = -50
+    }
+[[ end ]]
+    affinity {
       attribute  = "${meta.pool_type}"
       value     = "[[ var "pool_type" . ]]"
+      operator = "="
+      weight    = 100
     }
 
     network {
