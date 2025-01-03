@@ -65,10 +65,10 @@ if [ -z "$NOMAD_JIBRI_FLAG" ]; then
 fi
 
 if [[ "$NOMAD_JIBRI_FLAG" == "true" ]]; then
-  # instead of launch jibri images, launch the latest JammyBase image
+  # instead of launch jibri images, launch the latest NobleBase image
   # in addition, give a new name and set our type to nomad for the autoscaler
 
-  JIBRI_IMAGE_TYPE="JammyBase"
+  JIBRI_IMAGE_TYPE="NobleBase"
   JIBRI_VERSION="latest"
   TYPE="nomad"
   [ -z "$NAME_ROOT_SUFFIX" ] && NAME_ROOT_SUFFIX="JibriNomadPoolCustomGroup"
