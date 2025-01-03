@@ -123,7 +123,7 @@ fi
 SHARD_ROLE="$JIBRI_TYPE"
 
 if [[ "$NOMAD_JIBRI_FLAG" == "true" ]]; then
-  JIBRI_IMAGE_TYPE="JammyBase"
+  JIBRI_IMAGE_TYPE="NobleBase"
   JIBRI_VERSION="latest"
   SHARD_ROLE="jibri-nomad-pool"
 fi
