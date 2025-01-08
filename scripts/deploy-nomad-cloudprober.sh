@@ -59,19 +59,19 @@ CLOUDPROBER_ENABLE_COTURN="false"
 CLOUDPROBER_ENABLE_CUSTOM_HTTPS="false"
 CLOUDPROBER_ENABLE_HAPROXY_REGION="false"
 CLOUDPROBER_ENABLE_SHARD="false"
-CLOUDPROBER_ENABLE_SKYNET="false"
 CLOUDPROBER_ENABLE_SITE_INGRESS="false"
 CLOUDPROBER_ENABLE_VAULT="false"
-CLOUDPROBER_ENABLE_WHISPER="false"
 CLOUDPROBER_ENABLE_CANARY="false"
 
 # add probes based on template type
 if [[ "$CLOUDPROBER_TEMPLATE_TYPE" == "core" ]]; then
     CLOUDPROBER_ENABLE_AUTOSCALER="true"
-    CLOUDPROBER_ENABLE_COTURN="true"
     CLOUDPROBER_ENABLE_HAPROXY_REGION="true"
     CLOUDPROBER_ENABLE_SHARD="true"
     CLOUDPROBER_ENABLE_SITE_INGRESS="true"
+    if [[ "$ENVIRONMENT_TYPE" == "prod" ]]; then
+        CLOUDPROBER_ENABLE_COTURN="true"
+    fi
 elif [[ "$CLOUDPROBER_TEMPLATE_TYPE" == "ops" ]]; then
     CLOUDPROBER_ENABLE_VAULT="true"
 elif [[ "$CLOUDPROBER_TEMPLATE_TYPE" != "base" ]]; then
@@ -122,12 +122,7 @@ if [ $PLAN_RET -gt 1 ]; then
     rm ./cloudprober.hcl
     exit 4
 else
-    if [ $PLAN_RET -eq 1 ]; then
-        echo "Plan was successful, will make changes"
-    fi
-    if [ $PLAN_RET -eq 0 ]; then
-        echo "Plan was successful, no changes needed"
-    fi
+    echo "Plan was successful, will make changes"
 fi
 
 nomad-pack run --name "$JOB_NAME" \
