@@ -94,7 +94,7 @@ function getJitsiMeetTortureTag() {
   SERVER_IP=$1
   SERVER_DIR=$2
   BASE_HTML=$(curl --silent --insecure https://${SERVER_IP}${SERVER_DIR}/base.html)
-  WEB_FULL_VER=$(echo $BASE_HTML | sed 's|.*web-cdn.jitsi.net/||' | sed "s|.*${DOMAIN}/v1/_cdn/||" | sed "s|.*/v1/_cdn/||" | sed 's|/".*||')
+  WEB_FULL_VER=$(echo $BASE_HTML | sed 's|.*web-cdn.jitsi.net/||' | sed "s|.*${DOMAIN}/v1/_cdn/||" | sed 's|/".*||')
   WEB_VER=$(echo $WEB_FULL_VER | sed 's|.*_|| ' | sed 's|\..*||')
 
   JITSI_MEET_VERSIONS=$(apt-cache madison jitsi-meet | awk '{print $3;}' | cut -d'-' -f1,2,3)
