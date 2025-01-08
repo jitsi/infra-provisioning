@@ -60,6 +60,12 @@ variable "autoscaler_alerts" {
   default = false
 }
 
+variable "custom_alerts" {
+  type = string
+  description = "custom alerts to be added to the alerts.yml file"
+  default = ""
+}
+
 job "[JOB_NAME]" {
   datacenters = ["${var.dc}"]
   type        = "service"
@@ -334,6 +340,7 @@ groups:
         not stable or is being killed for some reason.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=service_restarts_high
+
 - name: cloudprober_alerts
   rules:
   - alert: Probe_Unhealthy
@@ -416,8 +423,8 @@ groups:
       alert_url: https://${var.prometheus_hostname}/alerts?search=probe_latency
 
 - name: system_alerts
-  rules:
-  %{ if var.production_alerts }- alert: System_CPU_Usage_High
+  rules:%{ if var.production_alerts }
+  - alert: System_CPU_Usage_High
     expr: 100 - cpu_usage_idle > 70
     for: 5m
     labels:
@@ -787,8 +794,8 @@ groups:
         scale up. Most recently, there were {{ $value | printf "%.2f"  }} sessions.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=whisper_sessions_high
-%{ endif }
-%{ endif }
+%{ endif }%{ endif }
+${var.custom_alerts}
 EOH
     }
 

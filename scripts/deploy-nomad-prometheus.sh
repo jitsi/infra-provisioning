@@ -11,6 +11,7 @@ LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
 [ -e "$LOCAL_PATH/../clouds/all.sh" ] && . "$LOCAL_PATH/../clouds/all.sh"
 [ -e "$LOCAL_PATH/../clouds/oracle.sh" ] && . "$LOCAL_PATH/../clouds/oracle.sh"
+[ -z "$ENVIRONMENT_CONFIGURATION_FILE" ] && ENVIRONMENT_CONFIGURATION_FILE="$LOCAL_PATH/../sites/$ENVIRONMENT/vars.yml"
 
 if [ -z "$ORACLE_REGION" ]; then
     echo "No ORACLE_REGION set, exiting"
@@ -50,6 +51,11 @@ fi
 [ -z "$PROMETHEUS_AUTOSCALER_ALERTS" ] && PROMETHEUS_AUTOSCALER_ALERTS="false"
 if [ "$PROMETHEUS_AUTOSCALER_ALERTS" == "true" ]; then
     export NOMAD_VAR_autoscaler_alerts="true"
+fi
+
+PROMETHEUS_CUSTOM_ALERTS=$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval ".prometheus_custom_alerts")
+if [[ "$PROMETHEUS_CUSTOM_ALERTS" != "null" ]]; then
+    export NOMAD_VAR_custom_alerts="$PROMETHEUS_CUSTOM_ALERTS"
 fi
 
 NOMAD_JOB_PATH="$LOCAL_PATH/../nomad"
