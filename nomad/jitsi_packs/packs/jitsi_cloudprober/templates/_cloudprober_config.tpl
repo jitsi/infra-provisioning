@@ -377,7 +377,7 @@ probe {
   }
   additional_label {
     key: "severity"
-    value: "warning"
+    value: "warn"
   }
 }
 [[ end -]]
