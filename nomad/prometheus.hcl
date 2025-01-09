@@ -327,8 +327,23 @@ groups:
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=telegraf_down
   - alert: Service_Restarts_High
-    expr: sum(sum_over_time(nomad_client_allocs_restart_sum[1h])) by (task) > 12 
+    expr: sum(sum_over_time(nomad_client_allocs_restart_sum[1h])) by (task) >= 12 
     for: 5m
+    labels:
+      service: infra
+      severity: severe
+      page: false
+    annotations:
+      summary: jobs for {{ $labels.task }} in ${var.dc} have had high restarts
+      description: >-
+        The {{ $labels.task }} task in ${var.dc} has restarted on average of
+        once every 5 minutes in the last hour. This may mean that the service is
+        not stable or is being killed for some reason.
+      dashboard_url: ${var.grafana_url}
+      alert_url: https://${var.prometheus_hostname}/alerts?search=service_restarts_high
+  - alert: Service_Restarts_High
+    expr: sum(sum_over_time(nomad_client_allocs_restart_sum[20m])) by (task) >= 4
+    for: 2m
     labels:
       service: infra
       severity: warn
@@ -336,8 +351,8 @@ groups:
       summary: jobs for {{ $labels.task }} in ${var.dc} have had high restarts
       description: >-
         The {{ $labels.task }} task in ${var.dc} has restarted on average of
-        once every 5 minutes in the last hour. This may mean that the service is
-        not stable or is being killed for some reason.
+        once every 5 minutes in the last 20 minutes. This may mean that the
+        service is not stable or is being killed for some reason.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=service_restarts_high
 
@@ -347,6 +362,7 @@ groups:
     expr: (cloudprober_failure{probe!~"shard|shard_https"} > 0) or (cloudprober_timeouts{probe!~"shard|shard_https"} > 0)
     for: 2m
     labels:
+      service: infra
       severity: warn
     annotations:
       summary: "{{ $labels.probe }} probe from ${var.dc} to {{ $labels.dst }} unhealthy for 2+ minutes"
@@ -359,6 +375,7 @@ groups:
     expr: (cloudprober_failure{probe!~"shard|shard_https"} > 0) or (cloudprober_timeouts{probe!~"shard|shard_https"} > 0)
     for: 5m
     labels:
+      service: infra
       severity: "{{ if $labels.severity }}{{ $labels.severity }}{{ else }}severe{{ end }}"
     annotations:
       summary: "{{ $labels.probe }} probe from ${var.dc} to {{ $labels.dst }} unhealthy for 5+ minutes"
@@ -370,6 +387,10 @@ groups:
   - alert: Probe_Shard_Unhealthy
     expr: ((cloudprober_failure{probe=~"shard|shard_https"} > 0) and on() count_over_time(cloudprober_failure{probe=~"shard|shard_https"}[5m:1m]) > 5) or (cloudprober_timeouts{probe=~"shard|shard_https"} > 0)
     for: 2m
+    labels:
+      service: jitsi
+      severity: severe
+      page: false
     annotations:
       summary: shard {{ $labels.dst }} probe returned failed or timed-out from ${var.dc}
       description: >-
@@ -384,7 +405,8 @@ groups:
     expr: cloudprober_haproxy_region_check_passed < 1
     for: 5m
     labels:
-      severity: disabled 
+      service: jitsi
+      severity: smoke
     annotations:
       summary: domain probe from ${var.dc} reached an haproxy outside the local region for 2+ minutes
       description: >-
@@ -397,28 +419,32 @@ groups:
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=probe_ingress_region_unhealthy
   - alert: Probe_Latency
-    expr: (cloudprober_latency{probe="canary"} > 1500)
-    for: 2m
+    expr: avg_over_time(cloudprober_latency{probe="canary"}[5m]) > 750
+    for: 10m
     labels:
+      service: infra
       severity: warn
     annotations:
-      summary: http probe from ${var.dc} to {{ $labels.dst }} has had high latency 2+ minutes
+      summary: http probe from ${var.dc} to {{ $labels.dst }} has had high latency for 10+ minutes
       description: >-
         The {{ $labels.probe }} http probe from ${var.dc} to {{ $labels.dst }}
-        has had latency over 1.5 seconds for 2 minutes, most recently at {{ $value }} ms.
+        has had latency averaging over 750 ms for 10 minutes, and was most
+        recently at {{ $value }} ms.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=probe_latency
   - alert: Probe_Latency
-    expr: (cloudprober_latency{probe="canary"} > 3000)
-    for: 5m
+    expr: avg_over_time(cloudprober_latency{probe="canary"}[5m]) > 1500
+    for: 15m
     labels:
       service: infra
       severity: severe
+      page: false
     annotations:
-      summary: http probe from ${var.dc} to {{ $labels.dst }} has extremely high latency for 5+ minutes
+      summary: http probe from ${var.dc} to {{ $labels.dst }} has extremely high latency for 15+ minutes
       description: >-
         The {{ $labels.probe }} http probe from ${var.dc} to {{ $labels.dst }}
-        has had latency over 3 seconds for 5 minutes, most recently at {{ $value }} ms.
+        has had latency averaging over 1500 ms for 15 minutes, and was most
+        recently at {{ $value }} ms.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=probe_latency
 
