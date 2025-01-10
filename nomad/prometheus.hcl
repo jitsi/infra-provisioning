@@ -153,7 +153,7 @@ alerting:
       - action: keep
         source_labels: [scope]
         regex: 'global'
-      %{ if var.remote_write_environment_type != "prod" }- action: replace
+      %{ if ! var.production_alerts }- action: replace
         source_labels: [severity]
         target_label: severity
         regex: 'severe'
