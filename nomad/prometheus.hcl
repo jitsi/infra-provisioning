@@ -505,7 +505,7 @@ groups:
         utilizing over 80% of its memory in the last 5 minutes. It was most
         recently at {{ $value | printf "%.2f"}}%.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=system_memory_available_low
+      alert_url: https://${var.prometheus_hostname}/alerts?search=system_memory_usage_high
   - alert: System_Disk_Usage_High
     expr: (disk_used_percent{path="/"} or max(100-(disk_free{path="/."}/disk_total{path="/."})*100) by (host)) > 80
     for: 5m
@@ -519,7 +519,7 @@ groups:
         using over 80% of its disk space. It was most recently at {{ $value |
         printf "%.2f" }}%.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=system_disk_used_high
+      alert_url: https://${var.prometheus_hostname}/alerts?search=system_disk_usage_high
   - alert: System_Disk_Usage_High
     expr: (disk_used_percent{path="/"} or max(100-(disk_free{path="/."}/disk_total{path="/."})*100) by (host)) > 90
     for: 5m
@@ -554,7 +554,7 @@ groups:
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=haproxy_redispatch_rate_high
   - alert: HAProxy_Shard_Unhealthy
-    expr: min(haproxy_agent_health) by (sv) < 1
+    expr: (min(haproxy_agent_health) by (sv) unless count(haproxy_agent_health unless (haproxy_agent_health offset 5m) > bool 1) by (sv)) < 1
     for: 1m
     labels:
       service: jitsi
@@ -569,7 +569,7 @@ groups:
         understand more.  The HealthAnyAlarm email has also likely been
         triggered.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=haproxy_unhealthy_agent
+      alert_url: https://${var.prometheus_hostname}/alerts?search=haproxy_shard_unhealthy
   - alert: Jicofo_ICE_Restarts_High
     expr: sum(increase(jitsi_jicofo_participants_restart_requested_total[10m])) by (shard) / sum(jitsi_jicofo_participants_current) by (shard) > 0.5
     for: 10m
