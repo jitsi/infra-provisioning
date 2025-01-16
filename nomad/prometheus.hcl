@@ -410,7 +410,7 @@ groups:
     for: 5m
     labels:
       service: jitsi
-      severity: smoke
+      severity: %{ if var.environment_type != "prod" }disabled%{ else }smoke%{ endif }
     annotations:
       summary: domain probe from ${var.dc} reached an haproxy outside the local region for 2+ minutes
       description: >-
