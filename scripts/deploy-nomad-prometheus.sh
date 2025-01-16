@@ -64,15 +64,14 @@ export NOMAD_VAR_prometheus_hostname="${RESOURCE_NAME_ROOT}.${TOP_LEVEL_DNS_ZONE
 export NOMAD_VAR_dc="$NOMAD_DC"
 
 if [[ "$PROMETHEUS_ENABLE_REMOTE_WRITE" == "true" ]]; then
-  export NOMAD_VAR_enable_remote_write="true"
-  if [ -z "$ENVIRONMENT_TYPE" ]; then
-      ENVIRONMENT_TYPE="dev"
-  fi
-  if [[ "$ENVIRONMENT_TYPE" = "prod" ]]; then
-    export NOMAD_VAR_remote_write_environment_type="prod"
-  else
-    export NOMAD_VAR_remote_write_environment_type="nonprod"
-  fi
+    export NOMAD_VAR_enable_remote_write="true"
+fi
+
+[ -z "$ENVIRONMENT_TYPE" ] && ENVIRONMENT_TYPE="dev"
+if [[ "$ENVIRONMENT_TYPE" = "prod" ]]; then
+    export NOMAD_VAR_environment_type="prod"
+else
+    export NOMAD_VAR_environment_type="nonprod"
 fi
 
 [ -z "$GRAFANA_ALERTS_DASHBOARD_URL" ] && GRAFANA_ALERTS_DASHBOARD_URL=""
