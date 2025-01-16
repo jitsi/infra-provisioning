@@ -3,6 +3,9 @@
 surfacer {
   type: PROMETHEUS
   export_as_gauge: true
+  prometheus_surfacer {
+    metrics_prefix: "cloudprober_"
+  }
 }
 
 # add variables for default_cloudprober_severity and default_cloudprober_team, and apply them to all non-custom probes
