@@ -327,23 +327,8 @@ groups:
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=telegraf_down
   - alert: Service_Restarts_High
-    expr: sum(sum_over_time(nomad_client_allocs_restart_sum[1h])) by (task) >= 12 
+    expr: sum(sum_over_time(nomad_client_allocs_restart_sum[1h])) by (task) >= 15
     for: 5m
-    labels:
-      service: infra
-      severity: severe
-      page: false
-    annotations:
-      summary: jobs for {{ $labels.task }} in ${var.dc} have had high restarts
-      description: >-
-        The {{ $labels.task }} task in ${var.dc} has restarted on average of
-        once every 5 minutes in the last hour. This may mean that the service is
-        not stable or is being killed for some reason.
-      dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=service_restarts_high
-  - alert: Service_Restarts_High
-    expr: sum(sum_over_time(nomad_client_allocs_restart_sum[20m])) by (task) >= 4
-    for: 2m
     labels:
       service: infra
       severity: warn
@@ -351,8 +336,25 @@ groups:
       summary: jobs for {{ $labels.task }} in ${var.dc} have had high restarts
       description: >-
         The {{ $labels.task }} task in ${var.dc} has restarted on average of
+        once every 5 minutes in the last hour. This may mean that the service is
+        not stable or is being killed for some reason. This could simply be a
+        service which restarts frequently due to consul-template updates, etc.
+      dashboard_url: ${var.grafana_url}
+      alert_url: https://${var.prometheus_hostname}/alerts?search=service_restarts_high
+  - alert: Service_Restarts_High
+    expr: sum(sum_over_time(nomad_client_allocs_restart_sum[20m])) by (task) >= 4
+    for: 2m
+    labels:
+      service: infra
+      severity: smoke
+    annotations:
+      summary: jobs for {{ $labels.task }} in ${var.dc} have had high restarts
+      description: >-
+        The {{ $labels.task }} task in ${var.dc} has restarted on average of
         once every 5 minutes in the last 20 minutes. This may mean that the
-        service is not stable or is being killed for some reason.
+        service is not stable or is being killed for some reason. This could
+        simply be a service which restarts frequently due to consul-template
+        updates, etc.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=service_restarts_high
 
