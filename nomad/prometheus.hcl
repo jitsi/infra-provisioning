@@ -141,6 +141,12 @@ global:
     region: '{{ env "meta.cloud_region" }}'
 
 alerting:
+  %{ if ! var.production_alerts }alert_relabel_configs:
+    - action: replace
+      source_labels: [severity]
+      target_label: severity
+      regex: 'severe'
+      replacement: 'warn'%{~ endif }
   alertmanagers:
   - consul_sd_configs:
     - server: '{{ env "NOMAD_IP_prometheus_ui" }}:8500'
@@ -152,12 +158,7 @@ alerting:
     alert_relabel_configs:
       - action: keep
         source_labels: [scope]
-        regex: 'global'
-      %{ if ! var.production_alerts }- action: replace
-        source_labels: [severity]
-        target_label: severity
-        regex: 'severe'
-        replacement: 'warn'%{~ endif }%{~ endif }
+        regex: 'global'%{~ endif }
 
 rule_files:
   - "alerts.yml"
