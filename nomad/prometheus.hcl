@@ -31,8 +31,9 @@ variable "global_alertmanager_host" {
   default = ""
 }
 
-variable "remote_write_environment_type" {
+variable "environment_type" {
   type = string
+  description = "route remote_write target and control whether 'severe' alerts are allowed"
   default = "nonprod"
 }
 
@@ -50,7 +51,7 @@ variable "core_extended_services" {
 
 variable "production_alerts" {
   type = bool
-  description = "use production alert thresholds for this deployment"
+  description = "use production alert thresholds for system alerts"
   default = false
 }
 
@@ -141,7 +142,7 @@ global:
     region: '{{ env "meta.cloud_region" }}'
 
 alerting:
-  %{ if ! var.production_alerts }alert_relabel_configs:
+  %{ if var.environment_type != "prod" }alert_relabel_configs:
     - action: replace
       source_labels: [severity]
       target_label: severity
@@ -184,7 +185,7 @@ scrape_configs:
     scrape_interval: 30s
     metrics_path: /metrics
 
-{{ with secret "secret/default/prometheus/remote_write/${ var.remote_write_environment_type }" }}
+{{ with secret "secret/default/prometheus/remote_write/${ var.environment_type }" }}
 remote_write:
   - url: "{{ .Data.data.endpoint }}"
     basic_auth:
