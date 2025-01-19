@@ -101,7 +101,20 @@ job "[JOB_NAME]" {
 
     constraint {
       attribute  = "${meta.pool_type}"
+      operator     = "set_contains_any"
+      value    = "consul,general,transcriber"
+    }
+
+    affinity {
+      attribute  = "${meta.pool_type}"
+      value     = "consul"
+      weight    = -100
+    }
+
+    affinity {
+      attribute  = "${meta.pool_type}"
       value     = "${var.pool_type}"
+      weight    = 100
     }
 
     count = 1
