@@ -43,8 +43,8 @@ def enableShardAlarms(hcv_environment, shardList) {
     sh(
         script:"""#!/bin/bash
         export SHARDS="${shardList}"
-        echo "Sleeping 300 to ensure external health check stats are updated"
-        sleep 300
+        echo "Sleeping 600 to give shard time to come up and report healthy"
+        sleep 600
         scripts/enable-alarms-for-shards.sh ubuntu"""
     )
 }
