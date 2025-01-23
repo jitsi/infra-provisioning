@@ -328,8 +328,8 @@ groups:
         Metrics for some services are not being collected.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=telegraf_down
-  - alert: Service_Restarts_High
-    expr: sum(sum_over_time(nomad_client_allocs_restart_sum[1h])) by (task) >= 15
+  - alert: Nomad_Job_Restarts_High
+    expr: sum(sum_over_time(nomad_client_allocs_restart_sum{task!="cloudprober"}[1h])) by (task) >= 15
     for: 5m
     labels:
       service: infra
@@ -342,9 +342,9 @@ groups:
         not stable or is being killed for some reason. This could simply be a
         service which restarts frequently due to consul-template updates, etc.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=service_restarts_high
-  - alert: Service_Restarts_High
-    expr: sum(sum_over_time(nomad_client_allocs_restart_sum[20m])) by (task) >= 4
+      alert_url: https://${var.prometheus_hostname}/alerts?search=nomad_job
+  - alert: Nomad_Job_Restarts_High
+    expr: sum(sum_over_time(nomad_client_allocs_restart_sum{task!="cloudprober"}[20m])) by (task) >= 4
     for: 2m
     labels:
       service: infra
@@ -358,7 +358,7 @@ groups:
         simply be a service which restarts frequently due to consul-template
         updates, etc.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=service_restarts_high
+      alert_url: https://${var.prometheus_hostname}/alerts?search=nomad_job
 
 - name: cloudprober_alerts
   rules:
@@ -389,7 +389,7 @@ groups:
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=probe_unhealthy
   - alert: Probe_Shard_Unhealthy
-    expr: ((cloudprober_failure{probe=~"shard|shard_https"} > 0) and on() count_over_time(cloudprober_failure{probe=~"shard|shard_https"}[5m:1m]) > 5) or (cloudprober_timeouts{probe=~"shard|shard_https"} > 0)
+    expr: ((cloudprober_failure{probe=~"shard|shard_https"} > 0) and on(dst) count_over_time(cloudprober_total{probe=~"shard|shard_https"}[5m:1m]) >= 5) or ((cloudprober_timeouts{probe=~"shard|shard_https"} > 0) and on(dst) count_over_time(cloudprober_total{probe=~"shard|shard_https"}[5m:1m]) >= 5) > 0
     for: 2m
     labels:
       service: jitsi
@@ -483,16 +483,16 @@ groups:
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=system_cpu_usage_high%{ else }
   - alert: System_CPU_Usage_High
-    expr: 100 - cpu_usage_idle > 90
+    expr: 100 - cpu_usage_idle > 95
     for: 5m
     labels:
       service: infra
-      severity: severe 
+      severity: warn
     annotations:
-      summary: host {{ $labels.host }} in ${var.dc} has had CPU usage > 90% for 5 minutes
+      summary: host {{ $labels.host }} in ${var.dc} has had CPU usage > 95% for 5 minutes
       description: >-
         host {{ $labels.host }} in ${var.dc} with role {{ $labels.role }} has
-        had a CPU running at over 90% in the last 5 minutes. It was most
+        had a CPU running at over 95% in the last 5 minutes. It was most
         recently at {{ $value | printf "%.2f" }}%.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=system_cpu_usage_high%{ endif }
@@ -622,7 +622,7 @@ groups:
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=jicofo_jvbs_lost_high
   - alert: Jicofo_JVBs_Missing
-    expr: min_over_time(min(jitsi_jicofo_bridge_selector_bridge_count) by (shard)[5m:1m]) < 1
+    expr: min_over_time(min(jitsi_jicofo_bridge_selector_bridge_count) by (shard)[5m:1m]) and on(shard) (count_over_time(jitsi_jicofo_bridge_selector_bridge_count[10m:1m]) >= 10) < 1
     for: 5m
     labels:
       service: jitsi
@@ -711,7 +711,7 @@ groups:
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=coturn_udp_errors_high
   - alert: Jibris_Available_None
-    expr: sum(jibri_available) == 0
+    expr: sum(jibri_available{role="java-jibri"}) == 0
     for: 5m
     labels:
       service: jitsi
@@ -725,37 +725,39 @@ groups:
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=jibris_available_none
   - alert: Jicofo_Jibris_Missing
-    expr: max(jitsi_jicofo_jibri_instances) < 1
-    for: 10m
+    expr: max(jitsi_jicofo_jibri_instances) by (shard) and on (shard) (count_over_time(jitsi_jicofo_jibri_instances[10m:1m]) >= 10) < 1
+    for: 5m
     labels:
       service: jitsi
       severity: severe
       page: true
     annotations:
-      summary: no jibris are available in ${var.dc}
+      summary: jicofo is missing jibris in ${var.dc}
       description: >-
-        No jicofos see any jibris as available in ${var.dc}. This means that no
-        jibri instances are available to record or stream meetings.
+        The jicofo on shard {{ $labels.shard }} sees no jibris as available in
+        ${var.dc}. This means that it will not be able to record or stream
+        meetings on this shard.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=jicofo_jibris_missing
   - alert: Jicofo_SIP-Jigasi_Missing
-    expr: max(jitsi_jicofo_jigasi_sip_count) < 1    # < 2 warn
-    for: 1m
+    expr: max(jitsi_jicofo_jigasi_sip_count) by (shard) and on (shard) (count_over_time(jitsi_jicofo_jigasi_sip_count[10m:1m]) >= 10) < 1
+    for: 5m
     labels:
       service: jitsi
       severity: severe
       page: true
     annotations:
-      summary: there are too few SIP jigasis in ${var.dc}
+      summary: jicofo is missing SIP jigasis in ${var.dc}
       description: >-
-        There are too few SIP jigasis in ${var.dc} from the perspective of
-        jicofo.  If this alarm is in SEVERE, they are missing; trigger a jigasi
-        release. and override the git branch to match the running nodes.
-        Consider expanding the release if the alarm is not SEVERE.
+        The jicofo on shard {{ $labels.shard }} does not see any SIP jigasis
+        in ${var.dc}. If this alarm is in SEVERE, they are missing entirely;
+        trigger a jigasi release and override the git branch to match the
+        running nodes.  Consider expanding the release if the alarm is not
+        SEVERE.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=jicofo_sip-jigasi_missing
   - alert: Jicofo_Transcribers_Missing
-    expr: max(jitsi_jicofo_jigasi_transcriber_count) < 1    # warn < 2
+    expr: max(jitsi_jicofo_jigasi_transcriber_count) by (shard) and on (shard) (count_over_time(jitsi_jicofo_jigasi_transcriber_count[10m:1m]) >= 10) < 1
     for: 5m
     labels:
       service: jitsi
