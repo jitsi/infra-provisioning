@@ -19,6 +19,11 @@ config.flags.ssrcRewritingEnabled=[[ or (env "CONFIG_jitsi_meet_enable_ssrc_rewr
 config.maxFullResolutionParticipants = 1;
 [[- end ]]
 
+if (!config.hasOwnProperty('bridgeChannel')) config.bridgeChannel = {};
+[[ if eq (env "CONFIG_jitsi_meet_prefer_sctp") "true" ]]
+config.bridgeChannel.preferSctp = true;
+[[- end ]]
+
 if (!config.hasOwnProperty('videoQuality')) config.videoQuality = {};
 config.videoQuality.codecPreferenceOrder=[[ or (env "CONFIG_jitsi_meet_jvb_preferred_codecs") "[ 'AV1', 'VP9', 'VP8', 'H264' ]" ]];
 config.videoQuality.mobileCodecPreferenceOrder = [[ or (env "CONFIG_jitsi_meet_jvb_preferred_mobile_codecs") "[ 'VP8', 'H264', 'VP9' ]" ]];
