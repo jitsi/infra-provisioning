@@ -13,7 +13,11 @@ config.p2p.mobileCodecPreferenceOrder=[[ or (env "CONFIG_jitsi_meet_p2p_preferre
 config.useStunTurn=true;
 config.enableSaveLogs=[[ or (env "CONFIG_jitsi_meet_enable_save_logs") "true" ]];
 config.channelLastN=[[ or (env "CONFIG_jitsi_meet_channel_last_n") "-1" ]];
-config.flags.ssrcRewritingEnabled=[[ or (env "CONFIG_jitsi_meet_enable_ssrc_rewriting") "false" ]];
+
+if (!config.hasOwnProperty('flags')) config.flags = {};
+[[ if eq (env "CONFIG_jitsi_meet_disable_ssrc_rewriting") "true" -]]
+config.flags.ssrcRewritingEnabled = false;
+[[- end ]]
 
 [[ if eq (env "CONFIG_jitsi_meet_restrict_HD_tile_view_jvb") "true" ]]
 config.maxFullResolutionParticipants = 1;
