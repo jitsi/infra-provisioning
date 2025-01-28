@@ -502,7 +502,7 @@ groups:
     labels:
       service: infra
       severity: severe
-      page: true
+      page: false
     annotations:
       summary: host {{ $labels.host }} in ${var.dc} has had CPU usage > 90% for 1 hour
       description: >-
@@ -656,7 +656,7 @@ groups:
     labels:
       service: jitsi
       severity: severe
-      page: true
+      page: false
     annotations:
       summary: shard {{ $labels.shard }} in ${var.dc} has had more than 4000 participants for 5 minutes
       description: >-
