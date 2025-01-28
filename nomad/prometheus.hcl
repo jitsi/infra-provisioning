@@ -496,6 +496,21 @@ groups:
         recently at {{ $value | printf "%.2f" }}%.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=system_cpu_usage_high%{ endif }
+  - alert: System_CPU_Usage_High
+    expr: 100 - cpu_usage_idle > 90
+    for: 1h
+    labels:
+      service: infra
+      severity: severe
+      page: true
+    annotations:
+      summary: host {{ $labels.host }} in ${var.dc} has had CPU usage > 90% for 1 hour
+      description: >-
+        host {{ $labels.host }} in ${var.dc} with role {{ $labels.role }} has
+        had a CPU running at over 90% for an hour. This should be investigated
+        immediately. It was most recently at {{ $value | printf "%.2f" }}%.
+      dashboard_url: ${var.grafana_url}
+      alert_url: https://${var.prometheus_hostname}/alerts?search=system_cpu_usage_high%{ endif }
   - alert: System_Memory_Usage_High
     expr: (mem_total - mem_available) / mem_total * 100 > 80
     for: 5m
