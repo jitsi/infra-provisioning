@@ -635,6 +635,25 @@ groups:
         This means that no jvb instances are available to host meetings.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=jicofo_jvbs_missing
+  - alert: Jicofo_Participants_High
+    expr: jitsi_jicofo_participants_current > 4000
+    for: 5m
+    labels:
+      service: jitsi
+      severity: severe
+      page: true
+    annotations:
+      summary: shard {{ $labels.shard }} in ${var.dc} has had more than 4000 participants for 5 minutes
+      description: >-
+        The shard {{ $labels.shard }} in ${var.dc} has had more than 4000
+        participants over the last 5 minutes. This indicates that the shard may
+        be overloaded and new shards should be launched. If other shards in the
+        same region have a much lower number of participants, it may indicate
+        that there is an issue with the ingress haproxy. If other shards have a
+        similar number of participants it means that the region may need more
+        shards to be launched.
+      dashboard_url: ${var.grafana_url}
+      alert_url: https://${var.prometheus_hostname}/alerts?search=jicofo_participants_high
   - alert: JVB_CPU_High
     expr: 100 - cpu_usage_idle{role="JVB"} > 90
     for: 5m
@@ -808,9 +827,9 @@ groups:
     annotations:
       summary: skynet system load is high in ${var.dc}
       description: >-
-        Skynet has a higher than expected system load in ${var.dc}. Skynet may
+        A skynet node has a higher than expected system load in ${var.dc}. Skynet may
         be stuck and deserve operator attention. The load was most recently at
-        {{ $value | printf "%.2f"  }}.
+        {{ $value | printf "%.2f"  }} on the skynet node {{ $labels.host }}.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=skynet_system_load_high
   - alert: Whisper_Sessions_High
@@ -824,7 +843,8 @@ groups:
       description: >-
         Whisper will give a bad experience if it has more than 10 sessions at
         once. When an instance is handling more than 6 sessions, it is time to
-        scale up. Most recently, there were {{ $value | printf "%.2f"  }} sessions.
+        scale up. Most recently, there were {{ $value | printf "%.2f"  }}
+        sessions on the Whisper host {{ $labels.host }}.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=whisper_sessions_high
 %{ endif }%{ endif }
