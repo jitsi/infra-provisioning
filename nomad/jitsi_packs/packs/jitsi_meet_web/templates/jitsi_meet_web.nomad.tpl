@@ -123,7 +123,6 @@ job [[ template "job_name" . ]] {
         DEPLOYMENTINFO_ENVIRONMENT = "[[ env "CONFIG_environment" ]]"
         DEPLOYMENTINFO_SHARD = "release-[[ env "CONFIG_release_number" ]]"
         DEPLOYMENTINFO_REGION = "${meta.cloud_region}"
-        DEPLOYMENTINFO_USERREGION = "<!--# echo var=\"user_region\" default=\"\" -->"
         DISABLE_LOCAL_RECORDING = "[[ if eq (env "CONFIG_jitsi_meet_enable_local_recording") "true" ]]false[[ else ]]true[[ end ]]"
         ENABLE_SIMULCAST = "true"
         ENABLE_RECORDING = "true"
