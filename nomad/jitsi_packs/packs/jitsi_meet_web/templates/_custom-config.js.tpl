@@ -10,7 +10,6 @@ config.p2p.useStunTurn=true;
 config.p2p.codecPreferenceOrder=[[ or (env "CONFIG_jitsi_meet_p2p_preferred_codecs") "[ 'AV1', 'VP9', 'VP8', 'H264' ]" ]];
 config.p2p.mobileCodecPreferenceOrder=[[ or (env "CONFIG_jitsi_meet_p2p_preferred_mobile_codecs") "[ 'VP8', 'H264', 'VP9' ]" ]];
 
-config.useStunTurn=true;
 config.enableSaveLogs=[[ or (env "CONFIG_jitsi_meet_enable_save_logs") "true" ]];
 config.channelLastN=[[ or (env "CONFIG_jitsi_meet_channel_last_n") "-1" ]];
 
