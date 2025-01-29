@@ -495,7 +495,7 @@ groups:
         had a CPU running at over 95% in the last 5 minutes. It was most
         recently at {{ $value | printf "%.2f" }}%.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=system_cpu_usage_high%{ endif }
+      alert_url: https://${var.prometheus_hostname}/alerts?search=system_cpu_usage_high
   - alert: System_CPU_Usage_High
     expr: 100 - cpu_usage_idle > 90
     for: 1h
@@ -696,6 +696,23 @@ groups:
         should be investigated.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=jvb_rtp_delay_high
+  - alert: JVB_Packets_Delayed_Over_5ms
+    expr: >-
+      (100 *(sum(increase(jitsi_jvb_rtp_transit_time_count[10m:1m]) unless (jitsi_jvb_rtp_transit_time_count < 50000)) by (shard) -
+      sum(increase(jitsi_jvb_rtp_transit_time_bucket{le="5"}[10m:1m]) unless increase(jitsi_jvb_rtp_transit_time_bucket{le="5"}[10m:1m]) < 100) by (shard)) /
+      sum(increase(jitsi_jvb_rtp_transit_time_count[10m:1m]) unless (jitsi_jvb_rtp_transit_time_count < 50000)) by (shard)) > 40
+    for: 15m
+    labels:
+      service: jitsi
+      severity: warn
+    annotations:
+      summary: high jvb packets delayed over 5ms for {{ $labels.shard }} in ${var.dc}
+      description: >-
+        The JVB autoscaling group {{ $labels.shard }} in ${var.dc} has had more
+        than 40% many packets with a delay > 5ms for the past 15 minutes, and
+        should be investigated.
+      dashboard_url: ${var.grafana_url}
+      alert_url: https://${var.prometheus_hostname}/alerts?search=jvb_packets_delayed
   - alert: Shard_CPU_High
     expr: 100 - cpu_usage_idle{role="core"} > 90
     for: 5m
