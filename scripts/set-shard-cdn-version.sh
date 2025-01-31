@@ -49,9 +49,11 @@ if [[ "$CDN_CLOUDFLARE_FLAG" == "null" ]]; then
 fi
 
 if [[ "$CDN_CLOUDFLARE_FLAG" == "true" ]]; then
-    [ -z "$CDN_BASE" ] && CDN_BASE="$DOMAIN/v1/_cdn"
+    [ -z "$CDN_BASE" ] && CDN_BASE="/v1/_cdn"
+    CDN_URL="https://$DOMAIN/$CDN_BASE/$CDN_PREFIX$CDN_VERSION"
 else
-    [ -z "$CDN_BASE" ] && CDN_BASE="web-cdn.jitsi.net"
+    [ -z "$CDN_BASE" ] && CDN_BASE="https://web-cdn.jitsi.net"
+    CDN_URL="$CDN_BASE/$CDN_PREFIX$CDN_VERSION"
 fi
 
 [ -z "$PACKAGE_NAME" ] && PACKAGE_NAME="jitsi-meet"
@@ -66,25 +68,25 @@ echo "Building signal node inventory into $SIGNAL_INVENTORY_PATH"
 $LOCAL_PATH/node.py --environment $ENVIRONMENT --role core --region all --oracle --release $RELEASE_NUMBER --batch > $SIGNAL_INVENTORY_PATH
 
 BASE_PATH="./base.html"
-echo -n "<base href=\"https://$CDN_BASE/$CDN_PREFIX$CDN_VERSION/\" />" > $BASE_PATH
+echo -n "<base href=\"$CDN_BASE/$CDN_PREFIX$CDN_VERSION/\" />" > $BASE_PATH
 
-wget -q https://$CDN_BASE/$CDN_PREFIX$CDN_VERSION/libs/external_api.min.js.map
-wget -q https://$CDN_BASE/$CDN_PREFIX$CDN_VERSION/libs/external_api.min.js
-wget -q https://$CDN_BASE/$CDN_PREFIX$CDN_VERSION/libs/lib-jitsi-meet.min.js
-wget -q https://$CDN_BASE/$CDN_PREFIX$CDN_VERSION/libs/lib-jitsi-meet.min.map
+wget -q $CDN_URL/libs/external_api.min.js.map
+wget -q $CDN_URL/libs/external_api.min.js
+wget -q $CDN_URL/libs/lib-jitsi-meet.min.js
+wget -q $CDN_URL/libs/lib-jitsi-meet.min.map
 
-wget -q https://$CDN_BASE/$CDN_PREFIX$CDN_VERSION/static/recommendedBrowsers.html
-wget -q https://$CDN_BASE/$CDN_PREFIX$CDN_VERSION/static/welcomePageAdditionalContent.html
-wget -q https://$CDN_BASE/$CDN_PREFIX$CDN_VERSION/static/accessStorage.html
-wget -q https://$CDN_BASE/$CDN_PREFIX$CDN_VERSION/static/accessStorage.min.js
-wget -q https://$CDN_BASE/$CDN_PREFIX$CDN_VERSION/static/accessStorage.min.map
+wget -q $CDN_URL/static/recommendedBrowsers.html
+wget -q $CDN_URL/static/welcomePageAdditionalContent.html
+wget -q $CDN_URL/static/accessStorage.html
+wget -q $CDN_URL/static/accessStorage.min.js
+wget -q $CDN_URL/static/accessStorage.min.map
 
-wget -q https://$CDN_BASE/$CDN_PREFIX$CDN_VERSION/body.html
-wget -q https://$CDN_BASE/$CDN_PREFIX$CDN_VERSION/fonts.html
-wget -q https://$CDN_BASE/$CDN_PREFIX$CDN_VERSION/head.html
-wget -q https://$CDN_BASE/$CDN_PREFIX$CDN_VERSION/interface_config.js
-wget -q https://$CDN_BASE/$CDN_PREFIX$CDN_VERSION/manifest.json
-wget -q https://$CDN_BASE/$CDN_PREFIX$CDN_VERSION/title.html
+wget -q $CDN_URL/body.html
+wget -q $CDN_URL/fonts.html
+wget -q $CDN_URL/head.html
+wget -q $CDN_URL/interface_config.js
+wget -q $CDN_URL/manifest.json
+wget -q $CDN_URL/title.html
 
 LIST_FILES_FROM_ROOT_DIR="$BASE_PATH ./body.html ./fonts.html ./head.html ./interface_config.js ./manifest.json ./title.html"
 
