@@ -241,3 +241,16 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
   -var "infra_customizations_repo=$INFRA_CUSTOMIZATIONS_REPO" \
   -var "user_data_file=$POSTRUNNER_PATH" \
   $ACTION_POST_PARAMS $TF_POST_PARAMS
+
+RET=$?
+
+# now mark the image as production if it is a production environment
+if [[ "$RET" -eq 0 ]] && [[ "$ENVIRONMENT_TYPE" == "prod" ]]; then
+  echo "Tagging image as production"
+  $LOCAL_PATH/../../scripts/oracle_custom_images.py --tag_production --image_id $IMAGE_OCID --region $ORACLE_REGION
+fi
+
+if [[ "$RET" -ne 0 ]]; then
+  echo "Terraform $ACTION failed with exit code $RET"
+  exit $RET
+fi
