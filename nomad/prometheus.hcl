@@ -590,20 +590,20 @@ groups:
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=haproxy_shard_unhealthy
   - alert: Jicofo_ICE_Restarts_High
-    expr: sum(increase(jitsi_jicofo_participants_restart_requested_total[10m])) by (shard) / sum(jitsi_jicofo_participants_current) by (shard) > 0.5
-    for: 10m
+    expr: 100 * sum(rate(jitsi_jicofo_participants_restart_requested_total[10m])) by (shard) / sum(jitsi_jicofo_participants_current) by (shard) > 0.2
+    for: 5m
     labels:
       service: jitsi
       severity: smoke
     annotations:
       summary: shard {{ $labels.shard }} in ${var.dc} has had an unusually high number of ICE restarts
       description: >-
-        The jicofo for {{ $labels.shard }} in ${var.dc} has had an unusual
-        number of ICE restarts. This is typically due to network issues on the
-        client side so is likely not a concern, but should be investigated if
-        the situation persists or affects multiple shards. There were
-        {{ $value | printf "%.2f" }} restarts per participant per shard in the
-        last 10 minutes.
+        The jicofo for {{ $labels.shard }} in ${var.dc} has had an unusually
+        number of ICE restarts in the last 10 minutes. This is typically due to
+        network issues on the client side so is likely not a concern, but should
+        be investigated if the situation persists or affects multiple shards.
+        There were {{ $value | printf "%.2f" }} restarts per participant on the
+        shard in the last 10 minutes.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=jicofo_ice_restarts_high
   - alert: Jicofo_JVB_Version_Mismatch
@@ -674,7 +674,7 @@ groups:
     for: 5m
     labels:
       service: jitsi
-      severity: warn
+      severity: severe
       page: true
     annotations:
       summary: a JVB in ${var.dc} has had CPU usage > 90% for 5 minutes
@@ -836,7 +836,7 @@ groups:
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=jigasi_dropped_media
   - alert: Skynet_Queue_Depth_High
-    expr: Skynet_Summaries_summary_queue_size > 100   # 1000 sev 500 warn 100 smoke
+    expr: Skynet_Summaries_summary_queue_size > 100
     for: 5m
     labels:
       service: jitsi
@@ -845,38 +845,89 @@ groups:
       summary: skynet queue depth is high in ${var.dc}
       description: >-
         The Skynet queue depth is over 100, which means it may have gotten
-        behind in ${var.dc}. If all existing nodes are operating as expected, it
-        may be neccessary to scale up the instance pool manually. The queue
-        depth was most recently at {{ $value | printf "%.2f" }}.
+        behind in ${var.dc}. If all existing nodes are operating as expected and
+        the queue continues to grow, it may be neccessary to scale up the
+        instance pool manually. The queue depth was most recently
+        at {{ $value | printf "%.2f" }}.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=skynet_queue_depth_high
-  - alert: Skynet_System_Load_High
-    expr: system_load1{pool_type="skynet"} > 5   # 10 sev 8 warn 5 smoke
+      alert_url: https://${var.prometheus_hostname}/alerts?search=skynet_queue
+  - alert: Skynet_Queue_Depth_High
+    expr: Skynet_Summaries_summary_queue_size > 500
     for: 5m
     labels:
       service: jitsi
-      severity: smoke
+      severity: warn
     annotations:
-      summary: skynet system load is high in ${var.dc}
+      summary: skynet queue size is high in ${var.dc}
       description: >-
-        A skynet node has a higher than expected system load in ${var.dc}. Skynet may
-        be stuck and deserve operator attention. The load was most recently at
-        {{ $value | printf "%.2f"  }} on the skynet node {{ $labels.host }}.
+        The Skynet queue depth is over 500, which means it may have gotten
+        dangerously behind in ${var.dc}. If all existing nodes are operating as
+        expected, it may be neccessary to scale up the instance pool manually.
+        The queue depth was most recently at {{ $value | printf "%.2f" }}.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=skynet_system_load_high
+      alert_url: https://${var.prometheus_hostname}/alerts?search=skynet_queue
+  - alert: Skynet_Queue_Depth_High
+    expr: Skynet_Summaries_summary_queue_size > 1000
+    for: 5m
+    labels:
+      service: jitsi
+      severity: severe 
+      page: true
+    annotations:
+      summary: skynet queue size is dangerously high in ${var.dc}
+      description: >-
+        The Skynet queue size is over 1000 on a host in ${var.dc}, which means that
+        transcription and summarization jobs are extremely backed up and the user
+        experience may be poor. Immediately scale up the instance pool and check the
+        affected host to see if it is stuck for some reason. The queue size was
+        most recently at {{ $value | printf "%.2f" }} on {{ $labels.host }}.
+      dashboard_url: ${var.grafana_url}
+      alert_url: https://${var.prometheus_hostname}/alerts?search=skynet_queue
   - alert: Whisper_Sessions_High
-    expr: Skynet_Streaming_Whisper_LiveWsConnections > 6  # 10 sev, 8 warn, 6 smoke
+    expr: Skynet_Streaming_Whisper_LiveWsConnections >= 6
     for: 1m
     labels:
       service: jitsi
       severity: smoke
     annotations:
-      summary: too many concurrent whisper sessions in ${var.dc}
+      summary: whisper sessions are high in ${var.dc}
       description: >-
         Whisper will give a bad experience if it has more than 10 sessions at
-        once. When an instance is handling more than 6 sessions, it is time to
+        once. When an instance is handling 6 or more sessions, it is time to
         scale up. Most recently, there were {{ $value | printf "%.2f"  }}
         sessions on the Whisper host {{ $labels.host }}.
+      dashboard_url: ${var.grafana_url}
+      alert_url: https://${var.prometheus_hostname}/alerts?search=whisper_sessions_high
+  - alert: Whisper_Sessions_High
+    expr: Skynet_Streaming_Whisper_LiveWsConnections >= 8
+    for: 1m
+    labels:
+      service: jitsi
+      severity: warn
+    annotations:
+      summary: whisper sessions are dangeroulsy high in ${var.dc}
+      description: >-
+        Whisper will give a bad experience if it has more than 10 sessions at
+        once. When an instance is handling 8 or more sessions, it is time to
+        scale up immediately. Most recently, there were {{ $value | printf "%.2f"  }}
+        sessions on the Whisper host {{ $labels.host }}.
+      dashboard_url: ${var.grafana_url}
+      alert_url: https://${var.prometheus_hostname}/alerts?search=whisper_sessions_high
+  - alert: Whisper_Sessions_High
+    expr: Skynet_Streaming_Whisper_LiveWsConnections >= 10
+    for: 1m
+    labels:
+      service: jitsi
+      severity: severe
+      page: true
+    annotations:
+      summary: whisper is overloaded in ${var.dc}
+      description: >-
+        Whisper will give a bad experience if it has more than 10 sessions at
+        once, and has been at over 10 connections. Whisper should be scaled up
+        immediately because users are being adversely impacted. Most recently,
+        there were {{ $value | printf "%.2f"  }} sessions on the Whisper
+        host {{ $labels.host }}.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=whisper_sessions_high
 %{ endif }%{ endif }
