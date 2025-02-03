@@ -590,20 +590,19 @@ groups:
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=haproxy_shard_unhealthy
   - alert: Jicofo_ICE_Restarts_High
-    expr: sum(increase(jitsi_jicofo_participants_restart_requested_total[10m])) by (shard) / sum(jitsi_jicofo_participants_current) by (shard) > 0.5
-    for: 10m
+    expr: 100 * sum(rate(jitsi_jicofo_participants_restart_requested_total[10m])) by (shard) / sum(jitsi_jicofo_participants_current) by (shard) > 0.2
+    for: 5m
     labels:
       service: jitsi
       severity: smoke
     annotations:
       summary: shard {{ $labels.shard }} in ${var.dc} has had an unusually high number of ICE restarts
       description: >-
-        The jicofo for {{ $labels.shard }} in ${var.dc} has had an unusual
+        The jicofo for {{ $labels.shard }} in ${var.dc} has had an unusually
         number of ICE restarts. This is typically due to network issues on the
         client side so is likely not a concern, but should be investigated if
-        the situation persists or affects multiple shards. There were
-        {{ $value | printf "%.2f" }} restarts per participant per shard in the
-        last 10 minutes.
+        the situation persists or affects multiple shards. There were {{ $value | printf "%.2f" }}
+        restarts per participant on the shard in the last 10 minutes.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=jicofo_ice_restarts_high
   - alert: Jicofo_JVB_Version_Mismatch
