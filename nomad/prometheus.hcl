@@ -856,7 +856,7 @@ groups:
     for: 5m
     labels:
       service: jitsi
-      severity: smoke
+      severity: warn
     annotations:
       summary: skynet queue size is high in ${var.dc}
       description: >-
@@ -866,7 +866,7 @@ groups:
         The queue depth was most recently at {{ $value | printf "%.2f" }}.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=skynet_queue
- - alert: Skynet_Queue_Depth_High
+  - alert: Skynet_Queue_Depth_High
     expr: Skynet_Summaries_summary_queue_size > 1000
     for: 5m
     labels:
