@@ -599,10 +599,11 @@ groups:
       summary: shard {{ $labels.shard }} in ${var.dc} has had an unusually high number of ICE restarts
       description: >-
         The jicofo for {{ $labels.shard }} in ${var.dc} has had an unusually
-        number of ICE restarts. This is typically due to network issues on the
-        client side so is likely not a concern, but should be investigated if
-        the situation persists or affects multiple shards. There were {{ $value | printf "%.2f" }}
-        restarts per participant on the shard in the last 10 minutes.
+        number of ICE restarts in the last 10 minutes. This is typically due to
+        network issues on the client side so is likely not a concern, but should
+        be investigated if the situation persists or affects multiple shards.
+        There were {{ $value | printf "%.2f" }} restarts per participant on the
+        shard in the last 10 minutes.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=jicofo_ice_restarts_high
   - alert: Jicofo_JVB_Version_Mismatch
