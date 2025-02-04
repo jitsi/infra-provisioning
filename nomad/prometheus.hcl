@@ -669,7 +669,7 @@ groups:
         shards to be launched.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=jicofo_participants_high
-  %{ if var.environment_type = "prod"}- alert: JVB_CPU_High
+  %{ if var.environment_type == "prod" }- alert: JVB_CPU_High
     expr: 100 - cpu_usage_idle{role="JVB"} > 90
     for: %{ if var.production_alerts }5m%{ else }15m%{ endif }
     labels:
