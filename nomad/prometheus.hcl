@@ -364,33 +364,33 @@ groups:
   rules:
   - alert: Probe_Unhealthy
     expr: (cloudprober_failure{probe!~"shard|shard_https"} > 0) or (cloudprober_timeouts{probe!~"shard|shard_https"} > 0)
-    for: 2m
+    for: 5m
     labels:
       service: infra
       severity: warn
     annotations:
-      summary: "{{ $labels.probe }} probe from ${var.dc} to {{ $labels.dst }} unhealthy for 2+ minutes"
+      summary: "{{ $labels.probe }} probe from ${var.dc} to {{ $labels.dst }} unhealthy for 5+ minutes"
       description: >-
         The {{ $labels.probe }} http probe from ${var.dc} to {{ $labels.dst }}
-        timed-out or received unhealthy responses for 2 minutes.
+        timed-out or received unhealthy responses for 5 minutes.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=probe_unhealthy
   - alert: Probe_Unhealthy
     expr: (cloudprober_failure{probe!~"shard|shard_https"} > 0) or (cloudprober_timeouts{probe!~"shard|shard_https"} > 0)
-    for: 5m
+    for: 10m
     labels:
       service: infra
       severity: "{{ if $labels.severity }}{{ $labels.severity }}{{ else }}severe{{ end }}"
     annotations:
-      summary: "{{ $labels.probe }} probe from ${var.dc} to {{ $labels.dst }} unhealthy for 5+ minutes"
+      summary: "{{ $labels.probe }} probe from ${var.dc} to {{ $labels.dst }} unhealthy for 10+ minutes"
       description: >-
         The {{ $labels.probe }} probe from ${var.dc} to {{ $labels.dst }}
-        timed-out or received unhealthy responses for 5+ minutes.
+        timed-out or received unhealthy responses for 10+ minutes.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=probe_unhealthy
   - alert: Probe_Shard_Unhealthy
     expr: ((cloudprober_failure{probe=~"shard|shard_https"} > 0) and on(dst) count_over_time(cloudprober_total{probe=~"shard|shard_https"}[5m:1m]) >= 5) or ((cloudprober_timeouts{probe=~"shard|shard_https"} > 0) and on(dst) count_over_time(cloudprober_total{probe=~"shard|shard_https"}[5m:1m]) >= 5) > 0
-    for: 2m
+    for: 5m
     labels:
       service: jitsi
       severity: severe
@@ -590,7 +590,7 @@ groups:
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=haproxy_shard_unhealthy
   - alert: Jicofo_ICE_Restarts_High
-    expr: 100 * sum(rate(jitsi_jicofo_participants_restart_requested_total[10m])) by (shard) / sum(jitsi_jicofo_participants_current) by (shard) > 0.2
+    expr: sum(jitsi_jicofo_participants_current) by (shard) > 20 and 100 * sum(rate(jitsi_jicofo_participants_restart_requested_total[10m])) by (shard) / sum(jitsi_jicofo_participants_current) by (shard) > 0.2
     for: 5m
     labels:
       service: jitsi
@@ -611,7 +611,7 @@ groups:
     for: 2h
     labels:
       service: jitsi
-      severity: warn
+      severity: severe
       page: true
     annotations:
       summary: shard {{ $labels.shard }} in ${var.dc} has bridges with different version-release strings
@@ -651,16 +651,16 @@ groups:
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=jicofo_jvbs_missing
   - alert: Jicofo_Participants_High
-    expr: jitsi_jicofo_participants_current > 4000
+    expr: jitsi_jicofo_participants_current > %{ if var.production_alerts }5000%{ else }6000%{ endif }
     for: 5m
     labels:
       service: jitsi
       severity: severe
       page: false
     annotations:
-      summary: shard {{ $labels.shard }} in ${var.dc} has had more than 4000 participants for 5 minutes
+      summary: shard {{ $labels.shard }} in ${var.dc} has had a high number of participants for 5 minutes
       description: >-
-        The shard {{ $labels.shard }} in ${var.dc} has had more than 4000
+        The shard {{ $labels.shard }} in ${var.dc} has had more than %{ if var.production_alerts }5000%{ else }6000%{ endif }
         participants over the last 5 minutes. This indicates that the shard may
         be overloaded and new shards should be launched. If other shards in the
         same region have a much lower number of participants, it may indicate
@@ -669,20 +669,22 @@ groups:
         shards to be launched.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=jicofo_participants_high
-  - alert: JVB_CPU_High
+  %{ if var.environment_type == "prod" }- alert: JVB_CPU_High
     expr: 100 - cpu_usage_idle{role="JVB"} > 90
-    for: 5m
+    for: %{ if var.production_alerts }5m%{ else }15m%{ endif }
     labels:
       service: jitsi
       severity: severe
       page: true
+      scope: global
     annotations:
-      summary: a JVB in ${var.dc} has had CPU usage > 90% for 5 minutes
+      summary: a JVB in ${var.dc} has had CPU usage > 90% for %{ if var.production_alerts }5%{ else }15%{ endif } minutes
       description: >-
-        A JVB in ${var.dc} has had a CPU running at over 90% in the last 5
-        minutes. It was most recently at {{ $value | printf "%.2f" }}%.
+        A JVB in ${var.dc} has had a CPU running at over 90% in the 
+        last %{ if var.production_alerts }5%{ else }15%{ endif } minutes.
+        It was most recently at {{ $value | printf "%.2f" }}%.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=jvb_cpu_high
+      alert_url: https://${var.prometheus_hostname}/alerts?search=jvb_cpu_high%{ endif }
   - alert: JVB_RTP_Delay_High
     expr: 100 * jitsi_JVB_transit_rtp_gt50ms / (jitsi_JVB_transit_rtp_total + 0.001) > 15
     for: 10m
@@ -744,8 +746,7 @@ groups:
         The autoscaler is not emitting metrics in ${var.dc}. This means that
         the autoscaler may be not scaling JVBs.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=autoscaler_down
-%{ endif }
+      alert_url: https://${var.prometheus_hostname}/alerts?search=autoscaler_down%{ endif }
 %{ if var.core_extended_services }
 - name: core_extended_service_alerts
   rules:
