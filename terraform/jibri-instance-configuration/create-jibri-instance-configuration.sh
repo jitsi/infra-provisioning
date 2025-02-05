@@ -69,20 +69,20 @@ if [ "$JIBRI_TYPE" == "java-jibri" ]; then
     [ -z "$OCPUS" ] && OCPUS=4
     [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=16
   elif [[ "$SHAPE" == "VM.Standard.E4.Flex" ]]; then
-    [ -z "$OCPUS" ] && OCPUS=4
-    [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=16
+    [ -z "$OCPUS" ] && OCPUS=2
+    [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=8
   elif [[ "$SHAPE" == "VM.Standard.E5.Flex" ]]; then
-    [ -z "$OCPUS" ] && OCPUS=4
-    [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=16
+    [ -z "$OCPUS" ] && OCPUS=2
+    [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=8
   elif [[ "$SHAPE" == "VM.Standard.A1.Flex" ]]; then
-    [ -z "$OCPUS" ] && OCPUS=8
-    [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=16
+    [ -z "$OCPUS" ] && OCPUS=4
+    [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=8
   elif [[ "$SHAPE" == "VM.Standard.A2.Flex" ]]; then
-    [ -z "$OCPUS" ] && OCPUS=4
-    [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=16
+    [ -z "$OCPUS" ] && OCPUS=2
+    [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=8
   else
-    [ -z "$OCPUS" ] && OCPUS=4
-    [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=60
+    echo "Unsupported shape $SHAPE"
+    exit 207
   fi
 elif [ "$JIBRI_TYPE" == "sip-jibri" ]; then
     JIBRI_SUBNET_NAME="$VCN_NAME_ROOT-SipJibriSubnet";
