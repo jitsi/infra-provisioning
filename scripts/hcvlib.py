@@ -2096,7 +2096,14 @@ def update_image_tags(image, new_freeform_tags={}, new_defined_tags={}):
     config = oci.config.from_file()
     compute = oci.core.ComputeClient(config)
     compute.base_client.set_region(image.region)
-    update_details = {}
+    # set base details to avoid overwriting from UpdateImageDetails
+    update_details = {
+        'display_name':image.display_name,
+        'defined_tags': image.defined_tags,
+        'freeform_tags': image.freeform_tags,
+        'operating_system': image.operating_system,
+        'operating_system_version': image.operating_system_version
+        }
     if len(new_freeform_tags.keys()) > 0:
         freeform_tags = image.freeform_tags
         freeform_tags.update(new_freeform_tags)
