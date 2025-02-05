@@ -83,6 +83,8 @@ job "[JOB_NAME]" {
       template {
         data = <<EOF
 {{ range service "grid-${var.grid}.grid-hub" -}}
+SE_ROUTER_HOST="{{ .Address }}"
+SE_ROUTER_PORT="{{ .Port }}"
 SE_HUB_HOST="{{ .Address }}"
 SE_HUB_PORT="{{ .Port }}"
 SE_EVENT_BUS_HOST="{{ .Address }}"
