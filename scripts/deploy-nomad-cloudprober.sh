@@ -63,9 +63,9 @@ CLOUDPROBER_ENABLE_SITE_INGRESS="false"
 CLOUDPROBER_ENABLE_VAULT="false"
 CLOUDPROBER_ENABLE_CANARY="false"
 
-if [! -z "$CLOUDPROBER_TEMPLATE_BASE_REGIONS" ]; then
+if [ ! -z "$CLOUDPROBER_TEMPLATE_BASE_REGIONS" ]; then
     if [[ $CLOUDPROBER_TEMPLATE_BASE_REGIONS == *$ORACLE_REGION* ]]; then
-        echo "$ORACLE_REGION template type has been overrided to 'base'"
+        echo "$ORACLE_REGION template type has been overrided as 'base'"
         CLOUDPROBER_TEMPLATE_TYPE="base"
     fi
 fi
