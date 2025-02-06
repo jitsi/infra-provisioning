@@ -22,10 +22,12 @@ LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
 [ -e "$LOCAL_PATH/../clouds/all.sh" ] && . "$LOCAL_PATH/../clouds/all.sh"
 
+echo "generating inventory file"
 if [ -z "$INVENTORY_FILE" ]; then
     INVENTORY_FILE="./remap.inventory"
-    $LOCAL_PATH/node.py --environment=$ENVIRONMENT --role $REMOUNT_ROLE --region all --batch > $INVENTORY_FILE
+    $LOCAL_PATH/node.py --environment=$ENVIRONMENT --role $REMOUNT_ROLE --region us-phoenix-1 --batch > $INVENTORY_FILE
 fi
+echo "built inventory file"
 
 for i in $(cat $INVENTORY_FILE); do
     echo "remounting $i"
