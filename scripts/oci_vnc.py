@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-''' helper tool to interact with the oracle python sdk'''
+''' helper tool to interact with oracle virtual network client'''
 
 import sys
 import pprint
