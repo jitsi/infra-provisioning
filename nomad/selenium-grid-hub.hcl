@@ -77,7 +77,7 @@ job "[JOB_NAME]" {
         SE_HUB_HOST = "${attr.unique.network.ip-address}"
         SE_EVENT_BUS_HOST = "${attr.unique.network.ip-address}"
         SE_NODE_HOST = "${attr.unique.network.ip-address}"
-        SE_NODE_GRID_URL = "http://${attr.unique.network.ip-address}:${NOMAD_HOST_PORT_http}"
+        SE_NODE_GRID_URL="https://${var.dc}-${var.grid}-grid.${var.dns_zone}"
         SE_ENABLE_TRACING = "false"
         SE_ROUTER_HOST="${attr.unique.network.ip-address}"
         SE_ROUTER_PORT="${NOMAD_HOST_PORT_http}"

@@ -19,6 +19,11 @@ variable "image_version" {
   default = "latest"
 }
 
+variable "dns_zone" {
+  type = string
+  default = "jitsi.net"
+}
+
 job "[JOB_NAME]" {
   region = "global"
   datacenters = [var.dc]
@@ -91,7 +96,7 @@ SE_EVENT_BUS_HOST="{{ .Address }}"
 SE_EVENT_BUS_PUBLISH_PORT="{{ .ServiceMeta.publish_port }}"
 SE_EVENT_BUS_SUBSCRIBE_PORT="{{ .ServiceMeta.subscribe_port }}"
 {{ end -}}
-SE_NODE_GRID_URL="http://{{env "attr.unique.network.ip-address" }}:{{ env "NOMAD_HOST_PORT_http" }}"
+SE_NODE_GRID_URL="https://${var.dc}-${var.grid}-grid.${var.dns_zone}"
 SE_NODE_HOST="{{env "attr.unique.network.ip-address" }}"
 SE_NODE_PORT="{{ env "NOMAD_HOST_PORT_http" }}"
 SE_VNC_PORT="{{ env "NOMAD_HOST_PORT_vnc" }}"
