@@ -4,10 +4,11 @@
 {{ $NODE_HOST := .Env.SE_NODE_HOST | default "localhost" -}}
 {{ $NODE_PORT := .Env.SE_NODE_PORT | default "5555" -}}
 {{ $GRID_MAX_SESSIONS := .Env.GRID_MAX_SESSIONS | default "1" -}}
+{{ $SE_NODE_GRID_URL := .Env.SE_NODE_GRID_URL | default "http://localhost:4444" -}}
 [node]
 detect-drivers = false
 max-sessions = {{ $GRID_MAX_SESSIONS }}
-
+grid-url = "{{ $SE_NODE_GRID_URL }}"
 [events]
 publish = "tcp://{{ $GRID_HUB_HOST }}:{{ $GRID_PUBLISH_PORT }}"
 subscribe = "tcp://{{ $GRID_HUB_HOST }}:{{ $GRID_SUBSCRIBE_PORT }}"
