@@ -369,7 +369,7 @@ groups:
       service: infra
       severity: warn
     annotations:
-      summary: "{{ $labels.probe }} probe from ${var.dc} to {{ $labels.dst }} unhealthy for 5+ minutes"
+      summary: "{{ $labels.probe }} probe from ${var.dc} to {{ $labels.dst }} unhealthy
       description: >-
         The {{ $labels.probe }} http probe from ${var.dc} to {{ $labels.dst }}
         timed-out or received unhealthy responses for 5 minutes.
@@ -382,7 +382,7 @@ groups:
       service: infra
       severity: "{{ if $labels.severity }}{{ $labels.severity }}{{ else }}severe{{ end }}"
     annotations:
-      summary: "{{ $labels.probe }} probe from ${var.dc} to {{ $labels.dst }} unhealthy for 10+ minutes"
+      summary: "{{ $labels.probe }} probe from ${var.dc} to {{ $labels.dst }} unhealthy
       description: >-
         The {{ $labels.probe }} probe from ${var.dc} to {{ $labels.dst }}
         timed-out or received unhealthy responses for 10+ minutes.
@@ -590,7 +590,7 @@ groups:
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=haproxy_shard_unhealthy
   - alert: Jicofo_ICE_Restarts_High
-    expr: sum(jitsi_jicofo_participants_current) by (shard) > 20 and 100 * sum(rate(jitsi_jicofo_participants_restart_requested_total[10m])) by (shard) / sum(jitsi_jicofo_participants_current) by (shard) > 0.2
+    expr: 100 * sum(rate(jitsi_jicofo_participants_restart_requested_total[10m])) by (shard) / sum(jitsi_jicofo_participants_current) by (shard) unless sum(jitsi_jicofo_participants_current) by (shard) < 20
     for: 5m
     labels:
       service: jitsi
@@ -606,24 +606,8 @@ groups:
         shard in the last 10 minutes.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=jicofo_ice_restarts_high
-  - alert: Jicofo_JVB_Version_Mismatch
-    expr: jitsi_jicofo_bridge_selector_bridge_version_count > 1
-    for: 2h
-    labels:
-      service: jitsi
-      severity: severe
-      page: true
-    annotations:
-      summary: shard {{ $labels.shard }} in ${var.dc} has bridges with different version-release strings
-      description: >-
-        The jicofo for {{ $labels.shard }} has bridges with different
-        version-release strings in ${var.dc}. This may happen during a JVB pool
-        upgrade; if this is not the case then cross-regional octo is likely
-        broken, which will result in degraded service.
-      dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=jicofo_jvb_version_mismatch
   - alert: Jicofo_JVBs_Lost_High
-    expr: max_over_time(increase(jitsi_jicofo_bridge_selector_lost_bridges_total[1m])[5m:1m]) > 4   # severe, >2 warn, >1 smoke
+    expr: max_over_time(increase(jitsi_jicofo_bridge_selector_lost_bridges_total[1m])[5m:1m]) > 4
     for: 1m
     labels:
       service: jitsi
@@ -650,6 +634,22 @@ groups:
         This means that no jvb instances are available to host meetings.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=jicofo_jvbs_missing
+  - alert: Jicofo_JVB_Version_Mismatch
+    expr: jitsi_jicofo_bridge_selector_bridge_version_count > 1
+    for: 2h
+    labels:
+      service: jitsi
+      severity: severe
+      page: true
+    annotations:
+      summary: shard {{ $labels.shard }} in ${var.dc} has bridges with different version-release strings
+      description: >-
+        The jicofo for {{ $labels.shard }} has bridges with different
+        version-release strings in ${var.dc}. This may happen during a JVB pool
+        upgrade; if this is not the case then cross-regional octo is likely
+        broken, which will result in degraded service.
+      dashboard_url: ${var.grafana_url}
+      alert_url: https://${var.prometheus_hostname}/alerts?search=jicofo_jvb_version_mismatch
   - alert: Jicofo_Participants_High
     expr: jitsi_jicofo_participants_current > %{ if var.production_alerts }5000%{ else }6000%{ endif }
     for: 5m
@@ -685,8 +685,10 @@ groups:
         It was most recently at {{ $value | printf "%.2f" }}%.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=jvb_cpu_high%{ endif }
-  - alert: JVB_RTP_Delay_High
-    expr: 100 * jitsi_JVB_transit_rtp_gt50ms / (jitsi_JVB_transit_rtp_total + 0.001) > 15
+  - alert: JVB_RTP_Delay_Host_High
+    expr: >-
+      100 * (1 - sum(idelta(jitsi_jvb_rtp_transit_time_bucket{le="50"}[10m:1m]) unless ignoring(le) (jitsi_jvb_rtp_transit_time_count < 200000)) by (host) /
+      sum(idelta(jitsi_jvb_rtp_transit_time_count[10m:1m]) unless (jitsi_jvb_rtp_transit_time_count < 200000)) by (host) > 0) > 15
     for: 10m
     labels:
       service: jitsi
@@ -697,13 +699,12 @@ groups:
         A JVB in ${var.dc} has had too many packets with a RTP delay > 50ms and
         should be investigated.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=jvb_rtp_delay_high
-  - alert: JVB_Packets_Delayed_Over_5ms
+      alert_url: https://${var.prometheus_hostname}/alerts?search=jvb_rtp_delay
+  - alert: JVB_RTP_Delay_Group_High
     expr: >-
-      (100 *(sum(increase(jitsi_jvb_rtp_transit_time_count[10m:1m]) unless (jitsi_jvb_rtp_transit_time_count < 50000)) by (shard) -
-      sum(increase(jitsi_jvb_rtp_transit_time_bucket{le="5"}[10m:1m]) unless increase(jitsi_jvb_rtp_transit_time_bucket{le="5"}[10m:1m]) < 100) by (shard)) /
-      sum(increase(jitsi_jvb_rtp_transit_time_count[10m:1m]) unless (jitsi_jvb_rtp_transit_time_count < 50000)) by (shard)) > 40
-    for: 15m
+      100 * (1 - sum(idelta(jitsi_jvb_rtp_transit_time_bucket{le="50"}[10m:1m]) unless ignoring(le) (jitsi_jvb_rtp_transit_time_count < 200000)) by (shard) /
+      sum(idelta(jitsi_jvb_rtp_transit_time_count[10m:1m]) unless (jitsi_jvb_rtp_transit_time_count < 200000)) by (shard) > 0) > 40
+    for: 10m
     labels:
       service: jitsi
       severity: warn
@@ -714,7 +715,21 @@ groups:
         than 40% many packets with a delay > 5ms for the past 15 minutes, and
         should be investigated.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=jvb_packets_delayed
+      alert_url: https://${var.prometheus_hostname}/alerts?search=jvb_rtp_delay
+  - alert: JVB_XMPP_Disconnects_High
+    expr: count(rate(jitsi_jvb_xmpp_disconnects_total[5m]) > 0) > 1
+    for: 1m
+    labels:
+      service: jitsi
+      severity: warn
+    annotations:
+      summary: more than one JVB in ${var.dc} has had XMPP disconnects in the past minute
+      description: >-
+        More than one JVB in ${var.dc} has had XMPP disconnects in the past
+        minute. This should be investigated because it may mean that users are
+        having a bad experience with video.
+      dashboard_url: ${var.grafana_url}
+      alert_url: https://${var.prometheus_hostname}/alerts?search=jvb_xmpp_disconnects
   - alert: Shard_CPU_High
     expr: 100 - cpu_usage_idle{role="core"} > 90
     for: 5m
@@ -824,7 +839,7 @@ groups:
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=jicofo_transcribers_missing
   - alert: Jigasi_Dropped_Media
-    expr: increase(jitsi_jigasi_total_calls_with_dropped_media[1m]) > 1   # sev 5 warn 3 smoke 1
+    expr: max_over_time(increase(jitsi_jigasi_total_calls_with_dropped_media[1m])[5m:1m]) > 1
     for: 2m
     labels:
       service: jitsi
