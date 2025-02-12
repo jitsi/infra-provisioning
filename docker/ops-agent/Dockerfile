@@ -32,7 +32,7 @@ RUN if [ "$TARGETPLATFORM" = "linux/amd64" ]; then ARCHITECTURE="amd64"; elif [ 
 RUN wget -O- https://deb.nodesource.com/gpgkey/nodesource.gpg.key | \
     gpg --dearmor | \
     tee /usr/share/keyrings/nodesource-archive-keyring.gpg
-RUN echo "deb [signed-by=/usr/share/keyrings/nodesource-archive-keyring.gpg] https://deb.nodesource.com/node_20.x bullseye main" | \
+RUN echo "deb [signed-by=/usr/share/keyrings/nodesource-archive-keyring.gpg] https://deb.nodesource.com/node_22.x bullseye main" | \
     tee /etc/apt/sources.list.d/nodesource.list
 RUN apt-get update && apt-get -y install nodejs && rm /etc/apt/sources.list.d/nodesource.list
 RUN wget -O-  https://download.docker.com/linux/debian/gpg | \
