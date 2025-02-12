@@ -369,7 +369,7 @@ groups:
       service: infra
       severity: warn
     annotations:
-      summary: "{{ $labels.probe }} probe from ${var.dc} to {{ $labels.dst }} unhealthy
+      summary: the {{ $labels.probe }} probe from ${var.dc} to {{ $labels.dst }} is unhealthy
       description: >-
         The {{ $labels.probe }} http probe from ${var.dc} to {{ $labels.dst }}
         timed-out or received unhealthy responses for 5 minutes.
@@ -382,7 +382,7 @@ groups:
       service: infra
       severity: "{{ if $labels.severity }}{{ $labels.severity }}{{ else }}severe{{ end }}"
     annotations:
-      summary: "{{ $labels.probe }} probe from ${var.dc} to {{ $labels.dst }} unhealthy
+      summary: the {{ $labels.probe }} probe from ${var.dc} to {{ $labels.dst }} is unhealthy
       description: >-
         The {{ $labels.probe }} probe from ${var.dc} to {{ $labels.dst }}
         timed-out or received unhealthy responses for 10+ minutes.
