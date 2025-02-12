@@ -61,7 +61,7 @@ pipeline {
                         } catch (hudson.AbortException e) {
                             if (e.toString().contains('Couldn\'t find any revision to build')) {
                                 echo "WARNING: couldn't find branch ${branch} in jitsi-meet repo, falling back to master"
-                                git branch: meet_test_tag, url: env.MEET_REPO, credentialsId: 'video-infra'
+                                checkout scm: [$class: 'GitSCM', userRemoteConfigs: [[url: env.MEET_REPO, credentialsId: 'video-infra']], branches: [[name: "refs/tags/$meet_test_tag"]]], poll: false
                             }
                         }
                     }
