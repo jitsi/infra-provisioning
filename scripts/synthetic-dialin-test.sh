@@ -10,11 +10,6 @@ LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
 echo "## starting synthetic-dialin-test.sh"
 
-if [ -z "$BASE_URL" ]; then
-    echo "## No BASE_URL found. Exiting..."
-    exit 2
-fi
-
 if [ -z "$SELENIUM_HUB_URL" ]; then
     echo "## No SELENIUM_HUB_URL found. Exiting..."
     exit 2
