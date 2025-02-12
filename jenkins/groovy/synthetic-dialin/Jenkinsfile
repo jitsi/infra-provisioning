@@ -1,0 +1,115 @@
+def getJitsiMeetTag(baseurl) {
+  def meettag = sh(
+    returnStdout: true,
+    script: """#!/bin/bash
+        BASE_HTML=\$(curl --silent --insecure ${baseurl}/base.html)
+        WEB_FULL_VER=\$(echo \$BASE_HTML | sed 's|.*web-cdn.jitsi.net/||' | sed 's|${baseurl}/v1/_cdn/||' |  sed 's|/".*||')
+        WEB_VER=\$(echo \$WEB_FULL_VER | sed 's|.*_|| ' | sed 's|\\..*||')
+
+        echo "\${WEB_VER}";
+        exit 0""").trim();
+  echo "meet tag is ${meettag}"
+  return meettag
+}
+
+def utils
+def meet_test_tag
+pipeline {
+    agent any
+    options {
+      ansiColor('xterm')
+      timestamps()
+      buildDiscarder(logRotator(daysToKeepStr: '14'))
+    }
+    stages {
+        stage ("setup") {
+            steps {
+                script {
+                    // load utility function
+                    def rootDir = pwd()
+                    utils = load "${rootDir}/jenkins/groovy/Utils.groovy"
+                    // checkout repos
+                    utils.SetupRepos(env.VIDEO_INFRA_BRANCH)
+                }
+            }
+        }
+        stage ("get meet test tag") {
+          steps {
+            script {
+              dir('infra-configuration') {
+                try {
+                  if (env.MEET_BRANCH == '') {
+                    meet_test_tag = getJitsiMeetTag(env.BASE_URL)
+                  }
+                } catch (Exception e) {
+                  echo "Error getting meet test tag: ${e}"
+                }
+              }
+            }
+          }
+        }
+        stage ("clone jitsi-meet repo") {
+            steps {
+                script {
+                    dir('jitsi-meet') {
+                        try {
+                            if (env.MEET_BRANCH != "") {
+                                git branch: env.MEET_BRANCH, url: env.MEET_REPO, credentialsId: 'video-infra'
+                            } else {
+                                checkout scm: [$class: 'GitSCM', userRemoteConfigs: [[url: env.MEET_REPO, credentialsId: 'video-infra']], branches: [[name: "release-$meet_test_tag"]]], poll: false
+                            }
+                        } catch (hudson.AbortException e) {
+                            if (e.toString().contains('Couldn\'t find any revision to build')) {
+                                echo "WARNING: couldn't find branch ${branch} in jitsi-meet repo, falling back to master"
+                                git branch: meet_test_tag, url: env.MEET_REPO, credentialsId: 'video-infra'
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        stage ("run dial-in conference test") {
+            steps {
+                script {
+                    dir("infra-provisioning") {
+                        withCredentials([
+                            string(credentialsId: 'jenkins-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
+                            string(credentialsId: 'jenkins-aws-id', variable: 'AWS_ACCESS_KEY_ID'),
+                            string(credentialsId: 'asap-client-jwt-kid-meet', variable: 'ASAP_CLIENT_JWT_KID_MEET'),
+                            string(credentialsId: 'asap-client-jwt-kid-beta', variable: 'ASAP_CLIENT_JWT_KID_BETA'),
+                            string(credentialsId: 'asap-client-jwt-kid-prod', variable: 'ASAP_CLIENT_JWT_KID_PROD'),
+                            string(credentialsId: 'asap-client-jwt-kid-stage', variable: 'ASAP_CLIENT_JWT_KID_STAGE'),
+                            file(credentialsId: 'asap-client-jwt-key-meet', variable: 'ASAP_CLIENT_JWT_KEY_MEET'),
+                            file(credentialsId: 'asap-client-jwt-key-prod', variable: 'ASAP_CLIENT_JWT_KEY_PROD'),
+                            file(credentialsId: 'asap-client-jwt-key-stage', variable: 'ASAP_CLIENT_JWT_KEY_STAGE'),
+                            file(credentialsId: 'asap-client-jwt-key-beta', variable: 'ASAP_CLIENT_JWT_KEY_BETA'),
+                            usernamePassword(credentialsId: 'vox-api-us', passwordVariable: 'VOX_API_KEY_US', usernameVariable: 'VOX_US_USER'),
+                            usernamePassword(credentialsId: 'vox-api-eu', passwordVariable: 'VOX_API_KEY_EU', usernameVariable: 'VOX_EU_USER'),
+                            string(credentialsId: 'ansible-vault-password', variable: 'ANSIBLE_VAULT_PASSWORD_PATH'),
+                            sshUserPrivateKey(credentialsId: 'ssh-ubuntu', keyFileVariable: 'CONNECTION_SSH_PRIVATE_KEY_FILE', usernameVariable: 'SSH_USERNAME')
+                        ]) {
+                            utils.SetupOCI()
+                            utils.SetupAnsible()
+                            sshagent (credentials: ['ssh-ubuntu']) {
+                                sh(
+                                    script: """#!/bin/bash
+                                    set +x
+                                    scripts/synthetic-dialin-test.sh"""
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    post {
+        always {
+            junit 'jitsi-meet/**/results-0-0.xml'
+            archiveArtifacts artifacts: 'jitsi-meet/test-results1/**/*,jitsi-meet/test-results2/**/*,jitsi-meet/test_log_US.txt,jitsi-meet/test_log_EU.txt', fingerprint: true
+        }
+        cleanup {
+            cleanWs()
+        }
+    }
+}
