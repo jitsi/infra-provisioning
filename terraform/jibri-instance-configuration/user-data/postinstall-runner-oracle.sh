@@ -18,7 +18,7 @@ function setJibriHostname() {
 if [[ "$DOCKER_COMPOSE_FLAG" == "true" ]]; then
     . /usr/local/bin/oracle_cache.sh
     export ANSIBLE_PLAYBOOK="configure-jibri-java-local-oracle.yml"
-    export ANSIBLE_VARS="hcv_environment=$ENVIRONMENT cloud_name=$CLOUD_NAME cloud_provider=oracle oracle_region=$ORACLE_REGION region=$ORACLE_REGION autoscaler_group=$CUSTOM_AUTO_SCALE_GROUP oracle_instance_id=$INSTANCE_ID jibri_docker_compose_flag=true jibri_version=$JIBRI_VERSION"
+    export ANSIBLE_VARS="hcv_environment=$ENVIRONMENT cloud_name=$CLOUD_NAME cloud_provider=oracle oracle_region=$ORACLE_REGION region=$ORACLE_REGION autoscaler_group=$CUSTOM_AUTO_SCALE_GROUP oracle_instance_id=$INSTANCE_ID jibri_docker_compose_flag=true jibri_version=$JIBRI_VERSION autoscaler_sidecar_instance_version=$JIBRI_VERSION autoscaler_sidecar_instance_version_command="
 
     export PROVISION_COMMAND="default_provision"
     setJibriHostname
