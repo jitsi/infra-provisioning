@@ -39,3 +39,4 @@ scripts/__pycache__
 jenkins_jobs.ini
 .DS_Store
 *.inventory
+.python-version
