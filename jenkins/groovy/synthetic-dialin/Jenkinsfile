@@ -112,10 +112,10 @@ pipeline {
             cleanWs()
         }
         fixed {
-            slackSend channel: "#jenkins-dial-in", color: "good", message: "Back to normal synthetic dial-in test for ${env.ENVIRONMENT} ${env.BUILD_NUMBER} (<${env.BUILD_URL}|Open>)\n"
+            slackSend channel: "#jenkins-dial-in", color: "good", message: "Back to normal synthetic dial-in test for ${env.ENVIRONMENT} #${env.BUILD_NUMBER} (<${env.BUILD_URL}|Open>)\n"
         }
         failure {
-            slackSend channel: "#jenkins-dial-in", color: "danger", message: "Failure in synthetic dial-in test for ${env.ENVIRONMENT} ${env.BUILD_NUMBER} (<${env.BUILD_URL}|Open>)\n"
+            slackSend channel: "#jenkins-dial-in", color: "danger", message: "Failure in synthetic dial-in test for ${env.ENVIRONMENT} #${env.BUILD_NUMBER} (<${env.BUILD_URL}|Open>)\n"
         }
     }
 }
