@@ -111,5 +111,11 @@ pipeline {
         cleanup {
             cleanWs()
         }
+        fixed {
+            channel: "#jenkins-dial-in", slackSend color: "good", message: "Back to normal synthetic dial-in test for ${env.ENVIRONMENT} ${env.BUILD_NUMBER} (<${env.BUILD_URL}|Open>)\n"
+        }
+        failure {
+            channel: "#jenkins-dial-in", slackSend color: "danger", message: "Failure in synthetic dial-in test for ${env.ENVIRONMENT} ${env.BUILD_NUMBER} (<${env.BUILD_URL}|Open>)\n"
+        }
     }
 }
