@@ -38,6 +38,8 @@ ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 #if we're not given versions, search for the latest of each type of image
 [ -z "$JIBRI_VERSION" ] && JIBRI_VERSION='latest'
 
+[ -z "$JIBRI_DOCKER_VERSION" ] && export JIBRI_DOCKER_VERSION="$JIBRI_VERSION"
+
 [ -z "$JIBRI_TYPE" ] && export JIBRI_TYPE="java-jibri"
 if [ "$JIBRI_TYPE" != "java-jibri" ] &&  [ "$JIBRI_TYPE" != "sip-jibri" ]; then
   echo "Unsupported jibri type $JIBRI_TYPE";

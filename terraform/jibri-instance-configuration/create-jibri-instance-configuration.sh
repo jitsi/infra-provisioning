@@ -108,6 +108,8 @@ fi
 #if we're not given versions, search for the latest of each type of image
 [ -z "$JIBRI_VERSION" ] && JIBRI_VERSION='latest'
 
+[ -z "$JIBRI_DOCKER_VERSION" ] && JIBRI_DOCKER_VERSION="$JIBRI_VERSION"
+
 JIBRI_IMAGE_TYPE="JavaJibri"
 
 if [ -z "$NOMAD_JIBRI_FLAG" ]; then
@@ -215,6 +217,7 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
   -var="jibri_release_number=$JIBRI_RELEASE_NUMBER" \
   -var="nomad_flag=$NOMAD_JIBRI_FLAG" \
   -var="docker_compose_flag=$DOCKER_COMPOSE_JIBRI_FLAG" \
+  -var="jibri_version=$JIBRI_DOCKER_VERSION" \
   -var "infra_configuration_repo=$INFRA_CONFIGURATION_REPO" \
   -var "infra_customizations_repo=$INFRA_CUSTOMIZATIONS_REPO" \
   $ACTION_POST_PARAMS $TF_POST_PARAMS
