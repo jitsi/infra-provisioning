@@ -841,7 +841,7 @@ groups:
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=jicofo_transcribers_missing
   - alert: Jigasi_Dropped_Media
-    expr: max_over_time(increase(jitsi_jigasi_total_calls_with_dropped_media[1m])[5m:1m]) > 1
+    expr: max_over_time(increase(jitsi_jigasi_total_calls_with_dropped_media[5m:1m])[5m:1m]) > 1
     for: 2m
     labels:
       service: jitsi
