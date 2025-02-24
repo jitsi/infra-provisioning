@@ -53,6 +53,10 @@
           description: "For CLOUD_PROVIDER oracle when true builds a nomad pool instead of traditional jibri VMs"
           trim: true
       - string:
+          name: DOCKER_COMPOSE_JIBRI_FLAG
+          description: "For CLOUD_PROVIDER oracle when true uses docker compose on base image instead of traditional jibri images"
+          trim: true
+      - string:
           name: INFRA_CONFIGURATION_REPO
           default: git@github.com:jitsi/infra-configuration.git
           description: "Repo for configuration code (ansible etc), defaults to 'git@github.com:jitsi/infra-configuration.git'."

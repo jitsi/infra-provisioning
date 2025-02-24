@@ -33,8 +33,12 @@ variable "infra_customizations_repo" {}
 variable "nomad_flag" {
   default = false
 }
-
-
+variable "docker_compose_flag" {
+  default = false
+}
+variable "jibri_version" {
+  default = ""
+}
 
 locals {
   common_tags = {
@@ -141,6 +145,8 @@ resource "oci_core_instance_configuration" "oci_instance_configuration" {
           file("${path.cwd}/${var.user_data_lib_path}/postinstall-lib.sh"), # load the lib
           "\nexport INFRA_CONFIGURATION_REPO=${var.infra_configuration_repo}\nexport INFRA_CUSTOMIZATIONS_REPO=${var.infra_customizations_repo}\n", #repo variables
           "\nexport NOMAD_FLAG=${var.nomad_flag}\n", #nomad variable
+          "\nexport DOCKER_COMPOSE_FLAG=${var.docker_compose_flag}\n", #compose variable
+          "\nexport JIBRI_VERSION=${var.jibri_version}\n", #compose variable
           file("${path.cwd}/${var.user_data_file}"), # load our customizations
           file("${path.cwd}/${var.user_data_lib_path}/postinstall-footer.sh") # load the footer
         ]))

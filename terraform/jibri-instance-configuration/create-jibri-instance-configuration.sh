@@ -35,6 +35,7 @@ ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 [ -e "$LOCAL_PATH/../../clouds/${ORACLE_CLOUD_NAME}.sh" ] && . $LOCAL_PATH/../../clouds/${ORACLE_CLOUD_NAME}.sh
 
 JIBRI_NOMAD_VARIABLE="jibri_enable_nomad"
+JIBRI_DOCKER_COMPOSE_VARIABLE="jibri_enable_docker_compose"
 
 [ -z "$CONFIG_VARS_FILE" ] && CONFIG_VARS_FILE="$LOCAL_PATH/../../config/vars.yml"
 [ -z "$ENVIRONMENT_VARS_FILE" ] && ENVIRONMENT_VARS_FILE="$LOCAL_PATH/../../sites/$ENVIRONMENT/vars.yml"
@@ -107,6 +108,8 @@ fi
 #if we're not given versions, search for the latest of each type of image
 [ -z "$JIBRI_VERSION" ] && JIBRI_VERSION='latest'
 
+[ -z "$JIBRI_DOCKER_VERSION" ] && JIBRI_DOCKER_VERSION="$JIBRI_VERSION"
+
 JIBRI_IMAGE_TYPE="JavaJibri"
 
 if [ -z "$NOMAD_JIBRI_FLAG" ]; then
@@ -128,6 +131,23 @@ if [[ "$NOMAD_JIBRI_FLAG" == "true" ]]; then
   SHARD_ROLE="jibri-nomad-pool"
 fi
 
+
+if [ -z "$DOCKER_COMPOSE_JIBRI_FLAG" ]; then
+  DOCKER_COMPOSE_JIBRI_FLAG="$(cat $ENVIRONMENT_VARS_FILE | yq eval .${JIBRI_DOCKER_COMPOSE_VARIABLE} -)"
+  if [[ "$DOCKER_COMPOSE_JIBRI_FLAG" == "null" ]]; then
+    DOCKER_COMPOSE_JIBRI_FLAG="$(cat $CONFIG_VARS_FILE | yq eval .${JIBRI_DOCKER_COMPOSE_VARIABLE} -)"
+  fi
+
+  if [[ "$DOCKER_COMPOSE_JIBRI_FLAG" == "null" ]]; then
+    DOCKER_COMPOSE_JIBRI_FLAG="false"
+  fi
+fi
+
+
+if [[ "$DOCKER_COMPOSE_JIBRI_FLAG" == "true" ]]; then
+  JIBRI_IMAGE_TYPE="NobleBase"
+  JIBRI_VERSION="latest"
+fi
 
 arch_from_shape $SHAPE
 
@@ -196,6 +216,8 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
   -var="aws_cloud_name=$CLOUD_NAME" \
   -var="jibri_release_number=$JIBRI_RELEASE_NUMBER" \
   -var="nomad_flag=$NOMAD_JIBRI_FLAG" \
+  -var="docker_compose_flag=$DOCKER_COMPOSE_JIBRI_FLAG" \
+  -var="jibri_version=$JIBRI_DOCKER_VERSION" \
   -var "infra_configuration_repo=$INFRA_CONFIGURATION_REPO" \
   -var "infra_customizations_repo=$INFRA_CUSTOMIZATIONS_REPO" \
   $ACTION_POST_PARAMS $TF_POST_PARAMS

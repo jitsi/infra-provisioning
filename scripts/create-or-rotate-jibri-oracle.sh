@@ -38,6 +38,8 @@ ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 #if we're not given versions, search for the latest of each type of image
 [ -z "$JIBRI_VERSION" ] && JIBRI_VERSION='latest'
 
+[ -z "$JIBRI_DOCKER_VERSION" ] && export JIBRI_DOCKER_VERSION="$JIBRI_VERSION"
+
 [ -z "$JIBRI_TYPE" ] && export JIBRI_TYPE="java-jibri"
 if [ "$JIBRI_TYPE" != "java-jibri" ] &&  [ "$JIBRI_TYPE" != "sip-jibri" ]; then
   echo "Unsupported jibri type $JIBRI_TYPE";
@@ -45,6 +47,7 @@ if [ "$JIBRI_TYPE" != "java-jibri" ] &&  [ "$JIBRI_TYPE" != "sip-jibri" ]; then
 fi
 
 JIBRI_NOMAD_VARIABLE="jibri_enable_nomad"
+JIBRI_DOCKER_COMPOSE_VARIABLE="jibri_enable_docker_compose"
 
 [ -z "$CONFIG_VARS_FILE" ] && CONFIG_VARS_FILE="$LOCAL_PATH/../config/vars.yml"
 [ -z "$ENVIRONMENT_VARS_FILE" ] && ENVIRONMENT_VARS_FILE="$LOCAL_PATH/../sites/$ENVIRONMENT/vars.yml"
@@ -83,6 +86,26 @@ if [[ "$NOMAD_JIBRI_FLAG" == "true" ]]; then
   [ -z "$JIBRI_SCALE_DOWN_PERIODS_COUNT" ] && JIBRI_SCALE_DOWN_PERIODS_COUNT=20
   [ -z "$JIBRI_AVAILABLE_COUNT" ] && JIBRI_AVAILABLE_COUNT="0.65"
 
+fi
+
+
+if [ -z "$DOCKER_COMPOSE_JIBRI_FLAG" ]; then
+  DOCKER_COMPOSE_JIBRI_FLAG="$(cat $ENVIRONMENT_VARS_FILE | yq eval .${JIBRI_DOCKER_COMPOSE_VARIABLE} -)"
+  if [[ "$DOCKER_COMPOSE_JIBRI_FLAG" == "null" ]]; then
+    DOCKER_COMPOSE_JIBRI_FLAG="$(cat $CONFIG_VARS_FILE | yq eval .${JIBRI_DOCKER_COMPOSE_VARIABLE} -)"
+  fi
+
+  if [[ "$DOCKER_COMPOSE_JIBRI_FLAG" == "null" ]]; then
+    DOCKER_COMPOSE_JIBRI_FLAG="false"
+  fi
+fi
+
+if [[ "$DOCKER_COMPOSE_JIBRI_FLAG" == "true" ]]; then
+  # instead of launch jibri images, launch the latest NobleBase image
+  # in addition, give a new name and set our type to nomad for the autoscaler
+
+  JIBRI_IMAGE_TYPE="NobleBase"
+  JIBRI_VERSION="latest"
 fi
 
 if [ "$JIBRI_TYPE" == "java-jibri" ]; then
