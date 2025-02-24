@@ -42,6 +42,7 @@ def provisionJibri(shard_environment,cloud_name,release_number,gitBranch,jibriVe
 def git_branch
 def utils
 def jibriNomadFlag
+def jibriComposeFlag
 
 pipeline {				//indicate the job is written in Declarative Pipeline
     agent any				//agent specifies where the pipeline will execute.
@@ -84,6 +85,7 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                 script {
                   dir('infra-provisioning') {
                     jibriNomadFlag = utils.GetAnsibleVar(env.ENVIRONMENT, "jibri_enable_nomad")
+                    jibriComposeFlag = utils.GetAnsibleVar(env.ENVIRONMENT, "jibri_enable_docker_compose")
                   }
                 }
             }
@@ -107,6 +109,7 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                 allOf {
                     expression {env.CLOUD_PROVIDER == 'oracle'}
                     expression {jibriNomadFlag != 'true'}
+                    expression {jibriComposeFlag != 'true'}
                 }
             }
             steps {
