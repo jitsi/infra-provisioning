@@ -248,6 +248,11 @@ if ($EXPORT_IMAGE); then
     WORK_REQUEST_JSON=$(oci work-requests work-request get --work-request-id "$WORK_REQUEST_ID" --region "$EXPORT_ORACLE_REGION")
     WORK_REQUEST_STATUS=$(echo "$WORK_REQUEST_JSON" | jq -r .data.status)
 
+    # force IN_PROGRESS if accepted status is seen
+    if [[ "$WORK_REQUEST_STATUS" == "ACCEPTED" ]]; then
+      WORK_REQUEST_STATUS="IN_PROGRESS"
+    fi
+
     while [ "$WORK_REQUEST_STATUS" == 'IN_PROGRESS' ]; do
       echo "Exporting in progress.."
       sleep $SLEEP_INTERVAL
@@ -255,6 +260,10 @@ if ($EXPORT_IMAGE); then
 
       WORK_REQUEST_JSON=$(oci work-requests work-request get --work-request-id "$WORK_REQUEST_ID" --region "$EXPORT_ORACLE_REGION")
       WORK_REQUEST_STATUS=$(echo "$WORK_REQUEST_JSON" | jq -r .data.status)
+      # force IN_PROGRESS if accepted status is seen
+      if [[ "$WORK_REQUEST_STATUS" == "ACCEPTED" ]]; then
+        WORK_REQUEST_STATUS="IN_PROGRESS"
+      fi
 
       if [[ $ST -ge $SLEEP_MAX ]]; then
         echo "Exporting takes too long. Exiting.."
