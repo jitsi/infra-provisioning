@@ -10,7 +10,7 @@
           trim: true
       - string:
           name: IMAGE_TYPE
-          description: "Type of base image to build, could be 'GPU' 'JVB', 'Jigasi', 'JavaJibri', 'Signal', 'SeleniumGrid' 'JammyBase' defaults to 'JammyBase'."
+          description: "Type of base image to build, could be 'GPU' 'JVB', 'Jigasi', 'JavaJibri', 'Signal', 'SeleniumGrid' 'JammyBase' 'NobleBase' defaults to 'JammyBase'."
           trim: true
       - string:
           name: IMAGE_ARCH
