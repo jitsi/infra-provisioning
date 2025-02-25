@@ -7,7 +7,7 @@ run_check_validate() {
     IN_ENVIRONMENT=$1
     SHARD=$2
     echo "VALIDATING $IN_ENVIRONMENT SHARD $SHARD"
-    TEST_ID="${BUILD_TAG}-$SHARD" SHARD="$SHARD" BUILD_NUMBER="$BUILD_NUMBER" $LOCAL_PATH/validate-shard.sh $ANSIBLE_SSH_USER
+    TEST_ID="${BUILD_TAG}-$SHARD" SHARD="$SHARD" BUILD_NUMBER="$BUILD_NUMBER" $LOCAL_PATH/validate-shard.sh
     VALIDATE_SUCCESS=$?
     echo "run_check_validate return $VALIDATE_SUCCESS"
     echo $VALIDATE_SUCCESS > $TORTURE_PATH/validate-result-$SHARD
@@ -31,7 +31,7 @@ IN_ENVIRONMENT=$1
 IN_SHARDS=$2
 [ -z "$IN_SHARDS" ] && IN_SHARDS=$SHARDS
 
-[ -z "BUILD_TAG" ] && BUILD_TAG="standalone"
+[ -z "$BUILD_TAG" ] && BUILD_TAG="standalone"
 
 if [  -z "$3" ]
 then

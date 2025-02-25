@@ -42,6 +42,7 @@ pipeline {
                     string(credentialsId: 'asap-client-jwt-kid-beta', variable: 'ASAP_CLIENT_JWT_KID_BETA'),
                     string(credentialsId: 'asap-client-jwt-kid-prod', variable: 'ASAP_CLIENT_JWT_KID_PROD'),
                     string(credentialsId: 'asap-client-jwt-kid-stage', variable: 'ASAP_CLIENT_JWT_KID_STAGE'),
+                    string(credentialsId: 'webhooks_proxy_url', variable: 'WEBHOOKS_PROXY_URL'),
                     file(credentialsId: 'asap-client-jwt-key-meet', variable: 'ASAP_CLIENT_JWT_KEY_MEET'),
                     file(credentialsId: 'asap-client-jwt-key-prod', variable: 'ASAP_CLIENT_JWT_KEY_PROD'),
                     file(credentialsId: 'asap-client-jwt-key-stage', variable: 'ASAP_CLIENT_JWT_KEY_STAGE'),
@@ -60,19 +61,8 @@ pipeline {
   }
   post {
     always {
-        dir('test-results') {
-            sh '''#!/bin/bash
-                for i in *; do 
-                cd \$i;
-                for z in *.zip; do
-                    unzip \$z
-                done
-                cd -
-                done'''     
-        }
         archiveArtifacts artifacts: 'test-results/**/*', fingerprint: true
-        junit 'test-results/**/target/chrome-2-chrome/*.xml'
-        archiveArtifacts artifacts: 'test-results-*/**', fingerprint: true
+        junit 'test-results/**/results*.xml'
     }
     fixed {
         slackSend color: "good", message: "Successfully fixed build of ${env.JOB_NAME} ${env.BUILD_NUMBER} (<${env.BUILD_URL}|Open>)\nValidating shards in $ENVIRONMENT -> $SHARDS"
