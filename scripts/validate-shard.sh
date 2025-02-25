@@ -99,13 +99,13 @@ trap cleanup EXIT
 
 set -x
 
-cd "$TMPDIR"
+pushd "$TMPDIR"
 
 git clone https://github.com/jitsi/jitsi-meet.git
 
 JITSI_MEET_BRANCH="$(getJitsiMeetTag $SHARD)"
 
-cd jitsi-meet
+pushd jitsi-meet
 
 # Check if the release branch exists
 if git show-ref --verify --quiet "refs/heads/release-${JITSI_MEET_BRANCH}"; then
@@ -142,7 +142,10 @@ HEADLESS=true \
  npm run test-grid
 echo "Done testing"
 
-mv test-results ../test-results/${SHARD}
+popd
+popd
+
+mv $TMPDIR/jitsi-meet/test-results ../test-results/${SHARD}
 
 if [ $? -eq 0 ]; then
   $LOCAL_PATH/set_shard_tested.py $ENVIRONMENT $SHARD passed $BUILD_NUMBER
