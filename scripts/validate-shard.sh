@@ -51,7 +51,7 @@ KEYPAIR_PATH="./keypair.json"
 # fetch the keypair from vault
 set +x
 vault kv get -format=json -mount=secret $VAULT_KEY | jq -r '.data.data' > $KEYPAIR_PATH
-
+set -x
 JAAS_JWT_KID="$(jq -r '.key_id' $KEYPAIR_PATH)"
 JAAS_WH_SHARED_SECRET="$(jq -r '.webhook_shared_secret' $KEYPAIR_PATH)"
 
@@ -82,6 +82,8 @@ function getJitsiMeetTag() {
 #  echo "${WEB_VER}";
   echo "validate"; # TODO: remove this line
 }
+
+echo "oooooooo $ASAP_CLIENT_SIGNING_KEY_FILE"
 
 # generate a token if a client key file is defined
 if [ -n "$ASAP_CLIENT_SIGNING_KEY_FILE" ]; then
