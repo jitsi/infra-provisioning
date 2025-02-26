@@ -1,5 +1,7 @@
 #!/bin/bash
 
+[ -z "$SE_NODE_HOST" ] && export SE_NODE_HOST="$(ip route get 1 | grep -oP '(?<=src ).*' | awk '{ print $1 '})"
+
 tpl /defaults/config.toml.tpl > /local/config.toml
 
 export BROWSER_DISPLAY_NAME="Chrome"
