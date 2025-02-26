@@ -189,4 +189,6 @@ RUN if [ "$(dpkg --print-architecture)" = "amd64" ]; then echo "skipping wrap_ch
 COPY chrome-cleanup.sh /opt/bin/chrome-cleanup.sh
 COPY chrome-cleanup.conf /etc/supervisor/conf.d/chrome-cleanup.conf
 
+RUN apt-get update -y && apt-get install -y iproute2
+
 USER ${SEL_UID}
