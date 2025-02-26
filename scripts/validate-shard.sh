@@ -139,7 +139,7 @@ HEADLESS=true \
  GRID_HOST_URL="${GRID_URL}" \
  REMOTE_RESOURCE_PATH="/usr/share/jitsi-meet-torture/resources" \
  ALLOW_INSECURE_CERTS=true \
- BASE_URL="https://${TEST_DOMAIN}/70r7ur5" \
+ BASE_URL="https://${TEST_DOMAIN}/70r7ur5/" \
  MAX_INSTANCES=4 \
  ROOM_NAME_SUFFIX="${SHARD}" \
  npm run test-grid
