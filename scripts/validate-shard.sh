@@ -31,13 +31,11 @@ fi
 #pull in cloud-specific variables
 [ -e "$LOCAL_PATH/../clouds/${CLOUD_NAME}.sh" ] && . $LOCAL_PATH/../clouds/${CLOUD_NAME}.sh
 
-CMD_SHARD_NUMBER=$(echo $0 | cut -d'-' -f3 | cut -d'.' -f1)
-
-[ -z $SHARD_NUMBER ] && SHARD_NUMBER=$CMD_SHARD_NUMBER
-
-[ -z $SHARD ] && SHARD="${SHARD_BASE}-${REGION_ALIAS}${JVB_AZ_LETTER}-s${SHARD_NUMBER}"
-
-[ -z $TEST_DOMAIN ] && TEST_DOMAIN=$DOMAIN
+SHARD=$2
+if [ -z "$SHARD" ]; then
+  echo "No SHARD found. Exiting..."
+  exit 204
+fi
 
 #jenkins build number, we get it from jenkins
 [ -z $BUILD_NUMBER ] && BUILD_NUMBER='N/A'
@@ -91,6 +89,10 @@ fi
 #first we set the shard state to "testing"
 $LOCAL_PATH/set_shard_tested.py $ENVIRONMENT $SHARD testing $BUILD_NUMBER
 
+#clean up results from any previous tests
+rm -rf test-results
+mkdir test-results
+
 export TMPDIR=$(mktemp -d)
 function cleanup() {
   rm -rf $TMPDIR
@@ -136,10 +138,11 @@ HEADLESS=true \
  GRID_HOST_URL="${GRID_URL}" \
  REMOTE_RESOURCE_PATH="/usr/share/jitsi-meet-torture/resources" \
  ALLOW_INSECURE_CERTS=true \
- BASE_URL="https://${TEST_DOMAIN}/70r7ur5/" \
+ BASE_URL="https://${DOMAIN}/70r7ur5/" \
  MAX_INSTANCES=4 \
  ROOM_NAME_SUFFIX="${SHARD}" \
  npm run test-grid
+SUCCESS=$?
 echo "Done testing"
 
 popd
@@ -147,7 +150,7 @@ popd
 
 mv $TMPDIR/jitsi-meet/test-results ../test-results/${SHARD}
 
-if [ $? -eq 0 ]; then
+if [[ $SUCCESS == 0 ]]; then
   $LOCAL_PATH/set_shard_tested.py $ENVIRONMENT $SHARD passed $BUILD_NUMBER
 else
   $LOCAL_PATH/set_shard_tested.py $ENVIRONMENT $SHARD failed $BUILD_NUMBER
