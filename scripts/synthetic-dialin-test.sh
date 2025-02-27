@@ -93,6 +93,10 @@ echo "node version:$(node -v)"
 echo "npm version:$(npm -v)"
 
 npm install
+if [ $? -ne 0 ]; then
+	echo "Failure to install dependencies, retry will fix this"
+ 	exit 1;
+fi
 
 echo "------------------------------------------------------------------------"
 echo "--------TESTING in US vox account (team-us@jitsi.org)-------------------"
