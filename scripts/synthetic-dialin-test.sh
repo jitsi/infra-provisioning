@@ -93,7 +93,7 @@ echo "node version:$(node -v)"
 echo "npm version:$(npm -v)"
 
 npm install
-if [ $? -eq 0 ]; then
+if [ $? -ne 0 ]; then
 	echo "Failure to install dependencies, retry will fix this"
  	exit 1;
 fi
