@@ -50,7 +50,7 @@ pipeline {
                 ]) {
                   sh """#!/bin/bash
                   export ANSIBLE_FORCE_COLOR=True
-                  scripts/validate-shards.sh ${env.ENVIRONMENT} \"${env.SHARDS}\" ubuntu"""
+                  scripts/validate-shard.sh ${env.ENVIRONMENT} \"${env.SHARDS}\" ubuntu"""
                 }
               }
             }
