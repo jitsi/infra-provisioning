@@ -24,3 +24,4 @@ script-security
 docker-workflow
 saferestart
 dark-theme
+discard-old-build
