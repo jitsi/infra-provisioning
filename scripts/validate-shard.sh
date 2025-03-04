@@ -4,7 +4,7 @@
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
 
-set -x #echo on
+#set -x #echo on
 
 LOCAL_PATH=$(realpath $(dirname "${BASH_SOURCE[0]}"))
 [ -z "$ANSIBLE_BUILD_PATH" ] && ANSIBLE_BUILD_PATH="$LOCAL_PATH/../../infra-configuration"
@@ -98,7 +98,7 @@ function cleanup() {
 }
 trap cleanup EXIT
 
-set -x
+#set -x
 
 pushd "$TMPDIR"
 
