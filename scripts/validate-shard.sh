@@ -108,6 +108,8 @@ JITSI_MEET_BRANCH="$(getJitsiMeetTag $SHARD)"
 
 pushd jitsi-meet
 
+git show-ref --verify "refs/heads/release-${JITSI_MEET_BRANCH}"
+
 if [ -z "${TORTURE_BRANCH}" ]; then
   # Check if the release branch exists
   if git show-ref --verify --quiet "refs/heads/release-${JITSI_MEET_BRANCH}"; then
@@ -120,6 +122,7 @@ else
   git checkout "${TORTURE_BRANCH}"
 fi
 set +x
+exit 2;
 if [ -n "$JAAS_JWT_KID" ]; then
   export IFRAME_TENANT="$(echo "${JAAS_JWT_KID}" | cut -d'/' -f1)"
   export JWT_PRIVATE_KEY_PATH=$JAAS_SIGNING_KEY_FILE
