@@ -109,12 +109,12 @@ JITSI_MEET_BRANCH="$(getJitsiMeetTag $SHARD)"
 pushd jitsi-meet
 
 # Check if the release branch exists
-if git show-ref --verify --quiet "refs/heads/release-${JITSI_MEET_BRANCH}"; then
-  echo "Branch '${JITSI_MEET_BRANCH}' exists. Checking out..."
-  git checkout ${JITSI_MEET_BRANCH}
-else
-  git checkout tags/${JITSI_MEET_BRANCH}
-fi
+#if git show-ref --verify --quiet "refs/heads/release-${JITSI_MEET_BRANCH}"; then
+#  echo "Branch '${JITSI_MEET_BRANCH}' exists. Checking out..."
+#  git checkout ${JITSI_MEET_BRANCH}
+#else
+  git checkout "validate3"
+#fi
 
 if [ -n "$JAAS_JWT_KID" ]; then
   export IFRAME_TENANT="$(echo "${JAAS_JWT_KID}" | cut -d'/' -f1)"
