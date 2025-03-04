@@ -107,7 +107,7 @@ git clone https://github.com/jitsi/jitsi-meet.git
 JITSI_MEET_BRANCH="$(getJitsiMeetTag $SHARD)"
 
 pushd jitsi-meet
-
+git branch -r
 git show-ref --verify "refs/heads/release-${JITSI_MEET_BRANCH}"
 
 if [ -z "${TORTURE_BRANCH}" ]; then
