@@ -77,8 +77,7 @@ function getJitsiMeetTag() {
   WEB_FULL_VER=$(echo $BASE_HTML | sed 's|.*web-cdn.jitsi.net/||' | sed "s|.*${DOMAIN}/v1/_cdn/||" | sed 's|/".*||')
   WEB_VER=$(echo $WEB_FULL_VER | sed 's|.*_|| ' | sed 's|\..*||')
 
-#  echo "${WEB_VER}";
-  echo "validate"; # TODO: remove this line
+  echo "${WEB_VER}";
 }
 
 # generate a token if a client key file is defined
@@ -114,8 +113,7 @@ if git show-ref --verify --quiet "refs/heads/release-${JITSI_MEET_BRANCH}"; then
   echo "Branch '${JITSI_MEET_BRANCH}' exists. Checking out..."
   git checkout ${JITSI_MEET_BRANCH}
 else
-#  git checkout tags/${JITSI_MEET_BRANCH}
-  git checkout ${JITSI_MEET_BRANCH} # TODO: remove this line
+  git checkout tags/${JITSI_MEET_BRANCH}
 fi
 
 if [ -n "$JAAS_JWT_KID" ]; then
