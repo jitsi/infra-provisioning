@@ -107,12 +107,12 @@ git clone https://github.com/jitsi/jitsi-meet.git
 JITSI_MEET_BRANCH="$(getJitsiMeetTag $SHARD)"
 
 pushd jitsi-meet
-git branch -r
-git show-ref --verify "refs/heads/release-${JITSI_MEET_BRANCH}"
+
+git show-ref --verify "refs/remotes/origin/release-${JITSI_MEET_BRANCH}"
 
 if [ -z "${TORTURE_BRANCH}" ]; then
   # Check if the release branch exists
-  if git show-ref --verify --quiet "refs/heads/release-${JITSI_MEET_BRANCH}"; then
+  if git show-ref --verify --quiet "refs/remotes/origin/release-${JITSI_MEET_BRANCH}"; then
     echo "Branch '${JITSI_MEET_BRANCH}' exists. Checking out..."
     git checkout ${JITSI_MEET_BRANCH}
   else
