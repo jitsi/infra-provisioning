@@ -110,9 +110,9 @@ pushd jitsi-meet
 
 if [ -z "${TORTURE_BRANCH}" ]; then
   # Check if the release branch exists
-  if git show-ref --verify --quiet "refs/heads/release-${JITSI_MEET_BRANCH}"; then
+  if git show-ref --verify --quiet "refs/remotes/origin/release-${JITSI_MEET_BRANCH}"; then
     echo "Branch '${JITSI_MEET_BRANCH}' exists. Checking out..."
-    git checkout ${JITSI_MEET_BRANCH}
+    git checkout "release-${JITSI_MEET_BRANCH}"
   else
     git checkout tags/${JITSI_MEET_BRANCH}
   fi
