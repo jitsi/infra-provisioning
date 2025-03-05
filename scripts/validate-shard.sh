@@ -80,9 +80,11 @@ function getJitsiMeetTag() {
   echo "${WEB_VER}";
 }
 
+TESTS_TENANT="70r7ur5"
+
 # generate a token if a client key file is defined
 if [ -n "$ASAP_CLIENT_SIGNING_KEY_FILE" ]; then
-  export JWT_ACCESS_TOKEN=$($LOCAL_PATH/generate-client-token.sh | tail -1)
+  export JWT_ACCESS_TOKEN=$($LOCAL_PATH/generate-client-token.sh ${TESTS_TENANT} | tail -1)
 fi
 
 #first we set the shard state to "testing"
@@ -140,7 +142,7 @@ HEADLESS=true \
  GRID_HOST_URL="${GRID_URL}" \
  REMOTE_RESOURCE_PATH="/usr/share/jitsi-meet-torture/resources" \
  ALLOW_INSECURE_CERTS=true \
- BASE_URL="https://${DOMAIN}/70r7ur5/" \
+ BASE_URL="https://${DOMAIN}/${TESTS_TENANT}/" \
  MAX_INSTANCES=4 \
  ROOM_NAME_SUFFIX="${SHARD}" \
  npm run test-grid
