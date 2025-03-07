@@ -335,7 +335,7 @@ job [[ template "job_name" . ]] {
         PROSODY_VISITORS_S2S_VHOSTS="jigasia.[[ env "CONFIG_domain" ]]"
 [[ end]]
         PROSODY_C2S_LIMIT="512kb/s"
-        PROSODY_DISABLE_S2S_LIMIT="1"
+        PROSODY_S2S_LIMIT="512kb/s"
         PROSODY_ENABLE_RATE_LIMITS="1"
         PROSODY_RATE_LIMIT_ALLOW_RANGES="[[ env "CONFIG_prosody_rate_limit_allow_ranges" ]]"
         PROSODY_REGION_NAME="[[ env "CONFIG_octo_region" ]]"
@@ -489,7 +489,7 @@ EOF
     task "prosody" {
       vault {
         change_mode = "noop"
-        
+
       }
       driver = "docker"
 
@@ -522,7 +522,7 @@ EOF
         PROSODY_ENABLE_RATE_LIMITS="1"
         PROSODY_RATE_LIMIT_ALLOW_RANGES="[[ env "CONFIG_prosody_rate_limit_allow_ranges" ]]"
         PROSODY_C2S_LIMIT="512kb/s"
-        PROSODY_DISABLE_S2S_LIMIT="1"
+        PROSODY_S2S_LIMIT="512kb/s"
         PROSODY_RATE_LIMIT_SESSION_RATE="2000"
         TURN_TRANSPORT="udp"
         JWT_ALLOW_EMPTY="[[ env "CONFIG_prosody_token_allow_empty" ]]"
@@ -583,7 +583,7 @@ EOF
 
       template {
         data = <<EOF
-VISITORS_XMPP_SERVER=[[ range $index, $i := split " "  (seq 0 ((sub $VNODE_COUNT 1)|int)) ]][[ if gt ($i|int) 0 ]],[[ end ]]localhost:[[ add $VNODE_STS_PORT $i ]][[ end ]]  
+VISITORS_XMPP_SERVER=[[ range $index, $i := split " "  (seq 0 ((sub $VNODE_COUNT 1)|int)) ]][[ if gt ($i|int) 0 ]],[[ end ]]localhost:[[ add $VNODE_STS_PORT $i ]][[ end ]]
 PROSODY_HTTP_PORT={{ env "NOMAD_HOST_PORT_prosody_http" }}
 PROSODY_S2S_PORT=[[ $STS_PORT ]]
 
@@ -683,7 +683,7 @@ max_number_ip_attempts_per_minute=[[ env "CONFIG_prosody_recording_rate_per_minu
 shard_name=\"[[ env "CONFIG_shard" ]]\",region_name=\"{{ env "meta.cloud_region" }}\",release_number=\"[[ env "CONFIG_release_number" ]]\",max_number_outgoing_calls=[[ or (env "CONFIG_prosody_max_number_outgoing_calls") "3" ]]"
 XMPP_MUC_CONFIGURATION="
 [[- if env "CONFIG_muc_moderated_subdomains" -]]
-allowners_moderated_subdomains = {\n 
+allowners_moderated_subdomains = {\n
   [[- range (env "CONFIG_muc_moderated_subdomains" | split ",") -]]
     \"[[ . ]]\";\n
   [[- end -]]
@@ -928,7 +928,7 @@ mkdir -p /jicofo-rtcstats-push
 cd /jicofo-rtcstats-push
 unzip /local/jicofo-rtcstats-push.zip
 
-echo '0 * * * * /local/jicofo-log-truncate.sh' | crontab 
+echo '0 * * * * /local/jicofo-log-truncate.sh' | crontab
 
 EOF
         destination = "local/11-jicofo-rtcstats-push"
@@ -959,7 +959,7 @@ EOF
 
       template {
         data = <<EOF
-VISITORS_XMPP_SERVER=[[ range $index, $i := split " "  (seq 0 ((sub $VNODE_COUNT 1)|int)) ]][[ if gt ($i|int) 0 ]],[[ end ]]localhost:[[ add $VNODE_CLIENT_PORT ($i|int) ]][[ end ]]  
+VISITORS_XMPP_SERVER=[[ range $index, $i := split " "  (seq 0 ((sub $VNODE_COUNT 1)|int)) ]][[ if gt ($i|int) 0 ]],[[ end ]]localhost:[[ add $VNODE_CLIENT_PORT ($i|int) ]][[ end ]]
 #
 # Basic configuration options
 #
