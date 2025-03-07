@@ -37,6 +37,7 @@ if [ -n "$CDN_R2_BUCKET" ]; then
     R2_ACCESS_KEY_ID="$(ansible-vault view $R2_SECRETS_PATH --vault-password $VAULT_PASSWORD_FILE | yq eval ".r2_access_key_id" -)"
     R2_SECRET_ACCESS_KEY="$(ansible-vault view $R2_SECRETS_PATH --vault-password $VAULT_PASSWORD_FILE | yq eval ".r2_secret_access_key" -)"
     R2_ENDPOINT_URL="$(ansible-vault view $R2_SECRETS_PATH --vault-password $VAULT_PASSWORD_FILE | yq eval ".r2_endpoint_url" -)"
+    mkdir -p "$(dirname $RCLONE_CONFIG_PATH)"
     cat > "$RCLONE_CONFIG_PATH" <<EOF
 [default]
 type = s3
