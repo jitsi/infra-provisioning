@@ -18,7 +18,7 @@ COPY ./docker-config.json /home/jenkins/.docker/config.json
 USER root
 RUN apt-get update && apt-get -y install procps dnsutils \
   jq python3-pip python3-venv rsync wget curl gpg unzip zip git python-is-python3 maven xvfb imagemagick s3cmd s3fs mini-dinstall \
-  sudo devscripts dpkg-dev amazon-ecr-credential-helper netcat-openbsd
+  sudo devscripts dpkg-dev amazon-ecr-credential-helper netcat-openbsd rclone
 RUN pip install --break-system-packages -r /home/jenkins/requirements.txt \
   && pip install --break-system-packages jenkins-job-builder
 
