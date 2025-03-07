@@ -151,7 +151,6 @@ job [[ template "job_name" . ]] {
         MICROSOFT_API_APP_CLIENT_ID = "[[ env "CONFIG_jitsi_meet_microsoft_api_app_client_id" ]]"
         DROPBOX_APPKEY = "[[ env "CONFIG_jitsi_meet_dropbox_app_key" ]]"
         AMPLITUDE_ID = "[[ env "CONFIG_jitsi_meet_amplitude_api_key" ]]"
-        GOOGLE_ANALYTICS_ID = "[[ if ne (or (env "CONFIG_jitsi_meet_google_analytics_flag") "false") "false" ]][[ env "CONFIG_jitsi_meet_google_analytics_tracking_id" ]][[ end ]]"
         START_VIDEO_MUTED = "[[ or (env "CONFIG_jitsi_meet_start_video_muted_count") "25" ]]"
         START_AUDIO_MUTED = "[[ or (env "CONFIG_jitsi_meet_start_audio_muted_count") "25" ]]"
         WHITEBOARD_ENABLED = "[[ or (env "CONFIG_jitsi_meet_whiteboard_enabled") "false" ]]"
