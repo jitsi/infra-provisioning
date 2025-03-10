@@ -64,7 +64,7 @@ RUN apt-get update -y && \
     && echo "Grabbing firefox from URL" \
     && wget -S -O /tmp/firefox.tar.xz $FIREFOX_DOWNLOAD_URL \
     && rm -rf /opt/firefox \
-    && tar -C /opt -xjf /tmp/firefox.tar.xz \
+    && tar -C /opt -xvf /tmp/firefox.tar.xz \
     && rm -rf /tmp/firefox.tar.xz \
     && mv /opt/firefox /opt/firefox-$FIREFOX_VERSION \
     && mkdir -p /opt/firefox-$FIREFOX_VERSION/distribution/extensions \
