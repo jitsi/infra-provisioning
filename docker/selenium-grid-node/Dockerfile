@@ -28,7 +28,7 @@ RUN chmod +x /opt/bin/firefox-cleanup.sh /opt/bin/get_lang_package.sh /opt/bin/i
 # Firefox
 #=========
 ARG FIREFOX_VERSION="latest"
-ARG FIREFOX_DOWNLOAD_URL="https://download-installer.cdn.mozilla.net/pub/firefox/nightly/2024/10/2024-10-28-09-56-35-mozilla-central/firefox-133.0a1.en-US.linux-aarch64.tar.bz2"
+ARG FIREFOX_DOWNLOAD_URL="https://download.mozilla.org/?product=firefox-latest-ssl&os=linux64-aarch64&lang=en-US"
 RUN apt-get update -y && \
   echo "Using Firefox version: $FIREFOX_VERSION" && \
   if [ "$(dpkg --print-architecture)" = "amd64" ]; then \
@@ -62,10 +62,10 @@ RUN apt-get update -y && \
     echo "Installing firefox dependencies" \
     && apt-get -y --no-install-recommends install libavcodec-extra libgtk-3-dev libdbus-glib-1-dev xz-utils \
     && echo "Grabbing firefox from URL" \
-    && wget -O /tmp/firefox.tar.bz2 $FIREFOX_DOWNLOAD_URL \
+    && wget -S -O /tmp/firefox.tar.xz $FIREFOX_DOWNLOAD_URL \
     && rm -rf /opt/firefox \
-    && tar -C /opt -xjf /tmp/firefox.tar.bz2 \
-    && rm -rf /tmp/firefox.tar.bz2 /tmp/firefox.tar.xz \
+    && tar -C /opt -xjf /tmp/firefox.tar.xz \
+    && rm -rf /tmp/firefox.tar.xz \
     && mv /opt/firefox /opt/firefox-$FIREFOX_VERSION \
     && mkdir -p /opt/firefox-$FIREFOX_VERSION/distribution/extensions \
     && ln -fs /opt/firefox-$FIREFOX_VERSION/firefox /usr/bin/firefox ; \
