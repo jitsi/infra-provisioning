@@ -51,7 +51,7 @@ job "[JOB_NAME]" {
     task "web-nginx-prometheus-exporter" {
       driver = "docker"
       config {
-        image        = "nginx/nginx-prometheus-exporter:1.3.0"
+        image = "nginx/nginx-prometheus-exporter:1.4.1"
         ports = ["web-nginx-prometheus-exporter"]
       }
 
