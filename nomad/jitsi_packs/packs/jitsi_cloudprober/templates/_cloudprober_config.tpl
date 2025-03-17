@@ -357,12 +357,13 @@ probe {
 
   targets {
     {{ $canary_count := 0 -}}
-    {{ range $dc := datacenters -}}{{ $dc_canaries := print "canary@" $dc -}}{{ range $canary := service $dc_canaries -}}
-    {{ $canary_count = add $canary_count 1 -}}
+    {{ range $dc := datacenters -}}{{ $dc_canaries := print "canary@" $dc -}}{{ range $i, $canary := service $dc_canaries -}}
+    {{ $canary_count = add $canary_count 1 }}{{ if lt $i 1 -}}
     endpoint {
       name: "canary-{{ $dc }}"
       url: "http://{{ .Address }}:{{ .Port }}/health"
-    }{{ end }}{{ end }}
+    }
+    {{ end }}{{ end }}{{ end }}
     {{- if eq $canary_count 0 -}}
     host_names: ""
     {{- end }}
