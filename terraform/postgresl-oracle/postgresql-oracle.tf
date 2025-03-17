@@ -258,6 +258,7 @@ resource "oci_psql_db_system" "nomad_psql_db_system" {
             password_type = "VAULT_SECRET"
             #Optional
             secret_id = oci_vault_secret.psql_secret.id
+            secret_version = oci_vault_secret.psql_secret.current_version_number
 
         }
         username = var.db_system_credentials_username
