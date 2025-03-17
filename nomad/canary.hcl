@@ -12,8 +12,24 @@ job "[JOB_NAME]" {
     value     = "linux"
   }
 
+  spread {
+    attribute = "${node.unique.id}"
+  }
+
+  update {
+    max_parallel      = 1
+    health_check      = "checks"
+    min_healthy_time  = "10s"
+    healthy_deadline  = "5m"
+    progress_deadline = "10m"
+    auto_revert       = true
+    auto_promote      = true
+    canary            = 1
+    stagger           = "30s"
+  }
+
   group "canary" {
-    count = 1
+    count = 2
 
     constraint {
       attribute  = "${meta.pool_type}"
@@ -33,7 +49,10 @@ job "[JOB_NAME]" {
     service {
       name = "canary"
       port = "http"
-      tags = ["ip-${attr.unique.network.ip-address}"]
+      tags = [
+        "ip-${attr.unique.network.ip-address}",
+        "urlprefix-/canary/health strip=/canary",
+      ]
       check {
         name     = "alive"
         type     = "http"
@@ -120,6 +139,7 @@ EOF
 
       config {
         image = "nginx:alpine"
+        force_pull = true
         ports = ["http"]
         volumes = [
           "local/nginx.conf:/etc/nginx/nginx.conf",

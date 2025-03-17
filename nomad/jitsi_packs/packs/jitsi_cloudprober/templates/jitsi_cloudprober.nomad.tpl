@@ -7,9 +7,12 @@ job [[ template "job_name" . ]] {
   update {
     max_parallel      = 1
     health_check      = "checks"
-    min_healthy_time  = "10s"
+    min_healthy_time  = "15s"
     healthy_deadline  = "3m"
     progress_deadline = "5m"
+    auto_revert       = true
+    auto_promote      = true
+    canary            = 1
   }
 
   reschedule {
