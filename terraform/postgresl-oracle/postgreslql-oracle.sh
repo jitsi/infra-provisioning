@@ -36,6 +36,14 @@ if [[ $? -ne 0 ]]; then
   exit 1
 fi
 
+if [ -z "$OPS_PEER_CIDRS" ]; then
+  OPS_PEER_CIDRS="[]"
+fi
+
+if [ -n "$EXTRA_OPS_PEER_CIDRS" ]; then
+  OPS_PEER_CIDRS="$(echo "$OPS_PEER_CIDRS" "$EXTRA_OPS_PEER_CIDRS"  | jq -s '.|add')"
+fi
+
 [ -z "$S3_PROFILE" ] && S3_PROFILE="oracle"
 [ -z "$S3_STATE_BUCKET" ] && S3_STATE_BUCKET="tf-state-$ENVIRONMENT"
 [ -z "$S3_ENDPOINT" ] && S3_ENDPOINT="https://$ORACLE_S3_NAMESPACE.compat.objectstorage.$ORACLE_REGION.oraclecloud.com"
@@ -43,16 +51,19 @@ fi
 
 [ -z "$S3_PROFILE" ] && S3_PROFILE="oracle"
 [ -z "$S3_STATE_BUCKET" ] && S3_STATE_BUCKET="tf-state-$ENVIRONMENT"
-[ -z "$S3_ENDPOINT" ] && S3_ENDPOINT="https://$ORACLE_S3_NAMESPACE.compat.objectstorage.$ORACLE_REGION.oraclecloud.com"
-[ -z "$S3_STATE_KEY" ] && S3_STATE_KEY="$ENVIRONMENT/nomad-psql/terraform.tfstate"
+[ -z "$S3_POLICY_ENDPOINT" ] && S3_POLICY_ENDPOINT="https://$ORACLE_S3_NAMESPACE.compat.objectstorage.$TENANCY_REGION.oraclecloud.com"
+[ -z "$S3_POLICY_STATE_KEY" ] && S3_POLICY_STATE_KEY="$ENVIRONMENT/nomad-psql-policy/terraform.tfstate"
 
 TERRAFORM_MAJOR_VERSION=$(terraform -v | head -1  | awk '{print $2}' | cut -d'.' -f1)
 TF_GLOBALS_CHDIR=
+TF_POLICY_GLOBALS_CHDIR=
 if [[ "$TERRAFORM_MAJOR_VERSION" == "v1" ]]; then
   TF_GLOBALS_CHDIR="-chdir=$LOCAL_PATH"
+  TF_POLICY_GLOBALS_CHDIR="-chdir=$LOCAL_PATH/policies"
   TF_POST_PARAMS=
 else
   TF_POST_PARAMS="$LOCAL_PATH"
+  TF_POLICY_POST_PARAMS="$LOCAL_PATH/policies"
 fi
 
 [ -z "$ACTION" ] && ACTION="apply"
@@ -63,6 +74,23 @@ fi
 if [[ "$ACTION" == "import" ]]; then
   ACTION_POST_PARAMS="$1 $2"
 fi
+
+# # The —reconfigure option disregards any existing configuration, preventing migration of any existing state
+terraform $TF_POLICY_GLOBALS_CHDIR init \
+  -backend-config="bucket=$S3_STATE_BUCKET" \
+  -backend-config="key=$S3_POLICY_STATE_KEY" \
+  -backend-config="region=$TENANCY_REGION" \
+  -backend-config="profile=$S3_PROFILE" \
+  -backend-config="endpoint=$S3_POLICY_ENDPOINT" \
+  -reconfigure \
+  $TF_POLICY_POST_PARAMS
+
+terraform $TF_POLICY_GLOBALS_CHDIR $ACTION \
+  -var="environment=$ENVIRONMENT" \
+  -var="oracle_region=$TENANCY_REGION" \
+  -var="tenancy_ocid=$TENANCY_OCID" \
+  -var="compartment_ocid=$COMPARTMENT_OCID" \
+  $ACTION_POST_PARAMS $TF_POLICY_POST_PARAMS
 
 # # The —reconfigure option disregards any existing configuration, preventing migration of any existing state
 terraform $TF_GLOBALS_CHDIR init \
@@ -87,4 +115,5 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
   -var="db_system_shape=$DB_SYSTEM_SHAPE" \
   -var="subnet_ocid=$NAT_SUBNET_OCID" \
   -var="vault_id=$VAULT_ID" \
+  -var="ops_peer_cidrs=$OPS_PEER_CIDRS" \
   $ACTION_POST_PARAMS $TF_POST_PARAMS

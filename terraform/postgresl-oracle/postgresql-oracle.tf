@@ -31,6 +31,10 @@ variable "tag_namespace" {
 
 variable "oracle_region" {}
 variable "subnet_ocid" {}
+variable "ops_peer_cidrs" {
+    type = list(string)
+    default = []
+}
 
 variable "db_system_db_version" {
   description = "Version"
@@ -172,13 +176,20 @@ resource "oci_core_network_security_group_security_rule" "postgresql_nsg_rule_in
   }
 }
 
-
-resource "oci_identity_policy" "psql_secrets_policy" {
-  compartment_id = var.compartment_ocid
-  description    = "Policy to allow DB management service to read secret-family for mentioned compartment"
-  name           = "${var.environment}-psql-secrets-policy"
-  statements     = ["Allow service dpd to read secret-family in compartment id ${var.compartment_ocid}"]
-  defined_tags   = local.common_tags
+resource "oci_core_network_security_group_security_rule" "postgresql_nsg_rule_ingress_ops_cidrs" {
+    for_each = toset(var.ops_peer_cidrs)
+    network_security_group_id = oci_core_network_security_group.postgresql_security_group.id
+    direction = "INGRESS"
+    protocol = "6"
+    source = each.value
+    stateless = false
+    
+    tcp_options {
+        destination_port_range {
+        max = 5432
+        min = 5432
+        }
+    }
 }
 
 resource "oci_kms_key" "psql_key" {
