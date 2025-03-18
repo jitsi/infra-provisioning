@@ -246,7 +246,7 @@ resource "oci_psql_db_system" "nomad_psql_db_system" {
     #Required
     compartment_id = var.compartment_ocid
     db_version = var.db_system_db_version
-    display_name = var.db_system_display_name
+    display_name = "${var.environment}-${var.db_system_display_name}"
     network_details {
         #Required
         subnet_id = var.subnet_ocid
@@ -277,5 +277,6 @@ resource "oci_psql_db_system" "nomad_psql_db_system" {
     instance_count = var.db_system_instance_count
     instance_memory_size_in_gbs = var.db_system_instance_memory_size_in_gbs
     instance_ocpu_count = var.db_system_instance_ocpu_count
+    defined_tags   = local.common_tags
 
 }
