@@ -362,7 +362,7 @@ PROSODY_S2S_PORT=[[ add $VNODE_STS_PORT $i ]]
 # our networks and cloudflare ip-ranges (cloudflare ranges come from https://www.cloudflare.com/en-gb/ips/)
 PROSODY_TRUSTED_PROXIES="127.0.0.1,::1,10.0.0.0/8,103.21.244.0/22,103.22.200.0/22,103.31.4.0/22,104.16.0.0/13,104.24.0.0/14,108.162.192.0/18,131.0.72.0/22,141.101.64.0/18,162.158.0.0/15,172.64.0.0/13,173.245.48.0/20,188.114.96.0/20,190.93.240.0/20,197.234.240.0/22,198.41.128.0/17,2400:cb00::/32,2405:8100::/32,2405:b500::/32,2606:4700::/32,2803:f800::/32,2a06:98c0::/29,2c0f:f248::/32"
 
-GLOBAL_CONFIG="console_ports={ 7582+[[ $i ]] };\nstatistics = \"internal\"\nstatistics_interval = \"manual\"\nopenmetrics_allow_cidr = \"0.0.0.0/0\";\n
+GLOBAL_CONFIG="console_ports={ 7582+[[ $i ]] };\nstatistics = \"internal\"\nstatistics_interval = \"manual\"\nopenmetrics_allow_cidr = \"0.0.0.0/0\";\ncomponent_admins_as_room_owners = true;\n
 [[- if eq (env "CONFIG_prosody_meet_webhooks_enabled") "true" -]]
 muc_prosody_egress_url = \"http://localhost:9880/v1/events\";\nmuc_prosody_egress_fallback_url = \"[[ env "CONFIG_prosody_egress_fallback_url" ]]\";\n
 [[- end -]]
@@ -591,8 +591,7 @@ PROSODY_S2S_PORT=[[ $STS_PORT ]]
 # prosody main configuration options
 #
 
-GLOBAL_CONFIG="console_ports={ 5582 };\nstatistics = \"internal\"\nstatistics_interval = \"manual\"\nopenmetrics_allow_cidr = \"0.0.0.0/0\";\ntoken_verification_allowlist = { \"recorder.[[ env "CONFIG_domain" ]]\" };\nmuc_mapper_log_not_allowed_errors = true;\n
-component_admins_as_room_owners = true;\n
+GLOBAL_CONFIG="console_ports={ 5582 };\nstatistics = \"internal\"\nstatistics_interval = \"manual\"\nopenmetrics_allow_cidr = \"0.0.0.0/0\";\ntoken_verification_allowlist = { \"recorder.[[ env "CONFIG_domain" ]]\" };\nmuc_mapper_log_not_allowed_errors = true;\ncomponent_admins_as_room_owners = true;\n
 [[- if (env "CONFIG_prosody_meet_chat_history_url") -]]
 muc_chat_history_url = \"[[ env "CONFIG_prosody_meet_chat_history_url" ]]\";\n
 [[- end -]]
@@ -803,7 +802,7 @@ EOH
         JIBRI_XMPP_USER = "[[ env "CONFIG_jibri_xmpp_username" ]]"
         JVB_XMPP_AUTH_DOMAIN = "auth.jvb.[[ env "CONFIG_domain" ]]"
         JVB_XMPP_INTERNAL_MUC_DOMAIN = "muc.jvb.[[ env "CONFIG_domain" ]]"
-        GLOBAL_CONFIG = "console_ports={ 6582 };\nstatistics = \"internal\";\nstatistics_interval = \"manual\";\nopenmetrics_allow_cidr = \"0.0.0.0/0\";\ndebug_traceback_filename = \"traceback.txt\";\nc2s_stanza_size_limit = 10*1024*1024;\n"
+        GLOBAL_CONFIG = "component_admins_as_room_owners=true;\nconsole_ports={ 6582 };\nstatistics = \"internal\";\nstatistics_interval = \"manual\";\nopenmetrics_allow_cidr = \"0.0.0.0/0\";\ndebug_traceback_filename = \"traceback.txt\";\nc2s_stanza_size_limit = 10*1024*1024;\n"
         GLOBAL_MODULES = "admin_telnet,http_openmetrics,log_ringbuffer[[ if eq (env "CONFIG_prosody_mod_measure_stanza_counts") "true"]],measure_stanza_counts[[ end ]]"
         PROSODY_LOG_CONFIG="{level = \"debug\", to = \"ringbuffer\",size = [[ or (env "CONFIG_prosody_jvb_mod_log_ringbuffer_size") "1024*1024*4" ]], filename_template = \"traceback.txt\", event = \"debug_traceback/triggered\";};"
         TZ = "UTC"
