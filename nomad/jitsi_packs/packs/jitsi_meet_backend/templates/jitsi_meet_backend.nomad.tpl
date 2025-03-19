@@ -592,6 +592,7 @@ PROSODY_S2S_PORT=[[ $STS_PORT ]]
 #
 
 GLOBAL_CONFIG="console_ports={ 5582 };\nstatistics = \"internal\"\nstatistics_interval = \"manual\"\nopenmetrics_allow_cidr = \"0.0.0.0/0\";\ntoken_verification_allowlist = { \"recorder.[[ env "CONFIG_domain" ]]\" };\nmuc_mapper_log_not_allowed_errors = true;\n
+component_admins_as_room_owners = true;\n
 [[- if (env "CONFIG_prosody_meet_chat_history_url") -]]
 muc_chat_history_url = \"[[ env "CONFIG_prosody_meet_chat_history_url" ]]\";\n
 [[- end -]]
