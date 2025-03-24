@@ -58,9 +58,12 @@ if [ -n "$JICOFO_VERSION" ]; then
     [ -z "$JICOFO_TAG" ] && JICOFO_TAG="jicofo-1.0-$JICOFO_VERSION-1"
 fi
 
-# if [ -n "$PROSODY_VERSION" ]; then
-#     [ -z "$PROSODY_TAG" ] && PROSODY_TAG="prosody-$PROSODY_VERSION"
-# fi
+# remove once prosody 13.0.0 support is more stable
+PROSODY_VERSION="0.12.5"
+
+if [ -n "$PROSODY_VERSION" ]; then
+    [ -z "$PROSODY_TAG" ] && PROSODY_TAG="prosody-$PROSODY_VERSION"
+fi
 
 [ -z "$JICOFO_TAG" ] && JICOFO_TAG="$DOCKER_TAG"
 [ -z "$PROSODY_TAG" ] && PROSODY_TAG="$DOCKER_TAG"
