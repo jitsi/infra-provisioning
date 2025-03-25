@@ -92,10 +92,10 @@ job "[JOB_NAME]" {
       driver = "docker"
 
       config {
-        force_pull = "false"
         image = "jitsi/jitsi-multitrack-recorder:${var.app_version}"
         ports = ["http"]
         volumes = [
+          "local/jmr.conf:/defaults/jmr.conf",
           "local/boot-config:/etc/cont-init.d/08-boot-config",
           "secrets/oci:/root/.oci",
           "${NOMAD_ALLOC_DIR}/data:/data"
@@ -111,6 +111,19 @@ job "[JOB_NAME]" {
         JMR_REGION="${meta.cloud_region}"
       }
 
+      template {
+        data = <<EOF
+jitsi-multitrack-recorder {
+  recording {
+    format = "mka"
+    directory = "/data"
+  }
+  finalize-script = "/local/finalize.sh"
+}
+EOF
+        destination = "local/jmr.conf"
+        perms = "644"
+      }
 
       template {
         data = <<EOF
@@ -171,15 +184,23 @@ echo "Running $0 for $MEETING_ID, $DIR, $FORMAT"
 if [[ "$FORMAT" == "MKA" ]] ;then
   FILENAME="recording-$(date +%Y%m%d-%H%M%S).mka"
   oci os object put --bucket-name $JMR_BUCKET --file "${DIR}/recording.mka" --name "recordings/${MEETING_ID}/${FILENAME}" --content-type "audio/x-matroska" --region $JMR_REGION
+  if [ $? -eq 0 ]; then
+    echo "Uploaded $FILENAME to $JMR_BUCKET"
+    rm -rf $DIR
+  else
+    echo "Failed to upload ${DIR}/recording.mka to bucket $JMR_BUCKET file recordings/${MEETING_ID}/${FILENAME}"
+  fi
 
   if [[ "$JMR_FINALIZE_WEBHOOK" != "" ]] ;then
-    curl -d"{\"id\":\"${MEETING_ID}"}" -s -o /dev/null "$JMR_FINALIZE_WEBHOOK?meetingId=$MEETING_ID"
+    curl -d"{\"id\":\"${MEETING_ID}\",\"path\":\"recordings/${MEETING_ID}/${FILENAME}\"}" -s -o /dev/null "$JMR_FINALIZE_WEBHOOK?meetingId=$MEETING_ID"
   fi
 fi
 EOF
         destination = "local/finalize.sh"
         perms = "755"
       }
+
+
 
       resources {
         cpu    = 1000
