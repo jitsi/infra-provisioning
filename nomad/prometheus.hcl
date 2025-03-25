@@ -230,9 +230,9 @@ groups:
       page: true
     annotations:
       summary: canary service is down in ${var.dc}
-      description: Metrics are not being collected from the canary service
-      in ${var.dc}. This means that the service is likely down and that latency
-      metrics are not being collected.
+      description: >-
+      Metrics are not being collected from the canary service in ${var.dc}. This means that the
+      service is likely down and that latency metrics are not being collected.
       alert_url: https://${var.prometheus_hostname}/alerts?search=canary_down
   - alert: Cloudprober_Down
     expr: absent(up{job="cloudprober"})
