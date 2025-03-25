@@ -35,13 +35,10 @@ export NOMAD_VAR_oracle_s3_credentials="$(ansible-vault view $ENCRYPTED_NOMAD_FI
 set -x
 
 
-[ -z "$SERVICE_HOSTNAME" ] && SERVICE_HOSTNAME="$ENVIRONMENT-$ORACLE_REGION-jmr.$TOP_LEVEL_DNS_ZONE_NAME"
-
 NOMAD_JOB_PATH="$LOCAL_PATH/../nomad"
 NOMAD_DC="$ENVIRONMENT-$ORACLE_REGION"
-export NOMAD_VAR_service_hostname="${SERVICE_HOSTNAME}"
-export NOMAD_VAR_oracle_s3_namespace="$ORACLE_S3_NAMESPACE"
-JOB_NAME="jmr-$ORACLE_REGION"
+export NOMAD_VAR_environment="$ENVIRONMENT"
+JOB_NAME="multitrack-recorder-$ORACLE_REGION"
 
 sed -e "s/\[JOB_NAME\]/$JOB_NAME/" "$NOMAD_JOB_PATH/multitrack-recorder.hcl" | nomad job run -var="dc=$NOMAD_DC" -
 

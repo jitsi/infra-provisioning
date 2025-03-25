@@ -115,7 +115,7 @@ job "[JOB_NAME]" {
       template {
         data = <<EOF
 [DEFAULT]
-{{- $secret_path := printf "secret/%s/multitrack-recorder/oci_api_%s" (env "NOMAD_NAMESPACE") (env "meta.cloud_region") }}
+{{- $secret_path := printf "secret/%s/multitrack-recorder/oci_api_${var.environment}" (env "NOMAD_NAMESPACE") }}
 {{- with secret $secret_path }}
 user={{ .Data.data.user }}
 fingerprint={{ .Data.data.fingerprint }}
@@ -132,7 +132,7 @@ EOF
 
       template {
         data = <<EOF
-{{- $secret_path := printf "secret/%s/multitrack-recorder/oci_api_%s" (env "NOMAD_NAMESPACE") (env "meta.cloud_region") }}
+{{- $secret_path := printf "secret/%s/multitrack-recorder/oci_api_${var.environment}" (env "NOMAD_NAMESPACE") }}
 {{- with secret $secret_path }}{{ .Data.data.private_key }}{{ end -}}
 EOF
         destination = "secrets/oci/oci_api_key.pem"
@@ -183,7 +183,7 @@ EOF
 
       resources {
         cpu    = 1000
-        memory = 1000
+        memory = 4000
       }
 
     }
