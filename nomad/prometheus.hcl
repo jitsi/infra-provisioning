@@ -74,7 +74,14 @@ job "[JOB_NAME]" {
 
   update {
     max_parallel = 1
+    health_check = "checks"
+    min_healthy_time = "10s"
+    healthy_deadline = "5m"
+    progress_deadline = "10m"
+    auto_revert = true
+    auto_promote = true
     stagger      = "10s"
+    canary = 1
   }
 
   group "prometheus" {
