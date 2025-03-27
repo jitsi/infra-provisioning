@@ -195,6 +195,9 @@ job "[JOB_NAME]" {
               parse_regex(.message, r'^(?P<timestamp>\\d+/\\d+/\\d+ \\d+:\\d+:\\d+) \\[(?P<severity>\\w+)\\] (?P<pid>\\d+)#(?P<tid>\\d+):(?: \\*(?P<connid>\\d+))? (?P<message>.*)$') ??
               {}
             . = merge(., structured) ?? .
+            .label = filter(object!(.label)) -> |key, _v| {
+              !starts_with(key, "org.opencontainers.image")
+            }
             if exists(.label.release) {
               .release = .label.release
             } else {
