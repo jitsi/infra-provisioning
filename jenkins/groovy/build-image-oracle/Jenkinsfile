@@ -42,7 +42,8 @@ pipeline {
       steps {
         dir('infra-provisioning') {
           script {
-            lock("image-build-${env.IMAGE_TYPE}") {
+            def imageArch = env.IMAGE_ARCH ?: "x86_64"
+            lock("image-build-${env.IMAGE_TYPE}-${imageArch}") {
               utils.SetupAnsible()
               withCredentials([
                   sshUserPrivateKey(credentialsId: 'ssh-ubuntu', keyFileVariable: 'CONNECTION_SSH_PRIVATE_KEY_FILE', usernameVariable: 'SSH_USERNAME')
