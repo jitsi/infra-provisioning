@@ -34,10 +34,18 @@ export NOMAD_VAR_oracle_s3_credentials="$(ansible-vault view $ENCRYPTED_NOMAD_FI
 
 set -x
 
-
+if [ -z "$JMR_QUEUE_ID" ]; then
+    JMR_QUEUE_ID="$(oci queue queue-admin queue list --all --compartment-id $COMPARTMENT_OCID --region $ORACLE_REGION --output json | jq -r '.data.items[]|select(."display-name"=="multitrack-recorder-'$ENVIRONMENT'")|.id')"
+    [[ "$JMR_QUEUE_ID" == "null" ]] && JMR_QUEUE_ID=""
+fi
+if [ -z "$JMR_QUEUE_ID" ]; then
+    echo "No JMR_QUEUE_ID set or found in region $ORACLE_REGION compartment $COMPARTMENT_OCID, exiting"
+    exit 2
+fi
 NOMAD_JOB_PATH="$LOCAL_PATH/../nomad"
 NOMAD_DC="$ENVIRONMENT-$ORACLE_REGION"
 export NOMAD_VAR_environment="$ENVIRONMENT"
+export NOMAD_VAR_queue_id="$JMR_QUEUE_ID"
 JOB_NAME="multitrack-recorder-$ORACLE_REGION"
 
 sed -e "s/\[JOB_NAME\]/$JOB_NAME/" "$NOMAD_JOB_PATH/multitrack-recorder.hcl" | nomad job run -var="dc=$NOMAD_DC" -
