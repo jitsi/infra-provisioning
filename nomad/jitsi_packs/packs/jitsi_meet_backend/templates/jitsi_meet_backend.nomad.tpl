@@ -518,6 +518,9 @@ EOF
 [[- if eq (env "CONFIG_prosody_enable_guest_auth") "true" ]]
         ENABLE_GUESTS="true"
 [[- end ]]
+[[- if eq (env "CONFIG_prosody_filter_messages_enabled") "true" ]]
+        PROSODY_ENABLE_FILTER_MESSAGES="true"
+[[- end ]]
         ENABLE_END_CONFERENCE="0"
         PROSODY_ENABLE_RATE_LIMITS="1"
         PROSODY_RATE_LIMIT_ALLOW_RANGES="[[ env "CONFIG_prosody_rate_limit_allow_ranges" ]]"
