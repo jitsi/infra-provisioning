@@ -33,6 +33,7 @@ locals {
         "${var.tag_namespace}.shard-role" = "multitrack-recorder"
     }
     bucket_name = "multitrack-recorder-${var.environment}"
+    queue_name = "multitrack-recorder-${var.environment}"
 }
 
 resource "oci_objectstorage_bucket" "bucket" {
@@ -43,4 +44,14 @@ resource "oci_objectstorage_bucket" "bucket" {
 
     #Optional
     defined_tags = local.common_tags
+}
+
+resource "oci_queue_queue" "queue" {
+    #Required
+    display_name = local.queue_name
+    
+    compartment_id = var.compartment_ocid
+    #Optional
+    defined_tags = local.common_tags
+   
 }
