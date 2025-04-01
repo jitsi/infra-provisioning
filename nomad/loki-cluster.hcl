@@ -182,6 +182,8 @@ job "[JOB_NAME]" {
     allow_structured_metadata: true
     reject_old_samples: true
     reject_old_samples_max_age: 168h
+    ingestion_rate_mb: 100
+    ingestion_burst_size_mb: 1024
     retention_period: ${var.retention_period}
     retention_stream:
     # Retain jigasi-transcriber logs for 14 days
