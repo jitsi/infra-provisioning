@@ -25,6 +25,10 @@ variable "queue_id" {
   type = string
 }
 
+variable "queue_endpoint" {
+  type = string
+}
+
 job "[JOB_NAME]" {
   datacenters = ["${var.dc}"]
 
@@ -124,6 +128,7 @@ job "[JOB_NAME]" {
         JMR_BUCKET="multitrack-recorder-${var.environment}"
         JMR_REGION="${meta.cloud_region}"
         JMR_QUEUE_ID="${var.queue_id}"
+        JMR_QUEUE_ENDPOINT="${var.queue_endpoint}"
       }
 
       template {
@@ -187,10 +192,7 @@ EOF
 #!/usr/bin/with-contenv bash
 LOGFILE="/tmp/jmr_finalize.log"
 (
-echo "Starting finalize script"
 echo "Finalize script started at $(date)"
-echo "Finalize script running in $(pwd)"
-echo "Finalize script running as $(whoami)"
 set -e
 set -x 
 
@@ -210,8 +212,9 @@ if [[ "$FORMAT" == "MKA" ]] ;then
   else
     echo "Failed to upload ${DIR}/recording.mka to bucket $JMR_BUCKET file recordings/${MEETING_ID}/${FILENAME}"
   fi
-  PAYLOAD="[{\"id\":\"${MEETING_ID}\",\"path\":\"recordings/${MEETING_ID}/${FILENAME}\"}]"
-  oci queue messages put-messages --queue-id $JMR_QUEUE_ID --messages "$PAYLOAD" --region $JMR_REGION 
+  PAYLOAD="{\"id\":\"${MEETING_ID}\",\"path\":\"recordings/${MEETING_ID}/${FILENAME}\"}"
+  MESSAGES="[{\"content\":$(echo "$PAYLOAD" | jq '.|tojson')}]"
+  oci queue messages put-messages --queue-id $JMR_QUEUE_ID --endpoint $JMR_QUEUE_ENDPOINT --messages "$MESSAGES" --region $JMR_REGION
   RET=$?
   if [ $RET -eq 0 ]; then
     echo "Message queued for $MEETING_ID"

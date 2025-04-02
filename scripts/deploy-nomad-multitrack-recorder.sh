@@ -35,17 +35,25 @@ export NOMAD_VAR_oracle_s3_credentials="$(ansible-vault view $ENCRYPTED_NOMAD_FI
 set -x
 
 if [ -z "$JMR_QUEUE_ID" ]; then
-    JMR_QUEUE_ID="$(oci queue queue-admin queue list --all --compartment-id $COMPARTMENT_OCID --region $ORACLE_REGION --output json | jq -r '.data.items[]|select(."display-name"=="multitrack-recorder-'$ENVIRONMENT'")|.id')"
+    JMR_QUEUE="$(oci queue queue-admin queue list --all --compartment-id $COMPARTMENT_OCID --region $ORACLE_REGION --output json | jq -r '.data.items[]|select(."display-name"=="multitrack-recorder-'$ENVIRONMENT'")')"
+    JMR_QUEUE_ID="$(echo "$JMR_QUEUE" | jq -r '.id')"
     [[ "$JMR_QUEUE_ID" == "null" ]] && JMR_QUEUE_ID=""
+    JMR_QUEUE_ENDPOINT="$(echo "$JMR_QUEUE" | jq -r '."messages-endpoint"')"
+    [[ "$JMR_QUEUE_ENDPOINT" == "null" ]] && JMR_QUEUE_ENDPOINT=""
 fi
 if [ -z "$JMR_QUEUE_ID" ]; then
     echo "No JMR_QUEUE_ID set or found in region $ORACLE_REGION compartment $COMPARTMENT_OCID, exiting"
+    exit 2
+fi
+if [ -z "$JMR_QUEUE_ENDPOINT" ]; then
+    echo "No JMR_QUEUE_ENDPOINT set or found in region $ORACLE_REGION compartment $COMPARTMENT_OCID, exiting"
     exit 2
 fi
 NOMAD_JOB_PATH="$LOCAL_PATH/../nomad"
 NOMAD_DC="$ENVIRONMENT-$ORACLE_REGION"
 export NOMAD_VAR_environment="$ENVIRONMENT"
 export NOMAD_VAR_queue_id="$JMR_QUEUE_ID"
+export NOMAD_VAR_queue_endpoint="$JMR_QUEUE_ENDPOINT"
 JOB_NAME="multitrack-recorder-$ORACLE_REGION"
 
 sed -e "s/\[JOB_NAME\]/$JOB_NAME/" "$NOMAD_JOB_PATH/multitrack-recorder.hcl" | nomad job run -var="dc=$NOMAD_DC" -
