@@ -143,41 +143,6 @@ block
       }
 [[- end ]]
 
-[[ define "prosody_artifacts" -]]
-      artifact {
-        source      = "https://raw.githubusercontent.com/jitsi/infra-configuration/main/ansible/roles/prosody/files/mod_muc_webhooks.lua"
-        destination = "local/prosody-plugins-custom"
-      }
-      artifact {
-        source      = "https://raw.githubusercontent.com/jitsi/infra-configuration/main/ansible/roles/prosody/files/mod_muc_visitors_webhooks.lua"
-        destination = "local/prosody-plugins-custom"
-      }
-      artifact {
-        source      = "https://raw.githubusercontent.com/jitsi/infra-configuration/main/ansible/roles/prosody/files/mod_muc_moderators.lua"
-        destination = "local/prosody-plugins-custom"
-      }
-      artifact {
-        source      = "https://raw.githubusercontent.com/jitsi/infra-configuration/main/ansible/roles/prosody/files/mod_muc_events.lua"
-        destination = "local/prosody-plugins-custom"
-      }
-      artifact {
-        source      = "https://raw.githubusercontent.com/jitsi/infra-configuration/main/ansible/roles/prosody/files/mod_muc_auth_vpaas.lua"
-        destination = "local/prosody-plugins-custom"
-      }
-      artifact {
-        source      = "https://raw.githubusercontent.com/jitsi/infra-configuration/main/ansible/roles/prosody/files/mod_muc_permissions_vpaas.lua"
-        destination = "local/prosody-plugins-custom"
-      }
-      artifact {
-        source      = "https://raw.githubusercontent.com/jitsi/infra-configuration/main/ansible/roles/prosody/files/mod_muc_password_preset.lua"
-        destination = "local/prosody-plugins-custom"
-      }
-      artifact {
-        source      = "https://raw.githubusercontent.com/jitsi/infra-configuration/main/ansible/roles/prosody/files/util.internal.lib.lua"
-        destination = "local/prosody-plugins-custom"
-      }
-[[ end -]]
-
 [[ define "common-env" -]]
         ENABLE_JVB_XMPP_SERVER = "1"
         ENABLE_TRANSCRIPTIONS = "1"
