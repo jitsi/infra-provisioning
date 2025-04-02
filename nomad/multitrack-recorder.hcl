@@ -185,7 +185,12 @@ EOF
       template {
         data = <<EOF
 #!/usr/bin/with-contenv bash
-
+LOGFILE="/tmp/jmr_finalize.log"
+(
+echo "Starting finalize script"
+echo "Finalize script started at $(date)"
+echo "Finalize script running in $(pwd)"
+echo "Finalize script running as $(whoami)"
 set -e
 set -x 
 
@@ -214,6 +219,10 @@ if [[ "$FORMAT" == "MKA" ]] ;then
     echo "Failed to queue message for $MEETING_ID"
     exit $RET
   fi
+fi) > $LOGFILE 2>&1
+if [ $? -ne 0 ]; then
+  echo "Finalize script failed, check $LOGFILE for details"
+  exit 1
 fi
 EOF
         destination = "local/finalize.sh"
