@@ -347,7 +347,6 @@ job [[ template "job_name" . ]] {
         [[- end ]]
         TURN_TRANSPORT="udp"
       }
-[[ template "prosody_artifacts" . ]]
 
       template {
         data = <<EOF
@@ -538,7 +537,7 @@ EOF
         MAX_PARTICIPANTS=[[ env "CONFIG_prosody_muc_max_occupants" ]]
 [[- end ]]
       }
-[[ template "prosody_artifacts" . ]]
+
       template {
         data = <<EOF
 #!/usr/bin/with-contenv bash
