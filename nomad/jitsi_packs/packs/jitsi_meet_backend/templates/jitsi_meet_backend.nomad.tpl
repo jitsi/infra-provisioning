@@ -311,9 +311,9 @@ job [[ template "job_name" . ]] {
 
       config {
         force_pull = [[ or (env "CONFIG_force_pull") "false" ]]
-        image        = "jitsi/prosody:[[ env "CONFIG_prosody_tag" ]]"
+        image        = "[[ env "CONFIG_prosody_repo" ]]:[[ env "CONFIG_prosody_tag" ]]"
         ports = ["prosody-vnode-[[ $i ]]-http"]
-        volumes = ["local/prosody-plugins-custom:/prosody-plugins-custom","local/config:/config"]
+        volumes = ["local/config:/config"]
         labels {
           release = "[[ env "CONFIG_release_number" ]]"
           version = "[[ env "CONFIG_prosody_tag" ]]"
@@ -494,11 +494,10 @@ EOF
 
       config {
         force_pull = [[ or (env "CONFIG_force_pull") "false" ]]
-        image        = "jitsi/prosody:[[ env "CONFIG_prosody_tag" ]]"
+        image        = "[[ env "CONFIG_prosody_repo" ]]:[[ env "CONFIG_prosody_tag" ]]"
         ports = ["prosody-http","prosody-client"]
         volumes = [
           "local/patch-prosody.sh:/etc/cont-init.d/08-patch-prosody",
-          "local/prosody-plugins-custom:/prosody-plugins-custom",
           "local/config:/config",
         ]
         labels {
@@ -777,9 +776,9 @@ EOH
 
       config {
         force_pull = [[ or (env "CONFIG_force_pull") "false" ]]
-        image        = "jitsi/prosody:[[ env "CONFIG_prosody_tag" ]]"
+        image        = "[[ env "CONFIG_prosody_repo" ]]:[[ env "CONFIG_prosody_tag" ]]"
         ports = ["prosody-jvb-client","prosody-jvb-http"]
-        volumes = ["local/prosody-plugins-custom:/prosody-plugins-custom","local/config:/config"]
+        volumes = ["local/config:/config"]
         labels {
           release = "[[ env "CONFIG_release_number" ]]"
           version = "[[ env "CONFIG_prosody_tag" ]]"

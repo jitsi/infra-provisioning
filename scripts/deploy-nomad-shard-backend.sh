@@ -82,6 +82,15 @@ NOMAD_DC="$ENVIRONMENT-$ORACLE_REGION"
 [ -z "$ENVIRONMENT_CONFIGURATION_FILE" ] && ENVIRONMENT_CONFIGURATION_FILE="$LOCAL_PATH/../sites/$ENVIRONMENT/vars.yml"
 [ -z "$MAIN_CONFIGURATION_FILE" ] && MAIN_CONFIGURATION_FILE="$LOCAL_PATH/../config/vars.yml"
 
+BRANDING_NAME="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jitsi_meet_branding_override -)"
+if [[ "$BRANDING_NAME" != "null" ]]; then
+    export CONFIG_prosody_repo="$AWS_ECR_REPO_HOST/jitsi/prosody"
+    # branding-built prosody including custom modules are tagged with latest builds to match the jitsi-meet version
+    PROSODY_TAG="$JITSI_MEET_VERSION"
+else
+    export CONFIG_prosody_repo="jitsi/prosody"
+fi
+
 JIBRI_AUTH_TYPE="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jibri_auth_type -)"
 if [[ "$JIBRI_AUTH_TYPE" == "null" ]]; then
     JIBRI_AUTH_TYPE="B"
