@@ -21,6 +21,14 @@ variable "log_level" {
   default = "INFO"
 }
 
+variable "queue_id" {
+  type = string
+}
+
+variable "queue_endpoint" {
+  type = string
+}
+
 job "[JOB_NAME]" {
   datacenters = ["${var.dc}"]
 
@@ -31,13 +39,24 @@ job "[JOB_NAME]" {
     value     = "linux"
   }
 
+  spread {
+    attribute = "${node.unique.id}"
+  }
+
   update {
-    max_parallel = 1  
-    stagger = "2m"
+    max_parallel      = 1
+    health_check      = "checks"
+    min_healthy_time  = "10s"
+    healthy_deadline  = "5m"
+    progress_deadline = "10m"
+    auto_revert       = true
+    auto_promote      = true
+    canary            = 1
+    stagger           = "30s"
   }
 
   group "multitrack-recorder" {
-    count = 1
+    count = 2
 
     constraint {
       attribute  = "${meta.pool_type}"
@@ -85,7 +104,6 @@ job "[JOB_NAME]" {
         }
         meta {
           metrics_port = "${NOMAD_HOST_PORT_http}"
-          metrics_path = "/metrics"
         }
       }
     
@@ -109,6 +127,8 @@ job "[JOB_NAME]" {
         JMR_FINALIZE_SCRIPT="/local/finalize.sh"
         JMR_BUCKET="multitrack-recorder-${var.environment}"
         JMR_REGION="${meta.cloud_region}"
+        JMR_QUEUE_ID="${var.queue_id}"
+        JMR_QUEUE_ENDPOINT="${var.queue_endpoint}"
       }
 
       template {
@@ -170,7 +190,9 @@ EOF
       template {
         data = <<EOF
 #!/usr/bin/with-contenv bash
-
+LOGFILE="/tmp/jmr_finalize.log"
+(
+echo "Finalize script started at $(date)"
 set -e
 set -x 
 
@@ -190,10 +212,20 @@ if [[ "$FORMAT" == "MKA" ]] ;then
   else
     echo "Failed to upload ${DIR}/recording.mka to bucket $JMR_BUCKET file recordings/${MEETING_ID}/${FILENAME}"
   fi
-
-  if [[ "$JMR_FINALIZE_WEBHOOK" != "" ]] ;then
-    curl -d"{\"id\":\"${MEETING_ID}\",\"path\":\"recordings/${MEETING_ID}/${FILENAME}\"}" -s -o /dev/null "$JMR_FINALIZE_WEBHOOK?meetingId=$MEETING_ID"
+  PAYLOAD="{\"id\":\"${MEETING_ID}\",\"path\":\"recordings/${MEETING_ID}/${FILENAME}\"}"
+  MESSAGES="[{\"content\":$(echo "$PAYLOAD" | jq '.|tojson')}]"
+  oci queue messages put-messages --queue-id $JMR_QUEUE_ID --endpoint $JMR_QUEUE_ENDPOINT --messages "$MESSAGES" --region $JMR_REGION
+  RET=$?
+  if [ $RET -eq 0 ]; then
+    echo "Message queued for $MEETING_ID"
+  else
+    echo "Failed to queue message for $MEETING_ID"
+    exit $RET
   fi
+fi) > $LOGFILE 2>&1
+if [ $? -ne 0 ]; then
+  echo "Finalize script failed, check $LOGFILE for details"
+  exit 1
 fi
 EOF
         destination = "local/finalize.sh"
