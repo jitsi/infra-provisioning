@@ -54,6 +54,7 @@ locals {
 
     #Content-sharing-history should be allowed to upload files and to create pre-authenticated request (PAR)"
     "Allow group ${var.cs_history_group_name} to manage object-family in compartment ${var.compartment_name} where target.bucket.name='vpaas-screenshots-${var.compartment_name}-${region}'",
+    "Allow group ${var.cs_history_group_name} to manage object-family in compartment ${var.compartment_name} where target.bucket.name='vpaas-documents-${var.compartment_name}-${region}'",
   ]
   ]))
 }
