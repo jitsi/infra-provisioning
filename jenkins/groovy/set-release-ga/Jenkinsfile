@@ -73,6 +73,8 @@ pipeline {
                     dir("infra-provisioning") {
                         useReleaseBackends = utils.GetEnvironmentVar(env.ENVIRONMENT, "USE_RELEASE_BACKENDS")
                         echo useReleaseBackends
+                        recordReleases = utils.GetAnsibleVar(env.ENVIRONMENT, "release_recording_enabled")
+                        echo recordReleases
                     }
                 }
             }
@@ -133,7 +135,23 @@ pipeline {
                 }
             }
         }
-     }
+        stage ("record release in docs-private") {
+            when {
+                expression { recordReleases == 'true' }
+            }
+            steps {
+                script {
+                    build job: 'record-release',parameters: [
+                            [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: env.ENVIRONMENT],
+                            [$class: 'StringParameterValue', name: 'RELEASE_ID', value: env.BUILD_ID],
+                            [$class: 'StringParameterValue', name: 'RELEASE_TYPE', value: 'core'],
+                            [$class: 'StringParameterValue', name: 'RELEASE_ACTION', value: 'promote'],
+                            [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH]
+                        ]
+                }
+            }        
+        }
+     }     
      post {
         always {
             cleanWs()

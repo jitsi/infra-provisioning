@@ -1,4 +1,5 @@
 def utils
+import groovy.json.JsonOutput
 
 // splits incoming clouds into a list
 // alternately loads defaults for environment into a list
@@ -152,6 +153,10 @@ scripts/versioning-manager.sh
     )
 }
 
+def useReleaseBackends
+def useHAProxyConsulTemplate
+def recordReleases
+
 pipeline {
     agent any
     options {
@@ -194,6 +199,8 @@ pipeline {
                         echo useReleaseBackends
                         useHAProxyConsulTemplate = utils.GetAnsibleVar(env.ENVIRONMENT, "haproxy_enable_consul_template")
                         echo useHAProxyConsulTemplate
+                        recordReleases = utils.GetAnsibleVar(env.ENVIRONMENT, "release_recording_enabled")
+                        echo recordReleases
                     }
                 }
             }
@@ -344,7 +351,24 @@ pipeline {
                 }
             }
         }
-
+        stage ("record release in docs-private") {
+            when {
+                expression { recordReleases == 'true' }
+            }
+            steps {
+                script {
+                    def releaseVersion = [SIGNAL_VERSION: env.SIGNAL_VERSION, JVB_VERSION: env.JVB_VERSION]
+                    build job: 'record-release',parameters: [
+                            [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: env.ENVIRONMENT],
+                            [$class: 'StringParameterValue', name: 'RELEASE_ID', value: env.BUILD_ID],
+                            [$class: 'StringParameterValue', name: 'RELEASE_TYPE', value: 'core'],
+                            [$class: 'StringParameterValue', name: 'RELEASE_ACTION', value: 'create'],
+                            [$class: 'StringParameterValue', name: 'RELEASE_VERSION', value: JsonOutput.toJson(releaseVersion)],
+                            [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH]
+                        ]
+                }
+            }
+        }
         stage("trigger autoscaler reconfiguration") {
             steps {
                 script {
