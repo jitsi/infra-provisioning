@@ -128,7 +128,7 @@ pipeline {
                 script {
                     build job: 'record-release',parameters: [
                             [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: env.ENVIRONMENT],
-                            [$class: 'StringParameterValue', name: 'RELEASE_ID', value: env.BUILD_ID],
+                            [$class: 'StringParameterValue', name: 'RELEASE_ID', value: env.RELEASE_NUMBER],
                             [$class: 'StringParameterValue', name: 'RELEASE_TYPE', value: 'core'],
                             [$class: 'StringParameterValue', name: 'RELEASE_ACTION', value: 'retire'],
                             [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH]
