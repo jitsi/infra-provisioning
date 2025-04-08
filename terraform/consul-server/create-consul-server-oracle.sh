@@ -27,6 +27,10 @@ ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 [ -e "$LOCAL_PATH/../../clouds/${ORACLE_CLOUD_NAME}.sh" ] && . $LOCAL_PATH/../../clouds/${ORACLE_CLOUD_NAME}.sh
 
 [ -z "$SHAPE" ] && SHAPE="$DEFAULT_CONSUL_SHAPE"
+if [[ "$SHAPE" == "VM.Standard.E6.Flex" ]]; then
+  [ -z "$OCPUS" ] && OCPUS=2
+  [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=16
+fi
 if [[ "$SHAPE" == "VM.Standard.E5.Flex" ]]; then
   [ -z "$OCPUS" ] && OCPUS=2
   [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=16

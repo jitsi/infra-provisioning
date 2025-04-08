@@ -48,8 +48,8 @@ if [ -z "$INFRA_CUSTOMIZATIONS_REPO" ]; then
 fi
 
 
-[ -z "$SHAPE_X86" ] && SHAPE_X86="$SHAPE_E_5"
-[ -z "$SHAPE_X86" ] && SHAPE_X86="VM.Standard.E5.Flex"
+[ -z "$SHAPE_X86" ] && SHAPE_X86="$SHAPE_E_6"
+[ -z "$SHAPE_X86" ] && SHAPE_X86="VM.Standard.E6.Flex"
 [ -z "$SHAPE_ARM" ] && SHAPE_ARM="$SHAPE_A_1"
 [ -z "$SHAPE_ARM" ] && SHAPE_ARM="VM.Standard.A1.Flex"
 

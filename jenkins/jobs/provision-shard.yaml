@@ -55,7 +55,7 @@
           trim: true
       - string:
           name: SHAPE
-          description: "CPU shape for signal node, can be VM.Standard.E4.Flex VM.Standard.E5.Flex or VM.Standard.A1.Flex or VM.Standard.A2.Flex"
+          description: "CPU shape for signal node, can be VM.Standard.E4.Flex VM.Standard.E5.Flex VM.Standard.E6.Flex or VM.Standard.A1.Flex or VM.Standard.A2.Flex"
           trim: true
       - string:
           name: JVB_SHAPE
