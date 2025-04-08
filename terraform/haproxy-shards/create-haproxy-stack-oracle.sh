@@ -53,6 +53,11 @@ if [[ "$SHAPE" == "VM.Standard.E5.Flex" ]]; then
   [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=16
 fi
 
+if [[ "$SHAPE" == "VM.Standard.E6.Flex" ]]; then
+  [ -z "$OCPUS" ] && OCPUS=2
+  [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=16
+fi
+
 if [[ "$SHAPE" == "VM.Standard.E3.Flex" ]]; then
   [ -z "$OCPUS" ] && OCPUS=2
   [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=16

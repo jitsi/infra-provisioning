@@ -127,6 +127,10 @@ if [ "$JIBRI_TYPE" == "java-jibri" ]; then
     [ -z "$OCPUS" ] && OCPUS=2
     [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=8
   fi
+  if [[ "$SHAPE" == "VM.Standard.E6.Flex" ]]; then
+    [ -z "$OCPUS" ] && OCPUS=1
+    [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=8
+  fi
   if [[ "$SHAPE" == "VM.Standard.A1.Flex" ]]; then
     [ -z "$OCPUS" ] && OCPUS=4
     [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=8
@@ -151,6 +155,10 @@ elif [ "$JIBRI_TYPE" == "sip-jibri" ]; then
     [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=16
   fi
   if [[ "$SHAPE" == "VM.Standard.E5.Flex" ]]; then
+    [ -z "$OCPUS" ] && OCPUS=8
+    [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=16
+  fi
+  if [[ "$SHAPE" == "VM.Standard.E6.Flex" ]]; then
     [ -z "$OCPUS" ] && OCPUS=8
     [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=16
   fi
