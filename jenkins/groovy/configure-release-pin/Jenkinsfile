@@ -85,7 +85,7 @@ pipeline {
             steps {
                 script {
                     echo "PIN_ACTION: ${env.PIN_ACTION}"
-                    if (env.PIN_ACTION == 'SET_PIN') {
+                    if (env.PIN_ACTION == 'SET_PIN') or (env.PIN_ACTION == 'SET_CUSTOMER_PIN') {
                         dir("infra-provisioning") {
                             withCredentials([
                                 string(credentialsId: 'asap-jwt-kid-dev', variable: 'ASAP_JWT_KID_DEV'),
