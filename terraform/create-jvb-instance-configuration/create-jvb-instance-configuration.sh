@@ -70,6 +70,7 @@ ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 
 [ -z "$ENABLE_E_4" ] && ENABLE_E_4="false"
 [ -z "$ENABLE_E_5" ] && ENABLE_E_5="false"
+[ -z "$ENABLE_E_6" ] && ENABLE_E_6="false"
 
 if [ "$ENABLE_E_4" == "true" ]; then
   JVB_SHAPE="$SHAPE_E_4"
@@ -77,6 +78,10 @@ fi
 
 if [ "$ENABLE_E_5" == "true" ]; then
   JVB_SHAPE="$SHAPE_E_5"
+fi
+
+if [ "$ENABLE_E_6" == "true" ]; then
+  JVB_SHAPE="$SHAPE_E_6"
 fi
 
 # use A1 if configured
