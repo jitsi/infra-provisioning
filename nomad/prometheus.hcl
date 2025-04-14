@@ -816,16 +816,30 @@ groups:
     for: 5m
     labels:
       service: jitsi
+      severity: smoke
+    annotations:
+      summary: jicofo is missing SIP jigasis in ${var.dc}
+      description: >-
+        The jicofo on shard {{ $labels.shard }} has not seen any SIP jigasis
+        in ${var.dc} for 5 minutes. This may mean that a redeployment of SIP
+        jigasis will be needed if the issue persists. This can be accomplished
+        by triggering a jigasi release and overriding the git branch to match
+        that of the running nodes.
+      dashboard_url: ${var.grafana_url}
+      alert_url: https://${var.prometheus_hostname}/alerts?search=jicofo_sip-jigasi_missing
+  - alert: Jicofo_SIP-Jigasi_Missing
+    expr: max by (shard) (jitsi_jicofo_jigasi_sip_count) < 1 and on (shard) (count_over_time(jitsi_jicofo_jigasi_sip_count[10m:1m]) >= 10)
+    for: 20m
+    labels:
+      service: jitsi
       severity: severe
       page: true
     annotations:
       summary: jicofo is missing SIP jigasis in ${var.dc}
       description: >-
-        The jicofo on shard {{ $labels.shard }} does not see any SIP jigasis
-        in ${var.dc}. If this alarm is in SEVERE, they are missing entirely;
-        trigger a jigasi release and override the git branch to match the
-        running nodes.  Consider expanding the release if the alarm is not
-        SEVERE.
+        The jicofo on shard {{ $labels.shard }} has not seen any SIP jigasis
+        in ${var.dc} for over 20m. To redeploy, trigger a jigasi release and
+        override the git branch to match the running nodes.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=jicofo_sip-jigasi_missing
   - alert: Jicofo_Transcribers_Missing
