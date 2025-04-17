@@ -344,6 +344,7 @@ resource "oci_core_instance_configuration" "oci_instance_configuration_a" {
       }
 
       create_vnic_details {
+        assign_public_ip = false
         subnet_id = var.subnet_ocid
         nsg_ids = [oci_core_network_security_group.consul_security_group.id]
       }
@@ -388,6 +389,7 @@ resource "oci_core_instance_configuration" "oci_instance_configuration_b" {
       }
 
       create_vnic_details {
+        assign_public_ip = false
         subnet_id = var.subnet_ocid
         nsg_ids = [oci_core_network_security_group.consul_security_group.id]
       }
@@ -432,6 +434,7 @@ resource "oci_core_instance_configuration" "oci_instance_configuration_c" {
       }
 
       create_vnic_details {
+        assign_public_ip = false
         subnet_id = var.subnet_ocid
         nsg_ids = [oci_core_network_security_group.consul_security_group.id]
       }
