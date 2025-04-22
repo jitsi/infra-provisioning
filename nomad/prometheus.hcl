@@ -528,7 +528,7 @@ groups:
         and may be a warning sign of poor user experience. It was most recently
         at {{ $value | printf "%.2f" }}%.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=system_cpu_usage_high
+      alert_url: https://${var.prometheus_hostname}/alerts?search=system_cpu_steal_high
   - alert: System_Memory_Usage_High
     expr: (mem_total - mem_available) / mem_total * 100 > 80
     for: 5m
