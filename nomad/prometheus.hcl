@@ -519,7 +519,8 @@ groups:
     for: 10m
     labels:
       service: infra
-      severity: warn
+      severity: severe 
+      page: false
     annotations:
       summary: host {{ $labels.host }} in ${var.dc} has had CPU steal > 10% for 10 minutes
       description: >-
