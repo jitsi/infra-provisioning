@@ -279,6 +279,12 @@ config.testing.skipInterimTranscriptions = true;
 
 config.testing.enableCodecSelectionAPI = [[ or (env "CONFIG_jitsi_meet_enable_codec_selection_api") "true" ]];
 
+if (!config.hasOwnProperty('recordings')) config.recordings = {};
+config.recordings.suggestRecording = [[ if eq (env "CONFIG_jitsi_meet_recordings_prompt") "true" ]]true[[ else ]]false[[ end ]];
+config.recordings.showPrejoinWarning = [[ if eq (env "CONFIG_jitsi_meet_recordings_warn") "true" ]]true[[ else ]]false[[ end ]];
+
+config.isBrand = false;
+
 [[ template "config_deeplinking.js" . ]]
 
 [[ if (env "CONFIG_legal_urls") -]]
