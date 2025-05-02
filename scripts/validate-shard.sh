@@ -148,7 +148,7 @@ SHARD_REGION=$(ENVIRONMENT="$ENVIRONMENT" SHARD="$SHARD" $LOCAL_PATH/shard.sh sh
 
 [ -e $LOCAL_PATH/../clouds/${SHARD_REGION}-${ENVIRONMENT}-oracle.sh ] && . $LOCAL_PATH/../clouds/${SHARD_REGION}-${ENVIRONMENT}-oracle.sh
 
-if [ -z "${VOX_ACCOUNT_ID}" ]; then
+if [ -n "${VOX_ACCOUNT_ID}" ]; then
   REF_IP="$(getRegionalIP "${JIGASI_DIAL_OUT_REGION}")"
   DIAL_IN_REST_URL="https://api.voximplant.com/platform_api/StartScenarios/?account_id=${VOX_ACCOUNT_ID}&api_key=${VOX_API_KEY}&reference_ip=${REF_IP}&rule_id=${VOX_HEALTH_CHECK_IN_RULE_ID}&script_custom_data=%7B%22pin%22%3A%22{0}%22%7D"
   DIAL_OUT_URL="${VOX_DIAL_OUT_URL}"
