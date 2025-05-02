@@ -146,29 +146,13 @@ echo "Done npm install"
 
 SHARD_REGION=$(ENVIRONMENT="$ENVIRONMENT" SHARD="$SHARD" $LOCAL_PATH/shard.sh shard_region)
 
-if [ "$ENVIRONMENT" == "prod-8x8" ] || [ "$ENVIRONMENT" == "stage-8x8" ]; then
-  if [ "$SHARD_REGION" == "uk-london-1" ] || [ "$SHARD_REGION" == "eu-frankfurt-1" ] || [ "$SHARD_REGION" == "ap-mumbai-1" ]; then
-    # this is eu region for jigasi
-    VOX_ACCOUNT="${VOX_ACCOUNT_ID_EU}"
-    VOX_API_KEY="${VOX_API_KEY_EU}"
-    REF_IP="$(getRegionalIP "eu-frankfurt-1")"
-    if [ "$ENVIRONMENT" == "prod-8x8" ]; then
-      RULE_ID="${VOX_HEALTH_CHECK_IN_RULE_ID_PROD_EU}"
-    else
-      RULE_ID="${VOX_HEALTH_CHECK_IN_RULE_ID_STAGE_EU}"
-    fi
-  else
-    # this is us region for jigasi
-    VOX_ACCOUNT="${VOX_ACCOUNT_ID_US}"
-    VOX_API_KEY="${VOX_API_KEY_US}"
-    REF_IP="$(getRegionalIP "us-phoenix-1")"
-    if [ "$ENVIRONMENT" == "prod-8x8" ]; then
-      RULE_ID="${VOX_HEALTH_CHECK_IN_RULE_ID_PROD_US}"
-    else
-      RULE_ID="${VOX_HEALTH_CHECK_IN_RULE_ID_STAGE_US}"
-    fi
-  fi
-  DIAL_IN_REST_URL=""https://api.voximplant.com/platform_api/StartScenarios/?account_id=${VOX_ACCOUNT}&api_key=${VOX_API_KEY}&reference_ip=${REF_IP}&rule_id=${RULE_ID}&script_custom_data=%7B%22pin%22%3A%22{0}%22%7D""
+[ -e $LOCAL_PATH/../clouds/${SHARD_REGION}-${ENVIRONMENT}-oracle.sh ] && . $LOCAL_PATH/../clouds/${SHARD_REGION}-${ENVIRONMENT}-oracle.sh
+
+if [ -z "${VOX_ACCOUNT_ID}" ]; then
+  REF_IP="$(getRegionalIP "${JIGASI_DIAL_OUT_REGION}")"
+  DIAL_IN_REST_URL="https://api.voximplant.com/platform_api/StartScenarios/?account_id=${VOX_ACCOUNT_ID}&api_key=${VOX_API_KEY}&reference_ip=${REF_IP}&rule_id=${VOX_HEALTH_CHECK_IN_RULE_ID}&script_custom_data=%7B%22pin%22%3A%22{0}%22%7D"
+  DIAL_OUT_URL="${VOX_DIAL_OUT_URL}"
+  SIP_JIBRI_URL="${SIP_JIBRI_DIAL_OUT_URL}"
 fi
 
 HEADLESS=true \
@@ -179,8 +163,8 @@ HEADLESS=true \
  MAX_INSTANCES=4 \
  ROOM_NAME_SUFFIX="${SHARD}" \
  DIAL_IN_REST_URL="${DIAL_IN_REST_URL}" \
- DIAL_OUT_URL="${VOX_DIAL_OUT_URL}" \
- SIP_JIBRI_DIAL_OUT_URL="${SIP_JIBRI_DIAL_OUT_URL}" \
+ DIAL_OUT_URL="${DIAL_OUT_URL}" \
+ SIP_JIBRI_DIAL_OUT_URL="${SIP_JIBRI_URL}" \
  npm run test-grid
 SUCCESS=$?
 echo "Done testing"
