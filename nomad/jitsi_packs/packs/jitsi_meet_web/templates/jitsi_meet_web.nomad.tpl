@@ -110,7 +110,7 @@ job [[ template "job_name" . ]] {
 
       env {
         XMPP_DOMAIN = "[[ env "CONFIG_domain" ]]"
-        JVB_PREFER_SCTP = "[[ or (env "CONFIG_jitsi_meet_prefer_sctp") "false" ]]"
+        JVB_PREFER_SCTP = "[[ or (env "CONFIG_jitsi_meet_prefer_sctp") "true" ]]"
         PUBLIC_URL="https://[[ env "CONFIG_domain" ]]/"
         XMPP_AUTH_DOMAIN = "auth.[[ env "CONFIG_domain" ]]"
         # XMPP domain for the MUC
