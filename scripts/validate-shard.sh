@@ -80,6 +80,11 @@ function getJitsiMeetTag() {
   echo "${WEB_VER}";
 }
 
+function getRegionalIP {
+  REGION=$1
+  dig +short "$ENVIRONMENT-$REGION-haproxy.$ORACLE_DNS_ZONE_NAME" | tail -1
+}
+
 TESTS_TENANT="70r7ur5"
 
 # generate a token if a client key file is defined
@@ -138,6 +143,18 @@ npm -v
 echo "Start npm install"
 npm install
 echo "Done npm install"
+
+SHARD_REGION=$(ENVIRONMENT="$ENVIRONMENT" SHARD="$SHARD" $LOCAL_PATH/shard.sh shard_region)
+
+[ -e $LOCAL_PATH/../clouds/${SHARD_REGION}-${ENVIRONMENT}-oracle.sh ] && . $LOCAL_PATH/../clouds/${SHARD_REGION}-${ENVIRONMENT}-oracle.sh
+
+if [ -n "${VOX_ACCOUNT_ID}" ]; then
+  REF_IP="$(getRegionalIP "${JIGASI_DIAL_OUT_REGION}")"
+  export DIAL_IN_REST_URL="https://api.voximplant.com/platform_api/StartScenarios/?account_id=${VOX_ACCOUNT_ID}&api_key=${VOX_API_KEY}&reference_ip=${REF_IP}&rule_id=${VOX_HEALTH_CHECK_IN_RULE_ID}&script_custom_data=%7B%22pin%22%3A%22{0}%22%7D"
+  export DIAL_OUT_URL="${VOX_DIAL_OUT_URL}"
+  export SIP_JIBRI_DIAL_OUT_URL="${VIDEO_DIAL_OUT_URL}"
+fi
+
 HEADLESS=true \
  GRID_HOST_URL="${GRID_URL}" \
  REMOTE_RESOURCE_PATH="/usr/share/jitsi-meet-torture/resources" \

@@ -46,7 +46,9 @@ pipeline {
                     file(credentialsId: 'asap-client-jwt-key-meet', variable: 'ASAP_CLIENT_JWT_KEY_MEET'),
                     file(credentialsId: 'asap-client-jwt-key-prod', variable: 'ASAP_CLIENT_JWT_KEY_PROD'),
                     file(credentialsId: 'asap-client-jwt-key-stage', variable: 'ASAP_CLIENT_JWT_KEY_STAGE'),
-                    file(credentialsId: 'asap-client-jwt-key-beta', variable: 'ASAP_CLIENT_JWT_KEY_BETA')
+                    file(credentialsId: 'asap-client-jwt-key-beta', variable: 'ASAP_CLIENT_JWT_KEY_BETA'),
+                    usernamePassword(credentialsId: 'vox-api-us', passwordVariable: 'VOX_API_KEY_US', usernameVariable: 'VOX_US_USER'),
+                    usernamePassword(credentialsId: 'vox-api-eu', passwordVariable: 'VOX_API_KEY_EU', usernameVariable: 'VOX_EU_USER')
                 ]) {
                   sh """#!/bin/bash
                   export ANSIBLE_FORCE_COLOR=True
