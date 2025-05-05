@@ -2,8 +2,7 @@ FROM  --platform=$TARGETPLATFORM mikefarah/yq:latest
 ARG TARGETPLATFORM
 ARG BUILDPLATFORM
 
-
-FROM  --platform=$TARGETPLATFORM jenkins/agent:latest-jdk17
+FROM  --platform=$TARGETPLATFORM jenkins/agent:latest-jdk21
 ARG TARGETPLATFORM
 ARG BUILDPLATFORM
 ARG DOCKER_GID=996
