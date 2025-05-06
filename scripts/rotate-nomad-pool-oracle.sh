@@ -85,6 +85,16 @@ else
 
   ENVIRONMENT=$ENVIRONMENT ROLE=nomad-pool INSTANCE_POOL_ID=$INSTANCE_POOL_ID ORACLE_REGIONS=$ORACLE_REGION $LOCAL_PATH/pool.py inventory
 
+  # check if the load balancer is healthy before proceeding
+  if [ ! -z "$LOAD_BALANCER_ID" ]; then
+    CURRENT_LB_BACKEND_HEALTH=$(oci lb backend-set-health get --region "$ORACLE_REGION" --backend-set-name "$LB_BACKEND_SET_NAME" --load-balancer-id "$LOAD_BALANCER_ID")
+    CURRENT_LB_BACKEND_OVERALL_STATUS=$(echo $CURRENT_LB_BACKEND_HEALTH | jq -r '.data.status')
+    if [ "$CURRENT_LB_BACKEND_OVERALL_STATUS" != 'OK' ]; then
+      echo "State of existing load balancer for nomad instance pool is not ok; exiting before scale up."
+      exit 5
+    fi
+  fi
+
   # next scale up by 2X
   echo -e "\n## rotate-nomad-poool-oracle: double the size of nomad pool"
   ENVIRONMENT=$ENVIRONMENT ROLE=nomad-pool INSTANCE_POOL_ID=$INSTANCE_POOL_ID ORACLE_REGIONS=$ORACLE_REGION $LOCAL_PATH/pool.py double --wait
