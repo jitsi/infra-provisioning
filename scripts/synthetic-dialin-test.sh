@@ -67,6 +67,7 @@ function doTest {
     DIAL_IN_REST_URL="https://api.voximplant.com/platform_api/StartScenarios/?account_id=${ACC_ID}&api_key=${API_KEY}&reference_ip=${REF_IP}&rule_id=${RULE_ID}&script_custom_data=%7B%22pin%22%3A%22{0}%22%7D" \
     JWT_PRIVATE_KEY_PATH=$JAAS_SIGNING_KEY_FILE \
     JWT_KID=$JAAS_JWT_KID \
+    ROOM_NAME_PREFIX="synthetic_" \
     BASE_URL=https://${ADDR}/$(echo "$JAAS_JWT_KID" | cut -f1 -d"/")/ \
   npm run test-grid-single tests/specs/alone/dialInAudio.spec.ts | tee -a ${LOG_FILE}
 
