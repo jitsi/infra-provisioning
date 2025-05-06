@@ -1,5 +1,6 @@
 ansicolor
 ant
+apache-httpcomponents-client-5-api
 rebuild
 docker-plugin
 docker-slaves
