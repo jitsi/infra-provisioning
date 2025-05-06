@@ -106,8 +106,10 @@ resource "oci_core_instance_configuration" "oci_instance_configuration_hub" {
       }
 
       create_vnic_details {
+        assign_public_ip = false
         subnet_id = var.subnet_ocid
         nsg_ids = [var.hub_security_group_id]
+        assign_public_ip = false
       }
 
       source_details {
@@ -159,6 +161,7 @@ resource "oci_core_instance_configuration" "oci_instance_configuration_node" {
       }
 
       create_vnic_details {
+        assign_public_ip = false
         subnet_id = var.subnet_ocid
         nsg_ids = [var.node_security_group_id]
       }

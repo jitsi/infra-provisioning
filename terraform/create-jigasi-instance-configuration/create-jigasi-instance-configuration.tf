@@ -98,6 +98,7 @@ resource "oci_core_instance_configuration" "oci_instance_configuration" {
       }
 
       create_vnic_details {
+        assign_public_ip = false
         subnet_id = data.oci_core_subnets.jigasi_subnets.subnets[0].id
         nsg_ids = [
           data.oci_core_network_security_groups.network_security_groups.network_security_groups[0].id]
