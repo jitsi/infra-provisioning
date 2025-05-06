@@ -153,6 +153,8 @@ if [ -n "${VOX_ACCOUNT_ID}" ]; then
   export DIAL_IN_REST_URL="https://api.voximplant.com/platform_api/StartScenarios/?account_id=${VOX_ACCOUNT_ID}&api_key=${VOX_API_KEY}&reference_ip=${REF_IP}&rule_id=${VOX_HEALTH_CHECK_IN_RULE_ID}&script_custom_data=%7B%22pin%22%3A%22{0}%22%7D"
   export DIAL_OUT_URL="${VOX_DIAL_OUT_URL}"
   export SIP_JIBRI_DIAL_OUT_URL="${VIDEO_DIAL_OUT_URL}"
+  export YTUBE_TEST_STREAM_KEY="${TEST_YTUBE_TEST_STREAM_KEY}"
+  export YTUBE_TEST_BROADCAST_ID="${TEST_YTUBE_TEST_BROADCAST_ID}"
 fi
 
 HEADLESS=true \
