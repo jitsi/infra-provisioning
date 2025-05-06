@@ -105,7 +105,7 @@ S3_STATE_BASE="$ENVIRONMENT/grid/$GRID_NAME/components"
 [ -z "$S3_STATE_KEY" ] && S3_STATE_KEY="${S3_STATE_BASE}/terraform.tfstate"
 
 if [[ "$SELENIUM_GRID_NOMAD_ENABLED" == "true" ]]; then
-  IMAGE_TYPE="JammyBase"
+  IMAGE_TYPE="NobleBase"
 else
   IMAGE_TYPE="SeleniumGrid"
 fi
