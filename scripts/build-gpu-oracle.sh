@@ -61,7 +61,7 @@ fi
 arch_from_shape $SHAPE
 
 [ -z "$BASE_IMAGE_TYPE" ] && BASE_IMAGE_TYPE="$GPU_BASE_IMAGE_TYPE"
-[ -z "$BASE_IMAGE_TYPE" ] && BASE_IMAGE_TYPE="JammyBase"
+[ -z "$BASE_IMAGE_TYPE" ] && BASE_IMAGE_TYPE="NobleBase"
 
 EXISTING_IMAGE_OCID=$($LOCAL_PATH/oracle_custom_images.py --type GPU --version "latest" --architecture "$IMAGE_ARCH" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
 if [ ! -z "$EXISTING_IMAGE_OCID" ]; then
