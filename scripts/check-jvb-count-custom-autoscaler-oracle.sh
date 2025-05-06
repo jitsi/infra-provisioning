@@ -55,6 +55,10 @@ while true; do
     SHUTTING_DOWN_COUNT=$(echo "$GROUP_REPORT_VALUE" | jq -r '.groupReport.shuttingDownCount')
     SHUTDOWN_COUNT=$(echo "$GROUP_REPORT_VALUE" | jq -r '.groupReport.instances|map(select(.cloudStatus=="SHUTDOWN" or .cloudStatus=="unknown" or (.shutdownComplete!=null and .shutdownComplete!=false)))|length')
     COUNT_TO_CHECK="$((COUNT - SHUTDOWN_COUNT))"
+    if [ "$COUNT_TO_CHECK" -lt 0 ]; then
+      echo "The shutdown count is greater than the total count. This is unexpected. Setting count to check to 0"
+      COUNT_TO_CHECK=0
+    fi
 
     if [ "$CHECK_SCALE_UP" == "true" ]; then
       COUNT_TO_CHECK=$(( COUNT - PROVISIONING_COUNT - SHUTTING_DOWN_COUNT - SHUTDOWN_COUNT ))
