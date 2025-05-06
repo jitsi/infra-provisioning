@@ -26,9 +26,35 @@ job [[ template "job_name" . ]] {
   group "signal" {
     count = 1
 
+    # NOTE: when defining new pool_type values, add them to this constraint
     constraint {
       attribute  = "${meta.pool_type}"
+      operator     = "set_contains_any"
+      value    = "consul,general,shard"
+    }
+
+
+[[ if ne (env "CONFIG_pool_type") "consul" ]]
+    affinity {
+      attribute  = "${meta.pool_type}"
+      operator = "="
+      value     = "consul"
+      weight    = -100
+    }
+[[ end ]]
+[[ if ne (env "CONFIG_pool_type") "general" ]]
+    affinity {
+      attribute  = "${meta.pool_type}"
+      operator = "="
+      value     = "general"
+      weight    = -50
+    }
+[[ end ]]
+    affinity {
+      attribute  = "${meta.pool_type}"
       value     = "[[ env "CONFIG_pool_type" ]]"
+      operator = "="
+      weight    = 100
     }
 
     network {
