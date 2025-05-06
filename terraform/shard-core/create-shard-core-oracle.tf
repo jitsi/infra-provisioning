@@ -282,6 +282,7 @@ resource "oci_core_instance" "instance" {
     shape = var.shape
 
     create_vnic_details {
+        assign_public_ip = true
         subnet_id = var.subnet_ocid
         nsg_ids = [oci_core_network_security_group.instance_security_group.id]
     }

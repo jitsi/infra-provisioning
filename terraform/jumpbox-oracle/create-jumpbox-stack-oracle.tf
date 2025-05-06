@@ -60,6 +60,7 @@ resource "oci_core_instance" "oci-instance" {
     display_name = var.display_name
 
     create_vnic_details {
+        assign_public_ip = false
         subnet_id = var.subnet_ocid
         nsg_ids = [
             var.security_group_ocid]

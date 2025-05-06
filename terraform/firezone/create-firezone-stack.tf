@@ -124,6 +124,7 @@ resource "oci_core_instance" "oci-instance" {
     display_name = var.display_name
 
     create_vnic_details {
+        assign_public_ip = true
         subnet_id = var.subnet_ocid
         nsg_ids = [oci_core_network_security_group.instance_security_group.id]
     }

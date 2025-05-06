@@ -179,6 +179,7 @@ resource "oci_core_instance_configuration" "oci_instance_configuration" {
       }
 
       create_vnic_details {
+        assign_public_ip = true
         subnet_id = var.subnet_ocid
         nsg_ids = concat(
           [var.security_group_ocid],
