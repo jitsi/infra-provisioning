@@ -88,7 +88,7 @@ else
   # check if the load balancer is healthy before proceeding
   if [ ! -z "$LOAD_BALANCER_ID" ]; then
     CURRENT_LB_BACKEND_HEALTH=$(oci lb backend-set-health get --region "$ORACLE_REGION" --backend-set-name "$LB_BACKEND_SET_NAME" --load-balancer-id "$LOAD_BALANCER_ID")
-    CURRENT_LB_BACKEND_OVERALL_STATUS=$(echo $LATEST_LB_BACKEND_HEALTH | jq -r '.data.status')
+    CURRENT_LB_BACKEND_OVERALL_STATUS=$(echo $CURRENT_LB_BACKEND_HEALTH | jq -r '.data.status')
     if [ "$CURRENT_LB_BACKEND_OVERALL_STATUS" != 'OK' ]; then
       echo "State of existing load balancer for nomad instance pool is not ok; exiting before scale up."
       exit 5
