@@ -33,7 +33,20 @@ job "[JOB_NAME]" {
 
     constraint {
       attribute  = "${meta.pool_type}"
+      operator     = "set_contains_any"
+      value    = "consul,general"
+    }
+
+    affinity {
+      attribute  = "${meta.pool_type}"
+      value     = "consul"
+      weight    = -100
+    }
+
+    affinity {
+      attribute  = "${meta.pool_type}"
       value     = "general"
+      weight    = 100
     }
 
     network {
