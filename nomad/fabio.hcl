@@ -12,6 +12,13 @@ job "fabio" {
       value     = "general"
     }
 
+    reschedule {
+      delay          = "30s"
+      delay_function = "exponential"
+      max_delay      = "30m"
+      unlimited      = true
+    }
+
     network {
       port "ext-lb" {
         static = 9999
