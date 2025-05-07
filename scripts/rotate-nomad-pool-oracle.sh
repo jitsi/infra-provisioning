@@ -128,10 +128,8 @@ else
     fi
   else
     # No load balancer to detect healthy state, so wait for fixed duration before continuing
-    if [[ $i -lt $((INSTANCE_COUNT-1)) ]]; then
-      echo "Waiting for $STARTUP_GRACE_PERIOD_SECONDS seconds before rotating next instance"
-      sleep $STARTUP_GRACE_PERIOD_SECONDS
-    fi
+    echo "Waiting for $STARTUP_GRACE_PERIOD_SECONDS seconds before rotating next instance"
+    sleep $STARTUP_GRACE_PERIOD_SECONDS
   fi
 
   DETACHABLE_IPS=$(ENVIRONMENT=$ENVIRONMENT MINIMUM_POOL_SIZE=$INSTANCE_COUNT ROLE=$ROLE INSTANCE_POOL_ID=$INSTANCE_POOL_ID ORACLE_REGIONS=$ORACLE_REGION $LOCAL_PATH/pool.py halve --onlyip)
