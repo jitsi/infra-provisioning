@@ -74,16 +74,18 @@ else
     done
   fi
 
-  # first apply changes to instance configuration, etc
-  $LOCAL_PATH/../terraform/nomad-pool/create-nomad-pool-stack.sh $SSH_USER
+  if [[ "$POOL_TYPE" == "general" ]]; then
+    # first apply changes to instance configuration, etc
+    $LOCAL_PATH/../terraform/nomad-pool/create-nomad-pool-stack.sh $SSH_USER
 
-  if [ $? -gt 0 ]; then
-    echo -e "\n## Nomad pool configuration update failed, exiting"
-    exit 5
+    if [ $? -gt 0 ]; then
+      echo -e "\n## Nomad pool configuration update failed, exiting"
+      exit 5
+    fi
   fi
 
 
-  ENVIRONMENT=$ENVIRONMENT ROLE=nomad-pool INSTANCE_POOL_ID=$INSTANCE_POOL_ID ORACLE_REGIONS=$ORACLE_REGION $LOCAL_PATH/pool.py inventory
+  ENVIRONMENT=$ENVIRONMENT ROLE=$ROLE INSTANCE_POOL_ID=$INSTANCE_POOL_ID ORACLE_REGIONS=$ORACLE_REGION $LOCAL_PATH/pool.py inventory
 
   # check if the load balancer is healthy before proceeding
   if [ ! -z "$LOAD_BALANCER_ID" ]; then
@@ -97,7 +99,7 @@ else
 
   # next scale up by 2X
   echo -e "\n## rotate-nomad-poool-oracle: double the size of nomad pool"
-  ENVIRONMENT=$ENVIRONMENT ROLE=nomad-pool INSTANCE_POOL_ID=$INSTANCE_POOL_ID ORACLE_REGIONS=$ORACLE_REGION $LOCAL_PATH/pool.py double --wait
+  ENVIRONMENT=$ENVIRONMENT ROLE=$ROLE INSTANCE_POOL_ID=$INSTANCE_POOL_ID ORACLE_REGIONS=$ORACLE_REGION $LOCAL_PATH/pool.py double --wait
 
   # wait for load balancer to see new instances go healthy
   if [ ! -z "$LOAD_BALANCER_ID" ]; then
@@ -132,7 +134,7 @@ else
     fi
   fi
 
-  DETACHABLE_IPS=$(ENVIRONMENT=$ENVIRONMENT MINIMUM_POOL_SIZE=2 ROLE=nomad-pool INSTANCE_POOL_ID=$INSTANCE_POOL_ID ORACLE_REGIONS=$ORACLE_REGION $LOCAL_PATH/pool.py halve --onlyip)
+  DETACHABLE_IPS=$(ENVIRONMENT=$ENVIRONMENT MINIMUM_POOL_SIZE=$INSTANCE_COUNT ROLE=$ROLE INSTANCE_POOL_ID=$INSTANCE_POOL_ID ORACLE_REGIONS=$ORACLE_REGION $LOCAL_PATH/pool.py halve --onlyip)
   if [ -z "$DETACHABLE_IPS" ]; then
     echo "## ERROR: No IPs found to detach, something went wrong..."
     exit 226
@@ -159,6 +161,6 @@ else
 
   # scale down the old instances
   echo -e "\n## rotate-nomad-poool-oracle: halve the size of nomad instance pool"
-  ENVIRONMENT=$ENVIRONMENT MINIMUM_POOL_SIZE=2 ROLE=nomad-pool INSTANCE_POOL_ID=$INSTANCE_POOL_ID ORACLE_REGIONS=$ORACLE_REGION $LOCAL_PATH/pool.py halve --wait
+  ENVIRONMENT=$ENVIRONMENT MINIMUM_POOL_SIZE=$INSTANCE_COUNT ROLE=$ROLE INSTANCE_POOL_ID=$INSTANCE_POOL_ID ORACLE_REGIONS=$ORACLE_REGION $LOCAL_PATH/pool.py halve --wait
 
 fi
