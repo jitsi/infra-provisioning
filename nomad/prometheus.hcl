@@ -515,17 +515,17 @@ groups:
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=system_cpu_usage_high%{ endif }
   - alert: System_CPU_Steal_High
-    expr: cpu_usage_steal > 10
+    expr: cpu_usage_steal > 15
     for: 10m
     labels:
       service: infra
       severity: severe 
       page: false
     annotations:
-      summary: host {{ $labels.host }} in ${var.dc} has had CPU steal > 10% for 10 minutes
+      summary: host {{ $labels.host }} in ${var.dc} has had CPU steal > 15% for 10 minutes
       description: >-
         host {{ $labels.host }} in ${var.dc} with role {{ $labels.role }} has
-        had a CPU steal at over 10% for 10 minutes. This should be investigated
+        had a CPU steal at over 15% for 10 minutes. This should be investigated
         and may be a warning sign of poor user experience. It was most recently
         at {{ $value | printf "%.2f" }}%.
       dashboard_url: ${var.grafana_url}
