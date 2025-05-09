@@ -20,6 +20,7 @@ if [ -f "./nomad-keyring.tar.gz" ]; then
   scp -F $LOCAL_PATH/../config/ssh.config ./nomad-keyring.tar.gz $SSH_USER@$INSTANCE_PRIMARY_PRIVATE_IP:/tmp/nomad-keyring.tar.gz
   echo "## rotate-consul-post-attach: extracting nomad keyring material on $INSTANCE_PRIMARY_PRIVATE_IP"
   timeout 120 ssh -F $LOCAL_PATH/../config/ssh.config $SSH_USER@$INSTANCE_PRIMARY_PRIVATE_IP "sudo tar -xzf /tmp/nomad-keyring.tar.gz -C / && sudo rm -f /tmp/nomad-keyring.tar.gz"
+  timeout 120 ssh -F $LOCAL_PATH/../config/ssh.config $SSH_USER@$INSTANCE_PRIMARY_PRIVATE_IP "sudo service nomad restart"
   rm ./nomad-keyring.tar.gz
 else 
   echo "## rotate-consul-post-attach: no nomad keyring material to copy, skipping copy and extraction"

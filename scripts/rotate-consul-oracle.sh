@@ -86,7 +86,7 @@ if [[ "$SHAPE" == "VM.Standard.A2.Flex" ]]; then
 fi
 
 # by default wait 5 minutes in between rotating consul instances
-[ -z "$STARTUP_GRACE_PERIOD_SECONDS" ] && STARTUP_GRACE_PERIOD_SECONDS=300
+[ -z "$STARTUP_GRACE_PERIOD_SECONDS" ] && STARTUP_GRACE_PERIOD_SECONDS=150
 
 # iterate across the three instance pools
 for x in {a..c}; do
