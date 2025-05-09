@@ -550,7 +550,6 @@ server {
     # external_api for subdomains
     location ~ ^/([^/?&:'"]+)/external_api.js {
 [[ template "nginx-headers" . ]]
-        add_header Strict-Transport-Security 'max-age=63072000; includeSubDomains';
         proxy_set_header X-Jitsi-Shard '[[ env "CONFIG_shard" ]]';
         proxy_hide_header 'X-Jitsi-Shard';
         proxy_set_header Host $http_host;
@@ -560,7 +559,6 @@ server {
 
     location /external_api.js {
 [[ template "nginx-headers" . ]]
-        add_header Strict-Transport-Security 'max-age=63072000; includeSubDomains';
         proxy_set_header X-Jitsi-Shard '[[ env "CONFIG_shard" ]]';
         proxy_hide_header 'X-Jitsi-Shard';
         proxy_set_header Host $http_host;
