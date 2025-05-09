@@ -547,6 +547,25 @@ server {
     rewrite ^.*/static/close2.html$ [[ env "CONFIG_jitsi_meet_close_page_redirect_url" ]] redirect;
 [[ end -]]
 
+    # external_api for subdomains
+    location ~ ^/([^/?&:'"]+)/external_api.js {
+[[ template "nginx-headers" . ]]
+        proxy_set_header X-Jitsi-Shard '[[ env "CONFIG_shard" ]]';
+        proxy_hide_header 'X-Jitsi-Shard';
+        proxy_set_header Host $http_host;
+
+        proxy_pass http://web;
+    }
+
+    location /external_api.js {
+[[ template "nginx-headers" . ]]
+        proxy_set_header X-Jitsi-Shard '[[ env "CONFIG_shard" ]]';
+        proxy_hide_header 'X-Jitsi-Shard';
+        proxy_set_header Host $http_host;
+
+        proxy_pass http://web;
+    }
+
     location / {
         add_header Strict-Transport-Security 'max-age=63072000; includeSubDomains';
         proxy_set_header X-Jitsi-Shard '[[ env "CONFIG_shard" ]]';
