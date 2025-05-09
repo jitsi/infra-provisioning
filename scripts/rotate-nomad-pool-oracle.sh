@@ -20,6 +20,7 @@ fi
 # if no load balancer is available to detect bootup health then
 # wait a fixed period between instances when rotating
 [ -z "$STARTUP_GRACE_PERIOD_SECONDS" ] && STARTUP_GRACE_PERIOD_SECONDS=300 # 5 min
+[ -z "$STARTUP_TIMEOUT_PERIOD_SECONDS" ] && STARTUP_TIMEOUT_PERIOD_SECONDS=1200 # 20 min
 
 if [ -z "$ORACLE_REGION" ]; then
   echo "No ORACLE_REGION found.  Exiting..."
@@ -95,6 +96,10 @@ else
       echo "State of existing load balancer for nomad instance pool is not ok; exiting before scale up."
       exit 5
     fi
+  else
+    # pull the nomad client list to use when checking for new nodes later
+    NOMAD_READY_CLIENTS="$($LOCAL_PATH/nomad.sh node status -json -filter "NodeClass==$POOL_TYPE" | jq ".|map(select(.Datacenter==\"${ENVIRONMENT}-${ORACLE_REGION}\" and .Status==\"ready\"))")"
+    NOMAD_READY_CLIENTS_COUNT=$(echo $NOMAD_READY_CLIENTS | jq -r ".|length")
   fi
 
   # next scale up by 2X
@@ -128,8 +133,24 @@ else
     fi
   else
     # No load balancer to detect healthy state, so wait for fixed duration before continuing
-    echo "Waiting for $STARTUP_GRACE_PERIOD_SECONDS seconds before rotating next instance"
+    echo "Waiting for $STARTUP_GRACE_PERIOD_SECONDS seconds before beginning check for nodes in nomad"
     sleep $STARTUP_GRACE_PERIOD_SECONDS
+    NOMAD_NEW_CLIENTS="$($LOCAL_PATH/nomad.sh node status -json -filter "NodeClass==$POOL_TYPE" | jq ".|map(select(.Datacenter==\"${ENVIRONMENT}-${ORACLE_REGION}\" and .Status==\"ready\"))")"
+    NOMAD_NEW_CLIENTS_COUNT=$(echo $NOMAD_NEW_CLIENTS | jq -r ".|length")
+    SLEEP_TIME=$((STARTUP_TIMEOUT_PERIOD_SECONDS - STARTUP_GRACE_PERIOD_SECONDS))
+    WAIT_TOTAL=0
+    while [[ "$NOMAD_NEW_CLIENTS_COUNT" -lt "$((NOMAD_READY_CLIENTS_COUNT*2))" ]]; do
+      if [ $WAIT_TOTAL -gt $SLEEP_TIME ]; then
+        echo "Exceeding max waiting time of $SLEEP_TIME seconds for the nomad client state to reach expected count of $((NOMAD_READY_CLIENTS_COUNT*2)). Current count is $NOMAD_NEW_CLIENTS_COUNT. Something is wrong, exiting..."
+        exit 224
+      fi
+
+      echo "Waiting for the nomad client state to reach expected count of $((NOMAD_READY_CLIENTS_COUNT*2)). Current count is $NOMAD_NEW_CLIENTS_COUNT."
+      sleep $WAIT_INTERVAL_SECONDS
+      WAIT_TOTAL=$((WAIT_TOTAL + WAIT_INTERVAL_SECONDS))
+      NOMAD_NEW_CLIENTS="$($LOCAL_PATH/nomad.sh node status -json -filter "NodeClass==$POOL_TYPE" | jq ".|map(select(.Datacenter==\"${ENVIRONMENT}-${ORACLE_REGION}\" and .Status==\"ready\"))")"
+      NOMAD_NEW_CLIENTS_COUNT=$(echo $NOMAD_NEW_CLIENTS | jq -r ".|length")
+    done
   fi
 
   DETACHABLE_IPS=$(ENVIRONMENT=$ENVIRONMENT MINIMUM_POOL_SIZE=$INSTANCE_COUNT ROLE=$ROLE INSTANCE_POOL_ID=$INSTANCE_POOL_ID ORACLE_REGIONS=$ORACLE_REGION $LOCAL_PATH/pool.py halve --onlyip)
