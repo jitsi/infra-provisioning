@@ -47,7 +47,7 @@ if [[ "$NOMAD_COTURN_FLAG" == "null" ]]; then
 fi
 
 if [[ "$NOMAD_COTURN_FLAG" == "true" ]]; then
-  COTURN_IMAGE_TYPE="JammyBase"
+  COTURN_IMAGE_TYPE="NobleBase"
 fi
 
 [ -z "$SHAPE" ] && SHAPE="$DEFAULT_COTURN_SHAPE"
