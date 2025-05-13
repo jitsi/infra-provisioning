@@ -31,6 +31,9 @@ job "fabio" {
 
     service {
       name = "fabio-ext"
+      tags = [
+        "ip-${attr.unique.network.ip-address}"
+      ]
       meta {
         metrics_port = "${NOMAD_PORT_ext_metrics}"
       }
@@ -38,6 +41,9 @@ job "fabio" {
 
     service {
       name = "fabio-int"
+      tags = [
+        "ip-${attr.unique.network.ip-address}"
+      ]
       meta {
         metrics_port = "${NOMAD_PORT_int_metrics}"
       }
