@@ -19,22 +19,30 @@ job "fabio" {
       port "ext-ui" {
         static = 9998
       }
-      port "ext-metrics" {
-      }
+      port "ext-metrics" {}
       port "int-lb" {
         static = 9997
       }
       port "int-ui" {
         static = 9996
       }
-      port "int-metrics" {
+      port "int-metrics" {}
+    }
+
+    service {
+      name = "fabio-ext"
+      meta {
+        metrics_port = "${NOMAD_PORT_ext-metrics}"
       }
     }
-    service "fabio-ext" {
-      name = "fabio-ext"
-      port = "ext-lb"
 
+    service {
+      name = "fabio-int"
+      meta {
+        metrics_port = "${NOMAD_PORT_int-metrics}"
+      }
     }
+
     task "ext-fabio" {
       driver = "docker"
       config {
@@ -45,7 +53,7 @@ job "fabio" {
 
       env {
         FABIO_metrics_prometheus_subsystem = "fabio_ext"
-        FABIO_proxy_addr = ":9999,:${NOMAD_PORT_ext_metrics};proto=prometheus"
+        FABIO_proxy_addr = ":9999,:${NOMAD_PORT_ext-metrics};proto=prometheus"
         FABIO_ui_addr = ":9998"
       }
 
@@ -54,6 +62,7 @@ job "fabio" {
         memory = 512
       }
     }
+
     task "int-fabio" {
       driver = "docker"
       config {
@@ -65,7 +74,7 @@ job "fabio" {
       env {
         FABIO_registry_consul_tagprefix = "int-urlprefix-"
         FABIO_metrics_prometheus_subsystem = "fabio_int"
-        FABIO_proxy_addr = ":9997,:${NOMAD_PORT_int_metrics};proto=prometheus"
+        FABIO_proxy_addr = ":9997,:${NOMAD_PORT_int-metrics};proto=prometheus"
         FABIO_ui_addr = ":9996"
       }
 
