@@ -32,14 +32,14 @@ job "fabio" {
     service {
       name = "fabio-ext"
       meta {
-        metrics_port = "${NOMAD_PORT_ext-metrics}"
+        metrics_port = "${NOMAD_PORT_ext_metrics}"
       }
     }
 
     service {
       name = "fabio-int"
       meta {
-        metrics_port = "${NOMAD_PORT_int-metrics}"
+        metrics_port = "${NOMAD_PORT_int_metrics}"
       }
     }
 
