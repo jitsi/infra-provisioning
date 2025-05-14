@@ -364,6 +364,7 @@ EOF
     "jitsi_jvb_conferences_inactive",
     "jitsi_jvb_conferences_p2p",
     "jitsi_jvb_conferences_with_relay",
+    "jitsi_jvb_cpu_steal",
     "jitsi_jvb_current_endpoints",
     "jitsi_jvb_current_visitors",
     "jitsi_jvb_data_channel_messages_received_total",
