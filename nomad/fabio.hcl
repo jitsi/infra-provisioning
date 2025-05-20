@@ -36,6 +36,7 @@ job "fabio" {
 
       env {
         FABIO_log_access_target = "stdout"
+        FABIO_log_access_format = "combined"
       }
 
       resources {
@@ -56,6 +57,7 @@ job "fabio" {
         FABIO_proxy_addr = ":9997"
         FABIO_ui_addr = ":9996"
         FABIO_log_access_target = "stdout"
+        FABIO_log_access_format = "combined"
       }
 
       resources {
