@@ -77,7 +77,7 @@ job "[JOB_NAME]" {
         }
       }
 
-      user = "telegraf:985"
+      user = "telegraf:999"
       driver = "docker"
       meta {
       }
@@ -88,6 +88,7 @@ job "[JOB_NAME]" {
         propagation_mode = "host-to-task"
       }
       config {
+        group_add = ["docker"]
         network_mode = "host"
         privileged = true
         image        = "telegraf:1.29.5"
