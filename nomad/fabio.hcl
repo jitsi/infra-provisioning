@@ -58,15 +58,13 @@ job "fabio" {
       }
 
       env {
+        #FABIO_log_access_format = "combined"
+        FABIO_log_access_format = "[$time_common] $remote_host - \"$request\" $response_status $response_body_size - $upstream_service: $upstream_addr$upstream_request_uri - Referer: $header.Referer X-Forwarded-For: $header.x-forwarded-for X-Forwarded-Host $header.x-forwarded-host - $header.User-Agent"
+        FABIO_log_access_target = "stdout"
         FABIO_metrics_prometheus_subsystem = "fabio_ext"
         FABIO_metrics_target = "prometheus"
         FABIO_proxy_addr = ":9999,:${NOMAD_PORT_ext-metrics};proto=prometheus"
         FABIO_ui_addr = ":9998"
-      }
-
-      env {
-        FABIO_log_access_target = "stdout"
-        FABIO_log_access_format = "combined"
       }
 
       resources {
@@ -84,13 +82,14 @@ job "fabio" {
       }
 
       env {
+        #FABIO_log_access_format = "combined"
+        FABIO_log_access_format = "[$time_common] $remote_host - \"$request\" $response_status $response_body_size - $upstream_service: $upstream_addr$upstream_request_uri - Referer: $header.Referer X-Forwarded-For: $header.x-forwarded-for X-Forwarded-Host $header.x-forwarded-host - $header.User-Agent"
+        FABIO_log_access_target = "stdout"
         FABIO_metrics_prometheus_subsystem = "fabio_int"
         FABIO_metrics_target = "prometheus"
         FABIO_proxy_addr = ":9997,:${NOMAD_PORT_int-metrics};proto=prometheus"
         FABIO_registry_consul_tagprefix = "int-urlprefix-"
         FABIO_ui_addr = ":9996"
-        FABIO_log_access_target = "stdout"
-        FABIO_log_access_format = "combined"
       }
 
       resources {
