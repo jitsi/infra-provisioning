@@ -34,6 +34,10 @@ job "fabio" {
         ports = ["ext-lb","ext-ui"]
       }
 
+      env {
+        FABIO_log_access_target = "stdout"
+      }
+
       resources {
         cpu    = 200
         memory = 512
@@ -51,6 +55,7 @@ job "fabio" {
         FABIO_registry_consul_tagprefix = "int-urlprefix-"
         FABIO_proxy_addr = ":9997"
         FABIO_ui_addr = ":9996"
+        FABIO_log_access_target = "stdout"
       }
 
       resources {
