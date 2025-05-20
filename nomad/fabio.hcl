@@ -64,6 +64,11 @@ job "fabio" {
         FABIO_ui_addr = ":9998"
       }
 
+      env {
+        FABIO_log_access_target = "stdout"
+        FABIO_log_access_format = "combined"
+      }
+
       resources {
         cpu    = 200
         memory = 512
@@ -84,6 +89,8 @@ job "fabio" {
         FABIO_proxy_addr = ":9997,:${NOMAD_PORT_int-metrics};proto=prometheus"
         FABIO_registry_consul_tagprefix = "int-urlprefix-"
         FABIO_ui_addr = ":9996"
+        FABIO_log_access_target = "stdout"
+        FABIO_log_access_format = "combined"
       }
 
       resources {
