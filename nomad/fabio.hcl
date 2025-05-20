@@ -59,6 +59,7 @@ job "fabio" {
 
       env {
         FABIO_metrics_prometheus_subsystem = "fabio_ext"
+        FABIO_metrics_target = "prometheus"
         FABIO_proxy_addr = ":9999,:${NOMAD_PORT_ext-metrics};proto=prometheus"
         FABIO_ui_addr = ":9998"
       }
@@ -78,9 +79,10 @@ job "fabio" {
       }
 
       env {
-        FABIO_registry_consul_tagprefix = "int-urlprefix-"
         FABIO_metrics_prometheus_subsystem = "fabio_int"
+        FABIO_metrics_target = "prometheus"
         FABIO_proxy_addr = ":9997,:${NOMAD_PORT_int-metrics};proto=prometheus"
+        FABIO_registry_consul_tagprefix = "int-urlprefix-"
         FABIO_ui_addr = ":9996"
       }
 
