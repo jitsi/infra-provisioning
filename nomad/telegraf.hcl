@@ -77,7 +77,7 @@ job "[JOB_NAME]" {
         }
       }
 
-      user = "telegraf:999"
+      user = "telegraf:985"
       driver = "docker"
       meta {
       }
