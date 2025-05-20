@@ -88,7 +88,7 @@ job "[JOB_NAME]" {
         propagation_mode = "host-to-task"
       }
       config {
-        group_add = ["docker"]
+        group_add = ["985"]
         network_mode = "host"
         privileged = true
         image        = "telegraf:1.29.5"
