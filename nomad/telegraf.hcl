@@ -88,6 +88,7 @@ job "[JOB_NAME]" {
         propagation_mode = "host-to-task"
       }
       config {
+        group_add = ["985"]
         network_mode = "host"
         privileged = true
         image        = "telegraf:1.29.5"
@@ -144,7 +145,7 @@ EOF
   totalcpu = true
   collect_cpu_time = false
   report_active = false
-  fielddrop = ["time_*"]
+  fieldexclude = ["time_*"]
   fieldinclude = ["usage_system*", "usage_user*", "usage_iowait*", "usage_idle*", "usage_steal*"]
 
 [[inputs.mem]]
@@ -152,7 +153,10 @@ EOF
 
 [[inputs.net]]
   fieldinclude = ["bytes*","drop*","packets*","err*","tcp_retranssegs","udp_rcvbuferrors"]
-  ignore_protocol_stats = false
+  ignore_protocol_stats = true
+
+[[inputs.nstat]]
+  fieldinclude = ["TcpInSegs", "TcpOutSegs", "TcpRetransSegs", "UdpInErrors", "Udp6InErrors"]
 
 [[inputs.processes]]
   fieldinclude = ["blocked", "idle", "paging", "running", "total*"]
