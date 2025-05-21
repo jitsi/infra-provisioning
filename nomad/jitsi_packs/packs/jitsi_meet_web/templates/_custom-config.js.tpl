@@ -285,6 +285,8 @@ config.recordings.showPrejoinWarning = [[ if eq (env "CONFIG_jitsi_meet_recordin
 
 config.isBrand = false;
 
+config.transcription.disableClosedCaptions = [[ if eq (env "CONFIG_jitsi_meet_enable_transcription") "true" ]]false[[ else ]]true[[ end ]];
+
 [[ template "config_deeplinking.js" . ]]
 
 [[ if (env "CONFIG_legal_urls") -]]
