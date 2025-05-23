@@ -533,7 +533,7 @@ EOF
       }
 
       env {
-        LOG_LEVEL="debug"
+#        LOG_LEVEL="debug"
 [[ template "common-env" . ]]
         ENABLE_VISITORS = "[[ env "CONFIG_visitors_enabled" ]]"
         ENABLE_LOBBY="1"
