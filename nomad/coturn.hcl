@@ -75,6 +75,7 @@ use-auth-secret
 keep-address-family
 no-multicast-peers
 no-cli
+no-software-attribute
 no-tcp-relay
 no-tlsv1
 no-tlsv1_1
