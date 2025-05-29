@@ -75,6 +75,9 @@ use-auth-secret
 keep-address-family
 no-multicast-peers
 no-cli
+no-rfc5780
+no-software-attribute
+no-stun-backward-compatibility
 no-tcp-relay
 no-tlsv1
 no-tlsv1_1
