@@ -573,6 +573,25 @@ EOF
         perms = "755"
       }
 
+[[ if eq ((env "CONFIG_prosody_enable_shortlived_tokens") or "false") "true" ]]
+      template {
+        data = <<EOF
+PROSODY_ENABLE_SHORTLIVED_TOKENS="true"
+PROSODY_SHORTLIVED_TOKEN_KEY_PATH="/secrets/asap-shortlived.key"
+PROSODY_SHORTLIVED_TOKEN_KID="{{ with secret "secret/[[ env "CONFIG_environment" ]]/asap/shortlived" }}{{ .Data.data.key_id }}{{ end }}"
+EOF
+        destination = "secrets/shortlived.env"
+        env = true
+      }
+
+      template {
+        data = <<EOF
+{{- with secret "secret/[[ env "CONFIG_environment" ]]/asap/shortlived" }}{{ .Data.data.private_key }}{{ end -}}
+EOF
+        destination = "secrets/asap-shortlived.key"
+      }
+[[ end ]]
+
 [[ if eq (or (env "CONFIG_jigasi_vault_enabled") "true") "true" ]]
       template {
         data = <<EOF
