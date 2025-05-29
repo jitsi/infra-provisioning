@@ -136,15 +136,21 @@ for ORACLE_REGION in $ORACLE_REGIONS; do
   create_bucket_if_not_present $BUCKET_NAME $ORACLE_REGION $COMPARTMENT_OCID false Disabled
   create_lifecycle_policy_if_not_present $BUCKET_NAME $ORACLE_REGION $POLICY_NAME 1 DAYS
 
+#  Create bucket for file shares aka meeting documents - only for JaaS
+#  Will keep the content for max 1 days as we do for other content as well
+#  The webhook receives the presign url for this file (our customer can download these files on their side)
   BUCKET_NAME="vpaas-documents-$ENVIRONMENT-$ORACLE_REGION"
   POLICY_NAME="vpaas-documents-$ENVIRONMENT-$ORACLE_REGION-policy"
   create_bucket_if_not_present $BUCKET_NAME $ORACLE_REGION $COMPARTMENT_OCID false Disabled
   create_lifecycle_policy_if_not_present $BUCKET_NAME $ORACLE_REGION $POLICY_NAME 1 DAYS
 
+#  Create bucket for temp file shares - used during the Work & JaaS meetings for presign urls
+#  will keep the content for max 2 days (hope that there are no meeting taking longer)
   BUCKET_NAME="temp-file-shares-$ENVIRONMENT-$ORACLE_REGION"
   POLICY_NAME="temp-file-shares-$ENVIRONMENT-$ORACLE_REGION-policy"
   create_bucket_if_not_present $BUCKET_NAME $ORACLE_REGION $COMPARTMENT_OCID false Disabled
   create_lifecycle_policy_if_not_present $BUCKET_NAME $ORACLE_REGION $POLICY_NAME 2 DAYS
+
 
   BUCKET_NAME="iperf-logs-$ENVIRONMENT"
   create_bucket_if_not_present $BUCKET_NAME $ORACLE_REGION $COMPARTMENT_OCID true Disabled
