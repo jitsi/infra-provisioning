@@ -141,6 +141,11 @@ for ORACLE_REGION in $ORACLE_REGIONS; do
   create_bucket_if_not_present $BUCKET_NAME $ORACLE_REGION $COMPARTMENT_OCID false Disabled
   create_lifecycle_policy_if_not_present $BUCKET_NAME $ORACLE_REGION $POLICY_NAME 1 DAYS
 
+  BUCKET_NAME="temp-file-shares-$ENVIRONMENT-$ORACLE_REGION"
+  POLICY_NAME="temp-file-shares-$ENVIRONMENT-$ORACLE_REGION-policy"
+  create_bucket_if_not_present $BUCKET_NAME $ORACLE_REGION $COMPARTMENT_OCID false Disabled
+  create_lifecycle_policy_if_not_present $BUCKET_NAME $ORACLE_REGION $POLICY_NAME 2 DAYS
+
   BUCKET_NAME="iperf-logs-$ENVIRONMENT"
   create_bucket_if_not_present $BUCKET_NAME $ORACLE_REGION $COMPARTMENT_OCID true Disabled
 
