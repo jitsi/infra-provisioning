@@ -278,6 +278,7 @@ config.testing.skipInterimTranscriptions = true;
 [[- end ]]
 
 config.testing.enableCodecSelectionAPI = [[ or (env "CONFIG_jitsi_meet_enable_codec_selection_api") "true" ]];
+config.testing.enableGracefulReconnect = [[ or ( env "CONFIG_jitsi_meet_enable_graceful_reconnect") "false" ]];
 
 if (!config.hasOwnProperty('recordings')) config.recordings = {};
 config.recordings.suggestRecording = [[ if eq (env "CONFIG_jitsi_meet_recordings_prompt") "true" ]]true[[ else ]]false[[ end ]];
