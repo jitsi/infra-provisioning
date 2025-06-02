@@ -98,8 +98,10 @@ EOH
 import requests
 import os
 import sys
+
 url = 'https://' + os.environ['DOMAIN'] + '/about/health'
 req = requests.get(url)
+
 if 'x-proxy-region' in req.headers:
   proxy_region = req.headers['x-proxy-region']
   if proxy_region == os.environ['REGION']:
