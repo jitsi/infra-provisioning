@@ -142,6 +142,7 @@ def stun_test(sock, host, port, source_ip, source_port):
         try:
             sock.sendto(data, (host, port))
         except socket.gaierror:
+            log.debug("failed due to socket.gaierror")
             return False
         try:
             buf, addr = sock.recvfrom(2048)
@@ -152,15 +153,20 @@ def stun_test(sock, host, port, source_ip, source_port):
             if count > 0:
                 count -= 1
             else:
+                log.debug("failed to receive at count %d", count)
                 return False
     msgtype = b2a_hexstr(buf[0:2])
+    if msgtype != BindResponseMsg:
+        log.debug("unexpected message type: expected %s, got %s", BindResponseMsg, msgtype)
     tranid_match = tranid.upper() == b2a_hexstr(buf[8:20]).upper()
+    if not tranid_match:
+        log.debug("transaction id mismatch: expected %s, got %s", tranid.upper(), b2a_hexstr(buf[8:20]).upper())
     return msgtype == BindResponseMsg and tranid_match
 
 coturn_host = os.environ['COTURN_HOST']
 coturn_port = 443
 source_host = '0.0.0.0'
-source_port = 42000
+source_port = random.randrange(42000,62000)
 
 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 s.settimeout(10)
