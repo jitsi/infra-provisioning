@@ -156,7 +156,7 @@ def stun_test(sock, host, port, source_ip, source_port):
     tranid_match = tranid.upper() == b2a_hexstr(buf[8:20]).upper()
     return msgtype == BindResponseMsg and tranid_match
 
-coturn_host = "129.158.227.138"
+coturn_host = os.environ['COTURN_HOST']
 coturn_port = 443
 source_host = '0.0.0.0'
 source_port = 42000
