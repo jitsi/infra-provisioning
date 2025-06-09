@@ -936,7 +936,7 @@ groups:
       alert_url: https://${var.prometheus_hostname}/alerts?search=skynet_queue
   - alert: Whisper_Sessions_High
     expr: Skynet_Streaming_Whisper_LiveWsConnections >= 6
-    for: 1m
+    for: 2m
     labels:
       service: jitsi
       severity: smoke
@@ -951,7 +951,7 @@ groups:
       alert_url: https://${var.prometheus_hostname}/alerts?search=whisper_sessions_high
   - alert: Whisper_Sessions_High
     expr: Skynet_Streaming_Whisper_LiveWsConnections >= 8
-    for: 1m
+    for: 2m
     labels:
       service: jitsi
       severity: warn
@@ -966,7 +966,7 @@ groups:
       alert_url: https://${var.prometheus_hostname}/alerts?search=whisper_sessions_high
   - alert: Whisper_Sessions_High
     expr: Skynet_Streaming_Whisper_LiveWsConnections >= 10
-    for: 1m
+    for: 5m
     labels:
       service: jitsi
       severity: severe
