@@ -49,6 +49,10 @@ videobridge {
     [[ if ne (or (env "CONFIG_jvb_use_vla_target_bitrate") "false") "false" ]]
     use-vla-target-bitrate =  [[ or (env "CONFIG_jvb_use_vla_target_bitrate") "false" ]]
     [[ end ]]
+
+    [[ if ne (or (env "CONFIG_jvb_use_google_cc2_bwe") "true") "false" ]]
+    initial-ignore-bwe-period = 0 seconds
+    [[ end ]]
   }
   cryptex {
     [[ if eq (or (env "CONFIG_jvb_enable_cryptex_endpoint") "false") "true" ]]
@@ -130,6 +134,13 @@ videobridge {
 [[ else ]]
     enabled = false
 [[ end ]]
+  }
+
+  rtp {
+    [[ if ne (or (env "CONFIG_jvb_use_google_cc2_bwe") "true") "false" ]]
+    window-size = 1 seconds
+    bucket-size = 20 ms
+    [[ end ]]
   }
 
   http-servers {
@@ -221,6 +232,11 @@ jmt {
         bitrate-threshold = [[ or (env "CONFIG_jvb_loss_bitrate_threshold_kbps") "1000" ]] kbps
       }
     }
+[[ if ne (or (env "CONFIG_jvb_use_google_cc2_bwe") "true") "false" ]]
+   estimator {
+       engine = GoogleCc2
+    }
+[[ end ]]
   }
 [[ if eq (or (env "CONFIG_jvb_skip_authentication_for_silence") "false") "true" ]]
   srtp {
