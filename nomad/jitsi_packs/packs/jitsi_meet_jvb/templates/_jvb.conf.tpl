@@ -342,6 +342,7 @@ timeseries.level=OFF
 [[- end ]]
 [[- if eq (env "CONFIG_jvb_enable_bwe_timeseries") "true" ]]
 timeseries.org.jitsi.nlj.rtp.bandwidthestimation.level=ALL
+timeseries.org.jitsi.nlj.rtp.bandwidthestimation2.level=ALL
 [[- end ]]
 [[- if eq (env "CONFIG_jvb_enable_brctrl_timeseries") "true" ]]
 timeseries.org.jitsi.videobridge.cc.BitrateController.level=ALL
