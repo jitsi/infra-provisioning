@@ -221,6 +221,11 @@ jmt {
         bitrate-threshold = [[ or (env "CONFIG_jvb_loss_bitrate_threshold_kbps") "1000" ]] kbps
       }
     }
+[[ if ne (or (env "CONFIG_jvb_use_google_cc2_bwe") "true") "false" ]]
+   estimator {
+       engine = GoogleCc2
+    }
+[[ end ]]
   }
 [[ if eq (or (env "CONFIG_jvb_skip_authentication_for_silence") "false") "true" ]]
   srtp {
@@ -337,6 +342,7 @@ timeseries.level=OFF
 [[- end ]]
 [[- if eq (env "CONFIG_jvb_enable_bwe_timeseries") "true" ]]
 timeseries.org.jitsi.nlj.rtp.bandwidthestimation.level=ALL
+timeseries.org.jitsi.nlj.rtp.bandwidthestimation2.level=ALL
 [[- end ]]
 [[- if eq (env "CONFIG_jvb_enable_brctrl_timeseries") "true" ]]
 timeseries.org.jitsi.videobridge.cc.BitrateController.level=ALL
