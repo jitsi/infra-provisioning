@@ -85,6 +85,6 @@ $LOCAL_PATH/create-oracle-cname-stack.sh
 # AWS alias
 export UNIQUE_ID="${ENVIRONMENT}-${JMR_AWS_REGION}"
 export CNAME_VALUE="${UNIQUE_ID}-jmr"
-export STACK_NAME="${UNIQUE_ID}-cname"
+export STACK_NAME="${UNIQUE_ID}-jmr-cname"
 export CNAME_TARGET="${ENVIRONMENT}-${ORACLE_REGION}-nomad-pool-general-internal.${DEFAULT_DNS_ZONE_NAME}"
 $LOCAL_PATH/create-oracle-cname-stack.sh
