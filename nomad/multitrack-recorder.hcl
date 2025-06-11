@@ -6,6 +6,11 @@ variable "environment" {
   type = string
 }
 
+variable "aws_region" {
+  type = string
+  default = "us-west-2"
+}
+
 variable "dns_zone" {
   type = string
   default = "jitsi.net"
@@ -85,6 +90,7 @@ job "[JOB_NAME]" {
         tags = [
           "ip-${attr.unique.network.ip-address}",
           "int-urlprefix-${var.dc}-jmr.${var.dns_zone}/record/",
+          "int-urlprefix-${var.environment}-${var.aws_region}-jmr.${var.dns_zone}/record/",
           "int-urlprefix-jmr.${var.dns_zone}/record/",
         ]
         port = "http"

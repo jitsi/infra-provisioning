@@ -23,6 +23,7 @@ if [ -z "$JMR_AWS_REGION" ]; then
     echo "No JMR_AWS_REGION set or found, exiting"
     exit 2
 fi
+export NOMAD_VAR_aws_region="$JMR_AWS_REGION"
 
 [ -z "$LOCAL_REGION" ] && LOCAL_REGION="$OCI_LOCAL_REGION"
 [ -z "$LOCAL_REGION" ] && LOCAL_REGION="us-phoenix-1"
