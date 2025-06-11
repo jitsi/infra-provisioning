@@ -8,7 +8,7 @@ def filterEnvVars() {
         'HUDSON_SERVER_COOKIE','BUILD_TAG','BUILD_DISPLAY_NAME','BUILD_TIMESTAMP','BUILD_CAUSE','GIT_COMMIT','GIT_PREVIOUS_COMMIT','GIT_PREVIOUS_SUCCESSFUL_COMMIT', 'CI','HUDSON_HOME', 'HUDSON_URL', 'JOB_BASE_NAME', 'JENKINS_SERVER_COOKIE','JOB_URL','RUN_DISPLAY_URL','RUN_CHANGES_DISPLAY_URL','RUN_ARTIFACTS_DISPLAY_URL', 'RUN_TESTS_DISPLAY_URL'
     ]
     env.getEnvironment().each { key, value ->
-        print "Checking env var: ${key}=${value}"
+        // print "Checking env var: ${key}=${value}"
         if (!skipKeys.contains(key)) {
             // only add env vars that are not empty
             if (value != null && value != '') {
@@ -17,7 +17,7 @@ def filterEnvVars() {
             }
         }
     }
-    print "Filtered environment variables: ${f}"
+    // print "Filtered environment variables: ${f}"
     return f
 }
 
@@ -36,9 +36,9 @@ def provisionJob(shard_environment,oracle_region,video_infra_branch) {
     params.add([$class: 'StringParameterValue', name: 'JOB_TYPE', value: env.JOB_TYPE])
     // build the job with the parameters
     print "Provisioning job with parameters: ${params}"
-    // def provision = build job: "provision-nomad-${env.JOB_TYPE.toLowerCase()}", parameters: params, propagate: true, wait: true
+    def provision = build job: "provision-nomad-${env.JOB_TYPE.toLowerCase()}", parameters: params, wait: true
 
-    // return provision
+    return provision
 }
 
 // global var to track git branch from env or new tags
