@@ -73,7 +73,7 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                         def oracle_region = region_list[i]
                         echo "pipeline branch ${i} for ${oracle_region}";
                         branches["Build job-${oracle_region}"] = {
-                            provisionJob(env.JOB_TYPE, env.ENVIRONMENT,
+                            provisionJob(env.ENVIRONMENT,
                                 oracle_region,
                                 env.VIDEO_INFRA_BRANCH
                             )
