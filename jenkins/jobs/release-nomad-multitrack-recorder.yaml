@@ -1,7 +1,7 @@
 - job:
-    name: release-nomad-canary
-    display-name: release nomad canary
-    description: "release canary to nomad in one or more regions in an environment."
+    name: release-nomad-multitrack-recorder
+    display-name: release nomad multitrack recorder
+    description: "release multitrack recorder to nomad in one or more regions in an environment."
     concurrent: true
     parameters:
       - string:
@@ -15,13 +15,12 @@
           description: "Environment to build in, defaults to 'lonely'."
           trim: true
       - string:
-          name: REGIONS
-          description: "REGIONS to build in, defaults to NOMAD_REGIONS for the environment."
+          name: APP_VERSION
+          description: "Version of the application to deploy, defaults to 'latest' in the script"
           trim: true
       - string:
-          name: JOB_TYPE
-          default: canary
-          description: "Nomad job type to release, defaults to 'canary' do not change"
+          name: REGIONS
+          description: "REGIONS to build in, defaults to NOMAD_REGIONS for the environment."
           trim: true
       - string:
           name: INFRA_CONFIGURATION_REPO
