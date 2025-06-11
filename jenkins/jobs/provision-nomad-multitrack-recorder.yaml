@@ -17,7 +17,7 @@
           name: ORACLE_REGION
           description: "Region to provision in"
           trim: true
-      - string: 
+      - string:
           name: APP_VERSION
           description: "Version of the application to deploy, defaults to 'latest' in the script"
           trim: true
