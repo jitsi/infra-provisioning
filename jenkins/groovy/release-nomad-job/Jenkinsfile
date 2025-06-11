@@ -1,0 +1,98 @@
+def filterEnvVars() {
+    print "Filtering environment variables for release job"
+    // create a new map to hold the filtered env vars
+    def f = [:]
+    // filter out env vars that are not needed
+    def skipKeys = [
+        'JOB_TYPE', 'JOB_DISPLAY_URL', 'REGIONS', 'ENVIRONMENT', 'VIDEO_INFRA_BRANCH', 'BUILD_ID', 'BUILD_NUMBER', 'BUILD_URL', 'JOB_NAME', 'WORKSPACE', 'JENKINS_HOME', 'JENKINS_URL', 'NODE_NAME', 'NODE_LABELS', 'EXECUTOR_NUMBER',
+        'HUDSON_SERVER_COOKIE','BUILD_TAG','BUILD_DISPLAY_NAME','BUILD_TIMESTAMP','BUILD_CAUSE','GIT_COMMIT','GIT_PREVIOUS_COMMIT','GIT_PREVIOUS_SUCCESSFUL_COMMIT', 'CI','HUDSON_HOME', 'HUDSON_URL', 'JOB_BASE_NAME', 'JENKINS_SERVER_COOKIE','JOB_URL','RUN_DISPLAY_URL','RUN_CHANGES_DISPLAY_URL','RUN_ARTIFACTS_DISPLAY_URL', 'RUN_TESTS_DISPLAY_URL'
+    ]
+    env.getEnvironment().each { key, value ->
+        // print "Checking env var: ${key}=${value}"
+        if (!skipKeys.contains(key)) {
+            // only add env vars that are not empty
+            if (value != null && value != '') {
+                echo "Adding release env var: ${key}=${value}"
+                f[key] = value
+            }
+        }
+    }
+    // print "Filtered environment variables: ${f}"
+    return f
+}
+
+def provisionJob(shard_environment,oracle_region,video_infra_branch) {
+    def filteredEnv=filterEnvVars()
+    def params = []
+    // add the filtered env vars as parameters
+    filteredEnv.each { key, value ->
+        params.add([$class: 'StringParameterValue', name: key, value: value])
+    }
+    // add the specific parameters for this job
+    params.add([$class: 'StringParameterValue', name: 'ENVIRONMENT', value: shard_environment])
+    params.add([$class: 'StringParameterValue', name: 'ORACLE_REGION', value: oracle_region])
+    params.add([$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: video_infra_branch])
+    // add the job type parameter
+    params.add([$class: 'StringParameterValue', name: 'JOB_TYPE', value: env.JOB_TYPE])
+    // build the job with the parameters
+    print "Provisioning job with parameters: ${params}"
+    def provision = build job: "provision-nomad-${env.JOB_TYPE.toLowerCase()}", parameters: params, wait: true
+
+    return provision
+}
+
+// global var to track git branch from env or new tags
+def utils
+
+pipeline {				//indicate the job is written in Declarative Pipeline
+    agent any				//agent specifies where the pipeline will execute.
+    options {
+      ansiColor('xterm')
+      timestamps()
+      buildDiscarder(logRotator(numToKeepStr: '30', artifactNumToKeepStr: '30'))
+    }
+    stages {
+        // output stage, shows off our input parameters
+        stage('Prepare/Checkout') {
+            steps {
+                script {
+                    echo 'job release'
+                    // load utility function
+                    def rootDir = pwd()
+                    utils = load "${rootDir}/jenkins/groovy/Utils.groovy"
+                    // checkout repos
+                    utils.SetupRepos(env.VIDEO_INFRA_BRANCH)
+
+                    // setup OCI credentials
+                    utils.SetupOCI()
+                }
+            }
+        }
+
+        stage("provision job in regions") {
+            steps {
+                script {
+                  dir('infra-provisioning') {
+                    echo "provision ${env.JOB_TYPE} in environment ${env.ENVIRONMENT}, regions ${env.REGIONS}";
+                    def region_list = utils.SplitNomadRegions(env.ENVIRONMENT,env.REGIONS);
+                    echo "region list ${region_list}";
+                    def branches = [:]
+                    for(i = 0; i < region_list.size(); i++) {
+                        def oracle_region = region_list[i]
+                        echo "pipeline branch ${i} for ${oracle_region}";
+                        branches["Build job-${oracle_region}"] = {
+                            provisionJob(env.ENVIRONMENT,
+                                oracle_region,
+                                env.VIDEO_INFRA_BRANCH
+                            )
+                        }
+                    }
+                    // branch out here, run all create shard jobs at once
+                    // only succeed if all branches succeed
+                    parallel branches
+                  }
+                }
+            }
+        }
+    }
+}

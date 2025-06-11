@@ -24,7 +24,7 @@
       - string:
           name: JOB_TYPE
           default: multitrack-recorder
-          description: "Nomad job type to provision, defaults to 'multi-track-recorder' do not change"
+          description: "Nomad job type to provision, defaults to 'multitrack-recorder' do not change"
           trim: true
       - string:
           name: INFRA_CONFIGURATION_REPO
