@@ -17,6 +17,13 @@ if [ -z "$ORACLE_REGION" ]; then
     exit 2
 fi
 
+[ -z "$JMR_AWS_REGION" ] && JMR_AWS_REGION="$(grep "ORACLE_REGION=\"$ORACLE_REGION\"" $LOCAL_PATH/../regions/* | cut -d ':' -f1 | grep -o '[^/]*$'| cut -d'.' -f1)"
+
+if [ -z "$JMR_AWS_REGION" ]; then
+    echo "No JMR_AWS_REGION set or found, exiting"
+    exit 2
+fi
+
 [ -z "$LOCAL_REGION" ] && LOCAL_REGION="$OCI_LOCAL_REGION"
 [ -z "$LOCAL_REGION" ] && LOCAL_REGION="us-phoenix-1"
 
@@ -54,6 +61,9 @@ NOMAD_DC="$ENVIRONMENT-$ORACLE_REGION"
 export NOMAD_VAR_environment="$ENVIRONMENT"
 export NOMAD_VAR_queue_id="$JMR_QUEUE_ID"
 export NOMAD_VAR_queue_endpoint="$JMR_QUEUE_ENDPOINT"
+
+# defaults to latest
+[ -n "$APP_VERSION" ] && export NOMAD_VAR_app_version="$APP_VERSION"
 JOB_NAME="multitrack-recorder-$ORACLE_REGION"
 
 sed -e "s/\[JOB_NAME\]/$JOB_NAME/" "$NOMAD_JOB_PATH/multitrack-recorder.hcl" | nomad job run -var="dc=$NOMAD_DC" -
@@ -69,5 +79,11 @@ export CNAME_VALUE="$RESOURCE_NAME_ROOT"
 export STACK_NAME="${RESOURCE_NAME_ROOT}-cname"
 export UNIQUE_ID="${RESOURCE_NAME_ROOT}"
 export CNAME_TARGET="${ENVIRONMENT}-${ORACLE_REGION}-nomad-pool-general-internal.${DEFAULT_DNS_ZONE_NAME}"
-export CNAME_VALUE="${RESOURCE_NAME_ROOT}"
+$LOCAL_PATH/create-oracle-cname-stack.sh
+
+# AWS alias
+export UNIQUE_ID="${ENVIRONMENT}-${JMR_AWS_REGION}"
+export CNAME_VALUE="${UNIQUE_ID}-jmr"
+export STACK_NAME="${UNIQUE_ID}-cname"
+export CNAME_TARGET="${ENVIRONMENT}-${ORACLE_REGION}-nomad-pool-general-internal.${DEFAULT_DNS_ZONE_NAME}"
 $LOCAL_PATH/create-oracle-cname-stack.sh
