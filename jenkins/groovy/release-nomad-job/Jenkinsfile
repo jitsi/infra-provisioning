@@ -6,7 +6,7 @@ def filterEnvVars(env) {
         if (!skipKeys.contains(key)) {
             // only add env vars that are not empty
             if (value != null && value != '') {
-                println "Adding release env var: ${key}=${value}"
+                echo "Adding release env var: ${key}=${value}"
                 filteredEnv[key] = value
             }
         }
