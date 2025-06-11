@@ -3,8 +3,8 @@ def filterEnvVars() {
     // create a new map to hold the filtered env vars
     def f = [:]
     // filter out env vars that are not needed
-    skipKeys = ['JOB_TYPE', 'REGIONS', 'ENVIRONMENT', 'VIDEO_INFRA_BRANCH', 'BUILD_ID', 'BUILD_NUMBER', 'BUILD_URL', 'JOB_NAME', 'WORKSPACE', 'JENKINS_HOME', 'JENKINS_URL', 'NODE_NAME', 'NODE_LABELS', 'EXECUTOR_NUMBER']
-    env.getOverriddenEnvironment().each { key, value ->
+    def skipKeys = ['JOB_TYPE', 'REGIONS', 'ENVIRONMENT', 'VIDEO_INFRA_BRANCH', 'BUILD_ID', 'BUILD_NUMBER', 'BUILD_URL', 'JOB_NAME', 'WORKSPACE', 'JENKINS_HOME', 'JENKINS_URL', 'NODE_NAME', 'NODE_LABELS', 'EXECUTOR_NUMBER']
+    env.getEnvironment().each { key, value ->
         print "Checking env var: ${key}=${value}"
         if (!skipKeys.contains(key)) {
             // only add env vars that are not empty
