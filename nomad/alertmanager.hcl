@@ -35,16 +35,45 @@ job "[JOB_NAME]" {
   type        = "service"
   priority    = 75
 
+  constraint {
+    attribute  = "${meta.pool_type}"
+    value     = "consul"
+  }
+
+  spread {
+    attribute = "${node.unique.id}"
+  }
+
   update {
-    max_parallel = 1
-    stagger      = "10s"
+    max_parallel      = 1
+    health_check      = "checks"
+    min_healthy_time  = "10s"
+    healthy_deadline  = "5m"
+    progress_deadline = "10m"
+    auto_revert       = true
+    auto_promote      = true
+    canary            = 1
   }
 
   group "alertmanager" {
+    count = 2
 
     constraint {
       attribute  = "${meta.pool_type}"
-      value     = "consul"
+      operator     = "set_contains_any"
+      value    = "consul,general"
+    }
+
+    affinity {
+      attribute  = "${meta.pool_type}"
+      value      = "consul"
+      weight     = -100
+    }
+
+    affinity {
+      attribute  = "${meta.pool_type}"
+      value      = "general"
+      weight     = 100
     }
 
     restart {
@@ -63,6 +92,11 @@ job "[JOB_NAME]" {
         to = 9093
       }
     }
+    network {
+      port "alertmanager_cluster" {
+        to = 9094
+      }
+    }
 
     task "alertmanager" {
       user = "root"
@@ -75,7 +109,16 @@ job "[JOB_NAME]" {
       config {
         image = "prom/alertmanager:${var.alertmanager_version}"
         force_pull = false
-        ports = ["alertmanager_ui"]
+        ports = ["alertmanager_ui", "alertmanager_cluster"]
+        args = [
+          "--config.file=/etc/alertmanager/alertmanager.yml",
+          "--storage.path=/alertmanager",
+          "--web.listen-address=0.0.0.0:9093",
+          "--cluster.listen-address=0.0.0.0:9094",
+          "--cluster.peer={{ range service "alertmanager" }}{{ if ne .Address (env "NOMAD_IP_alertmanager_ui") }}{{ .Address }}:{{ .Port }}{{ end }}{{ end }}",
+          "--cluster.pushpull-interval=30s",
+          "--cluster.gossip-interval=200ms"
+        ]
         volumes = [
           "local/alertmanager.yml:/etc/alertmanager/alertmanager.yml"
         ]
