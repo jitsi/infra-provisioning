@@ -163,6 +163,7 @@ def send_email(alert: Alert):
         severity = 'WARN'
     email_title = f"ALERT: [{severity}] {alert.commonLabels['alertname']} in {alert.commonLabels['environment']}{global_str}"
   else:
+    severity = alert.commonLabels['severity'].upper()
     email_title = f"ALERT: [{alert.commonLabels['severity'].upper()}] {alert.commonLabels['alertname']} in {alert.commonLabels['environment']}{global_str}"
 
   email_body = ""

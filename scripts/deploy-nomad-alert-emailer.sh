@@ -1,5 +1,4 @@
 #!/bin/bash
-
 if [ -z "$ENVIRONMENT" ]; then
     echo "No ENVIRONMENT set, exiting"
     exit 2
@@ -8,53 +7,51 @@ fi
 LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
 [ -e "$LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh" ] && . "$LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh"
-
 [ -e "$LOCAL_PATH/../clouds/all.sh" ] && . "$LOCAL_PATH/../clouds/all.sh"
 [ -e "$LOCAL_PATH/../clouds/oracle.sh" ] && . "$LOCAL_PATH/../clouds/oracle.sh"
+[ -z "$ENVIRONMENT_CONFIGURATION_FILE" ] && ENVIRONMENT_CONFIGURATION_FILE="$LOCAL_PATH/../sites/$ENVIRONMENT/vars.yml"
 
 if [ -z "$ORACLE_REGION" ]; then
     echo "No ORACLE_REGION set, exiting"
     exit 2
 fi
 
+if [ -z "$COMPARTMENT_OCID" ]; then
+    echo "No COMPARTMENT_OCID set, exiting"
+    exit 2
+fi
+
 [ -z "$LOCAL_REGION" ] && LOCAL_REGION="$OCI_LOCAL_REGION"
 [ -z "$LOCAL_REGION" ] && LOCAL_REGION="us-phoenix-1"
 
-if [ "$ENVIRONMENT_TYPE" == "prod" ]; then
-    ALERT_SLACK_CHANNEL=$ENVIRONMENT
-else
-    ALERT_SLACK_CHANNEL="dev"
+if [ ! -z "$ALERT_EMAILER_IMAGE_TAG" ]; then
+    export NOMAD_VAR_image_tag="$ALERT_EMAILER_IMAGE_TAG"
 fi
 
-[ -z "$ALERTMANAGER_PAGES_ENABLED" ] && ALERTMANAGER_PAGES_ENABLED="false"
+if [ ! -z "$DOCKER_IMAGE_HOST" ]; then
+    export NOMAD_VAR_docker_image_host="$DOCKER_IMAGE_HOST"
+else
+    export NOMAD_VAR_docker_image_host="ops-prod-us-phoenix-1-registry.jitsi.net"
+fi
 
-[ -z "$GLOBAL_ALERTMANAGER" ] && GLOBAL_ALERTMANAGER="false"
+export RESOURCE_NAME_ROOT="${ENVIRONMENT}-${ORACLE_REGION}-alert-emailer"
+
+export NOMAD_VAR_compartment_ocid=$COMPARTMENT_OCID
+export NOMAD_VAR_topic_name="$ENVIRONMENT-topic"
+export NOMAD_VAR_region="$ORACLE_REGION"
+export NOMAD_VAR_hostname="${RESOURCE_NAME_ROOT}.${TOP_LEVEL_DNS_ZONE_NAME}"
+
+export NOMAD_VAR_log_level="INFO"
 
 if [ -z "$NOMAD_ADDR" ]; then
     export NOMAD_ADDR="https://$ENVIRONMENT-$LOCAL_REGION-nomad.$TOP_LEVEL_DNS_ZONE_NAME"
 fi
 
-if [ -z "$EMAIL_ALERT_URL" ]; then
-    export EMAIL_ALERT_URL="https://$ENVIRONMENT-$ORACLE_REGION-alert-emailer.$TOP_LEVEL_DNS_ZONE_NAME/alerts"
-fi
-
-if [ "$GLOBAL_ALERTMANAGER" == "true" ]; then
-    SERVICE_NAME="alertmanager-global"
-else
-    SERVICE_NAME="alertmanager"
-fi
-export RESOURCE_NAME_ROOT="${ENVIRONMENT}-${ORACLE_REGION}-${SERVICE_NAME}"
-
 NOMAD_JOB_PATH="$LOCAL_PATH/../nomad"
 NOMAD_DC="$ENVIRONMENT-$ORACLE_REGION"
-JOB_NAME="$SERVICE_NAME-$ORACLE_REGION"
-export NOMAD_VAR_email_alert_url=$EMAIL_ALERT_URL
-export NOMAD_VAR_alertmanager_hostname="${RESOURCE_NAME_ROOT}.${TOP_LEVEL_DNS_ZONE_NAME}"
-export NOMAD_VAR_slack_channel_suffix="${ALERT_SLACK_CHANNEL}"
-export NOMAD_VAR_pagerduty_enabled="${ALERTMANAGER_PAGES_ENABLED}"
-export NOMAD_VAR_global_alertmanager="${GLOBAL_ALERTMANAGER}"
+JOB_NAME="alert-emailer-$ORACLE_REGION"
 
-sed -e "s/\[JOB_NAME\]/$JOB_NAME/" "$NOMAD_JOB_PATH/alertmanager.hcl" | nomad job run -var="dc=$NOMAD_DC" -
+sed -e "s/\[JOB_NAME\]/$JOB_NAME/" "$NOMAD_JOB_PATH/alert-emailer.hcl" | nomad job run -var="dc=$NOMAD_DC" -
 RET=$?
 
 export CNAME_VALUE="$RESOURCE_NAME_ROOT"
