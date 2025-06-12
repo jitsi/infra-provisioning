@@ -935,22 +935,7 @@ groups:
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=skynet_queue
   - alert: Whisper_Sessions_High
-    expr: Skynet_Streaming_Whisper_LiveWsConnections >= 6
-    for: 2m
-    labels:
-      service: jitsi
-      severity: smoke
-    annotations:
-      summary: whisper sessions are high in ${var.dc}
-      description: >-
-        Whisper will give a bad experience if it has more than 10 sessions at
-        once. When an instance is handling 6 or more sessions, it is time to
-        scale up. Most recently, there were {{ $value | printf "%.2f"  }}
-        sessions on the Whisper host {{ $labels.host }}.
-      dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=whisper_sessions_high
-  - alert: Whisper_Sessions_High
-    expr: Skynet_Streaming_Whisper_LiveWsConnections >= 8
+    expr: Skynet_Streaming_Whisper_LiveWsConnections >= 7
     for: 2m
     labels:
       service: jitsi
