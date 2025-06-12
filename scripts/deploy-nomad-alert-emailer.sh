@@ -41,7 +41,11 @@ export NOMAD_VAR_topic_name="$ENVIRONMENT-topic"
 export NOMAD_VAR_region="$ORACLE_REGION"
 export NOMAD_VAR_hostname="${RESOURCE_NAME_ROOT}.${TOP_LEVEL_DNS_ZONE_NAME}"
 
-export NOMAD_VAR_log_level="INFO"
+if [ ! -z "$DEFAULT_SERVICE_LOG_LEVEL" ]; then
+    export NOMAD_VAR_log_level="$DEFAULT_SERVICE_LOG_LEVEL"
+else
+    export NOMAD_VAR_log_level="WARN"
+fi
 
 if [ -z "$NOMAD_ADDR" ]; then
     export NOMAD_ADDR="https://$ENVIRONMENT-$LOCAL_REGION-nomad.$TOP_LEVEL_DNS_ZONE_NAME"
