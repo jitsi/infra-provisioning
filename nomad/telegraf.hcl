@@ -281,6 +281,15 @@ EOF
         role = "whisper"
         service = "whisper"
     [[inputs.prometheus.consul.query]]
+      name = "whisper-haproxy"
+      tag = "ip-{{ env "attr.unique.network.ip-address" }}"
+      url = 'http://{{"{{"}}if ne .ServiceAddress ""}}{{"{{"}}.ServiceAddress}}{{"{{"}}else}}{{"{{"}}.Address}}{{"{{"}}end}}:{{"{{"}}with .ServiceMeta.metrics_port}}{{"{{"}}.}}{{"{{"}}else}}{{"{{"}}.ServicePort}}{{"{{"}}end}}{{"{{"}}with .ServiceMeta.metrics_path}}{{"{{"}}.}}{{"{{"}}else}}/metrics{{"{{"}}end}}'
+      [inputs.prometheus.consul.query.tags]
+        host = "{{"{{"}}.Node}}"
+        role = "whisper-haproxy"
+        service = "whisper-haproxy"
+
+    [[inputs.prometheus.consul.query]]
       name = "redis-metrics"
       tag = "ip-{{ env "attr.unique.network.ip-address" }}"
       url = 'http://{{"{{"}}if ne .ServiceAddress ""}}{{"{{"}}.ServiceAddress}}{{"{{"}}else}}{{"{{"}}.Address}}{{"{{"}}end}}:{{"{{"}}with .ServiceMeta.metrics_port}}{{"{{"}}.}}{{"{{"}}else}}{{"{{"}}.ServicePort}}{{"{{"}}end}}/{{"{{"}}with .ServiceMeta.metrics_path}}{{"{{"}}.}}{{"{{"}}else}}metrics{{"{{"}}end}}'
