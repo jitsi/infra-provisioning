@@ -22,6 +22,16 @@ variable "topic_name" {
   type = string
 }
 
+variable "notification_email" {
+  type = string
+  default = "none"
+}
+
+variable "check_notification_email" {
+  type = string
+  default = "false"
+}
+
 variable "log_level" {
     type = string
     default = "WARN"
@@ -100,7 +110,10 @@ job "[JOB_NAME]" {
     task "alert-emailer" {
       service {
         name = "alert-emailer"
-        tags = ["int-urlprefix-${var.hostname}"]
+        tags = [
+          "ip-${attr.unique.network.ip-address}",
+          "int-urlprefix-${var.hostname}",
+        ]
         port="http"
 
         check {
@@ -130,6 +143,8 @@ job "[JOB_NAME]" {
         COMPARTMENT_OCID="${var.compartment_ocid}"
         ORACLE_REGION="${var.region}"
         ALERT_TOPIC_NAME="${var.topic_name}"
+        NOTIFICATION_EMAIL="${var.notification_email}"
+        CHECK_NOTIFICATION_EMAIL="${var.check_notification_email}"
         DEBUG_LEVEL="${var.log_level}"
         PROXY_MODE = "true"
         PORT="${var.http_port}"
