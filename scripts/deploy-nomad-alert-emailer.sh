@@ -34,6 +34,13 @@ else
     export NOMAD_VAR_docker_image_host="ops-prod-us-phoenix-1-registry.jitsi.net"
 fi
 
+if [ ! -z "$NOTIFICATION_EMAIL" ]; then
+    export NOMAD_VAR_notification_email="$NOTIFICATION_EMAIL"
+    export NOMAD_VAR_check_notification_email="true"
+else
+    export NOMAD_VAR_check_notification_email="false"
+fi
+
 export RESOURCE_NAME_ROOT="${ENVIRONMENT}-${ORACLE_REGION}-alert-emailer"
 
 export NOMAD_VAR_compartment_ocid=$COMPARTMENT_OCID
