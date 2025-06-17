@@ -153,7 +153,7 @@ receivers:
         {{- end }}
 %{ if var.pagerduty_enabled }- name: 'pagerduty_alerts'
   pagerduty_configs:
-  - service_key: '{{{ with secret "secret/default/alertmanager/receivers/pagerduty" }}}{{{ .Data.data.integration_key }}}{{{ end }}}'
+  - service_key: '{{{ with secret "secret/default/alertmanager/receivers/pagerduty" }}}{{{ .Data.data.pagerduty_integration_key }}}{{{ end }}}'
 - name: slack_pages
   slack_configs:
     - channel: '#pages'
