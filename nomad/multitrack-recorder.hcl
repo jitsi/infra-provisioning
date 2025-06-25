@@ -222,6 +222,9 @@ if [[ "$FORMAT" == "MKA" ]] ;then
   fi
   PAYLOAD="{\"id\":\"${MEETING_ID}\",\"path\":\"recordings/${MEETING_ID}/${FILENAME}\"}"
   MESSAGES="[{\"content\":$(echo "$PAYLOAD" | jq '.|tojson')}]"
+  echo "Sleeping for 10 seconds before queuing message"
+  # Sleep to ensure the object is available in the bucket before queuing the message
+  sleep 10
   oci queue messages put-messages --queue-id $JMR_QUEUE_ID --endpoint $JMR_QUEUE_ENDPOINT --messages "$MESSAGES" --region $JMR_REGION
   RET=$?
   if [ $RET -eq 0 ]; then
