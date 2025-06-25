@@ -212,11 +212,13 @@ echo "Running $0 for $MEETING_ID, $DIR, $FORMAT"
 if [[ "$FORMAT" == "MKA" ]] ;then
   FILENAME="recording-$(date +%Y%m%d-%H%M%S).mka"
   oci os object put --bucket-name $JMR_BUCKET --file "${DIR}/recording.mka" --name "recordings/${MEETING_ID}/${FILENAME}" --content-type "audio/x-matroska" --region $JMR_REGION
-  if [ $? -eq 0 ]; then
+  BUCKET_RET=$?
+  if [ $BUCKET_RET -eq 0 ]; then
     echo "Uploaded $FILENAME to $JMR_BUCKET"
     rm -rf $DIR
   else
     echo "Failed to upload ${DIR}/recording.mka to bucket $JMR_BUCKET file recordings/${MEETING_ID}/${FILENAME}"
+    exit $BUCKET_RET
   fi
   PAYLOAD="{\"id\":\"${MEETING_ID}\",\"path\":\"recordings/${MEETING_ID}/${FILENAME}\"}"
   MESSAGES="[{\"content\":$(echo "$PAYLOAD" | jq '.|tojson')}]"
