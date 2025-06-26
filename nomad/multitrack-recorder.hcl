@@ -145,6 +145,7 @@ jitsi-multitrack-recorder {
     directory = "/data"
   }
   finalize-script = "/local/finalize.sh"
+  log-finalize-script = true
 }
 EOF
         destination = "local/jmr.conf"
