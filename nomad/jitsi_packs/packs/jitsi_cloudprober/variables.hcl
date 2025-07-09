@@ -107,6 +107,11 @@ variable "enable_alertmanager" {
   type        = bool
   default     = false
 }
+variable "enable_alert_emailer" {
+  description = "Whether to enable the alert-emailer monitoring"
+  type        = bool
+  default     = false
+}
 variable "enable_cloudprober" {
   description = "Whether to enable the cloudprober monitoring"
   type        = bool
