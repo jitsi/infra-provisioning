@@ -221,6 +221,20 @@ groups:
         indeed.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=alertmanager_down
+  - alert: AlertEmailer_Down
+    expr: absent(nomad_nomad_job_summary_running{task_group="alert-emailer"})
+    for: 5m
+    labels:
+      service: infra
+      severity: severe
+    annotations:
+      summary: alert-emailer service is down in ${var.dc}
+      description: >-
+        There are no Nomad clients running an alert-emailer task in ${var.dc}. This
+        means that alert emails are not being emitted from the datacenter which
+        will mean that SMOKE alerts will not be sent anywhere.
+      dashboard_url: ${var.grafana_url}
+      alert_url: https://${var.prometheus_hostname}/alerts?search=alertemailer_down
   - alert: Canary_Down
     expr: absent(nginx_connections_accepted{service="canary"})
     for: 5m
