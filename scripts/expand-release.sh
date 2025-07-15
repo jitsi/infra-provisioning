@@ -60,23 +60,27 @@ TOTAL_NEW_SHARDS=0
 for CLOUD in $CLOUDS; do
     . $LOCAL_PATH/../clouds/$CLOUD.sh
 
+    SHARDS=$(CLOUD_NAME="$CLOUD" RELEASE_NUMBER="$RELEASE_NUMBER" ENVIRONMENT="$ENVIRONMENT" $LOCAL_PATH/cloud_shards.sh $ANSIBLE_SSH_USER)
+    if [ -z "$SHARDS" ]; then
+        echo "No shards found for cloud $CLOUD, skipping..."
+        continue
+    fi
+    SHARD_COUNT=$(echo $SHARDS | wc -w)
+
     # now find all shards with oracle provider
     if [[ "$RECYCLE_MODE" == "true" ]]; then
-        # if in recycle mode, ignore existing shards and expand to desired count
-        SHARDS=""
-        SHARD_COUNT=0
+        # if in recycle mode, ignore defaults and expand to existing count
+        ADD_COUNT="$SHARD_COUNT"
     else
-        SHARDS=$(CLOUD_NAME="$CLOUD" RELEASE_NUMBER="$RELEASE_NUMBER" ENVIRONMENT="$ENVIRONMENT" $LOCAL_PATH/cloud_shards.sh $ANSIBLE_SSH_USER)
-        SHARD_COUNT=$(echo $SHARDS | wc -w)
-    fi
-    DESIRED_COUNT=$SHARD_DEFAULT_COUNT_ORACLE
-    if [ -f "$SHARD_COUNT_FILE_ORACLE" ]; then
-        # check if JVB count by region is defined, if so use it
-        REGION_SHARD_COUNT=$(cat $SHARD_COUNT_FILE_ORACLE | grep $EC2_REGION | awk 'BEGIN { FS = "|" } ; {print $2}')
-        [ ! -z "$REGION_SHARD_COUNT" ] && DESIRED_COUNT="$REGION_SHARD_COUNT"
-    fi
+        DESIRED_COUNT=$SHARD_DEFAULT_COUNT_ORACLE
+        if [ -f "$SHARD_COUNT_FILE_ORACLE" ]; then
+            # check if JVB count by region is defined, if so use it
+            REGION_SHARD_COUNT=$(cat $SHARD_COUNT_FILE_ORACLE | grep $EC2_REGION | awk 'BEGIN { FS = "|" } ; {print $2}')
+            [ ! -z "$REGION_SHARD_COUNT" ] && DESIRED_COUNT="$REGION_SHARD_COUNT"
+        fi
 
-    ADD_COUNT=$((DESIRED_COUNT - SHARD_COUNT))
+        ADD_COUNT=$((DESIRED_COUNT - SHARD_COUNT))
+    fi
     if (( $ADD_COUNT > 0 )); then
         # add this many new shards for the region
         echo "$CLOUD $ADD_COUNT" >> $ADD_SHARD_COUNT_FILE_ORACLE
