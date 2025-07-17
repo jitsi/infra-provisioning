@@ -97,7 +97,7 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                             oracle_shards_by_cloud = shards_by_cloud.oracleShardsByCloud
                             aws_shards_by_cloud = shards_by_cloud.awsShardsByCloud
                             def branches = [:]
-                            for(i = 0; i < cloud_list.size(); i++) {
+                            for(def i = 0; i < cloud_list.size(); i++) {
                                 def curr = i
                                 echo "pipeline branch ${curr} for shard ${cloud_list[curr]}";
                                 if (aws_shards_by_cloud.containsKey(cloud_list[curr])) {
@@ -128,7 +128,7 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                                     def oracle_shards = oracle_shards_by_cloud[cloud_list[curr]].split(' ')
                                     def shard_count = oracle_shards.size();
                                     echo "createShard ${env.ENVIRONMENT} ${cloud_list[curr]} ${shard_count.toString()} ${oracle_shards_by_cloud[cloud_list[curr]]} ${env.RELEASE_NUMBER} ${env.RELEASE_BRANCH} ${env.JVB_VERSION} ${env.SIGNAL_VERSION}"
-                                    for(j = 0; j < shard_count; j++) {
+                                    for(def j = 0; j < shard_count; j++) {
                                         def s = j
                                         branches["oracle ${cloud_list[curr]} ${j}"] = {
                                             createShard(env.ENVIRONMENT,
