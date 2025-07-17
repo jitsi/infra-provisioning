@@ -19,18 +19,18 @@ def expandRelease(shard_environment,clouds,oracle_region,core_cloud_provider,clo
 }
 
 // trigger create shard JVBs job with appropriate parameters
-def deleteShard(hcv_environment,shard_name) {
+def deleteShard(hcv_environment,shard_name, infra_branch) {
     def deleteShard = build job: 'destroy-shards',parameters: [
         [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: hcv_environment],
         [$class: 'StringParameterValue', name: 'SHARDS', value: shard_name],
-        [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH]
+        [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: infra_branch]
     ]
 
     return deleteShard
 }
 
 def listShards(environment, release_number) {
-    shards=[:]
+    def shards=[:]
     def shardStr = sh(
         returnStdout: true,
         script: """
@@ -48,6 +48,11 @@ def listShards(environment, release_number) {
 def utils
 def oldShards = [:]
 def newShards = [:]
+
+def drainWaitPeriod = 600 // seconds, default 10 minutes, can be overridden by env.DRAIN_WAIT_PERIOD
+def video_infra_branch = 'main' // default branch for video infra, can be overridden by env.VIDEO_INFRA_BRANCH
+def environment_name = 'lonely' // default environment name, can be overridden by env.ENVIRONMENT
+def release_number = '0' // default release number, can be overridden by env.RELEASE_NUMBER
 
 pipeline {				//indicate the job is written in Declarative Pipeline
     agent any				//agent specifies where the pipeline will execute. 
@@ -80,6 +85,22 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                 echo "CLOUDS ${env.CLOUDS}"
                 echo "RELEASE NUMBER ${env.RELEASE_NUMBER}"
                 echo "GIT BRANCH ${env.RELEASE_BRANCH}"
+
+                if (env.DRAIN_WAIT_PERIOD) {
+                    drainWaitPeriod = env.DRAIN_WAIT_PERIOD.toInteger()
+                }
+                if (env.VIDEO_INFRA_BRANCH) {
+                    video_infra_branch = env.VIDEO_INFRA_BRANCH
+                }
+                if (env.ENVIRONMENT) {
+                    environment_name = env.ENVIRONMENT
+                }
+                if (env.RELEASE_NUMBER) {
+                    release_number = env.RELEASE_NUMBER
+                }
+                echo "DRAIN WAIT PERIOD ${drainWaitPeriod}"
+                echo "VIDEO INFRA BRANCH ${video_infra_branch}"
+                echo "ENVIRONMENT NAME ${environment_name}"
             }
         }
         stage("list existing shards") {
@@ -88,7 +109,7 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                     dir('infra-provisioning') {
                         // list existing shards
                         echo "Listing existing shards"
-                        oldShards = listShards(env.ENVIRONMENT, env.RELEASE_NUMBER)
+                        oldShards = listShards(environment_name, release_number)
                         echo "existing shards found:"
                         echo "${oldShards}"
                     }
@@ -98,7 +119,7 @@ pipeline {				//indicate the job is written in Declarative Pipeline
         stage("expand release") {
             steps {
                 script {
-                    expandRelease(env.ENVIRONMENT,env.CLOUDS,env.ORACLE_REGION,env.CORE_CLOUD_PROVIDER,env.CLOUD_PROVIDER,env.RELEASE_NUMBER,env.RELEASE_BRANCH,env.JVB_VERSION,env.SIGNAL_VERSION,env.VIDEO_INFRA_BRANCH)
+                    expandRelease(environment_name,env.CLOUDS,env.ORACLE_REGION,env.CORE_CLOUD_PROVIDER,env.CLOUD_PROVIDER,env.RELEASE_NUMBER,env.RELEASE_BRANCH,env.JVB_VERSION,env.SIGNAL_VERSION,env.VIDEO_INFRA_BRANCH)
                 }
             }
         }
@@ -108,7 +129,7 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                     dir('infra-provisioning') {
                         // list existing shards
                         echo "Listing existing shards to find new shards"
-                        def cShards = listShards(env.ENVIRONMENT, env.RELEASE_NUMBER)
+                        def cShards = listShards(environment_name, release_number)
                         echo "Full shards found:"
                         echo "${cShards}"
                         echo "Olds shards from before expand:"
@@ -134,10 +155,11 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                     build job: 'reconfigure-shard-states',
                         wait: true,
                         parameters: [
-                            [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: env.ENVIRONMENT],
+                            [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: environment_name],
+                            [$class: 'StringParameterValue', name: 'RELEASE_NUMBER', value: release_number],
                             [$class: 'StringParameterValue', name: 'SHARDS_READY', value: newShards.join(' ')],
                             [$class: 'StringParameterValue', name: 'SHARDS_DRAIN', value: oldShards.join(' ')],
-                            [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH]
+                            [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: video_infra_branch]
                         ]
                 }
             }
@@ -146,8 +168,8 @@ pipeline {				//indicate the job is written in Declarative Pipeline
             steps {
                 script {
                     // could wait for manual approval by operator to continue?
-                    echo "Sleeping for ${env.DRAIN_WAIT_PERIOD} seconds to allow old shards to drain"
-                    sleep env.DRAIN_WAIT_PERIOD
+                    echo "Sleeping for ${drainWaitPeriod} seconds to allow old shards to drain"
+                    sleep drainWaitPeriod
                 }
             }
         }
@@ -160,8 +182,9 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                             def scurr = i
                             branches["Shard ${oldShards[scurr]}"] = {
                                 deleteShard(
-                                    env.ENVIRONMENT,
-                                    oldShards[scurr]
+                                    environment_name,
+                                    oldShards[scurr],
+                                    video_infra_branch
                                 )
                             }
                         }
@@ -179,8 +202,8 @@ pipeline {				//indicate the job is written in Declarative Pipeline
         stage("Trigger autoscaler reconfiguration after delete") {
             steps {
                 build job: 'reconfigure-autoscaler-environment',wait: true,parameters: [
-                    [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: env.ENVIRONMENT],
-                    [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH]
+                    [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: environment_name],
+                    [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: video_infra_branch]
                 ]
             }
         }
