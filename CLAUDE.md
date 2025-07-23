@@ -77,6 +77,40 @@ nomad/prometheus.hcl              # Metrics collection
 nomad/loki.hcl                    # Log aggregation
 ```
 
+#### Using logcli for Log Queries
+
+**Loki Endpoint Pattern:**
+```
+https://<environment>-<region>-loki.jitsi.net
+```
+
+**Basic logcli Usage:**
+```bash
+# Query error logs from specific service/task
+logcli query --addr=https://<environment>-<region>-loki.jitsi.net '{task="<service>"} |~ "(?i)error"' --limit=20 --since=1h
+
+# Examples for beta-meet-jit-si environment:
+logcli query --addr=https://beta-meet-jit-si-us-ashburn-1-loki.jitsi.net '{task="prosody"} |~ "(?i)error"' --limit=20 --since=1h
+logcli query --addr=https://beta-meet-jit-si-uk-london-1-loki.jitsi.net '{job=~".+"} |~ "(?i)error"' --limit=50 --since=2h
+```
+
+**Common Query Patterns:**
+- `{task="prosody"}` - Filter by specific Nomad task name
+- `{job="autoscaler-us-ashburn-1"}` - Filter by specific Nomad job
+- `{alloc="<allocation-id>"}` - Filter by specific allocation ID
+- `{component="mod_muc_events"}` - Filter by application component
+- `|~ "(?i)error"` - Case-insensitive regex for "error"
+- `|~ "404|500|failed"` - Multiple error patterns
+- `|~ "URL Callback non successful"` - Specific error patterns
+
+**Environment Discovery:**
+Find available regions for any environment:
+```bash
+# Check NOMAD_REGIONS variable in environment config
+cat sites/<environment>/stack-env.sh | grep NOMAD_REGIONS
+# Example: sites/beta-meet-jit-si/stack-env.sh shows "us-ashburn-1 us-phoenix-1 uk-london-1"
+```
+
 ## High-Level Architecture
 
 ### Core Components
