@@ -125,6 +125,9 @@ https://<environment>-<region>-consul.jitsi.net
 
 **Nomad API Usage:**
 ```bash
+# Use the OCI_LOCAL_REGION variable from sites/<environment>/stack-env.sh to determine the region to query per environment
+# Consul has a global mesh so the local region may be addressed with a ?dc=<datacenter> parameter to query other regions
+# Consul uses the 'signal' service name for jitsi shard discovery
 # Use scripts/nomad.sh for environment-aware Nomad CLI access
 ENVIRONMENT=<environment> LOCAL_REGION=<region> scripts/nomad.sh status
 ENVIRONMENT=<environment> LOCAL_REGION=<region> scripts/nomad.sh job status <job-name>
