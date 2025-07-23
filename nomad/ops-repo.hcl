@@ -119,7 +119,7 @@ job "ops-repo" {
 
       resources {
         cpu    = 9000
-        memory = 1000
+        memory = 2000
       }
 
       template {
