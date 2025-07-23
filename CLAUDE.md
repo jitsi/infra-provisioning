@@ -111,6 +111,57 @@ cat sites/<environment>/stack-env.sh | grep NOMAD_REGIONS
 # Example: sites/beta-meet-jit-si/stack-env.sh shows "us-ashburn-1 us-phoenix-1 uk-london-1"
 ```
 
+#### Using Nomad and Consul APIs
+
+**Nomad API Endpoint Pattern:**
+```
+https://<environment>-<region>-nomad.jitsi.net
+```
+
+**Consul API Endpoint Pattern:**
+```
+https://<environment>-<region>-consul.jitsi.net
+```
+
+**Nomad API Usage:**
+```bash
+# Use scripts/nomad.sh for environment-aware Nomad CLI access
+ENVIRONMENT=<environment> LOCAL_REGION=<region> scripts/nomad.sh status
+ENVIRONMENT=<environment> LOCAL_REGION=<region> scripts/nomad.sh job status <job-name>
+ENVIRONMENT=<environment> LOCAL_REGION=<region> scripts/nomad.sh alloc status <allocation-id>
+
+# Direct API calls (authentication handled automatically)
+curl https://<environment>-<region>-nomad.jitsi.net/v1/jobs
+curl https://<environment>-<region>-nomad.jitsi.net/v1/job/<job-name>
+curl https://<environment>-<region>-nomad.jitsi.net/v1/allocations
+```
+
+**Consul API Usage:**
+```bash
+# Query service catalog for signal service
+curl https://<environment>-<region>-consul.jitsi.net/v1/catalog/service/signal
+
+# Other catalog operations
+curl https://<environment>-<region>-consul.jitsi.net/v1/catalog/services
+curl https://<environment>-<region>-consul.jitsi.net/v1/health/service/<service-name>
+curl https://<environment>-<region>-consul.jitsi.net/v1/kv/<key-path>
+```
+
+**Common API Operations:**
+- **Job Management**: List jobs, inspect job status, view allocations
+- **Service Discovery**: Query registered services, health status, service nodes
+- **Key-Value Store**: Configuration management, feature flags, operational data
+- **Health Monitoring**: Service health checks, node status, cluster health
+
+**Examples:**
+```bash
+# Check Nomad job status in stage-8x8 environment
+ENVIRONMENT=stage-8x8 LOCAL_REGION=eu-frankfurt-1 scripts/nomad.sh job status shard-stage-8x8-eu-frankfurt-1-s2
+
+# Query Consul catalog for signal service in stage-8x8
+curl https://stage-8x8-eu-frankfurt-1-consul.jitsi.net/v1/catalog/service/signal
+```
+
 ## High-Level Architecture
 
 ### Core Components
