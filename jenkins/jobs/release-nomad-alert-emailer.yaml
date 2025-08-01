@@ -1,6 +1,6 @@
 - job:
     name: release-nomad-alert-emailer
-    display-name: release nomad alert emailer
+    display-name: release nomad alert-emailer
     description: "release alert-emailer to nomad in one or more regions in an environment."
     concurrent: true
     parameters:
