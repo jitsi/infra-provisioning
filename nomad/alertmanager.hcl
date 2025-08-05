@@ -144,14 +144,14 @@ receivers:
       text: |-
         {{ if eq .CommonLabels.severity "severe" }}{{ if eq .Status "firing" }}<!here>{{ end }}{{ end }}{{ range .Alerts }}
         *[{{ index .Labels "severity" | toUpper }}] {{ index .Labels "alertname" }}* in {{ index .Labels "datacenter" }} {{- if .Annotations.summary }}: *{{ .Annotations.summary }}* {{- end }}
-        started at: {{ .StartsAt.UTC.Format "2006-01-02 15:04:05" }} UTC
         {{- if eq .Status "firing" }}{{- if .Annotations.description }}
         _{{ .Annotations.description }}_
         {{ end }}{{ if ne .Annotations.dashboard_url "" }}alert dashboard: {{ .Annotations.dashboard_url }}{{ end }}
         {{- if .Annotations.alert_url }}
         this alert: {{ .Annotations.alert_url }}{{ end }}
+        started at: {{ .StartsAt.UTC.Format "2006-01-02 15:04:05" }} UTC
         {{- else }}
-        resolved at {{ .EndsAt.UTC.Format "2006-01-02 15:04:05" }} UTC
+        duration: {{ .StartsAt.UTC.Format "2006-01-02 15:04:05" }} UTC to {{ .EndsAt.UTC.Format "2006-01-02 15:04:05" }} UTC
         {{- end }}
         {{- end }}
 %{ if var.pagerduty_enabled }- name: 'pagerduty_alerts'
