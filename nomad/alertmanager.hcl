@@ -145,13 +145,13 @@ receivers:
         {{ if eq .CommonLabels.severity "severe" }}{{ if eq .Status "firing" }}<!here>{{ end }}{{ end }}{{ range .Alerts }}
         *[{{ index .Labels "severity" | toUpper }}] {{ index .Labels "alertname" }}* in {{ index .Labels "datacenter" }} {{- if .Annotations.summary }}: *{{ .Annotations.summary }}* {{- end }}
         {{- if eq .Status "firing" }}{{- if .Annotations.description }}
-        started at: {{ .StartsAt.Format "2025-01-01 00:00:00 UTC" }}
+        started at: {{ .StartsAt.UTC.Format "2006-01-02 15:04:05" }}
         _{{ .Annotations.description }}_
         {{ end }}{{ if ne .Annotations.dashboard_url "" }}alert dashboard: {{ .Annotations.dashboard_url }}{{ end }}
         {{- if .Annotations.alert_url }}
         this alert: {{ .Annotations.alert_url }}{{ end }}
         {{- else }}
-        resolved at {{ .EndsAt.Format "2025-01-01 00:00:00 UTC" }}
+        resolved at {{ .EndsAt.UTC.Format "2006-01-02 15:04:05" }}
         {{- end }}
         {{- end }}
 %{ if var.pagerduty_enabled }- name: 'pagerduty_alerts'
