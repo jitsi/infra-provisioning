@@ -151,6 +151,7 @@ receivers:
         this alert: {{ .Annotations.alert_url }}{{ end }}
         start: {{ .StartsAt.UTC.Format "2006-01-02 15:04:05" }} UTC
         {{- else }}
+        start: {{ .StartsAt.UTC.Format "2006-01-02 15:04:05" }} UTC
         resolved: {{ .EndsAt.UTC.Format "2006-01-02 15:04:05" }} UTC
         {{- end }}
         {{- end }}
