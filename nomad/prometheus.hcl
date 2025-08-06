@@ -251,7 +251,7 @@ groups:
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=cloudprober_down
   - alert: Consul_Down
-    expr: consul_members_servers < 3
+    expr: min(consul_members_servers) < 3
     for: 5m
     labels:
       service: infra
@@ -259,10 +259,10 @@ groups:
     annotations:
       summary: there are fewer than 3 consul servers in ${var.dc}
       description: >-
-        At least one consul server is reporting that there are fewer than 3
+        At least one consul server is reporting that there are fewer than three
         consul servers in ${var.dc}, which means the cluster is incomplete. This
-        may mean that service discovery may be compromised. Currently there 
-        are {{ $value }} servers reported.
+        may mean that service discovery may be compromised. Currently {{ $value }}
+        servers are being reported as up.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=consul_down
   - alert: Consul_Down
