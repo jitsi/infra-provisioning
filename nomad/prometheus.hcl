@@ -251,7 +251,7 @@ groups:
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=cloudprober_down
   - alert: Consul_Down
-    expr: consul_members_servers < 3
+    expr: min(consul_members_servers) < 3
     for: 5m
     labels:
       service: infra
