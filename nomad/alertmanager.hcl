@@ -149,6 +149,9 @@ receivers:
         {{ end }}{{ if ne .Annotations.dashboard_url "" }}alert dashboard: {{ .Annotations.dashboard_url }}{{ end }}
         {{- if .Annotations.alert_url }}
         this alert: {{ .Annotations.alert_url }}{{ end }}
+        start: {{ .StartsAt.UTC.Format "2006-01-02 15:04:05" }} UTC
+        {{- else }}
+        resolved: {{ .EndsAt.UTC.Format "2006-01-02 15:04:05" }} UTC
         {{- end }}
         {{- end }}
 %{ if var.pagerduty_enabled }- name: 'pagerduty_alerts'
