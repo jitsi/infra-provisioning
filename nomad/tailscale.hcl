@@ -162,8 +162,8 @@ EOF
 
       service {
         name = "tailscale"
+        tags = ["int-urlprefix-${var.prometheus_hostname}/"]
         port = "http"
-        tags = ["tailscale", "vpn"]
         
         check {
           name     = "tailscale-status"

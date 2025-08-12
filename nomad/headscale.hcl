@@ -79,7 +79,7 @@ job "[JOB_NAME]" {
       template {
         destination = "local/config.yaml"
         data = <<EOF
-server_url: https://${var.headscale_hostname}
+server_url: https://${var.headscale_hostname}/
 listen_addr: 0.0.0.0:8080
 metrics_listen_addr: 0.0.0.0:9090
 grpc_listen_addr: 0.0.0.0:50443
@@ -171,18 +171,11 @@ EOF
           interval = "10s"
           timeout  = "2s"
         }
-      }
 
-      service {
-        name = "headscale-grpc"
-        port = "grpc"
-        tags = ["headscale-grpc"]
-      }
-
-      service {
-        name = "headscale-metrics"
-        port = "metrics"
-        tags = ["headscale-metrics"]
+        meta {
+          grpc = "${NOMAD_HOST_PORT_grpc}"
+          metrics = "${NOMAD_HOST_PORT_metrics}"
+        }
       }
     }
   }
