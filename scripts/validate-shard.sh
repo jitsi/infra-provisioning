@@ -89,7 +89,9 @@ TESTS_TENANT="70r7ur5"
 
 # generate a token if a client key file is defined
 if [ -n "$ASAP_CLIENT_SIGNING_KEY_FILE" ]; then
+  echo "Generating a token."
   export JWT_ACCESS_TOKEN=$($LOCAL_PATH/generate-client-token.sh ${TESTS_TENANT} | tail -1)
+  echo "Token generated, len=${#JWT_ACCESS_TOKEN}"
 fi
 
 #first we set the shard state to "testing"
