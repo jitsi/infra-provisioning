@@ -376,6 +376,20 @@ groups:
         re-deploying the job.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=nomad_job
+  - alert: Nomad_Job_CPU_Use_High
+    expr: nomad_client_allocs_cpu_total_percent > 85
+    for: 10m
+    labels:
+      service: infra
+      severity: smoke
+    annotations:
+      summary: cpu use for {{ $labels.exported_job }} in ${var.dc} is high
+      description: >-
+        The {{ $labels.exported_job }} job in ${var.dc} has been using more than 85% of its
+        allocated CPU for the last 10 minutes. Consider modifying the allocated CPU and
+        re-deploying the job.
+      dashboard_url: ${var.grafana_url}
+      alert_url: https://${var.prometheus_hostname}/alerts?search=nomad_job
 
 - name: cloudprober_alerts
   rules:
