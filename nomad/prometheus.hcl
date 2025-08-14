@@ -367,7 +367,7 @@ groups:
     for: 20m
     labels:
       service: infra
-      severity: smoke
+      severity: warn
     annotations:
       summary: memory use for {{ $labels.exported_job }} in ${var.dc} is high
       description: >-
@@ -381,7 +381,7 @@ groups:
     for: 10m
     labels:
       service: infra
-      severity: smoke
+      severity: warn
     annotations:
       summary: cpu use for {{ $labels.exported_job }} in ${var.dc} is high
       description: >-
