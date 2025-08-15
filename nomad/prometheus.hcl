@@ -362,6 +362,34 @@ groups:
         updates, etc.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=nomad_job
+  - alert: Nomad_Job_Memory_Use_High
+    expr: 100 * nomad_client_allocs_memory_usage / nomad_client_allocs_memory_allocated > 85
+    for: 20m
+    labels:
+      service: infra
+      severity: warn
+    annotations:
+      summary: memory use for {{ $labels.exported_job }} in ${var.dc} is high
+      description: >-
+        The {{ $labels.exported_job }} job in ${var.dc} has been using more than 85% of its
+        allocated memory for the last 20 minutes. Consider modifying the allocated memory and
+        re-deploying the job.
+      dashboard_url: ${var.grafana_url}
+      alert_url: https://${var.prometheus_hostname}/alerts?search=nomad_job
+  - alert: Nomad_Job_CPU_Use_High
+    expr: nomad_client_allocs_cpu_total_percent > 85
+    for: 10m
+    labels:
+      service: infra
+      severity: warn
+    annotations:
+      summary: cpu use for {{ $labels.exported_job }} in ${var.dc} is high
+      description: >-
+        The {{ $labels.exported_job }} job in ${var.dc} has been using more than 85% of its
+        allocated CPU for the last 10 minutes. Consider modifying the allocated CPU and
+        re-deploying the job.
+      dashboard_url: ${var.grafana_url}
+      alert_url: https://${var.prometheus_hostname}/alerts?search=nomad_job
 
 - name: cloudprober_alerts
   rules:
