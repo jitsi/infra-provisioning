@@ -44,6 +44,20 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                         [$class: 'StringParameterValue', name: 'FORCE_BUILD_IMAGE', value: env.FORCE_BUILD_IMAGE],
                         [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH]
                     ]
+
+                    // also update alpha-canary standalone in stage-8x8 environment from beta pipeline
+                    build job: 'update-standalone', wait: false, parameters: [
+                        [$class: 'StringParameterValue', name: 'JVB_VERSION', value: versionParams.JVB_VERSION],
+                        [$class: 'StringParameterValue', name: 'JITSI_MEET_VERSION', value: versionParams.JITSI_MEET_VERSION],
+                        [$class: 'StringParameterValue', name: 'PROSODY_VERSION', value: versionParams.PROSODY_VERSION],
+                        [$class: 'StringParameterValue', name: 'JICOFO_VERSION', value: versionParams.JICOFO_VERSION],
+                        [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: 'stage-8x8'],
+                        [$class: 'StringParameterValue', name: 'UNIQUE_ID', value: "alpha-canary"],
+                        [$class: 'StringParameterValue', name: 'DOMAIN', value: "stage.8x8.vc"],
+                        [$class: 'StringParameterValue', name: 'ORACLE_REGION', value: "us-phoenix-1"],
+                        [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH]
+                    ]
+
                 }
             }
         }
