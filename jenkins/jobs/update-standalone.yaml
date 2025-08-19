@@ -9,6 +9,11 @@
           description: "UNIQUE_ID used to identify standalone instance"
           trim: true
       - string:
+          name: ORACLE_REGION
+          default: us-phoenix-1
+          description: "ORACLE_REGION used to identify the region of the standalone instance"
+          trim: true
+      - string:
           name: ENVIRONMENT
           default: lonely
           description: "Environment where the standalone instance is deployed, defaults to 'lonely'."
