@@ -184,13 +184,6 @@ config.giphy.sdkKey='[[ env "CONFIG_jitsi_meet_giphy_sdk_key" ]]';
 config.longTasksStatsInterval = 10000;
 [[- end ]]
 
-[[ if eq (env "CONFIG_jitsi_meet_enable_prejoin_page") "true" -]]
-config.prejoinConfig.enabled=true;
-[[ else -]]
-config.prejoinConfig.enabled=false;
-[[- end ]]
-
-
 [[ if env "CONFIG_jitsi_meet_moderated_service_url" -]]
 config.moderatedRoomServiceUrl='[[ env "CONFIG_jitsi_meet_moderated_service_url" ]]';
 [[- end ]]
