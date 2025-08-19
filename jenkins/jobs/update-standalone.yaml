@@ -36,6 +36,10 @@
           description: "Version of Jicofo to deploy.  Defaults to latest debian package"
           trim: true
       - string:
+          name: PROSODY_VERSION
+          description: "Version of Prosody to deploy.  Defaults to latest debian package"
+          trim: true
+      - string:
           name: VIDEO_INFRA_BRANCH
           default: main
           description: "Controls checkout branch for infra repos, defaults to 'main'."
