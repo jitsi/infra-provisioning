@@ -1,0 +1,43 @@
+def utils
+pipeline {
+  agent any
+  options {
+      ansiColor('xterm')
+      timestamps()
+      buildDiscarder(logRotator(numToKeepStr: '10', artifactNumToKeepStr: '10'))
+  }
+  stages {
+    stage('Prepare/Checkout') { // for display purposes
+      steps {
+        script {
+          // load utility function
+          def rootDir = pwd()
+          utils = load "${rootDir}/jenkins/groovy/Utils.groovy"
+          // checkout repos
+          utils.SetupRepos(env.VIDEO_INFRA_BRANCH)
+
+          sh 'rm -rf test-results'
+          sh 'mkdir test-results'
+        }
+      }
+    }
+    stage('Update') {
+      steps {
+        sshagent (credentials: ['video-infra']) {
+          script {
+            dir('infra-configuration') {
+              withCredentials([
+                sshUserPrivateKey(credentialsId: 'ssh-ubuntu', keyFileVariable: 'CONNECTION_SSH_PRIVATE_KEY_FILE', usernameVariable: 'SSH_USERNAME')
+              ]) {
+                utils.SetupSSH()
+                sh '''#!/bin/bash
+                export ANSIBLE_FORCE_COLOR=True
+                scripts/update-standalone.sh $SSH_USERNAME'''
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
