@@ -1,0 +1,72 @@
+- job:
+    name: update-standalone
+    display-name: update standalone
+    concurrent: true
+    parameters:
+      - string:
+          name: UNIQUE_ID
+          default:
+          description: "UNIQUE_ID used to identify standalone instance"
+          trim: true
+      - string:
+          name: ORACLE_REGION
+          default: us-phoenix-1
+          description: "ORACLE_REGION used to identify the region of the standalone instance"
+          trim: true
+      - string:
+          name: ENVIRONMENT
+          default: lonely
+          description: "Environment where the standalone instance is deployed, defaults to 'lonely'."
+          trim: true
+      - string:
+          name: DOMAIN
+          default:
+          description: "DOMAIN is site DNS used to access standalone, should match $UNIQUE_ID.$DNS_ZONE_DOMAIN_NAME"
+          trim: true
+      - string:
+          name: JITSI_MEET_VERSION
+          description: "Version of Jitsi Meet to deploy.  Defaults to latest debian package"
+          trim: true
+      - string:
+          name: JVB_VERSION
+          description: "Version of Jitsi Video Bridge to deploy.  Defaults to latest debian package"
+          trim: true
+      - string:
+          name: JICOFO_VERSION
+          description: "Version of Jicofo to deploy.  Defaults to latest debian package"
+          trim: true
+      - string:
+          name: PROSODY_VERSION
+          description: "Version of Prosody to deploy.  Defaults to latest debian package"
+          trim: true
+      - string:
+          name: VIDEO_INFRA_BRANCH
+          default: main
+          description: "Controls checkout branch for infra repos, defaults to 'main'."
+          trim: true
+      - string:
+          name: INFRA_CONFIGURATION_REPO
+          default: git@github.com:jitsi/infra-configuration.git
+          description: "Repo for configuration code (ansible etc), defaults to 'git@github.com:jitsi/infra-configuration.git'."
+          trim: true
+      - string:
+          name: INFRA_CUSTOMIZATIONS_REPO
+          default: git@github.com:jitsi/infra-customizations.git
+          description: "Repo with customized configurations, defaults to 'git@github.com:jitsi/infra-customizations.git'."
+          trim: true
+
+    project-type: pipeline
+    sandbox: true
+    pipeline-scm:
+      scm:
+        - git:
+            url: git@github.com:jitsi/infra-provisioning.git
+            credentials-id: "video-infra"
+            branches:
+              - "origin/${{VIDEO_INFRA_BRANCH}}"
+            browser: githubweb
+            browser-url: https://github.com/jitsi/infra-provisioning
+            submodule:
+              recursive: true
+      script-path: jenkins/groovy/update-standalone/Jenkinsfile
+      lightweight-checkout: true
