@@ -162,6 +162,7 @@ job [[ template "job_name" . ]] {
         ENABLE_IPV6 = "false"
         ENABLE_TRANSCRIPTIONS = "[[ or (env "CONFIG_jitsi_meet_enable_transcription") "false" ]]"
         ENABLE_LOCAL_RECORDING_NOTIFY_ALL_PARTICIPANT = "true"
+        ENABLE_PREJOIN_PAGE = "[[ if eq (env "CONFIG_jitsi_meet_enable_prejoin_page") "true" ]]true[[ else ]]false[[ end ]]"
         ENABLE_REQUIRE_DISPLAY_NAME = "[[ or (env "CONFIG_jitsi_meet_require_displayname") "false" ]]"
 [[- if env "CONFIG_jitsi_meet_resolution" ]]
         RESOLUTION = "[[ or (env "CONFIG_jitsi_meet_resolution") "720" ]]"
