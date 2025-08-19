@@ -96,7 +96,7 @@ if (!config.hasOwnProperty('deploymentUrls')) config.deploymentUrls = {};
 config.deploymentUrls.userDocumentationURL='[[ env "CONFIG_jitsi_meet_user_documentation_url" ]]';
 [[ end -]]
 [[ if env "CONFIG_jitsi_meet_download_apps_url" -]]
-config.deploymentUrls.downloadAppsUrl='[[ env "CONFIG_jitsi_meet_download_apps_url" ]]'; 
+config.deploymentUrls.downloadAppsUrl='[[ env "CONFIG_jitsi_meet_download_apps_url" ]]';
 [[- end ]]
 
 [[ if ne (or (env "CONFIG_jitsi_meet_chrome_extension_banner_url") "false") "false" -]]
@@ -185,9 +185,9 @@ config.longTasksStatsInterval = 10000;
 [[- end ]]
 
 [[ if eq (env "CONFIG_jitsi_meet_enable_prejoin_page") "true" -]]
-config.prejoinPageEnabled=true;
+config.prejoinConfig.enabled=true;
 [[ else -]]
-config.prejoinPageEnabled=false;
+config.prejoinConfig.enabled=false;
 [[- end ]]
 
 
