@@ -44,6 +44,11 @@ for SHARD in $SHARDS; do
         else
           SHARD_IP="$(IP_TYPE="internal" SHARD=$SHARD ENVIRONMENT=$ENVIRONMENT $LOCAL_PATH/shard.sh shard_ip $SSH_USER)"
           if [ $? -eq 0 ]; then
+            if [ -z "$SHARD_IP" ]; then
+              echo "No SHARD_IP found for $SHARD"
+              FOUND_SHARDS=false
+              continue
+            fi
             SHARD_IPS+=( "$SHARD_IP" )
             SHARD_CURL_IPS+=( "$SHARD_IP" )
             SHARD_CURL_PORTS+=( "6000" )
