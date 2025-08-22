@@ -71,7 +71,7 @@ if [ $? -eq 0 ]; then
       # clear any existing state
       consul_shard_clear $SHARD_NAME
       # first mark new shard as drain
-      CONSUL_SHARD_STATES_ONLY="true" SHARDS_DRAIN="$SHARD_NAME" scripts/set-signal-shard-states.sh $ANSIBLE_SSH_USER
+      SHARDS_DRAIN="$SHARD_NAME" scripts/set-signal-shard-states.sh
       #make a new stack for each new shard
       if [[ "$CORE_CLOUD_PROVIDER" == "aws" ]]; then
           SHARD_NUMBER=$SN $LOCAL_PATH/create-app-shard-stack.sh

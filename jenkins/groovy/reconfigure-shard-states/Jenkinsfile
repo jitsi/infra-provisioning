@@ -1,8 +1,8 @@
-def reconfigureShardStates(consul_only) {
+def reconfigureShardStates() {
     sh(
         script: """#!/bin/bash
         export ANSIBLE_FORCE_COLOR=True
-        CONSUL_SHARD_STATES_ONLY=${consul_only} scripts/set-signal-shard-states.sh ubuntu
+        scripts/set-signal-shard-states.sh ubuntu
         exit \$?"""
     )
 }
@@ -31,16 +31,6 @@ pipeline {
                 }
             }
         }
-        stage("load flags") {
-            steps {
-                script {
-                    dir("infra-provisioning") {
-                        useHAProxyConsulTemplate = utils.GetAnsibleVar(env.ENVIRONMENT, "haproxy_enable_consul_template")
-                        echo useHAProxyConsulTemplate
-                    }
-                }
-            }
-        }
         stage ("shard state") {
             steps {
                 script {
@@ -51,7 +41,7 @@ pipeline {
                             string(credentialsId: 'jenkins-aws-id', variable: 'AWS_ACCESS_KEY_ID')                            
                         ]) {
                           sshagent (credentials: ['ssh-ubuntu']) {
-                            reconfigureShardStates(useHAProxyConsulTemplate)
+                            reconfigureShardStates()
                           }
                         }
                     }

@@ -154,7 +154,6 @@ scripts/versioning-manager.sh
 }
 
 def useReleaseBackends
-def useHAProxyConsulTemplate
 def recordReleases
 
 pipeline {
@@ -197,8 +196,6 @@ pipeline {
                     dir('infra-provisioning') {
                         useReleaseBackends = utils.GetEnvironmentVar(env.ENVIRONMENT, "USE_RELEASE_BACKENDS")
                         echo useReleaseBackends
-                        useHAProxyConsulTemplate = utils.GetAnsibleVar(env.ENVIRONMENT, "haproxy_enable_consul_template")
-                        echo useHAProxyConsulTemplate
                         recordReleases = utils.GetAnsibleVar(env.ENVIRONMENT, "release_recording_enabled")
                         echo recordReleases
                     }
