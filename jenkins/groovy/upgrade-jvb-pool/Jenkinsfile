@@ -5,7 +5,8 @@ pipeline {
   options {
       ansiColor('xterm')
       timestamps()
-      buildDiscarder(logRotator(numToKeepStr: '10', artifactNumToKeepStr: '10'))
+      // we keep 50 so that the upstream job has enough history to work with during large batch runs
+      buildDiscarder(logRotator(numToKeepStr: '50', artifactNumToKeepStr: '50'))
   }
   stages {
     stage ("setup") {
