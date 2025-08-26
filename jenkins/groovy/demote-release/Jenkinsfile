@@ -1,0 +1,237 @@
+def listJVBPools(release_number) {
+    pools=[:]
+    def poolsStr = sh(
+        returnStdout: true,
+        script: """
+        export RELEASE_NUMBER="${release_number}"
+        scripts/list-jvb-pools.sh"""
+    ).trim();
+
+    if (poolsStr.length() > 0) {
+        pools = poolsStr.split(' ');
+    }
+    return pools
+}
+
+def getReleaseBranchFromPools(environment, pools) {
+    if (pools.size() > 0) {
+        def firstPool = pools[0]
+        def releaseBranch = sh(
+            returnStdout: true,
+            script: """
+            export ENVIRONMENT="${environment}"
+            export JVB_POOL_NAME="${firstPool}"
+            scripts/get-release-branch-from-jvb-pool.sh || echo "main"
+            """
+        ).trim()
+        return releaseBranch ?: "main"
+    }
+    return "main"
+}
+
+def provisionGlobalPool(environment, oracle_region, cloud_provider, release_branch, release_number, jvb_version, video_infra_branch) {
+    def provision_job = build job: 'provision-jvb-pool',wait: true,parameters: [
+        [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: environment],
+        [$class: 'StringParameterValue', name: 'ORACLE_REGION', value: oracle_region],
+        [$class: 'StringParameterValue', name: 'CLOUD_PROVIDER', value: cloud_provider],
+        [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: release_branch],
+        [$class: 'StringParameterValue', name: 'RELEASE_NUMBER', value: release_number],
+        [$class: 'StringParameterValue', name: 'JVB_VERSION', value: jvb_version],
+        [$class: 'StringParameterValue', name: 'JVB_POOL_MODE', value: 'global'],
+        [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: video_infra_branch]
+    ]
+    return provision_job
+}
+
+def setPoolDesiredCount(environment, pool_name, desired_count) {
+    build job: 'reconfigure-autoscaler-desired-values',wait: true,parameters: [
+        [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: environment],
+        [$class: 'StringParameterValue', name: 'GROUP_NAME', value: "${pool_name}-JVBCustomGroup"],
+        [$class: 'StringParameterValue', name: 'DESIRED_COUNT', value: desired_count.toString()],
+        [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH]
+    ]
+}
+
+def deleteJVBPool(hcv_environment, jvb_pool_name) {
+    def deletePool = build job: 'destroy-jvb-pool',parameters: [
+        [$class: 'StringParameterValue', name: 'HCV_ENVIRONMENT', value: hcv_environment],
+        [$class: 'StringParameterValue', name: 'JVB_POOL_NAME', value: jvb_pool_name],
+        [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH]
+    ]
+    return deletePool
+}
+
+def filterPoolsByMode(pools, mode) {
+    def filtered = []
+    for (pool in pools) {
+        if (pool.contains("-${mode}-")) {
+            filtered.add(pool)
+        }
+    }
+    return filtered
+}
+
+def utils
+def existingPools = []
+def localPools = []
+def remotePools = []
+def globalPools = []
+def releaseBranch = ""
+
+pipeline {
+    agent any
+    options {
+        ansiColor('xterm')
+        timestamps()
+        buildDiscarder(logRotator(numToKeepStr: '10', artifactNumToKeepStr: '10'))
+    }
+    stages {
+        stage('Prepare/Checkout') {
+            steps {
+                script {
+                    def rootDir = pwd()
+                    utils = load "${rootDir}/jenkins/groovy/Utils.groovy"
+                    utils.SetupRepos(env.VIDEO_INFRA_BRANCH)
+                    utils.SetupOCI()
+                }
+            }
+        }
+        stage("Setup") {
+            steps {
+                echo 'Jitsi Release Demote Starting'
+                echo "ENVIRONMENT ${env.ENVIRONMENT}"
+                echo "RELEASE_NUMBER ${env.RELEASE_NUMBER}"
+                echo "CLOUDS ${env.CLOUDS}"
+                echo "JVB_VERSION ${env.JVB_VERSION}"
+                echo "ORACLE_REGION ${env.ORACLE_REGION}"
+            }
+        }
+        stage("List existing pools") {
+            steps {
+                script {
+                    dir('infra-provisioning') {
+                        existingPools = listJVBPools(env.RELEASE_NUMBER)
+                        echo "Existing JVB pools found:"
+                        echo "${existingPools}"
+                        
+                        if (existingPools.size() > 0) {
+                            releaseBranch = getReleaseBranchFromPools(env.ENVIRONMENT, existingPools)
+                            echo "Release branch detected: ${releaseBranch}"
+                            
+                            localPools = filterPoolsByMode(existingPools, "local")
+                            remotePools = filterPoolsByMode(existingPools, "remote")
+                            globalPools = filterPoolsByMode(existingPools, "global")
+                            
+                            echo "Local pools: ${localPools}"
+                            echo "Remote pools: ${remotePools}"
+                            echo "Global pools: ${globalPools}"
+                        } else {
+                            error("No JVB pools found for release ${env.RELEASE_NUMBER}")
+                        }
+                    }
+                }
+            }
+        }
+        stage("Provision global pool") {
+            when {
+                expression {
+                    return globalPools.size() == 0
+                }
+            }
+            steps {
+                script {
+                    echo "No global pool found, provisioning new global pool"
+                    provisionGlobalPool(
+                        env.ENVIRONMENT,
+                        env.ORACLE_REGION,
+                        env.CLOUD_PROVIDER,
+                        releaseBranch,
+                        env.RELEASE_NUMBER,
+                        env.JVB_VERSION,
+                        env.VIDEO_INFRA_BRANCH
+                    )
+                }
+            }
+        }
+        stage("Wait for confirmation") {
+            when {
+                expression {
+                    input message: 'Global pool is ready. Proceed with draining and deleting local/remote pools?'
+                    return true
+                }
+            }
+            steps {
+                echo "Proceeding with pool demotion"
+            }
+        }
+        stage("Set local and remote pools desired count to 0") {
+            when {
+                expression {
+                    return (localPools.size() > 0 || remotePools.size() > 0)
+                }
+            }
+            steps {
+                script {
+                    def poolsToDrain = []
+                    poolsToDrain.addAll(localPools)
+                    poolsToDrain.addAll(remotePools)
+                    
+                    echo "Setting desired count to 0 for pools: ${poolsToDrain}"
+                    
+                    def branches = [:]
+                    for(i = 0; i < poolsToDrain.size(); i++) {
+                        def pcurr = i
+                        branches["Scale down ${poolsToDrain[pcurr]}"] = {
+                            setPoolDesiredCount(env.ENVIRONMENT, poolsToDrain[pcurr], 0)
+                        }
+                    }
+                    parallel branches
+                }
+            }
+        }
+        stage("Wait for pools to drain") {
+            when {
+                expression {
+                    return (localPools.size() > 0 || remotePools.size() > 0)
+                }
+            }
+            steps {
+                script {
+                    echo "Sleeping for ${env.DRAIN_WAIT_PERIOD} seconds to allow pools to drain"
+                    sleep env.DRAIN_WAIT_PERIOD.toInteger()
+                }
+            }
+        }
+        stage("Delete local and remote pools") {
+            when {
+                expression {
+                    return (localPools.size() > 0 || remotePools.size() > 0)
+                }
+            }
+            steps {
+                script {
+                    def branches = [:]
+                    def poolsToDelete = []
+                    poolsToDelete.addAll(localPools)
+                    poolsToDelete.addAll(remotePools)
+                    
+                    if (poolsToDelete.size() > 0) {
+                        for(i = 0; i < poolsToDelete.size(); i++) {
+                            def pcurr = i
+                            branches["Pool ${poolsToDelete[pcurr]}"] = {
+                                deleteJVBPool(
+                                    env.ENVIRONMENT,
+                                    poolsToDelete[pcurr]
+                                )
+                            }
+                        }
+                        echo "Deleting pools: ${poolsToDelete}"
+                        parallel branches
+                    } else {
+                        echo 'No local or remote JVB pools to delete'
+                    }
+                }
+            }
+        }
+    }
+}
