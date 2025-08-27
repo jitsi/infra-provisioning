@@ -12,7 +12,7 @@ def oracle_regions(cloud_list) {
 }
 
 // global var to track git branch from env or new tags
-def git_branch
+git_branch
 
 def tagExistingProxies(stack_environment,cloud_provider,haproxy_release_number,gitBranch) {
     sh """#!/bin/bash
