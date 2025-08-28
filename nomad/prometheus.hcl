@@ -377,7 +377,7 @@ groups:
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=nomad_job
   - alert: Nomad_Job_CPU_Use_High
-    expr: 100 * nomad_client_allocs_cpu_total_percent / nomad_client_allocs_cpu_allocated > 85
+    expr: 100 * nomad_client_allocs_cpu_total_ticks / nomad_client_allocs_cpu_allocated > 85
     for: 10m
     labels:
       service: infra
