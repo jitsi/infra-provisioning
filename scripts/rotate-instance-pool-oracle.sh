@@ -115,6 +115,9 @@ else
     $METADATA_EIP_FLAG --metadata_lib_path "$METADATA_LIB_PATH" --metadata_path "$METADATA_PATH" $SHAPE_PARAMS
 fi
 
+# re-define in case sourcing ROTATE_INSTANCE_CONFIGURATION_SCRIPT overwrote it
+LOCAL_PATH=$(realpath $(dirname "${BASH_SOURCE[0]}"))
+
 ROTATE_IC_RESULT_CODE=$?
 if [ "$ROTATE_IC_RESULT_CODE" -ne 0 ]; then
   echo "Failed rotating the instance configuration of the instance pool $INSTANCE_POOL_ID"
@@ -125,7 +128,6 @@ if [[ "$ENVIRONMENT_TYPE" == "prod" ]]; then
   echo "Tagging image as production"
   $LOCAL_PATH/oracle_custom_images.py --tag_production --image_id $IMAGE_OCID --region $ORACLE_REGION
 fi
-
 
 
 if [[ $INSTANCE_COUNT -gt 0 ]]; then
