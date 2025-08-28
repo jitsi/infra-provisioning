@@ -12,7 +12,7 @@ def oracle_regions(cloud_list) {
 }
 
 // global var to track git branch from env or new tags
-def git_branch
+git_branch = null
 
 def tagExistingProxies(stack_environment,cloud_provider,haproxy_release_number,gitBranch) {
     sh """#!/bin/bash
@@ -91,7 +91,7 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                         def oracle_region = oracle_regions(cloud_list);
                         echo "cloud list ${cloud_list}";
                         def branches = [:]
-                        for(i = 0; i < cloud_list.size(); i++) {
+                        for(def i = 0; i < cloud_list.size(); i++) {
                             def curr = i
                             echo "pipeline branch ${curr} for stack in ${cloud_list[curr]}";
                             branches["Build ${cloud_list[curr]}"] = {

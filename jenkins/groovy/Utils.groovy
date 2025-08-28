@@ -2,9 +2,9 @@
 // alternately loads defaults for environment into a list
 def SplitClouds(shard_environment,cloud_names) {
     if (cloud_names) {
-        clouds = cloud_names.split(' ')
+        def clouds = cloud_names.split(' ')
     } else {
-        clouds = sh(
+        def clouds = sh(
             returnStdout: true,
             script: 'scripts/release_clouds.sh '+shard_environment
         ).trim().split(' ');
