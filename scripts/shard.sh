@@ -126,7 +126,7 @@ function new() {
     local count="$1"
     local shard
     local shards=$(RELEASE_NUMBER="" list)
-    local aws_shards=$($LOCAL_PATH/shard.py --list --environment=$ENVIRONMENT)
+#    local aws_shards=$($LOCAL_PATH/shard.py --list --environment=$ENVIRONMENT)
     local shard_numbers=()
     local found_numbers=()
     local found_count=0
