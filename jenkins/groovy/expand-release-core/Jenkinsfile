@@ -77,6 +77,7 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                     withCredentials([
                             string(credentialsId: 'jenkins-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
                             string(credentialsId: 'jenkins-aws-id', variable: 'AWS_ACCESS_KEY_ID')
+                            sshUserPrivateKey(credentialsId: 'ssh-ubuntu', keyFileVariable: 'CONNECTION_SSH_PRIVATE_KEY_FILE', usernameVariable: 'ANSIBLE_SSH_USERNAME')
                     ]) {
                       sshagent (credentials: ['ssh-ubuntu']) {
                         dir('infra-provisioning') {
