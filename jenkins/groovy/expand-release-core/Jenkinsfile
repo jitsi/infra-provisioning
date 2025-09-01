@@ -7,8 +7,8 @@ def expand_release() {
     def oracleShardsByCloud = readJSON file: 'add-shards-by-cloud-oracle.json'
 
     echo "Expand release script results"
-    echo awsShardsByCloud.toPrettyString();
-    echo oracleShardsByCloud.toPrettyString();
+    echo awsShardsByCloud.toString();
+    echo oracleShardsByCloud.toString();
 
     return [awsShardsByCloud: awsShardsByCloud, oracleShardsByCloud: oracleShardsByCloud];
 }
