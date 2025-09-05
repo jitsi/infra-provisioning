@@ -347,7 +347,7 @@ groups:
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=nomad_job
   - alert: Nomad_Job_Restarts_High
-    expr: sum(sum_over_time(nomad_client_allocs_restart_sum{task!="cloudprober"}[20m])) by (task) >= 4
+    expr: sum(sum_over_time(nomad_client_allocs_restart_sum{task!="cloudprober"}[20m])) by (exported_job) >= 4
     for: 2m
     labels:
       service: infra
@@ -355,11 +355,10 @@ groups:
     annotations:
       summary: jobs for {{ $labels.task }} in ${var.dc} have had high restarts
       description: >-
-        The {{ $labels.task }} task in ${var.dc} has restarted on average of
-        once every 5 minutes in the last 20 minutes. This may mean that the
-        service is not stable or is being killed for some reason. This could
-        simply be a service which restarts frequently due to consul-template
-        updates, etc.
+        The {{ $labels.exported_job }} job in ${var.dc} has restarted on average of once every 5
+        minutes in the last 20 minutes. This may mean that the service is not stable or is being
+        killed for some reason. This could simply be a service which restarts frequently due to
+        consul-template updates, etc.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=nomad_job
   - alert: Nomad_Job_Memory_Use_High
@@ -736,8 +735,8 @@ groups:
       alert_url: https://${var.prometheus_hostname}/alerts?search=jvb_cpu_high%{ endif }
   - alert: JVB_RTP_Delay_Host_High
     expr: >-
-      100 * (1 - sum(idelta(jitsi_jvb_rtp_transit_time_bucket{le="50"}[10m:1m]) unless ignoring(le) (jitsi_jvb_rtp_transit_time_count < 200000)) by (host) /
-      sum(idelta(jitsi_jvb_rtp_transit_time_count[10m:1m]) unless (jitsi_jvb_rtp_transit_time_count < 200000)) by (host) > 0) > 15
+      (100 * (1 - sum(idelta(jitsi_jvb_rtp_transit_time_bucket{le="50"}[10m:1m]) unless ignoring(le) (jitsi_jvb_rtp_transit_time_count < 200000)) by (host) /
+      sum(idelta(jitsi_jvb_rtp_transit_time_count[10m:1m]) unless (jitsi_jvb_rtp_transit_time_count < 200000)) by (host) > 0)) > 15
     for: 10m
     labels:
       service: jitsi
@@ -751,8 +750,8 @@ groups:
       alert_url: https://${var.prometheus_hostname}/alerts?search=jvb_rtp_delay
   - alert: JVB_RTP_Delay_Group_High
     expr: >-
-      100 * (1 - sum(idelta(jitsi_jvb_rtp_transit_time_bucket{le="50"}[10m:1m]) unless ignoring(le) (jitsi_jvb_rtp_transit_time_count < 200000)) by (shard) /
-      sum(idelta(jitsi_jvb_rtp_transit_time_count[10m:1m]) unless (jitsi_jvb_rtp_transit_time_count < 200000)) by (shard) > 0) > 40
+      (100 * (1 - sum(idelta(jitsi_jvb_rtp_transit_time_bucket{le="50"}[10m:1m]) unless ignoring(le) (jitsi_jvb_rtp_transit_time_count < 200000)) by (shard) /
+      sum(idelta(jitsi_jvb_rtp_transit_time_count[10m:1m]) unless (jitsi_jvb_rtp_transit_time_count < 200000)) by (shard) > 0)) > 30
     for: 10m
     labels:
       service: jitsi
