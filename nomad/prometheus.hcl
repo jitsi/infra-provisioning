@@ -609,7 +609,7 @@ groups:
     labels:
       service: jitsi
       severity: severe
-      page: true
+      page: false
     annotations:
       summary: haproxy in ${var.dc} is redispatching too many requests
       description: >-
@@ -915,7 +915,7 @@ groups:
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=jigasi_dropped_media
   - alert: Skynet_Queue_Depth_High
-    expr: Skynet_Summaries_summary_queue_size > 100
+    expr: max(Skynet_Summaries_summary_queue_size) > 100
     for: 5m
     labels:
       service: jitsi
@@ -931,7 +931,7 @@ groups:
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=skynet_queue
   - alert: Skynet_Queue_Depth_High
-    expr: Skynet_Summaries_summary_queue_size > 500
+    expr: max(Skynet_Summaries_summary_queue_size) > 500
     for: 5m
     labels:
       service: jitsi
@@ -946,12 +946,12 @@ groups:
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=skynet_queue
   - alert: Skynet_Queue_Depth_High
-    expr: Skynet_Summaries_summary_queue_size > 1000
-    for: 5m
+    expr: max(Skynet_Summaries_summary_queue_size) > 1000
+    for: 10m
     labels:
       service: jitsi
       severity: severe 
-      page: true
+      page: false
     annotations:
       summary: skynet queue size is dangerously high in ${var.dc}
       description: >-
@@ -959,7 +959,7 @@ groups:
         transcription and summarization jobs are extremely backed up and the user
         experience may be poor. Immediately scale up the instance pool and check the
         affected host to see if it is stuck for some reason. The queue size was
-        most recently at {{ $value | printf "%.2f" }} on {{ $labels.host }}.
+        most recently at {{ $value | printf "%.2f" }}.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=skynet_queue
   - alert: Whisper_Sessions_High

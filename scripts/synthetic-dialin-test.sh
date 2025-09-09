@@ -109,8 +109,8 @@ mv test-results test-results1
 
 # Only actually fail on two consecutive failures
 if [[ $SUCCESS -ne 0 ]]; then
-  echo "Waiting for 60 seconds..."
-  sleep 60
+  echo "Waiting for 120 seconds..."
+  sleep 120
   doTest "$ACCOUNT_ID_US" "${VOX_API_KEY_US}" "400932" "$DOMAIN" "$(getRegionalIP "us-phoenix-1")" $TEST_OUTPUT_LOG_US
   SUCCESS=$?
   mv test-results test-results2
