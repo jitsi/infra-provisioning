@@ -654,8 +654,8 @@ groups:
       alert_url: https://${var.prometheus_hostname}/alerts?search=haproxy_shard_unhealthy
   - alert: Jicofo_ICE_Restarts_High
     expr: >-
-      100 * sum by (shard) (increase(jitsi_jicofo_participants_restart_requested_total[10m]) unless sum by (shard) (jitsi_jicofo_participants_current < 20)) /
-      sum by (shard) (jitsi_jicofo_participants_current) unless (sum by (shard) (jitsi_jicofo_participants_current) < 20) > 40
+      max_over_time((100 * sum by (shard) (increase(jitsi_jicofo_participants_restart_requested_total[10m]) unless sum by (shard) (jitsi_jicofo_participants_current < 20)) /
+      sum by (shard) (jitsi_jicofo_participants_current) unless (sum by (shard) (jitsi_jicofo_participants_current) < 20))[2m:])) > 20
     for: 5m
     labels:
       service: jitsi
