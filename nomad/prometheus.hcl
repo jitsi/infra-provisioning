@@ -655,7 +655,7 @@ groups:
   - alert: Jicofo_ICE_Restarts_High
     expr: >-
       max_over_time((100 * sum by (shard) (increase(jitsi_jicofo_participants_restart_requested_total[10m]) unless sum by (shard) (jitsi_jicofo_participants_current < 20)) /
-      sum by (shard) (jitsi_jicofo_participants_current) unless (sum by (shard) (jitsi_jicofo_participants_current) < 20))[2m:])) > 20
+      sum by (shard) (jitsi_jicofo_participants_current) unless (sum by (shard) (jitsi_jicofo_participants_current) < 20))[2m:]) > 20
     for: 5m
     labels:
       service: jitsi
