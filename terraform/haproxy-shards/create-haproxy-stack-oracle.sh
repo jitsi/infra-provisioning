@@ -243,7 +243,7 @@ if [ $? -eq 0 ]; then
       | .attributes.id')"
 fi
 
-if [ -z "$HAPROXY_SECURITY_GROUP_ID" ]; then
+if [ -z "$HAPROXY_SECURITY_GROUP_ID" ] || [[ "$UPDATE_HAPROXY_SECURITY_GROUP" == "true" ]]; then
   terraform $TF_GLOBALS_CHDIR_SG init \
     -backend-config="bucket=$S3_STATE_BUCKET" \
     -backend-config="key=$S3_STATE_KEY_HAPROXY_SG" \

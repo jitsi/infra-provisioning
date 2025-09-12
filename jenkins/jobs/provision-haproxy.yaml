@@ -48,6 +48,11 @@
           description: "Override HAProxy instance memory"
           trim: true
       - string:
+          name: UPDATE_SECURITY_GROUP
+          description: "Update the HAProxy security group's terraform stack. This will disrupt live connections and should only be done if ports are being added/removed."
+          default: false
+          trim: true
+      - string:
           name: INFRA_CONFIGURATION_REPO
           default: git@github.com:jitsi/infra-configuration.git
           description: "Repo for configuration code (ansible etc), defaults to 'git@github.com:jitsi/infra-configuration.git'."
