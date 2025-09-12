@@ -34,6 +34,7 @@ def createHAProxyStack(stack_environment,cloud_provider,cloud_name,oracle_region
         [$class: 'StringParameterValue', name: 'OCPUS', value: ocpus],
         [$class: 'StringParameterValue', name: 'MEMORY_IN_GBS', value: memoryInGbs],
         [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH]
+        [$class: 'StringParameterValue', name: 'UPDATE_SECURITY_GROUP', value: env.UPDATE_SECURITY_GROUP]
     ]
 
     return createStack
