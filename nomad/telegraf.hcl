@@ -400,6 +400,14 @@ EOF
       [inputs.prometheus.consul.query.tags]
         host = "{{"{{"}}.Node}}"
         service = "async-transcriber"
+    [[inputs.prometheus.consul.query]]
+      name = "tenant-pin-writer"
+      tag = "ip-{{ env "attr.unique.network.ip-address" }}"
+      url = 'http://{{"{{"}}if ne .ServiceAddress ""}}{{"{{"}}.ServiceAddress}}{{"{{"}}else}}{{"{{"}}.Address}}{{"{{"}}end}}:{{"{{"}}with .ServiceMeta.metrics}}{{"{{"}}.}}{{"{{"}}else}}{{"{{"}}.ServicePort}}{{"{{"}}end}}{{"{{"}}with .ServiceMeta.metrics_path}}{{"{{"}}.}}{{"{{"}}else}}/metrics{{"{{"}}end}}'
+      [inputs.prometheus.consul.query.tags]
+        host = "{{"{{"}}.Node}}"
+        service = "tenant-pin-writer"
+        target_environment = "{{"{{"}}with .ServiceMeta.target_environment}}{{"{{"}}.}}{{"{{"}}else}}unknown{{"{{"}}end}}"
 
 [[inputs.prometheus]]
   namepass = [
