@@ -105,7 +105,7 @@ resource "oci_core_network_security_group_security_rule" "nsg_rule_ingress_knigh
   network_security_group_id = oci_core_network_security_group.security_group.id
   direction = "INGRESS"
   protocol = "6"
-  source = data.oci_core_vcns.vcns.virtual_networks[0].cidr_block
+  source = "10.0.0.0/8"
   stateless = false
 
   tcp_options {
