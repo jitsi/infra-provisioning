@@ -101,6 +101,21 @@ resource "oci_core_network_security_group_security_rule" "nsg_rule_ingress_healt
   }
 }
 
+resource "oci_core_network_security_group_security_rule" "nsg_rule_ingress_knight" {
+  network_security_group_id = oci_core_network_security_group.security_group.id
+  direction = "INGRESS"
+  protocol = "6"
+  source = "10.0.0.0/8"
+  stateless = false
+
+  tcp_options {
+    destination_port_range {
+      min = 8180
+      max = 8180
+    }
+  }
+}
+
 resource "oci_core_network_security_group_security_rule" "nsg_rule_ingress_consul_serf_tcp" {
   network_security_group_id = oci_core_network_security_group.security_group.id
   direction = "INGRESS"

@@ -10,6 +10,7 @@ def createHAProxyStackOracle() {
         script: """#!/bin/bash
         export USER_PUBLIC_KEY_PATH=~/.ssh/ssh_key.pub
         export ORACLE_GIT_BRANCH=${env.RELEASE_BRANCH}
+        export UPDATE_HAPROXY_SECURITY_GROUP=${env.UPDATE_SECURITY_GROUP}
         terraform/haproxy-shards/create-haproxy-stack-oracle.sh ubuntu"""
     )
 }
