@@ -558,7 +558,7 @@ EOF
         JWT_ACCEPTED_ISSUERS="[[ env "CONFIG_jwt_accepted_issuers" ]]"
         JWT_ACCEPTED_AUDIENCES="[[ env "CONFIG_jwt_accepted_audiences" ]]"
 [[- if eq (env "CONFIG_prosody_enable_wait_for_host") "true" ]]
-        JWT_ACCEPTED_ALLOWNER_ISSUERS="{ \"jitsi\" }"
+        JWT_ACCEPTED_ALLOWNER_ISSUERS="jitsi"
 [[- end ]]
         JWT_ASAP_KEYSERVER="[[ env "CONFIG_prosody_public_key_repo_url" ]]"
         JWT_APP_ID="jitsi"
