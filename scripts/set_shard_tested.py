@@ -27,6 +27,8 @@ SHARD_HAPROXY_ROLE="haproxy"
 width = 25
 
 region = shard_region_from_name(SHARD)
+if not region:
+  region='us-phoenix-1'
 
 update_consul_kv(ENVIRONMENT, region, SHARD, STATE, BUILD_NUMBER)
 

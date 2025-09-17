@@ -41,4 +41,18 @@ pipeline {
       }
     }
   }
+  post {
+      success{
+          script {
+              build job: 'validate-shards',wait: false,parameters: [
+                [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: env.ENVIRONMENT],
+                [$class: 'StringParameterValue', name: 'SHARDS', value: env.UNIQUE_ID],
+                [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH]
+              ]
+          }
+      }
+      cleanup {
+          cleanWs()
+      }
+  }
 }
