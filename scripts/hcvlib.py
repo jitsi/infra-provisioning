@@ -1587,7 +1587,8 @@ def find_asg_by_tags(region,environment,role=False,grid=False,grid_role=False,re
 def shard_region_from_name(shard_name, map_to_aws=True):
     shard_region = ''
     check_oracle_map = False
-    if shard_name and '-s' in shard_name:
+    shard_signs = ['-s','-global-','-remote-','-local-']
+    if shard_name and len([ x for x in shard_signs if x in shard_name ])>0:
         shard_pieces = shard_name.split('-')
         shard_number = shard_pieces.pop()
         region_az = shard_pieces.pop()
