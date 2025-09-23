@@ -1017,7 +1017,7 @@ EOH
 
       resources {
         cpu    = 1000
-        memory = 4096
+        memory = "%{ if var.environment_type == "prod" }6144%{ else }2048%{ endif }"
       }
         
       service {
