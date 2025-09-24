@@ -650,6 +650,9 @@ visitors_queue_service = \"[[ env "CONFIG_prosody_visitors_queue_service_url" ]]
 [[- if eq (env "CONFIG_prosody_disable_required_room_claim") "true" -]]
 asap_require_room_claim = false;\n
 [[- end -]]
+[[- if eq (env "CONFIG_prosody_displayname_ignore_jwt_name") "true" -]]
+ignore_jwt_name = true;\n
+[[- end -]]
 [[- if eq (env "CONFIG_prosody_enable_muc_events") "true" -]]
 asap_key_path = \"/secrets/asap.key\";\nasap_key_id = \"{{ with secret "secret/[[ env "CONFIG_environment" ]]/asap/server" }}{{ .Data.data.key_id }}{{ end }}\";\nasap_issuer = \"[[ or (env "CONFIG_prosody_asap_issuer") "jitsi" ]]\";\nasap_audience = \"[[ or (env "CONFIG_prosody_asap_audience") "jitsi" ]]\";\n
 [[- end -]]
