@@ -221,11 +221,13 @@ jmt {
         bitrate-threshold = [[ or (env "CONFIG_jvb_loss_bitrate_threshold_kbps") "1000" ]] kbps
       }
     }
-[[ if ne (or (env "CONFIG_jvb_use_google_cc2_bwe") "true") "false" ]]
    estimator {
+[[ if ne (or (env "CONFIG_jvb_use_google_cc2_bwe") "true") "false" ]]
        engine = GoogleCc2
-    }
+[[ else ]]
+       engine = GoogleCc
 [[ end ]]
+    }
   }
 [[ if eq (or (env "CONFIG_jvb_skip_authentication_for_silence") "false") "true" ]]
   srtp {
