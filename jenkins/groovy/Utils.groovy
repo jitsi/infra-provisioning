@@ -242,6 +242,14 @@ def SetupSSH() {
     env.USER_PUBLIC_KEY_PATH='~/.ssh/ssh_key.pub'
 }
 
+def GetShardBase(hcv_environment) {
+    def shard_base = GetEnvironmentVar(hcv_environment,'SHARD_BASE')
+    if (shard_base !== 'false') {
+        return shard_base
+    }
+    return hcv_environment
+}
+
 def GetEnvironmentVar(hcv_environment,var_name) {
     def ret = 'false';
 

@@ -77,6 +77,7 @@ def localPools = []
 def remotePools = []
 def globalPools = []
 def releaseBranch = ""
+def cloud_list = []
 
 pipeline {
     agent any
@@ -103,13 +104,13 @@ pipeline {
                 echo "RELEASE_NUMBER ${env.RELEASE_NUMBER}"
                 echo "CLOUDS ${env.CLOUDS}"
                 echo "JVB_VERSION ${env.JVB_VERSION}"
-                echo "ORACLE_REGION ${env.ORACLE_REGION}"
             }
         }
         stage("List existing pools") {
             steps {
                 script {
                     dir('infra-provisioning') {
+                        cloud_list = utils.SplitClouds(env.ENVIRONMENT,env.CLOUDS);
                         existingPools = listJVBPools(env.RELEASE_NUMBER)
                         echo "Existing JVB pools found:"
                         echo "${existingPools}"
@@ -135,21 +136,43 @@ pipeline {
         stage("Provision global pool") {
             when {
                 expression {
-                    return globalPools.size() == 0
+                    return globalPools.size() < cloud_list.size()
                 }
             }
             steps {
                 script {
-                    echo "No global pool found, provisioning new global pool"
-                    provisionGlobalPool(
-                        env.ENVIRONMENT,
-                        env.ORACLE_REGION,
-                        env.CLOUD_PROVIDER,
-                        releaseBranch,
-                        env.RELEASE_NUMBER,
-                        env.JVB_VERSION,
-                        env.VIDEO_INFRA_BRANCH
-                    )
+                  dir('infra-provisioning') {
+                    echo "No global pool found, provisioning new global pool where missing"
+                    // loop on regions and provision global pools
+                    def cloud_list = utils.SplitClouds(env.ENVIRONMENT,env.CLOUDS);
+                    def shard_base = utils.GetShardBase(env.ENVIRONMENT)
+                    echo "cloud list ${cloud_list}";
+                    def branches = [:]
+                    for(i = 0; i < cloud_list.size(); i++) {
+                        def curr = i
+                        def oracle_region = utils.OracleRegionFromCloud(cloud_list[curr])
+                        def pool_name = "${shard_base}-${oracle_region}-global-${env.RELEASE_NUMBER}"
+                        if (pool_name in globalPools) {
+                            echo "Pool ${pool_name} already exists, not re-provisioning"
+                        } else {
+                            echo "pipeline branch ${curr} for shard ${cloud_list[curr]} ${oracle_region}";
+                            branches["Provision ${cloud_list[curr]}"] = {
+                                provisionGlobalPool(
+                                    env.ENVIRONMENT,
+                                    oracle_region,
+                                    env.CLOUD_PROVIDER,
+                                    releaseBranch,
+                                    env.RELEASE_NUMBER,
+                                    env.JVB_VERSION,
+                                    env.VIDEO_INFRA_BRANCH
+                                )
+                            }
+                        }
+                    }
+                    // branch out here, run all create shard jobs at once
+                    // only succeed if all branches succeed
+                    parallel branches
+                  }
                 }
             }
         }

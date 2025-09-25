@@ -26,12 +26,8 @@
           description: "Cloud Provider, defaults to 'oracle'"
           trim: true
       - string:
-          name: ORACLE_REGION
-          description: "Name of oracle region to provision global pool in"
-          trim: true
-      - string:
           name: JVB_VERSION
-          description: "Controls the version of JVB to launch for global pool"
+          description: "Controls the version of JVB to launch for global pools"
           trim: true
       - string:
           name: DRAIN_WAIT_PERIOD
