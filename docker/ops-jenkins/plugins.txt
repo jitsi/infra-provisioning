@@ -26,3 +26,6 @@ docker-workflow
 saferestart
 dark-theme
 discard-old-build
+commons-lang3-api
+docker-java-api
+commons-compress-api
