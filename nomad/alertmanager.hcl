@@ -41,6 +41,7 @@ job "[JOB_NAME]" {
   }
 
   group "alertmanager" {
+    count = 2
 
     constraint {
       attribute  = "${meta.pool_type}"
@@ -62,6 +63,9 @@ job "[JOB_NAME]" {
       port "alertmanager_ui" {
         to = 9093
       }
+      port "alertmanager_cluster" {
+        to = 9094
+      }
     }
 
     task "alertmanager" {
@@ -75,9 +79,16 @@ job "[JOB_NAME]" {
       config {
         image = "prom/alertmanager:${var.alertmanager_version}"
         force_pull = false
-        ports = ["alertmanager_ui"]
+        ports = ["alertmanager_ui", "alertmanager_cluster"]
         volumes = [
           "local/alertmanager.yml:/etc/alertmanager/alertmanager.yml"
+        ]
+        args = [
+          "--config.file=/etc/alertmanager/alertmanager.yml",
+          "--storage.path=/alertmanager",
+          "--web.listen-address=0.0.0.0:9093",
+          "--cluster.listen-address=0.0.0.0:9094",
+          "--cluster.peer={{ range service \"alertmanager%{ if var.global_alertmanager }-global%{ endif }\" }}{{ if ne .Address (env \"NOMAD_IP_alertmanager_cluster\") }}{{ .Address }}:{{ .Port }}{{ end }}{{ end }}"
         ]
       }
 
