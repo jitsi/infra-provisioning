@@ -36,8 +36,15 @@ job "[JOB_NAME]" {
   priority    = 75
 
   update {
-    max_parallel = 1
-    stagger      = "10s"
+    max_parallel      = 1
+    health_check      = "checks"
+    min_healthy_time  = "10s"
+    healthy_deadline  = "5m"
+    progress_deadline = "10m"
+    auto_revert       = true
+    auto_promote      = true
+    canary            = 1
+    stagger           = "30s"
   }
 
   group "alertmanager" {
@@ -60,13 +67,18 @@ job "[JOB_NAME]" {
     }
 
     network {
+      dns {
+        servers = ["${attr.unique.network.ip-address}", "169.254.169.254"]
+      }
       port "alertmanager_ui" {
         to = 9093
       }
       port "alertmanager_cluster" {
-        to = 9094
+        static = 9094
       }
     }
+
+    #nslookup: write to '10.52.131.129': No route to host
 
     task "alertmanager" {
       user = "root"
@@ -88,19 +100,22 @@ job "[JOB_NAME]" {
           "--storage.path=/alertmanager",
           "--web.listen-address=0.0.0.0:9093",
           "--cluster.listen-address=0.0.0.0:9094",
-          "--cluster.peer=${CLUSTER_PEER}"
+          "--cluster.peer=alertmanager.service.consul:9094",
+#          "--cluster.advertise-address=${attr.unique.network.ip-address}:9094",
+#          "${CLUSTER_PEER}",
         ]
       }
 
-
-      template {
-        destination = "local/env"
-        env         = true
-        data        = <<EOT
-CLUSTER_PEER={{ range service "alertmanager%{ if var.global_alertmanager }-global%{ endif }" }}{{ if ne .Address (env "NOMAD_IP_alertmanager_cluster") }}{{ .Address }}:{{ .ServiceMeta.cluster_port }}{{ end }}{{ end }}
-EOT
-      }
-      # the above is blank (chicken-egg, I bet)
+#      template {
+#        destination = "local/env"
+#        env         = true
+#        change_mode = "noop"
+#        data        = <<EOT
+#{{ scratch.Set "peers" "false" }}{{ range service "alertmanager" }}{{ if ne .Address (env "NOMAD_IP_alertmanager_cluster") }}{{ scratch.Set "peers" "true" -}}
+#CLUSTER_PEER="--cluster.peer={{ .Address }}:{{ .ServiceMeta.cluster_port }}"{{ break }}{{ end }}{{ end -}}
+#{{ if eq (scratch.Get "peers") "false" }}CLUSTER_PEER="--cluster.label="{{ end }}
+#EOT
+#      }
 
       template {
         destination = "local/alertmanager.yml"
