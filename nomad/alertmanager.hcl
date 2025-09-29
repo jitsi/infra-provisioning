@@ -8,7 +8,7 @@ variable "alertmanager_hostname" {
 
 variable "alertmanager_version" {
   type = string
-  default = "v0.27.0"
+  default = "v0.28.0"
 }
 
 variable "global_alertmanager" {
@@ -88,9 +88,19 @@ job "[JOB_NAME]" {
           "--storage.path=/alertmanager",
           "--web.listen-address=0.0.0.0:9093",
           "--cluster.listen-address=0.0.0.0:9094",
-          "--cluster.peer={{ range service \"alertmanager%{ if var.global_alertmanager }-global%{ endif }\" }}{{ if ne .Address (env \"NOMAD_IP_alertmanager_cluster\") }}{{ .Address }}:{{ .Port }}{{ end }}{{ end }}"
+          "--cluster.peer=${CLUSTER_PEER}"
         ]
       }
+
+
+      template {
+        destination = "local/env"
+        env         = true
+        data        = <<EOT
+CLUSTER_PEER={{ range service "alertmanager%{ if var.global_alertmanager }-global%{ endif }" }}{{ if ne .Address (env "NOMAD_IP_alertmanager_cluster") }}{{ .Address }}:{{ .ServiceMeta.cluster_port }}{{ end }}{{ end }}
+EOT
+      }
+      # the above is blank (chicken-egg, I bet)
 
       template {
         destination = "local/alertmanager.yml"
@@ -199,6 +209,10 @@ EOH
           path     = "/-/healthy"
           interval = "10s"
           timeout  = "2s"
+        }
+
+        meta {
+          cluster_port = "${NOMAD_HOST_PORT_alertmanager_cluster}"
         }
       }
     }
