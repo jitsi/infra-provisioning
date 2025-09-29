@@ -142,36 +142,45 @@ pipeline {
             steps {
                 script {
                   dir('infra-provisioning') {
-                    echo "No global pool found, provisioning new global pool where missing"
-                    // loop on regions and provision global pools
-                    cloud_list = utils.SplitClouds(env.ENVIRONMENT,env.CLOUDS);
-                    def shard_base = utils.GetShardBase(env.ENVIRONMENT)
-                    echo "cloud list ${cloud_list}";
-                    def branches = [:]
-                    for(i = 0; i < cloud_list.size(); i++) {
-                        def curr = i
-                        def oracle_region = utils.OracleRegionFromCloud(cloud_list[curr])
-                        def pool_name = "${shard_base}-${oracle_region}-global-${env.RELEASE_NUMBER}"
-                        if (pool_name in globalPools) {
-                            echo "Pool ${pool_name} already exists, not re-provisioning"
-                        } else {
-                            echo "pipeline branch ${curr} for shard ${cloud_list[curr]} ${oracle_region}";
-                            branches["Provision ${cloud_list[curr]}"] = {
-                                provisionGlobalPool(
-                                    env.ENVIRONMENT,
-                                    oracle_region,
-                                    env.CLOUD_PROVIDER,
-                                    releaseBranch,
-                                    env.RELEASE_NUMBER,
-                                    env.JVB_VERSION,
-                                    env.VIDEO_INFRA_BRANCH
-                                )
+                    withCredentials([
+                        string(credentialsId: 'asap-jwt-kid-dev', variable: 'ASAP_JWT_KID_DEV'),
+                        string(credentialsId: 'asap-jwt-kid-prod', variable: 'ASAP_JWT_KID_PROD'),
+                        file(credentialsId: 'asap-jwt-key-dev', variable: 'ASAP_JWT_KEY_DEV'),
+                        file(credentialsId: 'asap-jwt-key-prod', variable: 'ASAP_JWT_KEY_PROD')
+                    ]) {
+                        sshagent(credentials: ['ssh-ubuntu']) {
+                        echo "No global pool found, provisioning new global pool where missing"
+                        // loop on regions and provision global pools
+                        cloud_list = utils.SplitClouds(env.ENVIRONMENT,env.CLOUDS);
+                        def shard_base = utils.GetShardBase(env.ENVIRONMENT)
+                        echo "cloud list ${cloud_list}";
+                        def branches = [:]
+                        for(i = 0; i < cloud_list.size(); i++) {
+                            def curr = i
+                            def oracle_region = utils.OracleRegionFromCloud(cloud_list[curr])
+                            def pool_name = "${shard_base}-${oracle_region}-global-${env.RELEASE_NUMBER}"
+                            if (pool_name in globalPools) {
+                                echo "Pool ${pool_name} already exists, not re-provisioning"
+                            } else {
+                                echo "pipeline branch ${curr} for shard ${cloud_list[curr]} ${oracle_region}";
+                                branches["Provision ${cloud_list[curr]}"] = {
+                                    provisionGlobalPool(
+                                        env.ENVIRONMENT,
+                                        oracle_region,
+                                        env.CLOUD_PROVIDER,
+                                        releaseBranch,
+                                        env.RELEASE_NUMBER,
+                                        env.JVB_VERSION,
+                                        env.VIDEO_INFRA_BRANCH
+                                    )
+                                }
                             }
                         }
+                        // branch out here, run all create shard jobs at once
+                        // only succeed if all branches succeed
+                        parallel branches
+                      }
                     }
-                    // branch out here, run all create shard jobs at once
-                    // only succeed if all branches succeed
-                    parallel branches
                   }
                 }
             }
