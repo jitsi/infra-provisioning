@@ -144,7 +144,7 @@ pipeline {
                   dir('infra-provisioning') {
                     echo "No global pool found, provisioning new global pool where missing"
                     // loop on regions and provision global pools
-                    def cloud_list = utils.SplitClouds(env.ENVIRONMENT,env.CLOUDS);
+                    cloud_list = utils.SplitClouds(env.ENVIRONMENT,env.CLOUDS);
                     def shard_base = utils.GetShardBase(env.ENVIRONMENT)
                     echo "cloud list ${cloud_list}";
                     def branches = [:]
