@@ -244,7 +244,9 @@ def SetupSSH() {
 
 def GetShardBase(hcv_environment) {
     def shard_base = GetEnvironmentVar(hcv_environment,'SHARD_BASE')
-    if (shard_base !== 'false') {
+    if (shard_base == "false") {
+        return hcv_environment
+    } else {
         return shard_base
     }
     return hcv_environment
