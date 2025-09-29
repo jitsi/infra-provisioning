@@ -110,24 +110,33 @@ pipeline {
             steps {
                 script {
                     dir('infra-provisioning') {
-                        cloud_list = utils.SplitClouds(env.ENVIRONMENT,env.CLOUDS);
-                        existingPools = listJVBPools(env.RELEASE_NUMBER)
-                        echo "Existing JVB pools found:"
-                        echo "${existingPools}"
-                        
-                        if (existingPools.size() > 0) {
-                            releaseBranch = getReleaseBranchFromPools(env.ENVIRONMENT, existingPools)
-                            echo "Release branch detected: ${releaseBranch}"
-                            
-                            localPools = filterPoolsByMode(existingPools, "local")
-                            remotePools = filterPoolsByMode(existingPools, "remote")
-                            globalPools = filterPoolsByMode(existingPools, "global")
-                            
-                            echo "Local pools: ${localPools}"
-                            echo "Remote pools: ${remotePools}"
-                            echo "Global pools: ${globalPools}"
-                        } else {
-                            error("No JVB pools found for release ${env.RELEASE_NUMBER}")
+                        withCredentials([
+                            string(credentialsId: 'asap-jwt-kid-dev', variable: 'ASAP_JWT_KID_DEV'),
+                            string(credentialsId: 'asap-jwt-kid-prod', variable: 'ASAP_JWT_KID_PROD'),
+                            file(credentialsId: 'asap-jwt-key-dev', variable: 'ASAP_JWT_KEY_DEV'),
+                            file(credentialsId: 'asap-jwt-key-prod', variable: 'ASAP_JWT_KEY_PROD')
+                        ]) {
+                            sshagent(credentials: ['ssh-ubuntu']) {
+                                cloud_list = utils.SplitClouds(env.ENVIRONMENT,env.CLOUDS);
+                                existingPools = listJVBPools(env.RELEASE_NUMBER)
+                                echo "Existing JVB pools found:"
+                                echo "${existingPools}"
+                                
+                                if (existingPools.size() > 0) {
+                                    releaseBranch = getReleaseBranchFromPools(env.ENVIRONMENT, existingPools)
+                                    echo "Release branch detected: ${releaseBranch}"
+                                    
+                                    localPools = filterPoolsByMode(existingPools, "local")
+                                    remotePools = filterPoolsByMode(existingPools, "remote")
+                                    globalPools = filterPoolsByMode(existingPools, "global")
+                                    
+                                    echo "Local pools: ${localPools}"
+                                    echo "Remote pools: ${remotePools}"
+                                    echo "Global pools: ${globalPools}"
+                                } else {
+                                    error("No JVB pools found for release ${env.RELEASE_NUMBER}")
+                                }
+                            }
                         }
                     }
                 }
