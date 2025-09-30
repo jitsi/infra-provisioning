@@ -145,11 +145,11 @@ pipeline {
             }
         }
         stage("Provision global pool") {
-            when {
-                expression {
-                    return globalPools.size() < cloud_list.size()
-                }
-            }
+            // when {
+            //     expression {
+            //         return globalPools.size() < cloud_list.size()
+            //     }
+            // }
             steps {
                 script {
                   dir('infra-provisioning') {
