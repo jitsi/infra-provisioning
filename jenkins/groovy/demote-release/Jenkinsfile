@@ -170,10 +170,8 @@ pipeline {
                             def curr = i
                             def oracle_region = utils.OracleRegionFromCloud(cloud_list[curr])
                             def pool_name = "${shard_base}-${oracle_region}-global-${env.RELEASE_NUMBER}"
-                            echo "Checking if pool ${pool_name} is present in ${globalPools}"
                             def foundPool = false
                             for (String pool : globalPools) {
-                                echo "Comparing ${pool} from ${globalPools} against ${pool_name}"
                                 if (pool == pool_name) {
                                     foundPool = true
                                     break
