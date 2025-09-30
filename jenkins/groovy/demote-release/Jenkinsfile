@@ -56,7 +56,7 @@ def setPoolDesiredCount(environment, pool_name, desired_count, min_count, max_co
 
 def deleteJVBPool(hcv_environment, jvb_pool_name) {
     def deletePool = build job: 'destroy-jvb-pool',parameters: [
-        [$class: 'StringParameterValue', name: 'HCV_ENVIRONMENT', value: hcv_environment],
+        [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: hcv_environment],
         [$class: 'StringParameterValue', name: 'JVB_POOL_NAME', value: jvb_pool_name],
         [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH]
     ]
