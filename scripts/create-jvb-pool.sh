@@ -10,15 +10,19 @@ if [ -z "$ENVIRONMENT" ]; then
   exit 203
 fi
 
+if [ -z "$ORACLE_REGION" ]; then
+  echo "No ORACLE_REGION found. Exiting..."
+  exit 203
+fi
+
+ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
+[ -e "$LOCAL_PATH/../clouds/${ORACLE_CLOUD_NAME}.sh" ] && . $LOCAL_PATH/../clouds/${ORACLE_CLOUD_NAME}.sh
+
 [ -e ./sites/$ENVIRONMENT/stack-env.sh ] && . ./sites/$ENVIRONMENT/stack-env.sh
 
 LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
 source $LOCAL_PATH/../clouds/all.sh
-
-[ -z "$CLOUD_NAME" ] && CLOUD_NAME=$DEFAULT_CLOUD
-
-source $LOCAL_PATH/../clouds/"$CLOUD_NAME".sh
 
 #pull in cloud-specific variables, e.g. tenancy
 [ -e "$LOCAL_PATH/../clouds/oracle.sh" ] && . "$LOCAL_PATH/../clouds/oracle.sh"
@@ -92,9 +96,6 @@ export CLOUD_NAME=${CLOUD_NAME}
 export JVB_AUTOSCALER_ENABLED=true
 
 [ -z "$CLOUD_PROVIDER" ] && CLOUD_PROVIDER="oracle"
-
-ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
-[ -e "$LOCAL_PATH/../clouds/${ORACLE_CLOUD_NAME}.sh" ] && . $LOCAL_PATH/../clouds/${ORACLE_CLOUD_NAME}.sh
 
 if [[ "$CLOUD_PROVIDER" == "oracle" ]]; then
   echo "Creating Jvb Instance Configuration"
