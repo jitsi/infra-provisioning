@@ -50,7 +50,7 @@ if [[ "$IMAGE_ARCH" == "aarch64" ]]; then
   [ -z "$SHAPE" ] && SHAPE="$SHAPE_A_1"  
 fi
 
-[ -z "$SHAPE" ] && SHAPE="$SHAPE_E_6"
+[ -z "$SHAPE" ] && SHAPE="$SHAPE_E_5"
 [ -z "$OCPUS" ] && OCPUS="4"
 [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS="12"
 
