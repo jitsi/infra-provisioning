@@ -48,8 +48,8 @@ def setPoolDesiredCount(environment, pool_name, desired_count, min_count, max_co
         [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: environment],
         [$class: 'StringParameterValue', name: 'GROUP_NAME', value: "${pool_name}-JVBCustomGroup"],
         [$class: 'StringParameterValue', name: 'DESIRED_COUNT', value: desired_count.toString()],
-        [$class: 'StringParameterValue', name: 'MIN_COUNT', value: min_count.toString()],
-        [$class: 'StringParameterValue', name: 'MAX_COUNT', value: max_count.toString()],
+        [$class: 'StringParameterValue', name: 'MIN_DESIRED', value: min_count.toString()],
+        [$class: 'StringParameterValue', name: 'MAX_DESIRED', value: max_count.toString()],
         [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH]
     ]
 }
