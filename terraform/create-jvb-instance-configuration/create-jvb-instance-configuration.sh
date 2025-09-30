@@ -60,11 +60,6 @@ if [ -z "$ORACLE_REGION" ]; then
   exit 203
 fi
 
-if [ -z "$CLOUD_NAME" ]; then
-  echo "No CLOUD_NAME found.  Exiting..."
-  exit 203
-fi
-
 ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 [ -e "$LOCAL_PATH/../../clouds/${ORACLE_CLOUD_NAME}.sh" ] && . $LOCAL_PATH/../../clouds/${ORACLE_CLOUD_NAME}.sh
 
@@ -225,7 +220,6 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
   -var="jvb_pool_mode=$JVB_POOL_MODE" \
   -var="xmpp_host_public_ip_address=$XMPP_HOST_PUBLIC_IP_ADDRESS" \
   -var="instance_config_name=$INSTANCE_CONFIG_NAME" \
-  -var="aws_cloud_name=$CLOUD_NAME" \
   -var="environment_type=$ENVIRONMENT_TYPE" \
   -var="tag_namespace=$TAG_NAMESPACE" \
   -var="user_public_key_path=$USER_PUBLIC_KEY_PATH" \
