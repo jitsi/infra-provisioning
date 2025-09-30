@@ -43,11 +43,13 @@ def provisionGlobalPool(environment, oracle_region, cloud_provider, release_bran
     return provision_job
 }
 
-def setPoolDesiredCount(environment, pool_name, desired_count) {
+def setPoolDesiredCount(environment, pool_name, desired_count, min_count, max_count) {
     build job: 'reconfigure-autoscaler-desired-values',wait: true,parameters: [
         [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: environment],
         [$class: 'StringParameterValue', name: 'GROUP_NAME', value: "${pool_name}-JVBCustomGroup"],
         [$class: 'StringParameterValue', name: 'DESIRED_COUNT', value: desired_count.toString()],
+        [$class: 'StringParameterValue', name: 'MIN_COUNT', value: min_count.toString()],
+        [$class: 'StringParameterValue', name: 'MAX_COUNT', value: max_count.toString()],
         [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH]
     ]
 }
@@ -228,7 +230,7 @@ pipeline {
                     for(i = 0; i < poolsToDrain.size(); i++) {
                         def pcurr = i
                         branches["Scale down ${poolsToDrain[pcurr]}"] = {
-                            setPoolDesiredCount(env.ENVIRONMENT, poolsToDrain[pcurr], 0)
+                            setPoolDesiredCount(env.ENVIRONMENT, poolsToDrain[pcurr], 0, 0, 0)
                         }
                     }
                     parallel branches
