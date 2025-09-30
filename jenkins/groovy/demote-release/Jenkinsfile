@@ -170,6 +170,7 @@ pipeline {
                             def curr = i
                             def oracle_region = utils.OracleRegionFromCloud(cloud_list[curr])
                             def pool_name = "${shard_base}-${oracle_region}-global-${env.RELEASE_NUMBER}"
+                            echo "Checking if pool ${pool_name} is present in ${globalPools}"
                             if (pool_name in globalPools) {
                                 echo "Pool ${pool_name} already exists, not re-provisioning"
                             } else {
