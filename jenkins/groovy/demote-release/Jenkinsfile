@@ -199,11 +199,11 @@ pipeline {
         stage("Wait for confirmation") {
             when {
                 expression {
-                    if (globalPools.size() < cloud_list.size()) {
+                    if (localPools.size() > 0 || remotePools.size() > 0) {
                         input message: 'Global pool is ready. Proceed with draining and deleting local/remote pools?'
                         return true
-                    } else {            
-                        echo "No global pools generated, skipping drain & delete"
+                    } else {
+                        echo "No pools to remove, skipping drain & delete"
                         return false
                     }
                 }
