@@ -18,6 +18,36 @@ LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 [ -e "$LOCAL_PATH/../clouds/oracle.sh" ] && . $LOCAL_PATH/../clouds/oracle.sh
 [ -e "$LOCAL_PATH/../clouds/all.sh" ] && . $LOCAL_PATH/../clouds/all.sh
 
+if [ -z "$GROUP_NAME" ]; then
+  if [ -z "$TYPE" ]; then
+    echo "No TYPE provided or found. Exiting.. "
+    exit 213
+  fi
+
+  if [ -z "$ORACLE_REGION" ]; then
+    echo "No ORACLE_REGION found.  Exiting..."
+    exit 203
+  fi
+
+  if [ "$TYPE" == 'jibri' ]; then
+    [ -z "$NAME_ROOT_SUFFIX" ] && NAME_ROOT_SUFFIX="JibriCustomGroup"
+    [ -z "$GROUP_NAME" ] && GROUP_NAME="$ENVIRONMENT-$ORACLE_REGION-$NAME_ROOT_SUFFIX"
+  elif [ "$TYPE" == "sip-jibri" ]; then
+    [ -z "$NAME_ROOT_SUFFIX" ] && NAME_ROOT_SUFFIX="SipJibriCustomGroup"
+    [ -z "$GROUP_NAME" ] && GROUP_NAME="$ENVIRONMENT-$ORACLE_REGION-$NAME_ROOT_SUFFIX"
+  else
+    if [ -z "$GROUP_NAME" ]; then
+      echo "No GROUP_NAME provided or found. Exiting.. "
+      exit 214
+    fi
+  fi
+else
+  if [ -z "$ORACLE_REGION" ]; then
+    REGION_SHARD="${GROUP_NAME/-JVBCustomGroup/}"
+    ORACLE_REGION="$($LOCAL_PATH/shard.py --shard_region --environment=$ENVIRONMENT --shard=$REGION_SHARD --oracle)"
+  fi
+fi
+
 if [ -z "$ORACLE_REGION" ]; then
   echo "No ORACLE_REGION found.  Exiting..."
   exit 203
@@ -42,25 +72,6 @@ fi
 
 [ -z "$TOKEN" ] && TOKEN=$(JWT_ENV_FILE=$JWT_ENV_FILE /opt/jitsi/jitsi-autoscaler-sidecar/scripts/jwt.sh)
 
-if [ -z "$GROUP_NAME" ]; then
-  if [ -z "$TYPE" ]; then
-    echo "No TYPE provided or found. Exiting.. "
-    exit 213
-  fi
-
-  if [ "$TYPE" == 'jibri' ]; then
-    [ -z "$NAME_ROOT_SUFFIX" ] && NAME_ROOT_SUFFIX="JibriCustomGroup"
-    [ -z "$GROUP_NAME" ] && GROUP_NAME="$ENVIRONMENT-$ORACLE_REGION-$NAME_ROOT_SUFFIX"
-  elif [ "$TYPE" == "sip-jibri" ]; then
-    [ -z "$NAME_ROOT_SUFFIX" ] && NAME_ROOT_SUFFIX="SipJibriCustomGroup"
-    [ -z "$GROUP_NAME" ] && GROUP_NAME="$ENVIRONMENT-$ORACLE_REGION-$NAME_ROOT_SUFFIX"
-  else
-    if [ -z "$GROUP_NAME" ]; then
-      echo "No GROUP_NAME provided or found. Exiting.. "
-      exit 214
-    fi
-  fi
-fi
 
 #allow empty values
 [ -z "$MIN_DESIRED" ] && MIN_DESIRED=
