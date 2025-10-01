@@ -63,6 +63,15 @@ def deleteJVBPool(hcv_environment, jvb_pool_name) {
     return deletePool
 }
 
+def deleteShards(hcv_environment, shards_to_delete, video_infra_branch) {
+    def deleteShard = build job: 'destroy-shards',wait: true,parameters: [
+        [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: hcv_environment],
+        [$class: 'StringParameterValue', name: 'SHARDS', value: shards_to_delete],
+        [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: video_infra_branch]
+    ]
+    return deleteShard
+}
+
 def filterPoolsByMode(pools, mode) {
     def filtered = []
     for (pool in pools) {
@@ -408,7 +417,48 @@ pipeline {
                     }
                 }
             }
+        }
+        stage("Wait for shards to drain") {
+            when {
+                expression {
+                    return shardsToDrain.size() > 0
+                }
+            }
+            steps {
+                script {
+                    echo "Sleeping for ${env.DRAIN_WAIT_PERIOD} seconds to allow shards to drain"
+                    sleep env.DRAIN_WAIT_PERIOD.toInteger()
+                }
+            }
+        }
+        stage("Delete drained shards") {
+            when {
+                expression {
+                    return shardsToDrain.size() > 0
+                }
+            }
+            steps {
+                script {
+                    echo "Deleting ${shardsToDrain.size()} drained shards"
 
+                    def branches = [:]
+                    for(i = 0; i < shardsToDrain.size(); i++) {
+                        def scurr = i
+                        def shardName = shardsToDrain[scurr]
+                        branches["Delete ${shardName}"] = {
+                            deleteShards(
+                                env.ENVIRONMENT,
+                                shardName,
+                                env.VIDEO_INFRA_BRANCH
+                            )
+                        }
+                    }
+
+                    echo "Triggering parallel deletion of shards: ${shardsToDrain}"
+                    parallel branches
+                    echo "Successfully deleted all drained shards"
+                }
+            }
         }
     }
 }
