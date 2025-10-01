@@ -126,6 +126,7 @@ job "[JOB_NAME]" {
         REGISTRY_HTTP_DEBUG_ADDR = ":5001"
         REGISTRY_HTTP_DEBUG_PROMETHEUS_ENABLED = "true"
         REGISTRY_HTTP_DEBUG_PROMETHEUS_PATH = "/metrics"
+        OTEL_TRACES_EXPORTER="none"
       }
 
       template {
