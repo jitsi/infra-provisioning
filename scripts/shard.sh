@@ -80,7 +80,7 @@ function core_provider() {
 
 function shard_region() {
     local shard="$1"
-    SHARD_REGION=$($LOCAL_PATH/shard.py  --shard_region --environment=$ENVIRONMENT --shard=$SHARD)
+    SHARD_REGION=$($LOCAL_PATH/shard.py  --shard_region --environment=$ENVIRONMENT --shard=$SHARD --oracle)
     echo $SHARD_REGION
 }
 
