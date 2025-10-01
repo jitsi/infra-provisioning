@@ -63,6 +63,16 @@ def deleteJVBPool(hcv_environment, jvb_pool_name) {
     return deletePool
 }
 
+def reconfigureShardStates(hcv_environment, shards_ready, shards_drain, video_infra_branch) {
+    def reconfigureJob = build job: 'reconfigure-shard-states',wait: true,parameters: [
+        [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: hcv_environment],
+        [$class: 'StringParameterValue', name: 'SHARDS_READY', value: shards_ready],
+        [$class: 'StringParameterValue', name: 'SHARDS_DRAIN', value: shards_drain],
+        [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: video_infra_branch]
+    ]
+    return reconfigureJob
+}
+
 def deleteShards(hcv_environment, shards_to_delete, video_infra_branch) {
     def deleteShard = build job: 'destroy-shards',wait: true,parameters: [
         [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: hcv_environment],
@@ -385,36 +395,25 @@ pipeline {
             }
             steps {
                 script {
-                    dir('infra-provisioning') {
-                        withCredentials([
-                            string(credentialsId: 'asap-jwt-kid-dev', variable: 'ASAP_JWT_KID_DEV'),
-                            string(credentialsId: 'asap-jwt-kid-prod', variable: 'ASAP_JWT_KID_PROD'),
-                            file(credentialsId: 'asap-jwt-key-dev', variable: 'ASAP_JWT_KEY_DEV'),
-                            file(credentialsId: 'asap-jwt-key-prod', variable: 'ASAP_JWT_KEY_PROD')
-                        ]) {
-                            sshagent(credentials: ['ssh-ubuntu']) {
-                                echo "Draining ${shardsToDrain.size()} extraneous shards"
+                    echo "Draining ${shardsToDrain.size()} extraneous shards"
 
-                                // Build the SHARDS_READY and SHARDS_DRAIN environment variables
-                                def shardsReadyStr = shardsToKeep.join(' ')
-                                def shardsDrainStr = shardsToDrain.join(' ')
+                    // Build the SHARDS_READY and SHARDS_DRAIN parameters
+                    def shardsReadyStr = shardsToKeep.join(' ')
+                    def shardsDrainStr = shardsToDrain.join(' ')
 
-                                echo "Setting shard states:"
-                                echo "  SHARDS_READY: ${shardsReadyStr}"
-                                echo "  SHARDS_DRAIN: ${shardsDrainStr}"
+                    echo "Setting shard states:"
+                    echo "  SHARDS_READY: ${shardsReadyStr}"
+                    echo "  SHARDS_DRAIN: ${shardsDrainStr}"
 
-                                // Call set-haproxy-shard-states.sh to drain the shards
-                                sh """
-                                export ENVIRONMENT="${env.ENVIRONMENT}"
-                                export SHARDS_READY="${shardsReadyStr}"
-                                export SHARDS_DRAIN="${shardsDrainStr}"
-                                scripts/set-haproxy-shard-states.sh ubuntu
-                                """
+                    // Call reconfigure-shard-states job to drain the shards
+                    reconfigureShardStates(
+                        env.ENVIRONMENT,
+                        shardsReadyStr,
+                        shardsDrainStr,
+                        env.VIDEO_INFRA_BRANCH
+                    )
 
-                                echo "Successfully drained extraneous shards"
-                            }
-                        }
-                    }
+                    echo "Successfully drained extraneous shards"
                 }
             }
         }
