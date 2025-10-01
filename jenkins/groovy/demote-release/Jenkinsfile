@@ -80,6 +80,9 @@ def remotePools = []
 def globalPools = []
 def releaseBranch = ""
 def cloud_list = []
+def shardsByRegion = [:]
+def shardsToKeep = []
+def shardsToDrain = []
 
 pipeline {
     agent any
@@ -287,6 +290,125 @@ pipeline {
                     }
                 }
             }
+        }
+        stage("List existing shards") {
+            steps {
+                script {
+                    dir('infra-provisioning') {
+                        withCredentials([
+                            string(credentialsId: 'asap-jwt-kid-dev', variable: 'ASAP_JWT_KID_DEV'),
+                            string(credentialsId: 'asap-jwt-kid-prod', variable: 'ASAP_JWT_KID_PROD'),
+                            file(credentialsId: 'asap-jwt-key-dev', variable: 'ASAP_JWT_KEY_DEV'),
+                            file(credentialsId: 'asap-jwt-key-prod', variable: 'ASAP_JWT_KEY_PROD')
+                        ]) {
+                            sshagent(credentials: ['ssh-ubuntu']) {
+                                // Get all shards for the release
+                                def shardsStr = sh(
+                                    returnStdout: true,
+                                    script: """
+                                    export RELEASE_NUMBER="${env.RELEASE_NUMBER}"
+                                    export ENVIRONMENT="${env.ENVIRONMENT}"
+                                    scripts/list-release-shards.sh
+                                    """
+                                ).trim()
+
+                                if (shardsStr.length() > 0) {
+                                    def allShards = shardsStr.split(' ')
+                                    echo "Found ${allShards.size()} shards for release ${env.RELEASE_NUMBER}:"
+                                    echo "${allShards}"
+
+                                    // Group shards by region
+                                    for (shard in allShards) {
+                                        def region = sh(
+                                            returnStdout: true,
+                                            script: """
+                                            export ENVIRONMENT="${env.ENVIRONMENT}"
+                                            export SHARD="${shard}"
+                                            scripts/shard.sh shard_region
+                                            """
+                                        ).trim()
+
+                                        if (!shardsByRegion.containsKey(region)) {
+                                            shardsByRegion[region] = []
+                                        }
+                                        shardsByRegion[region].add(shard)
+                                    }
+
+                                    echo "Shards grouped by region:"
+                                    shardsByRegion.each { region, shards ->
+                                        echo "  ${region}: ${shards}"
+                                    }
+
+                                    // Determine which shards to keep (one per region) and which to drain
+                                    shardsByRegion.each { region, shards ->
+                                        if (shards.size() > 0) {
+                                            // Keep the first shard in each region
+                                            shardsToKeep.add(shards[0])
+                                            echo "Keeping shard ${shards[0]} in region ${region}"
+
+                                            // Mark remaining shards for draining
+                                            if (shards.size() > 1) {
+                                                for (int i = 1; i < shards.size(); i++) {
+                                                    shardsToDrain.add(shards[i])
+                                                    echo "Marking shard ${shards[i]} for draining in region ${region}"
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    echo "Summary:"
+                                    echo "  Shards to keep: ${shardsToKeep}"
+                                    echo "  Shards to drain: ${shardsToDrain}"
+                                } else {
+                                    echo "No shards found for release ${env.RELEASE_NUMBER}"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        stage("Drain extraneous shards") {
+            when {
+                expression {
+                    return shardsToDrain.size() > 0
+                }
+            }
+            steps {
+                script {
+                    dir('infra-provisioning') {
+                        withCredentials([
+                            string(credentialsId: 'asap-jwt-kid-dev', variable: 'ASAP_JWT_KID_DEV'),
+                            string(credentialsId: 'asap-jwt-kid-prod', variable: 'ASAP_JWT_KID_PROD'),
+                            file(credentialsId: 'asap-jwt-key-dev', variable: 'ASAP_JWT_KEY_DEV'),
+                            file(credentialsId: 'asap-jwt-key-prod', variable: 'ASAP_JWT_KEY_PROD')
+                        ]) {
+                            sshagent(credentials: ['ssh-ubuntu']) {
+                                echo "Draining ${shardsToDrain.size()} extraneous shards"
+
+                                // Build the SHARDS_READY and SHARDS_DRAIN environment variables
+                                def shardsReadyStr = shardsToKeep.join(' ')
+                                def shardsDrainStr = shardsToDrain.join(' ')
+
+                                echo "Setting shard states:"
+                                echo "  SHARDS_READY: ${shardsReadyStr}"
+                                echo "  SHARDS_DRAIN: ${shardsDrainStr}"
+
+                                // Call set-haproxy-shard-states.sh to drain the shards
+                                sh """
+                                export ENVIRONMENT="${env.ENVIRONMENT}"
+                                export SHARDS_READY="${shardsReadyStr}"
+                                export SHARDS_DRAIN="${shardsDrainStr}"
+                                scripts/set-haproxy-shard-states.sh ubuntu
+                                """
+
+                                echo "Successfully drained extraneous shards"
+                            }
+                        }
+                    }
+                }
+            }
+
         }
     }
 }

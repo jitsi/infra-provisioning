@@ -1,11 +1,11 @@
 - job:
     name: demote-release
-    display-name: demote release JVB pools
+    display-name: demote release
     concurrent: true
     parameters:
       - string:
           name: ENVIRONMENT
-          description: "Environment to demote JVB pools in"
+          description: "Environment to demote release"
           trim: true
       - string:
           name: RELEASE_NUMBER
@@ -13,7 +13,7 @@
           trim: true
       - string:
           name: CLOUDS
-          description: "Clouds to demote JVB pools in"
+          description: "Clouds to demote resources"
           trim: true
       - string:
           name: VIDEO_INFRA_BRANCH
@@ -31,7 +31,7 @@
           trim: true
       - string:
           name: DRAIN_WAIT_PERIOD
-          description: "Seconds to wait before deleting local and remote pools after drain"
+          description: "Seconds to wait before deleting shards, local and remote pools after drain"
           default: 21600
           trim: true
       - string:
