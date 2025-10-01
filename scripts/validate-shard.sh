@@ -144,7 +144,12 @@ echo "Start npm install"
 npm install
 echo "Done npm install"
 
+[ -z "$LOCAL_REGION" ] && LOCAL_REGION="$OCI_LOCAL_REGION"
+[ -z "$LOCAL_REGION" ] && LOCAL_REGION="us-phoenix-1"
+
 SHARD_REGION=$(ENVIRONMENT="$ENVIRONMENT" SHARD="$SHARD" $LOCAL_PATH/shard.sh shard_region)
+# presume any shards with no region in the name are in the local region
+[ -z "$SHARD_REGION" ] && SHARD_REGION="$LOCAL_REGION"
 
 [ -e $LOCAL_PATH/../clouds/${SHARD_REGION}-${ENVIRONMENT}-oracle.sh ] && . $LOCAL_PATH/../clouds/${SHARD_REGION}-${ENVIRONMENT}-oracle.sh
 

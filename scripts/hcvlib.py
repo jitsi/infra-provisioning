@@ -1591,19 +1591,20 @@ def shard_region_from_name(shard_name, map_to_aws=True):
     if shard_name and len([ x for x in shard_signs if x in shard_name ])>0:
         shard_pieces = shard_name.split('-')
         shard_number = shard_pieces.pop()
-        region_az = shard_pieces.pop()
-        # for jvb pools the pool type comes next
-        if not region_az[0].isnumeric():
-            check_oracle_map = True
+        if len(shard_pieces) > 1:
             region_az = shard_pieces.pop()
-        region_geo = shard_pieces.pop()
-        region_base = shard_pieces.pop()
-        region_number = region_az[0]
-        shard_region = "%s-%s-%s"%(region_base,region_geo,region_number)
-        shard_region = region_from_alias(shard_region)
-        if check_oracle_map and map_to_aws:
-            if shard_region in ORACLE_REGION_MAP:
-                shard_region = ORACLE_REGION_MAP[shard_region]
+            # for jvb pools the pool type comes next
+            if not region_az[0].isnumeric():
+                check_oracle_map = True
+                region_az = shard_pieces.pop()
+            region_geo = shard_pieces.pop()
+            region_base = shard_pieces.pop()
+            region_number = region_az[0]
+            shard_region = "%s-%s-%s"%(region_base,region_geo,region_number)
+            shard_region = region_from_alias(shard_region)
+            if check_oracle_map and map_to_aws:
+                if shard_region in ORACLE_REGION_MAP:
+                    shard_region = ORACLE_REGION_MAP[shard_region]
 
     return shard_region
 
