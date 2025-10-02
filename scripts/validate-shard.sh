@@ -162,6 +162,8 @@ if [ -n "${VOX_ACCOUNT_ID}" ]; then
   export YTUBE_TEST_BROADCAST_ID="${TEST_YTUBE_TEST_BROADCAST_ID}"
 fi
 
+[ -f ./sites/$ENVIRONMENT/test-expectations.json ] && export EXPECTATIONS=./sites/$ENVIRONMENT/test-expectations.json
+
 HEADLESS=true \
  GRID_HOST_URL="${GRID_URL}" \
  REMOTE_RESOURCE_PATH="/usr/share/jitsi-meet-torture/resources" \
