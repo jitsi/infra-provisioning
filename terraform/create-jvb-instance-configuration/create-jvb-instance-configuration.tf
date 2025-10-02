@@ -16,7 +16,6 @@ variable "xmpp_host_public_ip_address" {}
 variable "release_number" {}
 variable "jvb_release_number" {}
 variable "jvb_pool_mode" {}
-variable "aws_cloud_name" {}
 variable "instance_config_name" {}
 variable "environment_type" {}
 variable "tag_namespace" {}
@@ -76,7 +75,6 @@ locals {
     "${var.tag_namespace}.shard-role" = var.shard_role
     "${var.tag_namespace}.Name" = var.name
     "${var.tag_namespace}.xmpp_host_public_ip_address" = var.xmpp_host_public_ip_address
-    "${var.tag_namespace}.aws_cloud_name" = var.aws_cloud_name
     "${var.tag_namespace}.release_number" = var.release_number
     "${var.tag_namespace}.jvb_release_number" = var.jvb_release_number
     "${var.tag_namespace}.jvb_pool_mode" = var.jvb_pool_mode
