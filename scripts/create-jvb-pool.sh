@@ -1,4 +1,5 @@
 #!/bin/bash
+LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
 set -x
 
@@ -23,8 +24,6 @@ ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 [ -e "$LOCAL_PATH/../clouds/${ORACLE_CLOUD_NAME}.sh" ] && . $LOCAL_PATH/../clouds/${ORACLE_CLOUD_NAME}.sh
 
 [ -e ./sites/$ENVIRONMENT/stack-env.sh ] && . ./sites/$ENVIRONMENT/stack-env.sh
-
-LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
 source $LOCAL_PATH/../clouds/all.sh
 
