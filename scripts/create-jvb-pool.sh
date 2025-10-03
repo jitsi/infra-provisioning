@@ -10,6 +10,10 @@ if [ -z "$ENVIRONMENT" ]; then
   exit 203
 fi
 
+if [ -n "$CLOUD_NAME" ]; then
+  [ -e "$LOCAL_PATH/../clouds/${CLOUD_NAME}.sh" ] && . $LOCAL_PATH/../clouds/${CLOUD_NAME}.sh
+fi
+
 if [ -z "$ORACLE_REGION" ]; then
   echo "No ORACLE_REGION found. Exiting..."
   exit 203
