@@ -19,6 +19,8 @@ fi
 
 [ -e ./sites/$ENVIRONMENT/stack-env.sh ] && . ./sites/$ENVIRONMENT/stack-env.sh
 
+[ -f ./sites/$ENVIRONMENT/test-expectations.json ] && export EXPECTATIONS=$(realpath ./sites/$ENVIRONMENT/test-expectations.json)
+
 #load cloud defaults
 [ -e $LOCAL_PATH/../clouds/all.sh ] && . $LOCAL_PATH/../clouds/all.sh
 
@@ -161,8 +163,6 @@ if [ -n "${VOX_ACCOUNT_ID}" ]; then
   export YTUBE_TEST_STREAM_KEY="${TEST_YTUBE_TEST_STREAM_KEY}"
   export YTUBE_TEST_BROADCAST_ID="${TEST_YTUBE_TEST_BROADCAST_ID}"
 fi
-
-[ -f ./sites/$ENVIRONMENT/test-expectations.json ] && export EXPECTATIONS=./sites/$ENVIRONMENT/test-expectations.json
 
 HEADLESS=true \
  GRID_HOST_URL="${GRID_URL}" \
