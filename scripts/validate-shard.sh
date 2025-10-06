@@ -175,6 +175,7 @@ if [ -n "${VOX_ACCOUNT_ID}" ]; then
 fi
 
 
+set -x
 pwd 
 exit
 
