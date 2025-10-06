@@ -23,6 +23,12 @@ pwd
 ls -l
 ls -l sites
 ls -l sites/$ENVIRONMENT
+if [ -f ./sites/$ENVIRONMENT/test-expectations.json ] ;then
+    export EXPECTATIONS=./sites/$ENVIRONMENT/test-expectations.json
+    echo "exporting EXPECTATIONS=./sites/$ENVIRONMENT/test-expectations.json"
+else
+    echo "No expectations. ENV=$ENVIRONMENT"
+fi
 
 exit
 
@@ -169,12 +175,6 @@ if [ -n "${VOX_ACCOUNT_ID}" ]; then
   export YTUBE_TEST_BROADCAST_ID="${TEST_YTUBE_TEST_BROADCAST_ID}"
 fi
 
-if [ -f ./sites/$ENVIRONMENT/test-expectations.json ] ;then
-    export EXPECTATIONS=./sites/$ENVIRONMENT/test-expectations.json
-    echo "exporting EXPECTATIONS=./sites/$ENVIRONMENT/test-expectations.json"
-else
-    echo "No expectations. ENV=$ENVIRONMENT"
-fi
 
 HEADLESS=true \
  GRID_HOST_URL="${GRID_URL}" \
