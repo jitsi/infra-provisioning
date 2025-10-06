@@ -162,7 +162,12 @@ if [ -n "${VOX_ACCOUNT_ID}" ]; then
   export YTUBE_TEST_BROADCAST_ID="${TEST_YTUBE_TEST_BROADCAST_ID}"
 fi
 
-[ -f ./sites/$ENVIRONMENT/test-expectations.json ] && export EXPECTATIONS=./sites/$ENVIRONMENT/test-expectations.json
+if [ -f ./sites/$ENVIRONMENT/test-expectations.json ] ;then
+    export EXPECTATIONS=./sites/$ENVIRONMENT/test-expectations.json
+    echo "exporting EXPECTATIONS=./sites/$ENVIRONMENT/test-expectations.json"
+else
+    echo "No expectations. ENV=$ENVIRONMENT"
+fi
 
 HEADLESS=true \
  GRID_HOST_URL="${GRID_URL}" \
