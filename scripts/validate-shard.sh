@@ -30,7 +30,6 @@ else
     echo "No expectations. ENV=$ENVIRONMENT"
 fi
 
-exit
 
 #load cloud defaults
 [ -e $LOCAL_PATH/../clouds/all.sh ] && . $LOCAL_PATH/../clouds/all.sh
@@ -175,6 +174,9 @@ if [ -n "${VOX_ACCOUNT_ID}" ]; then
   export YTUBE_TEST_BROADCAST_ID="${TEST_YTUBE_TEST_BROADCAST_ID}"
 fi
 
+
+pwd 
+exit
 
 HEADLESS=true \
  GRID_HOST_URL="${GRID_URL}" \
