@@ -27,9 +27,9 @@ ln -s ../${CUSTOMIZATION_DIRNAME}/config
 ln -s ../${CUSTOMIZATION_DIRNAME}/sites
 
 cd ansible
-ln -s ../${CUSTOMIZATION_DIRNAME}/config
-ln -s ../${CUSTOMIZATION_DIRNAME}/secrets
-ln -s ../${CUSTOMIZATION_DIRNAME}/sites
+ln -s ../../${CUSTOMIZATION_DIRNAME}/config
+ln -s ../../${CUSTOMIZATION_DIRNAME}/secrets
+ln -s ../../${CUSTOMIZATION_DIRNAME}/sites
 
 cd ../../${CUSTOMIZATION_DIRNAME}/ansible
 ln -s ../config
