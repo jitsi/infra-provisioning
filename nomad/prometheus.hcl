@@ -653,7 +653,7 @@ groups:
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=haproxy_shard_unhealthy
   - alert: HAProxy_Peers_Unhealthy
-    expr: haproxy_process_active_peers < 1
+    expr: (haproxy_process_active_peers < 1) and (haproxy_process_uptime_seconds > 60)
     for: 2m
     labels:
       service: jitsi
