@@ -652,6 +652,22 @@ groups:
         triggered.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=haproxy_shard_unhealthy
+  - alert: HAProxy_Peers_Unhealthy
+    expr: haproxy_process_active_peers < 1
+    for: 2m
+    labels:
+      service: jitsi
+      severity: severe
+      page: false
+      scope: global
+    annotations:
+      summary: a haproxy has no peers in ${var.dc}
+      description: >-
+        HAProxy {{ $labels.host }} in ${var.dc} does not have any peers. This
+        means that it is disconnected from the global stick table and may be
+        causing ingress forwarding issues resulting in split brains.
+      dashboard_url: ${var.grafana_url}
+      alert_url: https://${var.prometheus_hostname}/alerts?search=haproxy_peers_unhealthy
   - alert: Jicofo_ICE_Restarts_High
     expr: >-
       max_over_time((100 * sum by (shard) (increase(jitsi_jicofo_participants_restart_requested_total[10m]) unless sum by (shard) (jitsi_jicofo_participants_current < 20)) /
