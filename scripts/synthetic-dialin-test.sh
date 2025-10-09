@@ -69,7 +69,7 @@ function doTest {
     JWT_KID=$JAAS_JWT_KID \
     ROOM_NAME_PREFIX="synthetic_" \
     BASE_URL=https://${ADDR}/$(echo "$JAAS_JWT_KID" | cut -f1 -d"/")/ \
-  npm run test-grid-single tests/specs/alone/dialInAudio.spec.ts | tee -a ${LOG_FILE}
+  npm run test-grid-single tests/specs/alone/dialInAudio.spec.ts tests/specs/misc/dialIn.spec.ts | tee -a ${LOG_FILE}
 
   return ${PIPESTATUS[0]}
 }
