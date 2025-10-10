@@ -654,12 +654,10 @@ groups:
       alert_url: https://${var.prometheus_hostname}/alerts?search=haproxy_shard_unhealthy
   - alert: HAProxy_Peers_Unhealthy
     expr: (haproxy_process_active_peers < 1) and (haproxy_process_uptime_seconds > 300)
-    for: 2m
+    for: 5m
     labels:
       service: jitsi
-      severity: severe
-      page: false
-      scope: global
+      severity: warn
     annotations:
       summary: a haproxy has no peers in ${var.dc}
       description: >-
