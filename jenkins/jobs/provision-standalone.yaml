@@ -95,6 +95,10 @@
           description: "Controls whether to make instance public, defaults to false"
           trim: true
       - string:
+          name: PROSODY_FROM_URL
+          description: "Controls whether install prosody from apt or URL"
+          trim: true
+      - string:
           name: INFRA_CONFIGURATION_REPO
           default: git@github.com:jitsi/infra-configuration.git
           description: "Repo for configuration code (ansible etc), defaults to 'git@github.com:jitsi/infra-configuration.git'."
