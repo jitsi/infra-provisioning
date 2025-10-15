@@ -475,10 +475,11 @@ EOH
       driver = "docker"
       config {
         force_pull = [[ or (env "CONFIG_force_pull") "false" ]]
-        image        = "jitsi/signal-sidecar:latest"
+        image        = "jitsi/signal-sidecar:[[ env "CONFIG_signal_sidecar_tag" ]]"
         ports = ["signal-sidecar-agent","signal-sidecar-http"]
         labels {
           release = "[[ env "CONFIG_release_number" ]]"
+          version = "[[ env "CONFIG_signal_sidecar_tag" ]]"
         }
       }
 
