@@ -64,7 +64,8 @@ fi
 
 [ -z "$JICOFO_TAG" ] && JICOFO_TAG="$DOCKER_TAG"
 [ -z "$PROSODY_TAG" ] && PROSODY_TAG="$DOCKER_TAG"
-[ -z "$SIGNAL_SIDECAR_IMAGE_TAG" ] && SIGNAL_SIDECAR_IMAGE_TAG="latest"
+[ -z "$SIGNAL_SIDECAR_IMAGE" ] && SIGNAL_SIDECAR_IMAGE="jitsi/signal-sidecar"
+[ -z "$SIGNAL_SIDECAR_IMAGE_TAG" ] && SIGNAL_SIDECAR_IMAGE_TAG="0.0.10"
 
 NOMAD_DC="$ENVIRONMENT-$ORACLE_REGION"
 
@@ -292,6 +293,7 @@ export CONFIG_jicofo_tag="$JICOFO_TAG"
 export CONFIG_prosody_tag="$PROSODY_TAG"
 export CONFIG_pool_type="$NOMAD_POOL_TYPE"
 export CONFIG_signal_api_hostname="$SIGNAL_API_HOSTNAME"
+export CONFIG_signal_sidecar_image="$SIGNAL_SIDECAR_IMAGE"
 export CONFIG_signal_sidecar_tag="$SIGNAL_SIDECAR_IMAGE_TAG"
 
 [ -z "$CONFIG_visitors_count" ] && CONFIG_visitors_count=0
