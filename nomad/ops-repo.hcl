@@ -47,6 +47,11 @@ job "ops-repo" {
     count = 2
 
     constraint {
+      operator  = "distinct_hosts"
+      value     = "true"
+    }
+
+    constraint {
       attribute  = "${meta.pool_type}"
       operator     = "set_contains_any"
       value    = "consul,general"
