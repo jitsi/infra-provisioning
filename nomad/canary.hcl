@@ -37,6 +37,11 @@ job "[JOB_NAME]" {
       value    = "consul,general"
     }
 
+    constraint {
+      operator  = "distinct_hosts"
+      value     = "true"
+    }
+
     affinity {
       attribute  = "${meta.pool_type}"
       value     = "consul"
