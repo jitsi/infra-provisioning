@@ -65,11 +65,13 @@ function doTest {
     GRID_HOST_URL=${SELENIUM_HUB_URL} \
     HEADLESS=true \
     DIAL_IN_REST_URL="https://api.voximplant.com/platform_api/StartScenarios/?account_id=${ACC_ID}&api_key=${API_KEY}&reference_ip=${REF_IP}&rule_id=${RULE_ID}&script_custom_data=%7B%22pin%22%3A%22{0}%22%7D" \
+    EXPECTATIONS="expectations.json" \
     JWT_PRIVATE_KEY_PATH=$JAAS_SIGNING_KEY_FILE \
     JWT_KID=$JAAS_JWT_KID \
+    JAAS_TENANT=$(echo "$JAAS_JWT_KID" | cut -f1 -d"/") \
     ROOM_NAME_PREFIX="synthetic_" \
-    BASE_URL=https://${ADDR}/$(echo "$JAAS_JWT_KID" | cut -f1 -d"/")/ \
-  npm run test-grid-single tests/specs/alone/dialInAudio.spec.ts tests/specs/misc/dialIn.spec.ts | tee -a ${LOG_FILE}
+    BASE_URL=https://${ADDR}/ \
+  npm run test-grid-single tests/specs/alone/dialInAudio.spec.ts tests/specs/jaas/dial/dialin.spec.ts | tee -a ${LOG_FILE}
 
   return ${PIPESTATUS[0]}
 }
@@ -83,7 +85,7 @@ cd ../jitsi-meet
 CURRENT_COMMIT=$(git log -1 --format="%H")
 echo "jitsi-meet commit is at ${CURRENT_COMMIT}"
 
-rm -rf test-results1 test-results2
+rm -rf test-results1 test-results2 test-results3 test-results4
 rm -f $TEST_OUTPUT_LOG_US
 rm -f $TEST_OUTPUT_LOG_EU
 
@@ -98,6 +100,17 @@ if [ $? -ne 0 ]; then
 	echo "Failure to install dependencies, retry will fix this"
  	exit 1;
 fi
+
+cat << EOF > expectations.json
+{
+  "dialIn": {
+    "enabled": true
+  },
+  "moderation": {
+    "autoModerator": true
+  }
+}
+EOF
 
 echo "------------------------------------------------------------------------"
 echo "--------TESTING in US vox account (team-us@jitsi.org)-------------------"
@@ -134,8 +147,7 @@ if [[ $FAILED_VALUE == 0 ]]; then
     echo ""
     doTest "$ACCOUNT_ID_EU" "${VOX_API_KEY_EU}" "3460923" "frankfurt.$DOMAIN" "$(getRegionalIP "eu-frankfurt-1")" $TEST_OUTPUT_LOG_EU
     SUCCESS=$?
-    rm -rf test-results1
-    mv test-results test-results1
+    mv test-results test-results3
 
     # Only actually fail on two consecutive failures
     if [[ $SUCCESS -ne 0 ]]; then
@@ -143,7 +155,7 @@ if [[ $FAILED_VALUE == 0 ]]; then
         sleep 90
         doTest "$ACCOUNT_ID_EU" "${VOX_API_KEY_EU}" "3460923" "frankfurt.$DOMAIN" "$(getRegionalIP "eu-frankfurt-1")" $TEST_OUTPUT_LOG_EU
         SUCCESS=$?
-        mv test-results test-results2
+        mv test-results test-results4
     fi
 
     if [[ $SUCCESS == 0 ]]; then
@@ -180,11 +192,6 @@ fi
 
 if [[ $SUCCESS == 0 ]]; then
   exit 0
-fi
-
-# no second failure skip
-if [ ! -d test-results2 ] ; then
-  exit 0;
 fi
 
 echo "------------------------------------------------------------------------"

@@ -106,7 +106,7 @@ pipeline {
     post {
         always {
             junit 'jitsi-meet/**/results-0-0.xml'
-            archiveArtifacts artifacts: 'jitsi-meet/test-results1/**/*,jitsi-meet/test-results2/**/*,jitsi-meet/test_log_US.txt,jitsi-meet/test_log_EU.txt', fingerprint: true
+            archiveArtifacts artifacts: 'jitsi-meet/test-results1/**/*,jitsi-meet/test-results2/**/*,jitsi-meet/test-results3/**/*,jitsi-meet/test-results4/**/*,jitsi-meet/test_log_US.txt,jitsi-meet/test_log_EU.txt', fingerprint: true
         }
         cleanup {
             cleanWs()
