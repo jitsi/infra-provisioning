@@ -176,13 +176,5 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                 }
             }
         }
-        stage("Trigger autoscaler reconfiguration after delete") {
-            steps {
-                build job: 'reconfigure-autoscaler-environment',wait: true,parameters: [
-                    [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: env.ENVIRONMENT],
-                    [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH]
-                ]
-            }
-        }
     }
 }
