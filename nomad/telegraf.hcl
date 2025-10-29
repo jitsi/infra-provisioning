@@ -522,6 +522,7 @@ EOF
 [[outputs.prometheus_client]]
   listen = ":{{ env "NOMAD_HOST_PORT_telegraf_prometheus" }}"
   path = "/metrics"
+  collectors_exclude = ["gocollector","process"]
 
 %{ if var.wavefront_enabled }[[outputs.wavefront]]
   url = "${var.wavefront_proxy_url}"
