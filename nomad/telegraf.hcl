@@ -288,11 +288,11 @@ EOF
         host = "{{"{{"}}.Node}}"
         role = "whisper-haproxy"
         service = "whisper-haproxy"
-
     [[inputs.prometheus.consul.query]]
       name = "redis-metrics"
       tag = "ip-{{ env "attr.unique.network.ip-address" }}"
       url = 'http://{{"{{"}}if ne .ServiceAddress ""}}{{"{{"}}.ServiceAddress}}{{"{{"}}else}}{{"{{"}}.Address}}{{"{{"}}end}}:{{"{{"}}with .ServiceMeta.metrics_port}}{{"{{"}}.}}{{"{{"}}else}}{{"{{"}}.ServicePort}}{{"{{"}}end}}/{{"{{"}}with .ServiceMeta.metrics_path}}{{"{{"}}.}}{{"{{"}}else}}metrics{{"{{"}}end}}'
+      namedrop = ["go_*", "process_*"]
       [inputs.prometheus.consul.query.tags]
         host = "{{"{{"}}.Node}}"
         role = "redis"
@@ -329,6 +329,7 @@ EOF
       name = "docker-dhmirror"
       tag = "ip-{{ env "attr.unique.network.ip-address" }}"
       url = 'http://{{"{{"}}if ne .ServiceAddress ""}}{{"{{"}}.ServiceAddress}}{{"{{"}}else}}{{"{{"}}.Address}}{{"{{"}}end}}:{{"{{"}}with .ServiceMeta.metrics_port}}{{"{{"}}.}}{{"{{"}}else}}{{"{{"}}.ServicePort}}{{"{{"}}end}}{{"{{"}}with .ServiceMeta.metrics_path}}{{"{{"}}.}}{{"{{"}}else}}/metrics{{"{{"}}end}}'
+      namedrop = ["go_*", "process_*"]
       [inputs.prometheus.consul.query.tags]
         host = "{{"{{"}}.Node}}"
         role = "docker-dhmirror"
@@ -348,6 +349,7 @@ EOF
       name = "canary"
       tag = "ip-{{ env "attr.unique.network.ip-address" }}"
       url = 'http://{{"{{"}}if ne .ServiceAddress ""}}{{"{{"}}.ServiceAddress}}{{"{{"}}else}}{{"{{"}}.Address}}{{"{{"}}end}}:{{"{{"}}with .ServiceMeta.metrics_port}}{{"{{"}}.}}{{"{{"}}else}}{{"{{"}}.ServicePort}}{{"{{"}}end}}/{{"{{"}}with .ServiceMeta.metrics_path}}{{"{{"}}.}}{{"{{"}}else}}metrics{{"{{"}}end}}'
+      namedrop = ["go_*", "process_*"]
       [inputs.prometheus.consul.query.tags]
         host = "{{"{{"}}.Node}}"
         service = "canary"
@@ -390,6 +392,7 @@ EOF
       name = "fabio-ext"
       tag = "ip-{{ env "attr.unique.network.ip-address" }}"
       url = 'http://{{"{{"}}if ne .ServiceAddress ""}}{{"{{"}}.ServiceAddress}}{{"{{"}}else}}{{"{{"}}.Address}}{{"{{"}}end}}:{{"{{"}}with .ServiceMeta.metrics_port}}{{"{{"}}.}}{{"{{"}}else}}{{"{{"}}.ServicePort}}{{"{{"}}end}}/{{"{{"}}with .ServiceMeta.metrics_path}}{{"{{"}}.}}{{"{{"}}else}}metrics{{"{{"}}end}}'
+      namedrop = ["go_*", "process_*"]
       [inputs.prometheus.consul.query.tags]
         host = "{{"{{"}}.Node}}"
         service = "fabio-ext"
@@ -397,6 +400,7 @@ EOF
       name = "fabio-int"
       tag = "ip-{{ env "attr.unique.network.ip-address" }}"
       url = 'http://{{"{{"}}if ne .ServiceAddress ""}}{{"{{"}}.ServiceAddress}}{{"{{"}}else}}{{"{{"}}.Address}}{{"{{"}}end}}:{{"{{"}}with .ServiceMeta.metrics_port}}{{"{{"}}.}}{{"{{"}}else}}{{"{{"}}.ServicePort}}{{"{{"}}end}}/{{"{{"}}with .ServiceMeta.metrics_path}}{{"{{"}}.}}{{"{{"}}else}}metrics{{"{{"}}end}}'
+      namedrop = ["go_*", "process_*"]
       [inputs.prometheus.consul.query.tags]
         host = "{{"{{"}}.Node}}"
         service = "fabio-int"

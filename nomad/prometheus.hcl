@@ -169,15 +169,24 @@ scrape_configs:
     consul_sd_configs:
     - server: '{{ env "NOMAD_IP_prometheus_ui" }}:8500'
       services: ['alertmanager']
+    metric_relabel_configs:
+      - target_label: service
+        replacement: 'alertmanager'
   - job_name: 'cloudprober'
     scrape_interval: 10s
     consul_sd_configs:
     - server: '{{ env "NOMAD_IP_prometheus_ui" }}:8500'
       services: ['cloudprober']
+    metric_relabel_configs:
+      - target_label: service
+        replacement: 'cloudprober'
   - job_name: 'prometheus'
     scrape_interval: 5s
     static_configs:
       - targets: ['localhost:9090']
+    metric_relabel_configs:
+      - target_label: service
+        replacement: 'prometheus'
   - job_name: 'telegraf'
     consul_sd_configs:
     - server: '{{ env "NOMAD_IP_prometheus_ui" }}:8500'
