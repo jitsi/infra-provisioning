@@ -6,12 +6,12 @@
     parameters:
       - string:
           name: BAN_STRINGS
-          description: "Space-delimited list of strings to match the ban against."
+          description: "Space-delimited list of strings to match the ban against. For the case of a room pattern for a specific tenant, use a ban string in this form: tenantname___roomtoban along with the 'substr' BAN_TYPE."
           trim: true
       - string:
           name: BAN_TYPE
           default: exact
-          description: "Type of ban. Valid choices are 'domain', 'exact', 'prefix', and 'substr'. domain: exact match of a domain name; exact: exact match of a room name; prefix: prefix of a room name; substr: a substring anywhere in the path or room name"
+          description: "Type of ban. Valid choices are 'domain', 'exact', 'prefix', and 'substr'. domain: exact match of a domain name; exact: exact match of a room name; prefix: prefix of a room name; substr: a substring anywhere in the path or room name."
           trim: true
       - string:
           name: BAN_ACTION
