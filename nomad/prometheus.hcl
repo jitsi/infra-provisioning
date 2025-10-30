@@ -67,6 +67,18 @@ variable "custom_alerts" {
   default = ""
 }
 
+variable "custom_external_labels" {
+  type = string
+  description = "custom external labels for prometheus.yml remote writes"
+  default = ""
+}
+
+variable "custom_relabels" {
+  type = string
+  description = "custom relabel rules for prometheus.yml scrapes"
+  default = ""
+}
+
 job "[JOB_NAME]" {
   datacenters = ["${var.dc}"]
   type        = "service"
@@ -140,6 +152,7 @@ global:
     datacenter: '${var.dc}'
     environment: '{{ env "meta.environment" }}'
     region: '{{ env "meta.cloud_region" }}'
+${var.custom_external_labels}
 
 alerting:
   %{ if var.environment_type != "prod" }alert_relabel_configs:
@@ -172,6 +185,7 @@ scrape_configs:
     metric_relabel_configs:
       - target_label: service
         replacement: 'alertmanager'
+${var.custom_relabels}
   - job_name: 'cloudprober'
     scrape_interval: 10s
     consul_sd_configs:
@@ -180,6 +194,7 @@ scrape_configs:
     metric_relabel_configs:
       - target_label: service
         replacement: 'cloudprober'
+${var.custom_relabels}
   - job_name: 'prometheus'
     scrape_interval: 5s
     static_configs:
@@ -187,12 +202,17 @@ scrape_configs:
     metric_relabel_configs:
       - target_label: service
         replacement: 'prometheus'
+${var.custom_relabels}
   - job_name: 'telegraf'
     consul_sd_configs:
     - server: '{{ env "NOMAD_IP_prometheus_ui" }}:8500'
       services: ['telegraf']
     scrape_interval: 30s
     metrics_path: /metrics
+%{ if var.custom_relabels != "" }
+    metric_relabel_configs:
+${var.custom_relabels}
+%{~ endif }
 
 {{ with secret "secret/default/prometheus/remote_write/${ var.environment_type }" }}
 remote_write:

@@ -11,6 +11,8 @@ LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
 [ -e "$LOCAL_PATH/../clouds/all.sh" ] && . "$LOCAL_PATH/../clouds/all.sh"
 [ -e "$LOCAL_PATH/../clouds/oracle.sh" ] && . "$LOCAL_PATH/../clouds/oracle.sh"
+[ -e "$LOCAL_PATH/../clouds/oracle.sh" ] && . "$LOCAL_PATH/../clouds/oracle.sh"
+[ -z "$MAIN_CONFIGURATION_FILE" ] && MAIN_CONFIGURATION_FILE="$LOCAL_PATH/../config/vars.yml"
 [ -z "$ENVIRONMENT_CONFIGURATION_FILE" ] && ENVIRONMENT_CONFIGURATION_FILE="$LOCAL_PATH/../sites/$ENVIRONMENT/vars.yml"
 
 if [ -z "$ORACLE_REGION" ]; then
@@ -56,6 +58,16 @@ fi
 PROMETHEUS_CUSTOM_ALERTS=$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval ".prometheus_custom_alerts")
 if [[ "$PROMETHEUS_CUSTOM_ALERTS" != "null" ]]; then
     export NOMAD_VAR_custom_alerts="$PROMETHEUS_CUSTOM_ALERTS"
+fi
+
+PROMETHEUS_CUSTOM_EXTERNAL_LABELS=$(cat $MAIN_CONFIGURATION_FILE | yq eval ".prometheus_custom_external_labels")
+if [[ "$PROMETHEUS_CUSTOM_EXTERNAL_LABELS" != "null" ]]; then
+    export NOMAD_VAR_custom_external_labels="$PROMETHEUS_CUSTOM_EXTERNAL_LABELS"
+fi
+
+PROMETHEUS_CUSTOM_RELABELS=$(cat $MAIN_CONFIGURATION_FILE | yq eval ".prometheus_custom_relabels")
+if [[ "$PROMETHEUS_CUSTOM_RELABELS" != "null" ]]; then
+    export NOMAD_VAR_custom_relabels="$PROMETHEUS_CUSTOM_RELABELS"
 fi
 
 NOMAD_JOB_PATH="$LOCAL_PATH/../nomad"
