@@ -366,14 +366,6 @@ pipeline {
                 }
             }
         }
-        stage("trigger autoscaler reconfiguration") {
-            steps {
-                script {
-                    utils.ReconfigureEnvironment(env.ENVIRONMENT, env.VIDEO_INFRA_BRANCH)
-                }
-            }
-        }
-
         stage("enable shard alarms") {
             when {
                 expression {env.CORE_CLOUD_PROVIDER == 'oracle'}
