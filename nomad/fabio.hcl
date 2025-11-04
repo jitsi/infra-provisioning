@@ -2,7 +2,7 @@ variable "dc" {
   type = list(string)
 }
 
-job "fabio" {
+job "[JOB_NAME]" {
   datacenters = var.dc
   type = "system"
 
