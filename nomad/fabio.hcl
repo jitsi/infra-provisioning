@@ -1,9 +1,9 @@
 variable "dc" {
-  type = list(string)
+  type = string
 }
 
-job "fabio" {
-  datacenters = var.dc
+job "[JOB_NAME]" {
+  datacenters = [var.dc]
   type = "system"
 
   group "fabio" {
