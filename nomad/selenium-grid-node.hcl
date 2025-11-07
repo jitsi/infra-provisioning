@@ -55,6 +55,9 @@ job "[JOB_NAME]" {
       }
       port "no-vnc" {
       }
+      port "debug-port" {
+        static = "35699"
+      }
     }
 
     service {
@@ -76,7 +79,7 @@ job "[JOB_NAME]" {
 
       config {
         image        = "${var.registry_prefix}selenium/node-mixed:${var.image_version}"
-        ports = ["http","vnc","no-vnc"]
+        ports = ["http","vnc","no-vnc","debug-port"]
         volumes = [
           "/opt/jitsi/jitsi-meet-torture:/usr/share/jitsi-meet-torture:ro",
         ]
