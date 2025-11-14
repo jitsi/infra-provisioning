@@ -31,8 +31,13 @@
           trim: true
       - string:
           name: DRAIN_WAIT_PERIOD
-          description: "Seconds to wait before deleting shards, local and remote pools after drain"
+          description: "Seconds to wait before deleting shards after drain"
           default: 21600
+          trim: true
+      - string:
+          name: POOL_DRAIN_WAIT_PERIOD
+          description: "Seconds to wait before deleting pools after drain"
+          default: 3600
           trim: true
       - string:
           name: INFRA_CONFIGURATION_REPO
