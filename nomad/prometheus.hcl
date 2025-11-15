@@ -763,6 +763,86 @@ groups:
         shards to be launched.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=jicofo_participants_high
+  - alert: Baron_HAProxy_Split_Brain
+    expr: baron_haproxy_split_brains > 2
+    for: 3m
+    labels:
+      service: jitsi
+      severity: severe
+      page: true
+    annotations:
+      summary: split brain - stick tables entries are inconsistent for multiple conferences
+      description: >-
+        Baron has detected that HAProxy stick table entries for multiple conferences have been
+        inconsistent for more than 3 minutes. This appears to be an on going split brain condition
+        and should be immediately investigated. The ingress is routing users to different shards for
+        the same conference. Most recently this was affecting {{ $value }} conferences.
+      dashboard_url: ${var.grafana_url}
+      alert_url: https://${var.prometheus_hostname}/alerts?search=baron
+  - alert: Baron_Shard_Split_Brain
+    expr: baron_shard_split_brains > 2
+    for: 3m
+    labels:
+      service: jitsi
+      severity: severe
+      page: false
+    annotations:
+      summary: split brain - multiple shards are hosting the same conference
+      description: >-
+        Baron has detected that multiple shards are hosting the same conference. This may mean that
+        users are experiencing a split brain condition. Even if the HAProxy stick table has
+        converged, live websockets may be keeping users from reconnecting to the correct shard.
+        This condition may also occurr if a conference is leaked or stale in prosody and has been
+        recreated on a different shard.  Most recently, this was affecting {{ $value }} conferences.
+      dashboard_url: ${var.grafana_url}
+      alert_url: https://${var.prometheus_hostname}/alerts?search=baron
+  - alert: Baron_HAProxy_Ambiguous_Keys
+    expr: baron_haproxy_ambiguous_keys > 4
+    for: 5m
+    labels:
+      service: jitsi
+      severity: smoke
+    annotations:
+      summary: stick table keys forward to ambiguous conferences
+      description: >-
+        Baron has detected that some stick table keys are truncated such that they lead to multiple
+        conferences with the same prefix. This is not necessarily a major issue - if this is only happening
+        to a couple conferences they will land on the same shard and prosody will be able to distinguish
+        between them without a problem. But if this is happening to a lot of conferences, it may lead to
+        poor load balancing between shards. Most recently, this was affecting {{ $value }} conferences.
+      dashboard_url: ${var.grafana_url}
+      alert_url: https://${var.prometheus_hostname}/alerts?search=baron
+  - alert: Baron_HAProxy_Missing_Conference
+    expr: baron_shard_missing_from_haproxy > 10
+    for: 5m
+    labels:
+      service: jitsi
+      severity: smoke
+    annotations:
+      summary: conferences are missing from HAProxy stick tables
+      description: >-
+        Baron has detected that there are conferences on shards that do not appear on HAProxy stick tables.
+        This probably indicates that there is an issue with prosody not properly terminating conferences but
+        could also mean that there's some sort of stick table failure. Most recently, this was
+        affecting {{ $value }} conferences.
+      dashboard_url: ${var.grafana_url}
+      alert_url: https://${var.prometheus_hostname}/alerts?search=baron
+  - alert: Baron_HAProxy_Shard_Mismatches
+    expr: baron_shard_haproxy_mismatches > 1
+    for: 5m
+    labels:
+      service: jitsi
+      severity: severe
+      page: false
+    annotations:
+      summary: stick table entries are mismatched with actual shard placements
+      description: >-
+        Baron has detected that there are mismatches between HAProxy stick table entries and which conferences
+        that the shards are actually on. This may happen briefly as a conference comes up and the stick table
+        converges but if it persists it indicates a serious issue that should be investigated. Most
+        recently, this was affecting {{ $value }} conferences.
+      dashboard_url: ${var.grafana_url}
+      alert_url: https://${var.prometheus_hostname}/alerts?search=baron
   %{ if var.environment_type == "prod" }- alert: JVB_CPU_High
     expr: 100 - cpu_usage_idle{role="JVB"} > %{ if var.production_alerts }90%{ else }95%{ endif }
     for: %{ if var.production_alerts }5m%{ else }15m%{ endif }
