@@ -164,6 +164,7 @@ job [[ template "job_name" . ]] {
         ENABLE_LOCAL_RECORDING_NOTIFY_ALL_PARTICIPANT = "true"
         ENABLE_PREJOIN_PAGE = "[[ if eq (env "CONFIG_jitsi_meet_enable_prejoin_page") "true" ]]true[[ else ]]false[[ end ]]"
         ENABLE_REQUIRE_DISPLAY_NAME = "[[ or (env "CONFIG_jitsi_meet_require_displayname") "false" ]]"
+        FILESHARING_API_URL = "[[ env "CONFIG_jitsi_meet_filesharing_api_url" ]]"
 [[- if env "CONFIG_jitsi_meet_resolution" ]]
         RESOLUTION = "[[ or (env "CONFIG_jitsi_meet_resolution") "720" ]]"
         RESOLUTION_MIN = "[[ or (env "CONFIG_jitsi_meet_resolution_min") "180" ]]"
