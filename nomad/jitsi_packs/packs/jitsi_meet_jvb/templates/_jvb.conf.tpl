@@ -66,6 +66,7 @@ videobridge {
   }
 
   ice {
+    keep-alive-strategy = [[ or (env "CONFIG_jvb_keep_alive_strategy") "selected_only" ]]
     tcp {
       [[ if eq (or (env "CONFIG_jvb_disable_tcp") "true") "true" ]]
       enabled = false
@@ -245,6 +246,7 @@ jmt {
 
 ice4j {
   harvest {
+    send-to-last-received-from-address = [[ or (env "CONFIG_jvb_send_to_last_received_from_address") "false" ]]
     udp.receive-buffer-size = [[ or (env "CONFIG_jvb_udp_buffer_size") "104857600" ]]
     mapping {
         aws.enabled = false
