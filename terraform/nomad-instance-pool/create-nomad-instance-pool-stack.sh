@@ -21,6 +21,10 @@ LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
 [ -z "$POOL_PUBLIC" ] && POOL_PUBLIC="false"
 
+[ -z "$POOL_USE_EIP" ] && POOL_USE_EIP="false"
+
+[ -z "$SECONDARY_VNIC_NAME" ] && SECONDARY_VNIC_NAME="${ENVIRONMENT}-${ORACLE_REGION}-SecondaryVnic"
+
 [ -e "$LOCAL_PATH/../../clouds/all.sh" ] && . $LOCAL_PATH/../../clouds/all.sh
 [ -e "$LOCAL_PATH/../../clouds/oracle.sh" ] && . $LOCAL_PATH/../../clouds/oracle.sh
 
@@ -243,6 +247,9 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
   -var "infra_configuration_repo=$INFRA_CONFIGURATION_REPO" \
   -var "infra_customizations_repo=$INFRA_CUSTOMIZATIONS_REPO" \
   -var "user_data_file=$POSTRUNNER_PATH" \
+  -var="use_eip=$POOL_USE_EIP" \
+  -var="secondary_vnic_name=$SECONDARY_VNIC_NAME" \
+  -var="private_subnet_ocid=$NAT_SUBNET_OCID" \
   $ACTION_POST_PARAMS $TF_POST_PARAMS
 
 RET=$?
