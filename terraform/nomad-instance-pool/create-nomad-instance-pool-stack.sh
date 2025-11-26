@@ -190,6 +190,8 @@ if [ -z "$NOMAD_SECURITY_GROUP_ID" ]; then
   exit 2
 fi
 
+[ -z "$EXTRA_SECURITY_GROUP_IDS" ] && EXTRA_SECURITY_GROUP_IDS="[]"
+
 # The —reconfigure option disregards any existing configuration, preventing migration of any existing state
 terraform $TF_GLOBALS_CHDIR init \
   -backend-config="bucket=$S3_STATE_BUCKET" \
@@ -229,6 +231,7 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
   -var="instance_config_name=$INSTANCE_CONFIG_NAME" \
   -var="image_ocid=$IMAGE_OCID" \
   -var="security_group_id=$NOMAD_SECURITY_GROUP_ID" \
+  -var="extra_security_group_ids=$EXTRA_SECURITY_GROUP_IDS" \
   -var="user_public_key_path=$USER_PUBLIC_KEY_PATH" \
   -var="shape=$SHAPE" \
   -var="memory_in_gbs=$MEMORY_IN_GBS" \

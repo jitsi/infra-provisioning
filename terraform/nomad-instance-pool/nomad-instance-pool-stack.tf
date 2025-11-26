@@ -14,6 +14,11 @@ variable "instance_config_name" {}
 variable "image_ocid" {}
 variable "user_public_key_path" {}
 variable "security_group_id" {}
+variable "extra_security_group_ids" {
+  type = list(string)
+  default = []
+  description = "Optional list of additional security group IDs to attach to instances"
+}
 variable "shape" {}
 variable "memory_in_gbs" {}
 variable "ocpus" {}
@@ -97,7 +102,7 @@ resource "oci_core_instance_configuration" "oci_instance_configuration" {
       create_vnic_details {
         assign_public_ip = false
         subnet_id = var.pool_subnet_ocid
-        nsg_ids = [var.security_group_id]
+        nsg_ids = concat([var.security_group_id], var.extra_security_group_ids)
       }
 
       source_details {
