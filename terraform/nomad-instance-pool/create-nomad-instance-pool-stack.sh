@@ -67,10 +67,10 @@ RESOURCE_NAME_ROOT="${NAME_ROOT}"
 [ -z "$POSTRUNNER_PATH" ] && export POSTRUNNER_PATH="terraform/nomad-instance-pool/user-data/postinstall-runner-oracle.sh"
 
 if [[ "$POOL_PUBLIC" == "true" ]]; then
-  POOL_SUBNET_OCID="$PUBLIC_SUBNET_OCID"
+  [ -z "$POOL_SUBNET_OCID" ] && POOL_SUBNET_OCID="$PUBLIC_SUBNET_OCID"
   EPHEMERAL_INGRESS_CIDR="0.0.0.0/0"
 else
-  POOL_SUBNET_OCID="$NAT_SUBNET_OCID"
+  [ -z "$POOL_SUBNET_OCID" ] && POOL_SUBNET_OCID="$NAT_SUBNET_OCID"
   EPHEMERAL_INGRESS_CIDR="10.0.0.0/8"
 fi
 
