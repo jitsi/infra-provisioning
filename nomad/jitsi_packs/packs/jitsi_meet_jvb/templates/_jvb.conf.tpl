@@ -245,8 +245,8 @@ jmt {
 {{ $JVB_NAT_PORT := .Env.JVB_NAT_PORT | default .Env.JVB_PORT -}}
 
 ice4j {
+  send-to-last-received-from-address = [[ or (env "CONFIG_jvb_send_to_last_received_from_address") "false" ]]
   harvest {
-    send-to-last-received-from-address = [[ or (env "CONFIG_jvb_send_to_last_received_from_address") "false" ]]
     udp.receive-buffer-size = [[ or (env "CONFIG_jvb_udp_buffer_size") "104857600" ]]
     mapping {
         aws.enabled = false
