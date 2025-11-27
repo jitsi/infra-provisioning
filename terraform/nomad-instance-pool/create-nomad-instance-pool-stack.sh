@@ -21,6 +21,10 @@ LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
 [ -z "$POOL_PUBLIC" ] && POOL_PUBLIC="false"
 
+[ -z "$POOL_USE_EIP" ] && POOL_USE_EIP="false"
+
+[ -z "$SECONDARY_VNIC_NAME" ] && SECONDARY_VNIC_NAME="${ENVIRONMENT}-${ORACLE_REGION}-SecondaryVnic"
+
 [ -e "$LOCAL_PATH/../../clouds/all.sh" ] && . $LOCAL_PATH/../../clouds/all.sh
 [ -e "$LOCAL_PATH/../../clouds/oracle.sh" ] && . $LOCAL_PATH/../../clouds/oracle.sh
 
@@ -67,10 +71,10 @@ RESOURCE_NAME_ROOT="${NAME_ROOT}"
 [ -z "$POSTRUNNER_PATH" ] && export POSTRUNNER_PATH="terraform/nomad-instance-pool/user-data/postinstall-runner-oracle.sh"
 
 if [[ "$POOL_PUBLIC" == "true" ]]; then
-  POOL_SUBNET_OCID="$PUBLIC_SUBNET_OCID"
+  [ -z "$POOL_SUBNET_OCID" ] && POOL_SUBNET_OCID="$PUBLIC_SUBNET_OCID"
   EPHEMERAL_INGRESS_CIDR="0.0.0.0/0"
 else
-  POOL_SUBNET_OCID="$NAT_SUBNET_OCID"
+  [ -z "$POOL_SUBNET_OCID" ] && POOL_SUBNET_OCID="$NAT_SUBNET_OCID"
   EPHEMERAL_INGRESS_CIDR="10.0.0.0/8"
 fi
 
@@ -190,6 +194,8 @@ if [ -z "$NOMAD_SECURITY_GROUP_ID" ]; then
   exit 2
 fi
 
+[ -z "$EXTRA_SECURITY_GROUP_IDS" ] && EXTRA_SECURITY_GROUP_IDS="[]"
+
 # The —reconfigure option disregards any existing configuration, preventing migration of any existing state
 terraform $TF_GLOBALS_CHDIR init \
   -backend-config="bucket=$S3_STATE_BUCKET" \
@@ -229,6 +235,7 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
   -var="instance_config_name=$INSTANCE_CONFIG_NAME" \
   -var="image_ocid=$IMAGE_OCID" \
   -var="security_group_id=$NOMAD_SECURITY_GROUP_ID" \
+  -var="extra_security_group_ids=$EXTRA_SECURITY_GROUP_IDS" \
   -var="user_public_key_path=$USER_PUBLIC_KEY_PATH" \
   -var="shape=$SHAPE" \
   -var="memory_in_gbs=$MEMORY_IN_GBS" \
@@ -240,6 +247,9 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
   -var "infra_configuration_repo=$INFRA_CONFIGURATION_REPO" \
   -var "infra_customizations_repo=$INFRA_CUSTOMIZATIONS_REPO" \
   -var "user_data_file=$POSTRUNNER_PATH" \
+  -var="use_eip=$POOL_USE_EIP" \
+  -var="secondary_vnic_name=$SECONDARY_VNIC_NAME" \
+  -var="private_subnet_ocid=$NAT_SUBNET_OCID" \
   $ACTION_POST_PARAMS $TF_POST_PARAMS
 
 RET=$?

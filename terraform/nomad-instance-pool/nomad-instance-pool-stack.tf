@@ -14,6 +14,11 @@ variable "instance_config_name" {}
 variable "image_ocid" {}
 variable "user_public_key_path" {}
 variable "security_group_id" {}
+variable "extra_security_group_ids" {
+  type = list(string)
+  default = []
+  description = "Optional list of additional security group IDs to attach to instances"
+}
 variable "shape" {}
 variable "memory_in_gbs" {}
 variable "ocpus" {}
@@ -37,6 +42,15 @@ variable "user_data_file" {
 variable "infra_configuration_repo" {}
 variable "infra_customizations_repo" {}
 variable "disk_in_gbs" {}
+variable "use_eip" {
+  default = false
+}
+variable "secondary_vnic_name" {
+  default = ""
+}
+variable "private_subnet_ocid" {
+  default = ""
+}
 
 locals {
   common_freeform_tags = {
@@ -71,7 +85,8 @@ terraform {
   }
 }
 
-resource "oci_core_instance_configuration" "oci_instance_configuration" {
+resource "oci_core_instance_configuration" "oci_instance_configuration_use_eip" {
+  count = var.use_eip ? 1:0
   lifecycle {
       create_before_destroy = true
   }
@@ -97,7 +112,74 @@ resource "oci_core_instance_configuration" "oci_instance_configuration" {
       create_vnic_details {
         assign_public_ip = false
         subnet_id = var.pool_subnet_ocid
-        nsg_ids = [var.security_group_id]
+        nsg_ids = concat([var.security_group_id], var.extra_security_group_ids)
+      }
+
+      source_details {
+        source_type = "image"
+        image_id = var.image_ocid
+        boot_volume_size_in_gbs = var.disk_in_gbs
+      }
+
+      metadata = {
+        user_data = base64encode(join("",[
+          file("${path.cwd}/${var.user_data_lib_path}/postinstall-header.sh"), # load the header
+          file("${path.cwd}/${var.user_data_lib_path}/postinstall-lib.sh"), # load the lib
+          file("${path.cwd}/${var.user_data_lib_path}/postinstall-eip-lib.sh"), # load the EIP lib
+          "\nexport INFRA_CONFIGURATION_REPO=${var.infra_configuration_repo}\nexport INFRA_CUSTOMIZATIONS_REPO=${var.infra_customizations_repo}\n", #repo variables
+          file("${path.cwd}/${var.user_data_file}"), # load our customizations
+          file("${path.cwd}/${var.user_data_lib_path}/postinstall-footer.sh") # load the footer
+        ]))
+        ssh_authorized_keys = file(var.user_public_key_path)
+      }
+
+      freeform_tags = local.common_freeform_tags
+      defined_tags = local.common_tags
+    }
+    secondary_vnics {
+      display_name = var.secondary_vnic_name
+
+      create_vnic_details {
+        assign_public_ip = false
+        display_name = var.secondary_vnic_name
+        subnet_id = var.private_subnet_ocid
+        nsg_ids = [
+          var.security_group_id]
+
+        defined_tags = local.common_tags
+      }
+    }
+  }
+}
+
+resource "oci_core_instance_configuration" "oci_instance_configuration" {
+  count = var.use_eip ? 0:1
+  lifecycle {
+      create_before_destroy = true
+  }
+
+  compartment_id = var.compartment_ocid
+  display_name = var.instance_config_name
+
+  freeform_tags = local.common_freeform_tags
+  defined_tags = local.common_tags
+
+  instance_details {
+    instance_type = "compute"
+
+    launch_details {
+      compartment_id = var.compartment_ocid
+      shape = var.shape
+
+      shape_config {
+        memory_in_gbs = var.memory_in_gbs
+        ocpus = var.ocpus
+      }
+
+      create_vnic_details {
+        assign_public_ip = false
+        subnet_id = var.pool_subnet_ocid
+        nsg_ids = concat([var.security_group_id], var.extra_security_group_ids)
       }
 
       source_details {
@@ -130,7 +212,7 @@ data "oci_core_vcns" "vcns" {
 
 resource "oci_core_instance_pool" "oci_instance_pool" {
   compartment_id = var.compartment_ocid
-  instance_configuration_id = oci_core_instance_configuration.oci_instance_configuration.id  
+  instance_configuration_id = var.use_eip ? oci_core_instance_configuration.oci_instance_configuration_use_eip[0].id : oci_core_instance_configuration.oci_instance_configuration[0].id
   display_name = var.instance_pool_name
   size = var.instance_pool_size
 
@@ -139,6 +221,13 @@ resource "oci_core_instance_pool" "oci_instance_pool" {
     content {
       primary_subnet_id = var.pool_subnet_ocid
       availability_domain = placement_configurations.value
+      dynamic "secondary_vnic_subnets" {
+        for_each = var.use_eip ? [1] : []
+        content {
+          subnet_id = var.private_subnet_ocid
+          display_name = var.secondary_vnic_name
+        }
+      }
     }
   }
 
