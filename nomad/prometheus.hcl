@@ -250,6 +250,34 @@ groups:
         indeed.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=alertmanager_down
+  - alert: AlertEmailer_Down
+    expr: absent(flask_exporter_info{service="alert-emailer"}
+    for: 10m
+    labels:
+      service: infra
+      severity: warn
+    annotations:
+      summary: alert-emailer service is down in ${var.dc}
+      description: >-
+        The alert-email service is not emitting metrics in ${var.dc}. This means that alert emails
+        are not being sent from the datacenter, which will mean that SMOKE alerts will not be sent
+        anywhere.
+      dashboard_url: ${var.grafana_url}
+      alert_url: https://${var.prometheus_hostname}/alerts?search=alertemailer_down
+   alert: AlertEmailer_Config
+     expr: default_email_subscribed < 1
+     for: 10m
+     labels:
+       service: infra
+       severity: %{ if var.environment_type != "prod" }disabled%{ else }warn%{ endif }
+     annotations:
+       summary: the default email is not subscribed to alert-emailer ${var.dc}
+       description: >-
+         The default email address for alerts is not properly subscribed to the topic that is being
+         used by alert-emailer in ${var.dc}. It needs to be re-subscribed and whoever unsubscribed it
+         needs a stern talking to.
+       dashboard_url: ${var.grafana_url}
+       alert_url: https://${var.prometheus_hostname}/alerts?search=alert_emailer
   - alert: Canary_Down
     expr: absent(nginx_connections_accepted{service="canary"})
     for: 5m
