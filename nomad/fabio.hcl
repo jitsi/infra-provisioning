@@ -15,10 +15,6 @@ job "[JOB_NAME]" {
     auto_revert = true
   }
 
-  meta {
-    environment = "lonely"
-  }
-
   constraint {
     attribute  = "${meta.pool_type}"
     value     = "general"
