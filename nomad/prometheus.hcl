@@ -264,7 +264,7 @@ groups:
         anywhere.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=alertemailer_down
-  %{ if var.environment_type != "prod" }- alert: AlertEmailer_Config
+  %{ if var.environment_type == "prod" }- alert: AlertEmailer_Config
     expr: default_email_subscribed < 1
     for: 10m
     labels:
