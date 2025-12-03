@@ -9,10 +9,9 @@ job "[JOB_NAME]" {
   update {
     max_parallel = 1
     min_healthy_time = "10s"
-    healthy_deadline = "3m"
+    healthy_deadline = "5m"
+    progress_deadline = "10m"
     auto_revert = true
-    health_check = "checks"
-    stagger = "30s"
   }
 
   group "fabio" {
@@ -43,13 +42,6 @@ job "[JOB_NAME]" {
       tags = [
         "ip-${attr.unique.network.ip-address}"
       ]
-      port = "ext-ui"
-      check {
-        type     = "http"
-        path     = "/health"
-        interval = "10s"
-        timeout  = "2s"
-      }
       meta {
         metrics_port = "${NOMAD_PORT_ext_metrics}"
       }
@@ -60,13 +52,6 @@ job "[JOB_NAME]" {
       tags = [
         "ip-${attr.unique.network.ip-address}"
       ]
-      port = "int-ui"
-      check {
-        type     = "http"
-        path     = "/health"
-        interval = "10s"
-        timeout  = "2s"
-      }
       meta {
         metrics_port = "${NOMAD_PORT_int_metrics}"
       }
