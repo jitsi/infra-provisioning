@@ -5,6 +5,7 @@ variable "dc" {
 job "[JOB_NAME]" {
   datacenters = [var.dc]
   type = "system"
+  priority = 100
 
   update {
     max_parallel = 1
@@ -14,13 +15,13 @@ job "[JOB_NAME]" {
     auto_revert = true
   }
 
+  constraint {
+    attribute  = "${meta.pool_type}"
+    value     = "general"
+  }
+
   group "fabio" {
     count = 1
-
-    constraint {
-      attribute  = "${meta.pool_type}"
-      value     = "general"
-    }
 
     network {
       port "ext-lb" {
