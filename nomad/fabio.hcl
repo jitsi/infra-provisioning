@@ -15,6 +15,8 @@ job "[JOB_NAME]" {
   }
 
   group "fabio" {
+    count = 1
+
     constraint {
       attribute  = "${meta.pool_type}"
       value     = "general"
