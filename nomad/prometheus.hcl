@@ -264,12 +264,12 @@ groups:
         anywhere.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=alertemailer_down
-  - alert: AlertEmailer_Config
+  %{ if var.environment_type != "prod" }- alert: AlertEmailer_Config
     expr: default_email_subscribed < 1
     for: 10m
     labels:
       service: infra
-      severity: %{ if var.environment_type != "prod" }disabled%{ else }warn%{ endif }
+      severity: warn
     annotations:
       summary: the default email is not subscribed to alert-emailer ${var.dc}
       description: >-
@@ -277,7 +277,7 @@ groups:
         used by alert-emailer in ${var.dc}. It needs to be re-subscribed and whoever unsubscribed it
         needs a stern talking to.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=alert_emailer
+      alert_url: https://${var.prometheus_hostname}/alerts?search=alert_emailer%{ endif }
   - alert: Canary_Down
     expr: absent(nginx_connections_accepted{service="canary"})
     for: 5m
