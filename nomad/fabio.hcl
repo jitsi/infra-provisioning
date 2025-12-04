@@ -5,12 +5,23 @@ variable "dc" {
 job "[JOB_NAME]" {
   datacenters = [var.dc]
   type = "system"
+  priority = 100
+
+  update {
+    max_parallel = 1
+    min_healthy_time = "10s"
+    healthy_deadline = "5m"
+    progress_deadline = "10m"
+    auto_revert = true
+  }
+
+  constraint {
+    attribute  = "${meta.pool_type}"
+    value     = "general"
+  }
 
   group "fabio" {
-    constraint {
-      attribute  = "${meta.pool_type}"
-      value     = "general"
-    }
+    count = 1
 
     network {
       port "ext-lb" {

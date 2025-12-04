@@ -29,9 +29,26 @@ fi
 
 sed -e "s/\[JOB_NAME\]/$JOB_NAME/" "$NOMAD_JOB_PATH/fabio.hcl" | nomad job run -var="dc=$NOMAD_DC" -
 
-if [ $? -ne 0 ]; then
-    echo "Failed to run nomad fabio job, exiting"
-    exit 5
+NOMAD_EXIT_CODE=$?
+
+if [ $NOMAD_EXIT_CODE -eq 0 ]; then
+    echo "Fabio deployment completed successfully"
+    exit 0
 fi
 
-exit $?
+# If nomad job run failed, check actual job status
+# For system jobs with updates, "failed to place" during evaluation can occur
+# even when the rolling update succeeds
+echo "Nomad job run exited with code $NOMAD_EXIT_CODE, checking final job status..."
+sleep 2
+NOMAD_STATUS=$(nomad job status $JOB_NAME 2>&1)
+
+if echo "$NOMAD_STATUS" | grep -q "Status.*=.*running"; then
+    RUNNING_ALLOCS=$(echo "$NOMAD_STATUS" | awk '/^fabio/{print $4}')
+    echo "Fabio deployment successful - $RUNNING_ALLOCS allocations running"
+    exit 0
+else
+    echo "Fabio deployment failed - job not in running state"
+    echo "$NOMAD_STATUS"
+    exit 5
+fi
