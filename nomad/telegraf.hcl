@@ -419,7 +419,14 @@ EOF
         host = "{{"{{"}}.Node}}"
         service = "tenant-pin-writer"
         target_environment = "{{"{{"}}with .ServiceMeta.target_environment}}{{"{{"}}.}}{{"{{"}}else}}unknown{{"{{"}}end}}"
-
+    [[inputs.prometheus.consul.query]]
+      name = "reson8-server"
+      tag = "ip-{{ env "attr.unique.network.ip-address" }}"
+      url = 'http://{{"{{"}}if ne .ServiceAddress ""}}{{"{{"}}.ServiceAddress}}{{"{{"}}else}}{{"{{"}}.Address}}{{"{{"}}end}}:{{"{{"}}with .ServiceMeta.metrics_port}}{{"{{"}}.}}{{"{{"}}else}}{{"{{"}}.ServicePort}}{{"{{"}}end}}/{{"{{"}}with .ServiceMeta.metrics_path}}{{"{{"}}.}}{{"{{"}}else}}metrics{{"{{"}}end}}'
+      [inputs.prometheus.consul.query.tags]
+        host = "{{"{{"}}.Node}}"
+        role = "reson8-server"
+        service = "reson8-server"
 [[inputs.prometheus]]
   namepass = [
     "jitsi_jvb_active_endpoints",
