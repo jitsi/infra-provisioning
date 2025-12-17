@@ -1,0 +1,59 @@
+pipeline {
+    agent any
+    options {
+        ansiColor('xterm')
+        timestamps()
+        buildDiscarder(logRotator(numToKeepStr: '10', artifactNumToKeepStr: '10'))
+    }
+    stages {
+        stage('Validate') {
+            steps {
+                script {
+                    if (!env.ENVIRONMENT?.trim()) {
+                        error "ENVIRONMENT parameter is required"
+                    }
+                    if (!env.TARGET?.trim()) {
+                        error "TARGET parameter is required"
+                    }
+                    def validEnvironments = ['meet-jit-si', 'beta-meet-jit-si', 'prod-8x8', 'stage-8x8', 'jitsi-net']
+                    if (!validEnvironments.contains(env.ENVIRONMENT)) {
+                        error "Invalid ENVIRONMENT: ${env.ENVIRONMENT}. Must be one of: ${validEnvironments.join(', ')}"
+                    }
+                    def validTargets = ['cdn', 'geo']
+                    if (!validTargets.contains(env.TARGET)) {
+                        error "Invalid TARGET: ${env.TARGET}. Must be one of: ${validTargets.join(', ')}"
+                    }
+                }
+            }
+        }
+        stage('Set DNS Target') {
+            steps {
+                script {
+                    echo "Setting DNS target for ${env.ENVIRONMENT} to ${env.TARGET}"
+                    withCredentials([
+                        string(credentialsId: 'jenkins-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
+                        string(credentialsId: 'jenkins-aws-id', variable: 'AWS_ACCESS_KEY_ID')
+                    ]) {
+                        sh """#!/bin/bash
+                        set -e
+                        echo "Environment: ${env.ENVIRONMENT}"
+                        echo "Target: ${env.TARGET}"
+                        ENVIRONMENT=${env.ENVIRONMENT} TARGET=${env.TARGET} scripts/set-environment-dns-target.sh
+                        """
+                    }
+                }
+            }
+        }
+    }
+    post {
+        always {
+            cleanWs()
+        }
+        success {
+            slackSend color: "good", message: "${env.JOB_NAME} - build ${env.BUILD_NUMBER} successfully set ${env.ENVIRONMENT} DNS to ${env.TARGET}"
+        }
+        failure {
+            slackSend color: "danger", message: "${env.JOB_NAME} - build ${env.BUILD_NUMBER} failed to set ${env.ENVIRONMENT} DNS to ${env.TARGET}"
+        }
+    }
+}
