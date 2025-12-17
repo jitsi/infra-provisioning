@@ -1,0 +1,35 @@
+- job:
+    name: reconfigure-environment-dns-target
+    display-name: reconfigure environment DNS target
+    description: 'Toggle the main CNAME record for an environment between Cloudflare CDN and geo-DNS (Oracle).'
+    concurrent: true
+    parameters:
+      - string:
+          name: VIDEO_INFRA_BRANCH
+          default: main
+          description: "Controls checkout branch for infra repos, defaults to 'main'."
+          trim: true
+      - string:
+          name: ENVIRONMENT
+          description: "Environment to reconfigure. Valid values: meet-jit-si, beta-meet-jit-si, prod-8x8, stage-8x8, jitsi-net"
+          trim: true
+      - string:
+          name: TARGET
+          description: "DNS target to set. Valid values: 'cdn' (Cloudflare CDN) or 'geo' (Oracle geo-DNS)"
+          trim: true
+
+    project-type: pipeline
+    sandbox: true
+    pipeline-scm:
+      scm:
+        - git:
+            url: git@github.com:jitsi/infra-provisioning.git
+            credentials-id: "video-infra"
+            branches:
+              - "origin/${{VIDEO_INFRA_BRANCH}}"
+            browser: githubweb
+            browser-url: https://github.com/jitsi/infra-provisioning
+            submodule:
+              recursive: true
+      script-path: jenkins/groovy/reconfigure-environment-dns-target/Jenkinsfile
+      lightweight-checkout: true
