@@ -118,7 +118,7 @@ job "[JOB_NAME]" {
       env {
         REGISTRY_LOG_LEVEL="info"
         REGISTRY_HTTP_HOST="https://${var.registry_hostname}"
-        // REGISTRY_AUTH = 
+        // REGISTRY_AUTH =
         // REGISTRY_AUTH = "htpasswd"
         // REGISTRY_AUTH_HTPASSWD_PATH  = "/secrets/auth-htpasswd"
         // REGISTRY_AUTH_HTPASSWD_REALM = "Registry"
@@ -127,6 +127,7 @@ job "[JOB_NAME]" {
         REGISTRY_HTTP_DEBUG_PROMETHEUS_ENABLED = "true"
         REGISTRY_HTTP_DEBUG_PROMETHEUS_PATH = "/metrics"
         OTEL_TRACES_EXPORTER="none"
+        OTEL_SDK_DISABLED="true"
       }
 
       template {
