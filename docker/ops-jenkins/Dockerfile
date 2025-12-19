@@ -29,12 +29,13 @@ RUN usermod -a -G docker jenkins && usermod -a -G shadow jenkins
 RUN adduser -q --disabled-password --gecos "" ubuntu && mkdir /home/ubuntu/.ssh && chown ubuntu /home/ubuntu/.ssh
 RUN mkdir -p /home/jenkins/triggers && touch /home/jenkins/triggers/reconfigure-users-jenkins && chown -R jenkins:jenkins /home/jenkins/triggers
 RUN groupadd -g $GIT_GID git && usermod -a -G git jenkins
+RUN mkdir -p /home/jenkins/secrets && chown jenkins:jenkins /home/jenkins/secrets
+# JCasC configuration for SAML SSO
+COPY ./casc.yaml /home/jenkins/casc.yaml
+RUN chown jenkins:jenkins /home/jenkins/casc.yaml
 
 USER jenkins
 RUN jenkins-plugin-cli --plugin-file /home/jenkins/plugins.txt
 
-# JCasC configuration for SAML SSO
-COPY ./casc.yaml /var/jenkins_home/casc.yaml
-ENV CASC_JENKINS_CONFIG=/var/jenkins_home/casc.yaml
+ENV CASC_JENKINS_CONFIG=/home/jenkins/casc.yaml
 # Mount IdP metadata XML to /var/jenkins_home/secrets/idp-metadata.xml at runtime
-RUN mkdir -p /var/jenkins_home/secrets
