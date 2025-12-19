@@ -32,3 +32,9 @@ RUN groupadd -g $GIT_GID git && usermod -a -G git jenkins
 
 USER jenkins
 RUN jenkins-plugin-cli --plugin-file /home/jenkins/plugins.txt
+
+# JCasC configuration for SAML SSO
+COPY ./casc.yaml /var/jenkins_home/casc.yaml
+ENV CASC_JENKINS_CONFIG=/var/jenkins_home/casc.yaml
+# Mount IdP metadata XML to /var/jenkins_home/secrets/idp-metadata.xml at runtime
+RUN mkdir -p /var/jenkins_home/secrets

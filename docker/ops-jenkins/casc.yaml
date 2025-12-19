@@ -1,0 +1,19 @@
+jenkins:
+  securityRealm:
+    saml:
+      binding: "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST"
+      idpMetadataConfiguration:
+        xml: "${readFile:/var/jenkins_home/secrets/idp-metadata.xml}"
+      displayNameAttributeName: "${SAML_DISPLAY_NAME_ATTR:-http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name}"
+      emailAttributeName: "${SAML_EMAIL_ATTR:-emails}"
+      groupsAttributeName: "${SAML_GROUPS_ATTR:-groups}"
+      usernameAttributeName: "${SAML_USERNAME_ATTR:-NameID}"
+      usernameCaseConversion: "lowercase"
+      maximumAuthenticationLifetime: 86400
+  authorizationStrategy:
+    loggedInUsersCanDoAnything:
+      allowAnonymousRead: false
+
+unclassified:
+  location:
+    url: "${JENKINS_URL}"
