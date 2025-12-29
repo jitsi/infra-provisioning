@@ -8,7 +8,7 @@ variable "prometheus_hostname" {
 
 variable "prometheus_version" {
   type = string
-  default = "v2.54.1"
+  default = "v2.55"
 }
 
 variable "enable_remote_write" {
@@ -204,6 +204,7 @@ ${var.custom_relabels}
         replacement: 'prometheus'
 ${var.custom_relabels}
   - job_name: 'telegraf'
+    fallback_scrape_protocol: PrometheusText0.0.4
     consul_sd_configs:
     - server: '{{ env "NOMAD_IP_prometheus_ui" }}:8500'
       services: ['telegraf']
@@ -222,6 +223,8 @@ remote_write:
       password: "{{ .Data.data.password }}"
     headers:
       X-Scope-OrgID: "{{ .Data.data.username }}"
+    http_config:
+      enable_http2: true
 {{ end }}
 EOH
     }
