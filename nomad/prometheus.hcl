@@ -429,8 +429,8 @@ groups:
       summary: memory use for {{ $labels.exported_job }} in ${var.dc} is high
       description: >-
         The {{ $labels.exported_job }} job in ${var.dc} has been using more than 85% of its
-        allocated memory for the last 20 minutes. Consider modifying the allocated memory and
-        re-deploying the job.
+        allocated memory for the last 20 minutes. It was most recently at {{ $value }}. Consider
+        modifying the allocated memory and re-deploying the job.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=nomad_job
   - alert: Nomad_Job_CPU_Use_High
@@ -443,8 +443,8 @@ groups:
       summary: cpu use for {{ $labels.exported_job }} in ${var.dc} is high
       description: >-
         The {{ $labels.exported_job }} job in ${var.dc} has been using more than 85% of its
-        allocated CPU for the last 10 minutes. Consider modifying the allocated CPU and
-        re-deploying the job.
+        allocated CPU for the last 10 minutes. It was most recently at {{ $value }}. Consider
+        modifying the allocated CPU and re-deploying the job.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=nomad_job
 
@@ -1169,7 +1169,7 @@ EOH
 
       resources {
         cpu    = 1000
-        memory = "%{ if var.environment_type == "prod" }6144%{ else }2048%{ endif }"
+        memory = "%{ if var.environment_type == "prod" }8000%{ else }3000%{ endif }"
       }
         
       service {
