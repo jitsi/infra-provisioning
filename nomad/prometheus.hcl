@@ -8,7 +8,7 @@ variable "prometheus_hostname" {
 
 variable "prometheus_version" {
   type = string
-  default = "v2.55"
+  default = "v2.55.1"
 }
 
 variable "enable_remote_write" {
