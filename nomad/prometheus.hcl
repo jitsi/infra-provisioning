@@ -204,7 +204,6 @@ ${var.custom_relabels}
         replacement: 'prometheus'
 ${var.custom_relabels}
   - job_name: 'telegraf'
-    fallback_scrape_protocol: PrometheusText0.0.4
     consul_sd_configs:
     - server: '{{ env "NOMAD_IP_prometheus_ui" }}:8500'
       services: ['telegraf']
