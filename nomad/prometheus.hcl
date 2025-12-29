@@ -223,8 +223,6 @@ remote_write:
       password: "{{ .Data.data.password }}"
     headers:
       X-Scope-OrgID: "{{ .Data.data.username }}"
-    http_config:
-      enable_http2: true
 {{ end }}
 EOH
     }
