@@ -1169,7 +1169,7 @@ EOH
 
       resources {
         cpu    = 1000
-        memory = "%{ if var.environment_type == "prod" }8000%{ else }3000%{ endif }"
+        memory = "%{ if var.environment_type == "prod" }6144%{ else }2048%{ endif }"
       }
         
       service {
