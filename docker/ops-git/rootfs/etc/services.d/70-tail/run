@@ -1,5 +1,7 @@
 #!/usr/bin/with-contenv bash
 
-touch /tmp/update.log
-chmod 777 /tmp/update.log
-exec tail -f /tmp/update.log
+# Wait for log file to be created by cron setup
+sleep 2
+
+touch /var/log/git-sync.log
+exec tail -f /var/log/git-sync.log
