@@ -2,12 +2,18 @@ variable "dc" {
   type = string
 }
 
-variable "loki_hostname" {
+variable "tunnel_id" {
   type = string
 }
 
-variable "cloudflare_hostname" {
+variable "service_zone" {
   type = string
+  default = "jitsi.net"
+}
+
+variable "cloudflare_zone" {
+  type = string
+  default = "cloudflare.jitsi.net"
 }
 
 job "[JOB_NAME]" {
@@ -70,9 +76,10 @@ job "[JOB_NAME]" {
       # Cloudflared config with ingress rules
       template {
         data = <<EOF
+tunnel: ${var.tunnel_id}
 ingress:
-  - hostname: ${var.cloudflare_hostname}
-    service: https://${var.loki_hostname}
+  - hostname: ${var.dc}-loki.${var.cloudflare_zone}
+    service: https://${var.dc}-loki.${var.service_zone}
     originRequest:
       noTLSVerify: true
   - service: http_status:404
