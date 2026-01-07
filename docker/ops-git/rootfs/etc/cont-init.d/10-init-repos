@@ -1,0 +1,20 @@
+#!/usr/bin/with-contenv bash
+
+# Initial repo setup on container start
+
+GIT_BASE_PATH="${GIT_BASE_PATH:-/home/git}"
+
+# Ensure base directory exists with correct ownership
+mkdir -p "$GIT_BASE_PATH"
+chown git:git "$GIT_BASE_PATH"
+
+# Ensure .ssh directory exists
+mkdir -p "$GIT_BASE_PATH/.ssh"
+chown git:git "$GIT_BASE_PATH/.ssh"
+chmod 700 "$GIT_BASE_PATH/.ssh"
+
+# Run initial sync as git user (allow failure on first run if no SSH key yet)
+if [ -n "$GIT_MIRROR_REPOS" ]; then
+    echo "Running initial repo sync..."
+    sudo -u git -E /opt/jitsi/update-repos.sh || echo "Initial sync failed (may need SSH key configured)"
+fi
