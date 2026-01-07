@@ -156,6 +156,14 @@ otelcol.processor.batch "default" {
   }
 }
 
+prometheus.exporter.self "self" {}
+
+// Configure a prometheus.scrape component to collect Alloy metrics.
+prometheus.scrape "demo" {
+  targets    = prometheus.exporter.self.self.targets
+  forward_to = [prometheus.remote_write.default.receiver]
+}
+
 // Export logs to Loki via internal LB (DNS routes through OCI internal LB -> Fabio)
 // Loki's OTLP endpoint is at /otlp
 otelcol.exporter.otlphttp "loki" {
