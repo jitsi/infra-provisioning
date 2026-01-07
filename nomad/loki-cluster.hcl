@@ -77,7 +77,7 @@ job "[JOB_NAME]" {
         user = "root"
         config {
           network_mode = "host"
-          image = "grafana/loki:3.2.1"
+          image = "grafana/loki:3.5.9"
           args = [
             "-config.file",
             "local/local-config.yaml",
