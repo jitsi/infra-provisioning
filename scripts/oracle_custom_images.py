@@ -138,6 +138,8 @@ parser.add_argument('--jitsi_meet_version', action='store',
                    help='Jitsi Meet version for tag update', default='')
 parser.add_argument('--prosody_version', action='store',
                    help='Prosody version for tag update', default='')
+parser.add_argument('--get_image_details_by_id', action='store_true',
+                   help='Get image details by image_id (use with --image_id)', default=False)
 
 args = parser.parse_args()
 
@@ -298,6 +300,20 @@ elif args.update_version_tags:
     details = oci.core.models.UpdateImageDetails(**update_details)
     resp = compute.update_image(found_image.id, details)
     print(f"Image updated: {resp.data.display_name}")
+
+elif args.get_image_details_by_id:
+    if not args.image_id:
+        print("No image_id provided, exiting...")
+        exit(2)
+
+    found_image = get_oracle_image_by_id(args.image_id, args.region)
+    if not found_image:
+        warning(f"Image not found: {args.image_id}")
+        exit(1)
+
+    # Convert to same format as search results
+    image_data = image_data_from_image_obj(found_image, args.tag_namespace)
+    print(json.dumps(image_data, default=date_time_converter))
 
 else:
     # new way, using search API instead of brute force dump of all images

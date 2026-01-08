@@ -54,7 +54,8 @@ SCRIPT_DIR="$(dirname "$0")"
     --jitsi_meet_version "$JITSI_MEET_VERSION" \
     --prosody_version "$PROSODY_VERSION"
 
-# Cleanup temporary files
-rm -f "$VERSIONS_FILE" "$MANIFEST_FILE"
+# Cleanup versions file (manifest preserved for replication stage)
+rm -f "$VERSIONS_FILE"
 
 echo "Image tags updated successfully"
+echo "Manifest file preserved at: $MANIFEST_FILE"

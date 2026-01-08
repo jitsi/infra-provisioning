@@ -170,7 +170,26 @@ fi
 ###############################################################################################
 
 ###Find details about the existing image
-IMAGE_DETAILS=$($LOCAL_PATH/oracle_custom_images.py --type $IMAGE_TYPE --version "$SERVICE_VERSION" --architecture "$IMAGE_ARCH" --region "$EXPORT_ORACLE_REGION" --compartment_id "$COMPARTMENT_OCID" --tag_namespace "$TAG_NAMESPACE" --image_details true)
+# Check if packer manifest exists from a recent build (preferred method)
+PACKER_MANIFEST="./packer-manifest.json"
+if [ -f "$PACKER_MANIFEST" ]; then
+  echo "Found packer manifest, using it to get image OCID directly"
+  MANIFEST_IMAGE_OCID=$(jq -r '.builds[-1].artifact_id' "$PACKER_MANIFEST")
+  if [ -n "$MANIFEST_IMAGE_OCID" ] && [ "$MANIFEST_IMAGE_OCID" != "null" ]; then
+    echo "Using image OCID from manifest: $MANIFEST_IMAGE_OCID"
+    IMAGE_DETAILS=$($LOCAL_PATH/oracle_custom_images.py --get_image_details_by_id --image_id "$MANIFEST_IMAGE_OCID" --region "$EXPORT_ORACLE_REGION" --tag_namespace "$TAG_NAMESPACE")
+    # Clean up manifest after use
+    rm -f "$PACKER_MANIFEST"
+  else
+    echo "Warning: Could not extract image OCID from manifest, falling back to search"
+  fi
+fi
+
+# Fall back to search if manifest wasn't available or didn't work
+if [ -z "$IMAGE_DETAILS" ]; then
+  IMAGE_DETAILS=$($LOCAL_PATH/oracle_custom_images.py --type $IMAGE_TYPE --version "$SERVICE_VERSION" --architecture "$IMAGE_ARCH" --region "$EXPORT_ORACLE_REGION" --compartment_id "$COMPARTMENT_OCID" --tag_namespace "$TAG_NAMESPACE" --image_details true)
+fi
+
 if [ -z "$IMAGE_DETAILS" ]; then
   echo "No IMAGE_DETAILS found.  Exiting..."
   exit 2
