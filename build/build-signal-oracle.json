@@ -114,7 +114,7 @@
       {
         "type": "shell-local",
         "inline": [
-          "../scripts/update-image-version-tags.sh ./installed-versions.json ./packer-manifest.json {{user `region`}} {{user `tag_namespace`}}"
+          "scripts/update-image-version-tags.sh ./installed-versions.json ./packer-manifest.json {{user `region`}} {{user `tag_namespace`}}"
         ]
       }
     ]
