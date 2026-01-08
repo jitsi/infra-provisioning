@@ -130,6 +130,14 @@ parser.add_argument('--add_shape_compatibility', action='store_true',
                    help='Add shapes for image compatibility', default=False)
 parser.add_argument('--image_id', action='store',
                    help='Image ID to tag or update', default='')
+parser.add_argument('--update_version_tags', action='store_true',
+                   help='Update version tags on an existing image with actual installed versions', default=False)
+parser.add_argument('--jicofo_version', action='store',
+                   help='Jicofo version for tag update', default='')
+parser.add_argument('--jitsi_meet_version', action='store',
+                   help='Jitsi Meet version for tag update', default='')
+parser.add_argument('--prosody_version', action='store',
+                   help='Prosody version for tag update', default='')
 
 args = parser.parse_args()
 
@@ -224,6 +232,73 @@ elif args.tag_production:
         found_image = get_oracle_image_by_id(args.image_id, args.region)
 
         update_image_tags(found_image, {'production-image': 'true'})
+
+elif args.update_version_tags:
+    if not args.image_id:
+        print("No image_id provided, exiting...")
+        exit(2)
+
+    found_image = get_oracle_image_by_id(args.image_id, args.region)
+    if not found_image:
+        print(f"Image not found: {args.image_id}")
+        exit(3)
+
+    # Build new version string
+    signal_version = f"{args.jicofo_version}-{args.jitsi_meet_version}-{args.prosody_version}"
+
+    # Build new image name with actual versions
+    # Parse existing name to replace version components
+    old_name = found_image.display_name
+    # Name format: BuildSignal-{region}-{env}-{jicofo}-{meet}-{prosody}-{timestamp}
+    parts = old_name.split('-')
+    if len(parts) >= 7:
+        # Reconstruct with actual versions (keep timestamp at end)
+        parts[-4] = args.jicofo_version
+        parts[-3] = args.jitsi_meet_version
+        parts[-2] = args.prosody_version
+        new_name = '-'.join(parts)
+    else:
+        new_name = old_name  # Keep original if parsing fails
+
+    # Get the tag namespace to use
+    tag_ns = args.tag_namespace
+
+    # Update defined tags with actual versions
+    new_defined_tags = {
+        tag_ns: {
+            'Version': signal_version,
+            'Name': new_name
+        }
+    }
+
+    print(f"Updating image {args.image_id}")
+    print(f"  Old version tag: {found_image.defined_tags.get(tag_ns, {}).get('Version', 'N/A')}")
+    print(f"  New version tag: {signal_version}")
+    print(f"  Old name: {old_name}")
+    print(f"  New name: {new_name}")
+
+    # Update using OCI API
+    compute = oci.core.ComputeClient(config)
+    compute.base_client.set_region(args.region)
+
+    update_details = {
+        'display_name': new_name,
+        'defined_tags': found_image.defined_tags,
+        'freeform_tags': found_image.freeform_tags,
+        'operating_system': found_image.operating_system,
+        'operating_system_version': found_image.operating_system_version
+    }
+
+    # Merge new tags into existing defined_tags
+    for ns in new_defined_tags:
+        if ns not in update_details['defined_tags']:
+            update_details['defined_tags'][ns] = {}
+        update_details['defined_tags'][ns].update(new_defined_tags[ns])
+
+    details = oci.core.models.UpdateImageDetails(**update_details)
+    resp = compute.update_image(found_image.id, details)
+    print(f"Image updated: {resp.data.display_name}")
+
 else:
     # new way, using search API instead of brute force dump of all images
     found_images = get_oracle_image_list_by_search(args.type, version, [args.region], config, args.architecture)

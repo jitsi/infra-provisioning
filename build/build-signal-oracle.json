@@ -96,6 +96,27 @@
         "--skip-tags",
         "{{user `ansible_skip_tags`}}"
       ]
+    },
+    {
+      "type": "file",
+      "source": "/tmp/installed-versions.json",
+      "destination": "./installed-versions.json",
+      "direction": "download"
     }
+  ],
+  "post-processors": [
+    [
+      {
+        "type": "manifest",
+        "output": "./packer-manifest.json",
+        "strip_path": true
+      },
+      {
+        "type": "shell-local",
+        "inline": [
+          "../scripts/update-image-version-tags.sh ./installed-versions.json ./packer-manifest.json {{user `region`}} {{user `tag_namespace`}}"
+        ]
+      }
+    ]
   ]
 }
