@@ -81,5 +81,12 @@
         "{{user `ansible_skip_tags`}}"
       ]
     }
+  ],
+  "post-processors": [
+    {
+      "type": "manifest",
+      "output": "./packer-manifest.json",
+      "strip_path": true
+    }
   ]
 }

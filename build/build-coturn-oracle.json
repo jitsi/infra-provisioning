@@ -72,5 +72,12 @@
         "{{user `ansible_deploy_tags`}}"
       ]
     }
+  ],
+  "post-processors": [
+    {
+      "type": "manifest",
+      "output": "./packer-manifest.json",
+      "strip_path": true
+    }
   ]
 }
