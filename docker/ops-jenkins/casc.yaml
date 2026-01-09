@@ -1,0 +1,34 @@
+jenkins:
+  clouds:
+    - docker:
+        name: "docker"
+        dockerApi:
+          dockerHost:
+            uri: "unix:///var/run/docker.sock"
+        containerCap: 100
+        templates:
+          - labelString: "ops-agent"
+            name: "docker"
+            dockerTemplateBase:
+              image: "${OPS_AGENT_IMAGE:-aaronkvanmeerten/ops-agent}"
+              mounts:
+                - "type=bind,src=/var/run/docker.sock,dst=/var/run/docker.sock"
+                - "type=bind,src=/home/git,dst=/home/git"
+              devicesString: "/dev/fuse"
+              securityOptsString: "apparmor=unconfined"
+              capabilitiesToAddString: "SYS_ADMIN\nIPC_LOCK"
+              environmentsString: |
+                GIT_ALTERNATE_OBJECT_DIRECTORIES=/home/git/jitsi/infra-provisioning.git/.git/objects:/home/git/jitsi/infra-configuration.git/.git/objects:/home/git/jitsi/jitsi-meet-torture.git/.git/objects:/home/git/jitsi/jitsi-meet.git/.git/objects:/home/git/jitsi/infra-customizations-private.git/.git/objects
+            remoteFs: "/home/jenkins/agent"
+            connector:
+              attach:
+                user: "jenkins"
+            instanceCapStr: "50"
+            retentionStrategy:
+              idleMinutes: 10
+            pullStrategy: PULL_LATEST
+            pullTimeout: 300
+
+unclassified:
+  location:
+    url: "${JENKINS_URL}"
