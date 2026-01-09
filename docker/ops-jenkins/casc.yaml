@@ -19,7 +19,6 @@ jenkins:
               capabilitiesToAddString: "SYS_ADMIN\nIPC_LOCK"
               environmentsString: |
                 GIT_ALTERNATE_OBJECT_DIRECTORIES=/home/git/jitsi/infra-provisioning.git/.git/objects:/home/git/jitsi/infra-configuration.git/.git/objects:/home/git/jitsi/jitsi-meet-torture.git/.git/objects:/home/git/jitsi/jitsi-meet.git/.git/objects:/home/git/jitsi/infra-customizations-private.git/.git/objects
-                GIT_SSH_COMMAND=ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no
             remoteFs: "/home/jenkins/agent"
             connector:
               attach:
