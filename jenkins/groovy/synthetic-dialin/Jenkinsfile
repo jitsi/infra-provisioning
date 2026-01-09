@@ -20,10 +20,14 @@ pipeline {
       ansiColor('xterm')
       timestamps()
       buildDiscarder(logRotator(daysToKeepStr: '14'))
+      skipDefaultCheckout(true)
     }
     stages {
         stage ("setup") {
             steps {
+                sshagent(credentials: ['video-infra']) {
+                      checkout scm
+                }
                 script {
                     // load utility function
                     def rootDir = pwd()
