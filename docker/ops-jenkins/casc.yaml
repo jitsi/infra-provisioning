@@ -28,6 +28,7 @@ jenkins:
               idleMinutes: 10
             pullStrategy: PULL_LATEST
             pullTimeout: 300
+            removeVolumes: true
 
 unclassified:
   location:
