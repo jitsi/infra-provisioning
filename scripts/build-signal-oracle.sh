@@ -56,7 +56,7 @@ fi
 [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS="16"
 
 [ -z "$BASE_IMAGE_TYPE" ] && BASE_IMAGE_TYPE="$SIGNAL_BASE_IMAGE_TYPE"
-[ -z "$BASE_IMAGE_TYPE" ] && BASE_IMAGE_TYPE="JammyBase"
+[ -z "$BASE_IMAGE_TYPE" ] && BASE_IMAGE_TYPE="NobleBase"
 
 arch_from_shape $SHAPE
 
