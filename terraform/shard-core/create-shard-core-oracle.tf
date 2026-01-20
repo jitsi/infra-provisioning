@@ -6,6 +6,9 @@ variable "shard_number" {
 }
 variable "cloud_name" {}
 variable "release_number" {}
+variable "exclusive_tenant" {
+  default = ""
+}
 variable "name" {}
 variable "oracle_region" {}
 variable "shape" {}
@@ -313,6 +316,7 @@ resource "oci_core_instance" "instance" {
       configuration_repo = var.infra_configuration_repo
       customizations_repo = var.infra_customizations_repo
       shape = var.shape
+      exclusive_tenant = var.exclusive_tenant
     }
 
     display_name = var.instance_display_name
