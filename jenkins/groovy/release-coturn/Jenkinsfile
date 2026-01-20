@@ -1,12 +1,9 @@
+def utils
+
 def oracle_regions(cloud_list) {
     def oracle_regions=[]
     for(i = 0; i < cloud_list.size(); i++) {
-        oracle_regions[i] = sh(
-            returnStdout: true,
-            script: """#!/bin/bash
-                . clouds/${cloud_list[i]}.sh
-                echo \$ORACLE_REGION"""
-        )
+        oracle_regions[i] = utils.OracleRegionFromCloud(cloud_list[i])
     }
     return oracle_regions
 }
@@ -45,7 +42,6 @@ def createCoturnStack(stack_environment,cloud_provider,cloud_name,oracle_region,
     return createStack
 }
 
-def utils
 pipeline {				//indicate the job is written in Declarative Pipeline
     agent any				//agent specifies where the pipeline will execute. 
     options {
