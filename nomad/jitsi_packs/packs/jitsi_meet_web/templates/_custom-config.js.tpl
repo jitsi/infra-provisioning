@@ -11,6 +11,7 @@ config.p2p.codecPreferenceOrder=[[ or (env "CONFIG_jitsi_meet_p2p_preferred_code
 config.p2p.mobileCodecPreferenceOrder=[[ or (env "CONFIG_jitsi_meet_p2p_preferred_mobile_codecs") "[ 'VP8', 'H264', 'VP9' ]" ]];
 
 config.enableSaveLogs=[[ or (env "CONFIG_jitsi_meet_enable_save_logs") "true" ]];
+config.enableDisplayNameInStats=[[ or (env "CONFIG_jitsi_meet_enable_display_name_in_stats") "false" ]];
 config.channelLastN=[[ or (env "CONFIG_jitsi_meet_channel_last_n") "-1" ]];
 
 if (!config.hasOwnProperty('flags')) config.flags = {};
