@@ -87,7 +87,8 @@ fi
 PROSODY_APT_FLAG=''
 PROSODY_VERSION_FLAG='{}'
 if [ ! -z "$PROSODY_FROM_URL" ]; then
-    if [ "$PROSODY_FROM_URL" == "true" ]; then 
+    # Explicit PROSODY_FROM_URL flag takes precedence
+    if [ "$PROSODY_FROM_URL" == "true" ]; then
       PROSODY_APT_FLAG="false"
       if [ ! -z "$PROSODY_VERSION" ]; then
         PROSODY_URL_VERSION="$PROSODY_VERSION"
@@ -96,7 +97,13 @@ if [ ! -z "$PROSODY_FROM_URL" ]; then
     fi
     [ "$PROSODY_FROM_URL" == "false" ] && PROSODY_APT_FLAG="true"
     PROSODY_APT_FLAG="{\"prosody_install_from_apt\":$PROSODY_APT_FLAG}"
+elif [ ! -z "$PROSODY_VERSION" ]; then
+    # PROSODY_VERSION specified without PROSODY_FROM_URL: install from URL
+    PROSODY_APT_FLAG="{\"prosody_install_from_apt\":false}"
+    PROSODY_URL_VERSION="$PROSODY_VERSION"
+    PROSODY_VERSION_FLAG="{\"prosody_url_version\":\"$PROSODY_URL_VERSION\"}"
 fi
+# If neither PROSODY_FROM_URL nor PROSODY_VERSION is specified, use ansible defaults
 
 SIGNAL_VERSION="$JICOFO_VERSION-$JITSI_MEET_VERSION-$PROSODY_VERSION"
 
