@@ -63,9 +63,11 @@ SIGNAL_INVENTORY_PATH="./signal-release-$RELEASE_NUMBER.inventory"
 DEST_PATH="/usr/share/$PACKAGE_NAME"
 CDN_PATH="$DEST_PATH/base.html"
 
+[ -z "$REGION" ] && REGION="all"
+
 # build inventory
 echo "Building signal node inventory into $SIGNAL_INVENTORY_PATH"
-$LOCAL_PATH/node.py --environment $ENVIRONMENT --role core --region all --oracle --release $RELEASE_NUMBER --batch > $SIGNAL_INVENTORY_PATH
+$LOCAL_PATH/node.py --environment $ENVIRONMENT --role core --region $REGION --oracle --release $RELEASE_NUMBER --batch > $SIGNAL_INVENTORY_PATH
 
 BASE_PATH="./base.html"
 echo -n "<base href=\"$CDN_BASE/$CDN_PREFIX$CDN_VERSION/\" />" > $BASE_PATH
