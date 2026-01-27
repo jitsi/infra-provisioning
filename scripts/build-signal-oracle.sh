@@ -85,11 +85,13 @@ if [ -z "$JITSI_MEET_META_VERSION" ]; then
 fi
 
 PROSODY_APT_FLAG=''
+PROSODY_VERSION_FLAG='{}'
 if [ ! -z "$PROSODY_FROM_URL" ]; then
     if [ "$PROSODY_FROM_URL" == "true" ]; then 
       PROSODY_APT_FLAG="false"
       if [ ! -z "$PROSODY_VERSION" ]; then
         PROSODY_URL_VERSION="$PROSODY_VERSION"
+        PROSODY_VERSION_FLAG="{\"prosody_url_version\":\"$PROSODY_URL_VERSION\"}"
       fi
     fi
     [ "$PROSODY_FROM_URL" == "false" ] && PROSODY_APT_FLAG="true"
@@ -168,7 +170,7 @@ packer build \
 -var "prosody_version=$PROSODY_VERSION" \
 $([ ! -z $PROSODY_APT_FLAG ] && echo "-var prosody_apt_flag=$PROSODY_APT_FLAG") \
 $([ ! -z $PROSODY_PACKAGE_VERSION ] && echo "-var prosody_package_version=$PROSODY_PACKAGE_VERSION") \
-$([ ! -z $PROSODY_URL_VERSION ] && echo "-var prosody_url_version=$PROSODY_URL_VERSION") \
+$([ ! -z $PROSODY_URL_VERSION ] && echo "-var prosody_version_flag=$PROSODY_VERSION_FLAG") \
 -var "ansible_python_interpreter=/usr/bin/python3" \
 -var "ansible_deploy_tags=$DEPLOY_TAGS" \
 -var "ansible_skip_tags=failfast" \
