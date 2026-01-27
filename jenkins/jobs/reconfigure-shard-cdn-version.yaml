@@ -25,7 +25,21 @@
           default: git@github.com:jitsi/infra-customizations.git
           description: "Repo with customized configurations, defaults to 'git@github.com:jitsi/infra-customizations.git'."
           trim: true
- 
+      - string:
+          name: REGION
+          choices:
+            - 'all'
+            - 'us-phoenix-1'
+            - 'us-ashburn-1'
+            - 'uk-london-1'
+            - 'eu-frankfurt-1'
+            - 'ap-mumbai-1'
+            - 'ap-tokyo-1'
+            - 'ap-sydney-1'
+            - 'sa-saopaulo-1'
+          description: "Selects the region where to proceed."
+          trim: true
+
     project-type: pipeline
     sandbox: true
     pipeline-scm:
