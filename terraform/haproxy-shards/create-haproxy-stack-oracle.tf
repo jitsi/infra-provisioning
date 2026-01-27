@@ -198,6 +198,17 @@ resource "oci_load_balancer_backend_set" "oci_load_balancer_bs" {
   }
 }
 
+resource "oci_load_balancer_backend_set" "websocket_load_balancer_bs" {
+  load_balancer_id = oci_load_balancer.oci_load_balancer.id
+  name = "WebSocketLBBS"
+  policy = "ROUND_ROBIN"
+  health_checker {
+    protocol = "TCP"
+    port = 8089
+    retries = 3
+  }
+}
+
 resource "oci_load_balancer_certificate" "main_certificate" {
     #Required
     certificate_name = var.certificate_certificate_name
@@ -276,6 +287,19 @@ resource "oci_load_balancer_hostname" "signal_api_hostnames" {
     }
 }
 
+resource "oci_load_balancer_path_route_set" "websocket_path_route_set" {
+  load_balancer_id = oci_load_balancer.oci_load_balancer.id
+  name = "WebSocketPathRouteSet"
+
+  path_routes {
+    backend_set_name = oci_load_balancer_backend_set.websocket_load_balancer_bs.name
+    path = "/v1/_ws/"
+    path_match_type {
+      match_type = "PREFIX_MATCH"
+    }
+  }
+}
+
 resource "oci_load_balancer_listener" "main_listener" {
   load_balancer_id = oci_load_balancer.oci_load_balancer.id
   name = "HAProxyHTTPSListener"
@@ -283,6 +307,7 @@ resource "oci_load_balancer_listener" "main_listener" {
   default_backend_set_name = oci_load_balancer_backend_set.oci_load_balancer_bs.name
   protocol = "HTTP"
   hostname_names = concat([oci_load_balancer_hostname.main_hostname.name],[ for k,v in oci_load_balancer_hostname.regional_hostnames : v.name ])
+  path_route_set_name = oci_load_balancer_path_route_set.websocket_path_route_set.name
   ssl_configuration {
       #Optional
       certificate_name = oci_load_balancer_certificate.main_certificate.certificate_name
@@ -374,6 +399,13 @@ resource "oci_core_instance_pool" "oci_instance_pool" {
     load_balancer_id = oci_load_balancer.oci_load_balancer.id
     backend_set_name = oci_load_balancer_backend_set.oci_load_balancer_bs.name
     port = 80
+    vnic_selection = "PrimaryVnic"
+  }
+
+  load_balancers {
+    load_balancer_id = oci_load_balancer.oci_load_balancer.id
+    backend_set_name = oci_load_balancer_backend_set.websocket_load_balancer_bs.name
+    port = 8089
     vnic_selection = "PrimaryVnic"
   }
 
