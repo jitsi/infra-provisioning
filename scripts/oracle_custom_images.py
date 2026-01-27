@@ -10,7 +10,7 @@ import datetime
 from hcvlib import delete_image, get_oracle_image_list_by_search, update_image_tags, get_oracle_image_by_id, update_image_shapes, get_image_shapes
 
 OPERATING_SYSTEM = 'Canonical Ubuntu'
-OPERATING_SYSTEM_VERSIONS = ['18.04', '20.04', '22.04']
+OPERATING_SYSTEM_VERSIONS = ['18.04', '20.04', '22.04', '24.04']
 IMAGE_LIFECYCLE_STATE = "AVAILABLE"
 
 def warning(warn_str):
