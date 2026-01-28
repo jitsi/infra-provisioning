@@ -84,20 +84,25 @@ if [ -z "$JITSI_MEET_META_VERSION" ]; then
     JITSI_MEET_META_VERSION='*'
 fi
 
+# clear prosody version if 'latest' is requested
+if [[ "$PROSODY_VERSION" == "latest" ]]; then
+  PROSODY_VERSION=
+fi
+
 PROSODY_APT_FLAG=''
 PROSODY_VERSION_FLAG='{}'
-if [ ! -z "$PROSODY_FROM_URL" ]; then
+if [ -n "$PROSODY_FROM_URL" ]; then
     # Explicit PROSODY_FROM_URL flag takes precedence
     if [ "$PROSODY_FROM_URL" == "true" ]; then
       PROSODY_APT_FLAG="false"
-      if [ ! -z "$PROSODY_VERSION" ]; then
+      if [ -n "$PROSODY_VERSION" ]; then
         PROSODY_URL_VERSION="$PROSODY_VERSION"
         PROSODY_VERSION_FLAG="{\"prosody_url_version\":\"$PROSODY_URL_VERSION\"}"
       fi
     fi
     [ "$PROSODY_FROM_URL" == "false" ] && PROSODY_APT_FLAG="true"
     PROSODY_APT_FLAG="{\"prosody_install_from_apt\":$PROSODY_APT_FLAG}"
-elif [ ! -z "$PROSODY_VERSION" ]; then
+elif [ -n "$PROSODY_VERSION" ]; then
     # PROSODY_VERSION specified without PROSODY_FROM_URL: install from URL
     PROSODY_APT_FLAG="{\"prosody_install_from_apt\":false}"
     PROSODY_URL_VERSION="$PROSODY_VERSION"
