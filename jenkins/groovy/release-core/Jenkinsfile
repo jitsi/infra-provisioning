@@ -59,6 +59,12 @@ scripts/enable-alarms-for-shards.sh ubuntu"""
 // global var to track git branch from env or new tags
 def git_branch
 
+// variables to track actual resolved versions (when "latest" is used)
+def actualSignalVersion
+def actualJvbVersion
+def signalImageArch = "aarch64"
+def jvbImageArch = "aarch64"
+
 // use incoming branch/tag or tag repo with new tag based on build ID
 // either way set it into git_branch variable to use later
 def tagRelease(release) {
@@ -102,6 +108,65 @@ def buildSignalImage(signalVersion,hcv_environment,clouds,force_build_image,vide
     ]
 
     return buildImage
+}
+
+// query Oracle image metadata to get actual built version (resolves "latest" to real version)
+def getActualImageVersion(image_type, original_version, hcv_environment, image_arch) {
+    def actual_version = original_version
+    try {
+        def query_script
+        if (image_type == 'Signal') {
+            // parse signal version into components: jicofoVer-jitsiMeetVer-prosodyVer
+            def signalVersionParts = rsplit(original_version, 3)
+            def jicofo_version = signalVersionParts[0]
+            def jitsi_meet_version = signalVersionParts[1]
+            def prosody_version = signalVersionParts[2]
+
+            if (jicofo_version == 'latest' && jitsi_meet_version == 'latest' && prosody_version == 'latest') {
+                // all components are latest, query for latest image
+                query_script = """#!/bin/bash
+scripts/oracle_custom_images.py \
+    --type ${image_type} \
+    --version latest \
+    --architecture ${image_arch} \
+    --image_details true 2>/dev/null || echo '{}'"""
+            } else {
+                // query with specific component versions
+                query_script = """#!/bin/bash
+scripts/oracle_custom_images.py \
+    --type ${image_type} \
+    --jicofo_version ${jicofo_version} \
+    --jitsi_meet_version ${jitsi_meet_version} \
+    --prosody_version ${prosody_version} \
+    --architecture ${image_arch} \
+    --image_details true 2>/dev/null || echo '{}'"""
+            }
+        } else {
+            // JVB or other image types - query with version latest
+            query_script = """#!/bin/bash
+scripts/oracle_custom_images.py \
+    --type ${image_type} \
+    --version latest \
+    --architecture ${image_arch} \
+    --image_details true 2>/dev/null || echo '{}'"""
+        }
+
+        def image_details = sh(
+            returnStdout: true,
+            script: query_script
+        ).trim()
+
+        if (image_details && image_details != '{}') {
+            def parsed = readJSON text: image_details
+            if (parsed.image_version) {
+                actual_version = parsed.image_version
+                echo "Resolved ${image_type} version: ${original_version} -> ${actual_version}"
+            }
+        }
+    } catch (Exception e) {
+        echo "Warning: Could not query ${image_type} image version, using original: ${original_version}"
+    }
+    return actual_version
 }
 
 def releaseJVBPools(shard_environment,cloud_name,cloud_provider,release_number,gitBranch,jvbVersion,jvbShape) {
@@ -213,25 +278,6 @@ pipeline {
                 }
             }
         }
-        stage ("create in versioning manager") {
-            when {
-                expression { useReleaseBackends == 'true' }
-            }
-            steps {
-                withCredentials([
-                    string(credentialsId: 'asap-jwt-kid-dev', variable: 'ASAP_JWT_KID_DEV'),
-                    string(credentialsId: 'asap-jwt-kid-prod', variable: 'ASAP_JWT_KID_PROD'),
-                    file(credentialsId: 'asap-jwt-key-dev', variable: 'ASAP_JWT_KEY_DEV'),
-                    file(credentialsId: 'asap-jwt-key-prod', variable: 'ASAP_JWT_KEY_PROD')
-                ]) {
-                    script {
-                        dir('infra-provisioning') {
-                            versioningManagerCreateRelease(env.ENVIRONMENT, env.BUILD_ID, env.SIGNAL_VERSION, env.JVB_VERSION)
-                        }
-                    }
-                }
-            }
-        }
         // create images for oracle
         stage("build oracle images") {
             parallel {
@@ -241,14 +287,20 @@ pipeline {
                     }
                     steps {
                         script {
+                            // initialize actual version with original value
+                            actualJvbVersion = env.JVB_VERSION
+
                             def jvb_shape
                             if (env.JVB_SHAPE) {
                                 jvb_shape = env.JVB_SHAPE
                             } else {
-                                jvb_shape = utils.JVBShapeFromEnvironment(env.ENVIRONMENT)                                
+                                jvb_shape = utils.JVBShapeFromEnvironment(env.ENVIRONMENT)
                             }
 
                             def image_arch = utils.ImageArchFromShape(jvb_shape)
+                            // store arch for later version resolution
+                            jvbImageArch = image_arch
+
                             buildJvbImage(env.JVB_VERSION,
                                 env.ENVIRONMENT,
                                 env.CLOUDS,
@@ -266,13 +318,20 @@ pipeline {
                     }
                     steps {
                         script {
+                            // initialize actual version with original value
+                            actualSignalVersion = env.SIGNAL_VERSION
+
                             def signal_shape
                             if (env.SHAPE) {
                                 signal_shape = env.SHAPE
                             } else {
-                                signal_shape = utils.SignalShapeFromEnvironment(env.ENVIRONMENT)                                
+                                signal_shape = utils.SignalShapeFromEnvironment(env.ENVIRONMENT)
                             }
+
                             def image_arch = utils.ImageArchFromShape(signal_shape)
+                            // store arch for later version resolution
+                            signalImageArch = image_arch
+
                             buildSignalImage(env.SIGNAL_VERSION,
                                 env.ENVIRONMENT,
                                 env.CLOUDS,
@@ -280,6 +339,51 @@ pipeline {
                                 env.VIDEO_INFRA_BRANCH,
                                 image_arch
                             )
+                        }
+                    }
+                }
+            }
+        }
+        // resolve actual versions from built images (handles "latest" -> real version)
+        stage("resolve actual versions") {
+            steps {
+                script {
+                    dir('infra-provisioning') {
+                        // ensure variables are initialized even if build stages were skipped
+                        if (actualSignalVersion == null) {
+                            actualSignalVersion = env.SIGNAL_VERSION
+                        }
+                        if (actualJvbVersion == null) {
+                            actualJvbVersion = env.JVB_VERSION
+                        }
+
+                        // only resolve versions when "latest" is in the version string
+                        if (env.CORE_CLOUD_PROVIDER == 'oracle' && env.SIGNAL_VERSION.contains('latest')) {
+                            actualSignalVersion = getActualImageVersion('Signal', env.SIGNAL_VERSION, env.ENVIRONMENT, signalImageArch)
+                            echo "Actual Signal Version: ${actualSignalVersion}"
+                        }
+                        if (env.CLOUD_PROVIDER == 'oracle' && env.JVB_VERSION.contains('latest')) {
+                            actualJvbVersion = getActualImageVersion('JVB', env.JVB_VERSION, env.ENVIRONMENT, jvbImageArch)
+                            echo "Actual JVB Version: ${actualJvbVersion}"
+                        }
+                    }
+                }
+            }
+        }
+        stage ("create in versioning manager") {
+            when {
+                expression { useReleaseBackends == 'true' }
+            }
+            steps {
+                withCredentials([
+                    string(credentialsId: 'asap-jwt-kid-dev', variable: 'ASAP_JWT_KID_DEV'),
+                    string(credentialsId: 'asap-jwt-kid-prod', variable: 'ASAP_JWT_KID_PROD'),
+                    file(credentialsId: 'asap-jwt-key-dev', variable: 'ASAP_JWT_KEY_DEV'),
+                    file(credentialsId: 'asap-jwt-key-prod', variable: 'ASAP_JWT_KEY_PROD')
+                ]) {
+                    script {
+                        dir('infra-provisioning') {
+                            versioningManagerCreateRelease(env.ENVIRONMENT, env.BUILD_ID, actualSignalVersion, actualJvbVersion)
                         }
                     }
                 }
@@ -303,7 +407,7 @@ pipeline {
                                 branches["Nomad web release"] = {
                                     build job: 'provision-nomad-web-release',parameters: [
                                         [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: env.ENVIRONMENT],
-                                        [$class: 'StringParameterValue', name: 'SIGNAL_VERSION', value: env.SIGNAL_VERSION],
+                                        [$class: 'StringParameterValue', name: 'SIGNAL_VERSION', value: actualSignalVersion],
                                         [$class: 'StringParameterValue', name: 'RELEASE_NUMBER', value: env.BUILD_ID],
                                         [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH]
                                     ]
@@ -317,7 +421,7 @@ pipeline {
                                         env.CLOUD_PROVIDER,
                                         env.BUILD_ID,
                                         git_branch,
-                                        env.JVB_VERSION,
+                                        actualJvbVersion,
                                         env.JVB_SHAPE
                                     )
                                 }
@@ -332,8 +436,8 @@ pipeline {
                                         shard_numbers[curr],
                                         env.BUILD_ID,
                                         git_branch,
-                                        env.JVB_VERSION,
-                                        env.SIGNAL_VERSION,
+                                        actualJvbVersion,
+                                        actualSignalVersion,
                                         env.SHAPE,
                                         env.JVB_SHAPE
                                     )
@@ -354,7 +458,7 @@ pipeline {
             }
             steps {
                 script {
-                    def releaseVersion = [SIGNAL_VERSION: env.SIGNAL_VERSION, JVB_VERSION: env.JVB_VERSION]
+                    def releaseVersion = [SIGNAL_VERSION: actualSignalVersion, JVB_VERSION: actualJvbVersion]
                     build job: 'record-release',parameters: [
                             [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: env.ENVIRONMENT],
                             [$class: 'StringParameterValue', name: 'RELEASE_ID', value: env.BUILD_ID],

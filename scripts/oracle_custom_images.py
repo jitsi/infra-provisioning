@@ -316,8 +316,23 @@ elif args.get_image_details_by_id:
     print(json.dumps(image_data, default=date_time_converter))
 
 else:
+    # For Signal images, support searching by individual component versions
+    search_version = version
+    if args.type == 'Signal' and (args.jicofo_version or args.jitsi_meet_version or args.prosody_version):
+        # If any component version is provided, construct the full version string
+        jicofo = args.jicofo_version or 'latest'
+        jitsi_meet = args.jitsi_meet_version or 'latest'
+        prosody = args.prosody_version or 'latest'
+
+        # If all are 'latest', use 'latest' as the search version
+        if jicofo == 'latest' and jitsi_meet == 'latest' and prosody == 'latest':
+            search_version = 'latest'
+        else:
+            # Construct the full signal version string for searching
+            search_version = f"{jicofo}-{jitsi_meet}-{prosody}"
+
     # new way, using search API instead of brute force dump of all images
-    found_images = get_oracle_image_list_by_search(args.type, version, [args.region], config, args.architecture)
+    found_images = get_oracle_image_list_by_search(args.type, search_version, [args.region], config, args.architecture)
 
     if len(found_images) > 0:
         if args.image_details:
@@ -325,5 +340,5 @@ else:
         else:
             print(found_images[0]['image_id'])
     else:
-        warning('No image found matching type {} and version {} and arch {}'.format(args.type, args.version, args.architecture))
+        warning('No image found matching type {} and version {} and arch {}'.format(args.type, search_version, args.architecture))
         exit(1)
