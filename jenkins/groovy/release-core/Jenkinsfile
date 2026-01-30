@@ -162,6 +162,10 @@ scripts/oracle_custom_images.py \
                 actual_version = parsed.image_version
                 echo "Resolved ${image_type} version: ${original_version} -> ${actual_version}"
             }
+        } else {
+            echo "Error resolving image version"
+            echo query_script
+            echo image_details
         }
     } catch (Exception e) {
         echo "Warning: Could not query ${image_type} image version, using original: ${original_version}"

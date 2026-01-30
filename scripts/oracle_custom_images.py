@@ -319,16 +319,53 @@ else:
     # For Signal images, support searching by individual component versions
     search_version = version
     if args.type == 'Signal' and (args.jicofo_version or args.jitsi_meet_version or args.prosody_version):
-        # If any component version is provided, construct the full version string
         jicofo = args.jicofo_version or 'latest'
         jitsi_meet = args.jitsi_meet_version or 'latest'
         prosody = args.prosody_version or 'latest'
 
-        # If all are 'latest', use 'latest' as the search version
+        # Check if any component is 'latest'
+        has_latest = jicofo == 'latest' or jitsi_meet == 'latest' or prosody == 'latest'
+
         if jicofo == 'latest' and jitsi_meet == 'latest' and prosody == 'latest':
+            # All are latest - just search for latest
             search_version = 'latest'
+        elif has_latest:
+            # Mixed: some specific, some 'latest' - get all recent images and filter
+            found_images = get_oracle_image_list_by_search(args.type, 'latest', [args.region], config, args.architecture)
+
+            # Filter to find images matching the specified (non-'latest') components
+            matched_images = []
+            for img in found_images:
+                img_version = img.get('image_version', '')
+                if not img_version:
+                    continue
+                parts = img_version.split('-')
+                if len(parts) >= 3:
+                    img_jicofo, img_meet, img_prosody = parts[0], parts[1], parts[2]
+                    # Check each component: match if specified version equals image's version OR if we want 'latest'
+                    jicofo_match = (jicofo == 'latest' or img_jicofo == jicofo)
+                    meet_match = (jitsi_meet == 'latest' or img_meet == jitsi_meet)
+                    prosody_match = (prosody == 'latest' or img_prosody == prosody)
+
+                    if jicofo_match and meet_match and prosody_match:
+                        matched_images.append(img)
+
+            # Use matched images (already sorted by date desc from search)
+            found_images = matched_images
+
+            # Output result and exit early (skip the normal search below)
+            if len(found_images) > 0:
+                if args.image_details:
+                    print(json.dumps(found_images[0], default=date_time_converter))
+                else:
+                    print(found_images[0]['image_id'])
+            else:
+                warning('No image found matching type {} with jicofo={}, jitsi_meet={}, prosody={} and arch {}'.format(
+                    args.type, jicofo, jitsi_meet, prosody, args.architecture))
+                exit(1)
+            exit(0)
         else:
-            # Construct the full signal version string for searching
+            # All components are specific versions - use exact search
             search_version = f"{jicofo}-{jitsi_meet}-{prosody}"
 
     # new way, using search API instead of brute force dump of all images
