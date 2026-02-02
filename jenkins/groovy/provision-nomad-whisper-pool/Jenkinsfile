@@ -1,0 +1,51 @@
+def utils
+pipeline {
+    agent any
+    options {
+        ansiColor('xterm')
+        timestamps()
+        buildDiscarder(logRotator(numToKeepStr: '10', artifactNumToKeepStr: '10'))
+    }
+    stages {
+        stage ("setup") {
+            steps {
+                script {
+                    def rootDir = pwd()
+                    utils = load "${rootDir}/jenkins/groovy/Utils.groovy"
+                    utils.SetupRepos(env.VIDEO_INFRA_BRANCH)
+                    utils.SetupOCI()
+                    sh 'mkdir -p test-results'
+                }
+            }
+        }
+        stage ("Whisper Instance Configuration and Autoscaling Group Provisioning") {
+            steps {
+                script {
+                    echo 'Start provisioning whisper instance configuration'
+                    dir('infra-provisioning') {
+                        withCredentials([
+                            string(credentialsId: 'oci-jenkins-terraform-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
+                            string(credentialsId: 'oci-jenkins-terraform-aws-id', variable: 'AWS_ACCESS_KEY_ID'),
+                            sshUserPrivateKey(credentialsId: 'ssh-ubuntu', keyFileVariable: 'USER_PRIVATE_KEY_PATH', usernameVariable: 'SSH_USERNAME'),
+                            string(credentialsId: 'asap-jwt-kid-dev', variable: 'ASAP_JWT_KID_DEV'),
+                            string(credentialsId: 'asap-jwt-kid-prod', variable: 'ASAP_JWT_KID_PROD'),
+                            file(credentialsId: 'asap-jwt-key-dev', variable: 'ASAP_JWT_KEY_DEV'),
+                            file(credentialsId: 'asap-jwt-key-prod', variable: 'ASAP_JWT_KEY_PROD')
+                        ]) {
+                            utils.SetupAnsible()
+                            utils.SetupSSH()
+                            sshagent (credentials: ['ssh-ubuntu']) {
+                                sh """#!/bin/bash
+                                export USER_PUBLIC_KEY_PATH=~/.ssh/ssh_key.pub
+                                export ORACLE_GIT_BRANCH=\"$RELEASE_BRANCH\"
+                                export ENVIRONMENT=\"$ENVIRONMENT\"
+                                
+                                scripts/create-or-rotate-whisper.sh $SSH_USERNAME"""
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
