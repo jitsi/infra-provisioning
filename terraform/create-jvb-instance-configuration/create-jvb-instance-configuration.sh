@@ -90,6 +90,32 @@ if [ "$ENABLE_A_2" == "true" ]; then
   fi
 fi
 
+JVB_IMAGE_TYPE="JVB"
+
+JVB_NOMAD_VARIABLE="jvb_enable_nomad"
+
+[ -z "$CONFIG_VARS_FILE" ] && CONFIG_VARS_FILE="$LOCAL_PATH/../../config/vars.yml"
+[ -z "$ENVIRONMENT_VARS_FILE" ] && ENVIRONMENT_VARS_FILE="$LOCAL_PATH/../../sites/$ENVIRONMENT/vars.yml"
+
+if [ -z "$NOMAD_JVB_FLAG" ]; then
+  NOMAD_JVB_FLAG="$(cat $ENVIRONMENT_VARS_FILE | yq eval .${JVB_NOMAD_VARIABLE} -)"
+  if [[ "$NOMAD_JVB_FLAG" == "null" ]]; then
+    NOMAD_JVB_FLAG="$(cat $CONFIG_VARS_FILE | yq eval .${JVB_NOMAD_VARIABLE} -)"
+  fi
+  if [[ "$NOMAD_JVB_FLAG" == "null" ]]; then
+    NOMAD_JVB_FLAG=
+  fi
+fi
+
+[ -z "$NOMAD_JVB_FLAG" ] && NOMAD_JVB_FLAG="false"
+
+if [[ "$NOMAD_JVB_FLAG" == "true" ]]; then
+  JVB_IMAGE_TYPE="NobleBase"
+  JVB_VERSION="latest"
+  SHARD_ROLE="JVB-nomad-pool"
+  SHAPE="VM.Standard.A1.Flex"
+fi
+
 [ -z "$SHAPE" ] && SHAPE="$JVB_SHAPE"
 
 if [[ "$SHAPE" == "VM.Standard.E3.Flex" ]]; then
@@ -126,30 +152,6 @@ fi
 
 [ -z "$JVB_AUTOSCALER_ENABLED" ] && JVB_AUTOSCALER_ENABLED="$JVB_DEFAULT_AUTOSCALER_ENABLED"
 [ -z "$JVB_AUTOSCALER_ENABLED" ] && JVB_AUTOSCALER_ENABLED="true"
-
-JVB_NOMAD_VARIABLE="jvb_enable_nomad"
-
-[ -z "$CONFIG_VARS_FILE" ] && CONFIG_VARS_FILE="$LOCAL_PATH/../../config/vars.yml"
-[ -z "$ENVIRONMENT_VARS_FILE" ] && ENVIRONMENT_VARS_FILE="$LOCAL_PATH/../../sites/$ENVIRONMENT/vars.yml"
-
-if [ -z "$NOMAD_JVB_FLAG" ]; then
-  NOMAD_JVB_FLAG="$(cat $ENVIRONMENT_VARS_FILE | yq eval .${JVB_NOMAD_VARIABLE} -)"
-  if [[ "$NOMAD_JVB_FLAG" == "null" ]]; then
-    NOMAD_JVB_FLAG="$(cat $CONFIG_VARS_FILE | yq eval .${JVB_NOMAD_VARIABLE} -)"
-  fi
-  if [[ "$NOMAD_JVB_FLAG" == "null" ]]; then
-    NOMAD_JVB_FLAG=
-  fi
-fi
-[ -z "$NOMAD_JVB_FLAG" ] && NOMAD_JVB_FLAG="false"
-
-JVB_IMAGE_TYPE="JVB"
-
-if [[ "$NOMAD_JVB_FLAG" == "true" ]]; then
-  JVB_IMAGE_TYPE="JammyBase"
-  JVB_VERSION="latest"
-  SHARD_ROLE="JVB-nomad-pool"
-fi
 
 [ -z "$JVB_POOL_MODE" ] && JVB_POOL_MODE="shard"
 
