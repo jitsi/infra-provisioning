@@ -217,7 +217,7 @@ EOF
       }
 
       artifact {
-        source      = "https://github.com/jitsi/jvb-rtcstats-push/releases/download/0.0.1/jvb-rtcstats-push.zip"
+        source      = "https://github.com/jitsi/jvb-rtcstats-push/releases/download/0.0.3/jvb-rtcstats-push.zip"
         mode = "file"
         destination = "local/jvb-rtcstats-push.zip"
         options {
