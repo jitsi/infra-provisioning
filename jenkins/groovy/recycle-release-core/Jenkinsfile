@@ -146,8 +146,9 @@ pipeline {				//indicate the job is written in Declarative Pipeline
             steps {
                 script {
                     // could wait for manual approval by operator to continue?
-                    echo "Sleeping for ${env.DRAIN_WAIT_PERIOD} seconds to allow old shards to drain"
-                    sleep env.DRAIN_WAIT_PERIOD
+                    def drainWaitSeconds = (env.DRAIN_WAIT_PERIOD ?: '21600').toInteger()
+                    echo "Sleeping for ${drainWaitSeconds} seconds to allow old shards to drain"
+                    sleep drainWaitSeconds
                 }
             }
         }
