@@ -872,8 +872,10 @@ EOF
         volumes = [
           "local/config:/config",
           "local/jicofo-service-run:/etc/services.d/jicofo/run",
+[[- if eq (or (env "CONFIG_jicofo_rtcstats_enabled") "false") "true" ]]
           "local/11-jicofo-rtcstats-push:/etc/cont-init.d/11-jicofo-rtcstats-push",
           "local/jicofo-rtcstats-push-service-run:/etc/services.d/60-jicofo-rtcstats-push/run"
+[[- end ]]
         ]
         labels {
           release = "[[ env "CONFIG_release_number" ]]"
@@ -919,12 +921,15 @@ EOF
         # jicofo rtcstats push vars
         JICOFO_ADDRESS = "http://127.0.0.1:8888"
         JICOFO_VISITORS_REQUIRE_MUC_CONFIG = "[[ env "CONFIG_jicofo_require_muc_config_flag" ]]"
+[[- if eq (or (env "CONFIG_jicofo_rtcstats_enabled") "false") "true" ]]
         RTCSTATS_SERVER="[[ env "CONFIG_jicofo_rtcstats_push_rtcstats_server" ]]"
+[[- end ]]
         INTERVAL=10000
         JICOFO_LOG_FILE = "/local/jicofo.log"
         VISITORS_XMPP_AUTH_DOMAIN="auth.[[ env "CONFIG_domain" ]]"
       }
 
+[[- if eq (or (env "CONFIG_jicofo_rtcstats_enabled") "false") "true" ]]
       artifact {
         source      = "https://github.com/jitsi/jicofo-rtcstats-push/releases/download/release-0.0.1/jicofo-rtcstats-push.zip"
         mode = "file"
@@ -933,6 +938,7 @@ EOF
           archive = false
         }
       }
+[[- end ]]
       template {
         data = <<EOF
 #!/usr/bin/with-contenv bash
@@ -958,9 +964,11 @@ EOF
 
 apt-get update && apt-get -y install unzip cron
 
+[[ if eq (or (env "CONFIG_jicofo_rtcstats_enabled") "false") "true" -]]
 mkdir -p /jicofo-rtcstats-push
 cd /jicofo-rtcstats-push
 unzip /local/jicofo-rtcstats-push.zip
+[[- end ]]
 
 echo '0 * * * * /local/jicofo-log-truncate.sh' | crontab
 
@@ -979,6 +987,7 @@ EOF
         perms = "755"
       }
 
+[[- if eq (or (env "CONFIG_jicofo_rtcstats_enabled") "false") "true" ]]
       template {
         data = <<EOF
 #!/usr/bin/with-contenv bash
@@ -990,6 +999,7 @@ EOF
         perms = "755"
 
       }
+[[- end ]]
 
       template {
         data = <<EOF
