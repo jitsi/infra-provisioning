@@ -76,6 +76,10 @@ job [[ template "job_name" . ]] {
       }
       port "prosody-client" {
       }
+[[- if eq (or (env "CONFIG_prosody_shard_mitm_enabled") "false") "true" ]]
+      port "prosody-mitm" {
+      }
+[[- end ]]
 [[- if eq (or (env "CONFIG_prosody_brewery_shard_enabled") "true") "true" ]]
       port "prosody-jvb-client" {
       }
@@ -802,6 +806,38 @@ EOH
         memory    = [[ or (env "CONFIG_nomad_prosody_memory") "2048" ]]
       }
     }
+[[- if eq (or (env "CONFIG_prosody_shard_mitm_enabled") "false") "true" ]]
+    task "prosody-mitm" {
+      driver = "docker"
+      config {
+        # force_pull = [[ or (env "CONFIG_force_pull") "false" ]]
+        image        = "mitmproxy/mitmproxy:latest"
+        ports = ["prosody-mitm"]
+        command = "/usr/local/bin/mitmdump"
+        args = [
+          "--mode",
+          "reverse:tcp://${NOMAD_IP_prosody_client}:${NOMAD_HOST_PORT_prosody_client}@${NOMAD_HOST_PORT_prosody_mitm}",
+          "--ssl-insecure",
+          "-s",
+          "/local/save.py",
+          "~all"
+        ]
+      }
+      template {
+        data = <<EOF
+from mitmproxy.net.http.http1.assemble import assemble_request, assemble_response
+
+f = open('/proc/1/fd/1', 'w')
+
+def response(flow):
+    f.write(assemble_request(flow.request).decode('utf-8'))
+    f.write(assemble_response(flow.response).decode('utf-8', 'replace'))
+EOF
+        destination = "local/save.py"
+        perms = "755"
+      }
+    }
+[[ end ]]
 [[- if eq (or (env "CONFIG_prosody_brewery_shard_enabled") "true") "true" ]]
     task "prosody-jvb" {
       driver = "docker"
@@ -1004,7 +1040,11 @@ VISITORS_MAX_PARTICIPANTS="[[ env "CONFIG_jicofo_visitors_max_participants" ]]"
 VISITORS_MAX_VISITORS_PER_NODE="[[ env "CONFIG_jicofo_visitors_max_visitors_per_node" ]]"
 [[ end -]]
 
+[[- if eq (or (env "CONFIG_prosody_shard_mitm_enabled") "false") "true" ]]
+JICOFO_OPTS="-Djicofo.xmpp.client.port={{ env "NOMAD_HOST_PORT_prosody_mitm" }}"
+[[ else ]]
 JICOFO_OPTS="-Djicofo.xmpp.client.port={{ env "NOMAD_HOST_PORT_prosody_client" }}"
+[[ end ]]
 
 # Exposed HTTP port
 HTTP_PORT={{ env "NOMAD_HOST_PORT_http" }}
@@ -1014,7 +1054,11 @@ HTTPS_PORT={{ env "NOMAD_HOST_PORT_https" }}
 
 # Internal XMPP server
 XMPP_SERVER=localhost
+[[- if eq (or (env "CONFIG_prosody_shard_mitm_enabled") "false") "true" ]]
+XMPP_PORT={{  env "NOMAD_HOST_PORT_prosody_mitm" }}
+[[ else ]]
 XMPP_PORT={{  env "NOMAD_HOST_PORT_prosody_client" }}
+[[ end ]]
 
 # Internal XMPP server URL
 XMPP_BOSH_URL_BASE=http://{{ env "NOMAD_IP_prosody_http" }}:{{ env "NOMAD_HOST_PORT_prosody_http" }}
