@@ -45,12 +45,7 @@ if [ -z "$JWT_ENV_FILE" ]; then
   JWT_ENV_FILE="/etc/jitsi/token-generator/$TOKEN_GENERATOR_ENV_VARIABLES"
 fi
 
-[ -z "$TOKEN" ] && TOKEN=$(JWT_ENV_FILE="/etc/jitsi/token-generator/$TOKEN_GENERATOR_ENV_VARIABLES" \
-    ASAP_JWT_SUB="*" \
-    ASAP_JWT_ISS="jitsi" \
-    ASAP_PAYLOAD='{"room":"*"}' \
-    ASAP_JWT_AUD="jitsi" /opt/jitsi/token-generator/scripts/jwt.sh | tail -n1
-    )
+[ -z "$TOKEN" ] && TOKEN=$($LOCAL_PATH/generate-client-token.sh | tail -1)
 
 END_MEETING_URL="https://$SIGNAL_API_HOSTNAME/${TENANT_URL}end-meeting?room=$ROOM&conference=$CONFERENCE"
 
