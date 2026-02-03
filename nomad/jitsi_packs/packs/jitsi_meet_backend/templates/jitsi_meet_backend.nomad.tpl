@@ -65,6 +65,11 @@ job [[ template "job_name" . ]] {
       port "nginx-status" {
         to = 888
       }
+[[ if ne (or (env "CONFIG_nginx_ssl_enabled") "true") "false" ]]
+      port "https" {
+        to = 443
+      }
+[[ end ]]
       port "web-nginx-prometheus-exporter" {
         to = 9113
       }
@@ -109,7 +114,11 @@ job [[ template "job_name" . ]] {
         shard_id = "[[ env "CONFIG_shard_id" ]]"
         release_number = "[[ env "CONFIG_release_number" ]]"
         environment = "${meta.environment}"
+[[ if ne (or (env "CONFIG_nginx_ssl_enabled") "true") "false" ]]
+        http_backend_port = "${NOMAD_HOST_PORT_https}"
+[[ else ]]
         http_backend_port = "${NOMAD_HOST_PORT_http}"
+[[ end ]]
         prosody_http_ip = "${NOMAD_IP_prosody_http}"
         nginx_status_ip = "${NOMAD_IP_nginx_status}"
         nginx_status_port = "${NOMAD_HOST_PORT_nginx_status}"
@@ -1068,18 +1077,32 @@ EOF
         sidecar = true
       }
 
+[[ if ne (or (env "CONFIG_nginx_ssl_enabled") "true") "false" ]]
+      vault {
+        change_mode = "noop"
+      }
+[[ end ]]
+
       driver = "docker"
       config {
         force_pull = [[ or (env "CONFIG_force_pull") "false" ]]
         image        = "nginx:1.25.3"
+[[ if ne (or (env "CONFIG_nginx_ssl_enabled") "true") "false" ]]
+        ports = ["http","nginx-status","https"]
+[[ else ]]
         ports = ["http","nginx-status"]
+[[ end ]]
         volumes = [
           "local/_unlock:/usr/share/nginx/html/_unlock",
           "local/_unlock:/usr/share/nginx/html/_health",
           "local/nginx.conf:/etc/nginx/nginx.conf",
           "local/conf.d:/etc/nginx/conf.d",
           "local/conf.stream:/etc/nginx/conf.stream",
-          "local/consul-resolved.conf:/etc/systemd/resolved.conf.d/consul.conf"
+          "local/consul-resolved.conf:/etc/systemd/resolved.conf.d/consul.conf",
+[[ if ne (or (env "CONFIG_nginx_ssl_enabled") "true") "false" ]]
+          "secrets/ssl.crt:/etc/nginx/ssl/ssl.crt",
+          "secrets/ssl.key:/etc/nginx/ssl/ssl.key",
+[[ end ]]
         ]
         labels {
           release = "[[ env "CONFIG_release_number" ]]"
@@ -1142,6 +1165,26 @@ DNSSEC=false
 Domains=~consul
 EOF
       }
+
+[[ if ne (or (env "CONFIG_nginx_ssl_enabled") "true") "false" ]]
+      # SSL certificate (cert + chain combined)
+      template {
+        data = <<EOF
+{{- with secret "[[ or (env "CONFIG_nginx_ssl_vault_path") "secret/ssl/star.jitsi.net/cert" ]]" }}{{ .Data.data.cert }}
+{{ .Data.data.chain }}{{ end -}}
+EOF
+        destination = "secrets/ssl.crt"
+      }
+
+      # SSL private key
+      template {
+        data = <<EOF
+{{- with secret "[[ or (env "CONFIG_nginx_ssl_vault_path") "secret/ssl/star.jitsi.net/cert" ]]" }}{{ .Data.data.key }}{{ end -}}
+EOF
+        destination = "secrets/ssl.key"
+      }
+[[ end ]]
+
       resources {
         cpu    = [[ or (env "CONFIG_nomad_web_cpu") "200" ]]
         memory    = [[ or (env "CONFIG_nomad_web_memory") "512" ]]

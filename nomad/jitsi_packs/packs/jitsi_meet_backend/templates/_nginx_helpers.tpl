@@ -326,6 +326,103 @@ server {
 
     set $prefix "";
 
+[[ template "nginx-signal-api-locations" . ]]
+}
+
+[[ if ne (or (env "CONFIG_nginx_ssl_enabled") "true") "false" ]]
+# SSL server for signal API
+server {
+    proxy_connect_timeout       90s;
+    proxy_send_timeout          90s;
+    proxy_read_timeout          90s;
+    send_timeout                90s;
+
+    client_body_timeout 5s;
+    client_header_timeout 5s;
+
+    listen 443 ssl;
+
+    server_name [[ env "CONFIG_signal_api_hostname" ]];
+
+[[ template "nginx-ssl-settings" . ]]
+
+    set $prefix "";
+
+[[ template "nginx-signal-api-locations" . ]]
+}
+[[ end ]]
+
+# main server doing the routing
+server {
+    proxy_connect_timeout       90s;
+    proxy_send_timeout          90s;
+    proxy_read_timeout          90s;
+    send_timeout                90s;
+
+    listen       80 default_server;
+    server_name  [[ env "CONFIG_domain" ]];
+
+    add_header X-Content-Type-Options nosniff;
+[[ template "nginx-headers" . ]]
+
+    set $prefix "";
+
+[[ template "nginx-main-locations" . ]]
+}
+
+[[ if ne (or (env "CONFIG_nginx_ssl_enabled") "true") "false" ]]
+# main server doing the routing (SSL)
+server {
+    proxy_connect_timeout       90s;
+    proxy_send_timeout          90s;
+    proxy_read_timeout          90s;
+    send_timeout                90s;
+
+    listen       443 ssl default_server;
+    server_name  [[ env "CONFIG_domain" ]];
+
+[[ template "nginx-ssl-settings" . ]]
+
+    add_header X-Content-Type-Options nosniff;
+[[ template "nginx-headers" . ]]
+
+    set $prefix "";
+
+[[ template "nginx-main-locations" . ]]
+}
+[[ end ]]
+[[ end -]]
+
+[[ define "nginx-headers" -]]
+        add_header Strict-Transport-Security 'max-age=63072000; includeSubDomains';
+        add_header 'Access-Control-Allow-Origin' '*';
+        add_header 'Access-Control-Expose-Headers' "Content-Type, X-Jitsi-Region, X-Jitsi-Shard, X-Proxy-Region, X-Jitsi-Release";
+        add_header 'X-Jitsi-Shard' '[[ env "CONFIG_shard" ]]';
+        add_header 'X-Jitsi-Region' '[[ env "CONFIG_octo_region" ]]';
+        add_header 'X-Jitsi-Release' '[[ env "CONFIG_release_number" ]]';
+        add_header "Cache-Control" "no-cache, no-store";
+[[ end -]]
+[[ define "nginx-reload" -]]
+        change_mode = "script"
+        change_script {
+          command = "/usr/sbin/nginx"
+          args = ["-s", "reload"]
+          timeout = "30s"
+          fail_on_error = true
+        }
+[[ end -]]
+
+[[ define "nginx-ssl-settings" -]]
+    ssl_certificate /etc/nginx/ssl/ssl.crt;
+    ssl_certificate_key /etc/nginx/ssl/ssl.key;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers on;
+    ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 10m;
+[[ end -]]
+
+[[ define "nginx-signal-api-locations" -]]
     location = /kick-participant {
         proxy_pass http://prosodylimited/kick-participant?prefix=$prefix&$args;
         proxy_http_version 1.1;
@@ -408,24 +505,9 @@ server {
 
         rewrite ^/(.*)$ /invite-jigasi;
     }
-}
+[[ end -]]
 
-
-# main server doing the routing
-server {
-    proxy_connect_timeout       90s;
-    proxy_send_timeout          90s;
-    proxy_read_timeout          90s;
-    send_timeout                90s;
-
-    listen       80 default_server;
-    server_name  [[ env "CONFIG_domain" ]];
-
-    add_header X-Content-Type-Options nosniff;
-[[ template "nginx-headers" . ]]
-
-    set $prefix "";
-
+[[ define "nginx-main-locations" -]]
     # BOSH
     location = /http-bind {
 [[ template "nginx-headers" . ]]
@@ -583,25 +665,4 @@ server {
     location = /50x.html {
         root   /usr/share/nginx/html;
     }
-
-}
-[[ end -]]
-
-[[ define "nginx-headers" -]]
-        add_header Strict-Transport-Security 'max-age=63072000; includeSubDomains';
-        add_header 'Access-Control-Allow-Origin' '*';
-        add_header 'Access-Control-Expose-Headers' "Content-Type, X-Jitsi-Region, X-Jitsi-Shard, X-Proxy-Region, X-Jitsi-Release";
-        add_header 'X-Jitsi-Shard' '[[ env "CONFIG_shard" ]]';
-        add_header 'X-Jitsi-Region' '[[ env "CONFIG_octo_region" ]]';
-        add_header 'X-Jitsi-Release' '[[ env "CONFIG_release_number" ]]';
-        add_header "Cache-Control" "no-cache, no-store";
-[[ end -]]
-[[ define "nginx-reload" -]]
-        change_mode = "script"
-        change_script {
-          command = "/usr/sbin/nginx"
-          args = ["-s", "reload"]
-          timeout = "30s"
-          fail_on_error = true
-        }
 [[ end -]]
