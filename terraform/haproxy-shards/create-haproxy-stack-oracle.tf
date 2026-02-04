@@ -51,6 +51,12 @@ variable "alarm_health_body" {
 variable "alarm_5xx_body" {
   default = "Served more than 10 requests with response code 5XX in a minute.  A shard or region may be having problems.\nCheck the on call cheat sheet for more details:\n https://docs.google.com/document/d/1hFMNI6tbahZhXDWqimJQ9cJO4Ofa3P02lKCAOUegdNM/edit"
 }
+variable "ws_alarm_health_body" {
+  default = "Websocket Proxy health check failed from on at least one nginx on an haproxy in the region and environment.\nCheck the on call cheat sheet for more details:\n https://docs.google.com/document/d/1hFMNI6tbahZhXDWqimJQ9cJO4Ofa3P02lKCAOUegdNM/edit"
+}
+variable "ws_alarm_5xx_body" {
+  default = "Websocket Proxy nginx served more than 10 requests with response code 5XX in a minute.  A shard or region may be having problems.\nCheck the on call cheat sheet for more details:\n https://docs.google.com/document/d/1hFMNI6tbahZhXDWqimJQ9cJO4Ofa3P02lKCAOUegdNM/edit"
+}
 
 variable "alarm_repeat_notification_duration" {
   default = ""
@@ -525,6 +531,52 @@ resource "oci_monitoring_alarm" "proxy_health_alarm" {
     pending_duration = "PT1M"
     repeat_notification_duration = var.alarm_repeat_notification_duration
 }
+
+resource "oci_monitoring_alarm" "ws_proxy_5xx_alarm_email" {
+    compartment_id = var.compartment_ocid
+    destinations = [data.oci_ons_notification_topics.email_notification_topics.notification_topics[0].topic_id]
+    display_name = "${var.resource_name_root}-WebSocketLBBS5xxAlarm"
+    is_enabled = var.alarm_is_enabled
+    metric_compartment_id = var.compartment_ocid
+    namespace = "oci_lbaas"
+    query = "HttpResponses5xx[1m]{backendSetName = \"WebSocketLBBS\", resourceId = \"${oci_load_balancer.oci_load_balancer.id}\"}.sum() > 10"
+
+    severity = "WARNING"
+    depends_on = [
+      null_resource.cloud_init_output
+    ]
+    #Optional
+    body = var.ws_alarm_5xx_body
+    defined_tags = local.common_tags
+    message_format = "ONS_OPTIMIZED"
+#    metric_compartment_id_in_subtree = var.alarm_metric_compartment_id_in_subtree
+#    pending_duration = var.alarm_pending_duration
+# can be set to repeat emails while a shard is down
+    repeat_notification_duration = var.alarm_repeat_notification_duration
+#    resolution = var.alarm_resolution
+#    resource_group = var.alarm_resource_group
+}
+
+resource "oci_monitoring_alarm" "ws_proxy_health_alarm" {
+    compartment_id = var.compartment_ocid
+    destinations = local.overall_alarm_targets
+    display_name = "${var.resource_name_root}-WebSocketLBBSUnhealthyAlarm"
+    is_enabled = var.alarm_is_enabled
+    metric_compartment_id = var.compartment_ocid
+    namespace = "oci_lbaas"
+    query = "UnHealthyBackendServers[1m]{backendSetName = \"WebSocketLBBS\", resourceId = \"${oci_load_balancer.oci_load_balancer.id}\"}.max() > 0"
+    severity = var.alarm_severity
+    depends_on = [
+      null_resource.cloud_init_output
+    ]
+    #Optional
+    body = var.ws_alarm_health_body
+    defined_tags = local.common_tags
+    message_format = "ONS_OPTIMIZED"
+    pending_duration = "PT1M"
+    repeat_notification_duration = var.alarm_repeat_notification_duration
+}
+
 
 output "private_ips" {
   value = local.private_ips
