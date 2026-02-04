@@ -47,6 +47,10 @@ config.audioQuality.enableAdvancedAudioSettings=[[ or (env "CONFIG_jitsi_meet_en
 config.hiddenFromRecorderFeatureEnabled=true;
 [[- end ]]
 
+[[ if eq (env "CONFIG_jitsi_meet_enable_shard_ws_proxy") "true" -]]
+config.websocket='https://<!--# echo var="http_host" default="[[ env "CONFIG_domain" ]]" -->/v1/_ws/<!--# echo var="http_x_jitsi_shard" default="release-[[ env "CONFIG_release_number" ]]" -->/xmpp-websocket?tenant=<!--# echo var="subdir" default="" -->';
+[[- end ]]
+
 config.websocketKeepAliveUrl = 'https://<!--# echo var="http_host" default="[[ env "CONFIG_domain" ]]" -->/<!--# echo var="subdir" default="" -->_unlock';
 
 [[ if env "CONFIG_jitsi_meet_token_auth_url" -]]
