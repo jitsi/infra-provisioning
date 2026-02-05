@@ -420,7 +420,7 @@ groups:
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=nomad_job
   - alert: Nomad_Job_Memory_Use_High
-    expr: 100 * nomad_client_allocs_memory_usage / nomad_client_allocs_memory_allocated > 85
+    expr: 100 * nomad_client_allocs_memory_usage{task!~"prometheus|gpu-monitor"} / nomad_client_allocs_memory_allocated{task!~"prometheus|gpu-monitor"} > 85
     for: 20m
     labels:
       service: infra
@@ -1135,7 +1135,7 @@ groups:
     for: 2m
     labels:
       service: jitsi
-      severity: warn
+      severity: smoke
     annotations:
       summary: whisper sessions are dangeroulsy high in ${var.dc}
       description: >-
