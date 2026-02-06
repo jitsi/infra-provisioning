@@ -134,7 +134,7 @@ job "[JOB_NAME]" {
         left_delimiter  = "[["
         right_delimiter = "]]"
         data = <<EOF
-// OTEL Receiver - accepts logs and metrics via gRPC and HTTP
+// OTEL Receiver - accepts logs, metrics, and traces via gRPC and HTTP
 otelcol.receiver.otlp "default" {
   grpc {
     endpoint = "0.0.0.0:4317"
@@ -145,6 +145,7 @@ otelcol.receiver.otlp "default" {
   output {
     logs    = [otelcol.processor.batch.default.input]
     metrics = [otelcol.processor.batch.default.input]
+    traces  = [otelcol.processor.batch.default.input]
   }
 }
 
@@ -153,6 +154,7 @@ otelcol.processor.batch "default" {
   output {
     logs    = [otelcol.exporter.otlphttp.loki.input]
     metrics = [otelcol.exporter.prometheus.default.input]
+    traces  = [otelcol.exporter.otlphttp.tempo.input]
   }
 }
 
@@ -169,6 +171,13 @@ prometheus.scrape "demo" {
 otelcol.exporter.otlphttp "loki" {
   client {
     endpoint = "https://[[ env "meta.environment" ]]-[[ env "meta.cloud_region" ]]-loki.${var.top_level_domain}/otlp"
+  }
+}
+
+// Export traces to Tempo via internal LB
+otelcol.exporter.otlphttp "tempo" {
+  client {
+    endpoint = "https://[[ env "meta.environment" ]]-[[ env "meta.cloud_region" ]]-tempo.${var.top_level_domain}"
   }
 }
 
