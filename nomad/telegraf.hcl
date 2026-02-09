@@ -125,7 +125,7 @@ EOF
   flush_interval = "60s"
   flush_jitter = "0s"
   precision = ""
-  debug = true
+  debug = false
   quiet = false
   hostname = "{{ env "attr.unique.hostname" }}"
   omit_hostname = false
