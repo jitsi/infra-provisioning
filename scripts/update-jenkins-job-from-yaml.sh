@@ -29,9 +29,9 @@ if [ -n "$PRIVATE_CUSTOMIZATIONS_REPO" ]; then
     ESCAPED_PUBLIC=$(printf '%s\n' "$PUBLIC_CUSTOMIZATIONS_REPO" | sed -e 's/[]\/$*.^[]/\\&/g');
     ESCAPED_PRIVATE=$(printf '%s\n' "$PRIVATE_CUSTOMIZATIONS_REPO" | sed -e 's/[\/&]/\\&/g')
     if [[ $(uname) == "Darwin" ]]; then
-        sed -i '' -e "s/$ESCAPED_PUBLIC/$ESCAPED_PRIVATE/g" $JOB_FILE
+        sed -i '' -e "s/$ESCAPED_PUBLIC/$ESCAPED_PRIVATE/g" $JOB_PATH/$JOB_FILE
     else
-        sed -i -e "s/$ESCAPED_PUBLIC/$ESCAPED_PRIVATE/g" $JOB_FILE
+        sed -i -e "s/$ESCAPED_PUBLIC/$ESCAPED_PRIVATE/g" $JOB_PATH/$JOB_FILE
     fi
 
 fi
