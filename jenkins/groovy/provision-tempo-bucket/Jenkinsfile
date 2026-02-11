@@ -1,0 +1,42 @@
+
+def utils
+pipeline {
+    agent any
+    options {
+        ansiColor('xterm')
+        timestamps()
+        buildDiscarder(logRotator(numToKeepStr: '10', artifactNumToKeepStr: '10'))
+    }
+    stages {
+        stage ("setup") {
+            steps {
+                script {
+                    // load utility function
+                    def rootDir = pwd()
+                    utils = load "${rootDir}/jenkins/groovy/Utils.groovy"
+                    // checkout repos
+                    utils.SetupRepos(env.VIDEO_INFRA_BRANCH)
+
+                    // setup OCI credentials
+                    utils.SetupOCI()
+                }
+            }
+        }
+        stage ("tempo bucket provisioning") {
+            steps {
+                script {
+                    echo 'tempo bucket provision beginning'
+                    dir('infra-provisioning') {
+                        withCredentials([
+                            string(credentialsId: 'oci-jenkins-terraform-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
+                            string(credentialsId: 'oci-jenkins-terraform-aws-id', variable: 'AWS_ACCESS_KEY_ID')
+                        ]) {
+                            sh '''#!/bin/bash
+                            terraform/tempo-bucket/tempo-bucket.sh'''
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
