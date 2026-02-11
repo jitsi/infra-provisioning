@@ -155,6 +155,7 @@ storage:
     backend: s3
     s3:
       bucket: tempo-{{ env "meta.environment" }}
+      region: {{ env "meta.cloud_region" }}
       endpoint: ${var.oracle_s3_namespace}.compat.objectstorage.{{ env "meta.cloud_region" }}.oraclecloud.com:443
 {{ with secret "secret/default/tempo/s3" }}
       access_key: {{ .Data.data.access_key }}
