@@ -152,7 +152,7 @@ otelcol.receiver.otlp "default" {
 // Batch processor for better performance
 otelcol.processor.batch "default" {
   output {
-    logs    = [otelcol.exporter.otlphttp.loki.input]
+    logs    = [otelcol.processor.transform.loki_namespace.input]
     metrics = [otelcol.exporter.prometheus.default.input]
     traces  = [otelcol.exporter.otlphttp.tempo.input]
   }
@@ -164,6 +164,19 @@ prometheus.exporter.self "self" {}
 prometheus.scrape "demo" {
   targets    = prometheus.exporter.self.self.targets
   forward_to = [prometheus.remote_write.default.receiver]
+}
+
+// Add default namespace label to logs for Loki if not already set
+otelcol.processor.transform "loki_namespace" {
+  log_statements {
+    context = "resource"
+    statements = [
+      `set(resource.attributes["namespace"], "default") where resource.attributes["namespace"] == nil`,
+    ]
+  }
+  output {
+    logs = [otelcol.exporter.otlphttp.loki.input]
+  }
 }
 
 // Export logs to Loki via internal LB (DNS routes through OCI internal LB -> Fabio)
