@@ -28,6 +28,13 @@ NOMAD_JOB_PATH="$LOCAL_PATH/../nomad"
 NOMAD_DC="$ENVIRONMENT-$ORACLE_REGION"
 JOB_NAME="alloy-external-$ORACLE_REGION"
 
+[ -z "$ENVIRONMENT_TYPE" ] && ENVIRONMENT_TYPE="stage"
+if [[ "$ENVIRONMENT_TYPE" = "prod" ]]; then
+    export NOMAD_VAR_environment_type="prod"
+else
+    export NOMAD_VAR_environment_type="nonprod"
+fi
+
 sed -e "s/\[JOB_NAME\]/$JOB_NAME/" "$NOMAD_JOB_PATH/alloy-external.hcl" | \
     nomad job run -var="dc=$NOMAD_DC" -var="environment=$ENVIRONMENT" -
 
