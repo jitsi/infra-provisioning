@@ -11,6 +11,10 @@ variable "top_level_domain" {
   default = "jitsi.net"
 }
 
+variable "environment_type" {
+  type = string
+}
+
 job "[JOB_NAME]" {
   datacenters = ["${var.dc}"]
   type        = "service"
@@ -112,6 +116,10 @@ job "[JOB_NAME]" {
     task "alloy" {
       driver = "docker"
 
+      vault {
+        change_mode = "restart"
+      }
+
       config {
         image = "grafana/alloy:latest"
         args  = [
@@ -154,7 +162,7 @@ otelcol.processor.batch "default" {
   output {
     logs    = [otelcol.processor.transform.loki_namespace.input]
     metrics = [otelcol.exporter.prometheus.default.input]
-    traces  = [otelcol.exporter.otlphttp.tempo.input]
+    traces  = [otelcol.exporter.otlphttp.tempo.input, otelcol.exporter.otlphttp.external_tempo.input]
   }
 }
 
@@ -175,7 +183,7 @@ otelcol.processor.transform "loki_namespace" {
     ]
   }
   output {
-    logs = [otelcol.exporter.otlphttp.loki.input]
+    logs = [otelcol.exporter.otlphttp.loki.input, otelcol.exporter.loki.external_loki.input]
   }
 }
 
@@ -196,7 +204,7 @@ otelcol.exporter.otlphttp "tempo" {
 
 // Export metrics to Prometheus via remote write through internal LB
 otelcol.exporter.prometheus "default" {
-  forward_to = [prometheus.remote_write.default.receiver]
+  forward_to = [prometheus.remote_write.default.receiver, prometheus.remote_write.external.receiver]
 }
 
 prometheus.remote_write "default" {
@@ -204,6 +212,49 @@ prometheus.remote_write "default" {
     url = "https://[[ env "meta.environment" ]]-[[ env "meta.cloud_region" ]]-prometheus.${var.top_level_domain}/api/v1/write"
   }
 }
+
+// --- External endpoints (Grafana Cloud) sourced from Vault ---
+[[ with secret "secret/default/alloy/external-auth" ]]
+// Auth for external Tempo
+otelcol.auth.basic "external_tempo" {
+  username = "[[ index .Data.data "meetings-oci-hosts-${var.environment_type}-01-oci-traces-username" ]]"
+  password = "[[ index .Data.data "meetings-oci-hosts-${var.environment_type}-01-oci-traces-password" ]]"
+}
+
+// Export logs to external Loki (native Loki push API, not OTLP)
+otelcol.exporter.loki "external_loki" {
+  forward_to = [loki.write.external.receiver]
+}
+
+loki.write "external" {
+  endpoint {
+    url = "[[ index .Data.data "${var.environment_type}-01-oci-logs-url" ]]"
+    basic_auth {
+      username = "[[ index .Data.data "meetings-oci-hosts-${var.environment_type}-01-oci-logs-username" ]]"
+      password = "[[ index .Data.data "meetings-oci-hosts-${var.environment_type}-01-oci-logs-password" ]]"
+    }
+  }
+}
+
+// Export traces to external Tempo
+otelcol.exporter.otlphttp "external_tempo" {
+  client {
+    endpoint = "[[ index .Data.data "${var.environment_type}-01-oci-traces-url" | regexReplaceAll "/v1/traces$" "" ]]"
+    auth     = otelcol.auth.basic.external_tempo.handler
+  }
+}
+
+// Export metrics to external Mimir via remote write
+prometheus.remote_write "external" {
+  endpoint {
+    url = "[[ index .Data.data "${var.environment_type}-01-oci-metrics-url" ]]"
+    basic_auth {
+      username = "[[ index .Data.data "meetings-oci-hosts-${var.environment_type}-01-oci-metrics-username" ]]"
+      password = "[[ index .Data.data "meetings-oci-hosts-${var.environment_type}-01-oci-metrics-password" ]]"
+    }
+  }
+}
+[[ end ]]
 EOF
       }
 
