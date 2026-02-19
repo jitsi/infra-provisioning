@@ -96,7 +96,7 @@ job "[JOB_NAME]" {
     }
 
     # Service registration with external Fabio routing (no int- prefix)
-    # Auth handled by Cloudflare Zero Trust Access Policy
+    # Auth: bearer token (Vault) + Cloudflare Zero Trust Access Policy
     service {
       name = "alloy-external-otel"
       port = "otlp-http"
@@ -149,10 +149,19 @@ job "[JOB_NAME]" {
         left_delimiter  = "[["
         right_delimiter = "]]"
         data = <<EOF
-// OTEL Receiver - HTTP only for Cloudflare Workers (auth handled by Zero Trust Access)
+// --- Receiver authentication sourced from Vault ---
+[[ with secret "secret/default/alloy/receiver-auth" ]]
+// Bearer token auth for incoming OTLP HTTP requests
+otelcol.auth.bearer "receiver_auth" {
+  token = "[[ index .Data.data "otlp-bearer-token" ]]"
+}
+[[ end ]]
+
+// OTEL Receiver - HTTP only for Cloudflare Workers (bearer token + Zero Trust Access)
 otelcol.receiver.otlp "external" {
   http {
     endpoint = "0.0.0.0:4318"
+    auth     = otelcol.auth.bearer.receiver_auth.handler
   }
   output {
     logs    = [otelcol.processor.batch.default.input]
