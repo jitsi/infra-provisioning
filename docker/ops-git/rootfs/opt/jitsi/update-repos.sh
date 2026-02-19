@@ -1,53 +1,64 @@
 #!/bin/bash
+
+# Git mirror sync script
+# Syncs configured repositories from remote sources to local bare repos
+
+set -e
+
 export GIT_SSH_COMMAND="ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
-eval "$(ssh-agent -s)"
-trap "kill $SSH_AGENT_PID" exit
 
-ssh-add ~/.ssh/id_rsa
-set -x
-UPDATE_DIR="/tmp/update"
+# Start ssh-agent if key exists
+if [ -f ~/.ssh/id_rsa ]; then
+    eval "$(ssh-agent -s)" > /dev/null
+    trap "kill $SSH_AGENT_PID 2>/dev/null" EXIT
+    ssh-add ~/.ssh/id_rsa 2>/dev/null
+fi
 
+GIT_BASE_PATH="${GIT_BASE_PATH:-/home/git}"
 
-cd /home/git/jitsi/infra-configuration.git
-git pull
+if [ -z "$GIT_MIRROR_REPOS" ]; then
+    echo "[$(date)] ERROR: GIT_MIRROR_REPOS environment variable is not set"
+    exit 1
+fi
 
-cd /home/git/jitsi/infra-provisioning.git
-git pull
+IFS=',' read -ra REPOS <<< "$GIT_MIRROR_REPOS"
 
-cd /home/git/jitsi/infra-customizations-private.git
-git pull
+ERRORS=0
 
-cd /home/git/jitsi/jitsi-meet.git
-git pull
+for repo in "${REPOS[@]}"; do
+    # Trim whitespace
+    repo=$(echo "$repo" | xargs)
+    [ -z "$repo" ] && continue
 
-mkdir -p $UPDATE_DIR
-cd $UPDATE_DIR
+    # Parse repo URL - extract org/name from git@github.com:org/name.git or https://github.com/org/name.git
+    if [[ "$repo" =~ \.git$ ]]; then
+        repo_name=$(echo "$repo" | sed -E 's|.*[:/]([^/]+/[^/]+)\.git$|\1|')
+    else
+        repo_name=$(echo "$repo" | sed -E 's|.*[:/]([^/]+/[^/]+)$|\1|')
+    fi
 
-/usr/bin/git clone --mirror git@github.com:jitsi/infra-configuration.git
-cd infra-configuration.git
-git remote set-url --push origin git@localhost:jitsi/infra-configuration.git
-git fetch -p origin
-git push --mirror
-cd ..
+    local_path="${GIT_BASE_PATH}/${repo_name}.git"
 
-/usr/bin/git clone --mirror git@github.com:jitsi/infra-provisioning.git
-cd infra-provisioning.git
-git remote set-url --push origin git@localhost:jitsi/infra-provisioning.git
-git fetch -p origin
-git push --mirror
-cd ..
+    echo "[$(date)] Syncing $repo -> $local_path"
 
-/usr/bin/git clone --mirror git@github.com:jitsi/infra-customizations-private.git
-cd infra-customizations-private.git
-git remote set-url --push origin git@localhost:jitsi/infra-customizations-private.git
-git fetch -p origin
-git push --mirror
-cd ..
+    if [ ! -d "$local_path" ]; then
+        echo "  Initializing bare repo..."
+        mkdir -p "$(dirname "$local_path")"
+        if ! git clone --mirror "$repo" "$local_path"; then
+            echo "  ERROR: Failed to clone $repo"
+            ERRORS=$((ERRORS + 1))
+            continue
+        fi
+    else
+        cd "$local_path"
+        if ! git remote update --prune; then
+            echo "  ERROR: Failed to update $repo"
+            ERRORS=$((ERRORS + 1))
+            continue
+        fi
+    fi
+    echo "  OK"
+done
 
-/usr/bin/git clone --mirror git@github.com:jitsi/jitsi-meet.git
-cd jitsi-meet.git
-git remote set-url --push origin git@localhost:jitsi/jitsi-meet.git
-git fetch -p origin
-git push --mirror
-cd ..
-rm -rf $UPDATE_DIR
+echo "[$(date)] Sync complete (errors: $ERRORS)"
+exit $ERRORS
