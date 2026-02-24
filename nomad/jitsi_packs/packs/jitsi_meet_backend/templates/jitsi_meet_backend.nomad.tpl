@@ -924,7 +924,10 @@ EOF
         JICOFO_BRIDGE_REGION_GROUPS = "[\"eu-central-1\", \"eu-west-1\", \"eu-west-2\", \"eu-west-3\", \"uk-london-1\", \"eu-amsterdam-1\", \"eu-frankfurt-1\"],[\"us-east-1\", \"us-west-2\", \"us-ashburn-1\", \"us-phoenix-1\"],[\"ap-mumbai-1\", \"ap-tokyo-1\", \"ap-south-1\", \"ap-northeast-1\"],[\"ap-sydney-1\", \"ap-southeast-2\"],[\"ca-toronto-1\", \"ca-central-1\"],[\"me-jeddah-1\", \"me-south-1\"],[\"sa-saopaulo-1\", \"sa-east-1\"]"
         JICOFO_ENABLE_HEALTH_CHECKS="1"
         JICOFO_ENABLE_ICE_FAILURE_DETECTION="[[ or (env "CONFIG_jicofo_enable_ice_failure_detection") "true" ]]"
-        JICOFO_ENABLE_LOAD_REDISTRIBUTION="[[ or (env "CONFIG_jicofo_enable_load_redistribution") "false" ]]"
+        JICOFO_ENABLE_LOAD_REDISTRIBUTION="[[ or (env "CONFIG_jicofo_enable_load_redistribution") "true" ]]"
+        JICOFO_ICE_FAILURE_INTERVAL="[[ or (env "CONFIG_jicofo_ice_failure_detection_interval") "60" ]]"
+        JICOFO_ICE_FAILURE_MIN_ENDPOINTS="[[ or (env "CONFIG_jicofo_ice_failure_detection_min_endpoints") "40" ]]"
+        JICOFO_ICE_FAILURE_THRESHOLD="[[ or (env "CONFIG_jicofo_ice_failure_detection_threshold") "0.1" ]]"        
         # jicofo rtcstats push vars
         JICOFO_ADDRESS = "http://127.0.0.1:8888"
         JICOFO_VISITORS_REQUIRE_MUC_CONFIG = "[[ env "CONFIG_jicofo_require_muc_config_flag" ]]"
