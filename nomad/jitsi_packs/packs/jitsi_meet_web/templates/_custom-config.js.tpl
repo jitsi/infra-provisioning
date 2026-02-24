@@ -57,7 +57,7 @@ config.websocketKeepAliveUrl = 'https://<!--# echo var="http_host" default="[[ e
 config.tokenAuthUrl=[[ env "CONFIG_jitsi_meet_token_auth_url" ]];
 [[- end ]]
 
-[[ if env "CONFIG_jitsi_meet_token_auth_inline" -]]
+[[ if eq (env "CONFIG_jitsi_meet_token_auth_inline") "true" -]]
 config.tokenAuthInline=true;
 [[- end ]]
 [[ if eq (env "CONFIG_jitsi_meet_token_auth_url_auto_redirect") "true" -]]
