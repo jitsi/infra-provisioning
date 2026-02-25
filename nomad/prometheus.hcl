@@ -691,7 +691,7 @@ groups:
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=haproxy_redispatch_rate_high
   - alert: HAProxy_Redispatch_Rate_High
-    expr: count_over_time(((increase(haproxy_wredis}[1m]) > bool 0) > 0)[10m:1m]) > 3
+    expr: count_over_time(((increase(haproxy_wredis[1m]) > bool 0) > 0)[10m:1m]) > 3
     for: 1m
     labels:
       service: jitsi
