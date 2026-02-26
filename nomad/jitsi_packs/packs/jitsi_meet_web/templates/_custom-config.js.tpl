@@ -60,9 +60,6 @@ config.tokenAuthUrl=[[ env "CONFIG_jitsi_meet_token_auth_url" ]];
 [[ if eq (env "CONFIG_jitsi_meet_token_auth_inline") "true" -]]
 config.tokenAuthInline=true;
 [[- end ]]
-[[ if eq (env "CONFIG_jitsi_meet_token_auth_url_auto_redirect") "true" -]]
-config.tokenAuthUrlAutoRedirect=true;
-[[- end ]]
 [[ if env "CONFIG_jitsi_meet_token_logout_url" -]]
 config.tokenLogoutUrl='[[ env "CONFIG_jitsi_meet_token_logout_url" ]]';
 [[- end ]]
