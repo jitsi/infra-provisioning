@@ -691,7 +691,7 @@ groups:
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=haproxy_redispatch_rate_high
   - alert: HAProxy_Redispatch_Rate_High
-    expr: count_over_time(((increase(haproxy_wredis{environment=~"$environment",region=~"$region",type="backend"}[1m]) > bool 0) > 0)[10m:1m]) > 3
+    expr: count_over_time(((increase(haproxy_wredis[1m]) > bool 0) > 0)[10m:1m]) > 3
     for: 1m
     labels:
       service: jitsi
@@ -702,7 +702,7 @@ groups:
       description: >-
         HAProxies in ${var.dc} are unable to route requests to one or more shards, and have moved
         rooms to a different shard. This means that users have been reloaded onto new shards. This 
-        has happend at at least 4 different points during the last 10 minutes, which indicates a 
+        has happened at at least 4 different points during the last 10 minutes, which indicates a 
         persistent underlying issue, most likely with the network between haproxies and shards.
         Investigate which shards are affected and consider draining one or more regions.
       dashboard_url: ${var.grafana_url}
