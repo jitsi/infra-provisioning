@@ -164,6 +164,10 @@ EOF
 [[inputs.swap]]
   fieldinclude = ["total", "used"]
 
+[[inputs.disk]]
+  ignore_fs = ["tmpfs", "devtmpfs", "devfs", "overlay", "aufs", "squashfs", "nfs", "nfs4"]
+  fieldinclude = ["used_percent", "free", "used", "total"]
+
 [[inputs.system]]
   fieldinclude = ["load*"]
 
