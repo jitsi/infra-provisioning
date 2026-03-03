@@ -148,6 +148,10 @@ EOF
   fieldexclude = ["time_*"]
   fieldinclude = ["usage_system*", "usage_user*", "usage_iowait*", "usage_idle*", "usage_steal*"]
 
+[[inputs.disk]]
+  ignore_fs = ["tmpfs", "devtmpfs", "devfs", "overlay", "aufs", "squashfs", "nfs", "nfs4"]
+  fieldinclude = ["used_percent", "free", "used", "total"]
+
 [[inputs.mem]]
   fieldinclude = [ "active", "available", "buffered", "cached", "free", "total",  "used" ]
 
