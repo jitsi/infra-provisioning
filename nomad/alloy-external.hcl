@@ -181,10 +181,18 @@ otelcol.processor.batch "default" {
 
 prometheus.exporter.self "self" {}
 
+prometheus.relabel "add_labels" {
+  forward_to = [prometheus.remote_write.default.receiver]
+  rule {
+    target_label = "alloy_type"
+    replacement  = "external"
+  }
+}
+
 // Configure a prometheus.scrape component to collect Alloy metrics.
 prometheus.scrape "demo" {
   targets    = prometheus.exporter.self.self.targets
-  forward_to = [prometheus.remote_write.default.receiver]
+  forward_to = [prometheus.relabel.add_labels.receiver]
 }
 
 // Add default namespace label to logs for Loki if not already set
