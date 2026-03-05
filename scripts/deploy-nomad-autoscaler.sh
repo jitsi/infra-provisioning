@@ -19,6 +19,9 @@ LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 [ -e "$LOCAL_PATH/../clouds/all.sh" ] && . "$LOCAL_PATH/../clouds/all.sh"
 [ -e "$LOCAL_PATH/../clouds/oracle.sh" ] && . "$LOCAL_PATH/../clouds/oracle.sh"
 
+ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
+[ -e "$LOCAL_PATH/../clouds/${ORACLE_CLOUD_NAME}.sh" ] && . "$LOCAL_PATH/../clouds/${ORACLE_CLOUD_NAME}.sh"
+
 [ -z "$VAULT_PASSWORD_FILE" ] && VAULT_PASSWORD_FILE="$LOCAL_PATH/../.vault-password.txt"
 
 [ -z "$ENVIRONMENT_TYPE" ] && ENVIRONMENT_TYPE="stage"
@@ -83,6 +86,7 @@ redis_host="$REDIS_HOST"
 redis_tls=$REDIS_TLS
 enable_prometheus=$ENABLE_PROMETHEUS
 prometheus_url="https://$ENVIRONMENT-$ORACLE_REGION-prometheus.$TOP_LEVEL_DNS_ZONE_NAME"
+oci_compartment_id="$COMPARTMENT_OCID"
 EOF
 
 JOB_NAME="autoscaler-$ORACLE_REGION"
