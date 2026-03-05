@@ -1,0 +1,32 @@
+def utils
+
+pipeline {
+    agent any
+    options {
+        ansiColor('xterm')
+        timestamps()
+        buildDiscarder(logRotator(numToKeepStr: '10', artifactNumToKeepStr: '10'))
+    }
+    stages {
+        stage('Prepare/Checkout') {
+            steps {
+                script {
+                    // load utility function
+                    def rootDir = pwd()
+                    utils = load "${rootDir}/jenkins/groovy/Utils.groovy"
+                    // checkout repos
+                    utils.SetupRepos(env.VIDEO_INFRA_BRANCH)
+                }
+            }
+        }
+        stage('Build and Push Docker Image') {
+            steps {
+                dir('infra-provisioning') {
+                    sh '''#!/bin/bash
+                    docker/selenium-grid-node/build.sh
+                    '''
+                }
+            }
+        }
+    }
+}
