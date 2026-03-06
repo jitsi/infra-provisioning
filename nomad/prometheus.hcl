@@ -1008,17 +1008,20 @@ groups:
         5 minutes. This means that no jibri instances were available to record or stream meetings.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=jibris_available_none
-  - alert: Jibris_Available_None
-    expr: sum(jibri_available{role="java-jibri"}) == 0
+  - alert: Jicofo_Jibris_Available_None
+    expr: max_over_time(count(jitsi_jicofo_jibri_instances_available == 0)[1m:]) > 0
     for: 1m
     labels:
       service: jitsi
       severity: warn
     annotations:
-      summary: no jibris are available in ${var.dc}
+      summary: jibris are not available to some jicofos in ${var.dc}
       description: >-
-        No jibris were emitting metrics that they are currently available in ${var.dc} over the past
+        There are have been no jibris available to {{ $value }} jicofos in ${var.dc} over the past
         minute. This means that no jibri instances were available to record or stream meetings.
+        If this only impacted a single jicofo there may be a problem with the shard. If several
+        jicofos are reporting this, then there may be a problem with our jibri capacity and the
+        group should be scaled up.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=jibris_available_none
   - alert: Jicofo_Jibris_Missing
