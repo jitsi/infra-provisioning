@@ -136,7 +136,7 @@ job "[JOB_NAME]" {
         ]
         ports = ["otlp-http", "http"]
         volumes = [
-          "local/config.alloy:/etc/alloy/config.alloy"
+          "local:/etc/alloy"
         ]
       }
 
