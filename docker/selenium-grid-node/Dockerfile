@@ -32,25 +32,25 @@ ARG FIREFOX_DOWNLOAD_URL="https://download.mozilla.org/?product=firefox-latest-s
 RUN apt-get update -y && \
   echo "Using Firefox version: $FIREFOX_VERSION" && \
   if [ "$(dpkg --print-architecture)" = "amd64" ]; then \
-    if [ $FIREFOX_VERSION = "latest" ] || [ $FIREFOX_VERSION = "beta-latest" ] || [ $FIREFOX_VERSION = "nightly-latest" ] || [ $FIREFOX_VERSION = "devedition-latest" ] || [ $FIREFOX_VERSION = "esr-latest" ]; then \
+    if [ "$FIREFOX_VERSION" = "latest" ] || [ "$FIREFOX_VERSION" = "beta-latest" ] || [ "$FIREFOX_VERSION" = "nightly-latest" ] || [ "$FIREFOX_VERSION" = "devedition-latest" ] || [ "$FIREFOX_VERSION" = "esr-latest" ]; then \
       FIREFOX_DOWNLOAD_URL="https://download.mozilla.org/?product=firefox-$FIREFOX_VERSION-ssl&os=linux64&lang=en-US"; \
       /opt/bin/install-firefox-apt.sh \
       && FIREFOX_VERSION=$(echo "-$FIREFOX_VERSION" | sed 's/-latest//') \
       && apt install -y firefox$FIREFOX_VERSION firefox-beta \
       && INSTALL_VIA_APT=true \
-      && if [ $FIREFOX_VERSION = "-beta" ] || [ $FIREFOX_VERSION = "-nightly" ] || [ $FIREFOX_VERSION = "-devedition" ] || [ $FIREFOX_VERSION = "-esr" ]; then \
+      && if [ "$FIREFOX_VERSION" = "-beta" ] || [ "$FIREFOX_VERSION" = "-nightly" ] || [ "$FIREFOX_VERSION" = "-devedition" ] || [ "$FIREFOX_VERSION" = "-esr" ]; then \
         ln -fs $(which firefox$FIREFOX_VERSION) /usr/bin/firefox ; \
       fi ; \
     else \
       FIREFOX_DOWNLOAD_URL="https://download-installer.cdn.mozilla.net/pub/firefox/releases/$FIREFOX_VERSION/linux-x86_64/en-US/firefox-$FIREFOX_VERSION.tar.bz2" ; \
     fi \
   else \
-    if [ $FIREFOX_VERSION = "nightly-latest" ]; then \
+    if [ "$FIREFOX_VERSION" = "nightly-latest" ]; then \
       /opt/bin/install-firefox-apt.sh \
       && FIREFOX_VERSION=$(echo "-$FIREFOX_VERSION" | sed 's/-latest//') \
       && apt install -y firefox$FIREFOX_VERSION \
       && INSTALL_VIA_APT=true \
-      && if [ $FIREFOX_VERSION = "-nightly" ]; then \
+      && if [ "$FIREFOX_VERSION" = "-nightly" ]; then \
         ln -fs $(which firefox$FIREFOX_VERSION) /usr/bin/firefox ; \
       fi ; \
     else \
@@ -163,6 +163,8 @@ COPY ./chrome-cleanup.conf /etc/supervisor/conf.d/chrome-cleanup.conf
 RUN if [ "$(dpkg --print-architecture)" = "amd64" ]; then echo "skipping chromium on x86_64" && exit 0; else sed -i -e 's/chrome\/chrome/chromium\/chromium/' /opt/bin/chrome-cleanup.sh; fi
 
 # Install Chromium
+# hardcode the key instead of the ppa
+# because software-properties-common add-apt-repository was failing
 ARG CHROMIUM_VERSION="latest"
 ARG CHROMIUM_DEB_SITE="https://deb.debian.org/debian"
 RUN if [ "$(dpkg --print-architecture)" = "amd64" ]; then \
@@ -170,8 +172,12 @@ RUN if [ "$(dpkg --print-architecture)" = "amd64" ]; then \
   else \
     echo "installing chromium on arm64" \
     && apt-get update -y \
-    && apt-get install -y software-properties-common \
-    && add-apt-repository ppa:xtradeb/apps \
+    && apt-get install -y gpg \
+    && . /etc/os-release \
+    && mkdir -p /etc/apt/keyrings \
+    && gpg --keyserver keyserver.ubuntu.com --recv-keys 5301FA4FD93244FBC6F6149982BB6851C64F6880 \
+    && gpg --export 5301FA4FD93244FBC6F6149982BB6851C64F6880 | tee /etc/apt/keyrings/xtradeb.gpg > /dev/null \
+    && echo "deb [signed-by=/etc/apt/keyrings/xtradeb.gpg] http://ppa.launchpad.net/xtradeb/apps/ubuntu ${UBUNTU_CODENAME} main" > /etc/apt/sources.list.d/xtradeb-apps.list \
     && apt-get update -y \
     && apt-get install -y chromium chromium-driver; \
   fi
