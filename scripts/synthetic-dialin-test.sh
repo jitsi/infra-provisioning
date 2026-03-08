@@ -104,6 +104,7 @@ fi
 cat << EOF > expectations.json
 {
   "dialIn": {
+    "disableMoreNumbersPageCheck": true,
     "enabled": true
   },
   "moderation": {
