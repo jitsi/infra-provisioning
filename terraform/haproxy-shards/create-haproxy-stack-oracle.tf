@@ -147,6 +147,12 @@ data "oci_ons_notification_topics" "pagerduty_notification_topics" {
     name = var.alarm_pagerduty_topic_name
 }
 
+data "oci_identity_fault_domains" "ads_fault_domains" {
+  for_each            = toset(var.availability_domains)
+  availability_domain = each.value
+  compartment_id      = var.compartment_ocid
+}
+
 data "oci_waf_web_app_firewall_policies" "regional_policy" {
     #Required
     compartment_id = var.compartment_ocid
@@ -396,8 +402,9 @@ resource "oci_core_instance_pool" "oci_instance_pool" {
   dynamic "placement_configurations" {
     for_each = toset(var.availability_domains)
     content {
-      primary_subnet_id = var.private_subnet_ocid
+      primary_subnet_id   = var.private_subnet_ocid
       availability_domain = placement_configurations.value
+      fault_domains       = [for fd in data.oci_identity_fault_domains.ads_fault_domains[placement_configurations.value].fault_domains : fd.name]
     }
   }
 
