@@ -201,8 +201,9 @@ resource "oci_core_instance_pool" "oci_instance_pool_hub" {
   dynamic "placement_configurations" {
     for_each = toset(var.availability_domains)
     content {
-      primary_subnet_id = var.subnet_ocid
+      primary_subnet_id   = var.subnet_ocid
       availability_domain = placement_configurations.value
+      fault_domains       = [for fd in data.oci_identity_fault_domains.ads_fault_domains[placement_configurations.value].fault_domains : fd.name]
     }
   }
 
@@ -226,14 +227,21 @@ resource "oci_core_instance_pool" "oci_instance_pool_node" {
   dynamic "placement_configurations" {
     for_each = toset(var.availability_domains)
     content {
-      primary_subnet_id = var.subnet_ocid
+      primary_subnet_id   = var.subnet_ocid
       availability_domain = placement_configurations.value
+      fault_domains       = [for fd in data.oci_identity_fault_domains.ads_fault_domains[placement_configurations.value].fault_domains : fd.name]
     }
   }
 
   defined_tags = local.node_tags
 
   depends_on = [oci_core_instance_pool.oci_instance_pool_hub]
+}
+
+data "oci_identity_fault_domains" "ads_fault_domains" {
+  for_each            = toset(var.availability_domains)
+  availability_domain = each.value
+  compartment_id      = var.compartment_ocid
 }
 
 data "oci_core_instance_pool_instances" "oci_instance_pool_instances_hub" {
