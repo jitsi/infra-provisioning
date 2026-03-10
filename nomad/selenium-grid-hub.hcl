@@ -16,7 +16,7 @@ variable "service_tag_urlprefix" {
 
 variable "selenium_version" {
   type = string
-  default = "4.34"
+  default = "4.41"
 }
 
 job "[JOB_NAME]" {
