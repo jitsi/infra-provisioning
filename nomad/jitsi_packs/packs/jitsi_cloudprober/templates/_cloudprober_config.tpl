@@ -281,7 +281,7 @@ probe {
           success_status_codes: "200-299"
       }
   }
-  interval_msec: 20000
+  interval_msec: 60000
   timeout_msec: 10000
   latency_unit: "ms"
   additional_label {
