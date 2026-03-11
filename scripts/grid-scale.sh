@@ -43,8 +43,8 @@ S3_STATE_KEY_IP="${S3_STATE_BASE}/terraform-ip.tfstate"
 # Defaults
 [ -z "$GRID_SLOTS_REQUESTED" ] && GRID_SLOTS_REQUESTED=1
 [ -z "$GRID_WAIT_TIMEOUT" ] && GRID_WAIT_TIMEOUT=600
-[ -z "$GRID_MIN_POOL_SIZE_X86" ] && GRID_MIN_POOL_SIZE_X86=4
-[ -z "$GRID_MIN_POOL_SIZE_ARM" ] && GRID_MIN_POOL_SIZE_ARM=0
+[ -z "$GRID_MIN_POOL_SIZE_X86" ] && GRID_MIN_POOL_SIZE_X86=1
+[ -z "$GRID_MIN_POOL_SIZE_ARM" ] && GRID_MIN_POOL_SIZE_ARM=4
 [ -z "$GRID_COOLDOWN_SECONDS" ] && GRID_COOLDOWN_SECONDS=600
 [ -z "$GRID_POLL_INTERVAL" ] && GRID_POLL_INTERVAL=15
 
@@ -285,17 +285,12 @@ cmd_scaledown() {
         fi
     fi
 
-    echo "No active reservations and cooldown elapsed, scaling to minimums"
+    echo "No active reservations and cooldown elapsed, scaling ARM pool to minimum"
 
     # Fetch pool IDs from terraform state
     get_pool_ids
 
-    # Scale x86 pool to minimum
-    if [ -n "$NODE_POOL_ID_X86" ] && [ "$NODE_POOL_ID_X86" != "null" ]; then
-        resize_pool "$NODE_POOL_ID_X86" "$GRID_MIN_POOL_SIZE_X86"
-    fi
-
-    # Scale ARM pool to minimum
+    # Only scale ARM pool to minimum; leave x86 pool unchanged
     if [ -n "$NODE_POOL_ID_ARM" ] && [ "$NODE_POOL_ID_ARM" != "null" ]; then
         resize_pool "$NODE_POOL_ID_ARM" "$GRID_MIN_POOL_SIZE_ARM"
     fi
