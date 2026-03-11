@@ -37,9 +37,12 @@ CONSUL_KV_PREFIX="selenium-grid/$GRID_NAME"
 # Grid URL (matches CNAME pattern from deploy-nomad-selenium-grid-hub.sh)
 GRID_URL="https://${ENVIRONMENT}-${ORACLE_REGION}-${GRID_NAME}-grid.${TOP_LEVEL_DNS_ZONE_NAME}"
 
+# Grid infrastructure environment (pools always live in torture-test)
+[ -z "$GRID_ENVIRONMENT" ] && GRID_ENVIRONMENT="torture-test"
+
 # S3 terraform state (matches create-selenium-grid-oracle.sh)
-[ -z "$S3_STATE_BUCKET" ] && S3_STATE_BUCKET="tf-state-$ENVIRONMENT"
-S3_STATE_BASE="$ENVIRONMENT/grid/$GRID_NAME/components"
+[ -z "$S3_STATE_BUCKET" ] && S3_STATE_BUCKET="tf-state-$GRID_ENVIRONMENT"
+S3_STATE_BASE="$GRID_ENVIRONMENT/grid/$GRID_NAME/components"
 S3_STATE_KEY_IP="${S3_STATE_BASE}/terraform-ip.tfstate"
 
 # Defaults
