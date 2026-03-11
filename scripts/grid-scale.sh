@@ -28,14 +28,14 @@ fi
 [ -z "$ORACLE_REGION" ] && ORACLE_REGION="$OCI_LOCAL_REGION"
 [ -z "$ORACLE_REGION" ] && ORACLE_REGION="us-phoenix-1"
 
-# Consul configuration
-OCI_LOCAL_DATACENTER="$ENVIRONMENT-$ORACLE_REGION"
+# Consul configuration (uses GRID_ENVIRONMENT since grid infra lives in torture-test)
+OCI_LOCAL_DATACENTER="$GRID_ENVIRONMENT-$ORACLE_REGION"
 CONSUL_HOST="$OCI_LOCAL_DATACENTER-consul.$TOP_LEVEL_DNS_ZONE_NAME"
 CONSUL_URL="https://$CONSUL_HOST"
 CONSUL_KV_PREFIX="selenium-grid/$GRID_NAME"
 
 # Grid URL (matches CNAME pattern from deploy-nomad-selenium-grid-hub.sh)
-GRID_URL="https://${ENVIRONMENT}-${ORACLE_REGION}-${GRID_NAME}-grid.${TOP_LEVEL_DNS_ZONE_NAME}"
+GRID_URL="https://${GRID_ENVIRONMENT}-${ORACLE_REGION}-${GRID_NAME}-grid.${TOP_LEVEL_DNS_ZONE_NAME}"
 
 # Grid infrastructure environment (pools always live in torture-test)
 [ -z "$GRID_ENVIRONMENT" ] && GRID_ENVIRONMENT="torture-test"
