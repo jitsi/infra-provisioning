@@ -4,19 +4,21 @@
 # Subcommands: request, release, scaledown, status
 
 set -e
-
 LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
-
-[ -e "$LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh" ] && . "$LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh"
-
-[ -e "$LOCAL_PATH/../clouds/all.sh" ] && . "$LOCAL_PATH/../clouds/all.sh"
-[ -e "$LOCAL_PATH/../clouds/oracle.sh" ] && . "$LOCAL_PATH/../clouds/oracle.sh"
 
 # Required variables
 if [ -z "$ENVIRONMENT" ]; then
     echo "ERROR: No ENVIRONMENT set, exiting"
     exit 1
 fi
+
+[ -e "$LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh" ] && . "$LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh"
+
+[ -e "$LOCAL_PATH/../clouds/all.sh" ] && . "$LOCAL_PATH/../clouds/all.sh"
+[ -e "$LOCAL_PATH/../clouds/oracle.sh" ] && . "$LOCAL_PATH/../clouds/oracle.sh"
+
+set -x
+
 
 if [ -z "$GRID_NAME" ]; then
     echo "ERROR: No GRID_NAME set, exiting"
