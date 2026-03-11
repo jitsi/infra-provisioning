@@ -367,4 +367,20 @@ echo \$ORACLE_REGION"""
 
 }
 
+def GridRequestSlots(grid_name, slots, timeout = 600) {
+    sh """#!/bin/bash
+        export GRID_NAME="${grid_name}"
+        export GRID_SLOTS_REQUESTED="${slots}"
+        export GRID_WAIT_TIMEOUT="${timeout}"
+        scripts/grid-scale.sh request
+    """
+}
+
+def GridReleaseSlots(grid_name) {
+    sh """#!/bin/bash
+        export GRID_NAME="${grid_name}"
+        scripts/grid-scale.sh release
+    """
+}
+
 return this
