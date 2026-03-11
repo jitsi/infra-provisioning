@@ -33,12 +33,7 @@ pipeline {
           }
           def gridName = utils.GridNameFromUrl(gridUrl)
           dir('infra-provisioning') {
-            withCredentials([
-                string(credentialsId: 'oci-jenkins-terraform-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
-                string(credentialsId: 'oci-jenkins-terraform-aws-id', variable: 'AWS_ACCESS_KEY_ID')
-            ]) {
-              utils.GridRequestSlots(gridName, 4)
-            }
+            utils.GridRequestSlots(gridName, 4)
           }
         }
       }
