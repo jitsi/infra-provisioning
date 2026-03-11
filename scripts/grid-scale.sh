@@ -152,13 +152,13 @@ resize_pool() {
 get_grid_node_count() {
     local response
     response=$(curl -s -X POST -H "Content-Type: application/json" \
-        --data '{"query":"{ nodesInfo { nodes { id, availability } } }"}' \
+        --data '{"query":"{ nodesInfo { nodes { id, status } } }"}' \
         "$GRID_URL/graphql" 2>/dev/null || echo "")
     if [ -z "$response" ]; then
         echo 0
         return
     fi
-    echo "$response" | jq '[.data.nodesInfo.nodes[] | select(.availability == "UP")] | length' 2>/dev/null || echo 0
+    echo "$response" | jq '[.data.nodesInfo.nodes[] | select(.status == "UP")] | length' 2>/dev/null || echo 0
 }
 
 wait_for_nodes() {
