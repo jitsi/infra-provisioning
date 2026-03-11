@@ -24,6 +24,20 @@ pipeline {
         }
       }
     }
+    stage('Grid Scale Up') {
+      steps {
+        script {
+          def gridUrl = env.GRID_URL
+          if ((gridUrl == '') || (gridUrl == null)) {
+            gridUrl = 'validate'
+          }
+          def gridName = utils.GridNameFromUrl(gridUrl)
+          dir('infra-provisioning') {
+            utils.GridRequestSlots(gridName, 4)
+          }
+        }
+      }
+    }
     stage('Provision') {
       steps {
         script {
@@ -31,30 +45,24 @@ pipeline {
             dir('infra-configuration') {
               sh 'scripts/configure-jitsi-repo.sh'
             }
-            def grid = env.GRID_URL
-            if ((grid == '') || (grid == null)) {
-              grid = 'validate'
-            }
-            lock("validate-grid-${grid}") {
-              dir('infra-provisioning') {
-                withCredentials([
-                    string(credentialsId: 'asap-client-jwt-kid-meet', variable: 'ASAP_CLIENT_JWT_KID_MEET'),
-                    string(credentialsId: 'asap-client-jwt-kid-beta', variable: 'ASAP_CLIENT_JWT_KID_BETA'),
-                    string(credentialsId: 'asap-client-jwt-kid-prod', variable: 'ASAP_CLIENT_JWT_KID_PROD'),
-                    string(credentialsId: 'asap-client-jwt-kid-stage', variable: 'ASAP_CLIENT_JWT_KID_STAGE'),
-                    string(credentialsId: 'webhooks_proxy_url', variable: 'WEBHOOKS_PROXY_URL'),
-                    file(credentialsId: 'asap-client-jwt-key-meet', variable: 'ASAP_CLIENT_JWT_KEY_MEET'),
-                    file(credentialsId: 'asap-client-jwt-key-prod', variable: 'ASAP_CLIENT_JWT_KEY_PROD'),
-                    file(credentialsId: 'asap-client-jwt-key-stage', variable: 'ASAP_CLIENT_JWT_KEY_STAGE'),
-                    file(credentialsId: 'asap-client-jwt-key-beta', variable: 'ASAP_CLIENT_JWT_KEY_BETA'),
-                    usernamePassword(credentialsId: 'vox-api-us', passwordVariable: 'VOX_API_KEY_US', usernameVariable: 'VOX_US_USER'),
-                    usernamePassword(credentialsId: 'vox-api-eu', passwordVariable: 'VOX_API_KEY_EU', usernameVariable: 'VOX_EU_USER'),
-                    usernamePassword(credentialsId: 'meet-vox-api', passwordVariable: 'MEET_VOX_API_KEY', usernameVariable: 'MEET_VOX_USER')
-                ]) {
-                  sh """#!/bin/bash
-                  export ANSIBLE_FORCE_COLOR=True
-                  scripts/validate-shard.sh ${env.ENVIRONMENT} \"${env.SHARDS}\" ubuntu"""
-                }
+            dir('infra-provisioning') {
+              withCredentials([
+                  string(credentialsId: 'asap-client-jwt-kid-meet', variable: 'ASAP_CLIENT_JWT_KID_MEET'),
+                  string(credentialsId: 'asap-client-jwt-kid-beta', variable: 'ASAP_CLIENT_JWT_KID_BETA'),
+                  string(credentialsId: 'asap-client-jwt-kid-prod', variable: 'ASAP_CLIENT_JWT_KID_PROD'),
+                  string(credentialsId: 'asap-client-jwt-kid-stage', variable: 'ASAP_CLIENT_JWT_KID_STAGE'),
+                  string(credentialsId: 'webhooks_proxy_url', variable: 'WEBHOOKS_PROXY_URL'),
+                  file(credentialsId: 'asap-client-jwt-key-meet', variable: 'ASAP_CLIENT_JWT_KEY_MEET'),
+                  file(credentialsId: 'asap-client-jwt-key-prod', variable: 'ASAP_CLIENT_JWT_KEY_PROD'),
+                  file(credentialsId: 'asap-client-jwt-key-stage', variable: 'ASAP_CLIENT_JWT_KEY_STAGE'),
+                  file(credentialsId: 'asap-client-jwt-key-beta', variable: 'ASAP_CLIENT_JWT_KEY_BETA'),
+                  usernamePassword(credentialsId: 'vox-api-us', passwordVariable: 'VOX_API_KEY_US', usernameVariable: 'VOX_US_USER'),
+                  usernamePassword(credentialsId: 'vox-api-eu', passwordVariable: 'VOX_API_KEY_EU', usernameVariable: 'VOX_EU_USER'),
+                  usernamePassword(credentialsId: 'meet-vox-api', passwordVariable: 'MEET_VOX_API_KEY', usernameVariable: 'MEET_VOX_USER')
+              ]) {
+                sh """#!/bin/bash
+                export ANSIBLE_FORCE_COLOR=True
+                scripts/validate-shard.sh ${env.ENVIRONMENT} \"${env.SHARDS}\" ubuntu"""
               }
             }
           }
@@ -64,6 +72,16 @@ pipeline {
   }
   post {
     always {
+        script {
+            def gridUrl = env.GRID_URL
+            if ((gridUrl == '') || (gridUrl == null)) {
+                gridUrl = 'validate'
+            }
+            def gridName = utils.GridNameFromUrl(gridUrl)
+            dir('infra-provisioning') {
+                utils.GridReleaseSlots(gridName)
+            }
+        }
         archiveArtifacts artifacts: 'test-results/**/*', fingerprint: true
         junit 'test-results/**/results*.xml'
     }

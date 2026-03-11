@@ -367,4 +367,38 @@ echo \$ORACLE_REGION"""
 
 }
 
+// Extract grid name from a full grid URL or return as-is if already a short name.
+// e.g. "https://torture-test-us-phoenix-1-validocker-grid.jitsi.net" -> "validocker"
+// e.g. "validate" -> "validate"
+def GridNameFromUrl(grid_url) {
+    def name = grid_url
+    // Strip scheme if present
+    name = name.replaceFirst(/^https?:\/\//, '')
+    // Strip port and path
+    name = name.replaceFirst(/[\/:].*$/, '')
+    // Match pattern: {environment}-{region}-{grid_name}-grid.{domain}
+    def matcher = (name =~ /^.+-(.+)-grid\..*$/)
+    if (matcher.matches()) {
+        return matcher[0][1]
+    }
+    // Not a URL pattern, return as-is (already a short name)
+    return grid_url
+}
+
+def GridRequestSlots(grid_name, slots, timeout = 600) {
+    sh """#!/bin/bash
+        export GRID_NAME="${grid_name}"
+        export GRID_SLOTS_REQUESTED="${slots}"
+        export GRID_WAIT_TIMEOUT="${timeout}"
+        scripts/grid-scale.sh request
+    """
+}
+
+def GridReleaseSlots(grid_name) {
+    sh """#!/bin/bash
+        export GRID_NAME="${grid_name}"
+        scripts/grid-scale.sh release
+    """
+}
+
 return this
