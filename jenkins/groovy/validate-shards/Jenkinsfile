@@ -24,6 +24,25 @@ pipeline {
         }
       }
     }
+    stage('Grid Scale Up') {
+      steps {
+        script {
+          def gridUrl = env.GRID_URL
+          if ((gridUrl == '') || (gridUrl == null)) {
+            gridUrl = 'validate'
+          }
+          def gridName = utils.GridNameFromUrl(gridUrl)
+          dir('infra-provisioning') {
+            withCredentials([
+                string(credentialsId: 'oci-jenkins-terraform-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
+                string(credentialsId: 'oci-jenkins-terraform-aws-id', variable: 'AWS_ACCESS_KEY_ID')
+            ]) {
+              utils.GridRequestSlots(gridName, 4)
+            }
+          }
+        }
+      }
+    }
     stage('Provision') {
       steps {
         script {
@@ -64,6 +83,16 @@ pipeline {
   }
   post {
     always {
+        script {
+            def gridUrl = env.GRID_URL
+            if ((gridUrl == '') || (gridUrl == null)) {
+                gridUrl = 'validate'
+            }
+            def gridName = utils.GridNameFromUrl(gridUrl)
+            dir('infra-provisioning') {
+                utils.GridReleaseSlots(gridName)
+            }
+        }
         archiveArtifacts artifacts: 'test-results/**/*', fingerprint: true
         junit 'test-results/**/results*.xml'
     }
