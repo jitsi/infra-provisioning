@@ -1,3 +1,20 @@
 #!/usr/bin/with-contenv bash
 
-echo '* * * * * /usr/bin/timeout 50 /opt/jitsi/update-repos.sh > /tmp/update.log 2>&1' | crontab -u git -
+# Set up cron job for periodic repo sync
+
+SYNC_INTERVAL="${SYNC_INTERVAL:-5}"
+
+# Validate interval is a number
+if ! [[ "$SYNC_INTERVAL" =~ ^[0-9]+$ ]]; then
+    echo "WARNING: Invalid SYNC_INTERVAL '$SYNC_INTERVAL', using default of 5"
+    SYNC_INTERVAL=5
+fi
+
+echo "Setting up git sync cron job (every $SYNC_INTERVAL minutes)"
+
+# Create log file
+touch /var/log/git-sync.log
+chown git:git /var/log/git-sync.log
+
+# Install crontab for git user
+echo "*/${SYNC_INTERVAL} * * * * /opt/jitsi/update-repos.sh >> /var/log/git-sync.log 2>&1" | crontab -u git -
