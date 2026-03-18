@@ -44,6 +44,18 @@ if [ -z "$CNAME_TARGET" ]; then
 fi
 [ -z "$CNAME_VALUE" ] && CNAME_VALUE="${UNIQUE_ID}"
 
+# Check if CNAME already exists and points to the correct target
+EXISTING_CNAME=$(dig +short CNAME "${CNAME_VALUE}.${CNAME_DNS_ZONE_DOMAIN_NAME}")
+if [ -n "$EXISTING_CNAME" ]; then
+    # dig returns trailing dot, normalize both for comparison
+    EXISTING_CNAME_NORMALIZED=$(echo "$EXISTING_CNAME" | sed 's/\.$//')
+    CNAME_TARGET_NORMALIZED=$(echo "$CNAME_TARGET" | sed 's/\.$//')
+    if [ "$EXISTING_CNAME_NORMALIZED" == "$CNAME_TARGET_NORMALIZED" ]; then
+        echo "CNAME ${CNAME_VALUE}.${CNAME_DNS_ZONE_DOMAIN_NAME} already points to ${CNAME_TARGET}. Skipping."
+        exit 0
+    fi
+fi
+
 CF_TEMPLATE_YAML="$LOCAL_PATH/../templates/oracle-cname.template"
 
 describe_stack=$(aws cloudformation describe-stacks --region "$AZ_REGION" --stack-name "$STACK_NAME")
