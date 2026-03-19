@@ -144,7 +144,7 @@ job [[ template "job_name" . ]] {
         REDIS_DB = 1
         PROTECTED_API = "true"
         DRY_RUN = "false"
-        LOG_LEVEL = "debug"
+        LOG_LEVEL = "[[ var "log_level" . ]]"
         METRIC_TTL_SEC = "3600"
         ASAP_PUB_KEY_BASE_URL = "[[ var "asap_base_url" . ]]"
         ASAP_JWT_AUD = "[[ var "asap_jwt_aud" . ]]"
@@ -159,8 +159,12 @@ job [[ template "job_name" . ]] {
         OCI_CONFIGURATION_PROFILE = "DEFAULT"
         DEFAULT_COMPARTMENT_ID = "[[ var "oci_compartment_id" . ]]"
 [[ end ]]
+        CLOUD_GUARD_ENABLED = [[ var "cloud_guard_enabled" . ]]
+        CLOUD_GUARD_GRACE_COUNT = [[ var "cloud_guard_grace_count" . ]]
+        SCHEDULED_SCALING_ENABLED = [[ var "scheduled_scaling_enabled" . ]]
+        SCHEDULED_SCALING_DEFAULT_TIMEZONE = "[[ var "scheduled_scaling_default_timezone" . ]]"
         DEFAULT_INSTANCE_CONFIGURATION_ID = "none"
-        NODE_ENV = "development"
+        NODE_ENV = "[[ var "node_env" . ]]"
         PORT = "8080"
         METRICS_PORT = "8081"
         INITIAL_WAIT_FOR_POOLING_MS = 120000

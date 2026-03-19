@@ -129,6 +129,42 @@ variable "prometheus_url" {
   default     = ""
 }
 
+variable "cloud_guard_enabled" {
+  description = "Enable cloud-aware guards to prevent churn during network incidents"
+  type        = bool
+  default     = false
+}
+
+variable "cloud_guard_grace_count" {
+  description = "Grace period (in scale periods) before scale-down is allowed after network recovery"
+  type        = number
+  default     = 0
+}
+
+variable "scheduled_scaling_enabled" {
+  description = "Enable time-based scaling per group"
+  type        = bool
+  default     = true
+}
+
+variable "scheduled_scaling_default_timezone" {
+  description = "Default IANA timezone for scheduled scaling when not explicitly set on group"
+  type        = string
+  default     = "UTC"
+}
+
+variable "log_level" {
+  description = "Log level for the autoscaler application"
+  type        = string
+  default     = "info"
+}
+
+variable "node_env" {
+  description = "Node environment for the autoscaler application"
+  type        = string
+  default     = "production"
+}
+
 variable "resources" {
   description = "The resources to use for the job"
   type        = object({

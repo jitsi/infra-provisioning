@@ -60,6 +60,36 @@ if [[ "$METRICS_PROVIDER" == "prometheus" ]]; then
     ENABLE_PROMETHEUS="true"
 fi
 
+CLOUD_GUARD_ENABLED="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval ".autoscaler_cloud_guard_enabled" -)"
+if [[ "$CLOUD_GUARD_ENABLED" == "null" ]]; then
+    CLOUD_GUARD_ENABLED="false"
+fi
+
+CLOUD_GUARD_GRACE_COUNT="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval ".autoscaler_cloud_guard_grace_count" -)"
+if [[ "$CLOUD_GUARD_GRACE_COUNT" == "null" ]]; then
+    CLOUD_GUARD_GRACE_COUNT="0"
+fi
+
+SCHEDULED_SCALING_ENABLED="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval ".autoscaler_scheduled_scaling_enabled" -)"
+if [[ "$SCHEDULED_SCALING_ENABLED" == "null" ]]; then
+    SCHEDULED_SCALING_ENABLED="true"
+fi
+
+SCHEDULED_SCALING_DEFAULT_TIMEZONE="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval ".autoscaler_scheduled_scaling_default_timezone" -)"
+if [[ "$SCHEDULED_SCALING_DEFAULT_TIMEZONE" == "null" ]]; then
+    SCHEDULED_SCALING_DEFAULT_TIMEZONE="UTC"
+fi
+
+AUTOSCALER_LOG_LEVEL="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval ".autoscaler_log_level" -)"
+if [[ "$AUTOSCALER_LOG_LEVEL" == "null" ]]; then
+    AUTOSCALER_LOG_LEVEL="info"
+fi
+
+AUTOSCALER_NODE_ENV="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval ".autoscaler_node_env" -)"
+if [[ "$AUTOSCALER_NODE_ENV" == "null" ]]; then
+    AUTOSCALER_NODE_ENV="production"
+fi
+
 NOMAD_DC="$ENVIRONMENT-$ORACLE_REGION"
 # for ORACLE_REGION in $REGIONS; do
 #     NOMAD_DC="$( echo "$NOMAD_DC" "[\"$ENVIRONMENT-$ORACLE_REGION\"]" | jq -c -s '.|add')"
@@ -87,6 +117,12 @@ redis_tls=$REDIS_TLS
 enable_prometheus=$ENABLE_PROMETHEUS
 prometheus_url="https://$ENVIRONMENT-$ORACLE_REGION-prometheus.$TOP_LEVEL_DNS_ZONE_NAME"
 oci_compartment_id="$COMPARTMENT_OCID"
+cloud_guard_enabled=$CLOUD_GUARD_ENABLED
+cloud_guard_grace_count=$CLOUD_GUARD_GRACE_COUNT
+scheduled_scaling_enabled=$SCHEDULED_SCALING_ENABLED
+scheduled_scaling_default_timezone="$SCHEDULED_SCALING_DEFAULT_TIMEZONE"
+log_level="$AUTOSCALER_LOG_LEVEL"
+node_env="$AUTOSCALER_NODE_ENV"
 EOF
 
 JOB_NAME="autoscaler-$ORACLE_REGION"
