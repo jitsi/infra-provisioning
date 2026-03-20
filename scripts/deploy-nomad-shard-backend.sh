@@ -323,9 +323,11 @@ nomad-pack plan --deploy-override --name "$JOB_NAME" \
   $PACKS_DIR/jitsi_meet_backend
 
 PLAN_RET=$?
-
+echo "PLAN_RET=$PLAN_RET"
+# nomad-pack plan --deploy-override is broken in v0.4.2 (hashicorp/nomad-pack#845)
+# treat plan error (255) as non-fatal since run --deploy-override works correctly
 if [ $PLAN_RET -gt 1 ]; then
-    echo "Failed planning shard backend job, rendering and exiting"
+    echo "Plan returned error, rendering template for debugging"
     nomad-pack render --name "$JOB_NAME" \
     -var "job_name=$JOB_NAME" \
     -var "datacenter=$NOMAD_DC" \
@@ -333,14 +335,11 @@ if [ $PLAN_RET -gt 1 ]; then
     -var "fabio_domain_enabled=$CONFIG_nomad_enable_fabio_domain" \
     $PACKS_DIR/jitsi_meet_backend
 
-    exit 4
-else
-    if [ $PLAN_RET -eq 1 ]; then
-        echo "Plan was successful, will make changes"
-    fi
-    if [ $PLAN_RET -eq 0 ]; then
-        echo "Plan was successful, no changes needed"
-    fi
+    echo "Will attempt run with --deploy-override"
+elif [ $PLAN_RET -eq 1 ]; then
+    echo "Plan was successful, will make changes"
+elif [ $PLAN_RET -eq 0 ]; then
+    echo "Plan was successful, no changes needed"
 fi
 
 nomad-pack run --deploy-override --name "$JOB_NAME" \
