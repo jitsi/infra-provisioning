@@ -119,7 +119,7 @@ enable_vault=$CLOUDPROBER_ENABLE_VAULT
 enable_canary=$CLOUDPROBER_ENABLE_LATENCY
 EOF
 
-nomad-pack plan --name "$JOB_NAME" \
+nomad-pack plan --deploy-override --name "$JOB_NAME" \
   -var "job_name=$JOB_NAME" \
   -var-file "./cloudprober.hcl" \
   $PACKS_DIR/jitsi_cloudprober
@@ -134,7 +134,7 @@ else
     echo "Plan was successful, will make changes"
 fi
 
-nomad-pack run --name "$JOB_NAME" \
+nomad-pack run --deploy-override --name "$JOB_NAME" \
   -var "job_name=$JOB_NAME" \
   -var-file "./cloudprober.hcl" \
   $PACKS_DIR/jitsi_cloudprober

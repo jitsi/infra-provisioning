@@ -113,7 +113,7 @@ nomad-pack render --name "$JOB_NAME" \
   -var "datacenter=$NOMAD_DC" \
   $PACKS_DIR/jitsi_meet_jvb > /tmp/input.hcl
 
-nomad-pack plan --name "$JOB_NAME" \
+nomad-pack plan --deploy-override --name "$JOB_NAME" \
   -var "job_name=$JOB_NAME" \
   -var "datacenter=$NOMAD_DC" \
   $PACKS_DIR/jitsi_meet_jvb
@@ -132,7 +132,7 @@ else
     fi
 fi
 
-nomad-pack run --name "$JOB_NAME" \
+nomad-pack run --deploy-override --name "$JOB_NAME" \
   -var "job_name=$JOB_NAME" \
   -var "datacenter=$NOMAD_DC" \
   $PACKS_DIR/jitsi_meet_jvb
