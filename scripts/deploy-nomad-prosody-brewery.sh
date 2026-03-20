@@ -143,17 +143,15 @@ nomad-pack plan --deploy-override --name "$JOB_NAME" \
   $PACKS_DIR/prosody_brewery
 
 PLAN_RET=$?
-
+echo "PLAN_RET=$PLAN_RET"
+# nomad-pack plan --deploy-override is broken in v0.4.2 (hashicorp/nomad-pack#845)
+# treat plan error (255) as non-fatal since run --deploy-override works correctly
 if [ $PLAN_RET -gt 1 ]; then
-    echo "Failed planning prosody brewery job, exiting"
-    exit 4
-else
-    if [ $PLAN_RET -eq 1 ]; then
-        echo "Plan was successful, will make changes"
-    fi
-    if [ $PLAN_RET -eq 0 ]; then
-        echo "Plan was successful, no changes needed"
-    fi
+    echo "Plan returned error, will attempt run with --deploy-override"
+elif [ $PLAN_RET -eq 1 ]; then
+    echo "Plan was successful, will make changes"
+elif [ $PLAN_RET -eq 0 ]; then
+    echo "Plan was successful, no changes needed"
 fi
 
 nomad-pack run --deploy-override --name "$JOB_NAME" \

@@ -125,11 +125,11 @@ nomad-pack plan --deploy-override --name "$JOB_NAME" \
   $PACKS_DIR/jitsi_cloudprober
 
 PLAN_RET=$?
-
+echo "PLAN_RET=$PLAN_RET"
+# nomad-pack plan --deploy-override is broken in v0.4.2 (hashicorp/nomad-pack#845)
+# treat plan error (255) as non-fatal since run --deploy-override works correctly
 if [ $PLAN_RET -gt 1 ]; then
-    echo "Failed planning nomad cloudprober job, exiting"
-    rm ./cloudprober.hcl
-    exit 4
+    echo "Plan returned error, will attempt run with --deploy-override"
 else
     echo "Plan was successful, will make changes"
 fi
