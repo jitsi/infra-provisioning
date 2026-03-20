@@ -137,7 +137,7 @@ export JOB_NAME="prosody-brewery-${ORACLE_REGION}"
 PACKS_DIR="$LOCAL_PATH/../nomad/jitsi_packs/packs"
 
 
-nomad-pack plan --name "$JOB_NAME" \
+nomad-pack plan --deploy-override --name "$JOB_NAME" \
   -var "job_name=$JOB_NAME" \
   -var "datacenter=$NOMAD_DC" \
   $PACKS_DIR/prosody_brewery
@@ -156,7 +156,7 @@ else
     fi
 fi
 
-nomad-pack run --name "$JOB_NAME" \
+nomad-pack run --deploy-override --name "$JOB_NAME" \
   -var "job_name=$JOB_NAME" \
   -var "datacenter=$NOMAD_DC" \
   $PACKS_DIR/prosody_brewery

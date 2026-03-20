@@ -159,7 +159,7 @@ done
 PACKS_DIR="$LOCAL_PATH/../nomad/jitsi_packs/packs"
 
 
-nomad-pack plan \
+nomad-pack plan --deploy-override \
   --name "web-release-${RELEASE_NUMBER}" \
   -var "job_name=web-release-${RELEASE_NUMBER}" \
   -var "dc=$NOMAD_DC" \
@@ -179,7 +179,7 @@ else
     fi
 fi
 
-nomad-pack run \
+nomad-pack run --deploy-override \
   --name "web-release-${RELEASE_NUMBER}" \
   -var "job_name=web-release-${RELEASE_NUMBER}" \
   -var "dc=$NOMAD_DC" \
