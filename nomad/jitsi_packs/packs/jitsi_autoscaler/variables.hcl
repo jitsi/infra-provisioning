@@ -165,6 +165,12 @@ variable "node_env" {
   default     = "production"
 }
 
+variable "jobs_concurrency" {
+  description = "The number of concurrent jobs the autoscaler can run"
+  type        = number
+  default     = 5
+}
+
 variable "resources" {
   description = "The resources to use for the job"
   type        = object({

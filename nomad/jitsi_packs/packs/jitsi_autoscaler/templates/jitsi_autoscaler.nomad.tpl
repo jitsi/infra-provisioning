@@ -164,6 +164,7 @@ job [[ template "job_name" . ]] {
         SCHEDULED_SCALING_ENABLED = [[ var "scheduled_scaling_enabled" . ]]
         SCHEDULED_SCALING_DEFAULT_TIMEZONE = "[[ var "scheduled_scaling_default_timezone" . ]]"
         DEFAULT_INSTANCE_CONFIGURATION_ID = "none"
+        JOBS_CONCURRENCY = [[ var "jobs_concurrency" . ]]
         NODE_ENV = "[[ var "node_env" . ]]"
         PORT = "8080"
         METRICS_PORT = "8081"

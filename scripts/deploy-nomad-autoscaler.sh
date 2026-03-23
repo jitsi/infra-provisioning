@@ -90,6 +90,11 @@ if [[ "$AUTOSCALER_NODE_ENV" == "null" ]]; then
     AUTOSCALER_NODE_ENV="production"
 fi
 
+[ -z "$JOBS_CONCURRENCY" ] && JOBS_CONCURRENCY="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval ".autoscaler_jobs_concurrency" -)"
+if [[ "$JOBS_CONCURRENCY" == "null" ]] || [[ -z "$JOBS_CONCURRENCY" ]]; then
+    JOBS_CONCURRENCY="5"
+fi
+
 NOMAD_DC="$ENVIRONMENT-$ORACLE_REGION"
 # for ORACLE_REGION in $REGIONS; do
 #     NOMAD_DC="$( echo "$NOMAD_DC" "[\"$ENVIRONMENT-$ORACLE_REGION\"]" | jq -c -s '.|add')"
@@ -123,6 +128,7 @@ scheduled_scaling_enabled=$SCHEDULED_SCALING_ENABLED
 scheduled_scaling_default_timezone="$SCHEDULED_SCALING_DEFAULT_TIMEZONE"
 log_level="$AUTOSCALER_LOG_LEVEL"
 node_env="$AUTOSCALER_NODE_ENV"
+jobs_concurrency=$JOBS_CONCURRENCY
 EOF
 
 JOB_NAME="autoscaler-$ORACLE_REGION"

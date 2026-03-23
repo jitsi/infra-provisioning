@@ -18,6 +18,10 @@
           description: "Environment to build in, defaults to 'lonely'."
           trim: true
       - string:
+          name: JOBS_CONCURRENCY
+          description: "The number of concurrent jobs the autoscaler can run, defaults to 5."
+          trim: true
+      - string:
           name: CLOUDS
           description: "Clouds to build in, defaults to RELEASE_CLOUDS for environment."
           trim: true
