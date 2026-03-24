@@ -25,10 +25,12 @@ if [ -z "$NOMAD_ADDR" ]; then
 fi
 
 [ -z "$ALLOY_HOSTNAME" ] && ALLOY_HOSTNAME="$ENVIRONMENT-$ORACLE_REGION-otel.$TOP_LEVEL_DNS_ZONE_NAME"
+[ -z "$ALLOY_LOKI_HOSTNAME" ] && ALLOY_LOKI_HOSTNAME="$ENVIRONMENT-$ORACLE_REGION-otel-loki.$TOP_LEVEL_DNS_ZONE_NAME"
 
 NOMAD_JOB_PATH="$LOCAL_PATH/../nomad"
 NOMAD_DC="$ENVIRONMENT-$ORACLE_REGION"
 export NOMAD_VAR_alloy_hostname="${ALLOY_HOSTNAME}"
+export NOMAD_VAR_alloy_loki_hostname="${ALLOY_LOKI_HOSTNAME}"
 JOB_NAME="alloy-$ORACLE_REGION"
 
 [ -z "$ENVIRONMENT_TYPE" ] && ENVIRONMENT_TYPE="stage"
@@ -48,6 +50,15 @@ fi
 # Create CNAME pointing to internal load balancer (same pattern as loki)
 export RESOURCE_NAME_ROOT="${ENVIRONMENT}-${ORACLE_REGION}-otel"
 
+export CNAME_VALUE="$RESOURCE_NAME_ROOT"
+export STACK_NAME="${RESOURCE_NAME_ROOT}-cname"
+export UNIQUE_ID="${RESOURCE_NAME_ROOT}"
+export CNAME_TARGET="${ENVIRONMENT}-${ORACLE_REGION}-nomad-pool-general-internal.${DEFAULT_DNS_ZONE_NAME}"
+export CNAME_VALUE="${RESOURCE_NAME_ROOT}"
+$LOCAL_PATH/create-oracle-cname-stack.sh
+
+# Create CNAME for Loki push API endpoint (used by Vector routing through Alloy)
+export RESOURCE_NAME_ROOT="${ENVIRONMENT}-${ORACLE_REGION}-otel-loki"
 export CNAME_VALUE="$RESOURCE_NAME_ROOT"
 export STACK_NAME="${RESOURCE_NAME_ROOT}-cname"
 export UNIQUE_ID="${RESOURCE_NAME_ROOT}"

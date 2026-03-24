@@ -7,6 +7,11 @@ variable "top_level_domain" {
   default = "jitsi.net"
 }
 
+variable "loki_endpoint" {
+  type    = string
+  default = ""
+}
+
 job "[JOB_NAME]" {
   datacenters = ["${var.dc}"]
   type = "system"
@@ -130,7 +135,7 @@ job "[JOB_NAME]" {
             remove_timestamp = false
             type = "loki"
             inputs = ["loki_to_structure"]
-            endpoint = "https://[[ env "meta.environment" ]]-[[ env "meta.cloud_region" ]]-loki.${var.top_level_domain}"
+            endpoint = "[[ if ne "${var.loki_endpoint}" "" ]]${var.loki_endpoint}[[ else ]]https://[[ env "meta.environment" ]]-[[ env "meta.cloud_region" ]]-loki.${var.top_level_domain}[[ end ]]"
             encoding.codec = "json"
             healthcheck.enabled = true
             # since . is used by Vector to denote a parent-child relationship, and Nomad's Docker labels contain ".",
@@ -149,7 +154,7 @@ job "[JOB_NAME]" {
             remove_timestamp = false
             type = "loki"
             inputs = ["syslog"]
-            endpoint = "https://[[ env "meta.environment" ]]-[[ env "meta.cloud_region" ]]-loki.${var.top_level_domain}"
+            endpoint = "[[ if ne "${var.loki_endpoint}" "" ]]${var.loki_endpoint}[[ else ]]https://[[ env "meta.environment" ]]-[[ env "meta.cloud_region" ]]-loki.${var.top_level_domain}[[ end ]]"
             encoding.codec = "json"
             healthcheck.enabled = true
             # since . is used by Vector to denote a parent-child relationship, and Nomad's Docker labels contain ".",
@@ -214,7 +219,7 @@ job "[JOB_NAME]" {
             remove_timestamp = false
             type = "loki"
             inputs = ["message_to_structure"]
-            endpoint = "https://[[ env "meta.environment" ]]-[[ env "meta.cloud_region" ]]-loki.${var.top_level_domain}"
+            endpoint = "[[ if ne "${var.loki_endpoint}" "" ]]${var.loki_endpoint}[[ else ]]https://[[ env "meta.environment" ]]-[[ env "meta.cloud_region" ]]-loki.${var.top_level_domain}[[ end ]]"
             encoding.codec = "json"
             healthcheck.enabled = true
             # since . is used by Vector to denote a parent-child relationship, and Nomad's Docker labels contain ".",

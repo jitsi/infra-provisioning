@@ -27,6 +27,13 @@ if [ -z "$NOMAD_ADDR" ]; then
     export NOMAD_ADDR="https://$ENVIRONMENT-$LOCAL_REGION-nomad.$TOP_LEVEL_DNS_ZONE_NAME"
 fi
 
+# By default, route logs through Alloy OTEL collector
+# Set VECTOR_ROUTE_DIRECT_TO_LOKI=true to bypass Alloy and send directly to Loki
+if [ "$VECTOR_ROUTE_DIRECT_TO_LOKI" != "true" ]; then
+    [ -z "$ALLOY_LOKI_HOSTNAME" ] && ALLOY_LOKI_HOSTNAME="$ENVIRONMENT-$ORACLE_REGION-otel-loki.$TOP_LEVEL_DNS_ZONE_NAME"
+    export NOMAD_VAR_loki_endpoint="https://${ALLOY_LOKI_HOSTNAME}"
+fi
+
 sed -e "s/\[JOB_NAME\]/$JOB_NAME/" "$NOMAD_JOB_PATH/vector.hcl" | nomad job run -var="dc=$NOMAD_DC" -
 
 if [ $? -ne 0 ]; then

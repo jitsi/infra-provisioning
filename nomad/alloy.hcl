@@ -15,6 +15,10 @@ variable "environment_type" {
   type = string
 }
 
+variable "alloy_loki_hostname" {
+  type = string
+}
+
 job "[JOB_NAME]" {
   datacenters = ["${var.dc}"]
   type        = "service"
@@ -87,6 +91,9 @@ job "[JOB_NAME]" {
       port "otlp-http" {
         to = 4318
       }
+      port "loki-push" {
+        to = 3100
+      }
       port "http" {
         to = 12345
       }
@@ -113,6 +120,24 @@ job "[JOB_NAME]" {
       }
     }
 
+    # Service registration for Loki push API (accepts logs from Vector)
+    service {
+      name = "alloy-loki-push"
+      port = "loki-push"
+      tags = [
+        "int-urlprefix-${var.alloy_loki_hostname}/",
+        "ip-${attr.unique.network.ip-address}"
+      ]
+      check {
+        name     = "alloy health"
+        type     = "http"
+        port     = "http"
+        path     = "/-/healthy"
+        interval = "15s"
+        timeout  = "5s"
+      }
+    }
+
     task "alloy" {
       driver = "docker"
 
@@ -127,7 +152,7 @@ job "[JOB_NAME]" {
           "/etc/alloy/config.alloy",
           "--server.http.listen-addr=0.0.0.0:12345"
         ]
-        ports = ["otlp-grpc", "otlp-http", "http"]
+        ports = ["otlp-grpc", "otlp-http", "loki-push", "http"]
         volumes = [
           "local:/etc/alloy"
         ]
@@ -142,6 +167,22 @@ job "[JOB_NAME]" {
         left_delimiter  = "[["
         right_delimiter = "]]"
         data = <<EOF
+// Loki Push API receiver - accepts logs from Vector in native Loki format
+loki.source.api "vector" {
+  http {
+    listen_address = "0.0.0.0"
+    listen_port    = 3100
+  }
+  forward_to = [loki.write.internal.receiver, loki.write.external.receiver]
+}
+
+// Internal Loki writer (for logs received via Loki push API from Vector)
+loki.write "internal" {
+  endpoint {
+    url = "https://[[ env "meta.environment" ]]-[[ env "meta.cloud_region" ]]-loki.${var.top_level_domain}/loki/api/v1/push"
+  }
+}
+
 // OTEL Receiver - accepts logs, metrics, and traces via gRPC and HTTP
 otelcol.receiver.otlp "default" {
   grpc {
@@ -241,6 +282,10 @@ loki.write "external" {
       username = "[[ index .Data.data "meetings-oci-hosts-${var.environment_type}-01-oci-logs-username" ]]"
       password = "[[ index .Data.data "meetings-oci-hosts-${var.environment_type}-01-oci-logs-password" ]]"
     }
+  }
+  external_labels = {
+    "environment" = "[[ env "meta.environment" ]]",
+    "region"      = "[[ env "meta.cloud_region" ]]",
   }
 }
 
