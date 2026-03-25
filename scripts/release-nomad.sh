@@ -21,7 +21,7 @@ fi
 
 LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
-# Search infra-provisioning/scripts first, then infra-provisioning/custom-scripts
+# Search infra-provisioning/scripts first, then infra-provisioning/scripts-custom
 if [ -f "$LOCAL_PATH/deploy-nomad-${SERVICE_NAME}.sh" ]; then
     DEPLOY_SCRIPT="$LOCAL_PATH/deploy-nomad-${SERVICE_NAME}.sh"
 elif [ -f "$LOCAL_PATH/../scripts-custom/deploy-nomad-${SERVICE_NAME}.sh" ]; then
