@@ -66,6 +66,7 @@ function add_ip_tags() {
         INSTANCE_ETAG=$(echo $INSTANCE_METADATA | jq -r '.etag')
         NEW_FREEFORM_TAGS=$(echo $INSTANCE_METADATA | jq --argjson ITEM "$ITEM" '.data["freeform-tags"] += $ITEM' | jq '.data["freeform-tags"]')
         $OCI_BIN compute instance update --instance-id $INSTANCE_ID --freeform-tags "$NEW_FREEFORM_TAGS" --if-match "$INSTANCE_ETAG" --force
+        rm /tmp/oracle_cache-ocid* || echo "No cache to delete"
     else
       return 2
     fi
