@@ -82,6 +82,33 @@ RESOURCE_NAME_ROOT="$NAME"
 [ -z "$SELENIUM_GRID_NOMAD_ENABLED" ] && SELENIUM_GRID_NOMAD_ENABLED="$SELENIUM_GRID_NOMAD_FLAG"
 [ -z "$SELENIUM_GRID_NOMAD_ENABLED" ] && SELENIUM_GRID_NOMAD_ENABLED="false"
 
+# look up existing instance pools to preserve their current sizes
+if [[ "$SELENIUM_GRID_NOMAD_ENABLED" == "true" ]]; then
+  POOL_DETAILS_X86="$(oci compute-management instance-pool list --region "$ORACLE_REGION" -c "$COMPARTMENT_OCID" --all --display-name "$GRID_NAME Grid x86 Nodes" | jq '.data[0]')"
+  if [ -n "$POOL_DETAILS_X86" ] && [ "$POOL_DETAILS_X86" != "null" ]; then
+    INSTANCE_POOL_SIZE_X86=$(echo "$POOL_DETAILS_X86" | jq -r '.size')
+    echo "Found existing x86 pool. Using existing size $INSTANCE_POOL_SIZE_X86"
+  else
+    echo "No existing x86 pool found. Using default size $INSTANCE_POOL_SIZE_X86"
+  fi
+
+  POOL_DETAILS_ARM="$(oci compute-management instance-pool list --region "$ORACLE_REGION" -c "$COMPARTMENT_OCID" --all --display-name "$GRID_NAME Grid Arm Nodes" | jq '.data[0]')"
+  if [ -n "$POOL_DETAILS_ARM" ] && [ "$POOL_DETAILS_ARM" != "null" ]; then
+    INSTANCE_POOL_SIZE_ARM=$(echo "$POOL_DETAILS_ARM" | jq -r '.size')
+    echo "Found existing ARM pool. Using existing size $INSTANCE_POOL_SIZE_ARM"
+  else
+    echo "No existing ARM pool found. Using default size $INSTANCE_POOL_SIZE_ARM"
+  fi
+else
+  POOL_DETAILS="$(oci compute-management instance-pool list --region "$ORACLE_REGION" -c "$COMPARTMENT_OCID" --all --display-name "$GRID_NAME Grid Nodes" | jq '.data[0]')"
+  if [ -n "$POOL_DETAILS" ] && [ "$POOL_DETAILS" != "null" ]; then
+    INSTANCE_POOL_SIZE_X86=$(echo "$POOL_DETAILS" | jq -r '.size')
+    echo "Found existing node pool. Using existing size $INSTANCE_POOL_SIZE_X86"
+  else
+    echo "No existing node pool found. Using default size $INSTANCE_POOL_SIZE_X86"
+  fi
+fi
+
 # run as user
 if [ -z "$1" ]; then
   SSH_USER=$(whoami)
