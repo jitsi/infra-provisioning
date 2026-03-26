@@ -47,7 +47,7 @@ if [ -z "$INFRA_CUSTOMIZATIONS_REPO" ]; then
   exit 203
 fi
 
-
+[ -z "$SHAPE_X86" ] && SHAPE_X86="$DEFAULT_SELENIUM_GRID_SHAPE"
 [ -z "$SHAPE_X86" ] && SHAPE_X86="$SHAPE_E_6"
 [ -z "$SHAPE_X86" ] && SHAPE_X86="VM.Standard.E6.Flex"
 [ -z "$SHAPE_ARM" ] && SHAPE_ARM="$SHAPE_A_1"
