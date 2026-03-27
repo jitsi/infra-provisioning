@@ -16,6 +16,7 @@ pipeline {
                     utils = load "${rootDir}/jenkins/groovy/Utils.groovy"
                     // checkout repos
                     // utils.SetupRepos(env.VIDEO_INFRA_BRANCH)
+                    sh 'docker buildx create --name mybuilder --driver docker-container --bootstrap --use'
                 }
             }
         }
