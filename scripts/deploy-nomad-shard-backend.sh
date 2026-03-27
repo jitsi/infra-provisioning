@@ -93,6 +93,8 @@ else
     export CONFIG_prosody_repo="jitsi/prosody"
 fi
 
+export CONFIG_prosody_repo="aaronkvanmeerten/prosody"
+
 JIBRI_AUTH_TYPE="$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval .jibri_auth_type -)"
 if [[ "$JIBRI_AUTH_TYPE" == "null" ]]; then
     JIBRI_AUTH_TYPE="B"
