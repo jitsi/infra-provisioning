@@ -53,11 +53,11 @@ fi
 [ -z "$SHAPE_ARM" ] && SHAPE_ARM="$SHAPE_A_1"
 [ -z "$SHAPE_ARM" ] && SHAPE_ARM="VM.Standard.A1.Flex"
 
-[ -z "$MEMORY_IN_GBS_X86" ] && MEMORY_IN_GBS_X86="8"
+[ -z "$MEMORY_IN_GBS_X86" ] && MEMORY_IN_GBS_X86="10"
 [ -z "$OCPUS_X86" ] && OCPUS_X86="2"
 
-[ -z "$MEMORY_IN_GBS_ARM" ] && MEMORY_IN_GBS_ARM="8"
-[ -z "$OCPUS_ARM" ] && OCPUS_ARM="4"
+[ -z "$MEMORY_IN_GBS_ARM" ] && MEMORY_IN_GBS_ARM="10"
+[ -z "$OCPUS_ARM" ] && OCPUS_ARM="5"
 
 [ -z "$INSTANCE_POOL_SIZE_X86" ] && INSTANCE_POOL_SIZE_X86=1
 [ -z "$INSTANCE_POOL_SIZE_ARM" ] && INSTANCE_POOL_SIZE_ARM=1
@@ -240,13 +240,13 @@ HUB_SECURITY_GROUP_ID="$(cat $LOCAL_SG_KEY | jq -r '.resources[]
     | select(.type == "oci_core_network_security_group")
     | .instances[]
     | select(.attributes.display_name == "'$RESOURCE_NAME_ROOT'-HubSecurityGroup")
-    | .attributes.id')"  
+    | .attributes.id')"
 
 NODE_SECURITY_GROUP_ID="$(cat $LOCAL_SG_KEY | jq -r '.resources[]
     | select(.type == "oci_core_network_security_group")
     | .instances[]
     | select(.attributes.display_name == "'$RESOURCE_NAME_ROOT'-NodeSecurityGroup")
-    | .attributes.id')"  
+    | .attributes.id')"
 
 if [ -z "$HUB_SECURITY_GROUP_ID" ]; then
   echo "HUB_SECURITY_GROUP_ID failed to be found or created, exiting..."
