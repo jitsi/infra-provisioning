@@ -7,6 +7,10 @@ variable "tag_namespace" {
 }
 variable "bucket_namespace" {
 }
+variable "queue_visibility_in_seconds" {
+    default = 15*60 # defaults to 15 minutes
+}
+
 provider "oci" {
   region = var.oracle_region
   tenancy_ocid = var.tenancy_ocid
@@ -54,4 +58,7 @@ resource "oci_queue_queue" "queue" {
     #Optional
     defined_tags = local.common_tags
    
+    dead_letter_queue_delivery_count = 3
+    visibility_in_seconds = var.queue_visibility_in_seconds
+
 }
