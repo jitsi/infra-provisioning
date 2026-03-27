@@ -82,8 +82,12 @@ RESOURCE_NAME_ROOT="$NAME"
 [ -z "$SELENIUM_GRID_NOMAD_ENABLED" ] && SELENIUM_GRID_NOMAD_ENABLED="$SELENIUM_GRID_NOMAD_FLAG"
 [ -z "$SELENIUM_GRID_NOMAD_ENABLED" ] && SELENIUM_GRID_NOMAD_ENABLED="false"
 
-# look up existing instance pools to preserve their current sizes
-if [[ "$SELENIUM_GRID_NOMAD_ENABLED" == "true" ]]; then
+[ -z "$SELENIUM_GRID_AUTOSCALER_ENABLED" ] && SELENIUM_GRID_AUTOSCALER_ENABLED="false"
+
+# look up existing instance pools to preserve their current sizes (skip for autoscaler mode)
+if [[ "$SELENIUM_GRID_AUTOSCALER_ENABLED" == "true" ]]; then
+  echo "Autoscaler mode enabled, skipping instance pool size lookup"
+elif [[ "$SELENIUM_GRID_NOMAD_ENABLED" == "true" ]]; then
   POOL_DETAILS_X86="$(oci compute-management instance-pool list --region "$ORACLE_REGION" -c "$COMPARTMENT_OCID" --all --display-name "$GRID_NAME Grid x86 Nodes" | jq '.data[0]')"
   if [ -n "$POOL_DETAILS_X86" ] && [ "$POOL_DETAILS_X86" != "null" ]; then
     INSTANCE_POOL_SIZE_X86=$(echo "$POOL_DETAILS_X86" | jq -r '.size')
@@ -168,7 +172,9 @@ TF_GLOBALS_CHDIR=
 TF_GLOBALS_CHDIR_SG=
 TF_GLOBALS_CHDIR_LB=
 if [[ "$TERRAFORM_MAJOR_VERSION" == "v1" ]]; then
-  if [[ "$SELENIUM_GRID_NOMAD_ENABLED" == "true" ]]; then
+  if [[ "$SELENIUM_GRID_AUTOSCALER_ENABLED" == "true" ]]; then
+    TF_GLOBALS_CHDIR="-chdir=$LOCAL_PATH//instance-configuration-nomad"
+  elif [[ "$SELENIUM_GRID_NOMAD_ENABLED" == "true" ]]; then
     TF_GLOBALS_CHDIR="-chdir=$LOCAL_PATH//instance-pool-nomad"
   else
     TF_GLOBALS_CHDIR="-chdir=$LOCAL_PATH//instance-pool"
@@ -180,7 +186,9 @@ if [[ "$TERRAFORM_MAJOR_VERSION" == "v1" ]]; then
   TF_POST_PARAMS_SG=
   TF_POST_PARAMS_LB=
 else
-  if [[ "$SELENIUM_GRID_NOMAD_ENABLED" == "true" ]]; then
+  if [[ "$SELENIUM_GRID_AUTOSCALER_ENABLED" == "true" ]]; then
+    TF_POST_PARAMS="$LOCAL_PATH//instance-configuration-nomad"
+  elif [[ "$SELENIUM_GRID_NOMAD_ENABLED" == "true" ]]; then
     TF_POST_PARAMS="$LOCAL_PATH//instance-pool-nomad"
   else
     TF_POST_PARAMS="$LOCAL_PATH//instance-pool"
@@ -382,7 +390,37 @@ if $RUN_TF; then
     ACTION_POST_PARAMS="$1 $2"
   fi
 
-  if [[ "$SELENIUM_GRID_NOMAD_ENABLED" == "true" ]]; then
+  if [[ "$SELENIUM_GRID_AUTOSCALER_ENABLED" == "true" ]]; then
+    terraform $TF_GLOBALS_CHDIR $ACTION \
+        -var="environment=$ENVIRONMENT" \
+        -var="name=$NAME" \
+        -var="oracle_region=$ORACLE_REGION" \
+        -var="vcn_name=$VCN_NAME" \
+        -var="role=$ROLE" \
+        -var="grid_name=$GRID_NAME" \
+        -var="git_branch=$ORACLE_GIT_BRANCH" \
+        -var="tenancy_ocid=$TENANCY_OCID" \
+        -var="compartment_ocid=$COMPARTMENT_OCID" \
+        -var="resource_name_root=$RESOURCE_NAME_ROOT" \
+        -var="subnet_ocid=$NAT_SUBNET_OCID" \
+        -var="shape_x86=$SHAPE_X86" \
+        -var="shape_arm=$SHAPE_ARM" \
+        -var="image_ocid_x86=$IMAGE_OCID_X86" \
+        -var="image_ocid_arm=$IMAGE_OCID_ARM" \
+        -var="node_security_group_id=$NODE_SECURITY_GROUP_ID" \
+        -var="user_public_key_path=$USER_PUBLIC_KEY_PATH" \
+        -var="memory_in_gbs_x86=$MEMORY_IN_GBS_X86" \
+        -var="memory_in_gbs_arm=$MEMORY_IN_GBS_ARM" \
+        -var="ocpus_x86=$OCPUS_X86" \
+        -var="ocpus_arm=$OCPUS_ARM" \
+        -var="environment_type=$ENVIRONMENT_TYPE" \
+        -var="tag_namespace=$TAG_NAMESPACE" \
+        -var="jitsi_tag_namespace=$JITSI_TAG_NAMESPACE" \
+        -var="autoscaler_enabled=true" \
+        -var "infra_configuration_repo=$INFRA_CONFIGURATION_REPO" \
+        -var "infra_customizations_repo=$INFRA_CUSTOMIZATIONS_REPO" \
+        $ACTION_POST_PARAMS $TF_POST_PARAMS
+  elif [[ "$SELENIUM_GRID_NOMAD_ENABLED" == "true" ]]; then
     terraform $TF_GLOBALS_CHDIR $ACTION \
         -var="environment=$ENVIRONMENT" \
         -var="name=$NAME" \
@@ -464,7 +502,37 @@ if $RUN_TF; then
   fi
 fi
 
-if [[ "$SELENIUM_GRID_NOMAD_ENABLED" == "true" ]]; then
+if [[ "$SELENIUM_GRID_AUTOSCALER_ENABLED" == "true" ]]; then
+  # Extract instance configuration IDs from terraform state and create autoscaler groups
+  INSTANCE_CONFIGURATION_ID_X86="$(cat $LOCAL_IP_KEY | jq -r '.resources[]
+      | select(.type == "oci_core_instance_configuration" and .name == "oci_instance_configuration_node_x86")
+      | .instances[0].attributes.id')"
+
+  if [ -z "$INSTANCE_CONFIGURATION_ID_X86" ]; then
+    echo "INSTANCE_CONFIGURATION_ID_X86 failed to be found or created, exiting..."
+    exit 4
+  fi
+
+  INSTANCE_CONFIGURATION_ID_ARM="$(cat $LOCAL_IP_KEY | jq -r '.resources[]
+      | select(.type == "oci_core_instance_configuration" and .name == "oci_instance_configuration_node_arm")
+      | .instances[0].attributes.id')"
+
+  if [ -z "$INSTANCE_CONFIGURATION_ID_ARM" ]; then
+    echo "INSTANCE_CONFIGURATION_ID_ARM failed to be found or created, exiting..."
+    exit 4
+  fi
+
+  echo "Creating autoscaler groups for selenium grid $GRID_NAME"
+  export INSTANCE_CONFIGURATION_ID_X86
+  export INSTANCE_CONFIGURATION_ID_ARM
+  export GRID_NAME
+  $LOCAL_PATH/../../scripts/create-selenium-grid-pool-oracle.sh
+  if [ $? -ne 0 ]; then
+    echo "Failed to create autoscaler groups for selenium grid, exiting..."
+    exit 6
+  fi
+
+elif [[ "$SELENIUM_GRID_NOMAD_ENABLED" == "true" ]]; then
   NODE_POOL_ID_X86="$(cat $LOCAL_IP_KEY | jq -r '.resources[]
       | select(.type == "oci_core_instance_pool" and .name == "oci_instance_pool_node_x86")
       | .instances[0].attributes.id')"
@@ -482,7 +550,6 @@ if [[ "$SELENIUM_GRID_NOMAD_ENABLED" == "true" ]]; then
     echo "NODE_POOL_ID_ARM failed to be found or created, exiting..."
     exit 4
   fi
-
 
 else
   NODE_POOL_ID="$(cat $LOCAL_IP_KEY | jq -r '.resources[]
