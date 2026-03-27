@@ -15,18 +15,18 @@ pipeline {
                     def rootDir = pwd()
                     utils = load "${rootDir}/jenkins/groovy/Utils.groovy"
                     // checkout repos
-                    utils.SetupRepos(env.VIDEO_INFRA_BRANCH)
+                    // utils.SetupRepos(env.VIDEO_INFRA_BRANCH)
                 }
             }
         }
         stage('Build and Push Docker Image') {
             steps {
-                dir('infra-provisioning') {
+//                dir('infra-provisioning') {
                     sh '''#!/bin/bash
                     docker/selenium-grid-node/build.sh
                     '''
                 }
-            }
+//            }
         }
     }
 }
