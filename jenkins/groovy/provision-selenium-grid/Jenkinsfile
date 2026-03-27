@@ -1,5 +1,6 @@
 def utils
 def skipNomad = true;
+def autoscalerEnabled = false;
 
 pipeline {
     agent any
@@ -35,7 +36,20 @@ pipeline {
                             if (nomadEnabled == "true") {
                                 skipNomad = false;
                             }
-                        }          
+                        }
+                    }
+                    if (env.SELENIUM_GRID_AUTOSCALER_ENABLED == "true") {
+                        autoscalerEnabled = true;
+                        // autoscaler mode implies nomad mode
+                        skipNomad = false;
+                    } else {
+                        dir('infra-provisioning') {
+                            def autoscaler = utils.GetAnsibleVar(env.ENVIRONMENT, 'selenium_grid_autoscaler_enabled')
+                            if (autoscaler == "true") {
+                                autoscalerEnabled = true;
+                                skipNomad = false;
+                            }
+                        }
                     }
                 }
             }
@@ -52,11 +66,12 @@ pipeline {
                         ]) {
                             sshagent (credentials: ['ssh-ubuntu']) {
                             utils.SetupSSH()
-                            sh '''#!/bin/bash
+                            sh """#!/bin/bash
                             export USER_PUBLIC_KEY_PATH=~/.ssh/ssh_key.pub
-                            export ORACLE_GIT_BRANCH=\"$RELEASE_BRANCH\"
-                            terraform/selenium-grid/create-selenium-grid-oracle.sh $SSH_USERNAME
-                            '''
+                            export ORACLE_GIT_BRANCH=\"\$RELEASE_BRANCH\"
+                            export SELENIUM_GRID_AUTOSCALER_ENABLED=${autoscalerEnabled}
+                            terraform/selenium-grid/create-selenium-grid-oracle.sh \$SSH_USERNAME
+                            """
                             }
                         }
                     }

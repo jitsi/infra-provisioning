@@ -34,6 +34,7 @@ pipeline {
                         ]) {
                           sshagent (credentials: ['ssh-ubuntu']) {
                             sh '''#!/bin/bash
+                            export SELENIUM_GRID_AUTOSCALER_ENABLED="$SELENIUM_GRID_AUTOSCALER_ENABLED"
                             terraform/selenium-grid/delete-selenium-grid-oracle.sh ubuntu'''
                           }
                         }

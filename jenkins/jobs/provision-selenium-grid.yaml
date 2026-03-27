@@ -22,6 +22,10 @@
           description: "Set to 'true' to force nomad style grid"
           trim: true
       - string:
+          name: SELENIUM_GRID_AUTOSCALER_ENABLED
+          description: "Set to 'true' to use autoscaler for grid node pools instead of instance pools"
+          trim: true
+      - string:
           name: LB_WHITELIST
           description: "default is [\"10.0.0.0/8\"]"
           trim: true
