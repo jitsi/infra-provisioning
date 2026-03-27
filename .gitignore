@@ -34,6 +34,7 @@ cloud_vpcs
 regions
 sites
 ansible
+scripts-custom
 .vault-password.txt
 scripts/__pycache__
 jenkins_jobs.ini

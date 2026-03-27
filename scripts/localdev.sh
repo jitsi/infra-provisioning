@@ -20,6 +20,7 @@ ln -s ../${CUSTOMIZATION_DIRNAME}/cloud_vpcs
 ln -s ../${CUSTOMIZATION_DIRNAME}/clouds
 ln -s ../${CUSTOMIZATION_DIRNAME}/config
 ln -s ../${CUSTOMIZATION_DIRNAME}/regions
+ln -s ../${CUSTOMIZATION_DIRNAME}/scripts-custom
 ln -s ../${CUSTOMIZATION_DIRNAME}/sites
 
 cd ../infra-configuration
