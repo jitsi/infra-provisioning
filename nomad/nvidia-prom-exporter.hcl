@@ -37,7 +37,7 @@ job "nvidia-prom-exporter" {
           name     = "health"
           type     = "http"
           port     = "metrics_gpu"
-          path     = "/healthz"
+          path     = "/"
           interval = "10s"
           timeout  = "2s"
         }
@@ -48,7 +48,7 @@ job "nvidia-prom-exporter" {
       config {
         # use the nvidia docker runtime
         runtime = "nvidia"
-        image = "nvidia/dcgm-exporter:3.3.0-3.2.0-ubuntu22.04"
+        image = "nvidia/dcgm-exporter:4.1.1-4.0.4-ubuntu22.04"
         ports = ["metrics_gpu"]
         cap_add = ["SYS_ADMIN"]
       }
