@@ -206,7 +206,7 @@ if [[ "$CLOUD_PROVIDER" == "nomad" ]]; then
   sleep 30
   $LOCAL_PATH/nomad.sh system gc
   sleep 30
-  $LOCAL_PATH/nomad-pack.sh stop "$LOCAL_PATH/../nomad/jitsi_packs/packs/jitsi_meet_jvb" --name jvb-$SHARD
+  $LOCAL_PATH/nomad.sh job stop -purge jvb-$SHARD
 fi
 
 # INSTANCE_CONFIGURATIONS=$(oci compute-management instance-configuration list --region "$ORACLE_REGION" -c "$COMPARTMENT_OCID" --sort-by TIMECREATED --sort-order DESC --all --query 'data[?"defined-tags".'\"$TAG_NAMESPACE\"'."shard" == `'"$SHARD"'`]' | jq -r .[].id)
