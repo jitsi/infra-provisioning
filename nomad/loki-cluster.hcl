@@ -179,6 +179,10 @@ job "[JOB_NAME]" {
 #          validity: 24h
 
   limits_config:
+    ingestion_burst_size_mb: 1000
+    ingestion_rate_mb: 10000
+    per_stream_rate_limit: 512M
+    per_stream_rate_limit_burst: 1024M
     allow_structured_metadata: true
     reject_old_samples: true
     reject_old_samples_max_age: 168h
