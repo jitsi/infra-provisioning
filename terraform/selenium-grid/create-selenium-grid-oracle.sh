@@ -417,8 +417,8 @@ if $RUN_TF; then
         -var="tag_namespace=$TAG_NAMESPACE" \
         -var="jitsi_tag_namespace=$JITSI_TAG_NAMESPACE" \
         -var="autoscaler_enabled=true" \
-        -var "infra_configuration_repo=$INFRA_CONFIGURATION_REPO" \
-        -var "infra_customizations_repo=$INFRA_CUSTOMIZATIONS_REPO" \
+        -var="infra_configuration_repo=$INFRA_CONFIGURATION_REPO" \
+        -var="infra_customizations_repo=$INFRA_CUSTOMIZATIONS_REPO" \
         $ACTION_POST_PARAMS $TF_POST_PARAMS
   elif [[ "$SELENIUM_GRID_NOMAD_ENABLED" == "true" ]]; then
     terraform $TF_GLOBALS_CHDIR $ACTION \
