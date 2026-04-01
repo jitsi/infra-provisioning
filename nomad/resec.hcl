@@ -49,6 +49,28 @@ job "[JOB_NAME]" {
         source    = "redis-${group.key}"
       }
 
+      task "redis-init" {
+        driver = "docker"
+        lifecycle {
+          hook = "prestart"
+          sidecar = false
+        }
+        config {
+          image = "redis:alpine"
+          command = "sh"
+          args = ["-c", "chown redis:redis /data"]
+        }
+        volume_mount {
+          volume      = "redis"
+          destination = "/data"
+          read_only   = false
+        }
+        resources {
+          cpu    = 100
+          memory = 32
+        }
+      }
+
       task "redis" {
         driver = "docker"
         config {
