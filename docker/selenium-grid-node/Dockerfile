@@ -24,6 +24,9 @@ COPY --chown="${SEL_UID}:${SEL_GID}" firefox-cleanup.sh get_lang_package.sh inst
 COPY --chown="${SEL_UID}:${SEL_GID}" firefox-cleanup.conf /etc/supervisor/conf.d/firefox-cleanup.conf
 RUN chmod +x /opt/bin/firefox-cleanup.sh /opt/bin/get_lang_package.sh /opt/bin/install-firefox-apt.sh /opt/bin/generate_config
 
+# Bust cache for all dynamic-version installs below
+ARG CACHEBUST=1
+
 #=========
 # Firefox
 #=========
