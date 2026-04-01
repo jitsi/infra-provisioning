@@ -1,0 +1,28 @@
+#!/usr/bin/with-contenv bash
+
+# Set up SSH authorized_keys from environment variable or mounted file
+
+SSH_DIR="/home/git/.ssh"
+mkdir -p "$SSH_DIR"
+
+# Handle authorized_keys for incoming SSH connections
+if [ -n "$SSH_AUTHORIZED_KEYS" ]; then
+    echo "Setting up authorized_keys from environment variable"
+    echo "$SSH_AUTHORIZED_KEYS" > "$SSH_DIR/authorized_keys"
+fi
+
+# Also check for mounted secrets file
+if [ -f /run/secrets/authorized_keys ]; then
+    echo "Appending authorized_keys from mounted secret"
+    cat /run/secrets/authorized_keys >> "$SSH_DIR/authorized_keys"
+fi
+
+# Set correct permissions
+chmod 700 "$SSH_DIR"
+if [ -f "$SSH_DIR/authorized_keys" ]; then
+    chmod 600 "$SSH_DIR/authorized_keys"
+fi
+if [ -f "$SSH_DIR/id_rsa" ]; then
+    chmod 600 "$SSH_DIR/id_rsa"
+fi
+chown -R git:git "$SSH_DIR"
