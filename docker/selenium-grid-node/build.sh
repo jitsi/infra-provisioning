@@ -5,4 +5,4 @@
 
 [ -z "$PRIVATE_DOCKER_REGISTRY" ] && PRIVATE_DOCKER_REGISTRY="ops-prod-us-phoenix-1-registry.jitsi.net/selenium/node-mixed"
 
-docker buildx build --platform=linux/arm64,linux/amd64 --push --pull --progress=plain --tag $PRIVATE_DOCKER_REGISTRY:$TAG --tag $PRIVATE_DOCKER_REGISTRY:latest .
+docker buildx build --platform=linux/arm64,linux/amd64 --push --pull --progress=plain --build-arg CACHEBUST=$(date +%s) --tag $PRIVATE_DOCKER_REGISTRY:$TAG --tag $PRIVATE_DOCKER_REGISTRY:latest .
