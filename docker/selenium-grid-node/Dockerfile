@@ -23,46 +23,31 @@ FROM base-${TARGETARCH}
 
 USER root
 
-
-## tpl and config templates
-RUN \
-  dpkgArch="$(dpkg --print-architecture)" && \
-  case "${dpkgArch##*-}" in \
-    "amd64") TPL_ARCH=amd64;; \
-    "arm64") TPL_ARCH=arm64;; \
-    *) echo "unsupported architecture"; exit 1 ;; \
-  esac && \
-  wget -qO /usr/bin/tpl https://github.com/jitsi/tpl/releases/download/v1.4.0/tpl-linux-${TPL_ARCH} && \
-  chmod +x /usr/bin/tpl && \
-  mkdir -p /defaults
-
-COPY --chown="${SEL_UID}:${SEL_GID}" config.toml.tpl driver_config.toml.tpl /defaults/
-
 #============================================
-# Custom scripts: cleanup, config generation, lang packs
+# Custom cleanup scripts
 #============================================
-COPY --chown="${SEL_UID}:${SEL_GID}" firefox-cleanup.sh get_lang_package.sh install-firefox-apt.sh generate_config /opt/bin/
+COPY --chown="${SEL_UID}:${SEL_GID}" firefox-cleanup.sh /opt/bin/firefox-cleanup.sh
 COPY --chown="${SEL_UID}:${SEL_GID}" firefox-cleanup.conf /etc/supervisor/conf.d/firefox-cleanup.conf
 COPY --chown="${SEL_UID}:${SEL_GID}" chrome-cleanup.sh /opt/bin/chrome-cleanup.sh
 COPY --chown="${SEL_UID}:${SEL_GID}" chrome-cleanup.conf /etc/supervisor/conf.d/chrome-cleanup.conf
-RUN chmod +x /opt/bin/firefox-cleanup.sh /opt/bin/get_lang_package.sh /opt/bin/install-firefox-apt.sh /opt/bin/generate_config /opt/bin/chrome-cleanup.sh
+RUN chmod +x /opt/bin/firefox-cleanup.sh /opt/bin/chrome-cleanup.sh
 
 # Bust cache for all dynamic-version installs below
 ARG CACHEBUST=1
 
 #============================================
-# Chrome Beta (amd64 only)
+# Chrome Beta (amd64 only) + browser metadata for upstream generate_config
 #============================================
 RUN if [ "$(dpkg --print-architecture)" = "amd64" ]; then \
     apt-get update -qqy \
     && apt-get -qqy --no-install-recommends install google-chrome-beta \
-    && rm -rf /var/lib/apt/lists/* /var/cache/apt/*; \
+    && rm -rf /var/lib/apt/lists/* /var/cache/apt/* \
+    && mkdir -p /opt/selenium/browsers/chrome-beta \
+    && echo "chrome" > /opt/selenium/browsers/chrome-beta/name \
+    && google-chrome-beta --version | awk '{print $4}' > /opt/selenium/browsers/chrome-beta/version \
+    && echo '{"goog:chromeOptions": {"binary": "${SE_BROWSER_BINARY_LOCATION:-/usr/bin/google-chrome-beta}"}}' > /opt/selenium/browsers/chrome-beta/binary_location \
+    && chown -R ${SEL_UID}:${SEL_GID} /opt/selenium/browsers/chrome-beta; \
   fi
-
-#============================================
-# Firefox language packs
-#============================================
-RUN /opt/bin/get_lang_package.sh
 
 #============================================
 # Additional utilities
