@@ -9,10 +9,14 @@ FROM --platform=linux/arm64 selenium/node-firefox:nightly AS base-arm64-firefox-
 
 # Layer Firefox + GeckoDriver from the Firefox image onto the Chromium base
 FROM base-arm64-chromium AS base-arm64
-COPY --from=base-arm64-firefox-donor /usr/bin/firefox* /usr/bin/
-COPY --from=base-arm64-firefox-donor /opt/firefox* /opt/
-COPY --from=base-arm64-firefox-donor /usr/bin/geckodriver /usr/bin/geckodriver
+# Firefox is installed via apt into /usr/lib/firefox/ and /usr/bin/firefox
+COPY --from=base-arm64-firefox-donor /usr/lib/firefox/ /usr/lib/firefox/
+COPY --from=base-arm64-firefox-donor /usr/bin/firefox /usr/bin/firefox
+# GeckoDriver
 COPY --from=base-arm64-firefox-donor /opt/geckodriver* /opt/
+COPY --from=base-arm64-firefox-donor /usr/bin/geckodriver /usr/bin/geckodriver
+# Selenium browser metadata for Firefox
+COPY --from=base-arm64-firefox-donor /opt/selenium/browsers/firefox/ /opt/selenium/browsers/firefox/
 
 # Select the correct base for the target platform
 FROM base-${TARGETARCH}
