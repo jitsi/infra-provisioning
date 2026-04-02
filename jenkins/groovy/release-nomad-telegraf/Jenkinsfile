@@ -7,30 +7,51 @@ def provisionJob(shard_environment,oracle_region,video_infra_branch) {
 
     return provision
 }
-// global var to track git branch from env or new tags
-def utils
 
-pipeline {				//indicate the job is written in Declarative Pipeline
-    agent any				//agent specifies where the pipeline will execute.
+def utils
+def governance
+def artConfig
+
+pipeline {
+    agent any
     options {
       ansiColor('xterm')
       timestamps()
       buildDiscarder(logRotator(numToKeepStr: '10', artifactNumToKeepStr: '10'))
     }
     stages {
-        // output stage, shows off our input parameters
         stage('Prepare/Checkout') {
             steps {
                 script {
                     echo 'telegraf release'
-                    // load utility function
                     def rootDir = pwd()
                     utils = load "${rootDir}/jenkins/groovy/Utils.groovy"
-                    // checkout repos
                     utils.SetupRepos(env.VIDEO_INFRA_BRANCH)
-
-                    // setup OCI credentials
                     utils.SetupOCI()
+
+                    governance = utils.LoadGovernanceHooks()
+                    artConfig = governance.init([
+                        serviceName: 'nomad-telegraf',
+                        version:     env.BUILD_ID,
+                        environment: env.ENVIRONMENT,
+                        fastTrack:   true,
+                    ])
+                }
+            }
+        }
+
+        stage('Pre-Release') {
+            steps {
+                script {
+                    governance.preRelease(artConfig)
+                }
+            }
+        }
+
+        stage('Pre-Deploy') {
+            steps {
+                script {
+                    governance.preDeploy(artConfig)
                 }
             }
         }
@@ -53,11 +74,17 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                             )
                         }
                     }
-                    // branch out here, run all create shard jobs at once
-                    // only succeed if all branches succeed
                     parallel branches
                   }
                 }
+            }
+        }
+    }
+
+    post {
+        always {
+            script {
+                governance.postHooks(artConfig, currentBuild.result == 'SUCCESS')
             }
         }
     }
