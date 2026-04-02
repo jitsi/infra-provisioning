@@ -198,8 +198,6 @@ if [[ "$CLOUD_PROVIDER" == "oracle" ]]; then
   $LOCAL_PATH/../terraform/create-jvb-instance-configuration/delete-jvb-instance-configuration.sh
 fi
 
-CLOUD_PROVIDER="nomad"
-
 if [[ "$CLOUD_PROVIDER" == "nomad" ]]; then
   # find all running jobs matching prefix and stop them
   $LOCAL_PATH/nomad.sh status jvb-$SHARD | grep "dispatch-" | grep -v 'dead' | awk '{print $1}' | xargs -n1 $LOCAL_PATH/nomad.sh job stop
