@@ -32,6 +32,9 @@ COPY --chown="${SEL_UID}:${SEL_GID}" chrome-cleanup.sh /opt/bin/chrome-cleanup.s
 COPY --chown="${SEL_UID}:${SEL_GID}" chrome-cleanup.conf /etc/supervisor/conf.d/chrome-cleanup.conf
 RUN chmod +x /opt/bin/firefox-cleanup.sh /opt/bin/chrome-cleanup.sh
 
+# Patch upstream generate_config to use full browser versions instead of short (major.minor)
+RUN sed -i 's/echo "${__major}.${__minor:0:1}"/echo "${__long_version}"/' /opt/bin/generate_config
+
 # Bust cache for all dynamic-version installs below
 ARG CACHEBUST=1
 
