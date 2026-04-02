@@ -53,7 +53,8 @@ RUN apt-get update -y && \
       FIREFOX_DOWNLOAD_URL="https://download.mozilla.org/?product=firefox-$FIREFOX_VERSION-ssl&os=linux64&lang=en-US"; \
       /opt/bin/install-firefox-apt.sh \
       && FIREFOX_VERSION=$(echo "-$FIREFOX_VERSION" | sed 's/-latest//') \
-      && apt install -y firefox$FIREFOX_VERSION firefox-beta \
+      && apt install -y firefox$FIREFOX_VERSION \
+      && (apt install -y firefox-beta || true) \
       && INSTALL_VIA_APT=true \
       && if [ "$FIREFOX_VERSION" = "-beta" ] || [ "$FIREFOX_VERSION" = "-nightly" ] || [ "$FIREFOX_VERSION" = "-devedition" ] || [ "$FIREFOX_VERSION" = "-esr" ]; then \
         ln -fs $(which firefox$FIREFOX_VERSION) /usr/bin/firefox ; \
