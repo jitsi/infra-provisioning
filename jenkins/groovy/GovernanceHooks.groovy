@@ -1,30 +1,26 @@
-// CI/CD governance hooks — no-op stub.
-// The real implementation lives in infra-customizations and is
-// overlaid via `cp -a` during SetupRepos().
+// GovernanceHooks.groovy — no-op governance hook stubs.
+// Override in infra-customizations to integrate with a governance provider.
+// Overlaid via cp -a during SetupRepos().
 
-def PreDeployHook(Map config) {
-    echo "GovernanceHooks PreDeployHook: no implementation present"
-    return null
+def init(Map opts) {
+    echo "GovernanceHooks: no governance provider configured (init)"
+    return [:]
 }
 
-def PostDeployHook(Map config, boolean success) {
-    echo "GovernanceHooks PostDeployHook: no implementation present"
-    return null
+def preRelease(Map artConfig) {
+    echo "GovernanceHooks: no governance provider configured (preRelease)"
 }
 
-def PreReleaseHook(Map config) {
-    echo "GovernanceHooks PreReleaseHook: no implementation present"
-    return null
+def preDeploy(Map artConfig) {
+    echo "GovernanceHooks: no governance provider configured (preDeploy)"
 }
 
-def PostReleaseHook(Map config, boolean success) {
-    echo "GovernanceHooks PostReleaseHook: no implementation present"
-    return null
+def postHooks(Map artConfig, boolean success) {
+    echo "GovernanceHooks: no governance provider configured (postHooks)"
 }
 
-@com.cloudbees.groovy.cps.NonCPS
-def ExtractRpTicket(String gateResultJson) {
-    return null
+def getRpTicket() {
+    return env.RP_TICKET ?: ''
 }
 
 return this
