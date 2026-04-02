@@ -42,11 +42,11 @@ RUN if [ "$(dpkg --print-architecture)" = "amd64" ]; then \
     apt-get update -qqy \
     && apt-get -qqy --no-install-recommends install google-chrome-beta \
     && rm -rf /var/lib/apt/lists/* /var/cache/apt/* \
-    && mkdir -p /opt/selenium/browsers/chrome-beta \
-    && echo "chrome" > /opt/selenium/browsers/chrome-beta/name \
-    && google-chrome-beta --version | awk '{print $4}' > /opt/selenium/browsers/chrome-beta/version \
-    && echo '{"goog:chromeOptions": {"binary": "${SE_BROWSER_BINARY_LOCATION:-/usr/bin/google-chrome-beta}"}}' > /opt/selenium/browsers/chrome-beta/binary_location \
-    && chown -R ${SEL_UID}:${SEL_GID} /opt/selenium/browsers/chrome-beta; \
+    && mkdir -p /opt/selenium/browsers/chrome_beta \
+    && echo "chrome" > /opt/selenium/browsers/chrome_beta/name \
+    && google-chrome-beta --version | awk '{print $4}' > /opt/selenium/browsers/chrome_beta/version \
+    && echo '{"goog:chromeOptions": {"binary": "${SE_BROWSER_BINARY_LOCATION:-/usr/bin/google-chrome-beta}"}}' > /opt/selenium/browsers/chrome_beta/binary_location \
+    && chown -R ${SEL_UID}:${SEL_GID} /opt/selenium/browsers/chrome_beta; \
   fi
 
 #============================================
