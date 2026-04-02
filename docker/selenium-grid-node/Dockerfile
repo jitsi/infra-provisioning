@@ -170,17 +170,19 @@ RUN if [ "$(dpkg --print-architecture)" = "amd64" ]; then echo "skipping chromiu
 # because software-properties-common add-apt-repository was failing
 ARG CHROMIUM_VERSION="latest"
 ARG CHROMIUM_DEB_SITE="https://deb.debian.org/debian"
+# Override the Ubuntu codename used for the Chromium PPA to pull newer packages
+# while keeping the 24.04 base image (default: resolute = Ubuntu 26.04 LTS)
+ARG CHROMIUM_UBUNTU_CODENAME="resolute"
 RUN if [ "$(dpkg --print-architecture)" = "amd64" ]; then \
     echo "skipping chromium on x86_64" && exit 0; \
   else \
-    echo "installing chromium on arm64" \
+    echo "installing chromium on arm64 using ${CHROMIUM_UBUNTU_CODENAME} repos" \
     && apt-get update -y \
     && apt-get install -y gpg \
-    && . /etc/os-release \
     && mkdir -p /etc/apt/keyrings \
     && gpg --keyserver keyserver.ubuntu.com --recv-keys 5301FA4FD93244FBC6F6149982BB6851C64F6880 \
     && gpg --export 5301FA4FD93244FBC6F6149982BB6851C64F6880 | tee /etc/apt/keyrings/xtradeb.gpg > /dev/null \
-    && echo "deb [signed-by=/etc/apt/keyrings/xtradeb.gpg] http://ppa.launchpad.net/xtradeb/apps/ubuntu ${UBUNTU_CODENAME} main" > /etc/apt/sources.list.d/xtradeb-apps.list \
+    && echo "deb [signed-by=/etc/apt/keyrings/xtradeb.gpg] http://ppa.launchpad.net/xtradeb/apps/ubuntu ${CHROMIUM_UBUNTU_CODENAME} main" > /etc/apt/sources.list.d/xtradeb-apps.list \
     && apt-get update -y \
     && apt-get install -y chromium chromium-driver; \
   fi
