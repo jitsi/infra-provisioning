@@ -128,6 +128,7 @@ job "[JOB_NAME]" {
         REGISTRY_HTTP_DEBUG_PROMETHEUS_PATH = "/metrics"
         OTEL_TRACES_EXPORTER="none"
         OTEL_SDK_DISABLED="true"
+        REGISTRY_OTEL_ENABLED="false"
       }
 
       template {
