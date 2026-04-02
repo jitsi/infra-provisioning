@@ -1,4 +1,21 @@
-FROM selenium/node-all-browsers:nightly
+# amd64: all browsers (Chrome, Chromium, Firefox, Edge)
+FROM --platform=linux/amd64 selenium/node-all-browsers:nightly AS base-amd64
+
+# arm64: Chromium + Firefox (real native arm64 images layered)
+# node-all-browsers arm64 manifest is fake (contains amd64 binaries), so we
+# build from node-chromium and layer Firefox on top
+FROM --platform=linux/arm64 selenium/node-chromium:nightly AS base-arm64-chromium
+FROM --platform=linux/arm64 selenium/node-firefox:nightly AS base-arm64-firefox-donor
+
+# Layer Firefox + GeckoDriver from the Firefox image onto the Chromium base
+FROM base-arm64-chromium AS base-arm64
+COPY --from=base-arm64-firefox-donor /usr/bin/firefox* /usr/bin/
+COPY --from=base-arm64-firefox-donor /opt/firefox* /opt/
+COPY --from=base-arm64-firefox-donor /usr/bin/geckodriver /usr/bin/geckodriver
+COPY --from=base-arm64-firefox-donor /opt/geckodriver* /opt/
+
+# Select the correct base for the target platform
+FROM base-${TARGETARCH}
 
 USER root
 
