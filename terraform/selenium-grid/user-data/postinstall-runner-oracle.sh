@@ -13,8 +13,14 @@ export GRID=$(cat $CACHE_PATH | jq -r --arg GRID_TAG "$GRID_TAG" ".[\"$GRID_TAG\
 export NOMAD_FLAG_TAG="nomad"
 export NOMAD_FLAG=$(cat $CACHE_PATH | jq -r --arg NOMAD_FLAG_TAG "$NOMAD_FLAG_TAG" ".[\"$NOMAD_FLAG_TAG\"]")
 
-if [[ "$NOMAD_FLAG" == "null" ]]; then    
+if [[ "$NOMAD_FLAG" == "null" ]]; then
     NOMAD_FLAG="false"
+fi
+
+if [[ "$SELENIUM_GRID_AUTOSCALER_ENABLED" == "true" ]]; then
+    ENABLE_AUTOSCALER="true"
+else
+    ENABLE_AUTOSCALER="false"
 fi
 
 export HOST_ROLE="$GRID-grid"
@@ -22,5 +28,5 @@ MY_IP=`curl -s curl http://169.254.169.254/opc/v1/vnics/ | jq .[0].privateIp -r`
 export MY_COMPONENT_NUMBER="$(echo $MY_IP | awk -F. '{print $2"-"$3"-"$4}')"
 
 export MY_HOSTNAME="${ORACLE_REGION}-${HOST_ROLE}-$MY_COMPONENT_NUMBER.oracle.infra.jitsi.net"
-export ANSIBLE_VARS="hcv_environment=$ENVIRONMENT cloud_name=$CLOUD_NAME selenium_grid_enable_nomad=$NOMAD_FLAG selenium_grid_name=$GRID selenium_grid_role=$GRID_ROLE cloud_provider=oracle region=$ORACLE_REGION oracle_region=$ORACLE_REGION"
+export ANSIBLE_VARS="hcv_environment=$ENVIRONMENT cloud_name=$CLOUD_NAME selenium_grid_enable_nomad=$NOMAD_FLAG selenium_grid_name=$GRID selenium_grid_role=$GRID_ROLE cloud_provider=oracle region=$ORACLE_REGION oracle_region=$ORACLE_REGION nomad_enable_jitsi_autoscaler=$ENABLE_AUTOSCALER"
 
