@@ -6,6 +6,9 @@
 #
 # Optionally limit to specific regions:
 #   ENVIRONMENT=prod-8x8 SERVICE_NAME=scry NOMAD_REGIONS="us-ashburn-1 eu-frankfurt-1" ./scripts/release-nomad.sh
+#
+# Run deploys in parallel (default: false):
+#   PARALLEL=true ENVIRONMENT=prod-8x8 SERVICE_NAME=scry ./scripts/release-nomad.sh
 
 set -e
 
@@ -50,19 +53,47 @@ if [ -z "$NOMAD_REGIONS" ]; then
     exit 2
 fi
 
+[ -z "$PARALLEL" ] && PARALLEL="false"
+
 echo "Releasing $SERVICE_NAME to $ENVIRONMENT in regions: $NOMAD_REGIONS"
 echo ""
 
-for REGION in $NOMAD_REGIONS; do
-    echo "=== Deploying to $ENVIRONMENT / $REGION ==="
-    if ENVIRONMENT="$ENVIRONMENT" ORACLE_REGION="$REGION" "$DEPLOY_SCRIPT"; then
-        echo "=== $REGION: OK ==="
-    else
-        echo "=== $REGION: FAILED ==="
-        echo "Aborting release."
+if [ "$PARALLEL" = "true" ]; then
+    pids=()
+    regions=()
+    for REGION in $NOMAD_REGIONS; do
+        echo "=== Deploying to $ENVIRONMENT / $REGION (parallel) ==="
+        ENVIRONMENT="$ENVIRONMENT" ORACLE_REGION="$REGION" "$DEPLOY_SCRIPT" &
+        pids+=($!)
+        regions+=("$REGION")
+    done
+
+    failed=0
+    for i in "${!pids[@]}"; do
+        if wait "${pids[$i]}"; then
+            echo "=== ${regions[$i]}: OK ==="
+        else
+            echo "=== ${regions[$i]}: FAILED ==="
+            failed=1
+        fi
+    done
+
+    if [ "$failed" -eq 1 ]; then
+        echo "One or more regions failed."
         exit 1
     fi
-    echo ""
-done
+else
+    for REGION in $NOMAD_REGIONS; do
+        echo "=== Deploying to $ENVIRONMENT / $REGION ==="
+        if ENVIRONMENT="$ENVIRONMENT" ORACLE_REGION="$REGION" "$DEPLOY_SCRIPT"; then
+            echo "=== $REGION: OK ==="
+        else
+            echo "=== $REGION: FAILED ==="
+            echo "Aborting release."
+            exit 1
+        fi
+        echo ""
+    done
+fi
 
 echo "Release of $SERVICE_NAME to $ENVIRONMENT complete."
