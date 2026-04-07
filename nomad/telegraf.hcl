@@ -529,6 +529,19 @@ EOF
         role = "gpu"
         service = "gpu"
 
+[[inputs.prometheus]]
+  [inputs.prometheus.consul]
+    enabled = true
+    agent = "{{ env "attr.unique.network.ip-address" }}:8500"
+    query_interval = "1m"
+    [[inputs.prometheus.consul.query]]
+      name = "ocular"
+      tag = "ip-{{ env "attr.unique.network.ip-address" }}"
+      url = 'http://{{"{{"}}if ne .ServiceAddress ""}}{{"{{"}}.ServiceAddress}}{{"{{"}}else}}{{"{{"}}.Address}}{{"{{"}}end}}:{{"{{"}}.ServicePort}}/metrics'
+      [inputs.prometheus.consul.query.tags]
+        host = "{{"{{"}}.Node}}"
+        service = "ocular"
+
 [[ inputs.internal ]]
   name_prefix = "telegraf_"
   collect_memstats = false
