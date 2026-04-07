@@ -167,6 +167,7 @@ RESOURCE_NAME_ROOT="${NAME_ROOT}"
 [ -z "$DNS_NAME" ] && DNS_NAME="$RESOURCE_NAME_ROOT.$DNS_ZONE_NAME"
 
 [ -z "$LOAD_BALANCER_SHAPE" ] && LOAD_BALANCER_SHAPE="flexible"
+[ -z "$LOAD_BALANCER_MAX_BANDWIDTH" ] && LOAD_BALANCER_MAX_BANDWIDTH="500"
 
 # run as user
 if [ -z "$1" ]; then
@@ -351,6 +352,7 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
   -var="compartment_ocid=$COMPARTMENT_OCID" \
   -var="resource_name_root=$RESOURCE_NAME_ROOT" \
   -var="load_balancer_shape=$LOAD_BALANCER_SHAPE" \
+  -var="load_balancer_shape_details_maximum_bandwidth_in_mbps=$LOAD_BALANCER_MAX_BANDWIDTH" \
   -var="public_subnet_ocid=$PUBLIC_SUBNET_OCID" \
   -var="private_subnet_ocid=$NAT_SUBNET_OCID" \
   -var="instance_pool_size=$INSTANCE_POOL_SIZE" \
