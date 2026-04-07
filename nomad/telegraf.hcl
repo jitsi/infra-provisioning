@@ -431,6 +431,13 @@ EOF
         host = "{{"{{"}}.Node}}"
         role = "reson8-server"
         service = "reson8-server"
+    [[inputs.prometheus.consul.query]]
+      name = "ocular"
+      tag = "ip-{{ env "attr.unique.network.ip-address" }}"
+      url = 'http://{{"{{"}}if ne .ServiceAddress ""}}{{"{{"}}.ServiceAddress}}{{"{{"}}else}}{{"{{"}}.Address}}{{"{{"}}end}}:{{"{{"}}.ServicePort}}/metrics'
+      [inputs.prometheus.consul.query.tags]
+        host = "{{"{{"}}.Node}}"
+        service = "ocular"
 [[inputs.prometheus]]
   namepass = [
     "jitsi_jvb_active_endpoints",
@@ -528,19 +535,6 @@ EOF
         host = "{{"{{"}}.Node}}"
         role = "gpu"
         service = "gpu"
-
-[[inputs.prometheus]]
-  [inputs.prometheus.consul]
-    enabled = true
-    agent = "{{ env "attr.unique.network.ip-address" }}:8500"
-    query_interval = "1m"
-    [[inputs.prometheus.consul.query]]
-      name = "ocular"
-      tag = "ip-{{ env "attr.unique.network.ip-address" }}"
-      url = 'http://{{"{{"}}if ne .ServiceAddress ""}}{{"{{"}}.ServiceAddress}}{{"{{"}}else}}{{"{{"}}.Address}}{{"{{"}}end}}:{{"{{"}}.ServicePort}}/metrics'
-      [inputs.prometheus.consul.query.tags]
-        host = "{{"{{"}}.Node}}"
-        service = "ocular"
 
 [[ inputs.internal ]]
   name_prefix = "telegraf_"
