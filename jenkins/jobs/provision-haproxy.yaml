@@ -48,6 +48,10 @@
           description: "Override HAProxy instance memory"
           trim: true
       - string:
+          name: LOAD_BALANCER_MAX_BANDWIDTH
+          description: "Override OCI load balancer maximum bandwidth in Mbps, defaults to 500."
+          trim: true
+      - string:
           name: UPDATE_SECURITY_GROUP
           description: "Update the HAProxy security group's terraform stack. This will disrupt live connections and should only be done if ports are being added/removed."
           default: false
