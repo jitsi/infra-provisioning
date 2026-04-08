@@ -30,10 +30,15 @@ pipeline {
                     dir('infra-provisioning') {
                         withCredentials([
                             string(credentialsId: 'oci-jenkins-terraform-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
-                            string(credentialsId: 'oci-jenkins-terraform-aws-id', variable: 'AWS_ACCESS_KEY_ID')
+                            string(credentialsId: 'oci-jenkins-terraform-aws-id', variable: 'AWS_ACCESS_KEY_ID'),
+                            string(credentialsId: 'asap-jwt-kid-dev', variable: 'ASAP_JWT_KID_DEV'),
+                            string(credentialsId: 'asap-jwt-kid-prod', variable: 'ASAP_JWT_KID_PROD'),
+                            file(credentialsId: 'asap-jwt-key-dev', variable: 'ASAP_JWT_KEY_DEV'),
+                            file(credentialsId: 'asap-jwt-key-prod', variable: 'ASAP_JWT_KEY_PROD')
                         ]) {
                           sshagent (credentials: ['ssh-ubuntu']) {
                             sh '''#!/bin/bash
+                            export SELENIUM_GRID_AUTOSCALER_ENABLED="$SELENIUM_GRID_AUTOSCALER_ENABLED"
                             terraform/selenium-grid/delete-selenium-grid-oracle.sh ubuntu'''
                           }
                         }
