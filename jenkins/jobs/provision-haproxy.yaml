@@ -49,6 +49,7 @@
           trim: true
       - string:
           name: LOAD_BALANCER_MAX_BANDWIDTH
+          default: "500"
           description: "Override OCI load balancer maximum bandwidth in Mbps, defaults to 500."
           trim: true
       - string:
