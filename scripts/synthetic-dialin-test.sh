@@ -93,7 +93,7 @@ function doTest {
       --header 'Content-Type: application/json' \
       --data-raw "{\"url\":\"${ROOM_NAME}\"}"
       JWT_ACCESS_TOKEN=$JITSI_TOKEN
-      TEST_TO_RUN="tests/specs/misc/dialin.spec.ts"
+      TEST_TO_RUN="tests/specs/misc/dialIn.spec.ts"
       ADDR="${ADDR}/jitsi"
   fi
 
