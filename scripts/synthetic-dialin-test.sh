@@ -94,6 +94,7 @@ function doTest {
       --data-raw "{\"url\":\"${ROOM_NAME}\"}"
       JWT_ACCESS_TOKEN=$JITSI_TOKEN
       TEST_TO_RUN="tests/specs/misc/dialin.spec.ts"
+      ADDR="${ADDR}/jitsi"
   fi
 
   REMOTE_RESOURCE_PATH='/usr/share/jitsi-meet-torture/resources' \
