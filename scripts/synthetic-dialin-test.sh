@@ -122,7 +122,7 @@ cd ../jitsi-meet
 CURRENT_COMMIT=$(git log -1 --format="%H")
 echo "jitsi-meet commit is at ${CURRENT_COMMIT}"
 
-rm -rf test-results1 test-results2 test-results3 test-results4
+rm -rf test-results1 test-results2 test-results3 test-results4 test-results5 test-results6 test-results7 test-results8
 rm -f $TEST_OUTPUT_LOG_US
 rm -f $TEST_OUTPUT_LOG_EU
 
@@ -215,7 +215,7 @@ echo ""
 
 doTest "$ACCOUNT_ID_US" "${VOX_API_KEY_US}" "400932" "$DOMAIN" "$(getRegionalIP "us-phoenix-1")" $TEST_OUTPUT_LOG_8x8_US "true"
 SUCCESS=$?
-mv test-results test-results1
+mv test-results test-results5
 
 # Only actually fail on two consecutive failures
 if [[ $SUCCESS -ne 0 ]]; then
@@ -223,7 +223,7 @@ if [[ $SUCCESS -ne 0 ]]; then
   sleep 120
   doTest "$ACCOUNT_ID_US" "${VOX_API_KEY_US}" "400932" "$DOMAIN" "$(getRegionalIP "us-phoenix-1")" $TEST_OUTPUT_LOG_8x8_US "true"
   SUCCESS=$?
-  mv test-results test-results2
+  mv test-results test-results6
 fi
 
 if [[ $SUCCESS == 0 ]]; then
@@ -244,7 +244,7 @@ if [[ $FAILED_VALUE == 0 ]]; then
     echo ""
     doTest "$ACCOUNT_ID_EU" "${VOX_API_KEY_EU}" "3460923" "frankfurt.$DOMAIN" "$(getRegionalIP "eu-frankfurt-1")" $TEST_OUTPUT_LOG_8x8_EU "true"
     SUCCESS=$?
-    mv test-results test-results3
+    mv test-results test-results7
 
     # Only actually fail on two consecutive failures
     if [[ $SUCCESS -ne 0 ]]; then
@@ -252,7 +252,7 @@ if [[ $FAILED_VALUE == 0 ]]; then
         sleep 90
         doTest "$ACCOUNT_ID_EU" "${VOX_API_KEY_EU}" "3460923" "frankfurt.$DOMAIN" "$(getRegionalIP "eu-frankfurt-1")" $TEST_OUTPUT_LOG_8x8_EU "true"
         SUCCESS=$?
-        mv test-results test-results4
+        mv test-results test-results8
     fi
 
     if [[ $SUCCESS == 0 ]]; then
