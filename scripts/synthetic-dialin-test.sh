@@ -29,18 +29,24 @@ VAULT_KEY="$ENVIRONMENT/asap/dial-in-tests"
 # login to vault to fetch the keypair
 . $LOCAL_PATH/vault-login.sh
 
-KEYPAIR_PATH="./keypair.json"
+DATA_PATH="./keypair.json"
 # fetch the keypair from vault
 set +x
-vault kv get -format=json -mount=secret $VAULT_KEY | jq -r '.data.data' > $KEYPAIR_PATH
+vault kv get -format=json -mount=secret $VAULT_KEY | jq -r '.data.data' > $DATA_PATH
 
-JAAS_JWT_KID="$(jq -r '.key_id' $KEYPAIR_PATH)"
+JAAS_JWT_KID="$(jq -r '.key_id' $DATA_PATH)"
 JAAS_SIGNING_KEY_FILE=$(realpath "./jaas.key")
 
 echo "Using JAAS_SIGNING_KEY_FILE: $JAAS_SIGNING_KEY_FILE"
 
-jq -r '.private_key' $KEYPAIR_PATH | sed 's/\\n/\n/g' > $JAAS_SIGNING_KEY_FILE
-rm $KEYPAIR_PATH
+jq -r '.private_key' $DATA_PATH | sed 's/\\n/\n/g' > $JAAS_SIGNING_KEY_FILE
+
+ASAP_TOKEN="$(jq -r '.asap_token' $DATA_PATH)"
+ASAP_COOKIE="$(jq -r '.asap_cookie' $DATA_PATH)"
+USERNAME="$(jq -r '.username' $DATA_PATH)"
+PASSWORD="$(jq -r '.password' $DATA_PATH)"
+
+rm $DATA_PATH
 
 [ -z "$CLOUDWATCH_NAMESPACE" ] && CLOUDWATCH_NAMESPACE="Video"
 [ -z "$CLOUDWATCH_DIMENSIONS" ] && CLOUDWATCH_DIMENSIONS="Environment=${ENVIRONMENT}"
@@ -48,10 +54,25 @@ rm $KEYPAIR_PATH
 
 SUCCESS=0
 
-TEST_OUTPUT_LOG_US="test_log_US.txt"
-TEST_OUTPUT_LOG_EU="test_log_EU.txt"
+TEST_OUTPUT_LOG_JAAS_US="test_log_US-jaas.txt"
+TEST_OUTPUT_LOG_JAAS_EU="test_log_EU-jaas.txt"
+TEST_OUTPUT_LOG_8x8_US="test_log_US-8x8.txt"
+TEST_OUTPUT_LOG_8x8_EU="test_log_EU-8x8.txt"
 ACCOUNT_ID_US="2916850"
 ACCOUNT_ID_EU="2697050"
+
+TOKEN_8X8=$(curl -s --location "${SSO_URL}" \
+            --header 'Content-Type: application/x-www-form-urlencoded' \
+            --header "Authorization: Basic ${ASAP_TOKEN}" \
+            --header "Cookie: ${ASAP_COOKIE}" \
+            --data-urlencode 'grant_type=password' \
+            --data-urlencode 'scope=any' \
+            --data-urlencode "password=${PASSWORD}" \
+            --data-urlencode "username=${USERNAME}" | jq -r '.access_token')
+
+JITSI_TOKEN=$(curl -s --location "${JITSI_TOKEN_SERVICE_URL}" \
+            --header "Authorization: Bearer ${TOKEN_8X8}" \
+            --header 'Content-Type: application/json'| jq -r '.token')
 
 function doTest {
   ACC_ID=$1
@@ -60,6 +81,21 @@ function doTest {
   ADDR=$4
   REF_IP=$5
   LOG_FILE=$6
+  TEST_VIA_8x8=$7
+
+  TEST_TO_RUN="tests/specs/jaas/dial/dialin.spec.ts"
+
+  if [[ "$TEST_VIA_8x8" == "true" ]]; then
+    # Let's create the conference mapper entry for this test
+    export ROOM_NAME="${DIAL_IN_TEST_ROOM_NAME_PREFIX}$(( (RANDOM % 400) + 1 ))"
+    curl -s -o /dev/null -X POST --location "${CONFERENCE_MAPPER_URL}/url/" \
+      --header "Authorization: Bearer ${TOKEN_8X8}" \
+      --header 'Content-Type: application/json' \
+      --data-raw "{\"url\":\"${ROOM_NAME}\"}"
+      JWT_ACCESS_TOKEN=$JITSI_TOKEN
+      TEST_TO_RUN="tests/specs/misc/dialIn.spec.ts"
+      ADDR="${ADDR}/jitsi"
+  fi
 
   REMOTE_RESOURCE_PATH='/usr/share/jitsi-meet-torture/resources' \
     GRID_HOST_URL=${SELENIUM_HUB_URL} \
@@ -69,9 +105,10 @@ function doTest {
     JWT_PRIVATE_KEY_PATH=$JAAS_SIGNING_KEY_FILE \
     JWT_KID=$JAAS_JWT_KID \
     JAAS_TENANT=$(echo "$JAAS_JWT_KID" | cut -f1 -d"/") \
+    JWT_ACCESS_TOKEN=$JWT_ACCESS_TOKEN \
     ROOM_NAME_PREFIX="synthetic_" \
     BASE_URL=https://${ADDR}/ \
-  npm run test-grid-single tests/specs/alone/dialInAudio.spec.ts tests/specs/jaas/dial/dialin.spec.ts | tee -a ${LOG_FILE}
+  npm run test-grid-single ${TEST_TO_RUN} | tee -a ${LOG_FILE}
 
   return ${PIPESTATUS[0]}
 }
@@ -114,10 +151,10 @@ cat << EOF > expectations.json
 EOF
 
 echo "------------------------------------------------------------------------"
-echo "--------TESTING in US vox account (team-us@jitsi.org)-------------------"
+echo "--------TESTING in US vox account via JaaS (team-us@jitsi.org)-------------------"
 echo "------------------------------------------------------------------------"
 echo ""
-doTest "$ACCOUNT_ID_US" "${VOX_API_KEY_US}" "400932" "$DOMAIN" "$(getRegionalIP "us-phoenix-1")" $TEST_OUTPUT_LOG_US
+doTest "$ACCOUNT_ID_US" "${VOX_API_KEY_US}" "400932" "$DOMAIN" "$(getRegionalIP "us-phoenix-1")" $TEST_OUTPUT_LOG_JAAS_US "false"
 SUCCESS=$?
 mv test-results test-results1
 
@@ -125,7 +162,7 @@ mv test-results test-results1
 if [[ $SUCCESS -ne 0 ]]; then
   echo "Waiting for 120 seconds..."
   sleep 120
-  doTest "$ACCOUNT_ID_US" "${VOX_API_KEY_US}" "400932" "$DOMAIN" "$(getRegionalIP "us-phoenix-1")" $TEST_OUTPUT_LOG_US
+  doTest "$ACCOUNT_ID_US" "${VOX_API_KEY_US}" "400932" "$DOMAIN" "$(getRegionalIP "us-phoenix-1")" $TEST_OUTPUT_LOG_JAAS_US "false"
   SUCCESS=$?
   mv test-results test-results2
 fi
@@ -135,7 +172,7 @@ if [[ $SUCCESS == 0 ]]; then
 else
   FAILED_VALUE=1
   echo "------------------------------------------------------------------------"
-  echo "--------FAILURE in US vox account (team-us@jitsi.org)-------------------"
+  echo "--------FAILURE in US vox account via JaaS (team-us@jitsi.org)-------------------"
   echo "------------------------------------------------------------------------"
   echo ""
 fi
@@ -143,10 +180,10 @@ fi
 # Now let's test EU if US is successful
 if [[ $FAILED_VALUE == 0 ]]; then
     echo "------------------------------------------------------------------------"
-    echo "-----------TESTING in EU vox account (team@jitsi.org)-------------------"
+    echo "-----------TESTING in EU vox account via JaaS (team@jitsi.org)-------------------"
     echo "------------------------------------------------------------------------"
     echo ""
-    doTest "$ACCOUNT_ID_EU" "${VOX_API_KEY_EU}" "3460923" "frankfurt.$DOMAIN" "$(getRegionalIP "eu-frankfurt-1")" $TEST_OUTPUT_LOG_EU
+    doTest "$ACCOUNT_ID_EU" "${VOX_API_KEY_EU}" "3460923" "frankfurt.$DOMAIN" "$(getRegionalIP "eu-frankfurt-1")" $TEST_OUTPUT_LOG_JAAS_EU "false"
     SUCCESS=$?
     mv test-results test-results3
 
@@ -154,7 +191,7 @@ if [[ $FAILED_VALUE == 0 ]]; then
     if [[ $SUCCESS -ne 0 ]]; then
 	    echo "Waiting for 90 seconds..."
         sleep 90
-        doTest "$ACCOUNT_ID_EU" "${VOX_API_KEY_EU}" "3460923" "frankfurt.$DOMAIN" "$(getRegionalIP "eu-frankfurt-1")" $TEST_OUTPUT_LOG_EU
+        doTest "$ACCOUNT_ID_EU" "${VOX_API_KEY_EU}" "3460923" "frankfurt.$DOMAIN" "$(getRegionalIP "eu-frankfurt-1")" $TEST_OUTPUT_LOG_JAAS_EU "false"
         SUCCESS=$?
         mv test-results test-results4
     fi
@@ -165,19 +202,73 @@ if [[ $FAILED_VALUE == 0 ]]; then
         FAILED_VALUE=1
 
         echo "------------------------------------------------------------------------"
-        echo "-----------FAILURE in EU vox account (team@jitsi.org)-------------------"
+        echo "-----------FAILURE in EU vox account via JaaS (team@jitsi.org)-------------------"
         echo "------------------------------------------------------------------------"
         echo ""
     fi
 fi
 
-rm $JAAS_SIGNING_KEY_FILE
+echo "------------------------------------------------------------------------"
+echo "--------TESTING in US vox account via 8x8 (team-us@jitsi.org)-------------------"
+echo "------------------------------------------------------------------------"
+echo ""
 
-if grep -q "java.lang.AssertionError: Error sending REST request:Read timed out" ${TEST_OUTPUT_LOG_US} || grep -q "java.lang.AssertionError: Error sending REST request:Read timed out" ${TEST_OUTPUT_LOG_EU}; then
-  # We want to skip any random failures to access REST API to page, if two consequative happen we will page
-  # So we skip this ... but the test will still fail and we will see it in Slack
-  FAILED_VALUE=1
+doTest "$ACCOUNT_ID_US" "${VOX_API_KEY_US}" "400932" "$DOMAIN" "$(getRegionalIP "us-phoenix-1")" $TEST_OUTPUT_LOG_8x8_US "true"
+SUCCESS=$?
+mv test-results test-results1
+
+# Only actually fail on two consecutive failures
+if [[ $SUCCESS -ne 0 ]]; then
+  echo "Waiting for 120 seconds..."
+  sleep 120
+  doTest "$ACCOUNT_ID_US" "${VOX_API_KEY_US}" "400932" "$DOMAIN" "$(getRegionalIP "us-phoenix-1")" $TEST_OUTPUT_LOG_8x8_US "true"
+  SUCCESS=$?
+  mv test-results test-results2
 fi
+
+if [[ $SUCCESS == 0 ]]; then
+  FAILED_VALUE=0
+else
+  FAILED_VALUE=1
+  echo "------------------------------------------------------------------------"
+  echo "--------FAILURE in US vox account via 8x8 (team-us@jitsi.org)-------------------"
+  echo "------------------------------------------------------------------------"
+  echo ""
+fi
+
+# Now let's test EU if US is successful
+if [[ $FAILED_VALUE == 0 ]]; then
+    echo "------------------------------------------------------------------------"
+    echo "-----------TESTING in EU vox account via 8x8 (team@jitsi.org)-------------------"
+    echo "------------------------------------------------------------------------"
+    echo ""
+    doTest "$ACCOUNT_ID_EU" "${VOX_API_KEY_EU}" "3460923" "frankfurt.$DOMAIN" "$(getRegionalIP "eu-frankfurt-1")" $TEST_OUTPUT_LOG_8x8_EU "true"
+    SUCCESS=$?
+    mv test-results test-results3
+
+    # Only actually fail on two consecutive failures
+    if [[ $SUCCESS -ne 0 ]]; then
+	    echo "Waiting for 90 seconds..."
+        sleep 90
+        doTest "$ACCOUNT_ID_EU" "${VOX_API_KEY_EU}" "3460923" "frankfurt.$DOMAIN" "$(getRegionalIP "eu-frankfurt-1")" $TEST_OUTPUT_LOG_8x8_EU "true"
+        SUCCESS=$?
+        mv test-results test-results4
+    fi
+
+    if [[ $SUCCESS == 0 ]]; then
+        FAILED_VALUE=0
+    else
+        FAILED_VALUE=1
+
+        echo "------------------------------------------------------------------------"
+        echo "-----------FAILURE in EU vox account via 8x8 (team@jitsi.org)-------------------"
+        echo "------------------------------------------------------------------------"
+        echo ""
+    fi
+fi
+
+
+rm $JAAS_SIGNING_KEY_FILE
 
 # uncomment to disable paging; or set ENABLE_PAGE to default to "false" in the jenkins job configuraiton
 # ENABLE_PAGE="false"
@@ -267,8 +358,10 @@ function checkLogs() {
   print_vox_log $LOG_FILE $ACC_ID $API_KEY
 }
 
-checkLogs $TEST_OUTPUT_LOG_US $ACCOUNT_ID_US $VOX_API_KEY_US
-checkLogs $TEST_OUTPUT_LOG_EU $ACCOUNT_ID_EU $VOX_API_KEY_EU
+checkLogs $TEST_OUTPUT_LOG_JAAS_US $ACCOUNT_ID_US $VOX_API_KEY_US
+checkLogs $TEST_OUTPUT_LOG_JAAS_EU $ACCOUNT_ID_EU $VOX_API_KEY_EU
+checkLogs $TEST_OUTPUT_LOG_8x8_US $ACCOUNT_ID_US $VOX_API_KEY_US
+checkLogs $TEST_OUTPUT_LOG_8x8_EU $ACCOUNT_ID_EU $VOX_API_KEY_EU
 
 echo ""
 echo "------------------------------------------------------------------------"
