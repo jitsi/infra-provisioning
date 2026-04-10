@@ -83,6 +83,8 @@ function doTest {
   LOG_FILE=$6
   TEST_VIA_8x8=$7
 
+  TEST_TO_RUN="tests/specs/jaas/dial/dialin.spec.ts"
+
   if [[ "$TEST_VIA_8x8" == "true" ]]; then
     # Let's create the conference mapper entry for this test
     export ROOM_NAME="${DIAL_IN_TEST_ROOM_NAME_PREFIX}$(( (RANDOM % 400) + 1 ))"
@@ -91,6 +93,7 @@ function doTest {
       --header 'Content-Type: application/json' \
       --data-raw "{\"url\":\"${ROOM_NAME}\"}"
       JWT_ACCESS_TOKEN=$JITSI_TOKEN
+      TEST_TO_RUN="tests/specs/misc/dialin.spec.ts"
   fi
 
   REMOTE_RESOURCE_PATH='/usr/share/jitsi-meet-torture/resources' \
@@ -104,7 +107,7 @@ function doTest {
     JWT_ACCESS_TOKEN=$JWT_ACCESS_TOKEN \
     ROOM_NAME_PREFIX="synthetic_" \
     BASE_URL=https://${ADDR}/ \
-  npm run test-grid-single tests/specs/alone/dialInAudio.spec.ts tests/specs/jaas/dial/dialin.spec.ts | tee -a ${LOG_FILE}
+  npm run test-grid-single ${TEST_TO_RUN} | tee -a ${LOG_FILE}
 
   return ${PIPESTATUS[0]}
 }
