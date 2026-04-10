@@ -53,7 +53,8 @@ RUN apt-get update -y && \
       FIREFOX_DOWNLOAD_URL="https://download.mozilla.org/?product=firefox-$FIREFOX_VERSION-ssl&os=linux64&lang=en-US"; \
       /opt/bin/install-firefox-apt.sh \
       && FIREFOX_VERSION=$(echo "-$FIREFOX_VERSION" | sed 's/-latest//') \
-      && apt install -y firefox$FIREFOX_VERSION firefox-beta \
+      && apt install -y firefox$FIREFOX_VERSION \
+      && (apt install -y firefox-beta || true) \
       && INSTALL_VIA_APT=true \
       && if [ "$FIREFOX_VERSION" = "-beta" ] || [ "$FIREFOX_VERSION" = "-nightly" ] || [ "$FIREFOX_VERSION" = "-devedition" ] || [ "$FIREFOX_VERSION" = "-esr" ]; then \
         ln -fs $(which firefox$FIREFOX_VERSION) /usr/bin/firefox ; \
@@ -62,12 +63,13 @@ RUN apt-get update -y && \
       FIREFOX_DOWNLOAD_URL="https://download-installer.cdn.mozilla.net/pub/firefox/releases/$FIREFOX_VERSION/linux-x86_64/en-US/firefox-$FIREFOX_VERSION.tar.bz2" ; \
     fi \
   else \
-    if [ "$FIREFOX_VERSION" = "nightly-latest" ]; then \
+    if [ "$FIREFOX_VERSION" = "latest" ] || [ "$FIREFOX_VERSION" = "beta-latest" ] || [ "$FIREFOX_VERSION" = "nightly-latest" ] || [ "$FIREFOX_VERSION" = "devedition-latest" ] || [ "$FIREFOX_VERSION" = "esr-latest" ]; then \
       /opt/bin/install-firefox-apt.sh \
       && FIREFOX_VERSION=$(echo "-$FIREFOX_VERSION" | sed 's/-latest//') \
       && apt install -y firefox$FIREFOX_VERSION \
+      && (apt install -y firefox-beta || true) \
       && INSTALL_VIA_APT=true \
-      && if [ "$FIREFOX_VERSION" = "-nightly" ]; then \
+      && if [ "$FIREFOX_VERSION" = "-beta" ] || [ "$FIREFOX_VERSION" = "-nightly" ] || [ "$FIREFOX_VERSION" = "-devedition" ] || [ "$FIREFOX_VERSION" = "-esr" ]; then \
         ln -fs $(which firefox$FIREFOX_VERSION) /usr/bin/firefox ; \
       fi ; \
     else \
