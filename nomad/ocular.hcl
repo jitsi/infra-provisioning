@@ -217,7 +217,7 @@ PYEOF
 
       resources {
         cpu    = 100
-        memory = 256
+        memory = 512
       }
     }
   }
