@@ -59,7 +59,5 @@
               - "origin/${{VIDEO_INFRA_BRANCH}}"
             browser: githubweb
             browser-url: https://github.com/jitsi/infra-provisioning
-            submodule:
-              recursive: true
       script-path: jenkins/groovy/provision-nomad-instance-pool/Jenkinsfile
       lightweight-checkout: true

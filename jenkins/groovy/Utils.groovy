@@ -89,11 +89,11 @@ def SetupRepos(branch) {
         dir('infra-configuration') {
             retry(count: 3) {
                 try {
-                    checkout([$class: 'GitSCM', branches: [[name: "origin/${branch}"]], extensions: [[$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: false, recursiveSubmodules: true, reference: '', trackingSubmodules: false]], userRemoteConfigs: [[credentialsId: 'video-infra', url: env.INFRA_CONFIGURATION_REPO]]])
+                    checkout([$class: 'GitSCM', branches: [[name: "origin/${branch}"]], extensions: [], userRemoteConfigs: [[credentialsId: 'video-infra', url: env.INFRA_CONFIGURATION_REPO]]])
                 } catch (hudson.AbortException e) {
                     if (e.toString().contains('Couldn\'t find any revision to build')) {
                         echo "WARNING: couldn't find branch ${branch} in infra-configuration repo, falling back to main"
-                        checkout([$class: 'GitSCM', branches: [[name: "origin/main"]], extensions: [[$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: false, recursiveSubmodules: true, reference: '', trackingSubmodules: false]], userRemoteConfigs: [[credentialsId: 'video-infra', url: env.INFRA_CONFIGURATION_REPO]]])
+                        checkout([$class: 'GitSCM', branches: [[name: "origin/main"]], extensions: [], userRemoteConfigs: [[credentialsId: 'video-infra', url: env.INFRA_CONFIGURATION_REPO]]])
                     } else {
                         throw e
                     }
