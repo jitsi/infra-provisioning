@@ -724,6 +724,65 @@ groups:
         triggered.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=haproxy_shard_unhealthy
+  - alert: HAProxy_LB_Bandwidth_High
+    expr: oci_lbaas_peak_bandwidth{lb_name=~".*haproxy.*"} > 400
+    for: 5m
+    labels:
+      service: jitsi
+      severity: warn
+    annotations:
+      summary: HAProxy OCI LB bandwidth is approaching max capacity in ${var.dc}
+      description: >-
+        OCI HAProxy load balancer {{ $labels.lb_name }} in ${var.dc} has sustained
+        peak bandwidth above 400 Mbps for 5 minutes (currently {{ $value | printf "%.0f" }} Mbps).
+        The provisioned limit is 500 Mbps. Investigate traffic sources and consider
+        upgrading the LB bandwidth allocation.
+      dashboard_url: ${var.grafana_url}
+      alert_url: https://${var.prometheus_hostname}/alerts?search=haproxy_lb
+  - alert: HAProxy_LB_Unhealthy_Backends
+    expr: oci_lbaas_unhealthy_backend_servers{ lb_name=~".*haproxy.*"} >= 1
+    for: 2m
+    labels:
+      service: jitsi
+      severity: warn
+    annotations:
+      summary: HAProxy OCI LB has detected unhealthy backends in ${var.dc}
+      description: >-
+        OCI load balancer {{ $labels.lb_name }} backend set {{ $labels.backend_set }}
+        in ${var.dc} has {{ $value | printf "%.0f" }} unhealthy backend(s).
+        Check HAProxy health and the signal path between the LB and affected backends.
+      dashboard_url: ${var.grafana_url}
+      alert_url: https://${var.prometheus_hostname}/alerts?search=haproxy_lb
+  - alert: HAProxy_LB_5xx_Elevated
+    expr: oci_lbaas_http_responses5xx{lb_name=~".*haproxy.*"} > 50
+    for: 5m
+    labels:
+      service: jitsi
+      severity: warn
+    annotations:
+      summary: HAProxy OCI LB 5xx error rate is elevated in ${var.dc}
+      description: >-
+        OCI load balancer {{ $labels.lb_name }} in ${var.dc} has been returning
+        more than 50 5xx errors per minute for the past 5 minutes (currently
+        {{ $value | printf "%.0f" }}/min). This may indicate backend failures or an
+        inbound traffic spike. Check backend health and upstream traffic patterns.
+      dashboard_url: ${var.grafana_url}
+      alert_url: https://${var.prometheus_hostname}/alerts?search=haproxy_lb
+  - alert: HAProxy_LB_Backend_Timeouts_Elevated
+    expr: oci_lbaas_backend_timeouts{lb_name=~".*haproxy.*"} > 5
+    for: 5m
+    labels:
+      service: jitsi
+      severity: warn
+    annotations:
+      summary: HAProxy OCI LB backend timeouts are elevated in ${var.dc}
+      description: >-
+        OCI load balancer {{ $labels.lb_name }} backend set {{ $labels.backend_set }}
+        in ${var.dc} has sustained more than 5 backend timeouts per minute
+        for 5 minutes (currently {{ $value | printf "%.1f" }}/min). Backends are not
+        responding within the timeout window — check backend load and response times.
+      dashboard_url: ${var.grafana_url}
+      alert_url: https://${var.prometheus_hostname}/alerts?search=haproxy_lb
   - alert: Jicofo_ICE_Restarts_High
     expr: >-
       max_over_time((100 * sum by (shard) (increase(jitsi_jicofo_participants_restart_requested_total[10m]) unless sum by (shard) (jitsi_jicofo_participants_current < 20)) /
