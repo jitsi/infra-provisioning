@@ -420,7 +420,7 @@ groups:
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=nomad_job
   - alert: Nomad_Job_Memory_Use_High
-    expr: 100 * nomad_client_allocs_memory_usage{task!~"prometheus|gpu-monitor"} / nomad_client_allocs_memory_allocated{task!~"prometheus|gpu-monitor"} > 85
+    expr: 100 * (nomad_client_allocs_memory_usage{task!~"prometheus|gpu-monitor"} - nomad_client_allocs_memory_cache{task!~"prometheus|gpu-monitor"}) / nomad_client_allocs_memory_allocated{task!~"prometheus|gpu-monitor"} > 85
     for: 20m
     labels:
       service: infra
