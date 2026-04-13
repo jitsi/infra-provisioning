@@ -139,10 +139,19 @@ else
   fi
 
   echo -e "\n## rotate-nomad-poool-oracle: shelling into detachable instances at ${DETACHABLE_IPS} and shutting down nomad and consul nicely"
-  # first set old instances ineligible
+  # first set old instances ineligible and capture node IDs for later purge
+  DETACHABLE_NODE_IDS=""
   for IP in $DETACHABLE_IPS; do
     echo -e "\n## rotate-nomad-poool-oracle: marking nomad node ineligible on $IP"
     timeout 10 ssh -n -o StrictHostKeyChecking=no -F $LOCAL_PATH/../config/ssh.config $SSH_USER@$IP "nomad node eligibility -self -disable"
+    NODE_ID=$(timeout 10 ssh -n -o StrictHostKeyChecking=no -F $LOCAL_PATH/../config/ssh.config $SSH_USER@$IP \
+      "nomad node status -self -json 2>/dev/null | jq -r .ID" 2>/dev/null)
+    if [ -n "$NODE_ID" ] && [ "$NODE_ID" != "null" ]; then
+      DETACHABLE_NODE_IDS="$DETACHABLE_NODE_IDS $NODE_ID"
+      echo -e "\n## rotate-nomad-poool-oracle: captured node ID $NODE_ID for $IP"
+    else
+      echo -e "\n## rotate-nomad-poool-oracle: WARNING: could not get node ID for $IP"
+    fi
   done
   sleep 90
   # next drain old instances
@@ -156,6 +165,16 @@ else
     echo -e "\n## rotate-nomad-poool-oracle: stopping nomad and consul on $IP"
     timeout 10 ssh -n -o StrictHostKeyChecking=no -F $LOCAL_PATH/../config/ssh.config $SSH_USER@$IP "sudo service nomad stop && sudo service consul stop"
   done
+
+  # purge detached nodes from Nomad cluster state so system jobs don't show unplaced
+  if [ -n "$DETACHABLE_NODE_IDS" ]; then
+    [ -z "$NOMAD_ADDR" ] && export NOMAD_ADDR="https://$ENVIRONMENT-$LOCAL_REGION-nomad.$TOP_LEVEL_DNS_ZONE_NAME"
+    for NODE_ID in $DETACHABLE_NODE_IDS; do
+      echo -e "\n## rotate-nomad-poool-oracle: purging nomad node $NODE_ID"
+      curl -s -X POST "$NOMAD_ADDR/v1/node/$NODE_ID/purge" | jq -r 'if .EvalIDs then "purged, eval \(.EvalIDs[0])" else . end' || \
+        echo "## WARNING: purge request failed for node $NODE_ID"
+    done
+  fi
 
   # scale down the old instances
   echo -e "\n## rotate-nomad-poool-oracle: halve the size of nomad instance pool"
