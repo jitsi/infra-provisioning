@@ -279,7 +279,7 @@ pipeline {
                     steps {
                         script {
                             echo "Sleeping for ${env.POOL_DRAIN_WAIT_PERIOD} seconds to allow pools to drain"
-                            sleep env.POOL_DRAIN_WAIT_PERIOD.toInteger()
+                            sleep (env.POOL_DRAIN_WAIT_PERIOD ?: '3600').toInteger()
                         }
                     }
                 }
@@ -434,7 +434,7 @@ pipeline {
                     steps {
                         script {
                             echo "Sleeping for ${env.DRAIN_WAIT_PERIOD} seconds to allow shards to drain"
-                            sleep env.DRAIN_WAIT_PERIOD.toInteger()
+                            sleep (env.DRAIN_WAIT_PERIOD ?: '21600').toInteger()
                         }
                     }
                 }
