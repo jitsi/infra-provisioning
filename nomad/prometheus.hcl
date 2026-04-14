@@ -494,7 +494,7 @@ groups:
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=probe_shard_unhealthy
   - alert: Probe_Site_Unhealthy
-    expr: ((cloudprober_failure{probe="site"} > 0) and on(dst) count_over_time(cloudprober_total{probe="site"}[5m:1m]) >= 5) or ((cloudprober_timeouts{probe="site"} > 0) and on(dst) count_over_time(cloudprober_total{probe="site"}[5m:1m]) >= 5) > 0
+    expr: ((cloudprober_failure{probe="haproxy_region"} > 0) and on(dst) count_over_time(cloudprober_total{probe="haproxy_region"}[5m:1m]) >= 5) or ((cloudprober_timeouts{probe="haproxy_region"} > 0) and on(dst) count_over_time(cloudprober_total{probe="haproxy_region"}[5m:1m]) >= 5) > 0
     for: 5m
     labels:
       service: jitsi
@@ -504,7 +504,7 @@ groups:
       summary: the site {{ $labels.dst }} probe returned failed or timed-out from ${var.dc}
       description: >-
         An internal probe from ${var.dc} to the {{ $labels.dst }} timed-out or received an unhealthy
-        response. This This may mean that the entire site is down from the perspective of this
+        response. This may mean that the entire site is down from the perspective of this
         region and should be investigated immediately.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=probe_site_unhealthy
