@@ -92,7 +92,7 @@ if [[ "$CLOUDPROBER_CUSTOM_HTTPS_TARGETS" != "null" ]]; then
     CLOUDPROBER_ENABLE_CUSTOM_HTTPS="true"
 fi
 
-[ -z "$CLOUDPROBER_VERSION" ] && CLOUDPROBER_VERSION="v0.13.8"
+[ -z "$CLOUDPROBER_VERSION" ] && CLOUDPROBER_VERSION="v0.14.2"
 
 cat > "./cloudprober.hcl" <<EOF
 datacenters=["$NOMAD_DC"]
@@ -118,16 +118,27 @@ enable_canary=$CLOUDPROBER_ENABLE_LATENCY
 enable_alloy=$CLOUDPROBER_ENABLE_ALLOY
 EOF
 
-RENDERED_JOB="/tmp/cloudprober-${JOB_NAME}.nomad"
+RENDER_DIR="/tmp/cloudprober-render-$$"
 
 nomad-pack render --name "$JOB_NAME" \
   -var "job_name=$JOB_NAME" \
   -var-file "./cloudprober.hcl" \
-  $PACKS_DIR/jitsi_cloudprober > "$RENDERED_JOB"
+  --to-dir "$RENDER_DIR" \
+  --auto-approve \
+  $PACKS_DIR/jitsi_cloudprober
 
 if [ $? -ne 0 ]; then
     echo "Failed to render nomad cloudprober job, exiting"
     rm ./cloudprober.hcl
+    rm -rf "$RENDER_DIR"
+    exit 5
+fi
+
+RENDERED_JOB=$(find "$RENDER_DIR" -name "*.nomad" | head -1)
+if [ -z "$RENDERED_JOB" ]; then
+    echo "No rendered job file found in $RENDER_DIR, exiting"
+    rm ./cloudprober.hcl
+    rm -rf "$RENDER_DIR"
     exit 5
 fi
 
@@ -135,11 +146,13 @@ nomad job run "$RENDERED_JOB"
 
 if [ $? -ne 0 ]; then
     echo "Failed to run nomad cloudprober job, exiting"
-    rm ./cloudprober.hcl "$RENDERED_JOB"
+    rm ./cloudprober.hcl
+    rm -rf "$RENDER_DIR"
     exit 5
 fi
 
-rm ./cloudprober.hcl "$RENDERED_JOB"
+rm ./cloudprober.hcl
+rm -rf "$RENDER_DIR"
 
 export CNAME_VALUE="$RESOURCE_NAME_ROOT"
 export STACK_NAME="${RESOURCE_NAME_ROOT}-cname"
