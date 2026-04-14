@@ -397,7 +397,7 @@ probe {
   name: "alloy"
   type: HTTP
   targets {
-    host_names: "[[ var "environment" . ]]-[[ var "oracle_region" . ]]-alloy.[[ var "top_level_domain" . ]]"
+    host_names: "[[ var "environment" . ]]-[[ var "oracle_region" . ]]-otel.[[ var "top_level_domain" . ]]"
   }
   http_probe {
     protocol: HTTPS
