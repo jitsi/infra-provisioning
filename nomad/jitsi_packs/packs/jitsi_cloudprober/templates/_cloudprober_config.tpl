@@ -23,7 +23,7 @@ probe {
     command: "/bin/cloudprober_haproxy_probe.sh"
   }
   interval_msec: 10000
-  timeout_msec: 5000
+  timeout_msec: 12000
   latency_unit: "ms"
   additional_label {
     key: "service"
@@ -397,7 +397,7 @@ probe {
   name: "alloy"
   type: HTTP
   targets {
-    host_names: "[[ var "environment" . ]]-[[ var "oracle_region" . ]]-alert-emailer.[[ var "top_level_domain" . ]]"
+    host_names: "[[ var "environment" . ]]-[[ var "oracle_region" . ]]-alloy.[[ var "top_level_domain" . ]]"
   }
   http_probe {
     protocol: HTTPS

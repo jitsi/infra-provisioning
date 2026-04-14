@@ -122,3 +122,8 @@ variable "enable_canary" {
   type        = bool
   default     = false
 }
+variable "enable_alloy" {
+  description = "Whether to enable alloy monitoring"
+  type        = bool
+  default     = false
+}
