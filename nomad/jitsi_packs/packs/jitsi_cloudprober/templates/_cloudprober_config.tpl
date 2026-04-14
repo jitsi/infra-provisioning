@@ -401,7 +401,7 @@ probe {
   }
   http_probe {
     protocol: HTTPS
-    relative_url: "/health"
+    relative_url: "/-/healthy"
   }
   validator {
       name: "status_code_2xx"
