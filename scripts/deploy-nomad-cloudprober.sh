@@ -118,33 +118,28 @@ enable_canary=$CLOUDPROBER_ENABLE_LATENCY
 enable_alloy=$CLOUDPROBER_ENABLE_ALLOY
 EOF
 
-nomad-pack plan --deploy-override --name "$JOB_NAME" \
+RENDERED_JOB="/tmp/cloudprober-${JOB_NAME}.nomad"
+
+nomad-pack render --name "$JOB_NAME" \
   -var "job_name=$JOB_NAME" \
   -var-file "./cloudprober.hcl" \
-  $PACKS_DIR/jitsi_cloudprober
-
-PLAN_RET=$?
-echo "PLAN_RET=$PLAN_RET"
-# nomad-pack plan --deploy-override is broken in v0.4.2 (hashicorp/nomad-pack#845)
-# treat plan error (255) as non-fatal since run --deploy-override works correctly
-if [ $PLAN_RET -gt 1 ]; then
-    echo "Plan returned error, will attempt run with --deploy-override"
-else
-    echo "Plan was successful, will make changes"
-fi
-
-nomad-pack run --deploy-override --name "$JOB_NAME" \
-  -var "job_name=$JOB_NAME" \
-  -var-file "./cloudprober.hcl" \
-  $PACKS_DIR/jitsi_cloudprober
+  $PACKS_DIR/jitsi_cloudprober > "$RENDERED_JOB"
 
 if [ $? -ne 0 ]; then
-    echo "Failed to run nomad cloudprober job, exiting"
+    echo "Failed to render nomad cloudprober job, exiting"
     rm ./cloudprober.hcl
     exit 5
 fi
 
-rm ./cloudprober.hcl
+nomad job run "$RENDERED_JOB"
+
+if [ $? -ne 0 ]; then
+    echo "Failed to run nomad cloudprober job, exiting"
+    rm ./cloudprober.hcl "$RENDERED_JOB"
+    exit 5
+fi
+
+rm ./cloudprober.hcl "$RENDERED_JOB"
 
 export CNAME_VALUE="$RESOURCE_NAME_ROOT"
 export STACK_NAME="${RESOURCE_NAME_ROOT}-cname"
