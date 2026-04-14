@@ -925,6 +925,7 @@ EOF
         JICOFO_ENABLE_HEALTH_CHECKS="1"
         JICOFO_ENABLE_ICE_FAILURE_DETECTION="[[ or (env "CONFIG_jicofo_enable_ice_failure_detection") "true" ]]"
         JICOFO_ENABLE_LOAD_REDISTRIBUTION="[[ or (env "CONFIG_jicofo_enable_load_redistribution") "false" ]]"
+        JICOFO_ENABLE_MID="[[ env "CONFIG_jicofo_enable_mid" ]]"
         # jicofo rtcstats push vars
         JICOFO_ADDRESS = "http://127.0.0.1:8888"
         JICOFO_VISITORS_REQUIRE_MUC_CONFIG = "[[ env "CONFIG_jicofo_require_muc_config_flag" ]]"
