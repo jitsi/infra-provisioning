@@ -10,30 +10,6 @@ surfacer {
 
 # add variables for default_cloudprober_severity and default_cloudprober_team, and apply them to all non-custom probes
 
-[[ if var "enable_site_ingress" . -]]
-# probes site ingress health from this datacenter
-probe {
-  name: "site"
-  type: HTTP
-  targets {
-    host_names: "[[ var "domain" . ]]"
-  }
-  interval_msec: 10000
-  timeout_msec: 5000
-  latency_unit: "ms"
-  validator {
-    name: "status_code_2xx"
-    http_validator {
-      success_status_codes: "200-299"
-    }
-  }
-  additional_label {
-    key: "service"
-    value: "jitsi"
-  }
-}
-
-[[ end -]]
 [[ if var "enable_haproxy_region" . -]]
 # probe to validate that the ingress haproxy reached is in the local datacenter
 probe {
@@ -46,8 +22,8 @@ probe {
     mode: ONCE 
     command: "/bin/cloudprober_haproxy_probe.sh"
   }
-  interval_msec: 10000
-  timeout_msec: 5000
+  interval_msec: 15000
+  timeout_msec: 12000
   latency_unit: "ms"
   additional_label {
     key: "service"
@@ -394,6 +370,34 @@ probe {
   type: HTTP
   targets {
     host_names: "[[ var "environment" . ]]-[[ var "oracle_region" . ]]-alert-emailer.[[ var "top_level_domain" . ]]"
+  }
+  http_probe {
+    protocol: HTTPS
+    relative_url: "/health"
+  }
+  validator {
+      name: "status_code_2xx"
+      http_validator {
+          success_status_codes: "200-299"
+      }
+  }
+  interval_msec: 30000
+  timeout_msec: 10000
+  latency_unit: "ms"
+  additional_label {
+    key: "service"
+    value: "infra"
+  }
+}
+[[ end -]]
+
+[[ if var "enable_alloy" . -]]
+# probes alloy health in the local datacenter
+probe {
+  name: "alloy"
+  type: HTTP
+  targets {
+    host_names: "[[ var "environment" . ]]-[[ var "oracle_region" . ]]-alloy.[[ var "top_level_domain" . ]]"
   }
   http_probe {
     protocol: HTTPS

@@ -47,11 +47,6 @@ variable "cloudprober_version" {
   type        = string
   default     = "0.11.0"
 }
-variable "enable_site_ingress" {
-  description = "Whether to enable the site ingress probe"
-  type        = bool
-  default     = false
-}
 variable "enable_haproxy_region" {
   description = "Whether to enable haproxy regional consistency monitoring"
   type        = bool
@@ -124,6 +119,11 @@ variable "enable_vault" {
 }
 variable "enable_canary" {
   description = "Whether to enable the canary webserver"
+  type        = bool
+  default     = false
+}
+variable "enable_alloy" {
+  description = "Whether to enable alloy monitoring"
   type        = bool
   default     = false
 }

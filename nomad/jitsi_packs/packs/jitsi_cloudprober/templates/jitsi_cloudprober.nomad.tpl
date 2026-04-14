@@ -94,12 +94,23 @@ EOH
       }
       template {
         data = <<EOH
-import requests
 import os
 import sys
+import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 url = 'https://' + os.environ['DOMAIN'] + '/about/health'
-req = requests.get(url)
+
+session = requests.Session()
+retry = Retry(total=2, backoff_factor=0.5, status_forcelist=[500, 502, 503, 504])
+session.mount('https://', HTTPAdapter(max_retries=retry))
+
+try:
+  req = session.get(url, timeout=4)
+except Exception as e:
+  print('haproxy_region_check error: ' + str(e), file=sys.stderr)
+  sys.exit(1)
 
 if 'x-proxy-region' in req.headers:
   proxy_region = req.headers['x-proxy-region']

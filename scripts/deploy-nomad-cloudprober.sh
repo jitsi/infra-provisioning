@@ -53,6 +53,7 @@ CLOUDPROBER_ENABLE_LOKI="true"
 CLOUDPROBER_ENABLE_PROMETHEUS="true"
 CLOUDPROBER_ENABLE_WAVEFRONT_PROXY="false"
 CLOUDPROBER_ENABLE_LATENCY="true"
+CLOUDPROBER_ENABLE_ALLOY="true"
 
 # init generic probes used by specific environments
 CLOUDPROBER_ENABLE_AUTOSCALER="false"
@@ -60,7 +61,6 @@ CLOUDPROBER_ENABLE_COTURN="false"
 CLOUDPROBER_ENABLE_CUSTOM_HTTPS="false"
 CLOUDPROBER_ENABLE_HAPROXY_REGION="false"
 CLOUDPROBER_ENABLE_SHARD="false"
-CLOUDPROBER_ENABLE_SITE_INGRESS="false"
 CLOUDPROBER_ENABLE_VAULT="false"
 CLOUDPROBER_ENABLE_CANARY="false"
 
@@ -76,7 +76,6 @@ if [[ "$CLOUDPROBER_TEMPLATE_TYPE" == "core" ]]; then
     CLOUDPROBER_ENABLE_AUTOSCALER="true"
     CLOUDPROBER_ENABLE_HAPROXY_REGION="true"
     CLOUDPROBER_ENABLE_SHARD="true"
-    CLOUDPROBER_ENABLE_SITE_INGRESS="true"
     if [[ "$ENVIRONMENT_TYPE" == "prod" ]]; then
         CLOUDPROBER_ENABLE_COTURN="true"
     fi
@@ -93,7 +92,7 @@ if [[ "$CLOUDPROBER_CUSTOM_HTTPS_TARGETS" != "null" ]]; then
     CLOUDPROBER_ENABLE_CUSTOM_HTTPS="true"
 fi
 
-[ -z "$CLOUDPROBER_VERSION" ] && CLOUDPROBER_VERSION="v0.13.8"
+[ -z "$CLOUDPROBER_VERSION" ] && CLOUDPROBER_VERSION="v0.14.2"
 
 cat > "./cloudprober.hcl" <<EOF
 datacenters=["$NOMAD_DC"]
@@ -103,7 +102,6 @@ oracle_region="$ORACLE_REGION"
 top_level_domain="$TOP_LEVEL_DNS_ZONE_NAME"
 domain="$DOMAIN"
 environment="$ENVIRONMENT"
-enable_site_ingress=$CLOUDPROBER_ENABLE_SITE_INGRESS
 enable_haproxy_region=$CLOUDPROBER_ENABLE_HAPROXY_REGION
 enable_coturn=$CLOUDPROBER_ENABLE_COTURN
 enable_shard=$CLOUDPROBER_ENABLE_SHARD
@@ -117,35 +115,44 @@ enable_alertmanager=$CLOUDPROBER_ENABLE_ALERTMANAGER
 enable_alert_emailer=$CLOUDPROBER_ENABLE_ALERT_EMAILER
 enable_vault=$CLOUDPROBER_ENABLE_VAULT
 enable_canary=$CLOUDPROBER_ENABLE_LATENCY
+enable_alloy=$CLOUDPROBER_ENABLE_ALLOY
 EOF
 
-nomad-pack plan --deploy-override --name "$JOB_NAME" \
+RENDER_DIR="/tmp/cloudprober-render-$$"
+
+nomad-pack render --name "$JOB_NAME" \
   -var "job_name=$JOB_NAME" \
   -var-file "./cloudprober.hcl" \
+  --to-dir "$RENDER_DIR" \
+  --auto-approve \
   $PACKS_DIR/jitsi_cloudprober
 
-PLAN_RET=$?
-echo "PLAN_RET=$PLAN_RET"
-# nomad-pack plan --deploy-override is broken in v0.4.2 (hashicorp/nomad-pack#845)
-# treat plan error (255) as non-fatal since run --deploy-override works correctly
-if [ $PLAN_RET -gt 1 ]; then
-    echo "Plan returned error, will attempt run with --deploy-override"
-else
-    echo "Plan was successful, will make changes"
+if [ $? -ne 0 ]; then
+    echo "Failed to render nomad cloudprober job, exiting"
+    rm ./cloudprober.hcl
+    rm -rf "$RENDER_DIR"
+    exit 5
 fi
 
-nomad-pack run --deploy-override --name "$JOB_NAME" \
-  -var "job_name=$JOB_NAME" \
-  -var-file "./cloudprober.hcl" \
-  $PACKS_DIR/jitsi_cloudprober
+RENDERED_JOB=$(find "$RENDER_DIR" -name "*.nomad" | head -1)
+if [ -z "$RENDERED_JOB" ]; then
+    echo "No rendered job file found in $RENDER_DIR, exiting"
+    rm ./cloudprober.hcl
+    rm -rf "$RENDER_DIR"
+    exit 5
+fi
+
+nomad job run "$RENDERED_JOB"
 
 if [ $? -ne 0 ]; then
     echo "Failed to run nomad cloudprober job, exiting"
     rm ./cloudprober.hcl
+    rm -rf "$RENDER_DIR"
     exit 5
 fi
 
 rm ./cloudprober.hcl
+rm -rf "$RENDER_DIR"
 
 export CNAME_VALUE="$RESOURCE_NAME_ROOT"
 export STACK_NAME="${RESOURCE_NAME_ROOT}-cname"
