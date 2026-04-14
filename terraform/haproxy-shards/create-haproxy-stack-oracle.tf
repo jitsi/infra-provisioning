@@ -325,6 +325,9 @@ resource "oci_load_balancer_listener" "main_listener" {
       certificate_name = oci_load_balancer_certificate.main_certificate.certificate_name
       verify_peer_certificate = false
   }
+  connection_configuration {
+    idle_timeout_in_seconds = 91      # 1 second more than the 90 in haproxy
+  }
 }
 
 resource "oci_load_balancer_listener" "signal_api_listener" {
@@ -338,6 +341,9 @@ resource "oci_load_balancer_listener" "signal_api_listener" {
       #Optional
       certificate_name = oci_load_balancer_certificate.signal_api_certificate.certificate_name
       verify_peer_certificate = false
+  }
+  connection_configuration {
+    idle_timeout_in_seconds = 91      # 1 second more than the 90 in haproxy
   }
 }
 
