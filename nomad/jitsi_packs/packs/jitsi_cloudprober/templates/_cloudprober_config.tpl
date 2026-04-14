@@ -22,7 +22,7 @@ probe {
     mode: ONCE 
     command: "/bin/cloudprober_haproxy_probe.sh"
   }
-  interval_msec: 10000
+  interval_msec: 15000
   timeout_msec: 12000
   latency_unit: "ms"
   additional_label {
