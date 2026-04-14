@@ -37,6 +37,11 @@ job "[JOB_NAME]" {
   group "ocular" {
     count = 1
 
+    constraint {
+      attribute  = "${meta.pool_type}"
+      value     = "general"
+    }
+
     restart {
       attempts = 3
       delay    = "15s"
@@ -99,12 +104,10 @@ METRICS = [
     "ActiveConnections",
     "ActiveSSLConnections",
     "BackendTimeouts",
-    "BytesReceived",
-    "BytesSent",
+    "HttpRequests",
+    "HttpResponses2xx",
     "HttpResponses4xx",
     "HttpResponses5xx",
-    "HttpResponses502",
-    "HttpResponses504",
     "PeakBandwidth",
     "ResponseTimeHttpHeader",
     "UnHealthyBackendServers",
@@ -112,6 +115,13 @@ METRICS = [
 
 _lock    = threading.Lock()
 _samples = []  # list of (prom_line: str, collected_at: float)
+
+try:
+    _signer = oci.auth.signers.InstancePrincipalsSecurityTokenSigner()
+    _client = oci.monitoring.MonitoringClient({"region": REGION}, signer=_signer)
+except Exception as e:
+    print(f"init failed: {e}", file=sys.stderr)
+    sys.exit(1)
 
 
 def to_snake(name):
@@ -135,13 +145,6 @@ def make_labels(dims):
 
 
 def collect():
-    try:
-        signer = oci.auth.signers.InstancePrincipalsSecurityTokenSigner()
-    except Exception as e:
-        print(f"instance principal auth failed: {e}", file=sys.stderr)
-        return
-
-    client   = oci.monitoring.MonitoringClient({"region": REGION}, signer=signer)
     end_time = datetime.datetime.utcnow()
     start    = end_time - datetime.timedelta(minutes=5)
     now_ts   = time.time()
@@ -149,7 +152,7 @@ def collect():
 
     for metric in METRICS:
         try:
-            resp = client.summarize_metrics_data(
+            resp = _client.summarize_metrics_data(
                 compartment_id=COMPARTMENT_ID,
                 summarize_metrics_data_details=oci.monitoring.models.SummarizeMetricsDataDetails(
                     namespace=NAMESPACE,
@@ -217,7 +220,7 @@ PYEOF
 
       resources {
         cpu    = 100
-        memory = 512
+        memory = 768
       }
     }
   }
