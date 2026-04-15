@@ -58,7 +58,6 @@ probe {
   }
   interval_msec: 30000
   timeout_msec: 10000
-  num_retries: 2
   latency_unit: "ms"
   additional_label {
     key: "service"
@@ -87,7 +86,6 @@ probe {
   }
   interval_msec: 30000
   timeout_msec: 10000
-  num_retries: 2
   latency_unit: "ms"
   additional_label {
     key: "service"
@@ -144,7 +142,6 @@ probe {
   }
   interval_msec: 10000
   timeout_msec: 5000
-  num_retries: 2
   latency_unit: "ms"
   additional_label {
     key: "service"
@@ -182,7 +179,6 @@ probe {
   }
   interval_msec: 10000
   timeout_msec: 5000
-  num_retries: 2
   latency_unit: "ms"
   additional_label {
     key: "service"
@@ -211,7 +207,6 @@ probe {
   }
   interval_msec: 30000
   timeout_msec: 10000
-  num_retries: 2
   latency_unit: "ms"
   additional_label {
     key: "service"
@@ -240,7 +235,6 @@ probe {
   }
   interval_msec: 30000
   timeout_msec: 10000
-  num_retries: 2
   latency_unit: "ms"
   additional_label {
     key: "service"
@@ -265,7 +259,6 @@ probe {
   }
   interval_msec: 60000
   timeout_msec: 10000
-  num_retries: 2
   latency_unit: "ms"
   additional_label {
     key: "severity"
@@ -298,7 +291,6 @@ probe {
   }
   interval_msec: 30000
   timeout_msec: 10000
-  num_retries: 2
   latency_unit: "ms"
   additional_label {
     key: "service"
@@ -326,7 +318,6 @@ probe {
   }
   interval_msec: 30000
   timeout_msec: 10000
-  num_retries: 2
   latency_unit: "ms"
   additional_label {
     key: "service"
@@ -361,7 +352,6 @@ probe {
   }
   interval_msec: 30000
   timeout_msec: 20000
-  num_retries: 2
   latency_unit: "ms"
   additional_label {
     key: "service"
@@ -393,7 +383,6 @@ probe {
   }
   interval_msec: 30000
   timeout_msec: 10000
-  num_retries: 2
   latency_unit: "ms"
   additional_label {
     key: "service"
@@ -422,7 +411,6 @@ probe {
   }
   interval_msec: 30000
   timeout_msec: 10000
-  num_retries: 2
   latency_unit: "ms"
   additional_label {
     key: "service"
