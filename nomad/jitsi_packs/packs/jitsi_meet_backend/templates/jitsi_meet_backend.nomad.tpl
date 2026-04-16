@@ -556,6 +556,12 @@ EOF
 [[- if eq (env "CONFIG_prosody_filter_messages_enabled") "true" ]]
         PROSODY_ENABLE_FILTER_MESSAGES="true"
 [[- end ]]
+[[- if eq (env "CONFIG_prosody_enable_muc_resource_validate") "true" ]]
+        PROSODY_ENABLE_MUC_RESOURCE_VALIDATE="true"
+[[- end ]]
+[[- if eq (env "CONFIG_prosody_muc_resource_validate_anonymous_strict") "true" ]]
+        PROSODY_MUC_RESOURCE_VALIDATE_ANONYMOUS_STRICT="true"
+[[- end ]]
         ENABLE_END_CONFERENCE="0"
         PROSODY_ENABLE_RATE_LIMITS="1"
         PROSODY_RATE_LIMIT_ALLOW_RANGES="[[ env "CONFIG_prosody_rate_limit_allow_ranges" ]]"
