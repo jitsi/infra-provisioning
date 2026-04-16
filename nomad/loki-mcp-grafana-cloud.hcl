@@ -76,7 +76,7 @@ job "[JOB_NAME]" {
         data = <<EOF
 {{ with secret "secret/default/loki-mcp/grafana-cloud" -}}
 GRAFANA_URL="{{ .Data.data.host }}"
-GRAFANA_SERVICE_ACCOUNT_TOKEN="{{ .Data.data.all-datasources-token }}"
+GRAFANA_SERVICE_ACCOUNT_TOKEN="{{ .Data.data.all_datasources_token }}"
 {{ end -}}
 EOF
         destination = "secrets/env"
