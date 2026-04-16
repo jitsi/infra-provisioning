@@ -94,7 +94,7 @@ fi
 
 [ -z "$CLOUDPROBER_VERSION" ] && CLOUDPROBER_VERSION="v0.14.2"
 
-cat > "./cloudprober.hcl" <<EOF
+cat > "./cloudprober-${NOMAD_DC}.hcl" <<EOF
 datacenters=["$NOMAD_DC"]
 cloudprober_hostname="${RESOURCE_NAME_ROOT}.${TOP_LEVEL_DNS_ZONE_NAME}"
 cloudprober_version="$CLOUDPROBER_VERSION"
@@ -122,14 +122,14 @@ RENDER_DIR="/tmp/cloudprober-render-$$"
 
 nomad-pack render --name "$JOB_NAME" \
   -var "job_name=$JOB_NAME" \
-  -var-file "./cloudprober.hcl" \
+  -var-file "./cloudprober-${NOMAD_DC}.hcl" \
   --to-dir "$RENDER_DIR" \
   --auto-approve \
   $PACKS_DIR/jitsi_cloudprober
 
 if [ $? -ne 0 ]; then
     echo "Failed to render nomad cloudprober job, exiting"
-    rm ./cloudprober.hcl
+    rm ./cloudprober-${NOMAD_DC}.hcl
     rm -rf "$RENDER_DIR"
     exit 5
 fi
@@ -137,7 +137,7 @@ fi
 RENDERED_JOB=$(find "$RENDER_DIR" -name "*.nomad" | head -1)
 if [ -z "$RENDERED_JOB" ]; then
     echo "No rendered job file found in $RENDER_DIR, exiting"
-    rm ./cloudprober.hcl
+    rm ./cloudprober-${NOMAD_DC}.hcl
     rm -rf "$RENDER_DIR"
     exit 5
 fi
@@ -146,12 +146,12 @@ nomad job run "$RENDERED_JOB"
 
 if [ $? -ne 0 ]; then
     echo "Failed to run nomad cloudprober job, exiting"
-    rm ./cloudprober.hcl
+    rm ./cloudprober-${NOMAD_DC}.hcl
     rm -rf "$RENDER_DIR"
     exit 5
 fi
 
-rm ./cloudprober.hcl
+rm ./cloudprober-${NOMAD_DC}.hcl
 rm -rf "$RENDER_DIR"
 
 export CNAME_VALUE="$RESOURCE_NAME_ROOT"
