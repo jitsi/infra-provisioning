@@ -89,8 +89,10 @@ RUN apt-get update -y && \
     && mkdir -p /opt/firefox-$FIREFOX_VERSION/distribution/extensions \
     && ln -fs /opt/firefox-$FIREFOX_VERSION/firefox /usr/bin/firefox ; \
   fi \
-  && echo "Downloading Firefox language packs" \
+  && echo "Downloading Firefox lanuage packs" \
+  # Download the language pack for Firefox
   && /opt/bin/get_lang_package.sh \
+  # Do one more upgrade to fix possible CVEs from Firefox dependencies
   && apt-get update -qqy \
   && apt-get upgrade -yq \
   && rm -rf /var/lib/apt/lists/* /var/cache/apt/*
