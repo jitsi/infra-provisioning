@@ -108,7 +108,7 @@ RUN mkdir -p /opt/selenium/browsers/firefox \
     && if command -v firefox-beta >/dev/null 2>&1; then \
       mkdir -p /opt/selenium/browsers/firefox_beta \
       && echo "firefox" > /opt/selenium/browsers/firefox_beta/name \
-      && firefox-beta --version | awk '{print $3}' > /opt/selenium/browsers/firefox_beta/version \
+      && echo "beta" > /opt/selenium/browsers/firefox_beta/version \
       && echo '{"moz:firefoxOptions": {"binary": "${SE_BROWSER_BINARY_LOCATION:-/usr/bin/firefox-beta}"}}' > /opt/selenium/browsers/firefox_beta/binary_location \
       && chown -R ${SEL_UID}:${SEL_GID} /opt/selenium/browsers/firefox_beta; \
     fi
