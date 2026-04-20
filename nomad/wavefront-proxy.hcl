@@ -31,29 +31,36 @@ job "[JOB_NAME]" {
 
     count = 2
     network {
+      mode = "bridge"
       port "http" {
         to = 2878
+      }
+    }
+    service {
+      name = "wavefront-proxy"
+      tags = ["int-urlprefix-${var.wavefront_proxy_hostname}/","int-urlprefix-${var.wavefront_proxy_hostname}:443/"]
+
+      port = "http"
+
+      connect {
+        sidecar_service {
+          tags = ["ip-${attr.unique.network.ip-address}"]
+        }
+      }
+
+      check {
+        name     = "alive"
+        type     = "http"
+        path     = "/status"
+        port     = "http"
+        interval = "10s"
+        timeout  = "2s"
       }
     }
     task "wavefront-proxy" {
       vault {
         change_mode = "noop"
         
-      }
-      service {
-        name = "wavefront-proxy"
-        tags = ["int-urlprefix-${var.wavefront_proxy_hostname}/","int-urlprefix-${var.wavefront_proxy_hostname}:443/"]
-
-        port = "http"
-
-        check {
-          name     = "alive"
-          type     = "http"
-          path     = "/status"
-          port     = "http"
-          interval = "10s"
-          timeout  = "2s"
-        }
       }
 
       driver = "docker"
