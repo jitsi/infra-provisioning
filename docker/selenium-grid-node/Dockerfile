@@ -53,7 +53,8 @@ RUN apt-get update -y && \
       FIREFOX_DOWNLOAD_URL="https://download.mozilla.org/?product=firefox-$FIREFOX_VERSION-ssl&os=linux64&lang=en-US"; \
       /opt/bin/install-firefox-apt.sh \
       && FIREFOX_VERSION=$(echo "-$FIREFOX_VERSION" | sed 's/-latest//') \
-      && apt install -y firefox$FIREFOX_VERSION firefox-beta \
+      && apt install -y firefox$FIREFOX_VERSION \
+      && (apt install -y firefox-beta || true) \
       && INSTALL_VIA_APT=true \
       && if [ "$FIREFOX_VERSION" = "-beta" ] || [ "$FIREFOX_VERSION" = "-nightly" ] || [ "$FIREFOX_VERSION" = "-devedition" ] || [ "$FIREFOX_VERSION" = "-esr" ]; then \
         ln -fs $(which firefox$FIREFOX_VERSION) /usr/bin/firefox ; \
@@ -62,12 +63,13 @@ RUN apt-get update -y && \
       FIREFOX_DOWNLOAD_URL="https://download-installer.cdn.mozilla.net/pub/firefox/releases/$FIREFOX_VERSION/linux-x86_64/en-US/firefox-$FIREFOX_VERSION.tar.bz2" ; \
     fi \
   else \
-    if [ "$FIREFOX_VERSION" = "nightly-latest" ]; then \
+    if [ "$FIREFOX_VERSION" = "latest" ] || [ "$FIREFOX_VERSION" = "beta-latest" ] || [ "$FIREFOX_VERSION" = "nightly-latest" ] || [ "$FIREFOX_VERSION" = "devedition-latest" ] || [ "$FIREFOX_VERSION" = "esr-latest" ]; then \
       /opt/bin/install-firefox-apt.sh \
       && FIREFOX_VERSION=$(echo "-$FIREFOX_VERSION" | sed 's/-latest//') \
       && apt install -y firefox$FIREFOX_VERSION \
+      && (apt install -y firefox-beta || true) \
       && INSTALL_VIA_APT=true \
-      && if [ "$FIREFOX_VERSION" = "-nightly" ]; then \
+      && if [ "$FIREFOX_VERSION" = "-beta" ] || [ "$FIREFOX_VERSION" = "-nightly" ] || [ "$FIREFOX_VERSION" = "-devedition" ] || [ "$FIREFOX_VERSION" = "-esr" ]; then \
         ln -fs $(which firefox$FIREFOX_VERSION) /usr/bin/firefox ; \
       fi ; \
     else \
@@ -87,11 +89,29 @@ RUN apt-get update -y && \
     && mkdir -p /opt/firefox-$FIREFOX_VERSION/distribution/extensions \
     && ln -fs /opt/firefox-$FIREFOX_VERSION/firefox /usr/bin/firefox ; \
   fi \
-  && echo "Downloading Firefox language packs" \
+  && echo "Downloading Firefox lanuage packs" \
+  # Download the language pack for Firefox
   && /opt/bin/get_lang_package.sh \
+  # Do one more upgrade to fix possible CVEs from Firefox dependencies
   && apt-get update -qqy \
   && apt-get upgrade -yq \
   && rm -rf /var/lib/apt/lists/* /var/cache/apt/*
+
+#============================================
+# Firefox + Firefox Beta browser metadata for upstream generate_config
+#============================================
+RUN mkdir -p /opt/selenium/browsers/firefox \
+    && echo "firefox" > /opt/selenium/browsers/firefox/name \
+    && firefox --version | awk '{print $3}' > /opt/selenium/browsers/firefox/version \
+    && echo '{"moz:firefoxOptions": {"binary": "${SE_BROWSER_BINARY_LOCATION:-/usr/bin/firefox}"}}' > /opt/selenium/browsers/firefox/binary_location \
+    && chown -R ${SEL_UID}:${SEL_GID} /opt/selenium/browsers/firefox \
+    && if command -v firefox-beta >/dev/null 2>&1; then \
+      mkdir -p /opt/selenium/browsers/firefox_beta \
+      && echo "firefox" > /opt/selenium/browsers/firefox_beta/name \
+      && echo "beta" > /opt/selenium/browsers/firefox_beta/version \
+      && echo '{"moz:firefoxOptions": {"binary": "${SE_BROWSER_BINARY_LOCATION:-/usr/bin/firefox-beta}"}}' > /opt/selenium/browsers/firefox_beta/binary_location \
+      && chown -R ${SEL_UID}:${SEL_GID} /opt/selenium/browsers/firefox_beta; \
+    fi
 
 #============
 # GeckoDriver
