@@ -2664,9 +2664,20 @@
         "type": "datasource"
       },
       {
-        "current": {},
-        "datasource": { "type": "prometheus", "uid": "${datasource}" },
-        "definition": "label_values(up{job=\"integrations/self\"}, environment)",
+        "allowCustomValue": false,
+        "current": {
+          "text": [
+            "lonely"
+          ],
+          "value": [
+            "lonely"
+          ]
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "definition": "label_values(up{job=\"integrations/self\"},environment)",
         "includeAll": true,
         "label": "Environment",
         "multi": true,
@@ -2674,18 +2685,30 @@
         "options": [],
         "query": {
           "qryType": 1,
-          "query": "label_values(up{job=\"integrations/self\"}, environment)",
-          "refId": "PrometheusDatasource-VariableQuery"
+          "query": "label_values(up{job=\"integrations/self\"},environment)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
         },
         "refresh": 1,
         "regex": "",
+        "regexApplyTo": "value",
         "sort": 1,
         "type": "query"
       },
       {
-        "current": {},
-        "datasource": { "type": "prometheus", "uid": "${datasource}" },
-        "definition": "label_values(up{job=\"integrations/self\", environment=~\"$environment\"}, region)",
+        "allowCustomValue": false,
+        "current": {
+          "text": [
+            "eu-frankfurt-1"
+          ],
+          "value": [
+            "eu-frankfurt-1"
+          ]
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "definition": "label_values(up{job=\"integrations/self\"},region)",
         "includeAll": true,
         "label": "Region",
         "multi": true,
@@ -2693,18 +2716,23 @@
         "options": [],
         "query": {
           "qryType": 1,
-          "query": "label_values(up{job=\"integrations/self\", environment=~\"$environment\"}, region)",
-          "refId": "PrometheusDatasource-VariableQuery"
+          "query": "label_values(up{job=\"integrations/self\"},region)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
         },
         "refresh": 1,
         "regex": "",
+        "regexApplyTo": "value",
         "sort": 1,
         "type": "query"
       },
       {
+        "allowCustomValue": false,
         "current": {},
-        "datasource": { "type": "prometheus", "uid": "${datasource}" },
-        "definition": "label_values(up{job=\"integrations/self\", environment=~\"$environment\", region=~\"$region\"}, alloy_type)",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "definition": "label_values(up{job=\"integrations/self\", environment=~\"$environment\", region=~\"$region\"},alloy_type)",
         "includeAll": true,
         "label": "Type",
         "multi": true,
@@ -2712,24 +2740,25 @@
         "options": [],
         "query": {
           "qryType": 1,
-          "query": "label_values(up{job=\"integrations/self\", environment=~\"$environment\", region=~\"$region\"}, alloy_type)",
-          "refId": "PrometheusDatasource-VariableQuery"
+          "query": "label_values(up{job=\"integrations/self\", environment=~\"$environment\", region=~\"$region\"},alloy_type)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
         },
         "refresh": 1,
         "regex": "",
+        "regexApplyTo": "value",
         "sort": 1,
         "type": "query"
       }
     ]
   },
   "time": {
-    "from": "now-6h",
+    "from": "now-1h",
     "to": "now"
   },
   "timepicker": {},
   "timezone": "browser",
   "title": "Alloy Monitor",
   "uid": "aa99gnx",
-  "version": 24,
+  "version": 27,
   "weekStart": ""
 }

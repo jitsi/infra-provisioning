@@ -33,10 +33,10 @@ parser.add_argument('--id', action='store_true',
                    help='Print instance ID in batch mode', default=False)
 parser.add_argument('--region', action='store',
                    help='EC2 Region', default=AWS_DEFAULT_REGION)
-parser.add_argument('--oracle', action='store_true',
+parser.add_argument('--oracle', action=argparse.BooleanOptionalAction,
                    help='Include oracle instances', default=True)
-parser.add_argument('--oracle_only', action='store_true',
-                   help='Include ONLY oracle instances', default=False)
+parser.add_argument('--oracle_only', action=argparse.BooleanOptionalAction,
+                   help='Include ONLY oracle instances', default=True)
 parser.add_argument('--inverse_region', action='store_true',
                    help='Inverse Region', default=False)
 
