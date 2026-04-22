@@ -76,6 +76,7 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                       artConfig = governance.init([
                           serviceName: 'jibri',
                           version:     env.JIBRI_VERSION,
+                          artifactType: 'vm',
                           environment: env.ENVIRONMENT,
                           fastTrack:   false,
                           gitRefs:     [jibri: jibriGitHash],
