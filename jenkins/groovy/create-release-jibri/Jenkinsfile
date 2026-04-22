@@ -41,6 +41,8 @@ def provisionJibri(shard_environment,cloud_name,release_number,gitBranch,jibriVe
 // global var to track git branch from env or new tags
 def git_branch
 def utils
+def governance
+def artConfig
 def jibriNomadFlag
 def jibriComposeFlag
 
@@ -66,6 +68,16 @@ pipeline {				//indicate the job is written in Declarative Pipeline
 
                     // setup OCI credentials
                     utils.SetupOCI()
+
+                    dir('infra-provisioning') {
+                      governance = utils.LoadGovernanceHooks()
+                      artConfig = governance.init([
+                          serviceName: 'jibri',
+                          version:     env.JIBRI_VERSION,
+                          environment: env.ENVIRONMENT,
+                          fastTrack:   false,
+                      ])
+                    }
                 }
             }
         }
@@ -80,6 +92,15 @@ pipeline {				//indicate the job is written in Declarative Pipeline
             }
           }
         }
+
+        stage('Pre-Release') {
+            steps {
+                script {
+                    governance.preRelease(artConfig)
+                }
+            }
+        }
+
         stage('Environment flags') {
             steps {
                 script {
@@ -90,6 +111,15 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                 }
             }
         }
+
+        stage('Pre-Deploy') {
+            steps {
+                script {
+                    governance.preDeploy(artConfig)
+                }
+            }
+        }
+
         stage("build and replicate Jibri image in AWS") {
             when {
                 expression {env.CLOUD_PROVIDER == 'aws'}
@@ -166,6 +196,14 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                      build job: 'jibri-rotate',parameters: [[$class: 'StringParameterValue', name: 'ENVIRONMENT', value: env.ENVIRONMENT]]
                  }
              }
+        }
+    }
+
+    post {
+        always {
+            script {
+                governance.postHooks(artConfig, currentBuild.result == 'SUCCESS')
+            }
         }
     }
 }
