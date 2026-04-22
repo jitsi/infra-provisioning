@@ -69,6 +69,8 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                     // setup OCI credentials
                     utils.SetupOCI()
 
+                    def jibriGitHash = env.JIBRI_VERSION.substring(env.JIBRI_VERSION.lastIndexOf('-g') + 2)
+
                     dir('infra-provisioning') {
                       governance = utils.LoadGovernanceHooks()
                       artConfig = governance.init([
@@ -76,6 +78,7 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                           version:     env.JIBRI_VERSION,
                           environment: env.ENVIRONMENT,
                           fastTrack:   false,
+                          gitRefs:     [jibri: jibriGitHash],
                       ])
                     }
                 }
