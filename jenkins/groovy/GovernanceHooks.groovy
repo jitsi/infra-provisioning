@@ -19,6 +19,14 @@ def postHooks(Map artConfig, boolean success) {
     echo "GovernanceHooks: no governance provider configured (postHooks)"
 }
 
+def loadLibrary() {
+    echo "GovernanceHooks: no governance provider configured (loadLibrary)"
+}
+
+def loadCredentials(credentialId = '') {
+    echo "GovernanceHooks: no governance provider configured (loadCredentials)"
+}
+
 def getRpTicket() {
     return env.RP_TICKET ?: ''
 }
