@@ -7,6 +7,15 @@ def provisionJob(shard_environment,oracle_region,video_infra_branch) {
 
     return provision
 }
+// release-jitsi-slacker — test pipeline for governance hooks lifecycle.
+// Exercises preRelease, preDeploy, postHooks against govern8.
+
+library identifier: 'jenkins-govern8-integration@master',
+    retriever: modernSCM([
+        $class: 'GitSCMSource',
+        remote: 'git@github.com:jitsi/jenkins-govern8-integration.git',
+        credentialsId: 'video-infra'
+    ])
 
 def utils
 def governance
@@ -18,6 +27,9 @@ pipeline {
       ansiColor('xterm')
       timestamps()
       buildDiscarder(logRotator(numToKeepStr: '10', artifactNumToKeepStr: '10'))
+    }
+    environment {
+        GOVERN8_API_KEY = credentials('govern8-api-key')
     }
     stages {
         stage('Prepare/Checkout') {
