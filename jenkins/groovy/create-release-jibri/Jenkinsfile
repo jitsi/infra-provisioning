@@ -96,14 +96,6 @@ pipeline {				//indicate the job is written in Declarative Pipeline
           }
         }
 
-        stage('Pre-Release') {
-            steps {
-                script {
-                    governance.preRelease(artConfig)
-                }
-            }
-        }
-
         stage('Environment flags') {
             steps {
                 script {
@@ -115,45 +107,49 @@ pipeline {				//indicate the job is written in Declarative Pipeline
             }
         }
 
-        stage('Pre-Deploy') {
-            steps {
-                script {
-                    governance.preDeploy(artConfig)
+        stage("governance and build image") {
+            parallel {
+                stage('Governance') {
+                    steps {
+                        script {
+                            governance.preRelease(artConfig)
+                            governance.preDeploy(artConfig)
+                        }
+                    }
                 }
-            }
-        }
-
-        stage("build and replicate Jibri image in AWS") {
-            when {
-                expression {env.CLOUD_PROVIDER == 'aws'}
-            }
-            steps {
-                script {
-                    buildJibriImageAws(
-                            env.BUILD_ID,
-                            env.JIBRI_VERSION,
-                            env.FORCE_BUILD_IMAGE
-                            )
+                stage("build and replicate Jibri image in AWS") {
+                    when {
+                        expression {env.CLOUD_PROVIDER == 'aws'}
+                    }
+                    steps {
+                        script {
+                            buildJibriImageAws(
+                                    env.BUILD_ID,
+                                    env.JIBRI_VERSION,
+                                    env.FORCE_BUILD_IMAGE
+                                    )
+                        }
+                    }
                 }
-            }
-        }
-        stage("build and replicate Jibri image in Oracle") {
-            when {
-                allOf {
-                    expression {env.CLOUD_PROVIDER == 'oracle'}
-                    expression {jibriNomadFlag != 'true'}
-                    expression {jibriComposeFlag != 'true'}
-                }
-            }
-            steps {
-                script {
-                    buildJibriImageOracle(
-                            env.ENVIRONMENT,
-                            env.CLOUDS,
-                            env.JIBRI_VERSION,
-                            env.FORCE_BUILD_IMAGE,
-                            env.VIDEO_INFRA_BRANCH
-                            )
+                stage("build and replicate Jibri image in Oracle") {
+                    when {
+                        allOf {
+                            expression {env.CLOUD_PROVIDER == 'oracle'}
+                            expression {jibriNomadFlag != 'true'}
+                            expression {jibriComposeFlag != 'true'}
+                        }
+                    }
+                    steps {
+                        script {
+                            buildJibriImageOracle(
+                                    env.ENVIRONMENT,
+                                    env.CLOUDS,
+                                    env.JIBRI_VERSION,
+                                    env.FORCE_BUILD_IMAGE,
+                                    env.VIDEO_INFRA_BRANCH
+                                    )
+                        }
+                    }
                 }
             }
         }
