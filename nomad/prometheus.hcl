@@ -725,7 +725,23 @@ groups:
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=haproxy_shard_unhealthy
   - alert: HAProxy_LB_Bandwidth_High
-    expr: oci_lbaas_peak_bandwidth{lb_name=~".*haproxy.*"} > 400
+    expr: oci_lbaas_peak_bandwidth{lb_name=~".*haproxy.*"} > 450
+    for: 5m
+    labels:
+      service: jitsi
+      severity: severe
+      page: true
+    annotations:
+      summary: HAProxy OCI LB bandwidth is approaching max capacity in ${var.dc}
+      description: >-
+        OCI HAProxy load balancer {{ $labels.lb_name }} in ${var.dc} has sustained
+        peak bandwidth above 450 Mbps for 5 minutes (currently {{ $value | printf "%.0f" }} Mbps).
+        The provisioned limit is 500 Mbps. Investigate your traffic sources and consider
+        upgrading the LB bandwidth allocation or applying mitigation WAF rules.
+      dashboard_url: ${var.grafana_url}
+      alert_url: https://${var.prometheus_hostname}/alerts?search=haproxy_lb
+  - alert: HAProxy_LB_Bandwidth_High
+    expr: oci_lbaas_peak_bandwidth{lb_name=~".*haproxy.*"} > 300
     for: 5m
     labels:
       service: jitsi
@@ -734,9 +750,9 @@ groups:
       summary: HAProxy OCI LB bandwidth is approaching max capacity in ${var.dc}
       description: >-
         OCI HAProxy load balancer {{ $labels.lb_name }} in ${var.dc} has sustained
-        peak bandwidth above 400 Mbps for 5 minutes (currently {{ $value | printf "%.0f" }} Mbps).
-        The provisioned limit is 500 Mbps. Investigate traffic sources and consider
-        upgrading the LB bandwidth allocation.
+        peak bandwidth above 300 Mbps for 5 minutes (currently {{ $value | printf "%.0f" }} Mbps).
+        The provisioned limit is 500 Mbps. Investigate your traffic sources and consider
+        upgrading the LB bandwidth allocation or applying mitigation WAF rules.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=haproxy_lb
   - alert: HAProxy_LB_Unhealthy_Backends
@@ -1024,6 +1040,22 @@ groups:
         number of participants on each shard is over 4000 users.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=shard_cpu_high
+  - alert: HAProxy_CPU_High
+    expr: 100 - cpu_usage_idle{role="haproxy"} > 90
+    for: 5m
+    labels:
+      service: jitsi
+      severity: severe
+      page: true
+    annotations:
+      summary: a haproxy in ${var.dc} has had CPU usage > 90% for 5 minutes
+      description: >-
+        A haproxy in ${var.dc} has had a CPU running at over 90% in the last 5
+        minutes. It was most recently at {{ $value | printf "%.2f" }}%. This
+        should be immediately investigated because it may mean that traffic is
+        being dropped in the ingress.
+      dashboard_url: ${var.grafana_url}
+      alert_url: https://${var.prometheus_hostname}/alerts?search=haproxy_cpu_high
 %{ if var.autoscaler_alerts }
   - alert: Autoscaler_Down
     expr: absent(autoscaling_groups_managed)
