@@ -20,6 +20,7 @@ pipeline {
       ansiColor('xterm')
       timestamps()
       buildDiscarder(logRotator(daysToKeepStr: '14'))
+      timeout(time: 10, unit: 'MINUTES')
     }
     stages {
         stage ("setup") {
