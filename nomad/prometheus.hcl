@@ -726,7 +726,7 @@ groups:
       alert_url: https://${var.prometheus_hostname}/alerts?search=haproxy_shard_unhealthy
   - alert: HAProxy_LB_Bandwidth_High
     expr: oci_lbaas_peak_bandwidth{lb_name=~".*haproxy.*"} > 450
-    for: 5m
+    for: 2m
     labels:
       service: jitsi
       severity: severe
@@ -1042,7 +1042,7 @@ groups:
       alert_url: https://${var.prometheus_hostname}/alerts?search=shard_cpu_high
   - alert: HAProxy_CPU_High
     expr: 100 - cpu_usage_idle{role="haproxy"} > 90
-    for: 5m
+    for: 2m
     labels:
       service: jitsi
       severity: severe
