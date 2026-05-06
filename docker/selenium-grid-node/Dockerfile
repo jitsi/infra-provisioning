@@ -21,8 +21,13 @@ RUN chmod +x /opt/bin/firefox-cleanup.sh /opt/bin/chrome-cleanup.sh
 COPY --chown="${SEL_UID}:${SEL_GID}" get_lang_package.sh install-firefox-apt.sh /opt/bin/
 RUN chmod +x /opt/bin/get_lang_package.sh /opt/bin/install-firefox-apt.sh
 
-# Patch upstream generate_config to use full browser versions instead of short (major.minor)
-RUN sed -i 's/echo "${__major}.${__minor:0:1}"/echo "${__long_version}"/' /opt/bin/generate_config
+# Patch upstream generate_config:
+#   - short_version returns the full version (not major.minor[0])
+#   - keep browserVersion as the channel (stable/beta) instead of overwriting with the numeric version
+#   - add se:browserVersion to the stereotype JSON with the actual numeric version
+RUN sed -i 's/echo "${__major}.${__minor:0:1}"/echo "${__long_version}"/' /opt/bin/generate_config \
+    && sed -i 's|SE_NODE_BROWSER_VERSION=$(short_version "$(cat "${browser_dir}version")")|:|' /opt/bin/generate_config \
+    && sed -i 's|\\"$(hostname)\\"}|\\"$(hostname)\\", \\"se:browserVersion\\": \\"$(cat "${browser_dir}version" 2>/dev/null)\\"}|' /opt/bin/generate_config
 
 # Bust cache for all dynamic-version installs below
 ARG CACHEBUST=1
@@ -36,7 +41,7 @@ RUN if [ "$(dpkg --print-architecture)" = "amd64" ]; then \
     && rm -rf /var/lib/apt/lists/* /var/cache/apt/* \
     && mkdir -p /opt/selenium/browsers/chrome_beta \
     && echo "chrome" > /opt/selenium/browsers/chrome_beta/name \
-    && google-chrome-beta --version | awk '{print $4}' > /opt/selenium/browsers/chrome_beta/version \
+    && google-chrome-beta --version | awk '{print $3}' > /opt/selenium/browsers/chrome_beta/version \
     && echo '{"goog:chromeOptions": {"binary": "${SE_BROWSER_BINARY_LOCATION:-/usr/bin/google-chrome-beta}"}}' > /opt/selenium/browsers/chrome_beta/binary_location \
     && chown -R ${SEL_UID}:${SEL_GID} /opt/selenium/browsers/chrome_beta; \
   fi
@@ -108,7 +113,7 @@ RUN mkdir -p /opt/selenium/browsers/firefox \
     && if command -v firefox-beta >/dev/null 2>&1; then \
       mkdir -p /opt/selenium/browsers/firefox_beta \
       && echo "firefox" > /opt/selenium/browsers/firefox_beta/name \
-      && echo "beta" > /opt/selenium/browsers/firefox_beta/version \
+      && firefox-beta --version | awk '{print $3}' > /opt/selenium/browsers/firefox_beta/version \
       && echo '{"moz:firefoxOptions": {"binary": "${SE_BROWSER_BINARY_LOCATION:-/usr/bin/firefox-beta}"}}' > /opt/selenium/browsers/firefox_beta/binary_location \
       && chown -R ${SEL_UID}:${SEL_GID} /opt/selenium/browsers/firefox_beta; \
     fi
@@ -133,5 +138,13 @@ RUN LATEST_VERSION=$(curl -sk https://api.github.com/repos/mozilla/geckodriver/r
 # Additional utilities
 #============================================
 RUN apt-get update -y && apt-get install -y iproute2 && rm -rf /var/lib/apt/lists/* /var/cache/apt/*
+
+# Per-browser channel labels — read by the patched generate_config so each stereotype's
+# browserVersion reflects the channel (stable/beta) instead of the upstream default.
+ENV SE_NODE_BROWSER_VERSION_CHROME=stable \
+    SE_NODE_BROWSER_VERSION_CHROMIUM=stable \
+    SE_NODE_BROWSER_VERSION_CHROME_BETA=beta \
+    SE_NODE_BROWSER_VERSION_FIREFOX=stable \
+    SE_NODE_BROWSER_VERSION_FIREFOX_BETA=beta
 
 USER ${SEL_UID}
