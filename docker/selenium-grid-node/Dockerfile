@@ -173,11 +173,14 @@ RUN LATEST_VERSION=$(curl -sk https://api.github.com/repos/mozilla/geckodriver/r
 RUN apt-get update -y && apt-get install -y iproute2 && rm -rf /var/lib/apt/lists/* /var/cache/apt/*
 
 # Per-browser channel labels — read by the patched generate_config so each stereotype's
-# browserVersion reflects the channel (stable/beta) instead of the upstream default.
-ENV SE_NODE_BROWSER_VERSION_CHROME=stable \
-    SE_NODE_BROWSER_VERSION_CHROMIUM=stable \
-    SE_NODE_BROWSER_VERSION_CHROME_BETA=beta \
-    SE_NODE_BROWSER_VERSION_FIREFOX=stable \
-    SE_NODE_BROWSER_VERSION_FIREFOX_BETA=beta
+# browserVersion reflects the channel (jitsi-stable/jitsi-beta) instead of the upstream default.
+# Avoid the literal "stable" string — Selenium Grid's DefaultSlotMatcher treats a request
+# browserVersion of "stable" as a wildcard that matches any stereotype (see SeleniumHQ
+# selenium#15481, Step 6), which would let "stable" requests land on beta-stereotype slots.
+ENV SE_NODE_BROWSER_VERSION_CHROME=jitsi-stable \
+    SE_NODE_BROWSER_VERSION_CHROMIUM=jitsi-stable \
+    SE_NODE_BROWSER_VERSION_CHROME_BETA=jitsi-beta \
+    SE_NODE_BROWSER_VERSION_FIREFOX=jitsi-stable \
+    SE_NODE_BROWSER_VERSION_FIREFOX_BETA=jitsi-beta
 
 USER ${SEL_UID}
