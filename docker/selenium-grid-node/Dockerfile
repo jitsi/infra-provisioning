@@ -32,12 +32,37 @@ RUN sed -i 's/echo "${__major}.${__minor:0:1}"/echo "${__long_version}"/' /opt/b
 # Bust cache for all dynamic-version installs below
 ARG CACHEBUST=1
 
+# Pin (apt-hold) the stable browser shipped by the base image so neither the
+# rest of this Dockerfile nor any runtime `apt upgrade` rolls it forward.
+# Each rebuild of this image picks up whatever the base nightly tag currently
+# ships, and that exact version is then frozen into the resulting image.
+RUN if [ "$(dpkg --print-architecture)" = "amd64" ]; then \
+      apt-mark hold google-chrome-stable; \
+    else \
+      apt-mark hold chromium; \
+    fi
+
+# Disable Chrome/Chromium in-browser auto-update via enterprise policy.
+# apt-mark hold already blocks the cron-driven apt path, but Chrome also
+# reads managed policies at launch — these flatly disable the updater.
+RUN if [ "$(dpkg --print-architecture)" = "amd64" ]; then \
+      mkdir -p /etc/opt/chrome/policies/managed \
+      && printf '{"AutoUpdateCheckPeriodMinutes": 0, "UpdateDefault": 0}\n' \
+           > /etc/opt/chrome/policies/managed/no-update.json; \
+    else \
+      mkdir -p /etc/chromium/policies/managed \
+      && printf '{"AutoUpdateCheckPeriodMinutes": 0, "UpdateDefault": 0}\n' \
+           > /etc/chromium/policies/managed/no-update.json; \
+    fi
+
 #============================================
 # Chrome Beta (amd64 only) + browser metadata for upstream generate_config
 #============================================
 RUN if [ "$(dpkg --print-architecture)" = "amd64" ]; then \
     apt-get update -qqy \
     && apt-get -qqy --no-install-recommends install google-chrome-beta \
+    && apt-mark hold google-chrome-beta \
+    && rm -f /etc/cron.daily/google-chrome \
     && rm -rf /var/lib/apt/lists/* /var/cache/apt/* \
     && mkdir -p /opt/selenium/browsers/chrome_beta \
     && echo "chrome" > /opt/selenium/browsers/chrome_beta/name \
@@ -97,6 +122,14 @@ RUN apt-get update -y && \
   && echo "Downloading Firefox lanuage packs" \
   # Download the language pack for Firefox
   && /opt/bin/get_lang_package.sh \
+  # Pin Firefox (and firefox-beta when present) so the CVE upgrade below
+  # doesn't roll them forward; freezes the apt-installed version into the image.
+  && (apt-mark hold firefox || true) \
+  && (apt-mark hold firefox-beta || true) \
+  # Disable Firefox's in-app updater (Mozilla AUS) — apt-mark hold doesn't
+  # cover it. Both firefox and firefox-beta read this policy file.
+  && mkdir -p /etc/firefox/policies \
+  && printf '{"policies": {"DisableAppUpdate": true}}\n' > /etc/firefox/policies/policies.json \
   # Do one more upgrade to fix possible CVEs from Firefox dependencies
   && apt-get update -qqy \
   && apt-get upgrade -yq \
