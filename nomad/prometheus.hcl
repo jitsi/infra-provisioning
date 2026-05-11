@@ -725,7 +725,7 @@ groups:
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=haproxy_shard_unhealthy
   - alert: HAProxy_LB_Bandwidth_High
-    expr: oci_lbaas_peak_bandwidth{lb_name=~".*haproxy.*"} > 450
+    expr: oci_lbaas_peak_bandwidth{lb_name=~".*haproxy.*"} > 2400
     for: 2m
     labels:
       service: jitsi
@@ -735,13 +735,13 @@ groups:
       summary: HAProxy OCI LB bandwidth is approaching max capacity in ${var.dc}
       description: >-
         OCI HAProxy load balancer {{ $labels.lb_name }} in ${var.dc} has sustained
-        peak bandwidth above 450 Mbps for 5 minutes (currently {{ $value | printf "%.0f" }} Mbps).
-        The provisioned limit is 500 Mbps. Investigate your traffic sources and consider
+        peak bandwidth above 2400 Mbps for 5 minutes (currently {{ $value | printf "%.0f" }} Mbps).
+        The provisioned limit is 2500 Mbps. Investigate your traffic sources and consider
         upgrading the LB bandwidth allocation or applying mitigation WAF rules.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=haproxy_lb
   - alert: HAProxy_LB_Bandwidth_High
-    expr: oci_lbaas_peak_bandwidth{lb_name=~".*haproxy.*"} > 300
+    expr: oci_lbaas_peak_bandwidth{lb_name=~".*haproxy.*"} > 500
     for: 5m
     labels:
       service: jitsi
@@ -749,9 +749,9 @@ groups:
     annotations:
       summary: HAProxy OCI LB bandwidth is approaching max capacity in ${var.dc}
       description: >-
-        OCI HAProxy load balancer {{ $labels.lb_name }} in ${var.dc} has sustained
-        peak bandwidth above 300 Mbps for 5 minutes (currently {{ $value | printf "%.0f" }} Mbps).
-        The provisioned limit is 500 Mbps. Investigate your traffic sources and consider
+        OCI HAProxy load balancer {{ $labels.lb_name }} in ${var.dc} has sustained unusually high
+        peak bandwidth above 500 Mbps for 5 minutes (currently {{ $value | printf "%.0f" }} Mbps).
+        The provisioned limit is 2500 Mbps. Investigate your traffic sources and consider
         upgrading the LB bandwidth allocation or applying mitigation WAF rules.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=haproxy_lb
