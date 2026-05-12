@@ -67,6 +67,7 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                 echo "JVB VERSION ${env.JVB_VERSION}"
                 echo "SIGNAL VERSION ${env.SIGNAL_VERSION}"
                 echo "CLOUDS ${env.CLOUDS}"
+                echo "ORACLE_REGION ${env.ORACLE_REGION}"
                 echo "RELEASE NUMBER ${env.RELEASE_NUMBER}"
                 echo "GIT BRANCH ${env.RELEASE_BRANCH}"
             }
@@ -87,6 +88,11 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                             def aws_shards_by_cloud;
                             def oracle_shards_by_cloud;
                             echo "cloud list ${cloud_list}";
+                            if (env.ORACLE_REGION) {
+                                cloud_list = cloud_list.findAll { it.startsWith(env.ORACLE_REGION + "-") }
+                                env.CLOUDS = cloud_list.join(' ')
+                                echo "Filtered clouds to region ${env.ORACLE_REGION}: ${cloud_list}";
+                            }
                             shards_by_cloud = expand_release();
                             oracle_shards_by_cloud = shards_by_cloud.oracleShardsByCloud
                             aws_shards_by_cloud = shards_by_cloud.awsShardsByCloud
