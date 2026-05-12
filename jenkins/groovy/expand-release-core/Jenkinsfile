@@ -89,7 +89,12 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                             def oracle_shards_by_cloud;
                             echo "cloud list ${cloud_list}";
                             if (env.ORACLE_REGION) {
-                                cloud_list = cloud_list.findAll { it.startsWith(env.ORACLE_REGION + "-") }
+                                def aws_region = sh(
+                                    returnStdout: true,
+                                    script: "yq '.oracle_to_aws_region_map.\"${env.ORACLE_REGION}\"' < config/vars.yml"
+                                ).trim()
+                                echo "Oracle region ${env.ORACLE_REGION} maps to AWS region ${aws_region}";
+                                cloud_list = cloud_list.findAll { it.startsWith(aws_region + "-") }
                                 env.CLOUDS = cloud_list.join(' ')
                                 echo "Filtered clouds to region ${env.ORACLE_REGION}: ${cloud_list}";
                             }
