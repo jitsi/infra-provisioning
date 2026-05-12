@@ -44,6 +44,8 @@ parser.add_argument('--shard', action='store',
                    help='Shard name', default=False)
 parser.add_argument('--oracle', action='store_true',
                    help='Keep oracle region name when detecting shard region', default=False)
+parser.add_argument('--oracle_only', action=argparse.BooleanOptionalAction,
+                   help='Include ONLY oracle instances', default=True)
 parser.add_argument('--fix_alarms', action='store_true',
                    help='Fix Route53 alarms on all stacks in the environment', default=False)
 parser.add_argument('--shard_state', action='store',
@@ -51,8 +53,12 @@ parser.add_argument('--shard_state', action='store',
 parser.add_argument('--cloud_provider', action='store',
                    help='Cloud provider to filter', default=None)
 parser.add_argument('--region', action='store',
-                   help='AWS Region name, used for shard delete', default=False)
+                   help='Region name, used for shard delete and list filtering', default=False)
 args = parser.parse_args()
+
+oracle_only_flag = args.oracle_only
+if args.region and args.region in oracle_regions():
+    oracle_only_flag = True
 
 
 
@@ -263,13 +269,18 @@ elif args.list:
         exit(1)
     else:
         output_shards = []
-        if args.release and not args.inverse:
-            cfs = get_cloudformation_by_release(args.environment,args.release,args.region,cloud_provider=args.cloud_provider)
-            for cf in cfs:
-                output_shards.append(cf.name)
+        if not oracle_only_flag:
+            if args.release and not args.inverse:
+                cfs = get_cloudformation_by_release(args.environment,args.release,args.region,cloud_provider=args.cloud_provider)
+                for cf in cfs:
+                    output_shards.append(cf.name)
 
         #grab all shards for the environment in all regions
-        shard_instances = get_instances_by_role(role_name=SHARD_CORE_ROLE,environment_name=args.environment,region=args.region,cloud_provider=args.cloud_provider)
+        if oracle_only_flag:
+            regions = [args.region] if args.region else False
+            shard_instances = get_oracle_instances_by_role(role_name=[SHARD_CORE_ROLE],environment_name=args.environment,regions=regions,release_number=args.release if args.release else False)
+        else:
+            shard_instances = get_instances_by_role(role_name=SHARD_CORE_ROLE,environment_name=args.environment,region=args.region,cloud_provider=args.cloud_provider)
         for instance in shard_instances:
             region = instance.region
             shard = extract_tag(instance.tags, SHARD_TAG)
@@ -280,7 +291,7 @@ elif args.list:
                 else:
                     shard_matches = False
                 if (shard_matches and not args.inverse) or (not shard_matches and args.inverse):
-                    if args.shard_tag:
+                    if args.shard_tag or oracle_only_flag:
                         output_shards.append(shard)
                     else:
                         cf = get_cloudformation_by_shard(shard_name=shard, region=region)
@@ -306,7 +317,7 @@ elif args.list:
                     signal_matches = True
 
                 if (signal_matches and jvb_matches and not args.inverse) or (args.inverse and ((not signal_matches and jvb_matches) or (not jvb_matches and signal_matches) or (not signal_matches and not jvb_matches))):
-                    if args.shard_tag:
+                    if args.shard_tag or oracle_only_flag:
                         output_shards.append(shard)
                     else:
                         cf = get_cloudformation_by_shard(shard_name=shard, region=region)
@@ -314,7 +325,7 @@ elif args.list:
                             output_shards.append(cf.name)
             else:
                 # no filters provided so just output the shard
-                if args.shard_tag:
+                if args.shard_tag or oracle_only_flag:
                     output_shards.append(shard)
                 else:
                     cf = get_cloudformation_by_shard(shard_name=shard, region=region)
