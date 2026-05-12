@@ -29,13 +29,14 @@ def deleteShard(hcv_environment,shard_name) {
     return deleteShard
 }
 
-def listShards(environment, release_number) {
+def listShards(environment, release_number, oracle_region) {
     shards=[:]
     def shardStr = sh(
         returnStdout: true,
         script: """
         export ENVIRONMENT="${environment}"
         export RELEASE_NUMBER="${release_number}"
+        export ORACLE_REGION="${oracle_region}"
         scripts/list-release-shards.sh ubuntu"""
     ).trim();
 
@@ -88,7 +89,7 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                     dir('infra-provisioning') {
                         // list existing shards
                         echo "Listing existing shards"
-                        oldShards = listShards(env.ENVIRONMENT, env.RELEASE_NUMBER)
+                        oldShards = listShards(env.ENVIRONMENT, env.RELEASE_NUMBER, env.ORACLE_REGION)
                         echo "existing shards found:"
                         echo "${oldShards}"
                     }
@@ -108,7 +109,7 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                     dir('infra-provisioning') {
                         // list existing shards
                         echo "Listing existing shards to find new shards"
-                        def cShards = listShards(env.ENVIRONMENT, env.RELEASE_NUMBER)
+                        def cShards = listShards(env.ENVIRONMENT, env.RELEASE_NUMBER, env.ORACLE_REGION)
                         echo "Full shards found:"
                         echo "${cShards}"
                         echo "Olds shards from before expand:"
