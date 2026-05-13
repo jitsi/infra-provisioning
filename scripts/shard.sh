@@ -130,7 +130,7 @@ function number() {
 function new() {
     local count="$1"
     local shard
-    local shards=$(RELEASE_NUMBER="" list)
+    local shards=$(RELEASE_NUMBER="" ORACLE_REGION="" list)
 #    local aws_shards=$($LOCAL_PATH/shard.py --list --environment=$ENVIRONMENT)
     local shard_numbers=()
     local found_numbers=()
