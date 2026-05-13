@@ -48,8 +48,8 @@
           trim: true
       - string:
           name: SKIP_SHARD_READY
-          default: false
-          description: "Flag to control whether to set shards to ready state 'false' (default) or not 'true' after health checks pass."
+          default: true
+          description: "Flag to control whether to set shards to ready state immediately 'false' or not 'true' (default) after health checks pass."
           trim: true
       - string:
           name: RECYCLE_MODE
