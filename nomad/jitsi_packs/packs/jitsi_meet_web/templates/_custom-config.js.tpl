@@ -215,6 +215,10 @@ config.enableWebHIDFeature=true;
 config.disableIframeAPI=true;
 [[- end ]]
 
+[[ if eq (env "CONFIG_jitsi_meet_enable_virtual_background_v2") "true" -]]
+config.virtualBackground={enableV2:true};
+[[- end ]]
+
 config.faceLandmarks={
     enableFaceCentering: [[ or (env "CONFIG_jitsi_meet_enable_face_landmarks_enable_centering") "false" ]],
     enableFaceExpressionsDetection: [[ or (env "CONFIG_jitsi_meet_enable_face_landmarks_detect_expressions") "false" ]],
