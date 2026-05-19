@@ -6,13 +6,6 @@ pipeline {
         buildDiscarder(logRotator(numToKeepStr: '10', artifactNumToKeepStr: '10'))
     }
     stages {
-        stage('Prepare/Checkout') {
-            steps {
-                script {
-                    sh 'docker buildx create --name mybuilder --driver docker-container --bootstrap --use'
-                }
-            }
-        }
         stage('Build and Push Docker Image') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'dockerhub', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
@@ -22,6 +15,7 @@ pipeline {
                         export DOCKER_CONFIG="$(pwd)/.docker-ops-jenkins"
                         mkdir -p "$DOCKER_CONFIG"
                         echo '{"auths":{"https://index.docker.io/v1/":{"auth":"'"$DOCKER_AUTH"'"}}}' > "$DOCKER_CONFIG/config.json"
+                        docker buildx create --name mybuilder --driver docker-container --bootstrap --use
                         [ -z "$TAG" ] && export TAG="$(git rev-parse --short HEAD)"
                         ./build.sh
                         '''
