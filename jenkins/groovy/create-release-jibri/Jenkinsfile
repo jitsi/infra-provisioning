@@ -79,7 +79,12 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                           artifactType: 'vm',
                           environment: env.ENVIRONMENT,
                           fastTrack:   false,
-                          gitRefs:     [jibri: jibriGitHash],
+                          extraComponents: [[
+                              name    : 'jibri',
+                              artifact: [type: 'git', version: jibriGitHash],
+                              git     : [repository: 'https://github.com/jitsi/jibri', commit: jibriGitHash, branch: '', pr: ''],
+                              metadata: [:],
+                          ]],
                       ])
                     }
                 }
