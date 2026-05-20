@@ -1,0 +1,78 @@
+- job:
+    name: synthetic-dialin
+    display-name: synthetic jigasi dial-in test prod-8x8
+    description: >
+      Tests the dial-in functionality of Jigasi in a prod-8x8 environment.
+    concurrent: false
+    properties:
+      - build-discarder:
+          days-to-keep: 14
+          num-to-keep: -1
+          artifact-days-to-keep: -1
+          artifact-num-to-keep: -1
+    parameters:
+      - string:
+          name: ENABLE_PAGE
+          default: 'false'
+      - string:
+          name: BASE_URL
+          description: "Base URL for the Jitsi deployment."
+          trim: true
+      - string:
+          name: SELENIUM_HUB_URL
+          description: "URL for the Selenium hub."
+          trim: true
+      - string:
+          name: CLOUDWATCH_REGION
+          default: us-west-2
+          description: "Region that cloudwatch is running in."
+          trim: true
+      - string:
+          name: ENVIRONMENT
+          description: "Environment to run the synthetic dial-in test in."
+          trim: true
+      - string:
+          name: VIDEO_INFRA_BRANCH
+          default: main
+          description: "Controls checkout branch for infra repos, defaults to 'main'."
+          trim: true
+      - string:
+          name: INFRA_CONFIGURATION_REPO
+          default: git@github.com:jitsi/infra-configuration.git
+          description: "Repo for configuration code (ansible etc), defaults to 'git@github.com:jitsi/infra-configuration.git'."
+          trim: true
+      - string:
+          name: INFRA_CUSTOMIZATIONS_REPO
+          default: git@github.com:jitsi/infra-customizations.git
+          description: "Repo with customized configurations, defaults to 'git@github.com:jitsi/infra-customizations.git'."
+          trim: true
+      - string:
+          name: MEET_REPO
+          default: git@github.com:jitsi/jitsi-meet.git
+          description: "Repo for jitsi-meet code with tests."
+          trim: true
+      - string:
+          name: MEET_BRANCH
+          description: |
+            Branch to use from jitsi-meet. Leave blank for whatever is appropriate for the meet version running at the base url.
+          trim: true
+
+    triggers:
+      - timed: 'H/5 * * * *'
+
+    project-type: pipeline
+    sandbox: true
+    pipeline-scm:
+      scm:
+        - git:
+            url: git@github.com:jitsi/infra-provisioning.git
+            credentials-id: "video-infra"
+            branches:
+              - "origin/${{VIDEO_INFRA_BRANCH}}"
+            browser: githubweb
+            browser-url: https://github.com/jitsi/infra-provisioning
+            submodule:
+              recursive: true
+            wipe-workspace: true
+      script-path: jenkins/groovy/synthetic-dialin/Jenkinsfile
+      lightweight-checkout: true
