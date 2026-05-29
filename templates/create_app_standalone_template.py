@@ -10,7 +10,7 @@ from troposphere.ec2 import Instance, NetworkInterfaceProperty, Volume, VolumeAt
 from troposphere.ec2 import BlockDeviceMapping as ec2BlockDeviceMapping, EBSBlockDevice as ec2EBSBlockDevice
 from troposphere.ec2 import SecurityGroupEgress,SecurityGroup,SecurityGroupIngress
 from troposphere.autoscaling import Tag, AutoScalingGroup, LaunchConfiguration, BlockDeviceMapping, EBSBlockDevice, NotificationConfigurations, MetricsCollection, ScalingPolicy
-from troposphere.route53 import RecordSetType, HealthCheck, HealthCheckConfiguration
+from troposphere.route53 import RecordSetType, HealthCheck, HealthCheckConfig
 from troposphere.cloudwatch import Alarm, MetricDimension
 from troposphere.iam import Role, InstanceProfile
 

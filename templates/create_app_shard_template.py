@@ -9,7 +9,7 @@ from troposphere import Parameter, Ref, Template, Join, Tags, Base64, Output, Ge
 from troposphere.ec2 import Instance, NetworkInterfaceProperty
 from troposphere.ec2 import SecurityGroupEgress,SecurityGroup,SecurityGroupIngress
 from troposphere.autoscaling import Tag, AutoScalingGroup, LaunchConfiguration, BlockDeviceMapping, EBSBlockDevice, NotificationConfigurations, MetricsCollection, ScalingPolicy
-from troposphere.route53 import RecordSetType, HealthCheck, HealthCheckConfiguration
+from troposphere.route53 import RecordSetType, HealthCheck, HealthCheckConfig
 from troposphere.cloudwatch import Alarm, MetricDimension
 from troposphere.cloudformation import CustomResource
 from troposphere.policies import (
@@ -687,7 +687,7 @@ def create_app_shard_template(filepath, enable_pagerduty_alarms=False, release_n
     route53_xmpp_health_check = t.add_resource(HealthCheck(
         'Route53XMPPHealthCheck',
         DependsOn=["JVBAutoScaleGroup" if enable_jvb_asg else "XMPPClientWaitCondition"],
-        HealthCheckConfig= HealthCheckConfiguration(
+        HealthCheckConfig= HealthCheckConfig(
             IPAddress= GetAtt( "XMPPServer", "PublicIp"),
             Port= 443,
             Type= "HTTPS",

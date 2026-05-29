@@ -339,7 +339,7 @@ def add_route53_records(t, eip_names, enable_ipv6=False):
         route53_turn_health_check = t.add_resource(route53.HealthCheck(
             route53_resource_name,
             DependsOn= "CoturnAutoScaleGroup",
-            HealthCheckConfig= route53.HealthCheckConfiguration(
+            HealthCheckConfig= route53.HealthCheckConfig(
                 IPAddress=Ref(ip),
                 Port= 443,
                 Type= "HTTP",

@@ -162,7 +162,7 @@ def add_route53_records(t, oracle_public_ip_list, route53_turn_tcp=False):
         if (route53_turn_tcp):
             route53_turn_health_check = t.add_resource(route53.HealthCheck(
                 route53_resource_name,
-                HealthCheckConfig= route53.HealthCheckConfiguration(
+                HealthCheckConfig= route53.HealthCheckConfig(
                     IPAddress=public_ip,
                     Port= 443,
                     Type= "TCP",
@@ -183,7 +183,7 @@ def add_route53_records(t, oracle_public_ip_list, route53_turn_tcp=False):
         else:
             route53_turn_health_check = t.add_resource(route53.HealthCheck(
                 route53_resource_name,
-                HealthCheckConfig= route53.HealthCheckConfiguration(
+                HealthCheckConfig= route53.HealthCheckConfig(
                     IPAddress=public_ip,
                     Port= 443,
                     Type= "HTTP",
