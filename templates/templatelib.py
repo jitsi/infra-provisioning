@@ -12,7 +12,7 @@ from troposphere import Parameter, Ref, Template, Join, Tags, Base64, Output, Ge
 from troposphere.ec2 import Instance, NetworkInterfaceProperty
 from troposphere.ec2 import SecurityGroupEgress,SecurityGroup,SecurityGroupIngress
 from troposphere.autoscaling import Tag, AutoScalingGroup, LaunchConfiguration, BlockDeviceMapping, EBSBlockDevice, NotificationConfigurations, MetricsCollection, ScalingPolicy
-from troposphere.route53 import RecordSetType, HealthCheck, HealthCheckConfiguration
+from troposphere.route53 import RecordSetType, HealthCheck, HealthCheckConfig
 from troposphere.cloudwatch import Alarm, MetricDimension
 
 def create_template():
