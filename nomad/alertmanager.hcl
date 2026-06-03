@@ -1,3 +1,9 @@
+# Per-service PagerDuty routing based on vault values:
+#   - Default: secret/default/alertmanager/receivers/pagerduty (key
+#     pagerduty_integration_key) -> receiver `pagerduty_alerts`.
+#   - Overrides: each secret under .../receivers/pagerduty_services/<svc>
+#     adds a `service = <svc>` route + `pagerduty_alerts_<svc>` receiver.
+
 variable "dc" {
   type = string
 }
@@ -116,12 +122,18 @@ route:
       - scope %{ if var.global_alertmanager }= "global"%{ else }!= "global"%{ endif }
       receiver: 'slack_pages'
       continue: true
-    - matchers:
+{{{ range secrets "secret/default/alertmanager/receivers/pagerduty_services" }}}    - matchers:
+      - severity = "severe"
+      - page = "true"
+      - service = "{{{ . }}}"
+      - scope %{ if var.global_alertmanager }= "global"%{ else }!= "global"%{ endif }
+      receiver: 'pagerduty_alerts_{{{ . }}}'
+      continue: false
+{{{ end }}}    - matchers:
       - severity = "severe"
       - page = "true"
       - scope %{ if var.global_alertmanager }= "global"%{ else }!= "global"%{ endif }
-      receiver: 'pagerduty_alerts'
-      continue: true%{ endif }
+      receiver: 'pagerduty_alerts'%{ endif }
 
 # suppress warn/smoke alerts if a severe alert is already firing with the same alertname
 inhibit_rules:
@@ -158,7 +170,10 @@ receivers:
 %{ if var.pagerduty_enabled }- name: 'pagerduty_alerts'
   pagerduty_configs:
   - service_key: '{{{ with secret "secret/default/alertmanager/receivers/pagerduty" }}}{{{ .Data.data.pagerduty_integration_key }}}{{{ end }}}'
-- name: slack_pages
+{{{ range secrets "secret/default/alertmanager/receivers/pagerduty_services" }}}{{{ $svc := . }}}- name: 'pagerduty_alerts_{{{ $svc }}}'
+  pagerduty_configs:
+  - service_key: '{{{ with secret (printf "secret/default/alertmanager/receivers/pagerduty_services/%s" $svc) }}}{{{ .Data.data.pagerduty_integration_key }}}{{{ end }}}'
+{{{ end }}}- name: slack_pages
   slack_configs:
     - channel: '#pages'
       api_url: '{{{ with secret "secret/default/alertmanager/receivers/slack" }}}{{{ .Data.data.slack_pages_webhook }}}{{{ end }}}'
