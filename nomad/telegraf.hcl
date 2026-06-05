@@ -564,10 +564,11 @@ EOF
 EOF
         destination = "local/telegraf.conf"
       }
-      // resources {
-      //   cpu    = 500
-      //   memory = 768
-      // }
+
+      resources {
+         cpu    = 100
+         memory = 400
+      }
     }
   }
 }
