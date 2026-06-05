@@ -1070,7 +1070,7 @@ groups:
         the autoscaler may be not scaling JVBs.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=autoscaler_down%{ endif }
-%{ if var.core_extended_services }
+%{ if var.core_extended_services && var.environment_type == "prod" }
 - name: core_extended_service_alerts
   rules:
   - alert: Coturn_UDP_Errors_High
