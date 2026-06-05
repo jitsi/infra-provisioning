@@ -38,11 +38,11 @@ fi
 nomad-pack status jitsi_meet_backend --name shard-$SHARD | egrep -q "no jobs found|dead"
 if [[ $? -eq 1 ]]; then
     echo "nomad pack found for shard $SHARD"
-    nomad-pack stop jitsi_meet_backend --name shard-$SHARD
+    nomad-pack stop jitsi_meet_backend --name shard-$SHARD --purge
 else
     echo "nomad pack not found for shard $SHARD"
-    nomad job stop "shard-$SHARD"
+    nomad job stop -purge "shard-$SHARD"
 fi
 
-nomad job stop "shard-$SHARD"
+nomad job stop -purge "shard-$SHARD"
 exit $?

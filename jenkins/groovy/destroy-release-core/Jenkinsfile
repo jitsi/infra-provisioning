@@ -156,10 +156,10 @@ pipeline {
                               scripts/nomad-pack.sh status jitsi_meet_web --name web-release-\$R | egrep -q "no jobs found|dead"
                               if [[ \$? -eq 1 ]]; then
                                 echo "nomad pack found for release \$R"
-                                scripts/nomad-pack.sh stop jitsi_meet_web --name web-release-\$R
+                                scripts/nomad-pack.sh stop jitsi_meet_web --name web-release-\$R --purge
                               else
                                 echo "nomad pack not found for release \$R"
-                                scripts/nomad.sh job stop web-release-\$R
+                                scripts/nomad.sh job stop -purge web-release-\$R
                               fi
                             else
                               echo "No nomad release found for release \$R"
