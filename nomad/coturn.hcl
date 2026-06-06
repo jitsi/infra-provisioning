@@ -135,7 +135,7 @@ EOF
 
       resources {
         cpu    = 10000
-        memory = 15360
+        memory = 15000
       }
       service {
         name = "coturn"
