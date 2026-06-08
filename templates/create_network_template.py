@@ -1038,15 +1038,6 @@ def add_network_cft_resources(t,enable_ipv6):
         CidrIp="0.0.0.0/0"
     ))
 
-    ingress9 = t.add_resource(SecurityGroupIngress(
-        'ingress9',
-        GroupId=Ref("JVBSecurityGroup"),
-        IpProtocol="tcp",
-        FromPort="443",
-        ToPort="443",
-        CidrIp="0.0.0.0/0"
-    ))
-
     ingress10 = t.add_resource(SecurityGroupIngress(
         'ingress10',
         GroupId=Ref("JVBSecurityGroup"),
