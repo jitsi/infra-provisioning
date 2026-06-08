@@ -146,21 +146,6 @@ resource "oci_core_network_security_group_security_rule" "jvb_network_security_g
     }
 }
 
-resource "oci_core_network_security_group_security_rule" "jvb_network_security_group_security_rule_3" {
-    network_security_group_id = oci_core_network_security_group.jvb_network_security_group.id
-    protocol                  = "6"   //tcp
-    direction                 = "INGRESS"
-    source                    = "0.0.0.0/0"
-    stateless                 = false
-
-    tcp_options {
-        destination_port_range {
-          min = 443
-          max = 443
-        }
-    }
-}
-
 resource "oci_core_network_security_group_security_rule" "jvb_network_security_group_security_rule_4" {
     network_security_group_id = oci_core_network_security_group.jvb_network_security_group.id
     protocol                  = "17"   //udp
