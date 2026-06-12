@@ -106,6 +106,9 @@ SE_ENABLE_TRACING="false"
 CONFIG_FILE="/local/config.toml"
 GENERATE_CONFIG="true"
 #SE_OPTS="--log-level FINE"
+# Chrome writes its debug log here when started with --enable-logging
+# (used to capture webrtc/SRTP logs; fetch via the allocation Files tab or `nomad alloc fs`)
+CHROME_LOG_FILE="/alloc/logs/chrome_debug.log"
         EOF
         destination = "local/selenium.env"
         env = true
