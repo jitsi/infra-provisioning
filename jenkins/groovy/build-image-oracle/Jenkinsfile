@@ -40,9 +40,11 @@ pipeline {
         expression {skipCheck == false}
       }
       steps {
-        dir('infra-provisioning') {
-          script {
-            def imageArch = env.IMAGE_ARCH ?: utils.DefaultImageArch(env.IMAGE_TYPE)
+        script {
+          // resolve the effective arch (matching the build scripts' per-type default)
+          // BEFORE entering infra-provisioning, since DefaultImageArch re-enters it itself
+          def imageArch = env.IMAGE_ARCH ?: utils.DefaultImageArch(env.IMAGE_TYPE)
+          dir('infra-provisioning') {
             lock("image-build-${env.IMAGE_TYPE}-${imageArch}") {
               utils.SetupAnsible()
               withCredentials([
