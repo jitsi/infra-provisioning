@@ -12,17 +12,12 @@ fi
 LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
 [ -e "$LOCAL_PATH/../clouds/oracle.sh" ] && . $LOCAL_PATH/../clouds/oracle.sh
+[ -e "$LOCAL_PATH/image-arch.sh" ] && . $LOCAL_PATH/image-arch.sh
 
 [ -z "$ORACLE_REGION" ] && ORACLE_REGION=$DEFAULT_ORACLE_REGION
 
-if [ -z "$IMAGE_ARCH" ]; then
-  # sensible default based on image type
-  if [[ "$IMAGE_TYPE" == "JavaJibri" ]]; then
-    IMAGE_ARCH="x86_64"
-  fi
-fi
-
-[ -z "$IMAGE_ARCH" ] && IMAGE_ARCH="aarch64"
+# sensible default architecture based on image type (see scripts/image-arch.sh)
+[ -z "$IMAGE_ARCH" ] && default_arch_from_type "$IMAGE_TYPE"
 
 # #pull in region-specific variables
 # [ -e "../all/regions/${ORACLE_REGION}-oracle.sh" ] && . ../all/regions/${ORACLE_REGION}-oracle.sh
