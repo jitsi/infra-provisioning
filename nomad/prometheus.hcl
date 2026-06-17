@@ -1100,7 +1100,7 @@ groups:
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=jibris_available_none
   - alert: Jicofo_Jibris_Available_None
-    expr: max_over_time(count(jitsi_jicofo_jibri_instances_available == 0)[1m:]) > 0
+    expr: max_over_time(count(jitsi_jicofo_jibri_instances_available{role="core"} == 0)[1m:]) > 0
     for: 1m
     labels:
       service: jitsi
@@ -1116,7 +1116,7 @@ groups:
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=jibris_available_none
   - alert: Jicofo_Jibris_Missing
-    expr: max by (shard) (jitsi_jicofo_jibri_instances) < 1 and on (shard) (count_over_time(jitsi_jicofo_jibri_instances[10m:1m]) >= 10)
+    expr: max by (shard) (jitsi_jicofo_jibri_instances{role="core"}) < 1 and on (shard) (count_over_time(jitsi_jicofo_jibri_instances{role="core"}[10m:1m]) >= 10)
     for: 5m
     labels:
       service: jitsi
@@ -1131,7 +1131,7 @@ groups:
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=jicofo_jibris_missing
   - alert: Jicofo_SIP-Jigasi_Missing
-    expr: max by (shard) (jitsi_jicofo_jigasi_sip_count) < 1 and on (shard) (count_over_time(jitsi_jicofo_jigasi_sip_count[10m:1m]) >= 10)
+    expr: max by (shard) (jitsi_jicofo_jigasi_sip_count{role="core"}) < 1 and on (shard) (count_over_time(jitsi_jicofo_jigasi_sip_count{role="core"}[10m:1m]) >= 10)
     for: 5m
     labels:
       service: jitsi
@@ -1147,7 +1147,7 @@ groups:
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=jicofo_sip-jigasi_missing
   - alert: Jicofo_SIP-Jigasi_Missing
-    expr: max by (shard) (jitsi_jicofo_jigasi_sip_count) < 1 and on (shard) (count_over_time(jitsi_jicofo_jigasi_sip_count[10m:1m]) >= 10)
+    expr: max by (shard) (jitsi_jicofo_jigasi_sip_count{role="core"}) < 1 and on (shard) (count_over_time(jitsi_jicofo_jigasi_sip_count{role="core"}[10m:1m]) >= 10)
     for: 20m
     labels:
       service: jitsi
@@ -1162,7 +1162,7 @@ groups:
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=jicofo_sip-jigasi_missing
   - alert: Jicofo_Transcribers_Missing
-    expr: max by (shard) (jitsi_jicofo_jigasi_transcriber_count) < 1 and on (shard) (count_over_time(jitsi_jicofo_jigasi_transcriber_count[10m:1m]) >= 10)
+    expr: max by (shard) (jitsi_jicofo_jigasi_transcriber_count{role="core"}) < 1 and on (shard) (count_over_time(jitsi_jicofo_jigasi_transcriber_count{role="core"}[10m:1m]) >= 10)
     for: 5m
     labels:
       service: jitsi
