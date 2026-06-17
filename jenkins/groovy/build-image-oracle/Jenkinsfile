@@ -42,7 +42,7 @@ pipeline {
       steps {
         dir('infra-provisioning') {
           script {
-            def imageArch = env.IMAGE_ARCH ?: "x86_64"
+            def imageArch = env.IMAGE_ARCH ?: utils.DefaultImageArch(env.IMAGE_TYPE)
             lock("image-build-${env.IMAGE_TYPE}-${imageArch}") {
               utils.SetupAnsible()
               withCredentials([

@@ -318,6 +318,21 @@ echo \$IMAGE_ARCH"""
     }
 }
 
+// default image architecture for an image type when IMAGE_ARCH is not set,
+// matching the per-type default used by the build scripts (see scripts/image-arch.sh)
+def DefaultImageArch(image_type) {
+    dir('infra-provisioning') {
+        def arch = sh(
+        returnStdout: true,
+        script: """#!/bin/bash
+. ./scripts/image-arch.sh
+default_arch_from_type ${image_type}
+echo \$IMAGE_ARCH"""
+        ).trim();
+        return arch
+    }
+}
+
 // get the shape of the signal image via DEFAULT_SIGNAL_SHAPE variable
 def SignalShapeFromEnvironment(environment) {
     dir('infra-provisioning') {
