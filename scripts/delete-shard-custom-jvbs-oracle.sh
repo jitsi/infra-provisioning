@@ -156,7 +156,7 @@ if [ "$GROUP_NOT_FOUND" != "true" ]; then
       for INSTANCE_ID in $INSTANCES; do
         if (echo "$INSTANCE_ID" | grep -q "/dispatch-"); then
           echo "Terminating nomad instance $INSTANCE_ID"
-          $LOCAL_PATH/nomad.sh job stop $INSTANCE_ID
+          $LOCAL_PATH/nomad.sh job stop -purge $INSTANCE_ID
         else
           echo "Terminating JVB instance $INSTANCE_ID"
           oci --region $ORACLE_REGION compute instance terminate --force --instance-id $INSTANCE_ID
@@ -198,6 +198,39 @@ fi
 ##################################
 if [[ "$CLOUD_PROVIDER" == "oracle" ]]; then
   $LOCAL_PATH/../terraform/create-jvb-instance-configuration/delete-jvb-instance-configuration.sh
+fi
+
+# Purge the nomad-orchestrated JVB parameterized parent job and any leftover
+# dispatch children.
+#
+# The autoscaler group teardown above only scales the group to 0, terminates the
+# instances the group still reports, and deletes the group. It never removes the
+# parameterized parent job that deploy-nomad-jvb.sh registered as "jvb-$SHARD",
+# so each release otherwise leaves its parent behind permanently.
+#
+# Gated on CLOUD_PROVIDER (read from the autoscaler group's instanceGroup.cloud
+# above) so this only runs for nomad-dispatched pools. VM-based pools (oracle/aws)
+# have no nomad parent and would otherwise hit an unreachable nomad endpoint. If
+# the group was not found, CLOUD_PROVIDER is unset and this is skipped; that orphan
+# case is handled by the standalone nomad-side cleanup, not this path.
+#
+# On nomad 1.9.7 purging a parameterized parent does NOT stop its running child
+# dispatches, so the children must be purged explicitly first.
+if [[ "$CLOUD_PROVIDER" == "nomad" ]]; then
+  PARENT_JOB="jvb-$SHARD"
+  if ENVIRONMENT="$ENVIRONMENT" $LOCAL_PATH/nomad.sh job status "$PARENT_JOB" >/dev/null 2>&1; then
+    echo "Purging nomad JVB parent job $PARENT_JOB and any child dispatches"
+    CHILD_DISPATCHES=$(ENVIRONMENT="$ENVIRONMENT" $LOCAL_PATH/nomad.sh operator api "/v1/jobs?prefix=${PARENT_JOB}" \
+      | jq -r --arg p "$PARENT_JOB" '.[] | select(.ParentID==$p) | .ID')
+    for CHILD in $CHILD_DISPATCHES; do
+      echo "Purging child dispatch $CHILD"
+      ENVIRONMENT="$ENVIRONMENT" $LOCAL_PATH/nomad.sh job stop -purge "$CHILD"
+    done
+    echo "Purging parent job $PARENT_JOB"
+    ENVIRONMENT="$ENVIRONMENT" $LOCAL_PATH/nomad.sh job stop -purge "$PARENT_JOB"
+  else
+    echo "No nomad JVB parent job $PARENT_JOB found, skipping nomad parent purge"
+  fi
 fi
 
 
