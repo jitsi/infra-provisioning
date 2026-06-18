@@ -78,6 +78,8 @@ job [[ template "job_name" . ]] {
       }
     }
 
+    shutdown_delay = "10s"
+
     service {
       name = "jitsi-meet-web"
       tags = ["release-[[ env "CONFIG_release_number" ]]"]

@@ -85,6 +85,7 @@ job "[JOB_NAME]" {
       vault {
         change_mode = "noop"
       }
+      shutdown_delay = "10s"
       service {
         name = "multitrack-recorder"
         tags = [

@@ -61,6 +61,7 @@ job "[JOB_NAME]" {
     }
 
     task "ext-fabio" {
+      shutdown_delay = "15s"
       driver = "docker"
       config {
         image = "fabiolb/fabio"
@@ -85,6 +86,7 @@ job "[JOB_NAME]" {
     }
 
     task "int-fabio" {
+      shutdown_delay = "15s"
       driver = "docker"
       config {
         image = "fabiolb/fabio"

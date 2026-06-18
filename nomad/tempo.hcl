@@ -85,6 +85,7 @@ job "[JOB_NAME]" {
       }
     }
 
+    shutdown_delay = "10s"
     # Service registration with internal Fabio routing
     service {
       name = "tempo"

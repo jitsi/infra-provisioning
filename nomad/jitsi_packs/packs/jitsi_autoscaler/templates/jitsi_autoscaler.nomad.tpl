@@ -67,6 +67,8 @@ job [[ template "job_name" . ]] {
       }
     }
 
+    shutdown_delay = "10s"
+
     [[ if var "register_service" . ]]
     service {
       name = "autoscaler"

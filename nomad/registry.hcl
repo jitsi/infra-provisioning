@@ -79,6 +79,7 @@ job "[JOB_NAME]" {
     }
 
     task "docker-registry" {
+      shutdown_delay = "10s"
       service {
         name = "docker-${var.registry_mode}"
         tags = ["int-urlprefix-${var.registry_hostname}/","ip-${attr.unique.network.ip-address}"]

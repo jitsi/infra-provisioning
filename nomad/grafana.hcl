@@ -81,6 +81,7 @@ job "grafana" {
         GF_SERVER_ROOT_URL = "https://${var.grafana_hostname}/"
       }
 
+      shutdown_delay = "10s"
       service {
         name = "grafana"
         tags = ["int-urlprefix-${var.grafana_hostname}/"]

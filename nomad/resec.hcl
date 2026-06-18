@@ -132,6 +132,7 @@ EORC
         env {
           REDIS_ADDR = "redis://${NOMAD_ADDR_redis_db}"
         }
+        shutdown_delay = "5s"
         service {
           name = "redis-metrics"
           tags = ["ip-${attr.unique.network.ip-address}","redis-${group.key}"]

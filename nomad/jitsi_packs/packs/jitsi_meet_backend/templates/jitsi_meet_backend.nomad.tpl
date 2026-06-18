@@ -100,6 +100,8 @@ job [[ template "job_name" . ]] {
 
     }
 
+    shutdown_delay = "10s"
+
     service {
       name = "signal"
       tags = [

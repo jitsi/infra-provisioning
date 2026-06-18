@@ -113,6 +113,7 @@ job "[JOB_NAME]" {
     }
 
     task "alert-emailer" {
+      shutdown_delay = "10s"
       service {
         name = "alert-emailer"
         tags = [

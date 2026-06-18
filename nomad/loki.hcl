@@ -132,6 +132,7 @@ EOH
         cpu    = 1024
         memory = 512
       }
+      shutdown_delay = "10s"
       service {
         name = "loki"
         port = "loki"

@@ -137,6 +137,7 @@ EOF
         cpu    = 10000
         memory = 15000
       }
+      shutdown_delay = "5s"
       service {
         name = "coturn"
         port = "coturn"

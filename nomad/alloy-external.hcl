@@ -95,6 +95,7 @@ job "[JOB_NAME]" {
       }
     }
 
+    shutdown_delay = "10s"
     # Service registration with external Fabio routing (no int- prefix)
     # Auth: bearer token (Vault) + Cloudflare Zero Trust Access Policy
     service {

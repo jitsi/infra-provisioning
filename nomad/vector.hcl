@@ -238,6 +238,7 @@ job "[JOB_NAME]" {
                     region = "[[ env "meta.cloud_region" ]]"
         EOH
       }
+      shutdown_delay = "5s"
       service {
         name = "vector"
         port = "api"

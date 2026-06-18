@@ -129,6 +129,7 @@ job "[JOB_NAME]" {
       }
     }
 
+    shutdown_delay = "10s"
     service {
       name = "transcriber"
       tags = ["group-${NOMAD_META_group}","transcriber-${NOMAD_ALLOC_ID}","ip-${attr.unique.network.ip-address}"]

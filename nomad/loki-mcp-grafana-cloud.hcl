@@ -88,6 +88,7 @@ EOF
         memory = 512
       }
 
+      shutdown_delay = "10s"
       service {
         name = "loki-mcp"
         tags = ["int-urlprefix-${var.loki_mcp_hostname}/"]

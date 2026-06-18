@@ -83,6 +83,7 @@ job "ops-repo" {
     }
 
     task "ops-repo" {
+      shutdown_delay = "10s"
       service {
         name = "ops-repo"
         tags = ["int-urlprefix-${var.ops_repo_hostname}/"]

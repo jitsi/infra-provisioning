@@ -1278,7 +1278,8 @@ EOH
         cpu    = 1000
         memory = "%{ if var.environment_type == "prod" }6144%{ else }2048%{ endif }"
       }
-        
+
+      shutdown_delay = "10s"
       service {
         name = "prometheus"
         tags = ["int-urlprefix-${var.prometheus_hostname}/"]

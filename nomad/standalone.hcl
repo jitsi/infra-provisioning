@@ -489,6 +489,7 @@ EOF
       }
     }
 
+    shutdown_delay = "10s"
     service {
       name = "web"
       tags = ["${var.domain}", "urlprefix-${var.domain}/"]
