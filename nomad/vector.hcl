@@ -185,7 +185,9 @@ job "[JOB_NAME]" {
               {}
             . = merge(., structured) ?? .
             .timestamp = parse_timestamp(.ts, "%+") ?? .timestamp"""
-          # drop Fabio health-check and internal-push access logs to reduce volume
+          # drop Fabio health-check and internal-push access logs to reduce volume.
+          # only drop successful (200/204) requests so failing pushes/health-checks
+          # are still logged for debugging.
           [transforms.logs_drop_noise]
             type = "filter"
             inputs = ["logs"]
@@ -193,8 +195,9 @@ job "[JOB_NAME]" {
             name = to_string(.container_name) ?? ""
             is_fabio = starts_with(name, "int-fabio") || starts_with(name, "ext-fabio")
             msg = to_string(.message) ?? ""
-            is_noise = match(msg, r'"(GET /health|GET /-/healthy|POST /loki/api/v1/push|POST /api/v1/write|POST /otlp/v1/logs|POST /v1/logs|POST /v1/metrics|POST /v1/traces)') || match(msg, r'Consul Health Check')
-            !(is_fabio && is_noise)
+            is_endpoint = match(msg, r'"(GET /health|GET /-/healthy|POST /loki/api/v1/push|POST /api/v1/write|POST /otlp/v1/logs|POST /v1/logs|POST /v1/metrics|POST /v1/traces) HTTP/[^"]+" (200|204) ')
+            is_consul = match(msg, r'Consul Health Check') && match(msg, r'" (200|204) ')
+            !(is_fabio && (is_endpoint || is_consul))
             '''
           [transforms.message_to_structure]
             type = "remap"
