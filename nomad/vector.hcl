@@ -131,10 +131,15 @@ job "[JOB_NAME]" {
             type = "syslog"
             address = "0.0.0.0:9000"
             mode = "tcp"
+          # drop Loki self-logs at info/debug to reduce volume (keep warn and above)
+          [transforms.loki_drop_noise]
+            type = "filter"
+            inputs = ["loki_to_structure"]
+            condition = '!includes(["info", "debug"], to_string(.level) ?? "info")'
           [sinks.loki_lokilogs]
             remove_timestamp = false
             type = "loki"
-            inputs = ["loki_to_structure"]
+            inputs = ["loki_drop_noise"]
             endpoint = "[[ if ne "${var.loki_endpoint}" "" ]]${var.loki_endpoint}[[ else ]]https://[[ env "meta.environment" ]]-[[ env "meta.cloud_region" ]]-loki.${var.top_level_domain}[[ end ]]"
             encoding.codec = "json"
             healthcheck.enabled = true
@@ -180,9 +185,23 @@ job "[JOB_NAME]" {
               {}
             . = merge(., structured) ?? .
             .timestamp = parse_timestamp(.ts, "%+") ?? .timestamp"""
+          # drop Fabio health-check and internal-push access logs to reduce volume.
+          # only drop successful (200/204) requests so failing pushes/health-checks
+          # are still logged for debugging.
+          [transforms.logs_drop_noise]
+            type = "filter"
+            inputs = ["logs"]
+            condition = '''
+            name = to_string(.container_name) ?? ""
+            is_fabio = starts_with(name, "int-fabio") || starts_with(name, "ext-fabio")
+            msg = to_string(.message) ?? ""
+            is_endpoint = match(msg, r'"(GET /health|GET /-/healthy|POST /loki/api/v1/push|POST /api/v1/write|POST /otlp/v1/logs|POST /v1/logs|POST /v1/metrics|POST /v1/traces) HTTP/[^"]+" (200|204) ')
+            is_consul = match(msg, r'Consul Health Check') && match(msg, r'" (200|204) ')
+            !(is_fabio && (is_endpoint || is_consul))
+            '''
           [transforms.message_to_structure]
             type = "remap"
-            inputs = ["logs","jibri_logs","jicofo_logs","jvb_logs","prosody_logs"]
+            inputs = ["logs_drop_noise","jibri_logs","jicofo_logs","jvb_logs","prosody_logs"]
             source = """
             structured =
               parse_json(.message) ??
