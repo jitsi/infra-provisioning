@@ -193,7 +193,7 @@ job "[JOB_NAME]" {
             name = to_string(.container_name) ?? ""
             is_fabio = starts_with(name, "int-fabio") || starts_with(name, "ext-fabio")
             msg = to_string(.message) ?? ""
-            is_noise = match(msg, r'"(GET /health|GET /-/healthy|POST /loki/api/v1/push|POST /api/v1/write)') || match(msg, r'Consul Health Check')
+            is_noise = match(msg, r'"(GET /health|GET /-/healthy|POST /loki/api/v1/push|POST /api/v1/write|POST /otlp/v1/logs|POST /v1/logs|POST /v1/metrics|POST /v1/traces)') || match(msg, r'Consul Health Check')
             !(is_fabio && is_noise)
             '''
           [transforms.message_to_structure]
