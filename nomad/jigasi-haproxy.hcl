@@ -39,6 +39,7 @@ job "[JOB_NAME]" {
       }
     }
 
+    shutdown_delay = "10s"
     service {
       name = "jigasi-haproxy"
       tags = ["urlprefix-${var.dc}-jigasi-selector.${var.dns_zone}/"]

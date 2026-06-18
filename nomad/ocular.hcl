@@ -55,6 +55,7 @@ job "[JOB_NAME]" {
     }
 
     task "ocular" {
+      shutdown_delay = "5s"
       service {
         name = "ocular"
         tags = ["ip-${attr.unique.network.ip-address}"]

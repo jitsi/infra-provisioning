@@ -191,7 +191,8 @@ EOH
         cpu    = 500
         memory = 500
       }
-        
+
+      shutdown_delay = "10s"
       service {
         name = "alertmanager%{ if var.global_alertmanager }-global%{ endif }"
         tags = ["int-urlprefix-${var.alertmanager_hostname}/"]

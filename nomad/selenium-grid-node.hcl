@@ -57,6 +57,7 @@ job "[JOB_NAME]" {
       }
     }
 
+    shutdown_delay = "10s"
     service {
       name = "grid-node"
       tags = ["grid-${var.grid}"]

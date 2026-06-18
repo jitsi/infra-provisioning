@@ -55,6 +55,7 @@ job "[JOB_NAME]" {
       }
     }
 
+    shutdown_delay = "10s"
     service {
       name = "shimmy"
       tags = ["int-urlprefix-${var.shimmy_hostname}/"]

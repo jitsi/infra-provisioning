@@ -76,6 +76,7 @@ job "[JOB_NAME]" {
       }
     }
 
+    shutdown_delay = "10s"
     service {
       name = "prosody-egress"
       tags = ["ip-${attr.unique.network.ip-address}"]

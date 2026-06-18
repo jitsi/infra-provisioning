@@ -40,6 +40,7 @@ job "[JOB_NAME]" {
         change_mode = "noop"
         
       }
+      shutdown_delay = "10s"
       service {
         name = "wavefront-proxy"
         tags = ["int-urlprefix-${var.wavefront_proxy_hostname}/","int-urlprefix-${var.wavefront_proxy_hostname}:443/"]

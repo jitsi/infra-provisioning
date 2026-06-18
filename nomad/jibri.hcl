@@ -108,6 +108,7 @@ job "[JOB_NAME]" {
       }
     }
 
+    shutdown_delay = "10s"
     service {
       name = "jibri"
       tags = ["group-${NOMAD_META_group}","jibri-${NOMAD_ALLOC_ID}","ip-${attr.unique.network.ip-address}"]

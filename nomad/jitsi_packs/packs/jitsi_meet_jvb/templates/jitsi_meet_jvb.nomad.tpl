@@ -45,6 +45,8 @@ job [[ template "job_name" . ]] {
       }
     }
 
+    shutdown_delay = "10s"
+
     service {
       name = "jvb"
       tags = ["pool-[[ env "CONFIG_shard" ]]","release-[[ env "CONFIG_release_number" ]]","jvb-${NOMAD_ALLOC_ID}", "ip-${attr.unique.network.ip-address}"]

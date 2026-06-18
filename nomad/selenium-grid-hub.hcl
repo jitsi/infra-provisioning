@@ -65,6 +65,7 @@ job "[JOB_NAME]" {
       }
     }
 
+    shutdown_delay = "10s"
     service {
       name = "grid-hub"
       tags = ["${var.service_tag_urlprefix}urlprefix-${var.dc}-${var.grid}-grid.${var.dns_zone}/","grid-${var.grid}"]

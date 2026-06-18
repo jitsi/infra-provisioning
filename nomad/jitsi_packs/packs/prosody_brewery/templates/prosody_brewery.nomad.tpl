@@ -34,6 +34,8 @@ job [[ template "job_name" . ]] {
       }
     }
 
+    shutdown_delay = "10s"
+
     service {
       name = "prosody-brewery-http"
       tags = ["ip-${attr.unique.network.ip-address}"]

@@ -51,6 +51,7 @@ job "download-repo" {
     }
 
     task "download-repo" {
+      shutdown_delay = "10s"
       service {
         name = "download-repo"
         tags = ["urlprefix-${var.download_repo_hostname}/"]

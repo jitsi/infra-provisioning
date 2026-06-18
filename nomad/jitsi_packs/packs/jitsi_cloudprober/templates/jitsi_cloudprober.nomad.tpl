@@ -54,6 +54,8 @@ job [[ template "job_name" . ]] {
     }
 
     task "cloudprober" {
+      shutdown_delay = "5s"
+
       service {
         name = "cloudprober"
         tags = ["int-urlprefix-[[ var "cloudprober_hostname" . ]]/","ip-${attr.unique.network.ip-address}"]

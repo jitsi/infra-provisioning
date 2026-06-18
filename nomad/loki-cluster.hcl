@@ -211,6 +211,7 @@ job "[JOB_NAME]" {
           cpu    = 1024
           memory = 4096
         }
+        shutdown_delay = "10s"
         service {
           name = "loki"
           port = "http"

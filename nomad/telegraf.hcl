@@ -63,6 +63,7 @@ job "[JOB_NAME]" {
     }
 
     task "telegraf" {
+      shutdown_delay = "5s"
       service {
         name = "telegraf"
         tags = ["ip-${attr.unique.network.ip-address}"]

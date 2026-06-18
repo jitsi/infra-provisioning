@@ -64,6 +64,7 @@ job "[JOB_NAME]" {
       }
     }
 
+    shutdown_delay = "10s"
     service {
       name = "canary"
       port = "http"

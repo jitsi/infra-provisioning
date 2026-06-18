@@ -27,6 +27,7 @@ job "nvidia-prom-exporter" {
     }
 
     task "gpu-monitor" {
+      shutdown_delay = "5s"
       service {
         name = "gpu-monitor"
         tags = [

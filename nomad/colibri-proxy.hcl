@@ -86,6 +86,7 @@ job "[JOB_NAME]" {
       port "nginx-colibri-proxy" {
       }
     }
+    shutdown_delay = "15s"
     service {
       name = "colibri-proxy"
       tags = ["${var.domain}","urlprefix-${var.domain}/colibri-ws","urlprefix-${var.domain}/colibri-relay-ws"]
