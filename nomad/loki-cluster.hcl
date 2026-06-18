@@ -95,6 +95,8 @@ job "[JOB_NAME]" {
   server:
     http_listen_port: {{ env "NOMAD_HOST_PORT_http" }}
     http_listen_address: 0.0.0.0
+    # reduce Loki self-log volume (default is info, which is very chatty)
+    log_level: warn
     grpc_listen_port: {{ env "NOMAD_HOST_PORT_grpc" }}
     grpc_listen_address: 0.0.0.0
 

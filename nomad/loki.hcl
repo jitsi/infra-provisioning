@@ -74,8 +74,6 @@ job "[JOB_NAME]" {
 auth_enabled: false
 server:
   http_listen_port: 3100
-  # reduce Loki self-log volume (default is info, which is very chatty)
-  log_level: warn
 
 ingester:
   lifecycler:
