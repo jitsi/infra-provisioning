@@ -149,6 +149,24 @@ if [ -z "$CLOUD_PROVIDER" ]; then
   exit 230
 fi
 
+if [ -z "$VERSION_TAG" ]; then
+  case $TYPE in
+  JVB)
+    VERSION_TAG="$JVB_VERSION"
+    ;;
+  jibri)
+    VERSION_TAG="$JIBRI_VERSION"
+    ;;
+  jigasi)
+    VERSION_TAG="$JIGASI_VERSION"
+    ;;
+  *)
+    echo "No VERSION_TAG provided or found"
+    VERSION_TAG=""
+    ;;
+  esac
+fi
+
 # use local autoscaler if nomad is the cloud provider
 if [[ "$CLOUD_PROVIDER" == "nomad" ]]; then
   export AUTOSCALER_URL="https://${ENVIRONMENT}-${ORACLE_REGION}-autoscaler.${TOP_LEVEL_DNS_ZONE_NAME}"
@@ -210,7 +228,8 @@ REQUEST_BODY='{
                 "scaleDownPeriodsCount": '$SCALE_DOWN_PERIODS_COUNT'
             },
             "tags":{
-              "release_number": "'"$TAG_RELEASE_NUMBER"'"
+              "release_number": "'"$TAG_RELEASE_NUMBER"'",
+              "version": "'"$VERSION_TAG"'"
             },
             "cloud": "'$CLOUD_PROVIDER'"
 }'
