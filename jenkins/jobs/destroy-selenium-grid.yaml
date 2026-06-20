@@ -18,6 +18,10 @@
           description: "GRID_NAME tag used to differentiate grids"
           trim: true
       - string:
+          name: SELENIUM_GRID_AUTOSCALER_ENABLED
+          description: "Set to 'true' if grid uses autoscaler for node pools"
+          trim: true
+      - string:
           name: CLOUD_PROVIDER
           default: oracle
           description: "Cloud Provider, defaults to 'oracle'"

@@ -74,6 +74,16 @@ S3_STATE_BASE="$ENVIRONMENT/grid/$GRID_NAME/components"
 [ -z "$DELETE_INSTANCE_POOL" ] && DELETE_INSTANCE_POOL="true"
 [ -z "$DELETE_LOAD_BALANCER" ] && DELETE_LOAD_BALANCER="true"
 
+[ -z "$SELENIUM_GRID_AUTOSCALER_ENABLED" ] && SELENIUM_GRID_AUTOSCALER_ENABLED="false"
+
+# Delete autoscaler groups first if autoscaler mode is enabled
+if [[ "$SELENIUM_GRID_AUTOSCALER_ENABLED" == "true" ]]; then
+  echo "Deleting autoscaler groups for selenium grid $GRID_NAME"
+  export GRID_NAME
+  export ORACLE_REGION
+  export ENVIRONMENT
+  $LOCAL_PATH/../../scripts/delete-selenium-grid-pool-oracle.sh
+fi
 
 TERRAFORM_MAJOR_VERSION=$(terraform -v | head -1  | awk '{print $2}' | cut -d'.' -f1)
 TF_GLOBALS_CHDIR=

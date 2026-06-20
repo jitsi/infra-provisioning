@@ -215,6 +215,10 @@ REQUEST_BODY='{
             "cloud": "'$CLOUD_PROVIDER'"
 }'
 
+if [ -n "$SELENIUM_GRID_URL" ]; then
+  REQUEST_BODY=$(echo "$REQUEST_BODY" | jq --arg url "$SELENIUM_GRID_URL" '. + {"seleniumGridUrl": $url}')
+fi
+
 echo "Creating group named $GROUP_NAME"
 instanceGroupCreateResponse=$(curl -s -w "\n %{http_code}" -X PUT \
   "$AUTOSCALER_URL"/groups/"$GROUP_NAME" \
