@@ -207,6 +207,8 @@ Resources:
       Tags:
         - Key: Product
           Value: "meetings"
+        - Key: "8x8:product"
+          Value: "jitsi"
         - Key: Team
           Value: "meet@8x8.com"
         - Key: Owner
@@ -247,6 +249,9 @@ Resources:
         - Key: Product
           PropagateAtLaunch: true
           Value: "meetings"
+        - Key: "8x8:product"
+          PropagateAtLaunch: true
+          Value: "jitsi"
         - Key: Team
           PropagateAtLaunch: true
           Value: "meet@8x8.com"
