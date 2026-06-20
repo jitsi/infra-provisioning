@@ -10,7 +10,7 @@ export HOST_ROLE="core"
 
 SHARD_NUMBER=$(echo $SHARD| rev | cut -d"-" -f1 | rev | tr -d '[:alpha:]')
 export MY_HOSTNAME="$SHARD.$DOMAIN"
-export ANSIBLE_VARS="hcv_environment=$ENVIRONMENT shard=$SHARD cloud_name=$CLOUD_NAME cloud_provider=oracle core_cloud_provider=oracle region=$ORACLE_REGION oracle_region=$ORACLE_REGION prosody_domain_name=$DOMAIN shard_name=$SHARD jitsi_release_number=$RELEASE_NUMBER shard_number=$SHARD_NUMBER"
+export ANSIBLE_VARS="hcv_environment=$ENVIRONMENT shard=$SHARD cloud_name=$CLOUD_NAME cloud_provider=oracle core_cloud_provider=oracle region=$ORACLE_REGION oracle_region=$ORACLE_REGION prosody_domain_name=$DOMAIN shard_name=$SHARD jitsi_release_number=$RELEASE_NUMBER shard_number=$SHARD_NUMBER exclusive_tenant=$EXCLUSIVE_TENANT"
 
 function dump() {
   sudo /usr/local/bin/dump-jicofo.sh

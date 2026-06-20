@@ -37,6 +37,10 @@
           default: '2'
           trim: true
       - string:
+          name: EXCLUSIVE_TENANT
+          description: "Tenant for exclusive use"
+          trim: true
+      - string:
           name: RELEASE_NUMBER
           description: "Release number for shard"
           trim: true
