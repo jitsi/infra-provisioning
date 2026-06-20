@@ -29,13 +29,15 @@ pipeline {
                     utils.SetupRepos(env.VIDEO_INFRA_BRANCH)
                     utils.SetupOCI()
 
-                    governance = utils.LoadGovernanceHooks()
-                    artConfig = governance.init([
-                        serviceName: 'nomad-telegraf',
-                        version:     env.BUILD_ID,
-                        environment: env.ENVIRONMENT,
-                        fastTrack:   true,
-                    ])
+                    dir('infra-provisioning') {
+                      governance = utils.LoadGovernanceHooks()
+                      artConfig = governance.init([
+                          serviceName: 'nomad-telegraf',
+                          version:     env.BUILD_ID,
+                          environment: env.ENVIRONMENT,
+                          fastTrack:   true,
+                      ])
+                    }
                 }
             }
         }

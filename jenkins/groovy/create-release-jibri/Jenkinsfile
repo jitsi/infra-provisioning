@@ -41,6 +41,8 @@ def provisionJibri(shard_environment,cloud_name,release_number,gitBranch,jibriVe
 // global var to track git branch from env or new tags
 def git_branch
 def utils
+def governance
+def artConfig
 def jibriNomadFlag
 def jibriComposeFlag
 
@@ -66,6 +68,20 @@ pipeline {				//indicate the job is written in Declarative Pipeline
 
                     // setup OCI credentials
                     utils.SetupOCI()
+
+                    def jibriGitHash = env.JIBRI_VERSION.substring(env.JIBRI_VERSION.lastIndexOf('-g') + 2)
+
+                    dir('infra-provisioning') {
+                      governance = utils.LoadGovernanceHooks()
+                      artConfig = governance.init([
+                          serviceName: 'jibri',
+                          version:     env.JIBRI_VERSION,
+                          artifactType: 'vm',
+                          environment: env.ENVIRONMENT,
+                          fastTrack:   false,
+                          gitRefs:     [jibri: jibriGitHash],
+                      ])
+                    }
                 }
             }
         }
@@ -80,6 +96,7 @@ pipeline {				//indicate the job is written in Declarative Pipeline
             }
           }
         }
+
         stage('Environment flags') {
             steps {
                 script {
@@ -90,37 +107,50 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                 }
             }
         }
-        stage("build and replicate Jibri image in AWS") {
-            when {
-                expression {env.CLOUD_PROVIDER == 'aws'}
-            }
-            steps {
-                script {
-                    buildJibriImageAws(
-                            env.BUILD_ID,
-                            env.JIBRI_VERSION,
-                            env.FORCE_BUILD_IMAGE
-                            )
+
+        stage("governance and build image") {
+            parallel {
+                stage('Governance') {
+                    steps {
+                        script {
+                            governance.preRelease(artConfig)
+                            governance.preDeploy(artConfig)
+                        }
+                    }
                 }
-            }
-        }
-        stage("build and replicate Jibri image in Oracle") {
-            when {
-                allOf {
-                    expression {env.CLOUD_PROVIDER == 'oracle'}
-                    expression {jibriNomadFlag != 'true'}
-                    expression {jibriComposeFlag != 'true'}
+                stage("build and replicate Jibri image in AWS") {
+                    when {
+                        expression {env.CLOUD_PROVIDER == 'aws'}
+                    }
+                    steps {
+                        script {
+                            buildJibriImageAws(
+                                    env.BUILD_ID,
+                                    env.JIBRI_VERSION,
+                                    env.FORCE_BUILD_IMAGE
+                                    )
+                        }
+                    }
                 }
-            }
-            steps {
-                script {
-                    buildJibriImageOracle(
-                            env.ENVIRONMENT,
-                            env.CLOUDS,
-                            env.JIBRI_VERSION,
-                            env.FORCE_BUILD_IMAGE,
-                            env.VIDEO_INFRA_BRANCH
-                            )
+                stage("build and replicate Jibri image in Oracle") {
+                    when {
+                        allOf {
+                            expression {env.CLOUD_PROVIDER == 'oracle'}
+                            expression {jibriNomadFlag != 'true'}
+                            expression {jibriComposeFlag != 'true'}
+                        }
+                    }
+                    steps {
+                        script {
+                            buildJibriImageOracle(
+                                    env.ENVIRONMENT,
+                                    env.CLOUDS,
+                                    env.JIBRI_VERSION,
+                                    env.FORCE_BUILD_IMAGE,
+                                    env.VIDEO_INFRA_BRANCH
+                                    )
+                        }
+                    }
                 }
             }
         }
@@ -166,6 +196,14 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                      build job: 'jibri-rotate',parameters: [[$class: 'StringParameterValue', name: 'ENVIRONMENT', value: env.ENVIRONMENT]]
                  }
              }
+        }
+    }
+
+    post {
+        always {
+            script {
+                governance.postHooks(artConfig, currentBuild.result == 'SUCCESS')
+            }
         }
     }
 }
