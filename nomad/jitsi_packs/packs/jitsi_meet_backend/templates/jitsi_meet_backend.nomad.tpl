@@ -534,6 +534,11 @@ EOF
         force_pull = [[ or (env "CONFIG_force_pull") "false" ]]
         image        = "[[ env "CONFIG_prosody_repo" ]]:[[ env "CONFIG_prosody_tag" ]]"
         ports = ["prosody-http","prosody-client"]
+        # TODO(JIT-15926): same s6-overlay v3 / rootless migration needed here as
+        # for jicofo below. The v1 /etc/cont-init.d mount + #!/usr/bin/with-contenv
+        # shebang will 127-crash prosody on the new image, and patch-prosody.sh's
+        # `sed -i` on /usr/lib/prosody (read-only root) cannot work at runtime --
+        # move the mod_c2s log-level tweak into prosody config or drop it.
         volumes = [
           "local/patch-prosody.sh:/etc/cont-init.d/08-patch-prosody",
           "local/config:/config",
@@ -888,9 +893,16 @@ EOF
         ports = ["jicofo-http"]
         volumes = [
           "local/config:/config",
-          "local/jicofo-service-run:/etc/services.d/jicofo/run",
-          "local/11-jicofo-rtcstats-push:/etc/cont-init.d/11-jicofo-rtcstats-push",
-          "local/jicofo-rtcstats-push-service-run:/etc/services.d/60-jicofo-rtcstats-push/run"
+          # rtcstats-push sidecar, migrated to the s6-overlay v3 (s6-rc.d) layout.
+          # The image (rootless, uid 1000, read-only root) ships its own jicofo
+          # longrun service and nodejs, so we no longer override the main service
+          # run script nor apt-get/unzip anything at runtime.
+          "local/rtcstats-push-type:/etc/s6-overlay/s6-rc.d/60-jicofo-rtcstats-push/type",
+          "local/rtcstats-push-run:/etc/s6-overlay/s6-rc.d/60-jicofo-rtcstats-push/run",
+          "local/rtcstats-push-dep:/etc/s6-overlay/s6-rc.d/60-jicofo-rtcstats-push/dependencies.d/jicofo",
+          "local/rtcstats-push-contents:/etc/s6-overlay/s6-rc.d/user/contents.d/60-jicofo-rtcstats-push",
+          "local/jicofo-rtcstats-push-script:/etc/s6-overlay/scripts/jicofo-rtcstats-push",
+          "local/jicofo-rtcstats-push:/opt/jicofo-rtcstats-push"
         ]
         labels {
           release = "[[ env "CONFIG_release_number" ]]"
@@ -939,74 +951,77 @@ EOF
         JICOFO_VISITORS_REQUIRE_MUC_CONFIG = "[[ env "CONFIG_jicofo_require_muc_config_flag" ]]"
         RTCSTATS_SERVER="[[ env "CONFIG_jicofo_rtcstats_push_rtcstats_server" ]]"
         INTERVAL=10000
-        JICOFO_LOG_FILE = "/local/jicofo.log"
+        # rtcstats-push tails this file and pushes jicofo log lines alongside the
+        # rtcstats data. The upstream image's own jicofo service tees stdout here
+        # when JICOFO_LOG_FILE is set, so no custom run-script override is needed.
+        # Path is under /tmp (world-writable, disk-backed) because the unprivileged
+        # uid-1000 user may not be able to write the Nomad alloc dir (/local) on the
+        # rootless image.
+        JICOFO_LOG_FILE = "/tmp/jicofo.log"
         VISITORS_XMPP_AUTH_DOMAIN="auth.[[ env "CONFIG_domain" ]]"
       }
 
+      # Unzip the rtcstats-push node app on the Nomad client. The container now
+      # runs rootless on a read-only root fs, so it can no longer apt-get/unzip
+      # at runtime. Nomad auto-extracts the .zip into the destination directory,
+      # which we bind-mount read-only at /opt/jicofo-rtcstats-push.
       artifact {
         source      = "https://github.com/jitsi/jicofo-rtcstats-push/releases/download/release-0.0.1/jicofo-rtcstats-push.zip"
-        mode = "file"
-        destination = "local/jicofo-rtcstats-push.zip"
-        options {
-          archive = false
-        }
+        destination = "local/jicofo-rtcstats-push"
       }
+
+      # --- rtcstats-push as an s6-overlay v3 longrun service ---
+      # type
       template {
         data = <<EOF
-#!/usr/bin/with-contenv bash
-
-JAVA_SYS_PROPS="-Djava.util.logging.config.file=/config/logging.properties -Dconfig.file=/config/jicofo.conf"
-DAEMON=/usr/share/jicofo/jicofo.sh
-DAEMON_DIR=/usr/share/jicofo/
-
-JICOFO_CMD="exec $DAEMON"
-
-[ -n "$JICOFO_LOG_FILE" ] && JICOFO_CMD="$JICOFO_CMD 2>&1 | tee $JICOFO_LOG_FILE"
-
-exec s6-setuidgid jicofo /bin/bash -c "cd $DAEMON_DIR; JAVA_SYS_PROPS=\"$JAVA_SYS_PROPS\" $JICOFO_CMD"
+longrun
 EOF
-        destination = "local/jicofo-service-run"
+        destination = "local/rtcstats-push-type"
+        perms = "644"
+      }
+
+      # run: execlineb wrapper that execs our bash service body
+      template {
+        data = <<EOF
+#!/command/execlineb -P
+
+/etc/s6-overlay/scripts/jicofo-rtcstats-push
+EOF
+        destination = "local/rtcstats-push-run"
         perms = "755"
       }
 
-
+      # dependencies.d/jicofo: start after jicofo (whose REST API we poll).
+      # s6 ignores the file content; the file name is the dependency.
       template {
         data = <<EOF
-#!/usr/bin/with-contenv bash
-
-apt-get update && apt-get -y install unzip cron
-
-mkdir -p /jicofo-rtcstats-push
-cd /jicofo-rtcstats-push
-unzip /local/jicofo-rtcstats-push.zip
-
-echo '0 * * * * /local/jicofo-log-truncate.sh' | crontab
-
+# managed by nomad
 EOF
-        destination = "local/11-jicofo-rtcstats-push"
-        perms = "755"
+        destination = "local/rtcstats-push-dep"
+        perms = "644"
       }
 
+      # user/contents.d entry: registers the service in the user bundle so
+      # s6-rc brings it up. Bind-mounted alongside the image's own entries.
       template {
         data = <<EOF
-#!/usr/bin/with-contenv bash
-
-echo > $JICOFO_LOG_FILE
+# managed by nomad
 EOF
-        destination = "local/jicofo-log-truncate.sh"
-        perms = "755"
+        destination = "local/rtcstats-push-contents"
+        perms = "644"
       }
 
+      # service body. nodejs ships in base-java; the app is bind-mounted at
+      # /opt/jicofo-rtcstats-push. with-contenv imports the container env
+      # (JICOFO_ADDRESS, RTCSTATS_SERVER, INTERVAL, ...).
       template {
         data = <<EOF
-#!/usr/bin/with-contenv bash
+#!/command/with-contenv bash
 
-exec node /jicofo-rtcstats-push/app.js
-
+exec node /opt/jicofo-rtcstats-push/app.js
 EOF
-        destination = "local/jicofo-rtcstats-push-service-run"
+        destination = "local/jicofo-rtcstats-push-script"
         perms = "755"
-
       }
 
       template {
