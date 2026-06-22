@@ -534,14 +534,19 @@ EOF
         force_pull = [[ or (env "CONFIG_force_pull") "false" ]]
         image        = "[[ env "CONFIG_prosody_repo" ]]:[[ env "CONFIG_prosody_tag" ]]"
         ports = ["prosody-http","prosody-client"]
-        # TODO(JIT-15926): same s6-overlay v3 / rootless migration needed here as
-        # for jicofo below. The v1 /etc/cont-init.d mount + #!/usr/bin/with-contenv
-        # shebang will 127-crash prosody on the new image, and patch-prosody.sh's
-        # `sed -i` on /usr/lib/prosody (read-only root) cannot work at runtime --
-        # move the mod_c2s log-level tweak into prosody config or drop it.
         volumes = [
-          "local/patch-prosody.sh:/etc/cont-init.d/08-patch-prosody",
           "local/config:/config",
+          # Migrated to s6-overlay v3 / rootless. patch-prosody is now an 08-patch-
+          # prosody oneshot (ordered before 10-config) that overrides core mod_c2s
+          # via /prosody-plugins-custom (searched before the core module dir) since
+          # the unprivileged user cannot write /usr/lib/prosody. Best-effort: it
+          # never fails the container, so prosody falls back to the core module if
+          # the plugin dir is not writable.
+          "local/patch-prosody-type:/etc/s6-overlay/s6-rc.d/08-patch-prosody/type",
+          "local/patch-prosody-up:/etc/s6-overlay/s6-rc.d/08-patch-prosody/up",
+          "local/patch-prosody-contents:/etc/s6-overlay/s6-rc.d/user/contents.d/08-patch-prosody",
+          "local/patch-prosody-config-dep:/etc/s6-overlay/s6-rc.d/10-config/dependencies.d/08-patch-prosody",
+          "local/patch-prosody-script:/etc/s6-overlay/scripts/patch-prosody",
         ]
         labels {
           release = "[[ env "CONFIG_release_number" ]]"
@@ -590,20 +595,62 @@ EOF
 [[- end ]]
       }
 
+      # --- 08-patch-prosody: oneshot (ordered before 10-config) ---
       template {
         data = <<EOF
-#!/usr/bin/with-contenv bash
-sed -i 's/"debug", "Client XML parse error/"info", "Client XML parse error/' /usr/lib/prosody/modules/mod_c2s.lua
+oneshot
 EOF
-        destination = "local/patch-prosody.sh"
+        destination = "local/patch-prosody-type"
+        perms = "644"
+      }
+      template {
+        data = <<EOF
+/etc/s6-overlay/scripts/patch-prosody
+EOF
+        destination = "local/patch-prosody-up"
+        perms = "644"
+      }
+      template {
+        data = <<EOF
+# managed by nomad
+EOF
+        destination = "local/patch-prosody-contents"
+        perms = "644"
+      }
+      template {
+        data = <<EOF
+# managed by nomad
+EOF
+        destination = "local/patch-prosody-config-dep"
+        perms = "644"
+      }
+      template {
+        data = <<EOF
+#!/command/with-contenv bash
+# Override core mod_c2s with a copy that logs "Client XML parse error" at info
+# instead of debug. /prosody-plugins-custom is searched before the core module
+# dir. The unprivileged user cannot write /usr/lib/prosody, hence the copy.
+# Best-effort: always exits 0 so a non-writable plugin dir never crashes prosody
+# (it just falls back to the unpatched core module).
+SRC=/usr/lib/prosody/modules/mod_c2s.lua
+DST=/prosody-plugins-custom/mod_c2s.lua
+if mkdir -p /prosody-plugins-custom 2>/dev/null && cp "$SRC" "$DST" 2>/dev/null; then
+  sed -i 's/"debug", "Client XML parse error/"info", "Client XML parse error/' "$DST" 2>/dev/null || true
+else
+  echo "patch-prosody: could not write $DST; using core mod_c2s unpatched"
+fi
+exit 0
+EOF
+        destination = "local/patch-prosody-script"
         perms = "755"
       }
 
 [[ if eq (or (env "CONFIG_jigasi_vault_enabled") "true") "true" ]]
       template {
         data = <<EOF
-#!/usr/bin/with-contenv bash
-PROSODY_CFG="/config/prosody.cfg.lua"
+#!/command/with-contenv bash
+# The rootless image renders the live config under /run/prosody/config.
+PROSODY_CFG="/run/prosody/config/prosody.cfg.lua"
 
 . /secrets/jigasi_xmpp
 prosodyctl --config $PROSODY_CFG register $JIGASI_XMPP_USER $XMPP_AUTH_DOMAIN $JIGASI_XMPP_PASSWORD
