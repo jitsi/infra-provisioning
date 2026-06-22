@@ -161,12 +161,26 @@ job "[JOB_NAME]" {
         ports = ["http"]
         volumes = [
           "local/xmpp-servers:/opt/jitsi/xmpp-servers",
-          "local/01-xmpp-servers:/etc/cont-init.d/01-xmpp-servers",
-          "local/11-status-cron:/etc/cont-init.d/11-status-cron",
           "local/reload-config.sh:/opt/jitsi/scripts/reload-config.sh",
           "local/jibri-status.sh:/opt/jitsi/scripts/jibri-status.sh",
-          "local/cron-service-run:/etc/services.d/60-cron/run",
-          "local/config:/config"
+          "local/config:/config",
+          # Migrated to s6-overlay v3 / rootless.
+          #
+          # env oneshot: seeds JIBRI_VERSION / XMPP_SERVER into the s6 container
+          # environment, ordered before the image's 01-config.
+          "local/jibri-env-type:/etc/s6-overlay/s6-rc.d/00-jibri-env/type",
+          "local/jibri-env-up:/etc/s6-overlay/s6-rc.d/00-jibri-env/up",
+          "local/jibri-env-contents:/etc/s6-overlay/s6-rc.d/user/contents.d/00-jibri-env",
+          "local/jibri-env-config-dep:/etc/s6-overlay/s6-rc.d/01-config/dependencies.d/00-jibri-env",
+          "local/jibri-env-script:/etc/s6-overlay/scripts/jibri-env",
+          # status reporter: replaces the old cron (cron + netcat are not in the
+          # rootless image and can't be apt-installed at runtime). A v3 longrun
+          # loops every 60s; jibri-status.sh now sends statsd over bash /dev/udp.
+          "local/jibri-status-type:/etc/s6-overlay/s6-rc.d/60-jibri-status/type",
+          "local/jibri-status-run:/etc/s6-overlay/s6-rc.d/60-jibri-status/run",
+          "local/jibri-status-dep:/etc/s6-overlay/s6-rc.d/60-jibri-status/dependencies.d/40-jibri",
+          "local/jibri-status-contents:/etc/s6-overlay/s6-rc.d/user/contents.d/60-jibri-status",
+          "local/jibri-status-loop:/etc/s6-overlay/scripts/jibri-status-loop"
     	  ]
       }
       volume_mount {
@@ -229,16 +243,50 @@ EOF
         destination = "secrets/asap.key"
       }
 
+      # --- 00-jibri-env: oneshot seeding JIBRI_VERSION / XMPP_SERVER into the s6
+      # container environment, ordered before the image's 01-config. The script
+      # both exports (so reload-config.sh can source it) and writes the s6
+      # container_environment (so longrun services started later see the values). ---
       template {
         data = <<EOF
-#!/usr/bin/with-contenv bash
-export JIBRI_VERSION="$(dpkg -s jibri | grep Version | awk '{print $2}' | sed 's/..$//')"
-echo -n "$JIBRI_VERSION" > /var/run/s6/container_environment/JIBRI_VERSION
-
-export XMPP_SERVER="$(cat /opt/jitsi/xmpp-servers/servers)"
-echo -n "$XMPP_SERVER" > /var/run/s6/container_environment/XMPP_SERVER
+oneshot
 EOF
-        destination = "local/01-xmpp-servers"
+        destination = "local/jibri-env-type"
+        perms = "644"
+      }
+      template {
+        data = <<EOF
+/etc/s6-overlay/scripts/jibri-env
+EOF
+        destination = "local/jibri-env-up"
+        perms = "644"
+      }
+      template {
+        data = <<EOF
+# managed by nomad
+EOF
+        destination = "local/jibri-env-contents"
+        perms = "644"
+      }
+      template {
+        data = <<EOF
+# managed by nomad
+EOF
+        destination = "local/jibri-env-config-dep"
+        perms = "644"
+      }
+      template {
+        data = <<EOF
+#!/command/with-contenv bash
+JIBRI_VERSION="$(dpkg -s jibri | grep Version | awk '{print $2}' | sed 's/..$//')"
+export JIBRI_VERSION
+printf '%s' "$JIBRI_VERSION" > /run/s6/container_environment/JIBRI_VERSION
+
+XMPP_SERVER="$(cat /opt/jitsi/xmpp-servers/servers)"
+export XMPP_SERVER
+printf '%s' "$XMPP_SERVER" > /run/s6/container_environment/XMPP_SERVER
+EOF
+        destination = "local/jibri-env-script"
         perms = "755"
       }
 
@@ -264,46 +312,66 @@ EOF
       }
       template {
         data = <<EOF
-#!/usr/bin/with-contenv bash
+#!/command/with-contenv bash
 
-. /etc/cont-init.d/01-xmpp-servers
-/etc/cont-init.d/10-config
+# Refresh XMPP_SERVER from the updated servers file, re-render config into
+# /run/jibri/config, then ask jibri to reconnect to the new shard list.
+. /etc/s6-overlay/scripts/jibri-env
+/etc/s6-overlay/scripts/config
 /opt/jitsi/jibri/reload.sh
-cp /etc/jitsi/jibri/* /config
 EOF
         destination = "local/reload-config.sh"
         perms = "755"
       }
 
+      # --- 60-jibri-status: v3 longrun that runs jibri-status.sh every 60s,
+      # replacing the old per-minute cron (cron is not in the rootless image). ---
       template {
         data = <<EOF
-#!/usr/bin/with-contenv bash
-cp /etc/jitsi/jibri/* /config
-
-apt-get update && apt-get -y install cron netcat-openbsd
-
-echo '* * * * * /opt/jitsi/scripts/jibri-status.sh' | crontab 
-
+longrun
 EOF
-        destination = "local/11-status-cron"
+        destination = "local/jibri-status-type"
+        perms = "644"
+      }
+      template {
+        data = <<EOF
+#!/command/execlineb -P
+
+/etc/s6-overlay/scripts/jibri-status-loop
+EOF
+        destination = "local/jibri-status-run"
+        perms = "755"
+      }
+      template {
+        data = <<EOF
+# managed by nomad
+EOF
+        destination = "local/jibri-status-dep"
+        perms = "644"
+      }
+      template {
+        data = <<EOF
+# managed by nomad
+EOF
+        destination = "local/jibri-status-contents"
+        perms = "644"
+      }
+      template {
+        data = <<EOF
+#!/command/with-contenv bash
+
+while true; do
+  sleep 60
+  /opt/jitsi/scripts/jibri-status.sh
+done
+EOF
+        destination = "local/jibri-status-loop"
         perms = "755"
       }
 
       template {
         data = <<EOF
-#!/usr/bin/with-contenv bash
-
-exec cron -f
-
-EOF
-        destination = "local/cron-service-run"
-        perms = "755"
-
-      }
-
-      template {
-        data = <<EOF
-#!/usr/bin/with-contenv bash
+#!/command/with-contenv bash
 
 [ -z "$JIBRI_STATSD_HOST" ] && JIBRI_STATSD_HOST="localhost"
 [ -z "$JIBRI_STATSD_PORT" ] && JIBRI_STATSD_PORT="8125"
@@ -313,7 +381,6 @@ EOF
 JIBRI_STATSD_TAGS="role:java-jibri,jibri_version:$JIBRI_VERSION,jibri:$JIBRI_INSTANCE_ID"
 
 CURL_BIN="/usr/bin/curl"
-NC_BIN="/bin/nc"
 
 STATUS_URL="http://localhost:$JIBRI_HTTP_API_EXTERNAL_PORT/jibri/api/v1.0/health"
 
@@ -355,10 +422,14 @@ if [[ $healthyValue -eq 0 ]]; then
     availableValue=0
 fi
 
-# send metrics to statsd
-echo "jibri.available:$availableValue|g|#$JIBRI_STATSD_TAGS" | $NC_BIN -C -w 1 -u $JIBRI_STATSD_HOST $JIBRI_STATSD_PORT
-echo "jibri.healthy:$healthyValue|g|#$JIBRI_STATSD_TAGS" | $NC_BIN -C -w 1 -u $JIBRI_STATSD_HOST $JIBRI_STATSD_PORT
-echo "jibri.recording:$recordingValue|g|#$JIBRI_STATSD_TAGS" | $NC_BIN -C -w 1 -u $JIBRI_STATSD_HOST $JIBRI_STATSD_PORT
+# send metrics to statsd over UDP via bash /dev/udp (netcat is not in the
+# rootless image). Each redirection opens, writes one datagram, and closes.
+sendStatsd() {
+    echo "$1" > "/dev/udp/$JIBRI_STATSD_HOST/$JIBRI_STATSD_PORT" 2>/dev/null || true
+}
+sendStatsd "jibri.available:$availableValue|g|#$JIBRI_STATSD_TAGS"
+sendStatsd "jibri.healthy:$healthyValue|g|#$JIBRI_STATSD_TAGS"
+sendStatsd "jibri.recording:$recordingValue|g|#$JIBRI_STATSD_TAGS"
 
 EOF
         destination = "local/jibri-status.sh"
