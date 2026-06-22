@@ -902,7 +902,16 @@ EOF
           "local/rtcstats-push-dep:/etc/s6-overlay/s6-rc.d/60-jicofo-rtcstats-push/dependencies.d/jicofo",
           "local/rtcstats-push-contents:/etc/s6-overlay/s6-rc.d/user/contents.d/60-jicofo-rtcstats-push",
           "local/jicofo-rtcstats-push-script:/etc/s6-overlay/scripts/jicofo-rtcstats-push",
-          "local/jicofo-rtcstats-push:/opt/jicofo-rtcstats-push"
+          "local/jicofo-rtcstats-push:/opt/jicofo-rtcstats-push",
+          # Periodic in-place truncation of JICOFO_LOG_FILE. Safe now that the
+          # image tees with -a (append) -- docker-jitsi-meet#2268 -- so writes go
+          # to EOF and an in-place truncate actually shrinks the file without
+          # restarting jicofo.
+          "local/log-truncate-type:/etc/s6-overlay/s6-rc.d/62-jicofo-log-truncate/type",
+          "local/log-truncate-run:/etc/s6-overlay/s6-rc.d/62-jicofo-log-truncate/run",
+          "local/log-truncate-dep:/etc/s6-overlay/s6-rc.d/62-jicofo-log-truncate/dependencies.d/jicofo",
+          "local/log-truncate-contents:/etc/s6-overlay/s6-rc.d/user/contents.d/62-jicofo-log-truncate",
+          "local/jicofo-log-truncate-script:/etc/s6-overlay/scripts/jicofo-log-truncate"
         ]
         labels {
           release = "[[ env "CONFIG_release_number" ]]"
@@ -958,6 +967,9 @@ EOF
         # uid-1000 user may not be able to write the Nomad alloc dir (/local) on the
         # rootless image.
         JICOFO_LOG_FILE = "/tmp/jicofo.log"
+        # How often (seconds) the 62-jicofo-log-truncate service truncates the log
+        # above. Defaults to hourly, matching the old cron behaviour.
+        JICOFO_LOG_TRUNCATE_INTERVAL = "[[ or (env "CONFIG_jicofo_log_truncate_interval") "3600" ]]"
         VISITORS_XMPP_AUTH_DOMAIN="auth.[[ env "CONFIG_domain" ]]"
       }
 
@@ -1021,6 +1033,65 @@ EOF
 exec node /opt/jicofo-rtcstats-push/app.js
 EOF
         destination = "local/jicofo-rtcstats-push-script"
+        perms = "755"
+      }
+
+      # --- jicofo-log-truncate as an s6-overlay v3 longrun service ---
+      # type
+      template {
+        data = <<EOF
+longrun
+EOF
+        destination = "local/log-truncate-type"
+        perms = "644"
+      }
+
+      # run: execlineb wrapper that execs our bash service body
+      template {
+        data = <<EOF
+#!/command/execlineb -P
+
+/etc/s6-overlay/scripts/jicofo-log-truncate
+EOF
+        destination = "local/log-truncate-run"
+        perms = "755"
+      }
+
+      # dependencies.d/jicofo: start after jicofo (which creates/writes the log).
+      template {
+        data = <<EOF
+# managed by nomad
+EOF
+        destination = "local/log-truncate-dep"
+        perms = "644"
+      }
+
+      # user/contents.d entry: registers the service in the user bundle.
+      template {
+        data = <<EOF
+# managed by nomad
+EOF
+        destination = "local/log-truncate-contents"
+        perms = "644"
+      }
+
+      # service body. Periodically truncates JICOFO_LOG_FILE in place. Safe now
+      # that the image tees with -a (docker-jitsi-meet#2268): writes go to EOF, so
+      # truncation actually shrinks the file and the rtcstats-push tailer resyncs.
+      template {
+        data = <<EOF
+#!/command/with-contenv bash
+
+# Nothing to do if no log file is configured; stay up so s6-rc is happy.
+[ -z "$JICOFO_LOG_FILE" ] && exec sleep infinity
+
+# JICOFO_LOG_TRUNCATE_INTERVAL is always set by the task env (defaults to 3600).
+while true; do
+  sleep "$JICOFO_LOG_TRUNCATE_INTERVAL"
+  : > "$JICOFO_LOG_FILE"
+done
+EOF
+        destination = "local/jicofo-log-truncate-script"
         perms = "755"
       }
 
