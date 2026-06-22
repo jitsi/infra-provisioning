@@ -39,6 +39,17 @@ if [ -z "$SHARD" ]; then
   exit 204
 fi
 
+# The 8x8 meeting-settings e2e spec (sourced from the jitsi-meet-branding repo) only runs in
+# the 8x8 environments, where the test accounts and the settings backend exist.
+RUN_MEET_SETTINGS=false
+case "$ENVIRONMENT" in
+  stage-8x8|prod-8x8) RUN_MEET_SETTINGS=true ;;
+esac
+
+# Location of the checked-out jitsi-meet-branding repo (checked out by the Jenkins job next to
+# infra-provisioning); override with BRANDING_PATH for local runs.
+[ -z "$BRANDING_PATH" ] && BRANDING_PATH="$LOCAL_PATH/../../jitsi-meet-branding"
+
 #jenkins build number, we get it from jenkins
 [ -z $BUILD_NUMBER ] && BUILD_NUMBER='N/A'
 
@@ -60,6 +71,27 @@ JAAS_SIGNING_KEY_FILE=$(realpath "./jaas.key")
 echo "Using JAAS_SIGNING_KEY_FILE: $JAAS_SIGNING_KEY_FILE"
 
 jq -r '.private_key' $KEYPAIR_PATH | sed 's/\\n/\n/g' > $JAAS_SIGNING_KEY_FILE
+
+# Pull the 8x8 meeting-settings test credentials out of the same vault keypair (under a
+# "meet_settings" object). Only needed for the 8x8 environments; disable the spec if absent.
+if [ "$RUN_MEET_SETTINGS" = "true" ]; then
+  export SSO_URL="$(jq -r '.meet_settings.sso_url // empty' $KEYPAIR_PATH)"
+  export JITSI_TOKEN_SERVICE_URL="$(jq -r '.meet_settings.jitsi_token_service_url // empty' $KEYPAIR_PATH)"
+  export ASAP_TOKEN="$(jq -r '.meet_settings.asap_token // empty' $KEYPAIR_PATH)"
+  export ASAP_COOKIE="$(jq -r '.meet_settings.asap_cookie // empty' $KEYPAIR_PATH)"
+  export SETTINGS_USERNAME_1="$(jq -r '.meet_settings.users[0].username // empty' $KEYPAIR_PATH)"
+  export SETTINGS_PASSWORD_1="$(jq -r '.meet_settings.users[0].password // empty' $KEYPAIR_PATH)"
+  export SETTINGS_USERNAME_2="$(jq -r '.meet_settings.users[1].username // empty' $KEYPAIR_PATH)"
+  export SETTINGS_PASSWORD_2="$(jq -r '.meet_settings.users[1].password // empty' $KEYPAIR_PATH)"
+  export SETTINGS_USERNAME_3="$(jq -r '.meet_settings.users[2].username // empty' $KEYPAIR_PATH)"
+  export SETTINGS_PASSWORD_3="$(jq -r '.meet_settings.users[2].password // empty' $KEYPAIR_PATH)"
+
+  if [ -z "$SSO_URL" ] || [ -z "$ASAP_TOKEN" ] || [ -z "$SETTINGS_USERNAME_1" ]; then
+    echo "No meet_settings credentials in vault keypair for $ENVIRONMENT; skipping meeting-settings spec"
+    RUN_MEET_SETTINGS=false
+  fi
+fi
+
 rm $KEYPAIR_PATH
 
 #https://web-cdn.jitsi.net/meet8x8com_4570.1272/
@@ -162,6 +194,32 @@ if [ -n "${VOX_ACCOUNT_ID}" ]; then
   export SIP_JIBRI_DIAL_OUT_URL="${VIDEO_DIAL_OUT_URL}"
   export YTUBE_TEST_STREAM_KEY="${TEST_YTUBE_TEST_STREAM_KEY}"
   export YTUBE_TEST_BROADCAST_ID="${TEST_YTUBE_TEST_BROADCAST_ID}"
+fi
+
+# For the 8x8 environments, add the meeting-settings spec from the branding repo so the grid
+# run below includes it. The spec maps onto tests/specs/8x8/ and resolves the jitsi-meet test
+# framework via its relative imports.
+if [ "$RUN_MEET_SETTINGS" = "true" ]; then
+  if [ -d "$BRANDING_PATH/meet-8x8-com/tests/specs" ]; then
+    echo "Adding 8x8 meeting-settings spec from $BRANDING_PATH"
+    cp -a "$BRANDING_PATH/meet-8x8-com/tests/specs/." tests/specs/
+
+    # Settings page differs per environment type (stage -> pilot, prod -> prod); the spec
+    # derives the API hosts from it.
+    if [ "$ENVIRONMENT_TYPE" = "stage" ]; then
+      export MEETING_SETTINGS_PAGE="https://settings-pilot.8x8.vc"
+    else
+      export MEETING_SETTINGS_PAGE="https://settings.8x8.vc"
+    fi
+
+    # Fetch the SSO + Jitsi tokens for the three test users into the environment.
+    if ! . "$BRANDING_PATH/meet-8x8-com/tests/fetch-settings-test-tokens.sh"; then
+      echo "Failed to fetch meeting-settings test tokens"
+      exit 1
+    fi
+  else
+    echo "Branding tests not found at $BRANDING_PATH; skipping meeting-settings spec"
+  fi
 fi
 
 HEADLESS=true \
