@@ -180,7 +180,6 @@ EOF
           "local/rtcstats-push-dep:/etc/s6-overlay/s6-rc.d/60-jvb-rtcstats-push/dependencies.d/jvb",
           "local/rtcstats-push-contents:/etc/s6-overlay/s6-rc.d/user/contents.d/60-jvb-rtcstats-push",
           "local/jvb-rtcstats-push-script:/etc/s6-overlay/scripts/jvb-rtcstats-push",
-          "local/jvb-rtcstats-push:/opt/jvb-rtcstats-push",
           # log-truncate sidecar (v3 longrun); safe because the image tees with -a
           "local/log-truncate-type:/etc/s6-overlay/s6-rc.d/62-jvb-log-truncate/type",
           "local/log-truncate-run:/etc/s6-overlay/s6-rc.d/62-jvb-log-truncate/run",
@@ -240,11 +239,18 @@ EOF
 #        CHROMIUM_FLAGS="--start-maximized,--kiosk,--enabled,--autoplay-policy=no-user-gesture-required,--use-fake-ui-for-media-stream,--enable-logging,--v=1"
       }
 
-      # Unzip the rtcstats-push node app on the Nomad client (rootless, read-only
-      # root means no runtime apt-get/unzip). Bind-mounted at /opt/jvb-rtcstats-push.
+      # Download the rtcstats-push zip as-is (no Nomad-side decompression): the
+      # archive bundles node_modules and exceeds go-getter's default
+      # decompression_file_count_limit (4096). The service body extracts it inside
+      # the container with `jar` (ships in base-java's JDK) -- no runtime apt/unzip,
+      # works on the rootless image.
       artifact {
         source      = "https://github.com/jitsi/jvb-rtcstats-push/releases/download/0.0.3/jvb-rtcstats-push.zip"
-        destination = "local/jvb-rtcstats-push"
+        mode        = "file"
+        destination = "local/jvb-rtcstats-push.zip"
+        options {
+          archive = false
+        }
       }
 
       template {
@@ -342,7 +348,12 @@ EOF
         data = <<EOF
 #!/command/with-contenv bash
 
-exec node /opt/jvb-rtcstats-push/app.js
+RTCSTATS_DIR=/tmp/jvb-rtcstats-push
+if [ ! -f "$RTCSTATS_DIR/app.js" ]; then
+  mkdir -p "$RTCSTATS_DIR"
+  cd "$RTCSTATS_DIR" && jar xf /local/jvb-rtcstats-push.zip
+fi
+exec node "$RTCSTATS_DIR/app.js"
 EOF
         destination = "local/jvb-rtcstats-push-script"
         perms = "755"
