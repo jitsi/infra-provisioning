@@ -34,7 +34,7 @@ variable "image_version" {
     default = "0.0.6"
 }
 
-job "ops-repo" {
+job "[JOB_NAME]" {
   datacenters = ["${var.dc}"]
 
   type = "service"

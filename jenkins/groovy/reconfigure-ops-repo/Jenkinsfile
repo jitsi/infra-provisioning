@@ -25,14 +25,15 @@ pipeline {
         stage ("ops repo processing") {
             steps {
                 script {
-                    echo 'ops repo rebuild'
+                    echo "ops repo rebuild (bucket=${env.OPS_REPO_BUCKET ?: 'ops-repo'})"
                     dir('infra-provisioning') {
-                      lock("ops-repo") {
+                      // Lock per-bucket so a test-bucket rebuild does not block the production one.
+                      lock("reconfigure-ops-repo-${env.OPS_REPO_BUCKET ?: 'ops-repo'}") {
                         withCredentials([
                             file(credentialsId: 'ops-repo-s3fs', variable: 'S3_PASSWORD_PATH'),
-                            file(credentialsId: 'ops-repo-secring', variable: 'OPS_REPO_SECRING_PATH'),
-                            file(credentialsId: 'ops-repo-pubring', variable: 'OPS_REPO_PUBRING_PATH'),
-                            file(credentialsId: 'ops-repo-secring-passphrase', variable: 'OPS_REPO_SECRING_PASSPHRASE_PATH')
+                            file(credentialsId: env.OPS_REPO_SECRING_CREDENTIAL_ID ?: 'ops-repo-secring', variable: 'OPS_REPO_SECRING_PATH'),
+                            file(credentialsId: env.OPS_REPO_PUBRING_CREDENTIAL_ID ?: 'ops-repo-pubring', variable: 'OPS_REPO_PUBRING_PATH'),
+                            file(credentialsId: env.OPS_REPO_SECRING_PASSPHRASE_CREDENTIAL_ID ?: 'ops-repo-secring-passphrase', variable: 'OPS_REPO_SECRING_PASSPHRASE_PATH')
                         ]) {
                           sshagent(credentials: ['ssh-jenkins-ci']) {
                             sh '''#!/bin/bash
