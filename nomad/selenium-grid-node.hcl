@@ -117,7 +117,7 @@ CHROME_LOG_FILE="/alloc/logs/chrome_debug.log"
 
       resources {
         cpu    = 4000
-        memory = 6144
+        memory = 7168
       }
     }
   }
