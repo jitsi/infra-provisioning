@@ -67,11 +67,15 @@ job [[ template "job_name" . ]] {
     }
 
     network {
+      # The rootless jitsi web image listens on unprivileged ports 8000/8443
+      # (uid 1000), not 80/443. Mapping to 80/443 left nothing listening on the
+      # http backend port, so the shard nginx upstream got ECONNREFUSED ("no live
+      # upstreams" -> 502) even though the nginx-status health check (888) passed.
       port "http" {
-        to = 80
+        to = 8000
       }
       port "https" {
-        to = 443
+        to = 8443
       }
       port "nginx-status" {
         to = 888
