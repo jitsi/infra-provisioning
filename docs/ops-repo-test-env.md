@@ -38,17 +38,56 @@ The repo serves `root /mnt/ops-repo/repo`, and `update-ops-repo.sh` builds under
 root. Seed the same structure into `ops-repo-test`:
 
 ```
-jitsi-debian-pkg.conf                  # mini-dinstall config (copy from prod bucket)
-repo/debian/unstable/mini-dinstall/incoming/   # incoming dir for new debs
-repo/debian/unstable/archive.key       # combined public key (added in step 4/5)
+jitsi-debian-pkg.conf                       # mini-dinstall config (copy from prod bucket)
+repo/debian/mini-dinstall/incoming/         # incoming dir mini-dinstall reads (.deb + .changes + .buildinfo)
+repo/debian/unstable/archive.key            # combined public key (added in step 4/5)
 ```
+
+> All `oci os` commands below need `--region us-phoenix-1` (the bucket region).
 
 ```bash
 # copy the prod mini-dinstall config as a starting point
-oci os object get -bn ops-repo --name jitsi-debian-pkg.conf --file /tmp/jitsi-debian-pkg.conf
+oci os object get -bn ops-repo --name jitsi-debian-pkg.conf --file /tmp/jitsi-debian-pkg.conf --region us-phoenix-1
 # ensure release_signscript in it points at the checked-out scripts/sign-release.sh
-oci os object put  -bn ops-repo-test --name jitsi-debian-pkg.conf --file /tmp/jitsi-debian-pkg.conf
-# seed a couple of sample .debs into the incoming dir (or let the reconfigure job copy them)
+oci os object put  -bn ops-repo-test --name jitsi-debian-pkg.conf --file /tmp/jitsi-debian-pkg.conf --region us-phoenix-1
+```
+
+mini-dinstall installs from `.changes` uploads (not bare `.debs`), so each sample
+needs its `.deb` + `.changes` + `.buildinfo`. A couple of throwaway
+`jitsi-ops-repo-test` packages (v1.0.0 and v1.0.1, `Architecture: all`,
+`Distribution: unstable`) have already been seeded into
+`repo/debian/mini-dinstall/incoming/`. To regenerate them:
+
+```bash
+# build a native arch:all package (deb + changes + buildinfo) in a container, then upload
+docker run --rm -v "$PWD/out:/build" debian:bookworm bash -c '
+  apt-get update -qq && apt-get install -y -qq build-essential debhelper dpkg-dev
+  cd /build && rm -rf src && mkdir -p src/debian/source && cd src
+  printf "3.0 (native)\n" > debian/source/format
+  printf "#!/usr/bin/make -f\n%%:\n\tdh \$@\n" > debian/rules && chmod +x debian/rules
+  cat > debian/control <<CTL
+Source: jitsi-ops-repo-test
+Maintainer: Jitsi Ops <ops@jitsi.net>
+Build-Depends: debhelper-compat (= 13)
+Standards-Version: 4.6.2
+
+Package: jitsi-ops-repo-test
+Architecture: all
+Depends: \${misc:Depends}
+Description: Sample package for ops-repo-test validation
+ Throwaway package; safe to remove.
+CTL
+  cat > debian/changelog <<CHG
+jitsi-ops-repo-test (1.0.0) unstable; urgency=medium
+
+  * Sample package for ops-repo-test validation.
+
+ -- Jitsi Ops <ops@jitsi.net>  Mon, 23 Jun 2026 12:00:00 +0000
+CHG
+  dpkg-buildpackage -b -us -uc'
+for f in out/jitsi-ops-repo-test_*; do
+  oci os object put -bn ops-repo-test --name "repo/debian/mini-dinstall/incoming/$(basename "$f")" --file "$f" --region us-phoenix-1 --force
+done
 ```
 
 ## 3. Produce the dual-key signing material
@@ -86,7 +125,7 @@ Run the `reconfigure-ops-repo` job with:
 Then publish the combined public key to the bucket:
 
 ```bash
-oci os object put -bn ops-repo-test --name debian/unstable/archive.key --file archive.key
+oci os object put -bn ops-repo-test --name repo/debian/unstable/archive.key --file archive.key --region us-phoenix-1
 ```
 
 ## 5. Deploy the serving job in ops-dev
