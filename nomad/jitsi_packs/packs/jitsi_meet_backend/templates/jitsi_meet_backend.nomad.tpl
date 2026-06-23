@@ -534,8 +534,11 @@ EOF
         force_pull = [[ or (env "CONFIG_force_pull") "false" ]]
         image        = "[[ env "CONFIG_prosody_repo" ]]:[[ env "CONFIG_prosody_tag" ]]"
         ports = ["prosody-http","prosody-client"]
+        # The mod_c2s "Client XML parse error" log-level patch is now baked into
+        # the branding-built prosody image at build time (8x8Cloud/jitsi-meet-
+        # branding docker/prosody/Dockerfile) rather than patched at boot -- the
+        # rootless image cannot sed /usr/lib/prosody as uid 1000.
         volumes = [
-          "local/patch-prosody.sh:/etc/cont-init.d/08-patch-prosody",
           "local/config:/config",
         ]
         labels {
@@ -585,20 +588,12 @@ EOF
 [[- end ]]
       }
 
-      template {
-        data = <<EOF
-#!/usr/bin/with-contenv bash
-sed -i 's/"debug", "Client XML parse error/"info", "Client XML parse error/' /usr/lib/prosody/modules/mod_c2s.lua
-EOF
-        destination = "local/patch-prosody.sh"
-        perms = "755"
-      }
-
 [[ if eq (or (env "CONFIG_jigasi_vault_enabled") "true") "true" ]]
       template {
         data = <<EOF
-#!/usr/bin/with-contenv bash
-PROSODY_CFG="/config/prosody.cfg.lua"
+#!/command/with-contenv bash
+# The rootless image renders the live config under /run/prosody/config.
+PROSODY_CFG="/run/prosody/config/prosody.cfg.lua"
 
 . /secrets/jigasi_xmpp
 prosodyctl --config $PROSODY_CFG register $JIGASI_XMPP_USER $XMPP_AUTH_DOMAIN $JIGASI_XMPP_PASSWORD
@@ -888,9 +883,25 @@ EOF
         ports = ["jicofo-http"]
         volumes = [
           "local/config:/config",
-          "local/jicofo-service-run:/etc/services.d/jicofo/run",
-          "local/11-jicofo-rtcstats-push:/etc/cont-init.d/11-jicofo-rtcstats-push",
-          "local/jicofo-rtcstats-push-service-run:/etc/services.d/60-jicofo-rtcstats-push/run"
+          # rtcstats-push sidecar, migrated to the s6-overlay v3 (s6-rc.d) layout.
+          # The image (rootless, uid 1000, read-only root) ships its own jicofo
+          # longrun service and nodejs, so we no longer override the main service
+          # run script nor apt-get/unzip anything at runtime.
+          "local/rtcstats-push-type:/etc/s6-overlay/s6-rc.d/60-jicofo-rtcstats-push/type",
+          "local/rtcstats-push-run:/etc/s6-overlay/s6-rc.d/60-jicofo-rtcstats-push/run",
+          "local/rtcstats-push-dep:/etc/s6-overlay/s6-rc.d/60-jicofo-rtcstats-push/dependencies.d/jicofo",
+          "local/rtcstats-push-contents:/etc/s6-overlay/s6-rc.d/user/contents.d/60-jicofo-rtcstats-push",
+          "local/jicofo-rtcstats-push-script:/etc/s6-overlay/scripts/jicofo-rtcstats-push",
+          "local/jicofo-rtcstats-push:/opt/jicofo-rtcstats-push",
+          # Periodic in-place truncation of JICOFO_LOG_FILE. Safe now that the
+          # image tees with -a (append) -- docker-jitsi-meet#2268 -- so writes go
+          # to EOF and an in-place truncate actually shrinks the file without
+          # restarting jicofo.
+          "local/log-truncate-type:/etc/s6-overlay/s6-rc.d/62-jicofo-log-truncate/type",
+          "local/log-truncate-run:/etc/s6-overlay/s6-rc.d/62-jicofo-log-truncate/run",
+          "local/log-truncate-dep:/etc/s6-overlay/s6-rc.d/62-jicofo-log-truncate/dependencies.d/jicofo",
+          "local/log-truncate-contents:/etc/s6-overlay/s6-rc.d/user/contents.d/62-jicofo-log-truncate",
+          "local/jicofo-log-truncate-script:/etc/s6-overlay/scripts/jicofo-log-truncate"
         ]
         labels {
           release = "[[ env "CONFIG_release_number" ]]"
@@ -939,74 +950,139 @@ EOF
         JICOFO_VISITORS_REQUIRE_MUC_CONFIG = "[[ env "CONFIG_jicofo_require_muc_config_flag" ]]"
         RTCSTATS_SERVER="[[ env "CONFIG_jicofo_rtcstats_push_rtcstats_server" ]]"
         INTERVAL=10000
-        JICOFO_LOG_FILE = "/local/jicofo.log"
+        # rtcstats-push tails this file and pushes jicofo log lines alongside the
+        # rtcstats data. The upstream image's own jicofo service tees stdout here
+        # when JICOFO_LOG_FILE is set, so no custom run-script override is needed.
+        # Path is under /tmp (world-writable, disk-backed) because the unprivileged
+        # uid-1000 user may not be able to write the Nomad alloc dir (/local) on the
+        # rootless image.
+        JICOFO_LOG_FILE = "/tmp/jicofo.log"
+        # How often (seconds) the 62-jicofo-log-truncate service truncates the log
+        # above. Defaults to hourly, matching the old cron behaviour.
+        JICOFO_LOG_TRUNCATE_INTERVAL = "[[ or (env "CONFIG_jicofo_log_truncate_interval") "3600" ]]"
         VISITORS_XMPP_AUTH_DOMAIN="auth.[[ env "CONFIG_domain" ]]"
       }
 
+      # Unzip the rtcstats-push node app on the Nomad client. The container now
+      # runs rootless on a read-only root fs, so it can no longer apt-get/unzip
+      # at runtime. Nomad auto-extracts the .zip into the destination directory,
+      # which we bind-mount read-only at /opt/jicofo-rtcstats-push.
       artifact {
         source      = "https://github.com/jitsi/jicofo-rtcstats-push/releases/download/release-0.0.1/jicofo-rtcstats-push.zip"
-        mode = "file"
-        destination = "local/jicofo-rtcstats-push.zip"
-        options {
-          archive = false
-        }
+        destination = "local/jicofo-rtcstats-push"
       }
+
+      # --- rtcstats-push as an s6-overlay v3 longrun service ---
+      # type
       template {
         data = <<EOF
-#!/usr/bin/with-contenv bash
-
-JAVA_SYS_PROPS="-Djava.util.logging.config.file=/config/logging.properties -Dconfig.file=/config/jicofo.conf"
-DAEMON=/usr/share/jicofo/jicofo.sh
-DAEMON_DIR=/usr/share/jicofo/
-
-JICOFO_CMD="exec $DAEMON"
-
-[ -n "$JICOFO_LOG_FILE" ] && JICOFO_CMD="$JICOFO_CMD 2>&1 | tee $JICOFO_LOG_FILE"
-
-exec s6-setuidgid jicofo /bin/bash -c "cd $DAEMON_DIR; JAVA_SYS_PROPS=\"$JAVA_SYS_PROPS\" $JICOFO_CMD"
+longrun
 EOF
-        destination = "local/jicofo-service-run"
+        destination = "local/rtcstats-push-type"
+        perms = "644"
+      }
+
+      # run: execlineb wrapper that execs our bash service body
+      template {
+        data = <<EOF
+#!/command/execlineb -P
+
+/etc/s6-overlay/scripts/jicofo-rtcstats-push
+EOF
+        destination = "local/rtcstats-push-run"
         perms = "755"
       }
 
-
+      # dependencies.d/jicofo: start after jicofo (whose REST API we poll).
+      # s6 ignores the file content; the file name is the dependency.
       template {
         data = <<EOF
-#!/usr/bin/with-contenv bash
-
-apt-get update && apt-get -y install unzip cron
-
-mkdir -p /jicofo-rtcstats-push
-cd /jicofo-rtcstats-push
-unzip /local/jicofo-rtcstats-push.zip
-
-echo '0 * * * * /local/jicofo-log-truncate.sh' | crontab
-
+# managed by nomad
 EOF
-        destination = "local/11-jicofo-rtcstats-push"
+        destination = "local/rtcstats-push-dep"
+        perms = "644"
+      }
+
+      # user/contents.d entry: registers the service in the user bundle so
+      # s6-rc brings it up. Bind-mounted alongside the image's own entries.
+      template {
+        data = <<EOF
+# managed by nomad
+EOF
+        destination = "local/rtcstats-push-contents"
+        perms = "644"
+      }
+
+      # service body. nodejs ships in base-java; the app is bind-mounted at
+      # /opt/jicofo-rtcstats-push. with-contenv imports the container env
+      # (JICOFO_ADDRESS, RTCSTATS_SERVER, INTERVAL, ...).
+      template {
+        data = <<EOF
+#!/command/with-contenv bash
+
+exec node /opt/jicofo-rtcstats-push/app.js
+EOF
+        destination = "local/jicofo-rtcstats-push-script"
         perms = "755"
       }
 
+      # --- jicofo-log-truncate as an s6-overlay v3 longrun service ---
+      # type
       template {
         data = <<EOF
-#!/usr/bin/with-contenv bash
-
-echo > $JICOFO_LOG_FILE
+longrun
 EOF
-        destination = "local/jicofo-log-truncate.sh"
+        destination = "local/log-truncate-type"
+        perms = "644"
+      }
+
+      # run: execlineb wrapper that execs our bash service body
+      template {
+        data = <<EOF
+#!/command/execlineb -P
+
+/etc/s6-overlay/scripts/jicofo-log-truncate
+EOF
+        destination = "local/log-truncate-run"
         perms = "755"
       }
 
+      # dependencies.d/jicofo: start after jicofo (which creates/writes the log).
       template {
         data = <<EOF
-#!/usr/bin/with-contenv bash
-
-exec node /jicofo-rtcstats-push/app.js
-
+# managed by nomad
 EOF
-        destination = "local/jicofo-rtcstats-push-service-run"
-        perms = "755"
+        destination = "local/log-truncate-dep"
+        perms = "644"
+      }
 
+      # user/contents.d entry: registers the service in the user bundle.
+      template {
+        data = <<EOF
+# managed by nomad
+EOF
+        destination = "local/log-truncate-contents"
+        perms = "644"
+      }
+
+      # service body. Periodically truncates JICOFO_LOG_FILE in place. Safe now
+      # that the image tees with -a (docker-jitsi-meet#2268): writes go to EOF, so
+      # truncation actually shrinks the file and the rtcstats-push tailer resyncs.
+      template {
+        data = <<EOF
+#!/command/with-contenv bash
+
+# Nothing to do if no log file is configured; stay up so s6-rc is happy.
+[ -z "$JICOFO_LOG_FILE" ] && exec sleep infinity
+
+# JICOFO_LOG_TRUNCATE_INTERVAL is always set by the task env (defaults to 3600).
+while true; do
+  sleep "$JICOFO_LOG_TRUNCATE_INTERVAL"
+  : > "$JICOFO_LOG_FILE"
+done
+EOF
+        destination = "local/jicofo-log-truncate-script"
+        perms = "755"
       }
 
       template {

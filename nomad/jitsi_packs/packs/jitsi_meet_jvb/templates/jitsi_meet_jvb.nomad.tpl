@@ -159,14 +159,34 @@ EOF
         ports = ["http","media","colibri"]
         volumes = [
           "local/reload-shards.sh:/opt/jitsi/scripts/reload-shards.sh",
-          "local/01-jvb-env:/etc/cont-init.d/01-jvb-env",
           "local/config:/config",
           "local/jvb.conf:/defaults/jvb.conf",
           "local/logging.properties:/defaults/logging.properties",
-          "local/jvb-service-run:/etc/services.d/jvb/run",
-          "local/11-jvb-rtcstats-push:/etc/cont-init.d/11-jvb-rtcstats-push",
-          "local/jvb-rtcstats-push-service-run:/etc/services.d/60-jvb-rtcstats-push/run"
-
+          # Migrated to s6-overlay v3 / rootless. The image ships its own jvb
+          # longrun (tees JVB_LOG_FILE with -a) and nodejs (base-java), so we no
+          # longer override the main service run script nor apt-get/unzip at runtime.
+          #
+          # env oneshot: seeds JVB_VERSION / JVB_NAT_PORT into the s6 container
+          # environment. Ordered before 10-config (which renders jvb.conf via tpl)
+          # by adding a dependency into the image's 10-config service.
+          "local/jvb-env-type:/etc/s6-overlay/s6-rc.d/00-jvb-env/type",
+          "local/jvb-env-up:/etc/s6-overlay/s6-rc.d/00-jvb-env/up",
+          "local/jvb-env-contents:/etc/s6-overlay/s6-rc.d/user/contents.d/00-jvb-env",
+          "local/jvb-env-config-dep:/etc/s6-overlay/s6-rc.d/10-config/dependencies.d/00-jvb-env",
+          "local/jvb-env-script:/etc/s6-overlay/scripts/jvb-env",
+          # rtcstats-push sidecar (v3 longrun)
+          "local/rtcstats-push-type:/etc/s6-overlay/s6-rc.d/60-jvb-rtcstats-push/type",
+          "local/rtcstats-push-run:/etc/s6-overlay/s6-rc.d/60-jvb-rtcstats-push/run",
+          "local/rtcstats-push-dep:/etc/s6-overlay/s6-rc.d/60-jvb-rtcstats-push/dependencies.d/jvb",
+          "local/rtcstats-push-contents:/etc/s6-overlay/s6-rc.d/user/contents.d/60-jvb-rtcstats-push",
+          "local/jvb-rtcstats-push-script:/etc/s6-overlay/scripts/jvb-rtcstats-push",
+          "local/jvb-rtcstats-push:/opt/jvb-rtcstats-push",
+          # log-truncate sidecar (v3 longrun); safe because the image tees with -a
+          "local/log-truncate-type:/etc/s6-overlay/s6-rc.d/62-jvb-log-truncate/type",
+          "local/log-truncate-run:/etc/s6-overlay/s6-rc.d/62-jvb-log-truncate/run",
+          "local/log-truncate-dep:/etc/s6-overlay/s6-rc.d/62-jvb-log-truncate/dependencies.d/jvb",
+          "local/log-truncate-contents:/etc/s6-overlay/s6-rc.d/user/contents.d/62-jvb-log-truncate",
+          "local/jvb-log-truncate-script:/etc/s6-overlay/scripts/jvb-log-truncate"
     	  ]
         labels {
           release = "[[ env "CONFIG_release_number" ]]"
@@ -186,7 +206,9 @@ EOF
         # JVB auth password
         JVB_AUTH_USER="jvb"
         JVB_AUTH_PASSWORD = "[[ env "CONFIG_jvb_auth_password" ]]"
-        JVB_LOG_FILE="/local/jvb.log"
+        JVB_LOG_FILE="/tmp/jvb.log"
+        # How often (seconds) 62-jvb-log-truncate truncates JVB_LOG_FILE (hourly default).
+        JVB_LOG_TRUNCATE_INTERVAL = "[[ or (env "CONFIG_jvb_log_truncate_interval") "3600" ]]"
         JVB_XMPP_INTERNAL_MUC_DOMAIN = "muc.jvb.[[ env "CONFIG_domain" ]]"
         JVB_XMPP_AUTH_DOMAIN = "auth.jvb.[[ env "CONFIG_domain" ]]"
         ENABLE_JVB_XMPP_SERVER="1"
@@ -218,13 +240,11 @@ EOF
 #        CHROMIUM_FLAGS="--start-maximized,--kiosk,--enabled,--autoplay-policy=no-user-gesture-required,--use-fake-ui-for-media-stream,--enable-logging,--v=1"
       }
 
+      # Unzip the rtcstats-push node app on the Nomad client (rootless, read-only
+      # root means no runtime apt-get/unzip). Bind-mounted at /opt/jvb-rtcstats-push.
       artifact {
         source      = "https://github.com/jitsi/jvb-rtcstats-push/releases/download/0.0.3/jvb-rtcstats-push.zip"
-        mode = "file"
-        destination = "local/jvb-rtcstats-push.zip"
-        options {
-          archive = false
-        }
+        destination = "local/jvb-rtcstats-push"
       }
 
       template {
@@ -242,72 +262,136 @@ EOF
         destination = "secrets/asap.key"
       }
 
+      # --- 00-jvb-env: oneshot that seeds JVB_VERSION / JVB_NAT_PORT into the s6
+      # container environment, ordered before 10-config so jvb.conf rendering sees
+      # them. ---
       template {
         data = <<EOF
-#!/usr/bin/with-contenv bash
-
-export JAVA_SYS_PROPS="-Dnet.java.sip.communicator.SC_HOME_DIR_LOCATION=/ -Dnet.java.sip.communicator.SC_HOME_DIR_NAME=config -Djava.util.logging.config.file=/config/logging.properties -Dconfig.file=/config/jvb.conf"
-
-DAEMON=/usr/share/jitsi-videobridge/jvb.sh
-
-JVB_CMD="exec $DAEMON"
-[ -n "$JVB_LOG_FILE" ] && JVB_CMD="$JVB_CMD 2>&1 | tee $JVB_LOG_FILE"
-
-exec s6-setuidgid jvb /bin/bash -c "$JVB_CMD"
+oneshot
 EOF
-        destination = "local/jvb-service-run"
+        destination = "local/jvb-env-type"
+        perms = "644"
+      }
+      template {
+        data = <<EOF
+/etc/s6-overlay/scripts/jvb-env
+EOF
+        destination = "local/jvb-env-up"
+        perms = "644"
+      }
+      template {
+        data = <<EOF
+# managed by nomad
+EOF
+        destination = "local/jvb-env-contents"
+        perms = "644"
+      }
+      # makes the image's 10-config wait for 00-jvb-env
+      template {
+        data = <<EOF
+# managed by nomad
+EOF
+        destination = "local/jvb-env-config-dep"
+        perms = "644"
+      }
+      template {
+        data = <<EOF
+#!/command/with-contenv bash
+JVB_VERSION="$(dpkg -s jitsi-videobridge2 | grep Version | awk '{print $2}' | sed 's/..$//')"
+printf '%s' "$JVB_VERSION" > /run/s6/container_environment/JVB_VERSION
+
+JVB_NAT_PORT="$(cat /alloc/data/JVB_NAT_PORT)"
+printf '%s' "$JVB_NAT_PORT" > /run/s6/container_environment/JVB_NAT_PORT
+EOF
+        destination = "local/jvb-env-script"
         perms = "755"
       }
 
+      # --- 60-jvb-rtcstats-push: v3 longrun ---
       template {
         data = <<EOF
-#!/usr/bin/with-contenv bash
-
-apt-get update && apt-get -y install unzip cron
-
-mkdir -p /jvb-rtcstats-push
-cd /jvb-rtcstats-push
-unzip /local/jvb-rtcstats-push.zip
-
-echo '0 * * * * /local/jvb-log-truncate.sh' | crontab 
-
+longrun
 EOF
-        destination = "local/11-jvb-rtcstats-push"
+        destination = "local/rtcstats-push-type"
+        perms = "644"
+      }
+      template {
+        data = <<EOF
+#!/command/execlineb -P
+
+/etc/s6-overlay/scripts/jvb-rtcstats-push
+EOF
+        destination = "local/rtcstats-push-run"
+        perms = "755"
+      }
+      template {
+        data = <<EOF
+# managed by nomad
+EOF
+        destination = "local/rtcstats-push-dep"
+        perms = "644"
+      }
+      template {
+        data = <<EOF
+# managed by nomad
+EOF
+        destination = "local/rtcstats-push-contents"
+        perms = "644"
+      }
+      template {
+        data = <<EOF
+#!/command/with-contenv bash
+
+exec node /opt/jvb-rtcstats-push/app.js
+EOF
+        destination = "local/jvb-rtcstats-push-script"
         perms = "755"
       }
 
+      # --- 62-jvb-log-truncate: v3 longrun; safe because the image tees with -a ---
       template {
         data = <<EOF
-#!/usr/bin/with-contenv bash
-
-echo > $JVB_LOG_FILE
+longrun
 EOF
-        destination = "local/jvb-log-truncate.sh"
+        destination = "local/log-truncate-type"
+        perms = "644"
+      }
+      template {
+        data = <<EOF
+#!/command/execlineb -P
+
+/etc/s6-overlay/scripts/jvb-log-truncate
+EOF
+        destination = "local/log-truncate-run"
         perms = "755"
       }
-
       template {
         data = <<EOF
-#!/usr/bin/with-contenv bash
-
-exec node /jvb-rtcstats-push/app.js
-
+# managed by nomad
 EOF
-        destination = "local/jvb-rtcstats-push-service-run"
-        perms = "755"
-
+        destination = "local/log-truncate-dep"
+        perms = "644"
       }
-
       template {
         data = <<EOF
-#!/usr/bin/with-contenv bash
-export JVB_VERSION="$(dpkg -s jitsi-videobridge2 | grep Version | awk '{print $2}' | sed 's/..$//')"
-echo -n "$JVB_VERSION" > /var/run/s6/container_environment/JVB_VERSION
-
-export JVB_NAT_PORT="$(cat /alloc/data/JVB_NAT_PORT)"
-echo -n "$JVB_NAT_PORT" > /var/run/s6/container_environment/JVB_NAT_PORT
+# managed by nomad
 EOF
-        destination = "local/01-jvb-env"
+        destination = "local/log-truncate-contents"
+        perms = "644"
+      }
+      template {
+        data = <<EOF
+#!/command/with-contenv bash
+
+[ -z "$JVB_LOG_FILE" ] && exec sleep infinity
+
+# JVB_LOG_TRUNCATE_INTERVAL is always set by the task env (defaults to 3600).
+while true; do
+  sleep "$JVB_LOG_TRUNCATE_INTERVAL"
+  : > "$JVB_LOG_FILE"
+done
+EOF
+        destination = "local/jvb-log-truncate-script"
         perms = "755"
       }
 

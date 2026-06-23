@@ -182,7 +182,7 @@ block
 [[- end ]]
 
 [[ define "reload-shards" -]]
-#!/usr/bin/with-contenv bash
+#!/command/with-contenv bash
 
 SHARD_FILE=/config/shards.json
 UPLOAD_FILE=/config/upload.json

@@ -114,9 +114,6 @@ job [[ template "job_name" . ]] {
         image        = "[[ env "CONFIG_web_repo" ]]:[[ env "CONFIG_web_tag" ]]"
         ports = ["http","https","nginx-status"]
         volumes = [
-[[ if eq (env "CONFIG_jitsi_meet_cdn_cloudflare_enabled") "true" -]]
-          "local/init-cdn:/etc/cont-init.d/11-init-cdn",
-[[ end -]]
           "local/_unlock:/usr/share/[[ or (env "CONFIG_jitsi_meet_branding_override") "jitsi-meet" ]]/_unlock",
           "local/_unlock:/usr/share/[[ or (env "CONFIG_jitsi_meet_branding_override") "jitsi-meet" ]]/_health",
           "local/nginx.conf:/defaults/nginx.conf",
@@ -210,16 +207,14 @@ EOF
 OK
 EOF
       }
-[[ if eq (env "CONFIG_jitsi_meet_cdn_cloudflare_enabled") "true" ]]
-      template {
-        destination = "local/init-cdn"
-        perms = "0755"
-        data = <<EOF
-#!/bin/sh
-sed -i -e "s/web-cdn.jitsi.net/[[ env "CONFIG_domain" ]]\/v1\/_cdn/" /usr/share/*/base.html
-EOF
-      }
-[[ end ]]
+      # NOTE: the old 11-init-cdn cont-init (sed-rewrote /usr/share/*/base.html to
+      # point the asset <base href> at <domain>/v1/_cdn) is gone. It could not run
+      # on the rootless image (uid 1000 cannot write /usr/share) and crashed the
+      # container under s6-overlay v3. base.html is now generated host-relative by
+      # the branding build (<base href="/v1/_cdn/<prefix><version>/">). Requests
+      # under /v1/_cdn are intercepted by Cloudflare on every site and served from
+      # the R2 asset bucket (published per <prefix><version> directory), so they
+      # never reach this origin -- nothing to rewrite or serve locally here.
       template {
         destination = "local/nginx.conf"
         # overriding the delimiters to [< >] to avoid conflicts with tpl's native templating, which also uses {{ }}
