@@ -892,7 +892,6 @@ EOF
           "local/rtcstats-push-dep:/etc/s6-overlay/s6-rc.d/60-jicofo-rtcstats-push/dependencies.d/jicofo",
           "local/rtcstats-push-contents:/etc/s6-overlay/s6-rc.d/user/contents.d/60-jicofo-rtcstats-push",
           "local/jicofo-rtcstats-push-script:/etc/s6-overlay/scripts/jicofo-rtcstats-push",
-          "local/jicofo-rtcstats-push:/opt/jicofo-rtcstats-push",
           # Periodic in-place truncation of JICOFO_LOG_FILE. Safe now that the
           # image tees with -a (append) -- docker-jitsi-meet#2268 -- so writes go
           # to EOF and an in-place truncate actually shrinks the file without
@@ -963,13 +962,18 @@ EOF
         VISITORS_XMPP_AUTH_DOMAIN="auth.[[ env "CONFIG_domain" ]]"
       }
 
-      # Unzip the rtcstats-push node app on the Nomad client. The container now
-      # runs rootless on a read-only root fs, so it can no longer apt-get/unzip
-      # at runtime. Nomad auto-extracts the .zip into the destination directory,
-      # which we bind-mount read-only at /opt/jicofo-rtcstats-push.
+      # Download the rtcstats-push zip as-is (no Nomad-side decompression): the
+      # archive bundles node_modules (~7772 files) and exceeds go-getter's default
+      # decompression_file_count_limit (4096). The service body extracts it inside
+      # the container with `jar` (ships in base-java's JDK) -- no runtime apt/unzip,
+      # works on the rootless image.
       artifact {
         source      = "https://github.com/jitsi/jicofo-rtcstats-push/releases/download/release-0.0.1/jicofo-rtcstats-push.zip"
-        destination = "local/jicofo-rtcstats-push"
+        mode        = "file"
+        destination = "local/jicofo-rtcstats-push.zip"
+        options {
+          archive = false
+        }
       }
 
       # --- rtcstats-push as an s6-overlay v3 longrun service ---
@@ -1013,14 +1017,20 @@ EOF
         perms = "644"
       }
 
-      # service body. nodejs ships in base-java; the app is bind-mounted at
-      # /opt/jicofo-rtcstats-push. with-contenv imports the container env
-      # (JICOFO_ADDRESS, RTCSTATS_SERVER, INTERVAL, ...).
+      # service body. Extracts the rtcstats-push zip into a writable dir with `jar`
+      # (JDK, base-java) on first start, then runs it. nodejs ships in base-java;
+      # with-contenv imports the container env (JICOFO_ADDRESS, RTCSTATS_SERVER,
+      # INTERVAL, ...).
       template {
         data = <<EOF
 #!/command/with-contenv bash
 
-exec node /opt/jicofo-rtcstats-push/app.js
+RTCSTATS_DIR=/tmp/jicofo-rtcstats-push
+if [ ! -f "$RTCSTATS_DIR/app.js" ]; then
+  mkdir -p "$RTCSTATS_DIR"
+  cd "$RTCSTATS_DIR" && jar xf /local/jicofo-rtcstats-push.zip
+fi
+exec node "$RTCSTATS_DIR/app.js"
 EOF
         destination = "local/jicofo-rtcstats-push-script"
         perms = "755"
