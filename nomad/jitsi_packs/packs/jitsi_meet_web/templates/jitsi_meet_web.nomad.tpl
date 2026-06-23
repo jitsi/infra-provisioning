@@ -328,7 +328,12 @@ http {
 	##
 	# Virtual Host Configs
 	##
-	include /config/nginx/site-confs/*;
+	# The rootless web image renders its server configs (the listen-8000 default
+	# server + meet.conf) into /run/web/config/nginx/site-confs/, and copies
+	# /config/. there too (so our mounted status.conf lands alongside). Including
+	# the old /config path only picked up status.conf (888) and never the
+	# listen-8000 server -> nothing on 8000 -> shard nginx ECONNREFUSED -> 502.
+	include /run/web/config/nginx/site-confs/*;
 }
 
 daemon off;
