@@ -20,7 +20,7 @@ pipeline {
           sshagent (credentials: ['video-infra']) {
             dir('jitsi-meet-branding') {
               retry(count: 3) {
-                git branch: 'main', url: env.BRANDING_REPO ?: 'git@github.com:8x8Cloud/jitsi-meet-branding.git', credentialsId: 'video-infra'
+                git branch: 'master', url: env.BRANDING_REPO ?: 'git@github.com:8x8Cloud/jitsi-meet-branding.git', credentialsId: 'video-infra'
               }
             }
           }
