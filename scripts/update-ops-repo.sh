@@ -5,11 +5,17 @@ set -x
 # e.g. scripts
 LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
+# Capture any caller-provided bucket before clouds/oracle.sh (which sets a
+# default unconditionally) so a non-prod bucket (e.g. ops-repo-test) can be
+# targeted for end-to-end testing without touching the production repo.
+OPS_REPO_BUCKET_OVERRIDE="$OPS_REPO_BUCKET"
+
 [ -e "$LOCAL_PATH/../clouds/all.sh" ] && . $LOCAL_PATH/../clouds/all.sh
 
 # pull in oracle namespace
 [ -e "$LOCAL_PATH/../clouds/oracle.sh" ] && . $LOCAL_PATH/../clouds/oracle.sh
 
+[ -n "$OPS_REPO_BUCKET_OVERRIDE" ] && OPS_REPO_BUCKET="$OPS_REPO_BUCKET_OVERRIDE"
 [ -z "$OPS_REPO_BUCKET" ] && OPS_REPO_BUCKET="ops-repo"
 [ -z "$S3FS_PASSWORD_PATH" ] && S3FS_PASSWORD_PATH="/etc/.passwd-s3fs"
 [ -z "$ORACLE_REGION" ] && ORACLE_REGION="us-phoenix-1"

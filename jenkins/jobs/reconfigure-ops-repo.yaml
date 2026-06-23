@@ -22,7 +22,32 @@
           default: git@github.com:jitsi/infra-customizations.git
           description: "Repo with customized configurations, defaults to 'git@github.com:jitsi/infra-customizations.git'."
           trim: true
- 
+      - string:
+          name: OPS_REPO_BUCKET
+          default: ops-repo
+          description: "Object storage bucket to rebuild. Use 'ops-repo-test' for end-to-end testing without touching production."
+          trim: true
+      - string:
+          name: NEW_KEYID
+          default: ""
+          description: "Modern signing key fingerprint for dual-signing the InRelease (Debian Trixie / APT 3.0). Empty = legacy single-key signing only. See JIT-15930."
+          trim: true
+      - string:
+          name: OPS_REPO_SECRING_CREDENTIAL_ID
+          default: ops-repo-secring
+          description: "Jenkins file credential for the secret keyring. Override (e.g. ops-repo-secring-test) to sign a test bucket with the combined dual-key keyring."
+          trim: true
+      - string:
+          name: OPS_REPO_PUBRING_CREDENTIAL_ID
+          default: ops-repo-pubring
+          description: "Jenkins file credential for the public keyring."
+          trim: true
+      - string:
+          name: OPS_REPO_SECRING_PASSPHRASE_CREDENTIAL_ID
+          default: ops-repo-secring-passphrase
+          description: "Jenkins file credential for the signing key passphrase."
+          trim: true
+
     project-type: pipeline
     sandbox: true
     pipeline-scm:
