@@ -27,8 +27,10 @@ pipeline {
                 script {
                     echo "ops repo rebuild (bucket=${env.OPS_REPO_BUCKET ?: 'ops-repo'})"
                     dir('infra-provisioning') {
-                      // Lock per-bucket so a test-bucket rebuild does not block the production one.
-                      lock("reconfigure-ops-repo-${env.OPS_REPO_BUCKET ?: 'ops-repo'}") {
+                      // Bucket-scoped lock shared with build-branding-debs so the two jobs
+                      // never mutate the same ops-repo bucket concurrently, while different
+                      // buckets (e.g. ops-repo-test) stay independent. See JIT-15930.
+                      lock("ops-repo-bucket-${env.OPS_REPO_BUCKET ?: 'ops-repo'}") {
                         withCredentials([
                             file(credentialsId: 'ops-repo-s3fs', variable: 'S3_PASSWORD_PATH'),
                             file(credentialsId: env.OPS_REPO_SECRING_CREDENTIAL_ID ?: 'ops-repo-secring', variable: 'OPS_REPO_SECRING_PATH'),
