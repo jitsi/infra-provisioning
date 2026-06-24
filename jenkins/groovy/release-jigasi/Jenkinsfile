@@ -43,6 +43,17 @@ def provisionJigasi(shard_environment,cloud_name,release_number,gitBranch,jigasi
 // global var to track git branch from env or new tags
 def git_branch
 def utils
+def governance
+def artConfig
+
+// extract the git hash from a git-describe style version like 1.0-123-gABCDEF
+def gitHashFromVersion(version) {
+    if (!version) return ''
+    def idx = version.lastIndexOf('-g')
+    if (idx < 0) return ''
+    return version.substring(idx + 2)
+}
+
 pipeline {				//indicate the job is written in Declarative Pipeline
     agent any				//agent specifies where the pipeline will execute.
     options {
@@ -78,6 +89,51 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                 env.RELEASE_BRANCH = git_branch
             }
           }
+        }
+        // initialize govern8 governance hooks. Run *after* "tag release" so the
+        // new jigasi-release-<BUILD_ID> tag is already applied to all three infra
+        // repos; collectInfraComponents() then records that tag for each.
+        stage("initialize governance") {
+            steps {
+                script {
+                    dir('infra-provisioning') {
+                        def jigasiHash = gitHashFromVersion(env.JIGASI_VERSION)
+                        governance = utils.LoadGovernanceHooks()
+                        artConfig = governance.init([
+                            serviceName:   'jigasi',
+                            version:       env.JIGASI_VERSION,
+                            artifactType:  'vm',
+                            environment:   env.ENVIRONMENT,
+                            // Standard govern8 job parameters (see
+                            // jenkins-govern8-integration docs/JOB_PARAMETERS.md).
+                            // Undefined params resolve to null -> init applies its defaults.
+                            rpTicket:      params.RP_TICKET,
+                            jiraTicket:    params.JIRA_TICKET,
+                            useStaging:    params.GOVERNANCE_STAGING,
+                            fastTrack:     params.FAST_TRACK,
+                            allowOverride: params.GOVERNANCE_ALLOW_OVERRIDE,
+                            disabled:      (params.GOVERNANCE_ENABLED == false),
+                            verbose:       params.GOVERN8_VERBOSE,
+                            skipGates:     params.GOVERN8_SKIP_GATES,
+                            gateTimeout:   params.GOVERN8_GATE_TIMEOUT,
+                            extraComponents: [[
+                                name    : 'jigasi',
+                                artifact: [type: 'git', version: env.JIGASI_VERSION],
+                                git     : [repository: 'https://github.com/jitsi/jigasi', commit: jigasiHash, branch: '', pr: ''],
+                                metadata: [:],
+                            ]],
+                        ])
+                    }
+                }
+            }
+        }
+        stage("Governance") {
+            steps {
+                script {
+                    governance.preRelease(artConfig)
+                    governance.preDeploy(artConfig)
+                }
+            }
         }
         stage("build and replicate Jigasi image in AWS") {
             when {
@@ -147,6 +203,16 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                     // only succeed if all branches succeed
                     parallel branches
                   }
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            script {
+                if (governance != null) {
+                    governance.postHooks(artConfig, currentBuild.result == 'SUCCESS')
                 }
             }
         }

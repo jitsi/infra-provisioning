@@ -92,6 +92,17 @@ def upgradeJVBPool(shard_environment,cloud_name,cloud_provider,shard,release_num
 
 def skipShardJVBs
 def utils
+def governance
+def artConfig
+
+// extract the git hash from a git-describe style version like 1.0-123-gABCDEF
+def gitHashFromVersion(version) {
+    if (!version) return ''
+    def idx = version.lastIndexOf('-g')
+    if (idx < 0) return ''
+    return version.substring(idx + 2)
+}
+
 pipeline {
   agent any
   options {
@@ -163,6 +174,51 @@ pipeline {
                 // either way set it into git_branch variable to use later
                 git_branch = utils.TagRelease('jvb-release',env.BUILD_ID, env.RELEASE_BRANCH)
                 env.RELEASE_BRANCH = git_branch
+            }
+        }
+    }
+    // initialize govern8 governance hooks. Run *after* "tag release" so the new
+    // jvb-release-<BUILD_ID> tag is already applied to all three infra repos;
+    // collectInfraComponents() then records that tag for each.
+    stage("initialize governance") {
+        steps {
+            script {
+                dir('infra-provisioning') {
+                    def jvbHash = gitHashFromVersion(env.JVB_VERSION)
+                    governance = utils.LoadGovernanceHooks()
+                    artConfig = governance.init([
+                        serviceName:   'jvb',
+                        version:       env.JVB_VERSION,
+                        artifactType:  'vm',
+                        environment:   env.ENVIRONMENT,
+                        // Standard govern8 job parameters (see
+                        // jenkins-govern8-integration docs/JOB_PARAMETERS.md).
+                        // Undefined params resolve to null -> init applies its defaults.
+                        rpTicket:      params.RP_TICKET,
+                        jiraTicket:    params.JIRA_TICKET,
+                        useStaging:    params.GOVERNANCE_STAGING,
+                        fastTrack:     params.FAST_TRACK,
+                        allowOverride: params.GOVERNANCE_ALLOW_OVERRIDE,
+                        disabled:      (params.GOVERNANCE_ENABLED == false),
+                        verbose:       params.GOVERN8_VERBOSE,
+                        skipGates:     params.GOVERN8_SKIP_GATES,
+                        gateTimeout:   params.GOVERN8_GATE_TIMEOUT,
+                        extraComponents: [[
+                            name    : 'jvb',
+                            artifact: [type: 'git', version: env.JVB_VERSION],
+                            git     : [repository: 'https://github.com/jitsi/jitsi-videobridge', commit: jvbHash, branch: '', pr: ''],
+                            metadata: [:],
+                        ]],
+                    ])
+                }
+            }
+        }
+    }
+    stage("Governance") {
+        steps {
+            script {
+                governance.preRelease(artConfig)
+                governance.preDeploy(artConfig)
             }
         }
     }
@@ -240,5 +296,15 @@ pipeline {
           }
         }
     }
+  }
+
+  post {
+      always {
+          script {
+              if (governance != null) {
+                  governance.postHooks(artConfig, currentBuild.result == 'SUCCESS')
+              }
+          }
+      }
   }
 }
