@@ -37,6 +37,59 @@ def rsplit(str, number_parts) {
     return result.reverse();
 }
 
+// extract the git hash from a git-describe style version like 1.0-123-gABCDEF
+def gitHashFromVersion(version) {
+    if (!version) return ''
+    def idx = version.lastIndexOf('-g')
+    if (idx < 0) return ''
+    return version.substring(idx + 2)
+}
+
+// Build govern8 components for the upstream code that makes up a core release.
+// SIGNAL_VERSION is "<jicofo>-<jitsiMeet>-<prosody>" where the parts are the
+// unified build number. jicofo and jitsi-meet are tagged "jitsi-meet_<number>"
+// in their repos, so we pass that tag as the commit ref — govern8ResolveGitHash
+// resolves it to a full SHA. JVB uses a git-describe "-g<hash>" version. Prosody
+// is recorded for completeness but without a git hash (not our component).
+// Fail open: return whatever we can build, never break the pipeline.
+def collectCoreComponents(signalVersion, jvbVersion) {
+    def components = []
+    try {
+        if (signalVersion) {
+            def parts = rsplit(signalVersion, 3)  // [jicofo, jitsi-meet, prosody]
+            components << [
+                name    : 'jicofo',
+                artifact: [type: 'git', version: parts[0]],
+                git     : [repository: 'https://github.com/jitsi/jicofo', commit: "jitsi-meet_${parts[0]}", branch: '', pr: ''],
+                metadata: [:],
+            ]
+            components << [
+                name    : 'jitsi-meet',
+                artifact: [type: 'git', version: parts[1]],
+                git     : [repository: 'https://github.com/jitsi/jitsi-meet', commit: "jitsi-meet_${parts[1]}", branch: '', pr: ''],
+                metadata: [:],
+            ]
+            components << [
+                name    : 'prosody',
+                artifact: [type: 'git', version: parts[2]],
+                git     : [repository: '', commit: '', branch: '', pr: ''],
+                metadata: [:],
+            ]
+        }
+        if (jvbVersion) {
+            components << [
+                name    : 'jvb',
+                artifact: [type: 'git', version: jvbVersion],
+                git     : [repository: 'https://github.com/jitsi/jitsi-videobridge', commit: gitHashFromVersion(jvbVersion), branch: '', pr: ''],
+                metadata: [:],
+            ]
+        }
+    } catch (err) {
+        echo "WARNING: could not build core govern8 components: ${err.message}"
+    }
+    return components
+}
+
 // generates unique new shard numbers for environment based on existing shards currently deployed
 def generate_numbers(shard_environment,cloud_list) {
     def shardNumbers = sh(
@@ -184,6 +237,7 @@ pipeline {
 
                     // initialize govern8 governance hooks
                     dir('infra-provisioning') {
+                        def coreComponents = collectCoreComponents(env.SIGNAL_VERSION, env.JVB_VERSION)
                         governance = utils.LoadGovernanceHooks()
                         artConfig = governance.init([
                             serviceName:   'core',
@@ -202,6 +256,7 @@ pipeline {
                             verbose:       params.GOVERN8_VERBOSE,
                             skipGates:     params.GOVERN8_SKIP_GATES,
                             gateTimeout:   params.GOVERN8_GATE_TIMEOUT,
+                            extraComponents: coreComponents,
                         ])
                     }
                 }
