@@ -70,9 +70,10 @@ def collectCoreComponents(signalVersion, jvbVersion) {
                 git     : [repository: 'https://github.com/jitsi/jitsi-meet', commit: parts[1], branch: '', pr: ''],
                 metadata: [tag: parts[1]],
             ]
+            // prosody is not our component — record it as a deb artifact (no git hash)
             components << [
                 name    : 'prosody',
-                artifact: [type: 'git', version: parts[2]],
+                artifact: [type: 'deb', version: parts[2]],
                 git     : [repository: '', commit: '', branch: '', pr: ''],
                 metadata: [:],
             ]
