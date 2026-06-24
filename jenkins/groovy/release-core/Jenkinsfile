@@ -1,4 +1,6 @@
 def utils
+def governance
+def artConfig
 import groovy.json.JsonOutput
 
 // splits incoming clouds into a list
@@ -179,6 +181,29 @@ pipeline {
 
                     // setup OCI credentials
                     utils.SetupOCI()
+
+                    // initialize govern8 governance hooks
+                    dir('infra-provisioning') {
+                        governance = utils.LoadGovernanceHooks()
+                        artConfig = governance.init([
+                            serviceName:   'core',
+                            version:       env.SIGNAL_VERSION,
+                            artifactType:  'vm',
+                            environment:   env.ENVIRONMENT,
+                            // Standard govern8 job parameters (see
+                            // jenkins-govern8-integration docs/JOB_PARAMETERS.md).
+                            // Undefined params resolve to null -> init applies its defaults.
+                            rpTicket:      params.RP_TICKET,
+                            jiraTicket:    params.JIRA_TICKET,
+                            useStaging:    params.GOVERNANCE_STAGING,
+                            fastTrack:     params.FAST_TRACK,
+                            allowOverride: params.GOVERNANCE_ALLOW_OVERRIDE,
+                            disabled:      (params.GOVERNANCE_ENABLED == false),
+                            verbose:       params.GOVERN8_VERBOSE,
+                            skipGates:     params.GOVERN8_SKIP_GATES,
+                            gateTimeout:   params.GOVERN8_GATE_TIMEOUT,
+                        ])
+                    }
                 }
             }
         }
@@ -235,6 +260,14 @@ pipeline {
         // create images for oracle
         stage("build oracle images") {
             parallel {
+                stage('Governance') {
+                    steps {
+                        script {
+                            governance.preRelease(artConfig)
+                            governance.preDeploy(artConfig)
+                        }
+                    }
+                }
                 stage("build JVB image in Oracle") {
                     when {
                         expression {env.CLOUD_PROVIDER == 'oracle'}
@@ -375,6 +408,16 @@ pipeline {
                     dir('infra-provisioning') {
                         enableReleaseAlarms(env.ENVIRONMENT,env.BUILD_ID)
                     }
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            script {
+                if (governance != null) {
+                    governance.postHooks(artConfig, currentBuild.result == 'SUCCESS')
                 }
             }
         }
