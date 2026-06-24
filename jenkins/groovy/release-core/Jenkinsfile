@@ -236,31 +236,6 @@ pipeline {
 
                     // setup OCI credentials
                     utils.SetupOCI()
-
-                    // initialize govern8 governance hooks
-                    dir('infra-provisioning') {
-                        def coreComponents = collectCoreComponents(env.SIGNAL_VERSION, env.JVB_VERSION)
-                        governance = utils.LoadGovernanceHooks()
-                        artConfig = governance.init([
-                            serviceName:   'core',
-                            version:       env.SIGNAL_VERSION,
-                            artifactType:  'vm',
-                            environment:   env.ENVIRONMENT,
-                            // Standard govern8 job parameters (see
-                            // jenkins-govern8-integration docs/JOB_PARAMETERS.md).
-                            // Undefined params resolve to null -> init applies its defaults.
-                            rpTicket:      params.RP_TICKET,
-                            jiraTicket:    params.JIRA_TICKET,
-                            useStaging:    params.GOVERNANCE_STAGING,
-                            fastTrack:     params.FAST_TRACK,
-                            allowOverride: params.GOVERNANCE_ALLOW_OVERRIDE,
-                            disabled:      (params.GOVERNANCE_ENABLED == false),
-                            verbose:       params.GOVERN8_VERBOSE,
-                            skipGates:     params.GOVERN8_SKIP_GATES,
-                            gateTimeout:   params.GOVERN8_GATE_TIMEOUT,
-                            extraComponents: coreComponents,
-                        ])
-                    }
                 }
             }
         }
@@ -292,6 +267,41 @@ pipeline {
                     // either way set it into git_branch variable to use later
                     git_branch = utils.TagRelease('release',env.BUILD_ID, env.RELEASE_BRANCH)
                     env.RELEASE_BRANCH = git_branch
+                }
+            }
+        }
+        // initialize govern8 governance hooks. Run *after* "tag release" so the
+        // new release-<BUILD_ID> tag is already applied to all three infra repos
+        // (infra-provisioning, infra-configuration, infra-customizations). The
+        // hooks' collectInfraComponents() then resolves that tag for each repo
+        // via `git describe --exact-match HEAD`, so governance always tracks the
+        // release tag we tag with before release rather than the checkout HEAD.
+        stage("initialize governance") {
+            steps {
+                script {
+                    dir('infra-provisioning') {
+                        def coreComponents = collectCoreComponents(env.SIGNAL_VERSION, env.JVB_VERSION)
+                        governance = utils.LoadGovernanceHooks()
+                        artConfig = governance.init([
+                            serviceName:   'core',
+                            version:       env.SIGNAL_VERSION,
+                            artifactType:  'vm',
+                            environment:   env.ENVIRONMENT,
+                            // Standard govern8 job parameters (see
+                            // jenkins-govern8-integration docs/JOB_PARAMETERS.md).
+                            // Undefined params resolve to null -> init applies its defaults.
+                            rpTicket:      params.RP_TICKET,
+                            jiraTicket:    params.JIRA_TICKET,
+                            useStaging:    params.GOVERNANCE_STAGING,
+                            fastTrack:     params.FAST_TRACK,
+                            allowOverride: params.GOVERNANCE_ALLOW_OVERRIDE,
+                            disabled:      (params.GOVERNANCE_ENABLED == false),
+                            verbose:       params.GOVERN8_VERBOSE,
+                            skipGates:     params.GOVERN8_SKIP_GATES,
+                            gateTimeout:   params.GOVERN8_GATE_TIMEOUT,
+                            extraComponents: coreComponents,
+                        ])
+                    }
                 }
             }
         }
