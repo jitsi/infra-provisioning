@@ -74,11 +74,22 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                     dir('infra-provisioning') {
                       governance = utils.LoadGovernanceHooks()
                       artConfig = governance.init([
-                          serviceName: 'jibri',
-                          version:     env.JIBRI_VERSION,
-                          artifactType: 'vm',
-                          environment: env.ENVIRONMENT,
-                          fastTrack:   false,
+                          serviceName:   'jibri',
+                          version:       env.JIBRI_VERSION,
+                          artifactType:  'vm',
+                          environment:   env.ENVIRONMENT,
+                          // Standard govern8 job parameters (see
+                          // jenkins-govern8-integration docs/JOB_PARAMETERS.md).
+                          // Undefined params resolve to null -> init applies its defaults.
+                          rpTicket:      params.RP_TICKET,
+                          jiraTicket:    params.JIRA_TICKET,
+                          useStaging:    params.GOVERNANCE_STAGING,
+                          fastTrack:     params.FAST_TRACK,
+                          allowOverride: params.GOVERNANCE_ALLOW_OVERRIDE,
+                          disabled:      (params.GOVERNANCE_ENABLED == false),
+                          verbose:       params.GOVERN8_VERBOSE,
+                          skipGates:     params.GOVERN8_SKIP_GATES,
+                          gateTimeout:   params.GOVERN8_GATE_TIMEOUT,
                           extraComponents: [[
                               name    : 'jibri',
                               artifact: [type: 'git', version: jibriGitHash],
