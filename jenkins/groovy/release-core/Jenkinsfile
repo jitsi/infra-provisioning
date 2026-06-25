@@ -1,6 +1,7 @@
 def utils
 def governance
 def artConfig
+def coreComponents
 import groovy.json.JsonOutput
 
 // splits incoming clouds into a list
@@ -280,7 +281,7 @@ pipeline {
             steps {
                 script {
                     dir('infra-provisioning') {
-                        def coreComponents = collectCoreComponents(env.SIGNAL_VERSION, env.JVB_VERSION)
+                        coreComponents = collectCoreComponents(env.SIGNAL_VERSION, env.JVB_VERSION)
                         governance = utils.LoadGovernanceHooks()
                         artConfig = governance.init([
                             serviceName:   'core',
@@ -330,8 +331,12 @@ pipeline {
                 stage('Governance') {
                     steps {
                         script {
+                            // Aggregate release gate (umbrella for all components),
+                            // then a focused pre-deploy gate per source component
+                            // (jicofo, jitsi-meet, jvb...), each attributed to its
+                            // own repo. Components without a git commit are skipped.
                             governance.preRelease(artConfig)
-                            governance.preDeploy(artConfig)
+                            governance.preDeployComponents(artConfig, coreComponents)
                         }
                     }
                 }
@@ -484,7 +489,7 @@ pipeline {
         always {
             script {
                 if (governance != null) {
-                    governance.postHooks(artConfig, currentBuild.result == 'SUCCESS')
+                    governance.postHooksComponents(artConfig, coreComponents, currentBuild.result == 'SUCCESS')
                 }
             }
         }
