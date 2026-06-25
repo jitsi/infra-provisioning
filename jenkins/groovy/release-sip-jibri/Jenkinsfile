@@ -54,6 +54,16 @@ def provisionJibri(shard_environment,cloud_name,release_number,gitBranch,jibriVe
 }
 
 def utils
+def governance
+def artConfig
+
+// extract the git hash from a git-describe style version like 1.0-123-gABCDEF
+def gitHashFromVersion(version) {
+    if (!version) return ''
+    def idx = version.lastIndexOf('-g')
+    if (idx < 0) return ''
+    return version.substring(idx + 2)
+}
 
 pipeline {				//indicate the job is written in Declarative Pipeline
     agent any				//agent specifies where the pipeline will execute.
@@ -99,6 +109,51 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                 env.RELEASE_BRANCH = git_branch
             }
           }
+        }
+        // initialize governance hooks. Run *after* "tag release" so the
+        // new sip-jibri-release-<BUILD_ID> tag is already applied to all three
+        // infra repos; collectInfraComponents() then records that tag for each.
+        stage("initialize governance") {
+            steps {
+                script {
+                    dir('infra-provisioning') {
+                        def jibriHash = gitHashFromVersion(env.JIBRI_VERSION)
+                        governance = utils.LoadGovernanceHooks()
+                        artConfig = governance.init([
+                            serviceName:   'sip-jibri',
+                            version:       env.JIBRI_VERSION,
+                            artifactType:  'vm',
+                            environment:   env.ENVIRONMENT,
+                            // Standard governance job parameters (see
+                            // the governance provider's JOB_PARAMETERS.md).
+                            // Undefined params resolve to null -> init applies its defaults.
+                            rpTicket:      params.RP_TICKET,
+                            jiraTicket:    params.JIRA_TICKET,
+                            useStaging:    params.GOVERNANCE_STAGING,
+                            fastTrack:     params.FAST_TRACK,
+                            allowOverride: params.GOVERNANCE_ALLOW_OVERRIDE,
+                            disabled:      (params.GOVERNANCE_ENABLED == false),
+                            verbose:       params.GOVERNANCE_VERBOSE,
+                            skipGates:     params.GOVERNANCE_SKIP_GATES,
+                            gateTimeout:   params.GOVERNANCE_GATE_TIMEOUT,
+                            extraComponents: [[
+                                name    : 'jibri',
+                                artifact: [type: 'git', version: env.JIBRI_VERSION],
+                                git     : [repository: 'https://github.com/jitsi/jibri', commit: jibriHash, branch: '', pr: ''],
+                                metadata: [:],
+                            ]],
+                        ])
+                    }
+                }
+            }
+        }
+        stage("Governance") {
+            steps {
+                script {
+                    governance.preRelease(artConfig)
+                    governance.preDeploy(artConfig)
+                }
+            }
         }
         stage("build and replicate Jibri image in AWS") {
             when {
@@ -174,6 +229,16 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                      ]
                  }
              }
+        }
+    }
+
+    post {
+        always {
+            script {
+                if (governance != null) {
+                    governance.postHooks(artConfig, currentBuild.result == 'SUCCESS')
+                }
+            }
         }
     }
 }

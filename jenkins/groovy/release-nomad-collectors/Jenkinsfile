@@ -9,6 +9,8 @@ def provisionJob(job_name,environment,oracle_region,video_infra_branch) {
 }
 
 def utils
+def governance
+def artConfig
 
 pipeline {
     agent any
@@ -30,10 +32,45 @@ pipeline {
 
                     // setup OCI credentials
                     utils.SetupOCI()
+
+                    dir('infra-provisioning') {
+                        governance = utils.LoadGovernanceHooks()
+                        artConfig = governance.init([
+                            serviceName:   'nomad-collectors',
+                            version:       env.BUILD_ID,
+                            environment:   env.ENVIRONMENT,
+                            // Standard governance job parameters (see
+                            // the governance provider's JOB_PARAMETERS.md).
+                            // Undefined params resolve to null -> init applies its defaults.
+                            rpTicket:      params.RP_TICKET,
+                            jiraTicket:    params.JIRA_TICKET,
+                            useStaging:    params.GOVERNANCE_STAGING,
+                            fastTrack:     params.FAST_TRACK,
+                            allowOverride: params.GOVERNANCE_ALLOW_OVERRIDE,
+                            disabled:      (params.GOVERNANCE_ENABLED == false),
+                            verbose:       params.GOVERNANCE_VERBOSE,
+                            skipGates:     params.GOVERNANCE_SKIP_GATES,
+                            gateTimeout:   params.GOVERNANCE_GATE_TIMEOUT,
+                        ])
+                    }
                 }
             }
         }
 
+        stage('Pre-Release') {
+            steps {
+                script {
+                    governance.preRelease(artConfig)
+                }
+            }
+        }
+        stage('Pre-Deploy') {
+            steps {
+                script {
+                    governance.preDeploy(artConfig)
+                }
+            }
+        }
         stage("provision collector jobs") {
             steps {
                 script {
@@ -62,6 +99,16 @@ pipeline {
                     }
                     parallel branches
                   }
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            script {
+                if (governance != null) {
+                    governance.postHooks(artConfig, currentBuild.result == 'SUCCESS')
                 }
             }
         }

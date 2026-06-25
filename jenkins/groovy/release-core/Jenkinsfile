@@ -1,4 +1,6 @@
 def utils
+def governance
+def artConfig
 import groovy.json.JsonOutput
 
 // splits incoming clouds into a list
@@ -33,6 +35,61 @@ def rsplit(str, number_parts) {
     // drop the last '-'
     result[number_parts - 1] = lastPart.substring(0, lastPart.length() - 1);;
     return result.reverse();
+}
+
+// extract the git hash from a git-describe style version like 1.0-123-gABCDEF
+def gitHashFromVersion(version) {
+    if (!version) return ''
+    def idx = version.lastIndexOf('-g')
+    if (idx < 0) return ''
+    return version.substring(idx + 2)
+}
+
+// Build governance components for the upstream code that makes up a core release.
+// SIGNAL_VERSION is "<jicofo>-<jitsiMeet>-<prosody>" where jicofo/jitsi-meet are
+// build numbers that are also the bare git tag in their repos (e.g. jicofo tag
+// "1184", jitsi-meet tag "9295"). We pass that tag as the commit ref and
+// the governance library resolves it to a full SHA, keeping the build number in
+// metadata.tag. JVB uses a git-describe "-g<hash>" version. Prosody is recorded
+// for completeness but without a git hash (not our component).
+// Fail open: return whatever we can build, never break the pipeline.
+def collectCoreComponents(signalVersion, jvbVersion) {
+    def components = []
+    try {
+        if (signalVersion) {
+            def parts = rsplit(signalVersion, 3)  // [jicofo, jitsi-meet, prosody]
+            components << [
+                name    : 'jicofo',
+                artifact: [type: 'git', version: parts[0]],
+                git     : [repository: 'https://github.com/jitsi/jicofo', commit: parts[0], branch: '', pr: ''],
+                metadata: [tag: parts[0]],
+            ]
+            components << [
+                name    : 'jitsi-meet',
+                artifact: [type: 'git', version: parts[1]],
+                git     : [repository: 'https://github.com/jitsi/jitsi-meet', commit: parts[1], branch: '', pr: ''],
+                metadata: [tag: parts[1]],
+            ]
+            // prosody is not our component — record it as a deb artifact (no git hash)
+            components << [
+                name    : 'prosody',
+                artifact: [type: 'deb', version: parts[2]],
+                git     : [repository: '', commit: '', branch: '', pr: ''],
+                metadata: [:],
+            ]
+        }
+        if (jvbVersion) {
+            components << [
+                name    : 'jvb',
+                artifact: [type: 'git', version: jvbVersion],
+                git     : [repository: 'https://github.com/jitsi/jitsi-videobridge', commit: gitHashFromVersion(jvbVersion), branch: '', pr: ''],
+                metadata: [:],
+            ]
+        }
+    } catch (err) {
+        echo "WARNING: could not build core governance components: ${err.message}"
+    }
+    return components
 }
 
 // generates unique new shard numbers for environment based on existing shards currently deployed
@@ -213,6 +270,41 @@ pipeline {
                 }
             }
         }
+        // initialize governance hooks. Run *after* "tag release" so the
+        // new release-<BUILD_ID> tag is already applied to all three infra repos
+        // (infra-provisioning, infra-configuration, infra-customizations). The
+        // hooks' collectInfraComponents() then resolves that tag for each repo
+        // via `git describe --exact-match HEAD`, so governance always tracks the
+        // release tag we tag with before release rather than the checkout HEAD.
+        stage("initialize governance") {
+            steps {
+                script {
+                    dir('infra-provisioning') {
+                        def coreComponents = collectCoreComponents(env.SIGNAL_VERSION, env.JVB_VERSION)
+                        governance = utils.LoadGovernanceHooks()
+                        artConfig = governance.init([
+                            serviceName:   'core',
+                            version:       env.SIGNAL_VERSION,
+                            artifactType:  'vm',
+                            environment:   env.ENVIRONMENT,
+                            // Standard governance job parameters (see
+                            // the governance provider's JOB_PARAMETERS.md).
+                            // Undefined params resolve to null -> init applies its defaults.
+                            rpTicket:      params.RP_TICKET,
+                            jiraTicket:    params.JIRA_TICKET,
+                            useStaging:    params.GOVERNANCE_STAGING,
+                            fastTrack:     params.FAST_TRACK,
+                            allowOverride: params.GOVERNANCE_ALLOW_OVERRIDE,
+                            disabled:      (params.GOVERNANCE_ENABLED == false),
+                            verbose:       params.GOVERNANCE_VERBOSE,
+                            skipGates:     params.GOVERNANCE_SKIP_GATES,
+                            gateTimeout:   params.GOVERNANCE_GATE_TIMEOUT,
+                            extraComponents: coreComponents,
+                        ])
+                    }
+                }
+            }
+        }
         stage ("create in versioning manager") {
             when {
                 expression { useReleaseBackends == 'true' }
@@ -235,6 +327,14 @@ pipeline {
         // create images for oracle
         stage("build oracle images") {
             parallel {
+                stage('Governance') {
+                    steps {
+                        script {
+                            governance.preRelease(artConfig)
+                            governance.preDeploy(artConfig)
+                        }
+                    }
+                }
                 stage("build JVB image in Oracle") {
                     when {
                         expression {env.CLOUD_PROVIDER == 'oracle'}
@@ -375,6 +475,16 @@ pipeline {
                     dir('infra-provisioning') {
                         enableReleaseAlarms(env.ENVIRONMENT,env.BUILD_ID)
                     }
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            script {
+                if (governance != null) {
+                    governance.postHooks(artConfig, currentBuild.result == 'SUCCESS')
                 }
             }
         }
