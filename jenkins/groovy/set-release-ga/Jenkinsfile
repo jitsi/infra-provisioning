@@ -1,3 +1,5 @@
+def governance
+
 def setReleaseGA(environment) {
     def setReleaseResult = sh(
         script: """#!/bin/bash
@@ -130,6 +132,42 @@ pipeline {
                             file(credentialsId: 'asap-jwt-key-prod', variable: 'ASAP_JWT_KEY_PROD')
                         ]) {
                             addGAPoolsToScheduler(env.ENVIRONMENT, env.RELEASE_NUMBER)
+                        }
+                    }
+                }
+            }
+        }
+        // Notify governance that the release is now GA (post-enable). Runs after the
+        // promotion has succeeded and fails open — a governance error must never
+        // block or fail a release that is already live. progress {audience: GA}
+        // marks general availability.
+        stage ("notify governance (post-enable)") {
+            steps {
+                script {
+                    dir("infra-provisioning") {
+                        try {
+                            governance = utils.LoadGovernanceHooks()
+                            governance.init([
+                                serviceName:  'core',
+                                version:      env.RELEASE_NUMBER,
+                                artifactType: 'vm',
+                                environment:  env.ENVIRONMENT,
+                                // Standard governance job parameters (see
+                                // the governance provider's JOB_PARAMETERS.md).
+                                // Undefined params resolve to null -> init applies its defaults.
+                                rpTicket:     params.RP_TICKET,
+                                useStaging:   params.GOVERNANCE_STAGING,
+                                disabled:     (params.GOVERNANCE_ENABLED == false),
+                                verbose:      params.GOVERNANCE_VERBOSE,
+                            ])
+                            governance.postEnable([
+                                key:        'core',
+                                label:      "Core release ${env.RELEASE_NUMBER} (${env.ENVIRONMENT})",
+                                components: [[name: 'core', version: env.RELEASE_NUMBER]],
+                                progress:   [audience: 'GA'],
+                            ])
+                        } catch (err) {
+                            echo "WARNING: governance post-enable notification failed: ${err.message} — continuing, release is already GA"
                         }
                     }
                 }

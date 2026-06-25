@@ -29,7 +29,24 @@
           default: git@github.com:jitsi/infra-customizations.git
           description: "Repo with customized configurations, defaults to 'git@github.com:jitsi/infra-customizations.git'."
           trim: true
- 
+      - bool:
+          name: GOVERNANCE_ENABLED
+          default: true
+          description: "Send a governance post-enable notification when the release is set GA."
+      - bool:
+          name: GOVERNANCE_STAGING
+          default: false
+          description: "Use the governance staging endpoint instead of production."
+      - bool:
+          name: GOVERNANCE_VERBOSE
+          default: false
+          description: "Mirror governance hook detail to the console."
+      - string:
+          name: RP_TICKET
+          default:
+          description: "Release Package ticket (RP-<number>) for the release being promoted; recorded as the post-enable release key."
+          trim: true
+
     project-type: pipeline
     sandbox: true
     pipeline-scm:
