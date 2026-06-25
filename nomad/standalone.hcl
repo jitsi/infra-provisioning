@@ -42,7 +42,7 @@ job "[JOB_NAME]" {
       driver = "docker"
 
       config {
-        image        = "jitsi/jvb:${var.tag}"
+        image        = "ghcr.io/jitsi/jvb:${var.tag}"
         ports = ["jvb-stats","jvb-media","jvb-http-public"]
       }
 
@@ -549,7 +549,7 @@ EOF
     task "web" {
       driver = "docker"
       config {
-        image        = "jitsi/web:${var.tag}"
+        image        = "ghcr.io/jitsi/web:${var.tag}"
         ports = ["http","https"]
       }
 
@@ -975,7 +975,7 @@ EOF
       driver = "docker"
 
       config {
-        image        = "jitsi/prosody:${var.tag}"
+        image        = "ghcr.io/jitsi/prosody:${var.tag}"
         ports = ["prosody-http","prosody-client"]
       }
 
@@ -1400,7 +1400,7 @@ EOF
       driver = "docker"
 
       config {
-        image        = "jitsi/jicofo:${var.tag}"
+        image        = "ghcr.io/jitsi/jicofo:${var.tag}"
         ports = ["jicofo-http"]
       }
 

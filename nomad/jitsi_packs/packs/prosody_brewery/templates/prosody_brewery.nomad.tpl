@@ -76,7 +76,7 @@ job [[ template "job_name" . ]] {
 
       config {
         force_pull = [[ or (env "CONFIG_force_pull") "false" ]]
-        image        = "jitsi/prosody:[[ env "CONFIG_prosody_tag" ]]"
+        image        = "ghcr.io/jitsi/prosody:[[ env "CONFIG_prosody_tag" ]]"
         ports = ["prosody-brewery-client","prosody-brewery-http"]
         volumes = ["local/prosody-plugins-custom:/prosody-plugins-custom","local/config:/config"]
       }

@@ -154,7 +154,7 @@ EOF
       driver = "docker"
 
       config {
-        image        = "jitsi/jvb:[[ env "CONFIG_jvb_tag" ]]"
+        image        = "ghcr.io/jitsi/jvb:[[ env "CONFIG_jvb_tag" ]]"
         cap_add = ["SYS_ADMIN"]
         ports = ["http","media","colibri"]
         volumes = [

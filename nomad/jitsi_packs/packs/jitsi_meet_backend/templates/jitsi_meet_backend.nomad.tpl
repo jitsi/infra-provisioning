@@ -879,7 +879,7 @@ EOF
 
       config {
         force_pull = [[ or (env "CONFIG_force_pull") "false" ]]
-        image        = "jitsi/jicofo:[[ env "CONFIG_jicofo_tag" ]]"
+        image        = "ghcr.io/jitsi/jicofo:[[ env "CONFIG_jicofo_tag" ]]"
         ports = ["jicofo-http"]
         volumes = [
           "local/config:/config",
