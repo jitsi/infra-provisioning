@@ -154,7 +154,7 @@ job "[JOB_NAME]" {
 
       config {
         force_pull = true
-        image        = "jitsi/jibri:${var.jibri_tag}"
+        image        = "ghcr.io/jitsi/jibri:${var.jibri_tag}"
         cap_add = ["SYS_ADMIN"]
         # 2gb shm
         shm_size = 2147483648

@@ -1,6 +1,6 @@
 variable "jitsi_repo" {
     type = string
-    default = "jitsi"
+    default = "ghcr.io/jitsi"
 }
 
 variable "pool_type" {
