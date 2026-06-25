@@ -96,6 +96,11 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                       version:       env.JIBRI_VERSION,
                       artifactType:  'vm',
                       environment:   env.ENVIRONMENT,
+                      // The jibri VM is built from jitsi/jibri, not the
+                      // infra-provisioning workspace this job runs in. Point the
+                      // primary component's git at the real source so it is not
+                      // mis-attributed to infra-provisioning.
+                      git: [repository: 'https://github.com/jitsi/jibri', commit: jibriGitHash, branch: '', pr: ''],
                       // Standard governance job parameters (see
                       // the governance provider's JOB_PARAMETERS.md).
                       // Undefined params resolve to null -> init applies its defaults.

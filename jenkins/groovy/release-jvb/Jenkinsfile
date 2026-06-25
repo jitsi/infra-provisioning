@@ -191,6 +191,10 @@ pipeline {
                         version:       env.JVB_VERSION,
                         artifactType:  'vm',
                         environment:   env.ENVIRONMENT,
+                        // The jvb VM is built from jitsi/jitsi-videobridge, not the
+                        // infra-provisioning workspace this job runs in. Point the
+                        // primary component's git at the real source.
+                        git: [repository: 'https://github.com/jitsi/jitsi-videobridge', commit: jvbHash, branch: '', pr: ''],
                         // Standard governance job parameters (see
                         // the governance provider's JOB_PARAMETERS.md).
                         // Undefined params resolve to null -> init applies its defaults.
