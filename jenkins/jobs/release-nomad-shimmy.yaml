@@ -28,44 +28,44 @@
           default: git@github.com:jitsi/infra-customizations.git
           description: "Repo with customized configurations, defaults to 'git@github.com:jitsi/infra-customizations.git'."
           trim: true
-      # ---- govern8 governance (standard) ----
+      # ---- governance (standard) ----
       - string:
           name: RP_TICKET
           default: ""
-          description: "RP ticket (format: RP-1234) for govern8 change tracking. Auto-extracted from govern8 if left empty."
+          description: "RP ticket (format: RP-1234) for governance change tracking. Auto-extracted from governance if left empty."
           trim: true
       - string:
           name: JIRA_TICKET
           default: ""
-          description: "Optional JIRA ticket associated with this change, for govern8 tracking."
+          description: "Optional JIRA ticket associated with this change, for governance tracking."
           trim: true
       - bool:
           name: GOVERNANCE_ENABLED
           default: true
-          description: "Enable govern8 governance hooks (pre/post release & deploy gates)."
+          description: "Enable governance hooks (pre/post release & deploy gates)."
       - bool:
           name: GOVERNANCE_STAGING
           default: false
-          description: "Target the govern8 STAGING endpoint instead of production."
+          description: "Target the governance STAGING endpoint instead of production."
       - bool:
           name: FAST_TRACK
           default: false
           description: "Fast-track the change — skip manual verification/approval gates."
       - bool:
-          name: GOVERN8_VERBOSE
+          name: GOVERNANCE_VERBOSE
           default: false
-          description: "Mirror govern8 hook output (payloads, responses, gate results, shell traces) to the console. When off it goes only to the archived govern8.log artifact; warnings always show."
-      # ---- govern8 governance (advanced, optional) ----
+          description: "Mirror governance hook output (payloads, responses, gate results, shell traces) to the console. When off it goes only to the archived governance log artifact; warnings always show."
+      # ---- governance (advanced, optional) ----
       - bool:
           name: GOVERNANCE_ALLOW_OVERRIDE
           default: true
-          description: "Allow a human to override a govern8 DENY via an input prompt instead of failing the build."
+          description: "Allow a human to override a governance DENY via an input prompt instead of failing the build."
       - bool:
-          name: GOVERN8_SKIP_GATES
+          name: GOVERNANCE_SKIP_GATES
           default: false
-          description: "Send govern8 notifications but do not poll/block on the gate result."
+          description: "Send governance notifications but do not poll/block on the gate result."
       - string:
-          name: GOVERN8_GATE_TIMEOUT
+          name: GOVERNANCE_GATE_TIMEOUT
           default: "60"
           description: "Seconds a gate may stay PENDING before offering an interactive 'skip' prompt (0 disables the prompt)."
           trim: true

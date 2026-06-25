@@ -45,11 +45,11 @@ def gitHashFromVersion(version) {
     return version.substring(idx + 2)
 }
 
-// Build govern8 components for the upstream code that makes up a core release.
+// Build governance components for the upstream code that makes up a core release.
 // SIGNAL_VERSION is "<jicofo>-<jitsiMeet>-<prosody>" where jicofo/jitsi-meet are
 // build numbers that are also the bare git tag in their repos (e.g. jicofo tag
 // "1184", jitsi-meet tag "9295"). We pass that tag as the commit ref and
-// govern8ResolveGitHash resolves it to a full SHA, keeping the build number in
+// the governance library resolves it to a full SHA, keeping the build number in
 // metadata.tag. JVB uses a git-describe "-g<hash>" version. Prosody is recorded
 // for completeness but without a git hash (not our component).
 // Fail open: return whatever we can build, never break the pipeline.
@@ -87,7 +87,7 @@ def collectCoreComponents(signalVersion, jvbVersion) {
             ]
         }
     } catch (err) {
-        echo "WARNING: could not build core govern8 components: ${err.message}"
+        echo "WARNING: could not build core governance components: ${err.message}"
     }
     return components
 }
@@ -270,7 +270,7 @@ pipeline {
                 }
             }
         }
-        // initialize govern8 governance hooks. Run *after* "tag release" so the
+        // initialize governance hooks. Run *after* "tag release" so the
         // new release-<BUILD_ID> tag is already applied to all three infra repos
         // (infra-provisioning, infra-configuration, infra-customizations). The
         // hooks' collectInfraComponents() then resolves that tag for each repo
@@ -287,8 +287,8 @@ pipeline {
                             version:       env.SIGNAL_VERSION,
                             artifactType:  'vm',
                             environment:   env.ENVIRONMENT,
-                            // Standard govern8 job parameters (see
-                            // jenkins-govern8-integration docs/JOB_PARAMETERS.md).
+                            // Standard governance job parameters (see
+                            // the governance provider's JOB_PARAMETERS.md).
                             // Undefined params resolve to null -> init applies its defaults.
                             rpTicket:      params.RP_TICKET,
                             jiraTicket:    params.JIRA_TICKET,
@@ -296,9 +296,9 @@ pipeline {
                             fastTrack:     params.FAST_TRACK,
                             allowOverride: params.GOVERNANCE_ALLOW_OVERRIDE,
                             disabled:      (params.GOVERNANCE_ENABLED == false),
-                            verbose:       params.GOVERN8_VERBOSE,
-                            skipGates:     params.GOVERN8_SKIP_GATES,
-                            gateTimeout:   params.GOVERN8_GATE_TIMEOUT,
+                            verbose:       params.GOVERNANCE_VERBOSE,
+                            skipGates:     params.GOVERNANCE_SKIP_GATES,
+                            gateTimeout:   params.GOVERNANCE_GATE_TIMEOUT,
                             extraComponents: coreComponents,
                         ])
                     }

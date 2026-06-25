@@ -39,8 +39,8 @@ pipeline {
                             serviceName:   'nomad-collectors',
                             version:       env.BUILD_ID,
                             environment:   env.ENVIRONMENT,
-                            // Standard govern8 job parameters (see
-                            // jenkins-govern8-integration docs/JOB_PARAMETERS.md).
+                            // Standard governance job parameters (see
+                            // the governance provider's JOB_PARAMETERS.md).
                             // Undefined params resolve to null -> init applies its defaults.
                             rpTicket:      params.RP_TICKET,
                             jiraTicket:    params.JIRA_TICKET,
@@ -48,9 +48,9 @@ pipeline {
                             fastTrack:     params.FAST_TRACK,
                             allowOverride: params.GOVERNANCE_ALLOW_OVERRIDE,
                             disabled:      (params.GOVERNANCE_ENABLED == false),
-                            verbose:       params.GOVERN8_VERBOSE,
-                            skipGates:     params.GOVERN8_SKIP_GATES,
-                            gateTimeout:   params.GOVERN8_GATE_TIMEOUT,
+                            verbose:       params.GOVERNANCE_VERBOSE,
+                            skipGates:     params.GOVERNANCE_SKIP_GATES,
+                            gateTimeout:   params.GOVERNANCE_GATE_TIMEOUT,
                         ])
                     }
                 }
