@@ -146,6 +146,25 @@ pipeline {
                 script {
                     dir("infra-provisioning") {
                         try {
+                            // Use the RP from the param if given, otherwise recover the
+                            // one stored at release-core time (keyed by release number)
+                            // so post-enable references the same RP as the release.
+                            def rpTicket = params.RP_TICKET?.trim()
+                            if (!rpTicket) {
+                                try {
+                                    rpTicket = sh(returnStdout: true, script: """#!/bin/bash
+ENVIRONMENT=${env.ENVIRONMENT} RELEASE_NUMBER=${env.RELEASE_NUMBER} scripts/consul-get-release-rp.sh
+""").trim()
+                                } catch (lookupErr) {
+                                    echo "WARNING: could not read release RP from consul: ${lookupErr.message}"
+                                }
+                            }
+                            if (rpTicket && !(rpTicket ==~ /RP-\d+/)) {
+                                echo "Ignoring non-RP value for release ${env.RELEASE_NUMBER}: '${rpTicket}'"
+                                rpTicket = ''
+                            }
+                            echo "Post-enable RP ticket: ${rpTicket ?: '(none)'}"
+
                             governance = utils.LoadGovernanceHooks()
                             governance.init([
                                 serviceName:  'core',
@@ -155,7 +174,7 @@ pipeline {
                                 // Standard governance job parameters (see
                                 // the governance provider's JOB_PARAMETERS.md).
                                 // Undefined params resolve to null -> init applies its defaults.
-                                rpTicket:     params.RP_TICKET,
+                                rpTicket:     rpTicket,
                                 useStaging:   params.GOVERNANCE_STAGING,
                                 disabled:     (params.GOVERNANCE_ENABLED == false),
                                 verbose:      params.GOVERNANCE_VERBOSE,

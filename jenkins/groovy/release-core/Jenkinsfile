@@ -337,6 +337,34 @@ pipeline {
                             // own repo. Components without a git commit are skipped.
                             governance.preRelease(artConfig)
                             governance.preDeployComponents(artConfig, coreComponents)
+
+                            // Persist the RP ticket identified by pre-release, keyed by
+                            // release number, so set-release-ga can re-use the same RP at
+                            // GA-promotion time. Fail open — never break a release over
+                            // bookkeeping.
+                            def rpTicket = governance.getRpTicket()
+                            if (rpTicket) {
+                                try {
+                                    sshagent (credentials: ['ssh-ubuntu']) {
+                                        withCredentials([
+                                            file(credentialsId: 'oci-jenkins-config', variable: 'OCI_CLI_CONFIG_FILE'),
+                                            file(credentialsId: 'oci-jenkins-pem', variable: 'OCI_CLI_KEY_FILE'),
+                                            string(credentialsId: 'jenkins-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
+                                            string(credentialsId: 'jenkins-aws-id', variable: 'AWS_ACCESS_KEY_ID')
+                                        ]) {
+                                            dir('infra-provisioning') {
+                                                withEnv(["ENVIRONMENT=${env.ENVIRONMENT}", "RELEASE_NUMBER=${env.BUILD_ID}", "RP_TICKET=${rpTicket}"]) {
+                                                    sh 'scripts/consul-set-release-rp.sh ubuntu'
+                                                }
+                                            }
+                                        }
+                                    }
+                                } catch (err) {
+                                    echo "WARNING: failed to persist release RP ${rpTicket} to consul: ${err.message} — continuing"
+                                }
+                            } else {
+                                echo "No RP ticket identified for this release — nothing to persist"
+                            }
                         }
                     }
                 }
