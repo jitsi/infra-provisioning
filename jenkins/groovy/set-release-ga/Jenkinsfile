@@ -1,3 +1,5 @@
+import groovy.json.JsonOutput
+
 def governance
 
 def setReleaseGA(environment) {
@@ -146,24 +148,30 @@ pipeline {
                 script {
                     dir("infra-provisioning") {
                         try {
-                            // Use the RP from the param if given, otherwise recover the
-                            // one stored at release-core time (keyed by release number)
-                            // so post-enable references the same RP as the release.
-                            def rpTicket = params.RP_TICKET?.trim()
-                            if (!rpTicket) {
-                                try {
-                                    rpTicket = sh(returnStdout: true, script: """#!/bin/bash
-ENVIRONMENT=${env.ENVIRONMENT} RELEASE_NUMBER=${env.RELEASE_NUMBER} scripts/consul-get-release-rp.sh
+                            // Recover the release details stored at release-core time
+                            // (keyed by release number) so post-enable references the same
+                            // RP and the real per-service component versions as the release.
+                            def details = [:]
+                            try {
+                                def raw = sh(returnStdout: true, script: """#!/bin/bash
+ENVIRONMENT=${env.ENVIRONMENT} RELEASE_NUMBER=${env.RELEASE_NUMBER} scripts/consul-get-release-details.sh
 """).trim()
-                                } catch (lookupErr) {
-                                    echo "WARNING: could not read release RP from consul: ${lookupErr.message}"
-                                }
+                                if (raw) { details = readJSON(text: raw) }
+                            } catch (lookupErr) {
+                                echo "WARNING: could not read release details from consul: ${lookupErr.message}"
                             }
+
+                            // RP: explicit param wins, else the value stored at release time.
+                            def rpTicket = (params.RP_TICKET?.trim()) ?: (details.rp ?: '')
                             if (rpTicket && !(rpTicket ==~ /RP-\d+/)) {
                                 echo "Ignoring non-RP value for release ${env.RELEASE_NUMBER}: '${rpTicket}'"
                                 rpTicket = ''
                             }
-                            echo "Post-enable RP ticket: ${rpTicket ?: '(none)'}"
+                            // Components: stored per-service versions, else a single core fallback.
+                            def components = (details.components instanceof List && details.components) \
+                                ? details.components \
+                                : [[name: 'core', version: env.RELEASE_NUMBER]]
+                            echo "Post-enable RP ticket: ${rpTicket ?: '(none)'}, components: ${components}"
 
                             governance = utils.LoadGovernanceHooks()
                             governance.init([
@@ -179,12 +187,27 @@ ENVIRONMENT=${env.ENVIRONMENT} RELEASE_NUMBER=${env.RELEASE_NUMBER} scripts/cons
                                 disabled:     (params.GOVERNANCE_ENABLED == false),
                                 verbose:      params.GOVERNANCE_VERBOSE,
                             ])
+                            // effectiveAt defaults to now (the GA moment) inside the hook.
                             governance.postEnable([
                                 key:        'core',
                                 label:      "Core release ${env.RELEASE_NUMBER} (${env.ENVIRONMENT})",
-                                components: [[name: 'core', version: env.RELEASE_NUMBER]],
+                                components: components,
                                 progress:   [audience: 'GA'],
                             ])
+
+                            // Record the GA moment back into the stored details (best effort).
+                            if (details) {
+                                try {
+                                    details.gaAt = sh(returnStdout: true, script: 'date -u +"%Y-%m-%dT%H:%M:%SZ"').trim()
+                                    if (rpTicket) { details.rp = rpTicket }
+                                    writeFile file: 'release-details.json', text: JsonOutput.toJson(details)
+                                    withEnv(["ENVIRONMENT=${env.ENVIRONMENT}", "RELEASE_NUMBER=${env.RELEASE_NUMBER}", "DETAILS_FILE=release-details.json"]) {
+                                        sh 'scripts/consul-set-release-details.sh'
+                                    }
+                                } catch (saveErr) {
+                                    echo "WARNING: could not update release details with gaAt: ${saveErr.message}"
+                                }
+                            }
                         } catch (err) {
                             echo "WARNING: governance post-enable notification failed: ${err.message} — continuing, release is already GA"
                         }
