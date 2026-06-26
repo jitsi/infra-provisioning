@@ -337,6 +337,34 @@ pipeline {
                             // own repo. Components without a git commit are skipped.
                             governance.preRelease(artConfig)
                             governance.preDeployComponents(artConfig, coreComponents)
+
+                            // Persist the full release details (RP, component versions,
+                            // dates) keyed by release number, so set-release-ga can
+                            // rebuild rich governance calls (e.g. post-enable) at GA time
+                            // without re-deriving them. Fail open — never break a release
+                            // over bookkeeping.
+                            try {
+                                def createdAt = sh(returnStdout: true, script: 'date -u +"%Y-%m-%dT%H:%M:%SZ"').trim()
+                                def details = [
+                                    releaseNumber: env.BUILD_ID,
+                                    environment  : env.ENVIRONMENT,
+                                    rp           : governance.getRpTicket() ?: '',
+                                    signalVersion: env.SIGNAL_VERSION,
+                                    jvbVersion   : env.JVB_VERSION,
+                                    branch       : env.RELEASE_BRANCH ?: git_branch,
+                                    requestedBy  : env.BUILD_USER_ID ?: 'jenkins',
+                                    components   : coreComponents.collect { [name: it.name, version: it.artifact?.version] },
+                                    createdAt    : createdAt,
+                                ]
+                                dir('infra-provisioning') {
+                                    writeFile file: 'release-details.json', text: JsonOutput.toJson(details)
+                                    withEnv(["ENVIRONMENT=${env.ENVIRONMENT}", "RELEASE_NUMBER=${env.BUILD_ID}", "DETAILS_FILE=release-details.json"]) {
+                                        sh 'scripts/consul-set-release-details.sh'
+                                    }
+                                }
+                            } catch (err) {
+                                echo "WARNING: failed to persist release details to consul: ${err.message} — continuing"
+                            }
                         }
                     }
                 }
