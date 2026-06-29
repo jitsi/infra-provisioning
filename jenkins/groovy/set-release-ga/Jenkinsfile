@@ -170,7 +170,7 @@ ENVIRONMENT=${env.ENVIRONMENT} RELEASE_NUMBER=${env.RELEASE_NUMBER} scripts/cons
                             // Components: stored per-service versions, else a single core fallback.
                             def components = (details.components instanceof List && details.components) \
                                 ? details.components \
-                                : [[name: 'core', version: env.RELEASE_NUMBER]]
+                                : [[name: 'core', type: 'vm', version: env.RELEASE_NUMBER]]
                             echo "Post-enable RP ticket: ${rpTicket ?: '(none)'}, components: ${components}"
 
                             governance = utils.LoadGovernanceHooks()

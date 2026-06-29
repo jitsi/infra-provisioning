@@ -354,7 +354,7 @@ pipeline {
                                     jvbVersion   : env.JVB_VERSION,
                                     branch       : env.RELEASE_BRANCH ?: git_branch,
                                     requestedBy  : env.BUILD_USER_ID ?: 'jenkins',
-                                    components   : coreComponents.collect { [name: it.name, version: it.artifact?.version] },
+                                    components   : coreComponents.collect { [name: it.name, type: it.artifact?.type, version: it.artifact?.version] },
                                     createdAt    : createdAt,
                                 ]
                                 dir('infra-provisioning') {
