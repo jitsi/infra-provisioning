@@ -347,6 +347,7 @@ pipeline {
                                 def createdAt = sh(returnStdout: true, script: 'date -u +"%Y-%m-%dT%H:%M:%SZ"').trim()
                                 def details = [
                                     releaseNumber: env.BUILD_ID,
+                                    releaseId    : env.RELEASE_ID,
                                     environment  : env.ENVIRONMENT,
                                     rp           : governance.getRpTicket() ?: '',
                                     signalVersion: env.SIGNAL_VERSION,

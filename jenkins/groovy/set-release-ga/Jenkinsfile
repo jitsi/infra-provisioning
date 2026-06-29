@@ -188,7 +188,12 @@ ENVIRONMENT=${env.ENVIRONMENT} RELEASE_NUMBER=${env.RELEASE_NUMBER} scripts/cons
                                 verbose:      params.GOVERNANCE_VERBOSE,
                             ])
                             // effectiveAt defaults to now (the GA moment) inside the hook.
+                            // releaseId/name/environment/components form the release
+                            // envelope /gate/release validates; reuse the original
+                            // release's id so the enable ties back to that release.
                             governance.postEnable([
+                                releaseId:  details.releaseId ?: "${env.RELEASE_NUMBER}_core",
+                                name:       "Core release ${env.RELEASE_NUMBER}",
                                 key:        'core',
                                 label:      "Core release ${env.RELEASE_NUMBER} (${env.ENVIRONMENT})",
                                 components: components,
