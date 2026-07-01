@@ -12,10 +12,19 @@ COPY ./requirements.txt /home/jenkins/requirements.txt
 COPY ./plugins.txt /home/jenkins/plugins.txt
 
 USER root
+# Install ansible / jenkins-job-builder into an isolated virtualenv rather than the
+# system interpreter (PEP 668 / --break-system-packages). --system-site-packages keeps
+# access to apt-provided python modules while layering our pip packages on top.
+ENV VIRTUAL_ENV=/opt/jenkins/venv
 RUN apt-get update && \
-    apt-get -y install procps dnsutils jq python3-pip wget curl gpg unzip zip git python-is-python3 maven xvfb imagemagick sudo && \
-    pip install --break-system-packages -r /home/jenkins/requirements.txt && \
-    pip install --break-system-packages jenkins-job-builder
+    apt-get -y install procps dnsutils jq python3-pip python3-venv wget curl gpg unzip zip git python-is-python3 maven xvfb imagemagick sudo && \
+    python3 -m venv --system-site-packages "$VIRTUAL_ENV" && \
+    "$VIRTUAL_ENV/bin/pip" install --no-cache-dir --upgrade pip wheel "setuptools<81" && \
+    "$VIRTUAL_ENV/bin/pip" install --no-cache-dir -r /home/jenkins/requirements.txt jenkins-job-builder && \
+    chown -R jenkins:jenkins /opt/jenkins
+# Activate the venv for every shell/build on this controller (the "jenkins-local" node)
+# so ansible / jenkins-jobs resolve to the venv before any local-node job runs.
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 RUN echo "%jenkins ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/jenkins
 
 RUN wget -O-  https://download.docker.com/linux/debian/gpg | \

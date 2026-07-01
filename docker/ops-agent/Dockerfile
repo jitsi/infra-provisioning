@@ -19,8 +19,17 @@ USER root
 RUN apt-get update && apt-get -y install procps dnsutils \
   jq python3-pip python3-venv rsync wget curl gpg unzip zip git python-is-python3 maven xvfb imagemagick s3cmd s3fs mini-dinstall \
   sudo devscripts dpkg-dev amazon-ecr-credential-helper netcat-openbsd rclone
-RUN pip install --break-system-packages -r /home/jenkins/requirements.txt \
-  && pip install --break-system-packages jenkins-job-builder
+# Install python tooling (ansible, oci-cli, awscli, jenkins-job-builder, ...) into an
+# isolated virtualenv instead of the system interpreter (PEP 668 / --break-system-packages).
+# --system-site-packages keeps access to apt-provided python modules.
+ENV VIRTUAL_ENV=/opt/jenkins/venv
+RUN python3 -m venv --system-site-packages "$VIRTUAL_ENV" && \
+    "$VIRTUAL_ENV/bin/pip" install --no-cache-dir --upgrade pip wheel "setuptools<81" && \
+    "$VIRTUAL_ENV/bin/pip" install --no-cache-dir -r /home/jenkins/requirements.txt jenkins-job-builder && \
+    chown -R jenkins:jenkins /opt/jenkins
+# Activate the venv for every shell/build on this agent (inherited by `docker exec` from
+# the attach connector) so the tools above are on PATH without each job activating it.
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
 RUN echo "%jenkins ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/jenkins
 RUN wget -O- https://apt.releases.hashicorp.com/gpg | \
