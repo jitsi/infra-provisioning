@@ -56,6 +56,17 @@ fi
 
 [ -z "$ACTION" ] && ACTION="put"
 
+# GET the group's current scheduled scaling config, following the same
+# local-autoscaler fallback as custom-autoscaler-update-scaling-activities.sh so
+# nomad/local-autoscaler JVB groups resolve correctly.
+function getScheduledScaling() {
+  getResponse=$(curl -s -w "\n %{http_code}" -X GET \
+    "$AUTOSCALER_URL"/groups/"$GROUP_NAME"/scheduled-scaling \
+    -H "Authorization: Bearer $TOKEN")
+  getHttpCode=$(tail -n1 <<<"$getResponse" | sed 's/[^0-9]*//g')
+  getBody=$(sed '$ d' <<<"$getResponse")
+}
+
 if [ "$ACTION" == "delete" ]; then
   echo "Deleting scheduled scaling config for group $GROUP_NAME"
 
@@ -100,7 +111,57 @@ elif [ "$ACTION" == "put" ]; then
     echo "Error updating scheduled scaling config for group $GROUP_NAME. AutoScaler response status code is $httpCode"
     exit 208
   fi
+elif [ "$ACTION" == "enable" ] || [ "$ACTION" == "disable" ]; then
+  # Flip only the enabled flag on the group's existing (embedded) schedule,
+  # preserving its periods/timezone. Used at set-release-ga to turn internal
+  # scheduling on for the GA release and off for groups leaving GA, without
+  # re-supplying the schedule. enableScheduler is deprecated and left untouched;
+  # the autoscaler drops it to false on its own when enabled=true.
+  if [ "$ACTION" == "enable" ]; then TARGET_ENABLED=true; else TARGET_ENABLED=false; fi
+
+  getScheduledScaling
+  if { [ "$getHttpCode" == 404 ] || [ "$getHttpCode" == 000 ]; } && [ -n "$ENVIRONMENT" ] && [ -n "$ORACLE_REGION" ]; then
+    echo "Group $GROUP_NAME not found at $AUTOSCALER_URL. Trying local autoscaler"
+    export AUTOSCALER_URL="https://${ENVIRONMENT}-${ORACLE_REGION}-autoscaler.${TOP_LEVEL_DNS_ZONE_NAME}"
+    getScheduledScaling
+  fi
+
+  if [ "$getHttpCode" != 200 ]; then
+    echo "Error fetching scheduled scaling config for group $GROUP_NAME. AutoScaler response status code is $getHttpCode"
+    exit 208
+  fi
+
+  CURRENT_CONFIG=$(echo "$getBody" | jq -c '.scheduledScaling // empty' 2>/dev/null)
+  if [ -z "$CURRENT_CONFIG" ]; then
+    if [ "$ACTION" == "enable" ]; then
+      # No embedded schedule (e.g. a legacy group created before schedules were
+      # baked in at creation). Nothing to enable; skip rather than fail the release.
+      echo "No scheduled scaling config present for group $GROUP_NAME; cannot enable. Skipping."
+      exit 231
+    else
+      echo "No scheduled scaling config present for group $GROUP_NAME; nothing to disable."
+      exit 0
+    fi
+  fi
+
+  NEW_CONFIG=$(echo "$CURRENT_CONFIG" | jq -c --argjson e "$TARGET_ENABLED" '.enabled=$e')
+
+  echo "Setting scheduled scaling enabled=$TARGET_ENABLED for group $GROUP_NAME"
+  response=$(curl -s -w "\n %{http_code}" -X PUT \
+    "$AUTOSCALER_URL"/groups/"$GROUP_NAME"/scheduled-scaling \
+    -H 'Content-Type: application/json' \
+    -H "Authorization: Bearer $TOKEN" \
+    -d "$NEW_CONFIG")
+
+  httpCode=$(tail -n1 <<<"$response" | sed 's/[^0-9]*//g')
+
+  if [ "$httpCode" == 200 ]; then
+    echo "Successfully set scheduled scaling enabled=$TARGET_ENABLED for group $GROUP_NAME"
+  else
+    echo "Error updating scheduled scaling config for group $GROUP_NAME. AutoScaler response status code is $httpCode"
+    exit 208
+  fi
 else
-  echo "Unknown ACTION '$ACTION'. Must be 'put' or 'delete'. Exiting.. "
+  echo "Unknown ACTION '$ACTION'. Must be 'put', 'delete', 'enable', or 'disable'. Exiting.. "
   exit 221
 fi

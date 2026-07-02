@@ -230,6 +230,17 @@ fi
 [ -z "$AUTOSCALER_TYPE" ] && AUTOSCALER_TYPE="JVB"
 
 export TYPE="$AUTOSCALER_TYPE"
+
+# check for a regional per-pool-mode JVB scheduled scaling ("internal scheduling")
+# config and embed it in the group at creation if present (enabled is forced off
+# until the release goes GA). Keyed by region then pool mode (local/global/remote/…),
+# so e.g. remote pools stay unscheduled simply by omitting them from the file.
+JVB_SCHEDULE_FILE="./sites/$ENVIRONMENT/jvb-schedule-by-region"
+if [ -f "$JVB_SCHEDULE_FILE" ]; then
+  JVB_SCHEDULE_CONFIG=$(jq -c --arg r "$ORACLE_REGION" --arg m "$JVB_POOL_MODE" '.[$r][$m] // empty' "$JVB_SCHEDULE_FILE" 2>/dev/null)
+  [ -n "$JVB_SCHEDULE_CONFIG" ] && export SCHEDULED_SCALING_CONFIG="$JVB_SCHEDULE_CONFIG"
+fi
+
 export INSTANCE_CONFIGURATION_ID=$INSTANCE_CONFIGURATION_ID
 export TAG_RELEASE_NUMBER=$INSTANCE_CONFIG_RELEASE_NUMBER
 export GROUP_NAME="${JVB_POOL_NAME}-${GROUP_NAME_SUFFIX}"
