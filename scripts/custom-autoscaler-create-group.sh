@@ -184,6 +184,35 @@ elif [ "$getGroupHttpCode" == 200 ]; then
   fi
 fi
 
+# Optional scheduled scaling ("internal scheduling") config. When a schedule is
+# supplied via SCHEDULED_SCALING_CONFIG (region/type schedule read from
+# sites/*/jvb-schedule-by-region by the caller), embed it in the group so the
+# schedule travels with the group from creation. New groups are created with the
+# schedule disabled; it is flipped on when the release goes GA (see
+# set-release-ga). enableScheduler is deprecated and intentionally not managed here.
+SCHEDULED_SCALING_BODY=""
+if [ "$getGroupHttpCode" == 200 ]; then
+  EXISTING_SCHEDULED_SCALING=$(echo "$instanceGroupDetails" | jq -c '.instanceGroup.scheduledScaling // empty' 2>/dev/null)
+  EXISTING_SS_ENABLED=$(echo "$instanceGroupDetails" | jq -r '.instanceGroup.scheduledScaling.enabled // empty' 2>/dev/null)
+fi
+if [ -n "$SCHEDULED_SCALING_CONFIG" ]; then
+  if ! echo "$SCHEDULED_SCALING_CONFIG" | jq . > /dev/null 2>&1; then
+    echo "SCHEDULED_SCALING_CONFIG is not valid JSON. Exiting.. "
+    exit 231
+  fi
+  # Preserve the live enabled flag on existing groups so re-running create/rotate
+  # never flips a GA group's schedule off; default brand-new groups to disabled.
+  if [ -n "$EXISTING_SS_ENABLED" ]; then
+    SCHEDULED_SCALING_BODY=$(echo "$SCHEDULED_SCALING_CONFIG" | jq -c --argjson e "$EXISTING_SS_ENABLED" '.enabled=$e')
+  else
+    SCHEDULED_SCALING_BODY=$(echo "$SCHEDULED_SCALING_CONFIG" | jq -c '.enabled=false')
+  fi
+elif [ -n "$EXISTING_SCHEDULED_SCALING" ]; then
+  # No schedule supplied but the group already has one: preserve it as-is so the
+  # full-object upsert does not wipe it.
+  SCHEDULED_SCALING_BODY="$EXISTING_SCHEDULED_SCALING"
+fi
+
 REQUEST_BODY='{
             "name": "'"$GROUP_NAME"'",
             "type": "'$TYPE'",
@@ -214,6 +243,10 @@ REQUEST_BODY='{
             },
             "cloud": "'$CLOUD_PROVIDER'"
 }'
+
+if [ -n "$SCHEDULED_SCALING_BODY" ]; then
+  REQUEST_BODY=$(echo "$REQUEST_BODY" | jq -c --argjson ss "$SCHEDULED_SCALING_BODY" '. += {"scheduledScaling": $ss}')
+fi
 
 echo "Creating group named $GROUP_NAME"
 instanceGroupCreateResponse=$(curl -s -w "\n %{http_code}" -X PUT \

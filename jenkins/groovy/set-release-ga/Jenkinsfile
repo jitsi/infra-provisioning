@@ -33,12 +33,19 @@ else
             echo "## found jvb scaling groups for \${REGION}: \${JVB_GROUPS}"
         fi
         for GROUP in \$JVB_GROUPS; do
-            if [[ "\$GROUP" =~ "JVB" ]] && [[ "\$GROUP" =~ "${release_number}" ]] && ([[ "\$GROUP" =~ "-local-" ]] || [[ "\$GROUP" =~ "-global-" ]]); then
-                echo "## adding to scheduler: \${GROUP}"
-                ENABLE_SCHEDULER=true ORACLE_REGION=\${REGION} GROUP_NAME=\${GROUP} TYPE=JVB scripts/custom-autoscaler-update-scaling-activities.sh
-            else
-                echo "## removing from scheduler: \${GROUP}"
-                ENABLE_SCHEDULER=false ORACLE_REGION=\${REGION} GROUP_NAME=\${GROUP} TYPE=JVB scripts/custom-autoscaler-update-scaling-activities.sh
+            # Only the release-facing local/global JVB pools carry a schedule.
+            if [[ "\$GROUP" =~ "JVB" ]] && ([[ "\$GROUP" =~ "-local-" ]] || [[ "\$GROUP" =~ "-global-" ]]); then
+                # Flip only the internal scheduling (scheduledScaling.enabled) flag on the
+                # group's embedded schedule: on for the GA release, off for groups leaving GA.
+                # enableScheduler is deprecated and no longer touched here.
+                if [[ "\$GROUP" =~ "${release_number}" ]]; then
+                    echo "## enabling internal scheduling: \${GROUP}"
+                    # exit 231 == group has no embedded schedule yet (legacy); a benign skip, not a failure.
+                    ACTION=enable ORACLE_REGION=\${REGION} GROUP_NAME=\${GROUP} TYPE=JVB scripts/custom-autoscaler-update-scheduled-scaling.sh || [ \$? -eq 231 ]
+                else
+                    echo "## disabling internal scheduling: \${GROUP}"
+                    ACTION=disable ORACLE_REGION=\${REGION} GROUP_NAME=\${GROUP} TYPE=JVB scripts/custom-autoscaler-update-scheduled-scaling.sh
+                fi
             fi
         done
     done
