@@ -84,7 +84,9 @@ def upgradeJVBPool(shard_environment,cloud_name,cloud_provider,shard,release_num
         [$class: 'StringParameterValue', name: 'SHAPE', value: shape],
         [$class: 'StringParameterValue', name: 'OCPUS', value: ocpus],
         [$class: 'StringParameterValue', name: 'MEMORY_IN_GBS', value: memory_in_gbs],
-        [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: video_infra_branch]
+        [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: video_infra_branch],
+        [$class: 'StringParameterValue', name: 'SKIP_HEALTH_CHECK', value: env.SKIP_HEALTH_CHECK ?: ''],
+        [$class: 'StringParameterValue', name: 'HEALTH_CHECK_TIMEOUT', value: env.HEALTH_CHECK_TIMEOUT ?: '']
     ]
 
     return createShard

@@ -156,7 +156,11 @@ fi
 [ -z "$TS" ] && TS=$(date +%s)
 [ -z "$INSTANCE_CONFIG_NAME" ] && export INSTANCE_CONFIG_NAME="${SHARD}-JVBInstanceConfig-${TS}"
 
-[ -z "$JVB_PROTECTED_TTL_SEC" ] && JVB_PROTECTED_TTL_SEC=900
+[ -z "$SKIP_HEALTH_CHECK" ] && SKIP_HEALTH_CHECK="false"
+[ -z "$HEALTH_CHECK_TIMEOUT" ] && HEALTH_CHECK_TIMEOUT=900
+# scale-down protection must outlive the health gate, or the autoscaler may
+# reap the new instances while we are still waiting on their health
+[ -z "$JVB_PROTECTED_TTL_SEC" ] && JVB_PROTECTED_TTL_SEC=$((HEALTH_CHECK_TIMEOUT + 900))
 METADATA_PATH="$LOCAL_PATH/../terraform/create-jvb-instance-configuration/user-data/postinstall-runner-oracle.sh"
 METADATA_LIB_PATH="$LOCAL_PATH/../terraform/lib"
 [ -z "$USER_PUBLIC_KEY_PATH" ] && USER_PUBLIC_KEY_PATH=~/.ssh/id_ed25519.pub
@@ -268,6 +272,13 @@ elif [ "$getGroupHttpCode" == 200 ]; then
     export AUTOSCALER_URL="https://${ENVIRONMENT}-${ORACLE_REGION}-autoscaler.${TOP_LEVEL_DNS_ZONE_NAME}"
   fi
 
+  # snapshot the instances present before launching, so the health gate below
+  # can tell the new instances apart from the ones they are replacing
+  PRE_ROTATION_INSTANCE_IDS=$(curl -s -X GET \
+    "$AUTOSCALER_URL"/groups/"$GROUP_NAME"/report \
+    -H "Authorization: Bearer $TOKEN" | jq -r '[.groupReport.instances[]?.instanceId] | join(" ")')
+  echo "Instances present before rotation: $PRE_ROTATION_INSTANCE_IDS"
+
   echo "Will launch $PROTECTED_INSTANCES_COUNT protected instances (new max $NEW_MAXIMUM_DESIRED) in group $GROUP_NAME"
   instanceGroupLaunchResponse=$(curl -s -w "\n %{http_code}" -X POST \
     "$AUTOSCALER_URL"/groups/"$GROUP_NAME"/actions/launch-protected \
@@ -293,8 +304,36 @@ elif [ "$getGroupHttpCode" == 200 ]; then
 
 # check flag for skipping scale down step
   if [[ "$SKIP_SCALE_DOWN" != "true" ]]; then
-    #Wait as much as it will take to provision the new instances, before scaling down the existing ones
-    sleep 480
+    if [[ "$SKIP_HEALTH_CHECK" == "true" ]]; then
+      #Wait as much as it will take to provision the new instances, before scaling down the existing ones
+      sleep 480
+    else
+      # wait until the new instances report healthy application stats via the
+      # sidecar before scaling down the old ones; on failure leave the old
+      # instances serving and restore the previous instance configuration
+      export GROUP_NAME AUTOSCALER_URL TOKEN PRE_ROTATION_INSTANCE_IDS HEALTH_CHECK_TIMEOUT
+      EXPECTED_COUNT=$PROTECTED_INSTANCES_COUNT EXPECTED_VERSION="$JVB_VERSION" \
+        $LOCAL_PATH/check-jvb-rotation-health-oracle.sh
+      if [ $? -gt 0 ]; then
+        echo "Health check FAILED for new instances in group $GROUP_NAME, skipping scale down; old instances are left running"
+        if [ "$NEW_INSTANCE_CONFIGURATION_ID" != "$EXISTING_INSTANCE_CONFIGURATION_ID" ]; then
+          echo "Restoring previous instance configuration $EXISTING_INSTANCE_CONFIGURATION_ID on group $GROUP_NAME"
+          restoreConfigResponse=$(curl -s -w "\n %{http_code}" -X PUT \
+            "$AUTOSCALER_URL"/groups/"$GROUP_NAME"/instance-configuration \
+            -H 'Content-Type: application/json' \
+            -H "Authorization: Bearer $TOKEN" \
+            -d '{"instanceConfigurationId": '\""$EXISTING_INSTANCE_CONFIGURATION_ID"'"}')
+          restoreConfigHttpCode=$(tail -n1 <<<"$restoreConfigResponse" | sed 's/[^0-9]*//g')
+          if [ "$restoreConfigHttpCode" == 200 ]; then
+            echo "Successfully restored previous instance configuration on group $GROUP_NAME"
+          else
+            echo "Error restoring previous instance configuration on group $GROUP_NAME. AutoScaler response status code is $restoreConfigHttpCode"
+          fi
+        fi
+        echo "The unhealthy protected instances will lose scale-down protection after $JVB_PROTECTED_TTL_SEC seconds and require manual cleanup"
+        exit 223
+      fi
+    fi
 
     echo "Will scale down the group $GROUP_NAME and keep only the $PROTECTED_INSTANCES_COUNT protected instances with maximum $EXISTING_MAXIMUM"
     instanceGroupScaleDownResponse=$(curl -s -w "\n %{http_code}" -X PUT \
