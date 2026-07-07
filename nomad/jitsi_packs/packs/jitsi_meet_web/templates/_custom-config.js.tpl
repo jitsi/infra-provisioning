@@ -43,6 +43,12 @@ config.videoQuality.vp9.useSimulcast=true;
 config.audioQuality.enableOpusDtx=[[ or (env "CONFIG_jitsi_meet_enable_dtx") "false" ]];
 config.audioQuality.enableAdvancedAudioSettings=[[ or (env "CONFIG_jitsi_meet_enable_advanced_audio_settings") "false" ]];
 
+[[ if eq (env "CONFIG_jitsi_meet_enable_audio_translation") "true" -]]
+config.audioTranslation = {
+    enabled: true
+};
+[[- end ]]
+
 [[ if eq (env "CONFIG_jitsi_meet_hidden_from_recorder_feature") "true" -]]
 config.hiddenFromRecorderFeatureEnabled=true;
 [[- end ]]
