@@ -555,6 +555,9 @@ EOF
         ENABLE_AV_MODERATION="1"
         ENABLE_BREAKOUT_ROOMS="1"
         ENABLE_AUTH="1"
+[[- if eq (env "CONFIG_prosody_meet_audio_translation_enabled") "true" ]]
+        ENABLE_AUDIO_TRANSLATION="1"
+[[- end ]]
 [[- if eq (env "CONFIG_prosody_enable_guest_auth") "true" ]]
         ENABLE_GUESTS="true"
 [[- end ]]
@@ -947,6 +950,11 @@ EOF
         # jicofo rtcstats push vars
         JICOFO_ADDRESS = "http://127.0.0.1:8888"
         JICOFO_VISITORS_REQUIRE_MUC_CONFIG = "[[ env "CONFIG_jicofo_require_muc_config_flag" ]]"
+[[- if env "CONFIG_jicofo_translation_url_template" ]]
+        JICOFO_TRANSLATION_URL_TEMPLATE = "[[ env "CONFIG_jicofo_translation_url_template" ]]"
+        JICOFO_TRANSLATION_CF_ACCESS_CLIENT_ID = "[[ env "CONFIG_jicofo_translation_cf_access_client_id" ]]"
+        JICOFO_TRANSLATION_CF_ACCESS_CLIENT_SECRET = "[[ env "CONFIG_jicofo_translation_cf_access_client_secret" ]]"
+[[- end ]]
         RTCSTATS_SERVER="[[ env "CONFIG_jicofo_rtcstats_push_rtcstats_server" ]]"
         INTERVAL=10000
         # rtcstats-push tails this file and pushes jicofo log lines alongside the

@@ -143,6 +143,11 @@ export CONFIG_turnrelay_password="$(ansible-vault view $ENCRYPTED_COTURN_CREDENT
 # TODO: use the separate _jvb and _visitor secrets for the different accounts.
 export CONFIG_jicofo_auth_password="$(ansible-vault view $ENCRYPTED_JICOFO_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${JICOFO_XMPP_PASSWORD_VARIABLE}" -)"
 
+# Live-translation opus-transcriber-proxy CF-Access credentials (reused from transcription). Optional: empty when unset,
+# in which case jicofo signals the translation connect without http-headers.
+export CONFIG_jicofo_translation_cf_access_client_id="$(ansible-vault view $ENCRYPTED_JICOFO_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval '.secrets_jicofo_opus_transcriber_client_id // ""' -)"
+export CONFIG_jicofo_translation_cf_access_client_secret="$(ansible-vault view $ENCRYPTED_JICOFO_CREDENTIALS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval '.secrets_jicofo_opus_transcriber_secret // ""' -)"
+
 export CONFIG_asap_jwt_kid="$(ansible-vault view $ENCRYPTED_ASAP_KEYS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".${ASAP_KEY_VARIABLE}.id" -)"
 
 export CONFIG_aws_access_key_id="$(ansible-vault view $ENCRYPTED_PROSODY_EGRESS_AWS_FILE --vault-password $VAULT_PASSWORD_FILE | yq eval ".prosody_egress_aws_access_key_id_by_type.$ENVIRONMENT_TYPE" -)"
