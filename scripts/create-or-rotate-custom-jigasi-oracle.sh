@@ -127,7 +127,11 @@ fi
 
 
 
-[ -z "$JIGASI_PROTECTED_TTL_SEC" ] && JIGASI_PROTECTED_TTL_SEC=900
+[ -z "$SKIP_HEALTH_CHECK" ] && SKIP_HEALTH_CHECK="false"
+[ -z "$HEALTH_CHECK_TIMEOUT" ] && HEALTH_CHECK_TIMEOUT=900
+# scale-down protection must outlive the health gate, or the autoscaler may
+# reap the new instances while we are still waiting on their health
+[ -z "$JIGASI_PROTECTED_TTL_SEC" ] && JIGASI_PROTECTED_TTL_SEC=$((HEALTH_CHECK_TIMEOUT + 900))
 METADATA_PATH="$LOCAL_PATH/../terraform/create-jigasi-instance-configuration/user-data/postinstall-runner-oracle.sh"
 METADATA_LIB_PATH="$LOCAL_PATH/../terraform/lib"
 [ -z "$USER_PUBLIC_KEY_PATH" ] && USER_PUBLIC_KEY_PATH=~/.ssh/id_ed25519.pub
@@ -252,6 +256,7 @@ elif [ "$getGroupHttpCode" == 200 ]; then
   echo "Group $GROUP_NAME was found in the autoScaler"
   EXISTING_INSTANCE_CONFIGURATION_ID=$(echo "$instanceGroupDetails" | jq -r ."instanceGroup.instanceConfigurationId")
   EXISTING_MAXIMUM=$(echo "$instanceGroupDetails" | jq -r ."instanceGroup.scalingOptions.maxDesired")
+  GROUP_TYPE=$(echo "$instanceGroupDetails" | jq -r ."instanceGroup.type")
   if [ -z "$EXISTING_INSTANCE_CONFIGURATION_ID" ] || [ "$EXISTING_INSTANCE_CONFIGURATION_ID" == "null" ]; then
     echo "No Instance Configuration was found on the group details $GROUP_NAME. Exiting.."
     exit 206
@@ -289,6 +294,13 @@ elif [ "$getGroupHttpCode" == 200 ]; then
     $LOCAL_PATH/oracle_custom_images.py --tag_production --image_id $JIGASI_IMAGE_OCID --region $ORACLE_REGION
   fi
   
+  # snapshot the instances present before launching, so the health gate below
+  # can tell the new instances apart from the ones they are replacing
+  PRE_ROTATION_INSTANCE_IDS=$(curl -s -X GET \
+    "$AUTOSCALER_URL"/groups/"$GROUP_NAME"/report \
+    -H "Authorization: Bearer $TOKEN" | jq -r '[.groupReport.instances[]?.instanceId] | join(" ")')
+  echo "Instances present before rotation: $PRE_ROTATION_INSTANCE_IDS"
+
   echo "Will launch $PROTECTED_INSTANCES_COUNT protected instances (new max $NEW_MAXIMUM_DESIRED) in group $GROUP_NAME"
   instanceGroupLaunchResponse=$(curl -s -w "\n %{http_code}" -X POST \
     "$AUTOSCALER_URL"/groups/"$GROUP_NAME"/actions/launch-protected \
@@ -303,16 +315,39 @@ elif [ "$getGroupHttpCode" == 200 ]; then
   launchGroupHttpCode=$(tail -n1 <<<"$instanceGroupLaunchResponse" | sed 's/[^0-9]*//g')
   if [ "$launchGroupHttpCode" == 200 ]; then
     echo "Successfully launched $PROTECTED_INSTANCES_COUNT instances in group $GROUP_NAME"
-
-    echo "Will delete the old Instance Configuration for group $GROUP_NAME"
-    oci compute-management instance-configuration delete --instance-configuration-id "$EXISTING_INSTANCE_CONFIGURATION_ID" --region "$ORACLE_REGION" --force
   else
     echo "Error launching $PROTECTED_INSTANCES_COUNT instances in group $GROUP_NAME. AutoScaler response status code is $launchGroupHttpCode"
     exit 208
   fi
 
-  #Wait as much as it will take to provision the new instances, before scaling down the existing ones
-  sleep 600
+  if [[ "$SKIP_HEALTH_CHECK" == "true" ]]; then
+    #Wait as much as it will take to provision the new instances, before scaling down the existing ones
+    sleep 600
+  else
+    # wait until the new instances report healthy application stats via the
+    # sidecar before scaling down the old ones; on failure leave the old
+    # instances serving and restore the previous instance configuration
+    export GROUP_NAME AUTOSCALER_URL TOKEN PRE_ROTATION_INSTANCE_IDS GROUP_TYPE HEALTH_CHECK_TIMEOUT
+    EXPECTED_COUNT=$PROTECTED_INSTANCES_COUNT EXPECTED_VERSION="$JIGASI_VERSION" \
+      $LOCAL_PATH/check-group-rotation-health.sh
+    if [ $? -gt 0 ]; then
+      echo "Health check FAILED for new instances in group $GROUP_NAME, skipping scale down; old instances are left running"
+      echo "Restoring previous instance configuration $EXISTING_INSTANCE_CONFIGURATION_ID on group $GROUP_NAME"
+      restoreConfigResponse=$(curl -s -w "\n %{http_code}" -X PUT \
+        "$AUTOSCALER_URL"/groups/"$GROUP_NAME"/instance-configuration \
+        -H 'Content-Type: application/json' \
+        -H "Authorization: Bearer $TOKEN" \
+        -d '{"instanceConfigurationId": '\""$EXISTING_INSTANCE_CONFIGURATION_ID"'"}')
+      restoreConfigHttpCode=$(tail -n1 <<<"$restoreConfigResponse" | sed 's/[^0-9]*//g')
+      if [ "$restoreConfigHttpCode" == 200 ]; then
+        echo "Successfully restored previous instance configuration on group $GROUP_NAME"
+      else
+        echo "Error restoring previous instance configuration on group $GROUP_NAME. AutoScaler response status code is $restoreConfigHttpCode"
+      fi
+      echo "The unhealthy protected instances will lose scale-down protection after $JIGASI_PROTECTED_TTL_SEC seconds and require manual cleanup"
+      exit 223
+    fi
+  fi
 
   echo "Will scale down the group $GROUP_NAME and keep only the $PROTECTED_INSTANCES_COUNT protected instances with maximum $EXISTING_MAXIMUM"
   instanceGroupScaleDownResponse=$(curl -s -w "\n %{http_code}" -X PUT \
@@ -326,6 +361,11 @@ elif [ "$getGroupHttpCode" == 200 ]; then
   scaleDownGroupHttpCode=$(tail -n1 <<<"$instanceGroupScaleDownResponse" | sed 's/[^0-9]*//g')
   if [ "$scaleDownGroupHttpCode" == 200 ]; then
     echo "Successfully scaled down to $PROTECTED_INSTANCES_COUNT instances in group $GROUP_NAME"
+
+    # only delete the old instance configuration once the rotation has
+    # completed successfully, so a failed rotation can still roll back to it
+    echo "Will delete the old Instance Configuration for group $GROUP_NAME"
+    oci compute-management instance-configuration delete --instance-configuration-id "$EXISTING_INSTANCE_CONFIGURATION_ID" --region "$ORACLE_REGION" --force
   else
     echo "Error scaling down to $PROTECTED_INSTANCES_COUNT instances in group $GROUP_NAME. AutoScaler response status code is $scaleDownGroupHttpCode"
     exit 209

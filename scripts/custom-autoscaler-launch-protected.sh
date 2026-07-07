@@ -22,7 +22,10 @@ if [ -z "$ORACLE_REGION" ]; then
   RET=203
 fi
 
-[ -z "$PROTECTED_TTL_SEC" ] && PROTECTED_TTL_SEC=900
+[ -z "$HEALTH_CHECK_TIMEOUT" ] && HEALTH_CHECK_TIMEOUT=900
+# scale-down protection must outlive the rotation health gate, or the
+# autoscaler may reap the new instances while we are still waiting on them
+[ -z "$PROTECTED_TTL_SEC" ] && PROTECTED_TTL_SEC=$((HEALTH_CHECK_TIMEOUT + 900))
 
 ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 [ -e "$LOCAL_PATH/../clouds/${ORACLE_CLOUD_NAME}.sh" ] && . $LOCAL_PATH/../clouds/"${ORACLE_CLOUD_NAME}".sh
@@ -77,6 +80,8 @@ fi
 
 export EXISTING_MAXIMUM=$(echo "$INSTANCE_GROUP_DETAILS" | jq -r ."instanceGroup.scalingOptions.maxDesired")
 export EXISTING_DESIRED=$(echo "$INSTANCE_GROUP_DETAILS" | jq -r ."instanceGroup.scalingOptions.desiredCount")
+export EXISTING_INSTANCE_CONFIGURATION_ID=$(echo "$INSTANCE_GROUP_DETAILS" | jq -r ."instanceGroup.instanceConfigurationId")
+export GROUP_TYPE=$(echo "$INSTANCE_GROUP_DETAILS" | jq -r ."instanceGroup.type")
 [ -z "$PROTECTED_INSTANCES_COUNT" ] && export PROTECTED_INSTANCES_COUNT=$EXISTING_DESIRED
 if [ -z "$PROTECTED_INSTANCES_COUNT" ]; then
     echo "Something went wrong, could not extract PROTECTED_INSTANCES_COUNT from instanceGroup.scalingOptions.desiredCount";
@@ -99,6 +104,13 @@ if [ -n "$NEW_MAXIMUM_DESIRED" ]; then
     BODY=$BODY'"maxDesired": '$NEW_MAXIMUM_DESIRED','
 fi
 BODY=$BODY'"count": '"$PROTECTED_INSTANCES_COUNT"',"protectedTTLSec": '$PROTECTED_TTL_SEC'}'
+
+# snapshot the instances present before launching, so the rotation health gate
+# can tell the new instances apart from the ones they are replacing
+export PRE_ROTATION_INSTANCE_IDS=$(curl -s -X GET \
+  "$AUTOSCALER_URL"/groups/"$GROUP_NAME"/report \
+  -H "Authorization: Bearer $TOKEN" | jq -r '[.groupReport.instances[]?.instanceId] | join(" ")')
+echo "Instances present before rotation: $PRE_ROTATION_INSTANCE_IDS"
 
 echo "Will launch $PROTECTED_INSTANCES_COUNT protected instances (new max $NEW_MAXIMUM_DESIRED) in group $GROUP_NAME: $BODY"
 instanceGroupLaunchResponse=$(curl -s -w "\n %{http_code}" -X POST \

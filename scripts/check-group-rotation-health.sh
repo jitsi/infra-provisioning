@@ -1,13 +1,17 @@
 #!/bin/bash
 # polls the autoscaler group report until at least EXPECTED_COUNT newly-launched
 # instances report a healthy application status, i.e. the sidecar is successfully
-# polling the local application for stats (scaleStatus SIDECAR_RUNNING or IN USE).
-# used by create-or-rotate-custom-jvb-oracle.sh to gate the scale-down of old
-# instances on the health of their replacements.
+# polling the local application for stats. used by the rotation scripts to gate
+# the scale-down of old instances on the health of their replacements.
 #
 # new instances are identified by not appearing in PRE_ROTATION_INSTANCE_IDS
 # (space-separated instance ids captured before launch) and, when
 # EXPECTED_VERSION is set, by the sidecar-reported application version.
+#
+# healthy scaleStatus values depend on the group type: jibri-family groups
+# report a busy status (IDLE/BUSY), all other types report stats-derived
+# statuses (SIDECAR_RUNNING/IN USE). set GROUP_TYPE to pick the right set,
+# or override HEALTHY_STATUSES directly.
 
 if [ -z "$GROUP_NAME" ]; then
   echo "No GROUP_NAME provided or found. Exiting.. "
@@ -38,7 +42,16 @@ if [ -z "$AUTOSCALER_URL" ]; then
 fi
 
 # scaleStatus values indicating the application is up and reporting stats
-[ -z "$HEALTHY_STATUSES" ] && HEALTHY_STATUSES="SIDECAR_RUNNING,IN USE"
+if [ -z "$HEALTHY_STATUSES" ]; then
+  case "$GROUP_TYPE" in
+    jibri|sip-jibri|availability)
+      HEALTHY_STATUSES="IDLE,BUSY"
+      ;;
+    *)
+      HEALTHY_STATUSES="SIDECAR_RUNNING,IN USE"
+      ;;
+  esac
+fi
 
 # no version assertion possible when rotating to 'latest'
 [ "$EXPECTED_VERSION" == "latest" ] && EXPECTED_VERSION=""

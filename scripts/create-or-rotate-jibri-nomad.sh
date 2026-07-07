@@ -51,7 +51,11 @@ fi
 
 [ -z "$TOKEN" ] && TOKEN=$(JWT_ENV_FILE=$JWT_ENV_FILE /opt/jitsi/jitsi-autoscaler-sidecar/scripts/jwt.sh)
 
-[ -z "$JIBRI_PROTECTED_TTL_SEC" ] && JIBRI_PROTECTED_TTL_SEC=900
+[ -z "$SKIP_HEALTH_CHECK" ] && SKIP_HEALTH_CHECK="false"
+[ -z "$HEALTH_CHECK_TIMEOUT" ] && HEALTH_CHECK_TIMEOUT=900
+# scale-down protection must outlive the health gate, or the autoscaler may
+# reap the new instances while we are still waiting on their health
+[ -z "$JIBRI_PROTECTED_TTL_SEC" ] && JIBRI_PROTECTED_TTL_SEC=$((HEALTH_CHECK_TIMEOUT + 900))
 
 # ensure nomad job is defined
 
@@ -179,6 +183,7 @@ elif [ "$getGroupHttpCode" == 200 ]; then
   fi
 
   NEW_INSTANCE_CONFIGURATION_ID="$EXISTING_INSTANCE_CONFIGURATION_ID"
+  GROUP_TYPE=$(echo "$instanceGroupDetails" | jq -r ."instanceGroup.type")
 
   [ -z "$PROTECTED_INSTANCES_COUNT" ] && PROTECTED_INSTANCES_COUNT=$(echo "$instanceGroupDetails" | jq -r ."instanceGroup.scalingOptions.minDesired")
   if [ -z "$PROTECTED_INSTANCES_COUNT" ]; then
@@ -188,6 +193,13 @@ elif [ "$getGroupHttpCode" == 200 ]; then
 
   NEW_MAXIMUM_DESIRED=$((EXISTING_MAXIMUM + PROTECTED_INSTANCES_COUNT))
   echo "Creating new Instance Configuration for group $GROUP_NAME based on the existing one"
+
+  # snapshot the instances present before launching, so the health gate below
+  # can tell the new instances apart from the ones they are replacing
+  PRE_ROTATION_INSTANCE_IDS=$(curl -s -X GET \
+    "$AUTOSCALER_URL"/groups/"$GROUP_NAME"/report \
+    -H "Authorization: Bearer $TOKEN" | jq -r '[.groupReport.instances[]?.instanceId] | join(" ")')
+  echo "Instances present before rotation: $PRE_ROTATION_INSTANCE_IDS"
 
   echo "Will launch $PROTECTED_INSTANCES_COUNT protected instances (new max $NEW_MAXIMUM_DESIRED) in group $GROUP_NAME"
   instanceGroupLaunchResponse=$(curl -s -w "\n %{http_code}" -X POST \
@@ -209,8 +221,21 @@ elif [ "$getGroupHttpCode" == 200 ]; then
     exit 208
   fi
 
-  #Wait as much as it will take to provision the new instances, before scaling down the existing ones
-  sleep 90
+  if [[ "$SKIP_HEALTH_CHECK" == "true" ]]; then
+    #Wait as much as it will take to provision the new instances, before scaling down the existing ones
+    sleep 90
+  else
+    # wait until the new instances report healthy application stats via the
+    # sidecar before scaling down the old ones; on failure leave the old
+    # instances serving (rotation reuses the existing instance configuration)
+    export GROUP_NAME AUTOSCALER_URL TOKEN PRE_ROTATION_INSTANCE_IDS GROUP_TYPE HEALTH_CHECK_TIMEOUT
+    EXPECTED_COUNT=$PROTECTED_INSTANCES_COUNT $LOCAL_PATH/check-group-rotation-health.sh
+    if [ $? -gt 0 ]; then
+      echo "Health check FAILED for new instances in group $GROUP_NAME, skipping scale down; old instances are left running"
+      echo "The unhealthy protected instances will lose scale-down protection after $JIBRI_PROTECTED_TTL_SEC seconds and require manual cleanup"
+      exit 225
+    fi
+  fi
 
   echo "Will scale down the group $GROUP_NAME and keep only the $PROTECTED_INSTANCES_COUNT protected instances with maximum $EXISTING_MAXIMUM"
   instanceGroupScaleDownResponse=$(curl -s -w "\n %{http_code}" -X PUT \

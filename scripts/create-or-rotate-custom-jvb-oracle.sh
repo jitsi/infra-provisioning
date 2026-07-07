@@ -313,7 +313,7 @@ elif [ "$getGroupHttpCode" == 200 ]; then
       # instances serving and restore the previous instance configuration
       export GROUP_NAME AUTOSCALER_URL TOKEN PRE_ROTATION_INSTANCE_IDS HEALTH_CHECK_TIMEOUT
       EXPECTED_COUNT=$PROTECTED_INSTANCES_COUNT EXPECTED_VERSION="$JVB_VERSION" \
-        $LOCAL_PATH/check-jvb-rotation-health-oracle.sh
+        $LOCAL_PATH/check-group-rotation-health.sh
       if [ $? -gt 0 ]; then
         echo "Health check FAILED for new instances in group $GROUP_NAME, skipping scale down; old instances are left running"
         if [ "$NEW_INSTANCE_CONFIGURATION_ID" != "$EXISTING_INSTANCE_CONFIGURATION_ID" ]; then
