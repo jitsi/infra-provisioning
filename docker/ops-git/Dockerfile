@@ -22,4 +22,7 @@ VOLUME /home/git
 
 EXPOSE 22
 
+HEALTHCHECK --interval=5m --timeout=30s --start-period=2m \
+  CMD pgrep -x cron > /dev/null && pgrep -x sshd > /dev/null
+
 ENTRYPOINT [ "/init" ]
