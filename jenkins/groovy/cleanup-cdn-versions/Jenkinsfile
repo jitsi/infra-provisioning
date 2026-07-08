@@ -1,0 +1,45 @@
+def utils
+
+pipeline {
+    agent any
+    options {
+        ansiColor('xterm')
+        timestamps()
+        buildDiscarder(logRotator(numToKeepStr: '30', artifactNumToKeepStr: '30'))
+    }
+    stages {
+        stage('Prepare/Checkout') {
+            steps {
+                script {
+                    // load utility function
+                    def rootDir = pwd()
+                    utils = load "${rootDir}/jenkins/groovy/Utils.groovy"
+                    // checkout repos (overlays infra-customizations, so sites/ is present)
+                    utils.SetupRepos(env.VIDEO_INFRA_BRANCH)
+
+                    // setup OCI credentials (shard.sh list enumerates via shard.py)
+                    utils.SetupOCI()
+                }
+            }
+        }
+        stage('cleanup CDN versions') {
+            steps {
+                script {
+                    withCredentials([
+                            string(credentialsId: 'jenkins-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
+                            string(credentialsId: 'jenkins-aws-id', variable: 'AWS_ACCESS_KEY_ID')
+                    ]) {
+                        dir('infra-provisioning') {
+                            utils.SetupAnsible()
+                            sh '''#!/bin/bash
+                            if [[ "$DRY_RUN" == "false" ]]; then
+                                export CDN_CLEANUP_CONFIRM="true"
+                            fi
+                            scripts/cleanup-cdn-r2-versions.sh'''
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

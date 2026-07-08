@@ -1,0 +1,51 @@
+- job:
+    name: cleanup-cdn-versions
+    display-name: cleanup cdn versions
+    concurrent: false
+    # once dry-run output has been validated, enable a weekly report run:
+    # triggers:
+    #   - timed: 'H 4 * * 1'
+    parameters:
+      - string:
+          name: VIDEO_INFRA_BRANCH
+          default: main
+          description: "Controls checkout branch for infra repos, defaults to 'main'."
+          trim: true
+      - bool:
+          name: DRY_RUN
+          default: true
+          description: "If true, only report the CDN folders that would be deleted; uncheck to actually purge them from R2."
+      - string:
+          name: CDN_KEEP_ROLLBACK
+          default: "5"
+          description: "How many versions older than the oldest in-use version to keep per prefix family, as rollback targets."
+          trim: true
+      - string:
+          name: ENVIRONMENTS
+          description: "Space-separated environments to scan for in-use CDN versions; leave empty to auto-discover every site with jitsi_meet_cdn_cloudflare_enabled. CAUTION: prefix families are shared across environments, so scanning a subset risks deleting versions another environment still uses."
+          trim: true
+      - string:
+          name: CDN_CLEANUP_ALLOW_EMPTY
+          description: "Space-separated environments allowed to have no in-use CDN versions (e.g. environments with no shards up); any other empty environment aborts the cleanup."
+          trim: true
+      - string:
+          name: INFRA_CUSTOMIZATIONS_REPO
+          default: git@github.com:jitsi/infra-customizations.git
+          description: "Repo with customized configurations, defaults to 'git@github.com:jitsi/infra-customizations.git'."
+          trim: true
+
+    project-type: pipeline
+    sandbox: true
+    pipeline-scm:
+      scm:
+        - git:
+            url: git@github.com:jitsi/infra-provisioning.git
+            credentials-id: "video-infra"
+            branches:
+              - "origin/${{VIDEO_INFRA_BRANCH}}"
+            browser: githubweb
+            browser-url: https://github.com/jitsi/infra-provisioning
+            submodule:
+              recursive: true
+      script-path: jenkins/groovy/cleanup-cdn-versions/Jenkinsfile
+      lightweight-checkout: true
