@@ -115,11 +115,19 @@ echo "## scanning environments for in-use CDN versions:$ENVIRONMENTS"
 
 IN_USE_FOLDERS=""
 for ENV in $ENVIRONMENTS; do
-    DOMAIN=$(. $LOCAL_PATH/../sites/$ENV/stack-env.sh > /dev/null 2>&1; echo $DOMAIN)
+    # DOMAIN must be cleared inside the subshell: stack-env.sh only sets it
+    # when unset, so a value carried over from the previous environment would
+    # win and every shard query would hit the wrong domain
+    DOMAIN=$(DOMAIN=""; . $LOCAL_PATH/../sites/$ENV/stack-env.sh > /dev/null 2>&1; echo $DOMAIN)
     if [ -z "$DOMAIN" ]; then
         echo "## ERROR: no DOMAIN for environment $ENV, exiting without deleting anything"
         exit 1
     fi
+
+    # the prefix family this environment publishes to, used to sanity-check
+    # what the shards report back
+    EXPECTED_PREFIX=$(yq eval '.jitsi_meet_cdn_prefix' $LOCAL_PATH/../sites/$ENV/vars.yml | tail -1)
+    [[ "$EXPECTED_PREFIX" == "null" ]] && EXPECTED_PREFIX=""
 
     # shard.sh list honors SHARDS_FROM_CONSUL: default (false) enumerates via
     # shard.py (needs cloud credentials, the mode Jenkins jobs use); true asks
@@ -132,7 +140,11 @@ for ENV in $ENVIRONMENTS; do
         # absolute form (https://web-cdn.jitsi.net/<folder>/)
         FOLDER=$(echo "$BASE_HTML" | sed -e 's|.*web-cdn.jitsi.net/||' -e 's|.*/v1/_cdn/||' -e 's|/".*||')
         if [[ "$FOLDER" =~ $VERSION_FOLDER_REGEX ]]; then
-            ENV_FOLDERS="$ENV_FOLDERS $FOLDER"
+            if [[ "${BASH_REMATCH[1]}" == "$EXPECTED_PREFIX" ]]; then
+                ENV_FOLDERS="$ENV_FOLDERS $FOLDER"
+            else
+                echo "## WARNING: $ENV shard $SHARD reports CDN folder '$FOLDER' but $ENV publishes prefix '${EXPECTED_PREFIX:-<none>}'; ignoring it (check DOMAIN/shard routing)"
+            fi
         else
             echo "## WARNING: could not extract CDN version from $ENV shard $SHARD (got '$FOLDER')"
         fi
