@@ -46,6 +46,14 @@
           description: "Override JVB memory"
           trim: true
       - string:
+          name: SKIP_HEALTH_CHECK
+          description: "Set to true to skip the new-instance health gate and use the legacy fixed wait before scale down"
+          trim: true
+      - string:
+          name: HEALTH_CHECK_TIMEOUT
+          description: "Seconds to wait for new JVBs to report healthy before failing each pool rotation, defaults to 900"
+          trim: true
+      - string:
           name: INFRA_CONFIGURATION_REPO
           default: git@github.com:jitsi/infra-configuration.git
           description: "Repo for configuration code (ansible etc), defaults to 'git@github.com:jitsi/infra-configuration.git'."
