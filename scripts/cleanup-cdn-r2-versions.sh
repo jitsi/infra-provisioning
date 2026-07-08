@@ -252,7 +252,7 @@ fi
 
 for FOLDER in $DELETE_LIST; do
     echo "## purging $CDN_R2_BUCKET/$CDN_R2_ROOT/$FOLDER"
-    rclone purge "default:$CDN_R2_BUCKET/$CDN_R2_ROOT/$FOLDER"
+    rclone purge --transfers 64 --checkers 64 --fast-list "default:$CDN_R2_BUCKET/$CDN_R2_ROOT/$FOLDER"
 done
 
 echo "## CDN R2 cleanup complete"
