@@ -1,7 +1,7 @@
 # Plan: Local-DC Git Mirror (Gitea) + Vault OCI-Auth Bootstrap Credentials
 
 Status: PROPOSED (not yet implemented)
-Tracking: JIT-XXXXX (ticket TBD)
+Tracking: JIT-16092
 Author: generated 2026-07-21
 
 ## Motivation
