@@ -1085,6 +1085,23 @@ groups:
         There has been a spike of Coturn UDP errors in ${var.dc}. This could indicate that they are overloaded or that there are network issues.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=coturn_udp_errors_high
+  - alert: Coturn_Task_Missing
+    expr: |-
+      count by (host) (mem_total{pool_type="coturn"})
+        unless on (host)
+      count by (host) (nomad_client_allocs_cpu_allocated{pool_type="coturn", task="coturn"})
+    for: 10m
+    labels:
+      service: jitsi
+      severity: severe
+    annotations:
+      summary: coturn is not running on {{ $labels.host }} in ${var.dc}
+      description: >-
+        The node {{ $labels.host }} has pool_type=coturn but has no coturn task
+        allocation. The coturn system job may have failed to place or crash-looped
+        past its restart attempts, leaving this node with zero TURN relay capacity.
+      dashboard_url: ${var.grafana_url}
+      alert_url: https://${var.prometheus_hostname}/alerts?search=coturn_task_missing
   - alert: Jibris_Available_None
     expr: sum(jibri_available{role="java-jibri"}) == 0
     for: 5m
