@@ -1,0 +1,58 @@
+- job:
+    name: provision-nomad-opus-transcriber-proxy-monitor
+    display-name: provision nomad opus-transcriber-proxy-monitor
+    description: "registers the opus-transcriber-proxy transcription monitor service in nomad in an oracle region in an environment"
+    concurrent: true
+    parameters:
+      - string:
+          name: VIDEO_INFRA_BRANCH
+          default: main
+          description: "Controls checkout branch for infra repos, defaults to 'main'."
+          trim: true
+      - string:
+          name: ENVIRONMENT
+          description: "Environment to provision in (also the environment whose endpoint and CF token are used)"
+          trim: true
+      - string:
+          name: ORACLE_REGION
+          description: "Region to provision in"
+          trim: true
+      - string:
+          name: JOB_TYPE
+          default: opus-transcriber-proxy-monitor
+          description: "Nomad job type to provision, defaults to 'opus-transcriber-proxy-monitor' do not change"
+          trim: true
+      - string:
+          name: OPUS_TRANSCRIBER_PROXY_MONITOR_IMAGE
+          description: "Overrides the opus-transcriber-proxy image (defaults to jitsi/opus-transcriber-proxy:latest)"
+          trim: true
+      - string:
+          name: OPUS_TRANSCRIBER_PROXY_MONITOR_INTERVAL_SECONDS
+          description: "Override for how often the monitor replays the test, in seconds. Leave blank to use the site's opus_transcriber_proxy_monitor_interval_seconds (default 300)."
+          trim: true
+      - string:
+          name: INFRA_CONFIGURATION_REPO
+          default: git@github.com:jitsi/infra-configuration.git
+          description: "Repo for configuration code (ansible etc), defaults to 'git@github.com:jitsi/infra-configuration.git'."
+          trim: true
+      - string:
+          name: INFRA_CUSTOMIZATIONS_REPO
+          default: git@github.com:jitsi/infra-customizations-private.git
+          description: "Repo with customized configurations, defaults to 'git@github.com:jitsi/infra-customizations-private.git'."
+          trim: true
+
+    project-type: pipeline
+    sandbox: true
+    pipeline-scm:
+      scm:
+        - git:
+            url: git@github.com:jitsi/infra-provisioning.git
+            credentials-id: "video-infra"
+            branches:
+              - "origin/${{VIDEO_INFRA_BRANCH}}"
+            browser: githubweb
+            browser-url: https://github.com/jitsi/infra-provisioning
+            submodule:
+              recursive: true
+      script-path: jenkins/groovy/provision-nomad-job/Jenkinsfile
+      lightweight-checkout: true
