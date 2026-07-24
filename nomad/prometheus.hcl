@@ -556,6 +556,46 @@ groups:
         transcription synthetic is not reporting. Check the opus-synthetic Nomad job.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=opus_transcribe_synthetic_down
+  - alert: OTP_Backend_Errors
+    # opus-transcriber-proxy (a Cloudflare Container) pushes otp_* metrics through
+    # alloy-cloudflare into this region's prometheus, so this only has data in the 8x8
+    # deployment environments (absent elsewhere -> never fires). The counter is registered
+    # lazily by the service: the series does not exist until the first backend error ever
+    # occurs, and the first increment after series creation may be missed since increase()
+    # needs two samples.
+    expr: sum by (env, job) (increase(otp_backend_errors_total[5m])) > 0
+    for: 2m
+    labels:
+      service: jitsi
+      severity: warn
+    annotations:
+      summary: opus-transcriber-proxy backend errors in {{ $labels.env }} via ${var.dc}
+      description: >-
+        The opus-transcriber-proxy ({{ $labels.env }}) reported backend errors in the last
+        5 minutes (currently {{ $value | printf "%.0f" }} over 5m), ingested via
+        alloy-cloudflare in ${var.dc}. The proxy failed talking to its transcription
+        backend; check the opus-transcriber-proxy Cloudflare Container logs.
+      dashboard_url: ${var.grafana_url}
+      alert_url: https://${var.prometheus_hostname}/alerts?search=otp_backend_errors
+  - alert: OTP_Backend_Errors_Sustained
+    # Same signal held for 15m: backend errors are ongoing rather than a blip. Severe but
+    # does not page - Opus_Transcribe_Synthetic_Failed above pages when transcription is
+    # actually broken end-to-end.
+    expr: sum by (env, job) (increase(otp_backend_errors_total[5m])) > 0
+    for: 15m
+    labels:
+      service: jitsi
+      severity: severe
+    annotations:
+      summary: sustained opus-transcriber-proxy backend errors in {{ $labels.env }} via ${var.dc}
+      description: >-
+        The opus-transcriber-proxy ({{ $labels.env }}) has reported backend errors
+        continuously for 15+ minutes (most recently {{ $value | printf "%.0f" }} over 5m),
+        ingested via alloy-cloudflare in ${var.dc}. The transcription backend is likely
+        unhealthy; check the opus-transcriber-proxy Cloudflare Container logs and the
+        backend service health.
+      dashboard_url: ${var.grafana_url}
+      alert_url: https://${var.prometheus_hostname}/alerts?search=otp_backend_errors
   - alert: Probe_Ingress_Region_Unhealthy
     expr: cloudprober_haproxy_region_check_passed < 1
     for: 5m
