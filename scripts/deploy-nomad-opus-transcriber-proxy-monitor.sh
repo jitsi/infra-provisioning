@@ -34,9 +34,9 @@ if [ -z "$NOMAD_ADDR" ]; then
     export NOMAD_ADDR="https://$ENVIRONMENT-$LOCAL_REGION-nomad.$TOP_LEVEL_DNS_ZONE_NAME"
 fi
 
+NOMAD_JOB_PATH="$LOCAL_PATH/../nomad"
 NOMAD_DC="$ENVIRONMENT-$ORACLE_REGION"
 JOB_NAME="opus-transcriber-proxy-monitor-$ORACLE_REGION"
-PACKS_DIR="$LOCAL_PATH/../nomad/jitsi_packs/packs"
 
 # The CF Access service token is NOT passed here: the job's task (named opus-transcriber-proxy)
 # reads it from Vault at runtime (secret/default/opus-transcriber-proxy/monitor-$ENVIRONMENT). It
@@ -65,49 +65,17 @@ fi
 # --- Image: the opus-transcriber-proxy image built by the repo's Docker Hub pipeline. ---
 [ -z "$OPUS_TRANSCRIBER_PROXY_MONITOR_IMAGE" ] && OPUS_TRANSCRIBER_PROXY_MONITOR_IMAGE="jitsi/opus-transcriber-proxy:latest"
 
-VAR_FILE="./opus-transcriber-proxy-monitor-${NOMAD_DC}.hcl"
-# No region is set: the cluster's Nomad region is "global"; the OCI region is targeted via the
+# The job's Nomad region is left at the default "global"; the OCI region is targeted via the
 # datacenter ($NOMAD_DC) and the region-specific NOMAD_ADDR (matches jitsi-test-lab/cloudprober).
-cat > "$VAR_FILE" <<EOF
-job_name="$JOB_NAME"
-datacenters=["$NOMAD_DC"]
-environment="$ENVIRONMENT"
-image="$OPUS_TRANSCRIBER_PROXY_MONITOR_IMAGE"
-interval_seconds="$OPUS_TRANSCRIBER_PROXY_MONITOR_INTERVAL_SECONDS"
-ws_url_template="$WS_URL_TEMPLATE"
-EOF
-
-RENDER_DIR="/tmp/opus-transcriber-proxy-monitor-render-$$"
-
-nomad-pack render --name "$JOB_NAME" \
-  -var "job_name=$JOB_NAME" \
-  -var-file "$VAR_FILE" \
-  --to-dir "$RENDER_DIR" \
-  --auto-approve \
-  $PACKS_DIR/jitsi_opus_transcriber_proxy_monitor
+sed -e "s/\[JOB_NAME\]/$JOB_NAME/" "$NOMAD_JOB_PATH/opus-transcriber-proxy-monitor.hcl" | nomad job run \
+  -var="dc=$NOMAD_DC" \
+  -var="environment=$ENVIRONMENT" \
+  -var="image=$OPUS_TRANSCRIBER_PROXY_MONITOR_IMAGE" \
+  -var="interval_seconds=$OPUS_TRANSCRIBER_PROXY_MONITOR_INTERVAL_SECONDS" \
+  -var="ws_url_template=$WS_URL_TEMPLATE" \
+  -
 
 if [ $? -ne 0 ]; then
-    echo "Failed to render nomad opus-transcriber-proxy-monitor job, exiting"
-    rm -f "$VAR_FILE"
-    rm -rf "$RENDER_DIR"
-    exit 5
-fi
-
-RENDERED_JOB=$(find "$RENDER_DIR" -name "*.nomad" | head -1)
-if [ -z "$RENDERED_JOB" ]; then
-    echo "No rendered job file found in $RENDER_DIR, exiting"
-    rm -f "$VAR_FILE"
-    rm -rf "$RENDER_DIR"
-    exit 5
-fi
-
-nomad job run "$RENDERED_JOB"
-RUN_RC=$?
-
-rm -f "$VAR_FILE"
-rm -rf "$RENDER_DIR"
-
-if [ $RUN_RC -ne 0 ]; then
     echo "Failed to run nomad opus-transcriber-proxy-monitor job, exiting"
     exit 5
 fi
