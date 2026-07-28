@@ -7,7 +7,7 @@ config.deeplinking={
     "showImage": [[ or (env "CONFIG_jitsi_meet_deeplink_show_image") "false" ]],
     "ios": {
       "appName": "[[ or (env "CONFIG_jitsi_meet_mobile_app_name") "Jitsi Meet" ]]",
-      "appScheme": "[[ or (env "CONFIG_jitsi_meet_app_scheme") "org.jitsi.meet" ]]",
+      "appScheme": "[[ or (env "CONFIG_jitsi_meet_ios_app_scheme") (or (env "CONFIG_jitsi_meet_app_scheme") "org.jitsi.meet") ]]",
 [[ if ne (env "CONFIG_jitsi_meet_dynamic_linking") "false" -]]
       "dynamicLink": {
         "apn": "org.jitsi.meet",
