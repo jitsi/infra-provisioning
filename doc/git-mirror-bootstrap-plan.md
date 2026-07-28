@@ -274,9 +274,26 @@ today.
 
 - Which compartment OCID / dynamic group should the `vm-bootstrap` role bind to
   per environment?
-- Mirror `jitsi-meet` in all regions, or only where boots need it?
+- ~~Mirror `jitsi-meet` in all regions, or only where boots need it?~~
+  **Resolved (2026-07-28):** mirror `jitsi-meet` only in `us-phoenix-1` (where
+  the Jenkins/build host lives); everywhere else mirror just the three infra
+  repos. Implemented in `scripts/deploy-nomad-gitea-mirror.sh`.
 - Confirm the per-env `VAULT_ENVIRONMENT` / `DNS_ZONE` values used to construct
   `VAULT_ADDR` at boot for each environment.
+
+## Implementation status (2026-07-28)
+
+- **Stage 1 (this repo, branch `JIT-16092-gitea-mirror-bootstrap`): DONE.**
+  `nomad/gitea-mirror.hcl` + `scripts/deploy-nomad-gitea-mirror.sh`. Prereqs
+  before deploy: seed Vault `secret/default/gitea/admin` (username/password/email)
+  and `secret/default/gitea/github` (a GitHub PAT with read access to
+  `infra-customizations-private`).
+- **Stages 2-3 (infra-configuration): ON HOLD** until the mirror is deployed and
+  the first-sync health gate is verified per region (per the rollout order).
+  Blocked on the two remaining open questions above (compartment OCID / dynamic
+  group; per-env `VAULT_ADDR` values). Note: Vault auth methods/policies are not
+  currently codified in infra-configuration's `vault` role, so `vm-bootstrap` /
+  `bootstrap-read` will need a `vault` CLI script or a new role convention.
 
 ## References
 

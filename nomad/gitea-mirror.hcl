@@ -33,10 +33,12 @@ variable "github_org" {
 }
 
 # Repos that must finish their first sync before the replica is considered
-# ready (decision 4). Order does not matter.
+# ready (decision 4). Order does not matter. jitsi-meet is NOT in the default
+# set — it is only cloned by boots in us-phoenix-1, so the deploy script adds it
+# there (see scripts/deploy-nomad-gitea-mirror.sh).
 variable "required_repos" {
   type    = list(string)
-  default = ["infra-configuration", "infra-provisioning", "infra-customizations-private", "jitsi-meet"]
+  default = ["infra-configuration", "infra-provisioning", "infra-customizations-private"]
 }
 
 # Subset of required_repos that must stay private in Gitea and therefore need

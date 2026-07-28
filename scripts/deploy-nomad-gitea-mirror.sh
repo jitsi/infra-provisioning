@@ -37,6 +37,19 @@ NOMAD_DC="$ENVIRONMENT-$ORACLE_REGION"
 [ -z "$GITEA_HOSTNAME" ] && GITEA_HOSTNAME="${ENVIRONMENT}-${ORACLE_REGION}-git.${TOP_LEVEL_DNS_ZONE_NAME}"
 export NOMAD_VAR_gitea_hostname="$GITEA_HOSTNAME"
 
+# Repos to mirror. jitsi-meet is only cloned by boots in us-phoenix-1 (where the
+# Jenkins/build host lives), so it is mirrored there only; everywhere else just
+# the three infra repos. Override wholesale with GITEA_REQUIRED_REPOS (HCL/JSON
+# list syntax, e.g. '["infra-configuration","jitsi-meet"]').
+if [ -z "$GITEA_REQUIRED_REPOS" ]; then
+    if [ "$ORACLE_REGION" == "us-phoenix-1" ]; then
+        GITEA_REQUIRED_REPOS='["infra-configuration","infra-provisioning","infra-customizations-private","jitsi-meet"]'
+    else
+        GITEA_REQUIRED_REPOS='["infra-configuration","infra-provisioning","infra-customizations-private"]'
+    fi
+fi
+export NOMAD_VAR_required_repos="$GITEA_REQUIRED_REPOS"
+
 # Optional overrides (all have sane defaults in the job).
 [ -n "$GITEA_IMAGE_VERSION" ] && export NOMAD_VAR_image_version="$GITEA_IMAGE_VERSION"
 [ -n "$GITEA_MIRROR_INTERVAL" ] && export NOMAD_VAR_mirror_interval="$GITEA_MIRROR_INTERVAL"
