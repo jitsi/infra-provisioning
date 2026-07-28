@@ -49,9 +49,9 @@ variable "sample_dump" {
 }
 
 variable "connect_timeout" {
-  description = "Seconds to wait for the websocket to connect before failing"
+  description = "Seconds to wait for the websocket to open before failing (must cover a Cloudflare Container cold start, ~30s)"
   type        = string
-  default     = "15"
+  default     = "30"
 }
 
 variable "assert_min_finals" {
