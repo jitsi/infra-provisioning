@@ -536,7 +536,7 @@ EOF
         image        = "[[ env "CONFIG_prosody_repo" ]]:[[ env "CONFIG_prosody_tag" ]]"
         ports = ["prosody-http","prosody-client"]
         # The mod_c2s "Client XML parse error" log-level patch is now baked into
-        # the branding-built prosody image at build time (8x8Cloud/jitsi-meet-
+        # the branding-built prosody image at build time (8x8/jitsi-meet-
         # branding docker/prosody/Dockerfile) rather than patched at boot -- the
         # rootless image cannot sed /usr/lib/prosody as uid 1000.
         volumes = [
