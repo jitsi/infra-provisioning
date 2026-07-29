@@ -1,4 +1,5 @@
 #!/bin/bash -v
+[ -e "/opt/jitsi/boot/postinstall-lib.sh" ] && . /opt/jitsi/boot/postinstall-lib.sh
 set -x
 EXIT_CODE=0
 tmp_msg_file='/tmp/postinstall_runner_message'
