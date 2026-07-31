@@ -324,6 +324,52 @@ probe {
     value: "infra"
   }
 }
+
+# probes each vault node directly, discovered from consul (service "vault"),
+# bypassing the load balancer. The LB-fronted "vault" probe above only ever
+# reaches the active node, so it stays green while a standby node is sealed
+# (silent loss of HA redundancy). "vault|any" includes nodes whose consul health
+# check is critical (e.g. sealed) so they are still probed. Healthy states are
+# 200 (active), 429 (standby) and 473 (perf-standby); a sealed node returns 503
+# and fails. Cert validation is disabled since nodes present the wildcard cert
+# on their own (non-matching) address. Nodes register themselves via the
+# consul-vault ansible role, so rotation needs no cloudprober redeploy.
+probe {
+  name: "vault_nodes"
+  type: HTTP
+  targets {
+    {{ $vault_node_count := 0 -}}
+    {{ range service "vault|any" -}}
+    {{ $vault_node_count = add $vault_node_count 1 -}}
+    endpoint {
+      name: "{{ .Node }}"
+      url: "https://{{ .Address }}:{{ .Port }}/v1/sys/health"
+    }
+    {{ end -}}
+    {{ if eq $vault_node_count 0 -}}
+    host_names: ""
+    {{- end }}
+  }
+  http_probe {
+    protocol: HTTPS
+    tls_config {
+      disable_cert_validation: true
+    }
+  }
+  validator {
+      name: "status_code_ok"
+      http_validator {
+          success_status_codes: "200-299,429,473"
+      }
+  }
+  interval_msec: 30000
+  timeout_msec: 10000
+  latency_unit: "ms"
+  additional_label {
+    key: "service"
+    value: "infra"
+  }
+}
 [[ end -]]
 [[ if var "enable_canary" . -]]
 # probes canary health and latency across datacenters
