@@ -329,9 +329,11 @@ probe {
 # bypassing the load balancer. The LB-fronted "vault" probe above only ever
 # reaches the active node, so it stays green while a standby node is sealed
 # (silent loss of HA redundancy). "vault|any" includes nodes whose consul health
-# check is critical (e.g. sealed) so they are still probed. Healthy states are
-# 200 (active), 429 (standby) and 473 (perf-standby); a sealed node returns 503
-# and fails. Cert validation is disabled since nodes present the wildcard cert
+# check is critical (e.g. sealed) so they are still probed. "Up" states are
+# 200 (active), 429 (standby), 472 (DR secondary), 473 (perf-standby) and 474
+# (standby with an unhealthy HA connection) -- all mean the node is unsealed and
+# serving. A sealed node returns 503 (and a down node fails to connect), which is
+# what we want to alert on. Cert validation is disabled since nodes present the wildcard cert
 # on their own (non-matching) address. Nodes register themselves via the
 # consul-vault ansible role, so rotation needs no cloudprober redeploy.
 probe {
@@ -359,7 +361,7 @@ probe {
   validator {
       name: "status_code_ok"
       http_validator {
-          success_status_codes: "200-299,429,473"
+          success_status_codes: "200-299,429,472,473,474"
       }
   }
   interval_msec: 30000
