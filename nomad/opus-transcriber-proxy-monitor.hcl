@@ -8,9 +8,8 @@ variable "environment" {
 }
 
 variable "image" {
-  description = "The opus-transcriber-proxy docker image (run in monitor mode via a command override)"
+  description = "The opus-transcriber-proxy docker image (run in monitor mode via a command override). Required - no default, and must not be a \"latest\" tag: re-running with the same image string is a no-op for Nomad (job diff sees no change and won't redeploy)."
   type        = string
-  default     = "jitsi/opus-transcriber-proxy:latest"
 }
 
 variable "pool_type" {
