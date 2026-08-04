@@ -25,7 +25,7 @@
           trim: true
       - string:
           name: OPUS_TRANSCRIBER_PROXY_MONITOR_IMAGE
-          description: "Overrides the opus-transcriber-proxy image (defaults to jitsi/opus-transcriber-proxy:latest)"
+          description: "Required: the opus-transcriber-proxy image to release. Must be a full image reference (repo:tag), not a bare commit hash - e.g. jitsi/opus-transcriber-proxy:1234abc using the short 7-char commit SHA tag published by the repo's dh.yml workflow. Do not use the 'latest' tag: re-running with the same image string is a no-op for Nomad (job diff sees no change and won't redeploy), so pin an explicit SHA tag every time."
           trim: true
       - string:
           name: OPUS_TRANSCRIBER_PROXY_MONITOR_INTERVAL_SECONDS

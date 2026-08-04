@@ -62,8 +62,17 @@ if [ -z "$OPUS_TRANSCRIBER_PROXY_MONITOR_INTERVAL_SECONDS" ]; then
 fi
 [ -z "$OPUS_TRANSCRIBER_PROXY_MONITOR_INTERVAL_SECONDS" ] && OPUS_TRANSCRIBER_PROXY_MONITOR_INTERVAL_SECONDS="300"
 
-# --- Image: the opus-transcriber-proxy image built by the repo's Docker Hub pipeline. ---
-[ -z "$OPUS_TRANSCRIBER_PROXY_MONITOR_IMAGE" ] && OPUS_TRANSCRIBER_PROXY_MONITOR_IMAGE="jitsi/opus-transcriber-proxy:latest"
+# --- Image: the opus-transcriber-proxy image built by the repo's Docker Hub pipeline. Required:
+#     no "latest" fallback, since re-running with the same image string is a no-op for Nomad (job
+#     diff sees no change and won't redeploy, regardless of docker pull policy). ---
+if [ -z "$OPUS_TRANSCRIBER_PROXY_MONITOR_IMAGE" ]; then
+    echo "No OPUS_TRANSCRIBER_PROXY_MONITOR_IMAGE set, exiting"
+    exit 2
+fi
+if [ "$OPUS_TRANSCRIBER_PROXY_MONITOR_IMAGE" == "jitsi/opus-transcriber-proxy:latest" ]; then
+    echo "OPUS_TRANSCRIBER_PROXY_MONITOR_IMAGE must not be 'latest' (re-running the same tag is a no-op for Nomad), exiting"
+    exit 2
+fi
 
 # The job's Nomad region is left at the default "global"; the OCI region is targeted via the
 # datacenter ($NOMAD_DC) and the region-specific NOMAD_ADDR (matches jitsi-test-lab/cloudprober).
