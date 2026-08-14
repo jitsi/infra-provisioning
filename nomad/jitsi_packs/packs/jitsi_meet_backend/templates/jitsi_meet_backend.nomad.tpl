@@ -854,6 +854,11 @@ EOH
         GLOBAL_MODULES = "admin_telnet,http_openmetrics,log_ringbuffer[[ if eq (env "CONFIG_prosody_mod_measure_stanza_counts") "true"]],measure_stanza_counts[[ end ]]"
         PROSODY_LOG_CONFIG="{level = \"debug\", to = \"ringbuffer\",size = [[ or (env "CONFIG_prosody_jvb_mod_log_ringbuffer_size") "1024*1024*4" ]], filename_template = \"traceback.txt\", event = \"debug_traceback/triggered\";};"
         TZ = "UTC"
+[[- if eq (or (env "CONFIG_tracing_enabled") "false") "true" ]]
+        # Distributed tracing (docker-jitsi-meet#2303); see common-env helper
+        ENABLE_TRACING = "1"
+        TRACING_OTLP_ENDPOINT = "[[ template "tracing-otlp-base" . ]]"
+[[- end ]]
       }
 
       template {
