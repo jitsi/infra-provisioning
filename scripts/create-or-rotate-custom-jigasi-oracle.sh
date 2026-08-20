@@ -363,9 +363,21 @@ elif [ "$getGroupHttpCode" == 200 ]; then
     echo "Successfully scaled down to $PROTECTED_INSTANCES_COUNT instances in group $GROUP_NAME"
 
     # only delete the old instance configuration once the rotation has
-    # completed successfully, so a failed rotation can still roll back to it
+    # completed successfully, so a failed rotation can still roll back to it.
+    # Terraform's own replace-and-destroy already deletes this same instance
+    # configuration whenever the new one forces a replacement (which happens on
+    # every version bump, since OCI instance configurations are immutable), so
+    # it is normal for this to already be gone.
     echo "Will delete the old Instance Configuration for group $GROUP_NAME"
-    oci compute-management instance-configuration delete --instance-configuration-id "$EXISTING_INSTANCE_CONFIGURATION_ID" --region "$ORACLE_REGION" --force
+    deleteConfigOutput=$(oci compute-management instance-configuration delete --instance-configuration-id "$EXISTING_INSTANCE_CONFIGURATION_ID" --region "$ORACLE_REGION" --force 2>&1)
+    deleteConfigExitCode=$?
+    if [ $deleteConfigExitCode -eq 0 ]; then
+      echo "Successfully deleted old Instance Configuration $EXISTING_INSTANCE_CONFIGURATION_ID"
+    elif echo "$deleteConfigOutput" | grep -q "NotAuthorizedOrNotFound"; then
+      echo "Old Instance Configuration $EXISTING_INSTANCE_CONFIGURATION_ID was already removed (likely by terraform's replace), continuing"
+    else
+      echo "Warning: failed to delete old Instance Configuration $EXISTING_INSTANCE_CONFIGURATION_ID: $deleteConfigOutput"
+    fi
   else
     echo "Error scaling down to $PROTECTED_INSTANCES_COUNT instances in group $GROUP_NAME. AutoScaler response status code is $scaleDownGroupHttpCode"
     exit 209
