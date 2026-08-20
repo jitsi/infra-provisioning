@@ -306,6 +306,12 @@ export CONFIG_signal_sidecar_tag="$SIGNAL_SIDECAR_IMAGE_TAG"
 [ -z "$CONFIG_visitors_count" ] && CONFIG_visitors_count=0
 [ -z "$CONFIG_nomad_enable_fabio_domain" ] && CONFIG_nomad_enable_fabio_domain="false"
 
+# optional distributed tracing (docker-jitsi-meet#2303); set tracing_enabled: true
+# in the environment yaml (exported as CONFIG_tracing_enabled by yamltoenv above).
+# Spans go over OTLP HTTP to the regional alloy, which forwards them to Tempo.
+[ -z "$CONFIG_tracing_enabled" ] && export CONFIG_tracing_enabled="false"
+[ -z "$CONFIG_tracing_otlp_endpoint" ] && export CONFIG_tracing_otlp_endpoint="https://$ENVIRONMENT-$ORACLE_REGION-otel.$TOP_LEVEL_DNS_ZONE_NAME"
+
 if [ -z "$CONFIG_force_pull" ]; then
     if [[ "$ENVIRONMENT_TYPE" == "prod" ]]; then
         export CONFIG_force_pull="false"
