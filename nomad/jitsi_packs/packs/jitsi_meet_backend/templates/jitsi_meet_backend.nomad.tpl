@@ -375,6 +375,7 @@ job [[ template "job_name" . ]] {
         PROSODY_S2S_LIMIT="512kb/s"
         PROSODY_ENABLE_RATE_LIMITS="1"
         PROSODY_RATE_LIMIT_ALLOW_RANGES="[[ env "CONFIG_prosody_rate_limit_allow_ranges" ]]"
+        PROSODY_RATE_LIMIT_SESSION_RATE="2000"
         PROSODY_REGION_NAME="[[ env "CONFIG_octo_region" ]]"
         VISITORS_MAX_VISITORS_PER_NODE=
           [[- if and (env "CONFIG_prosody_visitors_muc_max_occupants") (ne (env "CONFIG_prosody_visitors_muc_max_occupants") "false") -]]
