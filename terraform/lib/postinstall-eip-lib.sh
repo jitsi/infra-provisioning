@@ -53,25 +53,20 @@ function switch_to_primary_vnic() {
   status_code=0
   echo "Switch default route back to NIC1"
 
-  sudo ip route delete $NIC2_ROUTE || status_code=1
-
-  if [ $status_code -gt 0 ]; then
-    return $status_code
+  # restore as much routing as possible even if individual steps fail, so a
+  # partial switch to the secondary VNIC does not leave the routing table empty
+  if [ ! -z "$NIC2_ROUTE" ]; then
+    sudo ip route delete $NIC2_ROUTE || status_code=1
   fi
 
-  sudo ip route add $NIC1_ROUTE_1 || status_code=1
-
-  if [ $status_code -gt 0 ]; then
-    return $status_code
+  if [ ! -z "$NIC1_ROUTE_1" ]; then
+    sudo ip route add $NIC1_ROUTE_1 || status_code=1
   fi
 
   if [ ! -z "$NIC1_ROUTE_2" ]; then
     sudo ip route add $NIC1_ROUTE_2 || status_code=1
-
-    if [ $status_code -gt 0 ]; then
-      return $status_code
-    fi
   fi
+
   echo "Delete secondary NIC routing to avoid routing issues in the future"
   sudo /usr/local/bin/secondary_vnic_all_configure_oracle.sh -d || status_code=1
   return $status_code
@@ -193,18 +188,23 @@ function check_secondary_ip() {
 
 eip_assign() {
   [ -z "$PROVISION_COMMAND" ] && PROVISION_COMMAND="default_provision"
+  # the secondary VNIC can take a long time to appear in instance metadata
+  # (control-plane lag); the instance is useless without a public IP anyway,
+  # so wait up to ~35 minutes for it before giving up
+  [ -z "$EIP_SECONDARY_IP_RETRIES" ] && EIP_SECONDARY_IP_RETRIES=30
 
   EIP_EXIT_CODE=0
-  (retry check_secondary_ip) || EIP_EXIT_CODE=1
+  (retry check_secondary_ip $EIP_SECONDARY_IP_RETRIES) || EIP_EXIT_CODE=1
 
   if [ $EIP_EXIT_CODE -eq 0 ]; then
       switch_to_secondary_vnic || EIP_EXIT_CODE=1
-  fi
 
-  if [ $EIP_EXIT_CODE -eq 0 ]; then
-      (retry assign_reserved_public_ip 15 || retry assign_ephemeral_public_ip) || EIP_EXIT_CODE=1
-      switch_to_primary_vnic || EIP_EXIT_CODE=1
-  else
+      if [ $EIP_EXIT_CODE -eq 0 ]; then
+          (retry assign_reserved_public_ip 15 || retry assign_ephemeral_public_ip) || EIP_EXIT_CODE=1
+      fi
+
+      # only switch back if a switch was attempted; with no secondary VNIC
+      # there are no routes to restore and the route deletes would fail
       switch_to_primary_vnic || EIP_EXIT_CODE=1
   fi
 

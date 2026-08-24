@@ -20,7 +20,20 @@ if [ ! $EXIT_CODE -eq 0 ]; then
 
     echo "Terminating is enabled, so running terminate command $TERMINATE_INSTANCE_COMMAND"
 
-    $TERMINATE_INSTANCE_COMMAND
+    # retry in a loop rather than recursing: recursion eventually overflows the
+    # stack and segfaults, silently ending the retries. If the OCI API is
+    # unreachable (e.g. no public IP was ever attached), try to restore
+    # connectivity via a late-appearing secondary VNIC before each attempt.
+    # The instance is deliberately left RUNNING while retries continue so the
+    # autoscaler counts it as untracked and an operator can intervene.
+    while true; do
+      if ! oci_api_reachable; then
+        restore_oci_connectivity
+      fi
+      $TERMINATE_INSTANCE_COMMAND && break
+      echo "Terminate command $TERMINATE_INSTANCE_COMMAND failed, sleeping 60 then retrying"
+      sleep 60
+    done
 
   else
     echo "Skipping termination of instance"

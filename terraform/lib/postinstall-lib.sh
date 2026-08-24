@@ -294,16 +294,37 @@ function default_provision() {
   run_ansible_playbook "$ANSIBLE_PLAYBOOK"  "$ANSIBLE_VARS" || status_code=1
   return $status_code;
 }
-function default_terminate() {
-  echo "Terminating the instance; we enable debug to have more details in case of oci cli failures"
-  INSTANCE_ID=`curl --connect-timeout 10 -s curl http://169.254.169.254/opc/v1/instance/ | jq -r .id`
-  sudo /usr/local/bin/oci compute instance terminate --debug --instance-id "$INSTANCE_ID" --preserve-boot-volume false --auth instance_principal --force
-  RET=$?
-  # infinite loop on failure
-  if [ $RET -gt 0 ]; then
-    echo "Failed to terminate instance, exit code: $RET, sleeping 10 then retrying"
-    sleep 10
-    default_terminate
+function oci_api_reachable() {
+  local region=$(curl --connect-timeout 10 -s http://169.254.169.254/opc/v1/instance/ | jq -r .canonicalRegionName)
+  local http_code=$(curl -s -m 10 -o /dev/null -w '%{http_code}' "https://auth.${region}.oraclecloud.com/v1/x509")
+  if [ "$http_code" == "000" ]; then
+    echo "OCI API auth endpoint for region $region is not reachable"
+    return 1
   fi
+  return 0
+}
+
+function restore_oci_connectivity() {
+  # the OCI API is unreachable when the primary VNIC never received a public
+  # IP; a secondary VNIC can appear in instance metadata minutes late, so
+  # re-check for one and route through it if found
+  local secondary_ip=$(curl --connect-timeout 10 -s http://169.254.169.254/opc/v1/vnics/ | jq -r '.[1].privateIp')
+  if [ -z "$secondary_ip" ] || [ "$secondary_ip" == "null" ]; then
+    echo "No secondary VNIC in metadata, unable to restore OCI API connectivity"
+    return 1
+  fi
+  if ! type switch_to_secondary_vnic > /dev/null 2>&1; then
+    echo "No switch_to_secondary_vnic function available, unable to restore OCI API connectivity"
+    return 1
+  fi
+  echo "Secondary VNIC with IP $secondary_ip found, switching default route to it to reach the OCI API"
+  switch_to_secondary_vnic
+}
+
+function default_terminate() {
+  # single attempt; the footer retries in a loop with connectivity self-healing
+  echo "Terminating the instance; we enable debug to have more details in case of oci cli failures"
+  INSTANCE_ID=`curl --connect-timeout 10 -s http://169.254.169.254/opc/v1/instance/ | jq -r .id`
+  sudo /usr/local/bin/oci compute instance terminate --debug --instance-id "$INSTANCE_ID" --preserve-boot-volume false --auth instance_principal --force
 }
 # end of postinstall-lib, this space intentionally left blank
