@@ -26,15 +26,26 @@ function switch_to_secondary_vnic() {
   SECONDARY_VNIC_DEVICE="${SECONDARY_VNIC_DEVICE::-1}"
   SECONDARY_VNIC_DEVICE="$(echo $SECONDARY_VNIC_DEVICE | cut -d'@' -f1)"
 
+  # compute and validate the new default route BEFORE deleting the existing
+  # ones, so a failure here cannot leave the host with no default route
+  export NIC2_ROUTE="default via "$(ip route show | grep "dev $SECONDARY_VNIC_DEVICE" | grep -v default | head -1 | awk '{ print substr($1,1,index($1,"/")-2)1 " " $2 " " $3}')
+  if [ "$NIC2_ROUTE" == "default via " ]; then
+    echo "Unable to determine route via secondary NIC $SECONDARY_VNIC_DEVICE, leaving routes untouched"
+    return 1
+  fi
+
   echo "Switch default routes to NIC2"
+  # NIC1_ROUTE_1 can be empty when a previous partial switch already removed
+  # the default routes; skip the delete so the switch can still complete
   export NIC1_ROUTE_1=$(ip route show | grep default -m 1)
-  sudo ip route delete $NIC1_ROUTE_1 || status_code=1
+  if [ ! -z "$NIC1_ROUTE_1" ]; then
+    sudo ip route delete $NIC1_ROUTE_1 || status_code=1
+  fi
 
   if [ $status_code -gt 0 ]; then
     return $status_code
   fi
 
-  # 
   export NIC1_ROUTE_2=$(ip route show | grep default -m 1)
   if [ ! -z "$NIC1_ROUTE_2" ]; then
     sudo ip route delete $NIC1_ROUTE_2 || status_code=1
@@ -44,7 +55,6 @@ function switch_to_secondary_vnic() {
     return $status_code
   fi
 
-  export NIC2_ROUTE="default via "$(ip route show | grep $SECONDARY_VNIC_DEVICE | awk '{ print substr($1,1,index($1,"/")-2)1 " " $2 " " $3}')
   sudo ip route add $NIC2_ROUTE || status_code=1
   return $status_code
 }
