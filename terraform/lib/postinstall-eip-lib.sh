@@ -26,15 +26,26 @@ function switch_to_secondary_vnic() {
   SECONDARY_VNIC_DEVICE="${SECONDARY_VNIC_DEVICE::-1}"
   SECONDARY_VNIC_DEVICE="$(echo $SECONDARY_VNIC_DEVICE | cut -d'@' -f1)"
 
+  # compute and validate the new default route BEFORE deleting the existing
+  # ones, so a failure here cannot leave the host with no default route
+  export NIC2_ROUTE="default via "$(ip route show | grep "dev $SECONDARY_VNIC_DEVICE" | grep -v default | head -1 | awk '{ print substr($1,1,index($1,"/")-2)1 " " $2 " " $3}')
+  if [ "$NIC2_ROUTE" == "default via " ]; then
+    echo "Unable to determine route via secondary NIC $SECONDARY_VNIC_DEVICE, leaving routes untouched"
+    return 1
+  fi
+
   echo "Switch default routes to NIC2"
+  # NIC1_ROUTE_1 can be empty when a previous partial switch already removed
+  # the default routes; skip the delete so the switch can still complete
   export NIC1_ROUTE_1=$(ip route show | grep default -m 1)
-  sudo ip route delete $NIC1_ROUTE_1 || status_code=1
+  if [ ! -z "$NIC1_ROUTE_1" ]; then
+    sudo ip route delete $NIC1_ROUTE_1 || status_code=1
+  fi
 
   if [ $status_code -gt 0 ]; then
     return $status_code
   fi
 
-  # 
   export NIC1_ROUTE_2=$(ip route show | grep default -m 1)
   if [ ! -z "$NIC1_ROUTE_2" ]; then
     sudo ip route delete $NIC1_ROUTE_2 || status_code=1
@@ -44,7 +55,6 @@ function switch_to_secondary_vnic() {
     return $status_code
   fi
 
-  export NIC2_ROUTE="default via "$(ip route show | grep $SECONDARY_VNIC_DEVICE | awk '{ print substr($1,1,index($1,"/")-2)1 " " $2 " " $3}')
   sudo ip route add $NIC2_ROUTE || status_code=1
   return $status_code
 }
@@ -53,25 +63,20 @@ function switch_to_primary_vnic() {
   status_code=0
   echo "Switch default route back to NIC1"
 
-  sudo ip route delete $NIC2_ROUTE || status_code=1
-
-  if [ $status_code -gt 0 ]; then
-    return $status_code
+  # restore as much routing as possible even if individual steps fail, so a
+  # partial switch to the secondary VNIC does not leave the routing table empty
+  if [ ! -z "$NIC2_ROUTE" ]; then
+    sudo ip route delete $NIC2_ROUTE || status_code=1
   fi
 
-  sudo ip route add $NIC1_ROUTE_1 || status_code=1
-
-  if [ $status_code -gt 0 ]; then
-    return $status_code
+  if [ ! -z "$NIC1_ROUTE_1" ]; then
+    sudo ip route add $NIC1_ROUTE_1 || status_code=1
   fi
 
   if [ ! -z "$NIC1_ROUTE_2" ]; then
     sudo ip route add $NIC1_ROUTE_2 || status_code=1
-
-    if [ $status_code -gt 0 ]; then
-      return $status_code
-    fi
   fi
+
   echo "Delete secondary NIC routing to avoid routing issues in the future"
   sudo /usr/local/bin/secondary_vnic_all_configure_oracle.sh -d || status_code=1
   return $status_code
@@ -172,9 +177,14 @@ function check_secondary_ip() {
   local ip_status=1
 
   while [ $counter -le 2 ]; do
-    local my_private_ip=$(curl -s curl http://169.254.169.254/opc/v1/vnics/ | jq .[1].privateIp -r)
+    # fetch_vnics_metadata logs the full exchange with headers (X-Request-Id)
+    # so a missing secondary VNIC can be correlated with OCI support
+    local my_private_ip=$(fetch_vnics_metadata | jq .[1].privateIp -r)
 
     if [ -z "$my_private_ip" ] || [ "$my_private_ip" == "null" ]; then
+      # record what the OS sees while the metadata is missing the secondary
+      # VNIC; in past incidents the device existed here the whole time
+      ip -o link >&2
       sleep 30
       ((counter++))
     else
@@ -193,18 +203,23 @@ function check_secondary_ip() {
 
 eip_assign() {
   [ -z "$PROVISION_COMMAND" ] && PROVISION_COMMAND="default_provision"
+  # the secondary VNIC can take a long time to appear in instance metadata
+  # (control-plane lag); the instance is useless without a public IP anyway,
+  # so wait up to ~35 minutes for it before giving up
+  [ -z "$EIP_SECONDARY_IP_RETRIES" ] && EIP_SECONDARY_IP_RETRIES=30
 
   EIP_EXIT_CODE=0
-  (retry check_secondary_ip) || EIP_EXIT_CODE=1
+  (retry check_secondary_ip $EIP_SECONDARY_IP_RETRIES) || EIP_EXIT_CODE=1
 
   if [ $EIP_EXIT_CODE -eq 0 ]; then
       switch_to_secondary_vnic || EIP_EXIT_CODE=1
-  fi
 
-  if [ $EIP_EXIT_CODE -eq 0 ]; then
-      (retry assign_reserved_public_ip 15 || retry assign_ephemeral_public_ip) || EIP_EXIT_CODE=1
-      switch_to_primary_vnic || EIP_EXIT_CODE=1
-  else
+      if [ $EIP_EXIT_CODE -eq 0 ]; then
+          (retry assign_reserved_public_ip 15 || retry assign_ephemeral_public_ip) || EIP_EXIT_CODE=1
+      fi
+
+      # only switch back if a switch was attempted; with no secondary VNIC
+      # there are no routes to restore and the route deletes would fail
       switch_to_primary_vnic || EIP_EXIT_CODE=1
   fi
 
