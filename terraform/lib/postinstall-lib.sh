@@ -294,6 +294,24 @@ function default_provision() {
   run_ansible_playbook "$ANSIBLE_PLAYBOOK"  "$ANSIBLE_VARS" || status_code=1
   return $status_code;
 }
+VNIC_METADATA_LOG="/var/log/vnic-metadata-debug.log"
+function fetch_vnics_metadata() {
+  # fetch VNIC metadata, capturing the verbose exchange (request/response
+  # headers incl. X-Request-Id) to $VNIC_METADATA_LOG and stderr so it lands
+  # in cloud-init-output.log for correlation with OCI support; only the body
+  # goes to stdout for callers to parse
+  local verbose_log=$(mktemp) body=$(mktemp)
+  curl -sv --connect-timeout 10 http://169.254.169.254/opc/v1/vnics/ -o "$body" 2> "$verbose_log"
+  {
+    echo "=== $(date -u +%Y-%m-%dT%H:%M:%SZ) GET http://169.254.169.254/opc/v1/vnics/ ==="
+    cat "$verbose_log"
+    cat "$body"
+    echo ""
+  } | tee -a "$VNIC_METADATA_LOG" >&2
+  cat "$body"
+  rm -f "$verbose_log" "$body"
+}
+
 function oci_api_reachable() {
   local region=$(curl --connect-timeout 10 -s http://169.254.169.254/opc/v1/instance/ | jq -r .canonicalRegionName)
   local http_code=$(curl -s -m 10 -o /dev/null -w '%{http_code}' "https://auth.${region}.oraclecloud.com/v1/x509")
@@ -308,7 +326,7 @@ function restore_oci_connectivity() {
   # the OCI API is unreachable when the primary VNIC never received a public
   # IP; a secondary VNIC can appear in instance metadata minutes late, so
   # re-check for one and route through it if found
-  local secondary_ip=$(curl --connect-timeout 10 -s http://169.254.169.254/opc/v1/vnics/ | jq -r '.[1].privateIp')
+  local secondary_ip=$(fetch_vnics_metadata | jq -r '.[1].privateIp')
   if [ -z "$secondary_ip" ] || [ "$secondary_ip" == "null" ]; then
     echo "No secondary VNIC in metadata, unable to restore OCI API connectivity"
     return 1

@@ -177,9 +177,14 @@ function check_secondary_ip() {
   local ip_status=1
 
   while [ $counter -le 2 ]; do
-    local my_private_ip=$(curl -s curl http://169.254.169.254/opc/v1/vnics/ | jq .[1].privateIp -r)
+    # fetch_vnics_metadata logs the full exchange with headers (X-Request-Id)
+    # so a missing secondary VNIC can be correlated with OCI support
+    local my_private_ip=$(fetch_vnics_metadata | jq .[1].privateIp -r)
 
     if [ -z "$my_private_ip" ] || [ "$my_private_ip" == "null" ]; then
+      # record what the OS sees while the metadata is missing the secondary
+      # VNIC; in past incidents the device existed here the whole time
+      ip -o link >&2
       sleep 30
       ((counter++))
     else
