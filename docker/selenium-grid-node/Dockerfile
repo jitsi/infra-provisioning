@@ -71,6 +71,64 @@ RUN if [ "$(dpkg --print-architecture)" = "amd64" ]; then \
     && chown -R ${SEL_UID}:${SEL_GID} /opt/selenium/browsers/chrome_beta; \
   fi
 
+#============================================
+# ChromeDriver for Chrome Beta (amd64 only)
+#
+# The base image ships a single chromedriver, matched to its google-chrome-stable.
+# Chrome Beta is a major version ahead and chromedriver enforces a major-version
+# match, so the beta stereotype needs a driver of its own -- otherwise every
+# jitsi-beta session fails with "This version of ChromeDriver only supports
+# Chrome version N". Resolve it from Chrome for Testing against the exact beta
+# build frozen into the image just above.
+#============================================
+RUN if [ "$(dpkg --print-architecture)" = "amd64" ]; then \
+    set -eu; \
+    SE_CHROMEDRIVER_BETA=/opt/selenium/chromedriver-beta; \
+    CFT_BASE="https://googlechromelabs.github.io/chrome-for-testing"; \
+    CHROME_BETA_VERSION="$(cat /opt/selenium/browsers/chrome_beta/version)"; \
+    CHROME_BETA_BUILD="$(echo "${CHROME_BETA_VERSION}" | cut -d. -f1-3)"; \
+    CHROME_BETA_MAJOR="$(echo "${CHROME_BETA_VERSION}" | cut -d. -f1)"; \
+    echo "Chrome Beta ${CHROME_BETA_VERSION} (build ${CHROME_BETA_BUILD})"; \
+    curl -sSf -o /tmp/cft-builds.json "${CFT_BASE}/latest-patch-versions-per-build-with-downloads.json"; \
+    DRIVER_URL="$(jq -r --arg b "${CHROME_BETA_BUILD}" \
+      '.builds[$b].downloads.chromedriver[]? | select(.platform == "linux64") | .url' \
+      /tmp/cft-builds.json)"; \
+    if [ -z "${DRIVER_URL}" ]; then \
+      echo "No ChromeDriver for build ${CHROME_BETA_BUILD}, falling back to the latest ${CHROME_BETA_MAJOR}.x build"; \
+      DRIVER_URL="$(jq -r --arg m "${CHROME_BETA_MAJOR}" \
+        '[.builds | to_entries[] | select(.key | startswith($m + "."))] \
+         | sort_by(.value.version | split(".") | map(tonumber)) | last \
+         | .value.downloads.chromedriver[]? | select(.platform == "linux64") | .url' \
+        /tmp/cft-builds.json)"; \
+    fi; \
+    if [ -z "${DRIVER_URL}" ]; then \
+      echo "No ChromeDriver for major ${CHROME_BETA_MAJOR}, falling back to the Beta channel"; \
+      curl -sSf -o /tmp/cft-channels.json "${CFT_BASE}/last-known-good-versions-with-downloads.json"; \
+      DRIVER_URL="$(jq -r \
+        '.channels.Beta.downloads.chromedriver[]? | select(.platform == "linux64") | .url' \
+        /tmp/cft-channels.json)"; \
+    fi; \
+    if [ -z "${DRIVER_URL}" ]; then \
+      echo "FATAL: could not resolve a ChromeDriver for Chrome Beta ${CHROME_BETA_VERSION}"; \
+      exit 1; \
+    fi; \
+    echo "Using ChromeDriver from ${DRIVER_URL}"; \
+    curl -sSfL -o /tmp/chromedriver-beta.zip "${DRIVER_URL}"; \
+    python3 -c "import sys, zipfile; zipfile.ZipFile(sys.argv[1]).extractall(sys.argv[2])" \
+      /tmp/chromedriver-beta.zip /tmp/chromedriver-beta; \
+    find /tmp/chromedriver-beta -type f -name chromedriver -exec mv {} "${SE_CHROMEDRIVER_BETA}" \; ; \
+    rm -rf /tmp/chromedriver-beta /tmp/chromedriver-beta.zip /tmp/cft-builds.json /tmp/cft-channels.json; \
+    chmod 755 "${SE_CHROMEDRIVER_BETA}"; \
+    chown ${SEL_UID}:${SEL_GID} "${SE_CHROMEDRIVER_BETA}"; \
+    DRIVER_VERSION="$("${SE_CHROMEDRIVER_BETA}" --version | awk '{print $2}')"; \
+    if [ "$(echo "${DRIVER_VERSION}" | cut -d. -f1)" != "${CHROME_BETA_MAJOR}" ]; then \
+      echo "FATAL: ChromeDriver ${DRIVER_VERSION} does not match Chrome Beta ${CHROME_BETA_VERSION}"; \
+      exit 1; \
+    fi; \
+    echo "${DRIVER_VERSION}" > /opt/selenium/browsers/chrome_beta/driver_version; \
+    chown ${SEL_UID}:${SEL_GID} /opt/selenium/browsers/chrome_beta/driver_version; \
+  fi
+
 #=========
 # Firefox
 #=========
@@ -182,5 +240,13 @@ ENV SE_NODE_BROWSER_VERSION_CHROME=jitsi-stable \
     SE_NODE_BROWSER_VERSION_CHROME_BETA=jitsi-beta \
     SE_NODE_BROWSER_VERSION_FIREFOX=jitsi-stable \
     SE_NODE_BROWSER_VERSION_FIREFOX_BETA=jitsi-beta
+
+# Point the chrome_beta stereotype at the beta-matched ChromeDriver installed above.
+# generate_config resolves the _CHROME_BETA suffix per browser directory (same
+# mechanism as SE_NODE_BROWSER_VERSION_CHROME_BETA) and json-merges this into that
+# stereotype only; the stable slots keep the base image's chromedriver on PATH.
+# Selenium reads se:webDriverExecutable off the stereotype in LocalNodeFactory and
+# passes it to DriverService.Builder.usingDriverExecutable().
+ENV SE_NODE_STEREOTYPE_EXTRA_CHROME_BETA='{"se:webDriverExecutable": "/opt/selenium/chromedriver-beta"}'
 
 USER ${SEL_UID}
