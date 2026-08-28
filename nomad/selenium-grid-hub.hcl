@@ -16,6 +16,8 @@ variable "service_tag_urlprefix" {
 
 variable "selenium_version" {
   type = string
+  # Fallback only. The real value comes from scripts/selenium-version.sh,
+  # exported as NOMAD_VAR_selenium_version by deploy-nomad-selenium-grid-hub.sh.
   default = "4.47"
 }
 

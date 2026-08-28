@@ -1,11 +1,14 @@
-# amd64: Chrome only (Firefox installed via apt below)
-FROM --platform=linux/amd64 selenium/node-chrome:nightly AS base-amd64
-
-# arm64: Chromium only (Firefox installed via apt below)
-FROM --platform=linux/arm64 selenium/node-chromium:nightly AS base-arm64
-
-# Select the correct base for the target platform
-FROM base-${TARGETARCH}
+# arm64 only. Google now ships Chrome for linux-arm64 (stable, beta and canary
+# debs are in the apt repo) and Chrome for Testing publishes linux-arm64
+# chromedrivers from Chrome 153 onwards, so the amd64 half of this image is no
+# longer needed -- both browser channels run natively on ARM nodes.
+#
+# SELENIUM_VERSION pins the Grid version for the node image; the same variable
+# feeds the hub image (see scripts/selenium-version.sh) so the
+# two cannot drift apart. Previously this tracked :nightly, which meant the node
+# Selenium version -- and the stable browser -- changed silently on every rebuild.
+ARG SELENIUM_VERSION=4.47
+FROM selenium/node-chromium:${SELENIUM_VERSION}
 
 USER root
 
@@ -18,8 +21,8 @@ COPY --chown="${SEL_UID}:${SEL_GID}" chrome-cleanup.sh /opt/bin/chrome-cleanup.s
 COPY --chown="${SEL_UID}:${SEL_GID}" chrome-cleanup.conf /etc/supervisor/conf.d/chrome-cleanup.conf
 RUN chmod +x /opt/bin/firefox-cleanup.sh /opt/bin/chrome-cleanup.sh
 
-COPY --chown="${SEL_UID}:${SEL_GID}" get_lang_package.sh install-firefox-apt.sh /opt/bin/
-RUN chmod +x /opt/bin/get_lang_package.sh /opt/bin/install-firefox-apt.sh
+COPY --chown="${SEL_UID}:${SEL_GID}" get_lang_package.sh install-firefox-apt.sh install-chrome-channel.sh /opt/bin/
+RUN chmod +x /opt/bin/get_lang_package.sh /opt/bin/install-firefox-apt.sh /opt/bin/install-chrome-channel.sh
 
 # Patch upstream generate_config:
 #   - short_version returns the full version (not major.minor[0])
@@ -32,102 +35,28 @@ RUN sed -i 's/echo "${__major}.${__minor:0:1}"/echo "${__long_version}"/' /opt/b
 # Bust cache for all dynamic-version installs below
 ARG CACHEBUST=1
 
-# Pin (apt-hold) the stable browser shipped by the base image so neither the
-# rest of this Dockerfile nor any runtime `apt upgrade` rolls it forward.
-# Each rebuild of this image picks up whatever the base nightly tag currently
-# ships, and that exact version is then frozen into the resulting image.
-RUN if [ "$(dpkg --print-architecture)" = "amd64" ]; then \
-      apt-mark hold google-chrome-stable; \
-    else \
-      apt-mark hold chromium; \
-    fi
-
-# Disable Chrome/Chromium in-browser auto-update via enterprise policy.
-# apt-mark hold already blocks the cron-driven apt path, but Chrome also
-# reads managed policies at launch — these flatly disable the updater.
-RUN if [ "$(dpkg --print-architecture)" = "amd64" ]; then \
-      mkdir -p /etc/opt/chrome/policies/managed \
-      && printf '{"AutoUpdateCheckPeriodMinutes": 0, "UpdateDefault": 0}\n' \
-           > /etc/opt/chrome/policies/managed/no-update.json; \
-    else \
-      mkdir -p /etc/chromium/policies/managed \
-      && printf '{"AutoUpdateCheckPeriodMinutes": 0, "UpdateDefault": 0}\n' \
-           > /etc/chromium/policies/managed/no-update.json; \
-    fi
+# Freeze the base image's Chromium so the CVE upgrade in the Firefox step below
+# cannot roll it forward. It is no longer the browser behind any stereotype --
+# the "chrome" browser dir it created is overwritten by the stable channel
+# install below -- but it stays installed as part of the base image.
+RUN apt-mark hold chromium || true
 
 #============================================
-# Chrome Beta (amd64 only) + browser metadata for upstream generate_config
-#============================================
-RUN if [ "$(dpkg --print-architecture)" = "amd64" ]; then \
-    apt-get update -qqy \
-    && apt-get -qqy --no-install-recommends install google-chrome-beta \
-    && apt-mark hold google-chrome-beta \
-    && rm -f /etc/cron.daily/google-chrome \
-    && rm -rf /var/lib/apt/lists/* /var/cache/apt/* \
-    && mkdir -p /opt/selenium/browsers/chrome_beta \
-    && echo "chrome" > /opt/selenium/browsers/chrome_beta/name \
-    && google-chrome-beta --version | awk '{print $3}' > /opt/selenium/browsers/chrome_beta/version \
-    && echo '{"goog:chromeOptions": {"binary": "${SE_BROWSER_BINARY_LOCATION:-/usr/bin/google-chrome-beta}"}}' > /opt/selenium/browsers/chrome_beta/binary_location \
-    && chown -R ${SEL_UID}:${SEL_GID} /opt/selenium/browsers/chrome_beta; \
-  fi
-
-#============================================
-# ChromeDriver for Chrome Beta (amd64 only)
+# Google Chrome stable + beta, each with a version-matched ChromeDriver
 #
-# The base image ships a single chromedriver, matched to its google-chrome-stable.
-# Chrome Beta is a major version ahead and chromedriver enforces a major-version
-# match, so the beta stereotype needs a driver of its own -- otherwise every
-# jitsi-beta session fails with "This version of ChromeDriver only supports
-# Chrome version N". Resolve it from Chrome for Testing against the exact beta
-# build frozen into the image just above.
+# Both channels come from Google's apt repo at build time, the way Chrome Beta
+# and Firefox already did, rather than from the base image. That decouples
+# browser versions from SELENIUM_VERSION: a rebuild picks up current Chrome
+# without moving the Grid version, and vice versa. The base image is not a
+# usable source for stable anyway -- docker-selenium had published no Chrome 152
+# images weeks after 152 went stable.
+#
+# Each channel gets its own driver because ChromeDriver enforces a major-version
+# match and the two channels are always a major apart. The build fails loudly if
+# a matching driver cannot be resolved.
 #============================================
-RUN if [ "$(dpkg --print-architecture)" = "amd64" ]; then \
-    set -eu; \
-    SE_CHROMEDRIVER_BETA=/opt/selenium/chromedriver-beta; \
-    CFT_BASE="https://googlechromelabs.github.io/chrome-for-testing"; \
-    CHROME_BETA_VERSION="$(cat /opt/selenium/browsers/chrome_beta/version)"; \
-    CHROME_BETA_BUILD="$(echo "${CHROME_BETA_VERSION}" | cut -d. -f1-3)"; \
-    CHROME_BETA_MAJOR="$(echo "${CHROME_BETA_VERSION}" | cut -d. -f1)"; \
-    echo "Chrome Beta ${CHROME_BETA_VERSION} (build ${CHROME_BETA_BUILD})"; \
-    curl -sSf -o /tmp/cft-builds.json "${CFT_BASE}/latest-patch-versions-per-build-with-downloads.json"; \
-    DRIVER_URL="$(jq -r --arg b "${CHROME_BETA_BUILD}" \
-      '.builds[$b].downloads.chromedriver[]? | select(.platform == "linux64") | .url' \
-      /tmp/cft-builds.json)"; \
-    if [ -z "${DRIVER_URL}" ]; then \
-      echo "No ChromeDriver for build ${CHROME_BETA_BUILD}, falling back to the latest ${CHROME_BETA_MAJOR}.x build"; \
-      DRIVER_URL="$(jq -r --arg m "${CHROME_BETA_MAJOR}" \
-        '[.builds | to_entries[] | select(.key | startswith($m + "."))] \
-         | sort_by(.value.version | split(".") | map(tonumber)) | last \
-         | .value.downloads.chromedriver[]? | select(.platform == "linux64") | .url' \
-        /tmp/cft-builds.json)"; \
-    fi; \
-    if [ -z "${DRIVER_URL}" ]; then \
-      echo "No ChromeDriver for major ${CHROME_BETA_MAJOR}, falling back to the Beta channel"; \
-      curl -sSf -o /tmp/cft-channels.json "${CFT_BASE}/last-known-good-versions-with-downloads.json"; \
-      DRIVER_URL="$(jq -r \
-        '.channels.Beta.downloads.chromedriver[]? | select(.platform == "linux64") | .url' \
-        /tmp/cft-channels.json)"; \
-    fi; \
-    if [ -z "${DRIVER_URL}" ]; then \
-      echo "FATAL: could not resolve a ChromeDriver for Chrome Beta ${CHROME_BETA_VERSION}"; \
-      exit 1; \
-    fi; \
-    echo "Using ChromeDriver from ${DRIVER_URL}"; \
-    curl -sSfL -o /tmp/chromedriver-beta.zip "${DRIVER_URL}"; \
-    python3 -c "import sys, zipfile; zipfile.ZipFile(sys.argv[1]).extractall(sys.argv[2])" \
-      /tmp/chromedriver-beta.zip /tmp/chromedriver-beta; \
-    find /tmp/chromedriver-beta -type f -name chromedriver -exec mv {} "${SE_CHROMEDRIVER_BETA}" \; ; \
-    rm -rf /tmp/chromedriver-beta /tmp/chromedriver-beta.zip /tmp/cft-builds.json /tmp/cft-channels.json; \
-    chmod 755 "${SE_CHROMEDRIVER_BETA}"; \
-    chown ${SEL_UID}:${SEL_GID} "${SE_CHROMEDRIVER_BETA}"; \
-    DRIVER_VERSION="$("${SE_CHROMEDRIVER_BETA}" --version | awk '{print $2}')"; \
-    if [ "$(echo "${DRIVER_VERSION}" | cut -d. -f1)" != "${CHROME_BETA_MAJOR}" ]; then \
-      echo "FATAL: ChromeDriver ${DRIVER_VERSION} does not match Chrome Beta ${CHROME_BETA_VERSION}"; \
-      exit 1; \
-    fi; \
-    echo "${DRIVER_VERSION}" > /opt/selenium/browsers/chrome_beta/driver_version; \
-    chown ${SEL_UID}:${SEL_GID} /opt/selenium/browsers/chrome_beta/driver_version; \
-  fi
+RUN /opt/bin/install-chrome-channel.sh stable
+RUN /opt/bin/install-chrome-channel.sh beta
 
 #=========
 # Firefox
@@ -236,17 +165,20 @@ RUN apt-get update -y && apt-get install -y iproute2 && rm -rf /var/lib/apt/list
 # browserVersion of "stable" as a wildcard that matches any stereotype (see SeleniumHQ
 # selenium#15481, Step 6), which would let "stable" requests land on beta-stereotype slots.
 ENV SE_NODE_BROWSER_VERSION_CHROME=jitsi-stable \
-    SE_NODE_BROWSER_VERSION_CHROMIUM=jitsi-stable \
     SE_NODE_BROWSER_VERSION_CHROME_BETA=jitsi-beta \
     SE_NODE_BROWSER_VERSION_FIREFOX=jitsi-stable \
     SE_NODE_BROWSER_VERSION_FIREFOX_BETA=jitsi-beta
 
-# Point the chrome_beta stereotype at the beta-matched ChromeDriver installed above.
-# generate_config resolves the _CHROME_BETA suffix per browser directory (same
-# mechanism as SE_NODE_BROWSER_VERSION_CHROME_BETA) and json-merges this into that
-# stereotype only; the stable slots keep the base image's chromedriver on PATH.
-# Selenium reads se:webDriverExecutable off the stereotype in LocalNodeFactory and
-# passes it to DriverService.Builder.usingDriverExecutable().
-ENV SE_NODE_STEREOTYPE_EXTRA_CHROME_BETA='{"se:webDriverExecutable": "/opt/selenium/chromedriver-beta"}'
+# Point each chrome stereotype at its own version-matched ChromeDriver. Neither
+# channel can use the base image's driver now: both are installed from Google's
+# apt repo, so neither is guaranteed to match what the base shipped.
+#
+# generate_config resolves the _CHROME / _CHROME_BETA suffixes per browser
+# directory (same mechanism as SE_NODE_BROWSER_VERSION_*) and json-merges these
+# into that stereotype only. Selenium reads se:webDriverExecutable off the
+# stereotype in LocalNodeFactory and passes it to
+# DriverService.Builder.usingDriverExecutable().
+ENV SE_NODE_STEREOTYPE_EXTRA_CHROME='{"se:webDriverExecutable": "/opt/selenium/chromedriver-stable"}' \
+    SE_NODE_STEREOTYPE_EXTRA_CHROME_BETA='{"se:webDriverExecutable": "/opt/selenium/chromedriver-beta"}'
 
 USER ${SEL_UID}
