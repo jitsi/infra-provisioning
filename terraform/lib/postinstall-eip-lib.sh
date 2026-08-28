@@ -79,7 +79,69 @@ function switch_to_primary_vnic() {
 
   echo "Delete secondary NIC routing to avoid routing issues in the future"
   sudo /usr/local/bin/secondary_vnic_all_configure_oracle.sh -d || status_code=1
+
+  # secondary_vnic_all_configure_oracle.sh -d only removes the live `ip addr`.
+  # If cloud-init's network-config stage saw the secondary VNIC in instance
+  # metadata before this script ran (a race against OCI's metadata-service
+  # lag - see check_secondary_ip), it will have already written a permanent
+  # static entry for it into netplan. systemd-networkd enforces that
+  # declaratively and re-applies the address, silently undoing the `ip addr
+  # del` above and leaving a stale on-link route to the private subnet that
+  # breaks inbound connections from other hosts on that subnet (e.g.
+  # Prometheus, Consul) for the rest of the instance's life. Purge the
+  # netplan entry too so nothing re-applies it, on this boot or the next.
+  # Best-effort: do not fail the whole postinstall over a cleanup step.
+  purge_secondary_vnic_netplan || echo "WARNING: failed to purge secondary VNIC from netplan; instance may retain a stale route to the private subnet"
+
   return $status_code
+}
+
+function purge_secondary_vnic_netplan() {
+  local netplan_file="/etc/netplan/50-cloud-init.yaml"
+  if [ ! -f "$netplan_file" ]; then
+    echo "No $netplan_file found, nothing to purge"
+    return 0
+  fi
+
+  local secondary_mac
+  secondary_mac=$(fetch_vnics_metadata | jq -r '.[1].macAddr // empty')
+  if [ -z "$secondary_mac" ]; then
+    echo "Could not determine secondary VNIC MAC from metadata, skipping netplan purge"
+    return 1
+  fi
+
+  sudo python3 - "$netplan_file" "$secondary_mac" <<'PYEOF'
+import sys
+import yaml
+
+path, mac = sys.argv[1], sys.argv[2].lower()
+
+with open(path) as f:
+    config = yaml.safe_load(f) or {}
+
+ethernets = config.get("network", {}).get("ethernets", {})
+removed = [
+    name for name, cfg in list(ethernets.items())
+    if (cfg or {}).get("match", {}).get("macaddress", "").lower() == mac
+]
+
+for name in removed:
+    del ethernets[name]
+
+if removed:
+    with open(path, "w") as f:
+        yaml.safe_dump(config, f, default_flow_style=False)
+    print(f"Removed netplan entries for {mac}: {removed}")
+else:
+    print(f"No netplan entry found for {mac}, nothing to remove")
+PYEOF
+  local py_status=$?
+  if [ $py_status -ne 0 ]; then
+    return 1
+  fi
+
+  echo "Re-applying netplan so the secondary VNIC config change takes effect"
+  sudo netplan apply || return 1
 }
 
 function assign_reserved_public_ip() {
