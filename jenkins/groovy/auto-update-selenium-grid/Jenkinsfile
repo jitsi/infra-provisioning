@@ -1,0 +1,90 @@
+// Fortnightly refresh of a Selenium grid.
+//
+// Rebuilding the node image is what picks up new browsers: Chrome stable and
+// beta are installed from Google's apt repo at build time, and each gets a
+// version-matched ChromeDriver resolved from Chrome for Testing. The Grid
+// version does not move -- that is pinned by SELENIUM_VERSION in clouds/all.sh
+// -- so this advances browsers only.
+//
+// The trigger fires every Wednesday 04:00 UTC and this keeps every other one.
+// Off-cadence weeks skip their stages and finish green: failing them would send
+// a failure notification every second Wednesday forever.
+
+def onCadence(anchor, force) {
+    if (force) {
+        echo "FORCE_RUN set, running regardless of cadence"
+        return true
+    }
+    // Whole days between the anchor and today, both at UTC midnight. Counting
+    // days rather than using ISO week parity keeps the cadence correct across
+    // the week-53 year boundary.
+    def days = sh(
+        returnStdout: true,
+        script: """#!/bin/bash
+            set -eu
+            anchor_epoch=\$(date -u -d "${anchor}" +%s)
+            today_epoch=\$(date -u -d "\$(date -u +%Y-%m-%d)" +%s)
+            echo \$(( (today_epoch - anchor_epoch) / 86400 ))
+        """
+    ).trim() as Integer
+
+    if (days < 0) {
+        echo "Cadence starts ${anchor}, ${-days} day(s) from now -- skipping"
+        return false
+    }
+    if (days % 14 != 0) {
+        echo "${days} day(s) since ${anchor} is not a multiple of 14 -- off-cadence week, skipping"
+        return false
+    }
+    echo "${days} day(s) since ${anchor} -- on cadence"
+    return true
+}
+
+pipeline {
+    agent any
+    options {
+        ansiColor('xterm')
+        timestamps()
+        buildDiscarder(logRotator(numToKeepStr: '30', artifactNumToKeepStr: '30'))
+    }
+    stages {
+        stage('Check cadence') {
+            steps {
+                script {
+                    env.ON_CADENCE = onCadence(params.SCHEDULE_ANCHOR, params.FORCE_RUN).toString()
+                    currentBuild.description = (env.ON_CADENCE == 'true')
+                        ? "updating ${params.GRID_NAME}"
+                        : 'off-cadence week, skipped'
+                }
+            }
+        }
+        stage('Rebuild node image') {
+            when { expression { env.ON_CADENCE == 'true' } }
+            steps {
+                script {
+                    // TAG is left unset so build.sh tags with the git short hash and
+                    // also moves :latest, which is what the node job deploys.
+                    build job: 'build-docker-image-selenium-grid-node', parameters: [
+                        [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: params.VIDEO_INFRA_BRANCH]
+                    ]
+                }
+            }
+        }
+        stage('Redeploy grid') {
+            when { expression { env.ON_CADENCE == 'true' } }
+            steps {
+                script {
+                    // UPGRADE_GRID stays false: with it set, terraform re-applies the
+                    // instance pools and resets their sizes to the script defaults.
+                    build job: 'provision-selenium-grid', parameters: [
+                        [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: params.VIDEO_INFRA_BRANCH],
+                        [$class: 'StringParameterValue', name: 'GRID_NAME', value: params.GRID_NAME],
+                        [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: params.ENVIRONMENT],
+                        [$class: 'StringParameterValue', name: 'ORACLE_REGION', value: params.ORACLE_REGION],
+                        [$class: 'BooleanParameterValue', name: 'UPGRADE_GRID', value: false]
+                    ]
+                }
+            }
+        }
+    }
+}
