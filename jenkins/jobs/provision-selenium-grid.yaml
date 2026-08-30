@@ -22,6 +22,10 @@
           description: "Set to 'true' to force nomad style grid"
           trim: true
       - string:
+          name: SELENIUM_GRID_HUB_VERSION
+          description: "Selenium Grid Hub version (e.g., '4.41'). If empty, latest is resolved from Docker Hub."
+          trim: true
+      - string:
           name: LB_WHITELIST
           description: "default is [\"10.0.0.0/8\"]"
           trim: true

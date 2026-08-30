@@ -42,6 +42,23 @@ NOMAD_DC="$ENVIRONMENT-$ORACLE_REGION"
 JOB_NAME="grid-hub-$GRID"
 export NOMAD_VAR_grid="$GRID"
 
+# Resolve selenium grid version: env var > Docker Hub lookup > HCL default
+if [ -n "$SELENIUM_GRID_HUB_VERSION" ]; then
+    export NOMAD_VAR_selenium_version="$SELENIUM_GRID_HUB_VERSION"
+    echo "Using provided selenium version: $SELENIUM_GRID_HUB_VERSION"
+else
+    echo "Looking up latest selenium/hub version from Docker Hub..."
+    SELENIUM_HUB_VERSION=$(curl -s --connect-timeout 10 --max-time 30 \
+        "https://hub.docker.com/v2/repositories/selenium/hub/tags/?page_size=100&ordering=last_updated" \
+        | jq -r '[.results[].name | select(test("^[0-9]+\\.[0-9]+$"))] | sort_by(split(".") | map(tonumber)) | last')
+    if [ -n "$SELENIUM_HUB_VERSION" ] && [ "$SELENIUM_HUB_VERSION" != "null" ]; then
+        export NOMAD_VAR_selenium_version="$SELENIUM_HUB_VERSION"
+        echo "Resolved latest selenium version from Docker Hub: $SELENIUM_HUB_VERSION"
+    else
+        echo "WARNING: Failed to resolve selenium version from Docker Hub, falling back to HCL default"
+    fi
+fi
+
 sed -e "s/\[JOB_NAME\]/$JOB_NAME/" "$NOMAD_JOB_PATH/selenium-grid-hub.hcl" | nomad job run -var="dc=$NOMAD_DC" -
 
 if [ $? -ne 0 ]; then
