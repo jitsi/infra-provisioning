@@ -36,6 +36,14 @@
           description: "Memory to use"
           trim: true
       - string:
+          name: ROLE
+          description: "Role for pool, defaults to nomad-pool"
+          trim: true
+      - string:
+          name: POOL_TYPE
+          description: "Pool type, defaults to general"
+          trim: true
+      - string:
           name: INFRA_CONFIGURATION_REPO
           default: git@github.com:jitsi/infra-configuration.git
           description: "Repo for configuration code (ansible etc), defaults to 'git@github.com:jitsi/infra-configuration.git'."
