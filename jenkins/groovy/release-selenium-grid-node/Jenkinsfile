@@ -1,0 +1,118 @@
+def utils
+def imageTag
+
+pipeline {
+    agent any
+    options {
+        ansiColor('xterm')
+        timestamps()
+        buildDiscarder(logRotator(numToKeepStr: '10', artifactNumToKeepStr: '10'))
+    }
+    stages {
+        stage('Prepare/Checkout') {
+            steps {
+                script {
+                    def rootDir = pwd()
+                    utils = load "${rootDir}/jenkins/groovy/Utils.groovy"
+                    utils.SetupRepos(env.VIDEO_INFRA_BRANCH)
+                    utils.SetupOCI()
+                }
+            }
+        }
+        stage('Resolve Tag') {
+            steps {
+                script {
+                    if (env.TAG?.trim()) {
+                        imageTag = env.TAG.trim()
+                    } else {
+                        dir('infra-provisioning') {
+                            imageTag = sh(
+                                returnStdout: true,
+                                script: 'git rev-parse --short HEAD'
+                            ).trim()
+                        }
+                    }
+                    echo "Using image tag: ${imageTag}"
+                }
+            }
+        }
+        stage('Build Docker Image') {
+            when {
+                expression { env.SKIP_BUILD != 'true' }
+            }
+            steps {
+                script {
+                    build job: 'build-docker-image-selenium-grid-node', parameters: [
+                        [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH],
+                        [$class: 'StringParameterValue', name: 'TAG', value: imageTag]
+                    ]
+                }
+            }
+        }
+        stage('Deploy to Test Grid') {
+            steps {
+                script {
+                    echo "Deploying to test grid: ${env.TEST_GRID_NAME} with image tag: ${imageTag}"
+                    dir('infra-provisioning') {
+                        withCredentials([
+                            string(credentialsId: 'jenkins-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
+                            string(credentialsId: 'jenkins-aws-id', variable: 'AWS_ACCESS_KEY_ID')
+                        ]) {
+                            sh """#!/bin/bash
+                                export SELENIUM_GRID_IMAGE_VERSION="${imageTag}"
+                                GRID=${env.TEST_GRID_NAME} scripts/deploy-nomad-selenium-grid-hub.sh
+                                GRID=${env.TEST_GRID_NAME} scripts/deploy-nomad-selenium-grid-node.sh
+                                RET=\$?
+                                if [[ \$RET -eq 2 ]]; then
+                                    echo "Complete but failed to place all allocations (expected)"
+                                    exit 0
+                                else
+                                    exit \$RET
+                                fi
+                            """
+                        }
+                    }
+                }
+            }
+        }
+        stage('Smoke Test') {
+            steps {
+                script {
+                    echo "Running browser smoke test against test grid: ${env.TEST_GRID_NAME}"
+                    dir('infra-provisioning') {
+                        sh """#!/bin/bash
+                            export GRID="${env.TEST_GRID_NAME}"
+                            scripts/test-selenium-grid-browsers.sh
+                        """
+                    }
+                }
+            }
+        }
+        stage('Deploy to Production Grid') {
+            steps {
+                script {
+                    echo "Deploying to production grid: ${env.PROD_GRID_NAME} with image tag: ${imageTag}"
+                    dir('infra-provisioning') {
+                        withCredentials([
+                            string(credentialsId: 'jenkins-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
+                            string(credentialsId: 'jenkins-aws-id', variable: 'AWS_ACCESS_KEY_ID')
+                        ]) {
+                            sh """#!/bin/bash
+                                export SELENIUM_GRID_IMAGE_VERSION="${imageTag}"
+                                GRID=${env.PROD_GRID_NAME} scripts/deploy-nomad-selenium-grid-hub.sh
+                                GRID=${env.PROD_GRID_NAME} scripts/deploy-nomad-selenium-grid-node.sh
+                                RET=\$?
+                                if [[ \$RET -eq 2 ]]; then
+                                    echo "Complete but failed to place all allocations (expected)"
+                                    exit 0
+                                else
+                                    exit \$RET
+                                fi
+                            """
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
