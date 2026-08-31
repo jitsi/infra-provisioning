@@ -10,10 +10,24 @@
 // Off-cadence weeks skip their stages and finish green: failing them would send
 // a failure notification every second Wednesday forever.
 //
-// The image is built and deployed under an immutable tag (<git-sha>-<date>).
-// Deploying ":latest" would not roll anything: an unchanged nomad job spec
-// produces no new allocations, so running nodes keep the cached image and the
-// rebuild would never reach the grid.
+// The image is built and deployed under an immutable tag
+// (<git-sha>-<date>-b<build>). Deploying ":latest" would not roll anything: an
+// unchanged nomad job spec produces no new allocations, so running nodes keep
+// the cached image and the rebuild would never reach the grid.
+//
+// ASSUMES A NOMAD-BASED GRID. The image roll works through the nomad node job
+// (force_pull plus a changed image tag). On a plain OCI instance-pool grid,
+// provision-selenium-grid runs create-selenium-grid-oracle.sh, which sets
+// RUN_TF=false when UPGRADE_GRID != true, so no instance is recycled and the
+// running nodes keep the image they booted with -- this job would then finish
+// green while updating nothing. Whether a grid is nomad-based is decided by the
+// selenium_grid_nomad_enabled ansible var, which lives outside this repo, so it
+// cannot be asserted here.
+//
+// Note: passing SELENIUM_GRID_NOMAD_ENABLED=true to provision-selenium-grid is
+// NOT the fix. That flag forces the nomad path rather than verifying it, so on a
+// genuinely instance-pool grid it would deploy nomad jobs that do not belong
+// there. Point this job only at grids already known to be nomad-based.
 
 // SCHEDULE_ANCHOR is operator-editable free text that gets interpolated into a
 // shell command, so validate it before use: a value `date` cannot parse would
@@ -84,9 +98,12 @@ pipeline {
                         // Date is part of the tag on purpose: the git sha alone does not
                         // change between fortnights when no code landed, so it would not
                         // force a new nomad deployment even though the browsers moved.
+                        // BUILD_NUMBER keeps the tag unique within a day, so a FORCE_RUN,
+                        // a retry or a same-day code push cannot overwrite an image that
+                        // is already deployed somewhere.
                         def sha = sh(returnStdout: true, script: 'git rev-parse --short HEAD').trim()
                         def stamp = sh(returnStdout: true, script: 'date -u +%Y%m%d').trim()
-                        env.IMAGE_TAG = "${sha}-${stamp}"
+                        env.IMAGE_TAG = "${sha}-${stamp}-b${env.BUILD_NUMBER}"
                         currentBuild.description = "updating ${params.GRID_NAME} @ ${env.IMAGE_TAG}"
                     } else {
                         currentBuild.description = 'off-cadence week, skipped'

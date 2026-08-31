@@ -18,7 +18,7 @@
       - string:
           name: GRID_NAME
           default: validate
-          description: "Grid to rebuild and redeploy, defaults to 'validate' (the nightly torture grid)."
+          description: "Grid to rebuild and redeploy, defaults to 'validate' (the nightly torture grid). Must be a nomad-based grid: on an OCI instance-pool grid the redeploy recycles no instance, so the rebuilt image never lands and the job finishes green having updated nothing."
           trim: true
       - string:
           name: ENVIRONMENT
