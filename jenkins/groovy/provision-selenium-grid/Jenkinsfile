@@ -76,6 +76,12 @@ pipeline {
                             string(credentialsId: 'jenkins-aws-id', variable: 'AWS_ACCESS_KEY_ID')
                         ]) {
                             sh '''#!/bin/bash
+                                # deploy-nomad-selenium-grid-node.sh reads the node image tag from
+                                # SELENIUM_GRID_IMAGE_VERSION. Only override it when IMAGE_VERSION was
+                                # given, so the unset case keeps whatever the environment config sets.
+                                if [ -n "$IMAGE_VERSION" ]; then
+                                    export SELENIUM_GRID_IMAGE_VERSION="$IMAGE_VERSION"
+                                fi
                                 GRID=$GRID_NAME scripts/deploy-nomad-selenium-grid-hub.sh
                                 GRID=$GRID_NAME scripts/deploy-nomad-selenium-grid-node.sh
                                 RET=$?

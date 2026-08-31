@@ -68,7 +68,15 @@ printf '{"AutoUpdateCheckPeriodMinutes": 0, "UpdateDefault": 0}\n' \
 
 rm -rf /var/lib/apt/lists/* /var/cache/apt/*
 
-BROWSER_VERSION="$("$BIN" --version | grep -oE '[0-9]+(\.[0-9]+)+' | head -1)"
+# "Google Chrome 153.0.8010.12 beta" / "Google Chrome 152.0.7977.64" -> field 3.
+# Anchored on the known field rather than "first dotted number anywhere": both
+# BROWSER_MAJOR and the driver-major assertion derive from this value, so a bad
+# parse would move both sides together and the assertion could not catch it.
+BROWSER_VERSION="$("$BIN" --version | awk '{print $3}')"
+if ! echo "$BROWSER_VERSION" | grep -qE '^[0-9]+(\.[0-9]+){3}$'; then
+  echo "FATAL: could not parse a version from: $("$BIN" --version)"
+  exit 1
+fi
 BROWSER_BUILD="$(echo "$BROWSER_VERSION" | cut -d. -f1-3)"
 BROWSER_MAJOR="$(echo "$BROWSER_VERSION" | cut -d. -f1)"
 echo "Installed ${PKG} ${BROWSER_VERSION} (build ${BROWSER_BUILD}, ${DPKG_ARCH})"
