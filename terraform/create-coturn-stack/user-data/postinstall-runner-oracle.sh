@@ -1,6 +1,7 @@
 # override commands for dump, terminate, provisioning and EIP
 export MAIN_COMMAND="eip_assign"
 export PUBLIC_IP_ROLE="coturn"
+export PROVISION_COMMAND="provisioning"
 
 . /usr/local/bin/oracle_cache.sh
 
@@ -9,5 +10,6 @@ export HOST_ROLE="coturn"
 export ANSIBLE_VARS="hcv_environment=$ENVIRONMENT cloud_name=$CLOUD_NAME cloud_provider=oracle oracle_region=$ORACLE_REGION region=$ORACLE_REGION environment_domain_name=$DOMAIN prosody_domain_name=$DOMAIN release_branch=$GIT_BRANCH"
 
 function provisioning() {
+  configure_primary_source_routing
   default_provision
 }
