@@ -398,6 +398,10 @@ resource "oci_load_balancer_rule_set" "redirect_rule_set" {
     items {
         #Required
         action = "REDIRECT"
+        allowed_methods = []
+        are_invalid_characters_allowed = false
+        http_large_header_size_in_kb = 0
+        status_code = 0
 
         conditions {
             #Required
