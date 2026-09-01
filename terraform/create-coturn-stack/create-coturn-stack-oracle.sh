@@ -119,6 +119,16 @@ fi
 [ -z "$SCALE_IN_RULE_NAME" ] && SCALE_IN_RULE_NAME="${ENVIRONMENT}-${ORACLE_REGION}-scalingLowLoad"
 [ -z "$SCALE_OUT_RULE_NAME" ] && SCALE_OUT_RULE_NAME="${ENVIRONMENT}-${ORACLE_REGION}-scalingHighLoad"
 
+# look up instance pool. If it exists, find its current size and set DESIRED_CAPACITY appropriately
+INSTANCE_POOL_DETAILS="$(oci compute-management instance-pool list --region "$ORACLE_REGION" -c "$COMPARTMENT_OCID" --all --display-name "$INSTANCE_POOL_NAME" | jq '.data[0]')"
+
+if [ -z "$INSTANCE_POOL_DETAILS" ] || [ "$INSTANCE_POOL_DETAILS" == "null" ]; then
+  echo "No instance pool found with name $INSTANCE_POOL_NAME. Using default size $DESIRED_CAPACITY..."
+else
+  export DESIRED_CAPACITY=$(echo "$INSTANCE_POOL_DETAILS" | jq -r '.size')
+  echo "Found existing instance pool with name $INSTANCE_POOL_NAME.  Using existing size $DESIRED_CAPACITY"
+fi
+
 [ -z "$S3_PROFILE" ] && S3_PROFILE="oracle"
 [ -z "$S3_STATE_BUCKET" ] && S3_STATE_BUCKET="tf-state-$ENVIRONMENT"
 [ -z "$S3_ENDPOINT" ] && S3_ENDPOINT="https://$ORACLE_S3_NAMESPACE.compat.objectstorage.$ORACLE_REGION.oraclecloud.com"
