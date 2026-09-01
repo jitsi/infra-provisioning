@@ -322,12 +322,12 @@ pipeline {
                     def out_shard_pool_size_1_4_as_int = shardPropertiesOracle.OUT_SHARD_POOL_SIZE_1_4 as int
                     def jvb_autoscaler_enabled=shardPropertiesOracle.OUT_JVB_AUTOSCALER_ENABLED.toString()
 
-                    for(i = 0; i < stack_ids.size(); i++) {
+                    for (def i = 0; i < stack_ids.size(); i++) {
                         def curr = i
                         scale_to_size_per_shard[curr] = 0
                     }
 
-                    for(i = 0; i < stack_ids.size(); i++) {
+                    for (def i = 0; i < stack_ids.size(); i++) {
                         def curr = i
                         // Shards in new_shards.properties are in reverse order than the stacks
                         def shard_index = stack_ids.size() - curr - 1;

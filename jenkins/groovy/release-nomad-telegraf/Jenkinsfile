@@ -77,7 +77,7 @@ pipeline {
                     def region_list = utils.SplitNomadRegions(env.ENVIRONMENT,env.REGIONS);
                     echo "region list ${region_list}";
                     def branches = [:]
-                    for(i = 0; i < region_list.size(); i++) {
+                    for (def i = 0; i < region_list.size(); i++) {
                         def oracle_region = region_list[i]
                         echo "pipeline branch ${i} for ${oracle_region}";
                         branches["Build telegraf-${oracle_region}"] = {

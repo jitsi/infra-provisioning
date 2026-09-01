@@ -1,6 +1,6 @@
 
 def listPools() {
-    pools=[:]
+    def pools = []
     def poolsStr = sh(
         returnStdout: true,
         script: """
@@ -171,7 +171,7 @@ pipeline {
                             def shards = listShards();
                             if ((pools.size() > 0) || (shards.size()>0)) {
                                 if (pools.size() > 0) {
-                                    for(i = 0; i < pools.size(); i++) {
+                                    for (def i = 0; i < pools.size(); i++) {
                                         def curr = i
 
                                         branches["Pool ${pools[curr]}"] = {
@@ -183,7 +183,7 @@ pipeline {
                                     }
                                 }
                                 if (shards.size() > 0) {
-                                    for(i = 0; i < shards.size(); i++) {
+                                    for (def i = 0; i < shards.size(); i++) {
                                         def scurr = i
                                         branches["Shard ${shards[scurr]}"] = {
                                             deleteShard(

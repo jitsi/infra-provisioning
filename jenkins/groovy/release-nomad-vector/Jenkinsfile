@@ -80,7 +80,7 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                     def cloud_list = utils.SplitClouds(env.ENVIRONMENT,env.CLOUDS);
                     echo "cloud list ${cloud_list}";
                     def branches = [:]
-                    for(i = 0; i < cloud_list.size(); i++) {
+                    for (def i = 0; i < cloud_list.size(); i++) {
                         def curr = i
                         def oracle_region = utils.OracleRegionFromCloud(cloud_list[curr])
                         echo "pipeline branch ${curr} for ${cloud_list[curr]} ${oracle_region}";
