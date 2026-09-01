@@ -16,9 +16,12 @@ def coturnClouds(clouds) {
     if (!clouds) {
         coturn_clouds = sh(
             returnStdout: true,
-            script: '''#!/bin/bash
+            script: """#!/bin/bash
                 source clouds/all.sh
-                echo $COTURN_CLOUDS'''
+                # allow the environment to override COTURN_CLOUDS (e.g. restrict to the
+                # peer clouds matching its NOMAD_REGIONS) instead of the global default
+                [ -e "sites/${env.ENVIRONMENT}/stack-env.sh" ] && source "sites/${env.ENVIRONMENT}/stack-env.sh"
+                echo \$COTURN_CLOUDS"""
         ).trim().split(' ')
     } else {
         coturn_clouds = clouds.split(' ')
