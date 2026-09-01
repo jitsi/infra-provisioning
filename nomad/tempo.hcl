@@ -6,6 +6,13 @@ variable "tempo_hostname" {
   type = string
 }
 
+# Hostname for the OTLP ingest route. Separate from tempo_hostname because fabio
+# routes a hostname to a single service port, and Tempo's OTLP receiver (4318) is
+# a different port from its query API (3200, used by tempo_hostname).
+variable "tempo_otlp_hostname" {
+  type = string
+}
+
 variable "oracle_s3_namespace" {
   type = string
 }
@@ -92,6 +99,31 @@ job "[JOB_NAME]" {
       port = "http"
       tags = [
         "int-urlprefix-${var.tempo_hostname}/",
+        "ip-${attr.unique.network.ip-address}"
+      ]
+      check {
+        name     = "Tempo healthcheck"
+        type     = "http"
+        port     = "http"
+        path     = "/ready"
+        interval = "20s"
+        timeout  = "5s"
+        check_restart {
+          limit           = 3
+          grace           = "60s"
+          ignore_warnings = false
+        }
+      }
+    }
+
+    # OTLP ingest route. alloy pushes traces here (OTLP HTTP on 4318). This is a
+    # separate fabio hostname from the query API above because a hostname maps to
+    # a single service port -- pushing OTLP to the query port (3200) 404s.
+    service {
+      name = "tempo-otlp"
+      port = "otlp-http"
+      tags = [
+        "int-urlprefix-${var.tempo_otlp_hostname}/",
         "ip-${attr.unique.network.ip-address}"
       ]
       check {

@@ -25,10 +25,12 @@ if [ -z "$NOMAD_ADDR" ]; then
 fi
 
 [ -z "$TEMPO_HOSTNAME" ] && TEMPO_HOSTNAME="$ENVIRONMENT-$ORACLE_REGION-tempo.$TOP_LEVEL_DNS_ZONE_NAME"
+[ -z "$TEMPO_OTLP_HOSTNAME" ] && TEMPO_OTLP_HOSTNAME="$ENVIRONMENT-$ORACLE_REGION-tempo-otlp.$TOP_LEVEL_DNS_ZONE_NAME"
 
 NOMAD_JOB_PATH="$LOCAL_PATH/../nomad"
 NOMAD_DC="$ENVIRONMENT-$ORACLE_REGION"
 export NOMAD_VAR_tempo_hostname="${TEMPO_HOSTNAME}"
+export NOMAD_VAR_tempo_otlp_hostname="${TEMPO_OTLP_HOSTNAME}"
 export NOMAD_VAR_oracle_s3_namespace="$ORACLE_S3_NAMESPACE"
 JOB_NAME="tempo-$ORACLE_REGION"
 
@@ -42,6 +44,15 @@ fi
 export RESOURCE_NAME_ROOT="${ENVIRONMENT}-${ORACLE_REGION}-tempo"
 
 export CNAME_VALUE="$RESOURCE_NAME_ROOT"
+export STACK_NAME="${RESOURCE_NAME_ROOT}-cname"
+export UNIQUE_ID="${RESOURCE_NAME_ROOT}"
+export CNAME_TARGET="${ENVIRONMENT}-${ORACLE_REGION}-nomad-pool-general-internal.${DEFAULT_DNS_ZONE_NAME}"
+export CNAME_VALUE="${RESOURCE_NAME_ROOT}"
+$LOCAL_PATH/create-oracle-cname-stack.sh
+
+# Second CNAME for the OTLP ingest route (alloy pushes traces here; port 4318,
+# separate from the query API on the -tempo hostname/port 3200).
+export RESOURCE_NAME_ROOT="${ENVIRONMENT}-${ORACLE_REGION}-tempo-otlp"
 export STACK_NAME="${RESOURCE_NAME_ROOT}-cname"
 export UNIQUE_ID="${RESOURCE_NAME_ROOT}"
 export CNAME_TARGET="${ENVIRONMENT}-${ORACLE_REGION}-nomad-pool-general-internal.${DEFAULT_DNS_ZONE_NAME}"
