@@ -272,6 +272,21 @@ ice4j {
 }
 
 include "xmpp.conf"
+
+[[ if eq (or (env "CONFIG_tracing_enabled") "false") "true" -]]
+# Distributed tracing (docker-jitsi-meet#2303). Rendered here rather than driven
+# by the image's ENABLE_TRACING template, because this pack bind-mounts its own
+# jvb.conf over /defaults/jvb.conf. Spans go over OTLP to the regional alloy
+# (-otel), which forwards to Tempo. Default protocol is http (only the OTLP HTTP
+# receiver is fabio-routed on alloy); the jicoco HTTP exporter needs the full
+# /v1/traces URL, grpc takes host:port with no path.
+[[- $tracingProtocol := or (env "CONFIG_tracing_protocol") "http" ]]
+tracing {
+  enabled = true
+  otlp-protocol = "[[ $tracingProtocol ]]"
+  otlp-endpoint = "[[ template "tracing-otlp-base" . ]][[ if eq $tracingProtocol "http" ]]/v1/traces[[ end ]]"
+}
+[[ end -]]
 [[ end -]]
 
 [[ define "xmpp-config" ]]
