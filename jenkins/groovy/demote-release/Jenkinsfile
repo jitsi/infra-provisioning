@@ -1,5 +1,5 @@
 def listJVBPools(release_number) {
-    pools=[:]
+    def pools = []
     def poolsStr = sh(
         returnStdout: true,
         script: """
