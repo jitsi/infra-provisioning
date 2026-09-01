@@ -67,7 +67,7 @@ pipeline {
                     dir("infra-provisioning") {
                         def modes = poolModes();
                         if (modes.size() > 0) {
-                            for(i = 0; i < modes.size(); i++) {
+                            for (def i = 0; i < modes.size(); i++) {
                                 def curr = i
 
                                 branches["Pool ${modes[curr]}"] = {

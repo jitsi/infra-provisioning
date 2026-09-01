@@ -244,11 +244,11 @@ pipeline {
                         def cloud_list = utils.SplitClouds(env.ENVIRONMENT,env.CLOUDS);
                         echo "cloud list ${cloud_list}";
                         def branches = [:]
-                        for(i = 0; i < cloud_list.size(); i++) {
+                        for (def i = 0; i < cloud_list.size(); i++) {
                           def curr = i
                           if (skipShardJVBs == 'false') {
                             def shards = cloud_shards(env.ENVIRONMENT, cloud_list[curr])
-                            for(s = 0; s < shards.size(); s++) {
+                            for (def s = 0; s < shards.size(); s++) {
                                 def scurr=s
                                 if(shards[scurr]) {
                                     echo "pipeline branch ${curr} for shard ${shards[scurr]} cloud ${cloud_list[curr]}";
@@ -271,7 +271,7 @@ pipeline {
                             }
                           }
                             def pools = cloud_pools(env.ENVIRONMENT, cloud_list[curr])
-                            for(p = 0; p < pools.size(); p++) {
+                            for (def p = 0; p < pools.size(); p++) {
                                 def pcurr=p
                                 if(pools[pcurr]) {
                                     echo "pipeline branch ${pcurr} for pool ${pools[pcurr]} cloud ${cloud_list[curr]}";
