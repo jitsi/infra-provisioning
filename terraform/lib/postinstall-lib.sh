@@ -339,6 +339,42 @@ function restore_oci_connectivity() {
   switch_to_secondary_vnic
 }
 
+function configure_primary_source_routing() {
+  local vnics=$(curl --connect-timeout 10 -s http://169.254.169.254/opc/v1/vnics/)
+  [ "$(echo "$vnics" | jq -r length 2>/dev/null)" -ge 2 ] 2>/dev/null || return 0
+  local mac=$(echo "$vnics" | jq -r '.[0].macAddr')
+  local subnet=$(echo "$vnics" | jq -r '.[0].subnetCidrBlock')
+  local gw=$(echo "$vnics" | jq -r '.[0].virtualRouterIp')
+  local secondaries=$(echo "$vnics" | jq -r '.[1:][].subnetCidrBlock' | sort -u)
+  local dev=$(ip -o link | grep -i "$mac" | head -1 | awk -F': ' '{print $2}' | cut -d'@' -f1)
+  local np="/etc/netplan/99-jitsi-primary-source-routing.yaml"
+  local s
+  if [ -z "$dev" ] || [ -z "$secondaries" ] || [ "$subnet" == "null" ] || [ "$gw" == "null" ]; then
+    echo "configure_primary_source_routing: cannot derive primary VNIC details, skipping"
+    return 0
+  fi
+  if ip rule show | grep "lookup 100" | grep -qv "from $subnet"; then
+    echo "configure_primary_source_routing: routing table 100 already in use, skipping"
+    return 0
+  fi
+  echo "configure_primary_source_routing: from $subnet to [$(echo $secondaries)] via $gw dev $dev"
+  (umask 077; {
+    echo -e "network:\n  version: 2\n  ethernets:\n    $dev:\n      routing-policy:"
+    for s in $secondaries; do echo "      - {from: $subnet, to: $s, table: 100, priority: 100}"; done
+    echo -e "      routes:\n      - {to: default, via: $gw, table: 100}"
+  } > $np)
+  if ! netplan generate; then
+    echo "configure_primary_source_routing: netplan rejected $np, removing it"
+    rm -f $np && netplan generate
+    return 0
+  fi
+  ip route replace default via $gw dev $dev table 100
+  for s in $secondaries; do
+    ip rule show | grep -q "from $subnet to $s lookup 100" || ip rule add from $subnet to $s table 100 priority 100
+  done
+  return 0
+}
+
 function default_terminate() {
   # single attempt; the footer retries in a loop with connectivity self-healing
   echo "Terminating the instance; we enable debug to have more details in case of oci cli failures"
