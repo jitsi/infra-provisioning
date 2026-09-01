@@ -295,6 +295,12 @@ otelcol.exporter.otlphttp "external_tempo" {
   client {
     endpoint = "[[ index .Data.data "${var.environment_type}-01-oci-traces-url" | regexReplaceAll "/v1/traces$" "" ]]"
     auth     = otelcol.auth.basic.external_tempo.handler
+    // The OCI o11y Tempo gateway is multi-tenant and rejects pushes without a
+    // tenant header ("no org id" 503). Same convention as prometheus.hcl:
+    // X-Scope-OrgID == the OCI username.
+    headers = {
+      "X-Scope-OrgID" = "[[ index .Data.data "meetings-oci-hosts-${var.environment_type}-01-oci-traces-username" ]]",
+    }
   }
 }
 
