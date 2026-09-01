@@ -1,4 +1,3 @@
-
 BOOTSTRAP_DIRECTORY="/tmp/bootstrap"
 LOCAL_REPO_DIRECTORY="/opt/jitsi/bootstrap"
 function check_private_ip() {
@@ -27,17 +26,12 @@ function retry() {
   [ -z "$RETRIES" ] && RETRIES=10
   until [ $n -ge $RETRIES ]
   do
-    # call the function given as parameter
     $1
-    # check the result of the function
     if [ $? -eq 0 ]; then
-      # success
       > $tmp_msg_file
       break
     else
-      # failure, therefore retry
       n=$[$n+1]
-      # only sleep if we're not going to be done with the loop
       if [ $n -lt $RETRIES ]; then
         sleep 10
       fi
@@ -71,7 +65,6 @@ function add_ip_tags() {
       return 2
     fi
 }
-
 function next_device() { 
   DEVICE_PREFIX="/dev/oracleoci/oraclevd"
   ALPHA=( {a..z} ) 
@@ -83,7 +76,6 @@ function next_device() {
     fi
   done
 }
-
 function init_volume() {
   DEVICE=$1
   LABEL=$2
@@ -204,7 +196,6 @@ function set_hostname() {
   MY_HOSTNAME=$2
   MY_IP=`curl -s curl http://169.254.169.254/opc/v1/vnics/ | jq .[0].privateIp -r`
   if [ -z "$MY_HOSTNAME" ]; then
-    #clear domain if null
     [ "$DOMAIN" == "null" ] && DOMAIN=
     [ -z "$DOMAIN" ] && DOMAIN="oracle.jitsi.net"
     MY_COMPONENT_NUMBER="$(echo $MY_IP | awk -F. '{print $2"-"$3"-"$4}')"
@@ -296,10 +287,6 @@ function default_provision() {
 }
 VNIC_METADATA_LOG="/var/log/vnic-metadata-debug.log"
 function fetch_vnics_metadata() {
-  # fetch VNIC metadata, capturing the verbose exchange (request/response
-  # headers incl. X-Request-Id) to $VNIC_METADATA_LOG and stderr so it lands
-  # in cloud-init-output.log for correlation with OCI support; only the body
-  # goes to stdout for callers to parse
   local verbose_log=$(mktemp) body=$(mktemp)
   curl -sv --connect-timeout 10 http://169.254.169.254/opc/v1/vnics/ -o "$body" 2> "$verbose_log"
   {
@@ -311,7 +298,6 @@ function fetch_vnics_metadata() {
   cat "$body"
   rm -f "$verbose_log" "$body"
 }
-
 function oci_api_reachable() {
   local region=$(curl --connect-timeout 10 -s http://169.254.169.254/opc/v1/instance/ | jq -r .canonicalRegionName)
   local http_code=$(curl -s -m 10 -o /dev/null -w '%{http_code}' "https://auth.${region}.oraclecloud.com/v1/x509")
@@ -321,11 +307,7 @@ function oci_api_reachable() {
   fi
   return 0
 }
-
 function restore_oci_connectivity() {
-  # the OCI API is unreachable when the primary VNIC never received a public
-  # IP; a secondary VNIC can appear in instance metadata minutes late, so
-  # re-check for one and route through it if found
   local secondary_ip=$(fetch_vnics_metadata | jq -r '.[1].privateIp')
   if [ -z "$secondary_ip" ] || [ "$secondary_ip" == "null" ]; then
     echo "No secondary VNIC in metadata, unable to restore OCI API connectivity"
@@ -338,7 +320,6 @@ function restore_oci_connectivity() {
   echo "Secondary VNIC with IP $secondary_ip found, switching default route to it to reach the OCI API"
   switch_to_secondary_vnic
 }
-
 function configure_primary_source_routing() {
   local vnics=$(curl --connect-timeout 10 -s http://169.254.169.254/opc/v1/vnics/)
   [ "$(echo "$vnics" | jq -r length 2>/dev/null)" -ge 2 ] 2>/dev/null || return 0
@@ -374,11 +355,8 @@ function configure_primary_source_routing() {
   done
   return 0
 }
-
 function default_terminate() {
-  # single attempt; the footer retries in a loop with connectivity self-healing
   echo "Terminating the instance; we enable debug to have more details in case of oci cli failures"
   INSTANCE_ID=`curl --connect-timeout 10 -s http://169.254.169.254/opc/v1/instance/ | jq -r .id`
   sudo /usr/local/bin/oci compute instance terminate --debug --instance-id "$INSTANCE_ID" --preserve-boot-volume false --auth instance_principal --force
 }
-# end of postinstall-lib, this space intentionally left blank

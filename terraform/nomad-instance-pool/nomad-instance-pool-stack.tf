@@ -122,7 +122,7 @@ resource "oci_core_instance_configuration" "oci_instance_configuration_use_eip" 
       }
 
       metadata = {
-        user_data = base64encode(join("",[
+        user_data = base64gzip(join("",[
           file("${path.cwd}/${var.user_data_lib_path}/postinstall-header.sh"), # load the header
           file("${path.cwd}/${var.user_data_lib_path}/postinstall-lib.sh"), # load the lib
           file("${path.cwd}/${var.user_data_lib_path}/postinstall-eip-lib.sh"), # load the EIP lib
@@ -189,7 +189,7 @@ resource "oci_core_instance_configuration" "oci_instance_configuration" {
       }
 
       metadata = {
-        user_data = base64encode(join("",[
+        user_data = base64gzip(join("",[
           file("${path.cwd}/${var.user_data_lib_path}/postinstall-header.sh"), # load the header
           file("${path.cwd}/${var.user_data_lib_path}/postinstall-lib.sh"), # load the lib
           "\nexport INFRA_CONFIGURATION_REPO=${var.infra_configuration_repo}\nexport INFRA_CUSTOMIZATIONS_REPO=${var.infra_customizations_repo}\n", #repo variables
