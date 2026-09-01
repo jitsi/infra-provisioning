@@ -237,6 +237,16 @@ EOF
         JVB_ADDRESS = "http://127.0.0.1:8080"
         RTCSTATS_SERVER="[[ env "CONFIG_jvb_rtcstats_push_rtcstats_server" ]]"
 #        CHROMIUM_FLAGS="--start-maximized,--kiosk,--enabled,--autoplay-policy=no-user-gesture-required,--use-fake-ui-for-media-stream,--enable-logging,--v=1"
+[[- if eq (or (env "CONFIG_tracing_enabled") "false") "true" ]]
+[[- $tracingProtocol := or (env "CONFIG_tracing_protocol") "http" ]]
+        # Distributed tracing (docker-jitsi-meet#2303). Spans go over OTLP to the
+        # regional alloy (-otel), which forwards to Tempo. Only the OTLP HTTP
+        # receiver (4318) is fabio-routed on alloy, so grpc needs a custom
+        # endpoint. jvb (jicoco OTLP HTTP exporter) needs the full /v1/traces URL.
+        ENABLE_TRACING = "1"
+        TRACING_PROTOCOL = "[[ $tracingProtocol ]]"
+        TRACING_ENDPOINT = "[[ template "tracing-otlp-base" . ]][[ if eq $tracingProtocol "http" ]]/v1/traces[[ end ]]"
+[[- end ]]
       }
 
       # Download the rtcstats-push zip as-is (no Nomad-side decompression): the
