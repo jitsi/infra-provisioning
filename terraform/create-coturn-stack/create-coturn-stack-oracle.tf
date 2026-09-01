@@ -191,6 +191,22 @@ resource "oci_core_network_security_group_security_rule" "nsg_rule_ingress_consu
   }
 }
 
+resource "oci_core_network_security_group_security_rule" "nsg_rule_ingress_nomad_dynamic_tcp" {
+  network_security_group_id = oci_core_network_security_group.coturn_network_security_group.id
+  direction = "INGRESS"
+  protocol = "6"
+  source = data.oci_core_vcns.vcns.virtual_networks[0].cidr_block
+  stateless = false
+  description = "nomad dynamic ports, including telegraf prometheus scrapes"
+
+  tcp_options {
+    destination_port_range {
+      min = 20000
+      max = 32000
+    }
+  }
+}
+
 
 // ============ COTURN INSTANCE POOL ============
 
