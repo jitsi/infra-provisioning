@@ -245,10 +245,11 @@ otelcol.exporter.otlphttp "loki" {
   }
 }
 
-// Export traces to Tempo via internal LB
+// Export traces to Tempo via internal LB. Uses the -tempo-otlp hostname (Tempo's
+// OTLP ingest port 4318), NOT -tempo (the query API on 3200, which 404s on push).
 otelcol.exporter.otlphttp "tempo" {
   client {
-    endpoint = "https://[[ env "meta.environment" ]]-[[ env "meta.cloud_region" ]]-tempo.${var.top_level_domain}"
+    endpoint = "https://[[ env "meta.environment" ]]-[[ env "meta.cloud_region" ]]-tempo-otlp.${var.top_level_domain}"
   }
 }
 
