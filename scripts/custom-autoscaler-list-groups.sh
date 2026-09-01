@@ -86,10 +86,11 @@ function AutoscalerRequest() {
     -H "Authorization: Bearer $TOKEN" \
     $BODY 2>/dev/null)
 
-  if [[ $? -eq 0 ]]; then
+  CURL_EXIT_CODE=$?
+  if [[ $CURL_EXIT_CODE -eq 0 ]]; then
       RESPONSE_HTTP_CODE=200
   else
-    RESPONSE_HTTP_CODE=500
+    RESPONSE_HTTP_CODE=0
   fi
   RESPONSE_BODY="$RESPONSE_BODY_AND_STATUS"
 #  echo "Received response code: $RESPONSE_HTTP_CODE, body: $RESPONSE_BODY"
@@ -128,8 +129,8 @@ for AUTOSCALER in $AUTOSCALER_LIST; do
       fi
     fi
   else
-      >&2 echo "Error from HTTP REQUEST code: $RESPONSE_HTTP_CODE"
-      >&2 echo $RESPONSE_BODY
+      >&2 echo "No HTTP response from $AUTOSCALER_URL: curl exit code $CURL_EXIT_CODE (autoscaler missing or unreachable), skipping"
+      [ -n "$RESPONSE_BODY" ] && >&2 echo $RESPONSE_BODY
   fi
 done
 
