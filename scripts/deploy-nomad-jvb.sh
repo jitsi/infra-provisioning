@@ -99,6 +99,13 @@ export CONFIG_environment_type="${ENVIRONMENT_TYPE}"
 export CONFIG_domain="$DOMAIN"
 export CONFIG_shard="$SHARD"
 export CONFIG_octo_region="$ORACLE_REGION"
+
+# optional distributed tracing (docker-jitsi-meet#2303); set tracing_enabled: true
+# in the environment yaml (exported as CONFIG_tracing_enabled by yamltoenv above).
+# Spans go over OTLP HTTP to the regional alloy, which forwards them to Tempo.
+[ -z "$CONFIG_tracing_enabled" ] && export CONFIG_tracing_enabled="false"
+[ -z "$CONFIG_tracing_otlp_endpoint" ] && export CONFIG_tracing_otlp_endpoint="https://$ENVIRONMENT-$ORACLE_REGION-otel.$TOP_LEVEL_DNS_ZONE_NAME"
+
 # [ -n "$SHARD_STATE" ] && export CONFIG_shard_state="$SHARD_STATE"
 export CONFIG_release_number="$RELEASE_NUMBER"
 export CONFIG_jvb_version="$JVB_VERSION"

@@ -24,6 +24,21 @@ metadata when that value is set to a default of "".
 
 [[- /*
 
+## `tracing-otlp-base` helper
+
+Base URL of the OTLP receiver used for distributed tracing
+(docker-jitsi-meet#2303). Defaults to the regional alloy via the internal LB
+(deploy-nomad-alloy.sh registers <environment>-<region>-otel.<tld>); alloy
+forwards the spans on to Tempo (internal and Grafana Cloud).
+
+*/ -]]
+
+[[ define "tracing-otlp-base" -]]
+[[- or (env "CONFIG_tracing_otlp_endpoint") (print "https://" (env "CONFIG_environment") "-" (env "CONFIG_octo_region") "-otel.jitsi.net") -]]
+[[- end -]]
+
+[[- /*
+
 ## `region` helper
 
 This helper demonstrates conditional element rendering. If your pack specifies
