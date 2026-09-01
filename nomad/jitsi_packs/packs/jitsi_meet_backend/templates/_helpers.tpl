@@ -143,6 +143,21 @@ block
       }
 [[- end ]]
 
+[[- /*
+
+## `tracing-otlp-base` helper
+
+Base URL of the OTLP receiver used for distributed tracing
+(docker-jitsi-meet#2303). Defaults to the regional alloy via the internal LB
+(deploy-nomad-alloy.sh registers <environment>-<region>-otel.<tld>); alloy
+forwards the spans on to Tempo (internal and Grafana Cloud).
+
+*/ -]]
+
+[[ define "tracing-otlp-base" -]]
+[[- or (env "CONFIG_tracing_otlp_endpoint") (print "https://" (env "CONFIG_environment") "-" (env "CONFIG_octo_region") "-otel.jitsi.net") -]]
+[[- end -]]
+
 [[ define "common-env" -]]
         ENABLE_JVB_XMPP_SERVER = "1"
         ENABLE_TRANSCRIPTIONS = "1"
@@ -196,4 +211,18 @@ block
         XMPP_RECORDER_DOMAIN = "recorder.[[ env "CONFIG_domain" ]]"
         XMPP_HIDDEN_DOMAIN = "recorder.[[ env "CONFIG_domain" ]]"
         JICOFO_OCTO_REGION = "[[ env "CONFIG_octo_region" ]]"
+[[- if eq (or (env "CONFIG_tracing_enabled") "false") "true" ]]
+[[- $tracingProtocol := or (env "CONFIG_tracing_protocol") "http" ]]
+        # Distributed tracing (docker-jitsi-meet#2303). Only the OTLP HTTP
+        # receiver (4318) is fabio-routed on the alloy job, so grpc only works
+        # with a custom endpoint. Image tags without the tracing templates
+        # ignore these vars, so this is safe to enable ahead of the images.
+        ENABLE_TRACING = "1"
+        # jicofo reads TRACING_ENDPOINT/TRACING_PROTOCOL; jicoco's HTTP OTLP
+        # exporter needs the full /v1/traces URL (it does not append a path).
+        TRACING_PROTOCOL = "[[ $tracingProtocol ]]"
+        TRACING_ENDPOINT = "[[ template "tracing-otlp-base" . ]][[ if eq $tracingProtocol "http" ]]/v1/traces[[ end ]]"
+        # prosody reads TRACING_HTTP_ENDPOINT and appends /v1/traces itself.
+        TRACING_HTTP_ENDPOINT = "[[ template "tracing-otlp-base" . ]]"
+[[- end ]]
 [[ end -]]
