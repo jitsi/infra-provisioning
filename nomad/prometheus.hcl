@@ -1051,17 +1051,17 @@ groups:
       alert_url: https://${var.prometheus_hostname}/alerts?search=baron
   %{ if var.environment_type == "prod" }- alert: JVB_CPU_High
     expr: 100 - cpu_usage_idle{role="JVB"} > %{ if var.production_alerts }90%{ else }95%{ endif }
-    for: %{ if var.production_alerts }5m%{ else }15m%{ endif }
+    for: %{ if var.production_alerts }10m%{ else }15m%{ endif }
     labels:
       service: jitsi
       severity: severe
       page: true
       scope: global
     annotations:
-      summary: a JVB in ${var.dc} has had extremely high CPU usage for %{ if var.production_alerts }5%{ else }15%{ endif } minutes
+      summary: a JVB in ${var.dc} has had extremely high CPU usage for %{ if var.production_alerts }10%{ else }15%{ endif } minutes
       description: >-
         A JVB in ${var.dc} has had a CPU running at over %{ if var.production_alerts }90%{ else }95%{ endif }%
-        in the last %{ if var.production_alerts }5%{ else }15%{ endif } minutes.
+        in the last %{ if var.production_alerts }10%{ else }15%{ endif } minutes.
         It was most recently at {{ $value | printf "%.2f" }}%.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=jvb_cpu_high%{ endif }
