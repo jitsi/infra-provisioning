@@ -1,0 +1,57 @@
+- job:
+    name: auto-update-selenium-grid
+    display-name: auto update selenium grid
+    concurrent: false
+    # Fires every Wednesday 04:00 UTC; the Jenkinsfile drops the off-weeks so the
+    # effective cadence is fortnightly, anchored on 2026-09-09. Plain cron cannot
+    # express "every second Wednesday", and ISO-week parity breaks across the
+    # week-53 boundary, so the guard counts days from the anchor instead.
+    # Set FORCE_RUN to run off-cadence.
+    triggers:
+      - timed: '0 4 * * 3'
+    parameters:
+      - string:
+          name: VIDEO_INFRA_BRANCH
+          default: main
+          description: "Controls checkout branch for infra repos, defaults to 'main'."
+          trim: true
+      - string:
+          name: GRID_NAME
+          default: validate
+          description: "Grid to rebuild and redeploy, defaults to 'validate' (the nightly torture grid). Must be a nomad-based grid: on an OCI instance-pool grid the redeploy recycles no instance, so the rebuilt image never lands and the job finishes green having updated nothing."
+          trim: true
+      - string:
+          name: ENVIRONMENT
+          default: torture-test
+          description: "Environment the grid lives in, defaults to 'torture-test'."
+          trim: true
+      - string:
+          name: ORACLE_REGION
+          default: us-phoenix-1
+          description: "Oracle Region the grid lives in."
+          trim: true
+      - string:
+          name: SCHEDULE_ANCHOR
+          default: '2026-09-09'
+          description: "First run of the fortnightly cadence; runs happen every 14 days from this date."
+          trim: true
+      - bool:
+          name: FORCE_RUN
+          default: false
+          description: "Run even if today is not on the fortnightly cadence."
+
+    project-type: pipeline
+    sandbox: true
+    pipeline-scm:
+      scm:
+        - git:
+            url: git@github.com:jitsi/infra-provisioning.git
+            credentials-id: "video-infra"
+            branches:
+              - "origin/${{VIDEO_INFRA_BRANCH}}"
+            browser: githubweb
+            browser-url: https://github.com/jitsi/infra-provisioning
+            submodule:
+              recursive: true
+      script-path: jenkins/groovy/auto-update-selenium-grid/Jenkinsfile
+      lightweight-checkout: true

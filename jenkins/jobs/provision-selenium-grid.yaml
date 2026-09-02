@@ -30,6 +30,10 @@
           description: "Check to re-run terraform for existing grid"
           default: false
       - string:
+          name: IMAGE_VERSION
+          description: "Node image tag to deploy. Empty keeps the job default ('latest'). Pass an immutable tag to guarantee running allocations actually roll onto a rebuilt image."
+          trim: true
+      - string:
           name: ACTION
           default: apply
           description: "\"apply\" or \"import\" into the terraform. import is only needed if the state of the stack has gotten out of sync."

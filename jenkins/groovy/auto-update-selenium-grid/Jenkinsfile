@@ -1,0 +1,146 @@
+// Fortnightly refresh of a Selenium grid.
+//
+// Rebuilding the node image is what picks up new browsers: Chrome stable and
+// beta are installed from Google's apt repo at build time, and each gets a
+// version-matched ChromeDriver resolved from Chrome for Testing. The Grid
+// version does not move -- that is pinned by SELENIUM_VERSION in
+// scripts/selenium-version.sh -- so this advances browsers only.
+//
+// The trigger fires every Wednesday 04:00 UTC and this keeps every other one.
+// Off-cadence weeks skip their stages and finish green: failing them would send
+// a failure notification every second Wednesday forever.
+//
+// The image is built and deployed under an immutable tag
+// (<git-sha>-<date>-b<build>). Deploying ":latest" would not roll anything: an
+// unchanged nomad job spec produces no new allocations, so running nodes keep
+// the cached image and the rebuild would never reach the grid.
+//
+// ASSUMES A NOMAD-BASED GRID. The image roll works through the nomad node job
+// (force_pull plus a changed image tag). On a plain OCI instance-pool grid,
+// provision-selenium-grid runs create-selenium-grid-oracle.sh, which sets
+// RUN_TF=false when UPGRADE_GRID != true, so no instance is recycled and the
+// running nodes keep the image they booted with -- this job would then finish
+// green while updating nothing. Whether a grid is nomad-based is decided by the
+// selenium_grid_nomad_enabled ansible var, which lives outside this repo, so it
+// cannot be asserted here.
+//
+// Note: passing SELENIUM_GRID_NOMAD_ENABLED=true to provision-selenium-grid is
+// NOT the fix. That flag forces the nomad path rather than verifying it, so on a
+// genuinely instance-pool grid it would deploy nomad jobs that do not belong
+// there. Point this job only at grids already known to be nomad-based.
+
+// SCHEDULE_ANCHOR is operator-editable free text that gets interpolated into a
+// shell command, so validate it before use: a value `date` cannot parse would
+// abort the build (the failure this design avoids), and a crafted value would
+// execute on the agent.
+def validateAnchor(anchor) {
+    if (!(anchor ==~ /\d{4}-\d{2}-\d{2}/)) {
+        error("SCHEDULE_ANCHOR must be YYYY-MM-DD, got: '${anchor}'")
+    }
+    // The cron only fires on Wednesdays and `days % 14 == 0` can only be true on
+    // the anchor's own weekday, so a non-Wednesday anchor would make the job
+    // never run on-cadence -- silently, with no error.
+    // Format alone is not enough: 2026-13-09 matches the regex but is not a date.
+    def dow = sh(returnStdout: true,
+                 script: "date -u -d '${anchor}' +%u 2>/dev/null || echo invalid").trim()
+    if (dow == 'invalid') {
+        error("SCHEDULE_ANCHOR '${anchor}' is not a real date")
+    }
+    if (dow != '3') {
+        error("SCHEDULE_ANCHOR ${anchor} is weekday ${dow}; it must be a Wednesday (3) to match the cron trigger")
+    }
+}
+
+def onCadence(anchor, force) {
+    if (force) {
+        echo "FORCE_RUN set, running regardless of cadence"
+        return true
+    }
+    // Whole days between the anchor and today, both at UTC midnight. Counting
+    // days rather than using ISO week parity keeps the cadence correct across
+    // the week-53 year boundary.
+    def days = sh(
+        returnStdout: true,
+        script: """#!/bin/bash
+            set -eu
+            anchor_epoch=\$(date -u -d "${anchor}" +%s)
+            today_epoch=\$(date -u -d "\$(date -u +%Y-%m-%d)" +%s)
+            echo \$(( (today_epoch - anchor_epoch) / 86400 ))
+        """
+    ).trim() as Integer
+
+    if (days < 0) {
+        echo "Cadence starts ${anchor}, ${-days} day(s) from now -- skipping"
+        return false
+    }
+    if (days % 14 != 0) {
+        echo "${days} day(s) since ${anchor} is not a multiple of 14 -- off-cadence week, skipping"
+        return false
+    }
+    echo "${days} day(s) since ${anchor} -- on cadence"
+    return true
+}
+
+pipeline {
+    agent any
+    options {
+        ansiColor('xterm')
+        timestamps()
+        buildDiscarder(logRotator(numToKeepStr: '30', artifactNumToKeepStr: '30'))
+    }
+    stages {
+        stage('Check cadence') {
+            steps {
+                script {
+                    validateAnchor(params.SCHEDULE_ANCHOR)
+                    env.ON_CADENCE = onCadence(params.SCHEDULE_ANCHOR, params.FORCE_RUN).toString()
+                    if (env.ON_CADENCE == 'true') {
+                        // Date is part of the tag on purpose: the git sha alone does not
+                        // change between fortnights when no code landed, so it would not
+                        // force a new nomad deployment even though the browsers moved.
+                        // BUILD_NUMBER keeps the tag unique within a day, so a FORCE_RUN,
+                        // a retry or a same-day code push cannot overwrite an image that
+                        // is already deployed somewhere.
+                        def sha = sh(returnStdout: true, script: 'git rev-parse --short HEAD').trim()
+                        def stamp = sh(returnStdout: true, script: 'date -u +%Y%m%d').trim()
+                        env.IMAGE_TAG = "${sha}-${stamp}-b${env.BUILD_NUMBER}"
+                        currentBuild.description = "updating ${params.GRID_NAME} @ ${env.IMAGE_TAG}"
+                    } else {
+                        currentBuild.description = 'off-cadence week, skipped'
+                    }
+                }
+            }
+        }
+        stage('Rebuild node image') {
+            when { expression { env.ON_CADENCE == 'true' } }
+            steps {
+                script {
+                    // build.sh also moves :latest, so manual deploys stay current.
+                    build job: 'build-docker-image-selenium-grid-node', parameters: [
+                        [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: params.VIDEO_INFRA_BRANCH],
+                        [$class: 'StringParameterValue', name: 'TAG', value: env.IMAGE_TAG]
+                    ]
+                }
+            }
+        }
+        stage('Redeploy grid') {
+            when { expression { env.ON_CADENCE == 'true' } }
+            steps {
+                script {
+                    // UPGRADE_GRID stays false: with it set, terraform re-applies the
+                    // instance pools and resets their sizes to the script defaults.
+                    // IMAGE_VERSION is what actually rolls the nodes -- it changes the
+                    // job spec, so nomad creates new allocations on the new image.
+                    build job: 'provision-selenium-grid', parameters: [
+                        [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: params.VIDEO_INFRA_BRANCH],
+                        [$class: 'StringParameterValue', name: 'GRID_NAME', value: params.GRID_NAME],
+                        [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: params.ENVIRONMENT],
+                        [$class: 'StringParameterValue', name: 'ORACLE_REGION', value: params.ORACLE_REGION],
+                        [$class: 'StringParameterValue', name: 'IMAGE_VERSION', value: env.IMAGE_TAG],
+                        [$class: 'BooleanParameterValue', name: 'UPGRADE_GRID', value: false]
+                    ]
+                }
+            }
+        }
+    }
+}

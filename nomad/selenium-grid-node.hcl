@@ -36,6 +36,15 @@ job "[JOB_NAME]" {
     value     = "linux"
   }
 
+  // The node image is arm64-only (Google now ships Chrome for linux-arm64).
+  // Without this, a system job schedules onto x86 pool hosts too and the task
+  // dies at container start with "exec format error" -- silently missing slots
+  // with a green deploy.
+  constraint {
+    attribute = "${attr.cpu.arch}"
+    value     = "arm64"
+  }
+
   group "grid-node" {
     constraint {
       attribute  = "${meta.pool_type}"
@@ -77,6 +86,12 @@ job "[JOB_NAME]" {
 
       config {
         image        = "${var.registry_prefix}selenium/node-mixed:${var.image_version}"
+        # image_version defaults to "latest", a mutable tag. Without force_pull a
+        # restarted allocation keeps the cached layer, so a rebuilt image never
+        # reaches the node. Callers that want a guaranteed roll should also pass an
+        # immutable tag (SELENIUM_GRID_IMAGE_VERSION), since an unchanged job spec
+        # produces no new allocations at all.
+        force_pull   = true
         ports = ["http","vnc","no-vnc"]
         volumes = [
           "/opt/jitsi/jitsi-meet-torture:/usr/share/jitsi-meet-torture:ro",
