@@ -45,7 +45,9 @@ config.audioQuality.enableAdvancedAudioSettings=[[ or (env "CONFIG_jitsi_meet_en
 
 [[ if eq (env "CONFIG_jitsi_meet_enable_audio_translation") "true" -]]
 config.audioTranslation = {
-    enabled: true
+    enabled: true,
+    duckedVolume: [[ or (env "CONFIG_jitsi_meet_audio_translation_ducked_volume") "0.15" ]],
+    enableSendingChangeEvents: true
 };
 [[- end ]]
 
