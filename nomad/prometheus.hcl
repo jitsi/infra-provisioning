@@ -443,8 +443,15 @@ groups:
         modifying the allocated memory and re-deploying the job.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=nomad_job
+  # coturn is excluded only where production_alerts is off (meet-jit-si et al).
+  # Those pools are scaled down hard, so coturn routinely runs over its static
+  # cpu = 10000 reservation while the host still has plenty of headroom, which
+  # pages daily for nothing. prod-8x8 pools are sized so that crossing the
+  # reservation is worth knowing about, so the alert stays armed there.
+  # Host-level saturation is covered either way by System_CPU_Usage_High and
+  # Coturn_UDP_Errors_High.
   - alert: Nomad_Job_CPU_Use_High
-    expr: 100 * nomad_client_allocs_cpu_total_ticks / nomad_client_allocs_cpu_allocated > 85
+    expr: 100 * nomad_client_allocs_cpu_total_ticks%{ if ! var.production_alerts }{task!~"coturn"}%{ endif } / nomad_client_allocs_cpu_allocated%{ if ! var.production_alerts }{task!~"coturn"}%{ endif } > 85
     for: 10m
     labels:
       service: infra
