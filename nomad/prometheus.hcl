@@ -819,6 +819,23 @@ groups:
         triggered.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=haproxy_shard_unhealthy
+  - alert: HAProxy_Reconfig_Failed
+    expr: max_over_time(jitsi_config_haproxy_reconfig_failed{role="haproxy"}[5m]) > 0
+    for: 1m
+    labels:
+      service: jitsi
+      severity: warn
+    annotations:
+      summary: haproxy reconfiguration failed on {{ $labels.host }} in ${var.dc}
+      description: >-
+        consul-template failed to reload haproxy on {{ $labels.host }} in ${var.dc}.
+        This usually means the rendered haproxy.cfg failed validation (a template
+        bug or bad service metadata in consul), leaving haproxy running on a stale
+        config while shards come and go. Check /var/log/consul-template on the host
+        for the rejected *.invalid config and run 'haproxy -c -f <file>' against it
+        to see the fatal error.
+      dashboard_url: ${var.grafana_url}
+      alert_url: https://${var.prometheus_hostname}/alerts?search=haproxy_reconfig_failed
   - alert: HAProxy_LB_Bandwidth_High
     expr: oci_lbaas_peak_bandwidth{lb_name=~".*haproxy.*"} > 2400
     for: 2m
