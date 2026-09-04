@@ -466,7 +466,11 @@ def start_migrate(token, repo, st):
     }
     # Sync over HTTPS + token (never the SSH deploy key) so the mirror's own
     # sync path is immune to the deploy-key failure class that caused JIT-16092.
-    if GITHUB_TOKEN:
+    # Only the private repos get the token: Gitea sends it to api.github.com for
+    # every migrate it is attached to, so putting it on public repos too means a
+    # single bad or expired PAT fails every mirror, including the public ones the
+    # boot path depends on most.
+    if private and GITHUB_TOKEN:
         body["auth_token"] = GITHUB_TOKEN
     st.attempted_at = time.monotonic()
     status, resp = api("POST", "/api/v1/repos/migrate", token, body, timeout=MIGRATE_TIMEOUT)
