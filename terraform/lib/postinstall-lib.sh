@@ -205,7 +205,62 @@ function set_hostname() {
   grep $MY_HOSTNAME /etc/hosts || echo "$MY_IP    $MY_HOSTNAME" >> /etc/hosts
   echo "$MY_HOSTNAME" > /etc/hostname
 }
+# Strips any user:password@ out of a git URL so it can be logged. The mirror
+# URL for the private repo carries a credential, and cloud-init output ends up
+# in the console log and in boot dumps.
+function loggable_git_url() {
+  echo "$1" | sed -E 's#(://)[^@/]*@#\1#'
+}
+# Clones one repo at one ref. Non-zero if the clone fails, if the ref cannot be
+# checked out, or if the ref is not actually present afterwards -- that last
+# check is what catches a mirror which has not yet pulled a freshly pushed
+# branch or tag, which would otherwise provision the wrong code.
+function clone_repo_at_ref() {
+  local url="$1"
+  local target="$2"
+  local ref="$3"
+  [ -z "$url" ] && return 1
+  [ -z "$target" ] && return 1
+  rm -rf "$target"
+  git clone "$url" "$target" || return 1
+  git -C "$target" checkout "$ref" || return 1
+  git -C "$target" submodule update --init --recursive || return 1
+  git -C "$target" show-ref "heads/$ref" || git -C "$target" show-ref "tags/$ref" || return 1
+  return 0
+}
+# Clones preferring the in-region mirror and falling back to GitHub on ANY
+# mirror failure: unreachable, sealed-off, refusing auth, or simply not holding
+# the ref yet. The mirror only ever removes GitHub from the common path; it must
+# never be able to fail a boot on its own, so every failure mode here is a
+# fallback rather than an error. With no mirror configured this goes straight to
+# GitHub and behaves exactly as before.
+function clone_repo_with_fallback() {
+  local name="$1"
+  local mirror_url="$2"
+  local origin_url="$3"
+  local target="$4"
+  local ref="$5"
+  if [ -n "$mirror_url" ]; then
+    echo "Cloning $name at $ref from the in-region mirror $(loggable_git_url "$mirror_url")"
+    if clone_repo_at_ref "$mirror_url" "$target" "$ref"; then
+      echo "Cloned $name at $ref from the in-region mirror"
+      return 0
+    fi
+    echo "Mirror clone of $name at $ref failed, falling back to github"
+  fi
+  echo "Cloning $name at $ref from $(loggable_git_url "$origin_url")"
+  if clone_repo_at_ref "$origin_url" "$target" "$ref"; then
+    echo "Cloned $name at $ref from github"
+    return 0
+  fi
+  echo "Failed to clone $name at $ref from github"
+  return 1
+}
 function checkout_repos() {
+  if [ -z "$BOOTSTRAP_DIRECTORY" ]; then
+    echo "No BOOTSTRAP_DIRECTORY set, refusing to check out repos"
+    return 1
+  fi
   [ -d $BOOTSTRAP_DIRECTORY/infra-configuration ] && rm -rf $BOOTSTRAP_DIRECTORY/infra-configuration
   [ -d $BOOTSTRAP_DIRECTORY/infra-customizations ] && rm -rf $BOOTSTRAP_DIRECTORY/infra-customizations
   if [ ! -n "$(grep "^github.com " ~/.ssh/known_hosts)" ]; then ssh-keyscan github.com >> ~/.ssh/known_hosts 2>/dev/null; fi
@@ -214,18 +269,8 @@ function checkout_repos() {
     echo "Found local repo copies in $LOCAL_REPO_DIRECTORY, setting GIT_ALTERNATE_OBJECT_DIRECTORIES"
     export GIT_ALTERNATE_OBJECT_DIRECTORIES="$LOCAL_REPO_DIRECTORY/infra-configuration/.git/objects:$LOCAL_REPO_DIRECTORY/infra-customizations/.git/objects"
   fi
-  echo "Now cloning directly from github"
-  git clone $INFRA_CONFIGURATION_REPO $BOOTSTRAP_DIRECTORY/infra-configuration
-  git clone $INFRA_CUSTOMIZATIONS_REPO $BOOTSTRAP_DIRECTORY/infra-customizations
-  cd $BOOTSTRAP_DIRECTORY/infra-configuration
-  git checkout $GIT_BRANCH
-  git submodule update --init --recursive
-  git show-ref heads/$GIT_BRANCH || git show-ref tags/$GIT_BRANCH
-  cd /root
-  cd $BOOTSTRAP_DIRECTORY/infra-customizations
-  git checkout $GIT_BRANCH
-  git submodule update --init --recursive
-  git show-ref heads/$GIT_BRANCH || git show-ref tags/$GIT_BRANCH
+  clone_repo_with_fallback "infra-configuration" "$INFRA_CONFIGURATION_MIRROR_REPO" "$INFRA_CONFIGURATION_REPO" "$BOOTSTRAP_DIRECTORY/infra-configuration" "$GIT_BRANCH" || return 1
+  clone_repo_with_fallback "infra-customizations" "$INFRA_CUSTOMIZATIONS_MIRROR_REPO" "$INFRA_CUSTOMIZATIONS_REPO" "$BOOTSTRAP_DIRECTORY/infra-customizations" "$GIT_BRANCH" || return 1
   cp -a $BOOTSTRAP_DIRECTORY/infra-customizations/* $BOOTSTRAP_DIRECTORY/infra-configuration
   cd /root
 }
@@ -281,7 +326,10 @@ function default_provision() {
   if [ -z "$INFRA_CONFIGURATION_REPO" ]; then
     export INFRA_CONFIGURATION_REPO="https://github.com/jitsi/infra-configuration.git"
   fi
-  checkout_repos
+  if ! checkout_repos; then
+    echo "Failed to check out the infra repos from any source"
+    return 4
+  fi
   run_ansible_playbook "$ANSIBLE_PLAYBOOK"  "$ANSIBLE_VARS" || status_code=1
   return $status_code;
 }
