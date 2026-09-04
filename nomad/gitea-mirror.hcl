@@ -64,6 +64,21 @@ job "[JOB_NAME]" {
     value     = "linux"
   }
 
+  # The health check is the sync-gate's /ready, which deliberately stays 503
+  # until every required repo has finished its first clone (decision 4). In
+  # us-phoenix-1 that includes jitsi-meet, so a cold replica legitimately takes
+  # far longer than Nomad's default 5m healthy_deadline, which would fail the
+  # rollout while the mirror is still syncing normally. auto_revert keeps the
+  # previous, already-synced version serving when a new one never gets there.
+  update {
+    max_parallel      = 1
+    health_check      = "checks"
+    min_healthy_time  = "10s"
+    healthy_deadline  = "20m"
+    progress_deadline = "30m"
+    auto_revert       = true
+  }
+
   group "gitea" {
     count = 2
 
