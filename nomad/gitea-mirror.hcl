@@ -50,6 +50,18 @@ variable "private_repos" {
   default = ["infra-customizations-private"]
 }
 
+# Disk the alloc dir may use, in MB. Nomad assumes 300MB when this is not
+# declared, which is badly wrong here: measured in ops-dev, the four repos take
+# ~1.05GB on disk (jitsi-meet alone ~890MB, infra-customizations-private
+# ~152MB). Under-declaring lets the scheduler pack allocations onto a node that
+# cannot actually hold them. The default carries the jitsi-meet case plus room
+# for growth and for the extra space a first clone needs before git repacks;
+# regions that do not mirror jitsi-meet can be given a smaller value.
+variable "ephemeral_disk_size" {
+  type    = number
+  default = 3072
+}
+
 # Job name is substituted by scripts/deploy-nomad-gitea-mirror.sh as
 # gitea-mirror-<region>. Nomad runs one global region with per-region
 # datacenters, so a fixed name would make each region's deploy replace the
@@ -110,6 +122,15 @@ job "[JOB_NAME]" {
       delay    = "30s"
       interval = "10m"
       mode     = "delay"
+    }
+
+    # Explicitly not sticky and not migrated: state is ephemeral by design
+    # (decision 3), and a rescheduled replica re-mirrors from GitHub rather
+    # than dragging a stale copy of ~1GB of git data to its new node.
+    ephemeral_disk {
+      size    = var.ephemeral_disk_size
+      sticky  = false
+      migrate = false
     }
 
     # Bridge mode so the three tasks share a network namespace: the sync-gate
@@ -283,9 +304,14 @@ EOF
         }
       }
 
+      # Only ~100MB of this is anonymous memory; the rest is page cache for the
+      # mirrored repos. At 1024 the cgroup sat at its ceiling and hit the limit
+      # thousands of times, reclaiming the cache continuously (no OOM kills, but
+      # every clone re-read the repo data from disk). 2048 lets the working set
+      # for the current repo set stay resident.
       resources {
         cpu    = 2000
-        memory = 1024
+        memory = 2048
       }
     }
 
