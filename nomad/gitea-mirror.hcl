@@ -334,7 +334,9 @@ EOF
         force_pull = false
         ports      = ["health"]
         entrypoint = ["/bin/sh", "-c"]
-        args       = ["python3 /local/sync-gate.py"]
+        # exec so python replaces the shell as PID 1 and actually receives the
+        # SIGHUP nomad sends when the trigger key below changes.
+        args       = ["exec python3 /local/sync-gate.py"]
       }
 
       env {
@@ -365,6 +367,26 @@ GITHUB_TOKEN={{ .Data.data.token }}
 EOF
       }
 
+      # A release pokes every replica at once by writing this Consul key. Both
+      # replicas sit behind one Fabio route with independent databases, so an
+      # API call from outside would only ever sync whichever one it reached,
+      # and a replica started later would miss the poke entirely. Templating
+      # the key instead means each replica reacts for itself and a new replica
+      # simply reads the current value.
+      #
+      # keyOrDefault rather than key: a key that has never been written must
+      # not block the task from starting. The value is the tag being released,
+      # so it is self-describing in the logs, and an unchanged value renders
+      # identically and does not re-signal.
+      template {
+        destination   = "local/sync-trigger"
+        change_mode   = "signal"
+        change_signal = "SIGHUP"
+        data          = <<EOF
+{{ keyOrDefault "gitea-mirror/sync-trigger" "none" }}
+EOF
+      }
+
       template {
         perms       = 755
         destination = "local/sync-gate.py"
@@ -377,6 +399,10 @@ EOF
    mirror from GitHub, retrying until that succeeds.
 3. Serves /ready on GATE_PORT: 503 until every required repo reports
    "empty": false (first sync done), then 200, plus /metrics for Prometheus.
+4. On SIGHUP, asks Gitea to pull every repo immediately instead of waiting for
+   its next interval. Nomad raises that signal when the Consul key the task
+   templates changes, which is how a release pushes fresh refs to every replica
+   at once (see the template stanza in the job).
 
 /ready only ever guards the FIRST sync. Once a replica is serving, every later
 pull could fail and it would stay healthy, quietly handing boots older and
@@ -395,6 +421,7 @@ it has sat there past GATE_STALL_TIMEOUT without becoming non-empty.
 import datetime
 import json
 import os
+import signal
 import threading
 import time
 import urllib.error
@@ -423,6 +450,10 @@ RETRY_BACKOFF = int(os.environ.get("GATE_RETRY_BACKOFF", "60"))
 POLL_INTERVAL = int(os.environ.get("GATE_POLL_INTERVAL", "10"))
 
 _ready = threading.Event()
+
+# Set by SIGHUP, consumed by the main loop. A bare flag rather than an Event on
+# purpose: it is the only thing safe to touch from a signal handler.
+_sync_requested = False
 
 # repo -> {"synced": 0|1, "last_sync": float|None}, published on /metrics.
 _metrics = {}
@@ -519,6 +550,31 @@ def api(method, path, token, body=None, timeout=30):
     except OSError:
         # Socket timeout on a long migrate: Gitea carries on regardless.
         return 0, {}
+
+
+def request_sync(signum, frame):
+    """SIGHUP handler. Nomad signals the task when the Consul trigger key
+    changes, i.e. a release has pushed refs the mirrors have not pulled yet."""
+    global _sync_requested
+    _sync_requested = True
+
+
+def trigger_sync(token):
+    """Ask Gitea to pull every required repo now.
+
+    Each replica does this for its own Gitea. Both replicas sit behind one Fabio
+    route with independent databases, so a single API call from outside would
+    only ever sync whichever one it landed on.
+    """
+    for repo in REQUIRED:
+        status, body = api("POST", "/api/v1/repos/%s/%s/mirror-sync" % (GITEA_ORG, repo), token)
+        if status in (200, 202):
+            print("sync-gate: requested an immediate pull of %s" % repo, flush=True)
+        elif status == 404:
+            # Not migrated yet; the reconcile loop below will create it.
+            print("sync-gate: %s not present yet, leaving it to the reconcile loop" % repo, flush=True)
+        else:
+            print("sync-gate: WARN could not trigger a pull of %s: %s %s" % (repo, status, body), flush=True)
 
 
 def wait_for_gitea(token):
@@ -655,9 +711,12 @@ def serve():
 
 
 def main():
+    global _sync_requested
+
     # Serve /ready (503) immediately so the health check has an endpoint while
     # the mirrors are still being seeded.
     threading.Thread(target=serve, daemon=True).start()
+    signal.signal(signal.SIGHUP, request_sync)
 
     token = read_token()
     wait_for_gitea(token)
@@ -666,6 +725,12 @@ def main():
     org_ok = False
 
     while True:
+        if _sync_requested:
+            # Picked up within one poll interval: a signal does not cut the
+            # sleep below short, it only runs the handler.
+            _sync_requested = False
+            print("sync-gate: sync requested by signal", flush=True)
+            trigger_sync(token)
         if not org_ok:
             org_ok = ensure_org(token)
         # Not all(...): every repo must be reconciled on every pass, so this
