@@ -304,6 +304,13 @@ EOF
         GITEA_PRIVATE_REPOS   = "${join(" ", var.private_repos)}"
         GITEA_MIRROR_INTERVAL = "${var.mirror_interval}"
         GATE_PORT             = "8080"
+        # Retry pacing for the mirror seed (see local/sync-gate.py).
+        # GATE_STALL_TIMEOUT is how long an empty repo may sit before it is
+        # treated as a dead stub and re-migrated, so it must comfortably exceed
+        # the first-clone time of the largest mirrored repo.
+        GATE_MIGRATE_TIMEOUT  = "1800"
+        GATE_STALL_TIMEOUT    = "900"
+        GATE_RETRY_BACKOFF    = "60"
       }
 
       template {
@@ -326,9 +333,18 @@ EOF
 
 1. Waits for Gitea, using the seed token written by the init task.
 2. Ensures the target org exists and each required repo is migrated as a pull
-   mirror from GitHub (idempotent create-if-absent).
+   mirror from GitHub, retrying until that succeeds.
 3. Serves /ready on GATE_PORT: 503 until every required repo reports
    "empty": false (first sync done), then 200.
+
+Retrying a migrate is not just a matter of calling it again. A migrate Gitea
+rejects still leaves a repo row behind (empty, no mirror interval) and that
+stub answers GET with 200 for good, so it has to be deleted first -- a second
+migrate over an existing repo returns 409. A migration that is still running
+looks exactly like that stub, and it keeps running even when our request times
+out client-side, so deleting on sight would destroy healthy in-flight clones.
+A stub is therefore only removed once the migrate has failed outright, or once
+it has sat there past GATE_STALL_TIMEOUT without becoming non-empty.
 """
 import json
 import os
@@ -348,7 +364,31 @@ GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN", "")
 GATE_PORT = int(os.environ.get("GATE_PORT", "8080"))
 TOKEN_FILE = "/alloc/gitea-seed/token"
 
+# How long to let a migrate request run before giving up on the answer. Gitea
+# migrates synchronously, so a big repo can hold the connection for minutes.
+MIGRATE_TIMEOUT = int(os.environ.get("GATE_MIGRATE_TIMEOUT", "1800"))
+# How long an empty repo may sit there before it is treated as a dead stub.
+# Must comfortably exceed the first-clone time of the largest mirrored repo.
+STALL_TIMEOUT = int(os.environ.get("GATE_STALL_TIMEOUT", "900"))
+# Minimum gap between migrate attempts for one repo, so a GitHub outage is not
+# hammered.
+RETRY_BACKOFF = int(os.environ.get("GATE_RETRY_BACKOFF", "60"))
+POLL_INTERVAL = int(os.environ.get("GATE_POLL_INTERVAL", "10"))
+
 _ready = threading.Event()
+
+
+class RepoState(object):
+    """What our last migrate attempt for one repo did.
+
+    outcome is None before the first attempt, "failed" when Gitea answered with
+    an error (so nothing is running and any stub is garbage), or "unknown" when
+    the attempt may still be progressing inside Gitea.
+    """
+
+    def __init__(self):
+        self.attempted_at = None
+        self.outcome = None
 
 
 def read_token():
@@ -364,7 +404,7 @@ def read_token():
     raise SystemExit("sync-gate: seed token never appeared at %s" % TOKEN_FILE)
 
 
-def api(method, path, token, body=None, expect=(200, 201)):
+def api(method, path, token, body=None, timeout=30):
     url = GITEA_URL + path
     data = json.dumps(body).encode() if body is not None else None
     req = urllib.request.Request(url, data=data, method=method)
@@ -372,7 +412,7 @@ def api(method, path, token, body=None, expect=(200, 201)):
     req.add_header("Content-Type", "application/json")
     req.add_header("Accept", "application/json")
     try:
-        with urllib.request.urlopen(req, timeout=30) as resp:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
             payload = resp.read()
             return resp.status, (json.loads(payload) if payload else {})
     except urllib.error.HTTPError as e:
@@ -383,6 +423,9 @@ def api(method, path, token, body=None, expect=(200, 201)):
             parsed = {"raw": payload.decode("utf-8", "replace")}
         return e.code, parsed
     except urllib.error.URLError:
+        return 0, {}
+    except OSError:
+        # Socket timeout on a long migrate: Gitea carries on regardless.
         return 0, {}
 
 
@@ -396,21 +439,21 @@ def wait_for_gitea(token):
 
 
 def ensure_org(token):
+    """True once the org exists. Retried by the caller until it does."""
     status, _ = api("GET", "/api/v1/orgs/%s" % GITEA_ORG, token)
     if status == 200:
-        return
+        return True
     status, body = api(
         "POST", "/api/v1/orgs", token,
         {"username": GITEA_ORG, "visibility": "public"},
     )
-    if status not in (201, 422):  # 422 => already exists (race)
-        print("sync-gate: WARN could not create org %s: %s %s" % (GITEA_ORG, status, body), flush=True)
+    if status in (201, 422):  # 422 => already exists (race)
+        return True
+    print("sync-gate: WARN could not create org %s: %s %s" % (GITEA_ORG, status, body), flush=True)
+    return False
 
 
-def ensure_mirror(token, repo):
-    status, _ = api("GET", "/api/v1/repos/%s/%s" % (GITEA_ORG, repo), token)
-    if status == 200:
-        return
+def start_migrate(token, repo, st):
     private = repo in PRIVATE
     body = {
         "clone_addr": "https://github.com/%s/%s.git" % (GITHUB_ORG, repo),
@@ -425,16 +468,63 @@ def ensure_mirror(token, repo):
     # sync path is immune to the deploy-key failure class that caused JIT-16092.
     if GITHUB_TOKEN:
         body["auth_token"] = GITHUB_TOKEN
-    status, resp = api("POST", "/api/v1/repos/migrate", token, body)
+    st.attempted_at = time.monotonic()
+    status, resp = api("POST", "/api/v1/repos/migrate", token, body, timeout=MIGRATE_TIMEOUT)
     if status in (201, 409):
+        st.outcome = "unknown"
         print("sync-gate: migrate %s -> %s" % (repo, status), flush=True)
+    elif status == 0:
+        # No answer: the clone is most likely still running inside Gitea, so
+        # this is explicitly not a failure. The stall timer covers it.
+        st.outcome = "unknown"
+        print("sync-gate: migrate %s: no answer yet, leaving it to run" % repo, flush=True)
     else:
+        st.outcome = "failed"
         print("sync-gate: WARN migrate %s failed: %s %s" % (repo, status, resp), flush=True)
 
 
-def repo_synced(token, repo):
+def drop_stub(token, repo, st, why):
+    """Delete an empty repo so the next pass can migrate it again."""
+    status, resp = api("DELETE", "/api/v1/repos/%s/%s" % (GITEA_ORG, repo), token)
+    if status in (204, 404):
+        # attempted_at is deliberately left alone: it paces the retry.
+        st.outcome = None
+        print("sync-gate: removed %s stub (%s), will migrate again" % (repo, why), flush=True)
+    else:
+        print("sync-gate: WARN could not remove %s stub: %s %s" % (repo, status, resp), flush=True)
+
+
+def reconcile(token, repo, st):
+    """Drive one repo towards being mirrored. True once its first sync is done."""
     status, body = api("GET", "/api/v1/repos/%s/%s" % (GITEA_ORG, repo), token)
-    return status == 200 and body.get("empty") is False
+
+    if status == 200 and body.get("empty") is False:
+        st.outcome = None
+        return True
+
+    now = time.monotonic()
+
+    if status == 404:
+        if st.attempted_at is None or now - st.attempted_at >= RETRY_BACKOFF:
+            start_migrate(token, repo, st)
+        return False
+
+    if status == 200:
+        # The repo exists but is still empty: either a clone in flight or a
+        # stub left behind by one that failed.
+        if st.attempted_at is None:
+            # Left by an earlier gate process. Time it out rather than delete
+            # it, in case Gitea is still working on it.
+            st.attempted_at = now
+            st.outcome = "unknown"
+        elif st.outcome == "failed":
+            drop_stub(token, repo, st, "migrate failed")
+        elif now - st.attempted_at >= STALL_TIMEOUT:
+            drop_stub(token, repo, st, "no progress in %ss" % STALL_TIMEOUT)
+        return False
+
+    # Gitea restarting or a transient error: just look again next pass.
+    return False
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -463,18 +553,23 @@ def main():
 
     token = read_token()
     wait_for_gitea(token)
-    ensure_org(token)
-    for repo in REQUIRED:
-        ensure_mirror(token, repo)
+
+    state = dict((repo, RepoState()) for repo in REQUIRED)
+    org_ok = False
 
     while True:
-        if all(repo_synced(token, r) for r in REQUIRED):
+        if not org_ok:
+            org_ok = ensure_org(token)
+        # Not all(...): every repo must be reconciled on every pass, so this
+        # must not short-circuit on the first one that is not ready yet.
+        done = [reconcile(token, repo, state[repo]) for repo in REQUIRED] if org_ok else []
+        if org_ok and all(done):
             if not _ready.is_set():
                 print("sync-gate: all repos synced, ready", flush=True)
             _ready.set()
         else:
             _ready.clear()
-        time.sleep(10)
+        time.sleep(POLL_INTERVAL)
 
 
 if __name__ == "__main__":
