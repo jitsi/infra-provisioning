@@ -56,5 +56,28 @@ export NOMAD_VAR_required_repos="$GITEA_REQUIRED_REPOS"
 
 export NOMAD_VAR_dc="$NOMAD_DC"
 
-nomad job run -var="dc=$NOMAD_DC" "$NOMAD_JOB_PATH/gitea-mirror.hcl"
-exit $?
+# Per-region job name, same pattern as loki-/prometheus-/tempo-$ORACLE_REGION:
+# the Nomad region is shared across all of an environment's datacenters, so a
+# fixed name would be clobbered by the next region's deploy. Overridable so a
+# test instance can run alongside the real one.
+[ -z "$JOB_NAME" ] && JOB_NAME="gitea-mirror-$ORACLE_REGION"
+
+sed -e "s/\[JOB_NAME\]/$JOB_NAME/" "$NOMAD_JOB_PATH/gitea-mirror.hcl" | nomad job run -var="dc=$NOMAD_DC" -
+RET=$?
+
+# Route53 CNAME for the mirror hostname -> the region's internal general-pool
+# (Fabio) target, same pattern as deploy-nomad-loki.sh / -prometheus.sh. The
+# record label is derived from GITEA_HOSTNAME so an overridden test hostname
+# gets its own record; skipped if the hostname is outside the top-level zone.
+if [[ "$GITEA_HOSTNAME" == *".${TOP_LEVEL_DNS_ZONE_NAME}" ]]; then
+    export RESOURCE_NAME_ROOT="${GITEA_HOSTNAME%.${TOP_LEVEL_DNS_ZONE_NAME}}"
+    export STACK_NAME="${RESOURCE_NAME_ROOT}-cname"
+    export UNIQUE_ID="${RESOURCE_NAME_ROOT}"
+    export CNAME_TARGET="${ENVIRONMENT}-${ORACLE_REGION}-nomad-pool-general-internal.${DEFAULT_DNS_ZONE_NAME}"
+    export CNAME_VALUE="${RESOURCE_NAME_ROOT}"
+    $LOCAL_PATH/create-oracle-cname-stack.sh
+else
+    echo "GITEA_HOSTNAME $GITEA_HOSTNAME is not under $TOP_LEVEL_DNS_ZONE_NAME, skipping CNAME creation"
+fi
+
+exit $RET

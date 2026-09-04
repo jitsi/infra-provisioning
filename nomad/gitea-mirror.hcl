@@ -6,8 +6,10 @@ variable "gitea_hostname" {
   type = string
 }
 
-# Pinned Gitea image. Rooted (non-rootless) so the init task can run the gitea
-# CLI as root against the shared alloc dir without uid juggling.
+# Pinned Gitea image. The rooted (non-rootless) image is used because its
+# entrypoint runs `gitea web` as the built-in `git` user (uid 1000) and the
+# gitea CLI refuses to run as root, so the init task below is also run as
+# uid 1000 and everything under /alloc/gitea ends up owned by that user.
 variable "image_version" {
   type    = string
   default = "gitea/gitea:1.22"
@@ -48,7 +50,11 @@ variable "private_repos" {
   default = ["infra-customizations-private"]
 }
 
-job "gitea-mirror" {
+# Job name is substituted by scripts/deploy-nomad-gitea-mirror.sh as
+# gitea-mirror-<region>. Nomad runs one global region with per-region
+# datacenters, so a fixed name would make each region's deploy replace the
+# previous region's job.
+job "[JOB_NAME]" {
   datacenters = ["${var.dc}"]
 
   type = "service"
@@ -109,8 +115,15 @@ job "gitea-mirror" {
     # Runs the gitea CLI against the shared alloc dir (mounted at /alloc in every
     # task). Idempotent: on an in-place restart the admin already exists (|| true)
     # and a fresh uniquely-named token is minted for the gate.
+    #
+    # Must run as uid 1000 (the image's `git` user), not root: Gitea 1.22 exits
+    # fatally when run as root, and anything written as root under /alloc/gitea
+    # (app.ini, sqlite db) would be unwritable by the main gitea task, which the
+    # image entrypoint drops to `git` via su-exec. Nomad's shared /alloc dir is
+    # mode 0777 so uid 1000 can create the tree.
     task "init" {
       driver = "docker"
+      user   = "1000:1000"
 
       lifecycle {
         hook    = "prestart"
@@ -225,7 +238,10 @@ EOF
         GITEA__service__DISABLE_REGISTRATION = "true"
         GITEA__service__REQUIRE_SIGNIN_VIEW  = "false"
         GITEA__mirror__ENABLED               = "true"
-        GITEA__migrations__ALLOWED_DOMAINS   = "github.com"
+        # Must include *.github.com: the `service: github` migrator talks to
+        # api.github.com before cloning, and a bare "github.com" entry rejects
+        # that with "migration can only call allowed HTTP servers".
+        GITEA__migrations__ALLOWED_DOMAINS   = "github.com,*.github.com"
         GITEA__log__LEVEL                    = "Info"
       }
 
