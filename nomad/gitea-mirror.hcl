@@ -350,7 +350,12 @@ EOF
 2. Ensures the target org exists and each required repo is migrated as a pull
    mirror from GitHub, retrying until that succeeds.
 3. Serves /ready on GATE_PORT: 503 until every required repo reports
-   "empty": false (first sync done), then 200.
+   "empty": false (first sync done), then 200, plus /metrics for Prometheus.
+
+/ready only ever guards the FIRST sync. Once a replica is serving, every later
+pull could fail and it would stay healthy, quietly handing boots older and
+older code, so /metrics exports the last-sync time per repo for a staleness
+alert.
 
 Retrying a migrate is not just a matter of calling it again. A migrate Gitea
 rejects still leaves a repo row behind (empty, no mirror interval) and that
@@ -361,6 +366,7 @@ out client-side, so deleting on sight would destroy healthy in-flight clones.
 A stub is therefore only removed once the migrate has failed outright, or once
 it has sat there past GATE_STALL_TIMEOUT without becoming non-empty.
 """
+import datetime
 import json
 import os
 import threading
@@ -392,6 +398,10 @@ POLL_INTERVAL = int(os.environ.get("GATE_POLL_INTERVAL", "10"))
 
 _ready = threading.Event()
 
+# repo -> {"synced": 0|1, "last_sync": float|None}, published on /metrics.
+_metrics = {}
+_metrics_lock = threading.Lock()
+
 
 class RepoState(object):
     """What our last migrate attempt for one repo did.
@@ -404,6 +414,47 @@ class RepoState(object):
     def __init__(self):
         self.attempted_at = None
         self.outcome = None
+
+
+def parse_timestamp(value):
+    """Gitea's RFC3339 mirror_updated as a unix time, or None if never synced."""
+    if not value or value.startswith("0001-01-01"):
+        return None
+    try:
+        return datetime.datetime.fromisoformat(value.replace("Z", "+00:00")).timestamp()
+    except ValueError:
+        return None
+
+
+def record_repo(repo, body):
+    with _metrics_lock:
+        _metrics[repo] = {
+            "synced": 1 if body.get("empty") is False else 0,
+            "last_sync": parse_timestamp(body.get("mirror_updated")),
+        }
+
+
+def render_metrics():
+    with _metrics_lock:
+        snap = dict((repo, dict(v)) for repo, v in _metrics.items())
+    out = [
+        "# HELP gitea_mirror_ready Whether every required repo has finished its first sync.",
+        "# TYPE gitea_mirror_ready gauge",
+        "gitea_mirror_ready %d" % (1 if _ready.is_set() else 0),
+        "# HELP gitea_mirror_repo_synced Whether this repo has finished its first sync.",
+        "# TYPE gitea_mirror_repo_synced gauge",
+    ]
+    for repo in sorted(snap):
+        out.append('gitea_mirror_repo_synced{repo="%s"} %d' % (repo, snap[repo]["synced"]))
+    out.append("# HELP gitea_mirror_last_sync_timestamp_seconds Unix time Gitea last pulled this mirror.")
+    out.append("# TYPE gitea_mirror_last_sync_timestamp_seconds gauge")
+    for repo in sorted(snap):
+        ts = snap[repo]["last_sync"]
+        # Only emitted once the repo has actually synced. A mirror still doing
+        # its first clone would otherwise read as infinitely stale.
+        if ts is not None:
+            out.append('gitea_mirror_last_sync_timestamp_seconds{repo="%s"} %.0f' % (repo, ts))
+    return "\n".join(out) + "\n"
 
 
 def read_token():
@@ -516,6 +567,10 @@ def drop_stub(token, repo, st, why):
 def reconcile(token, repo, st):
     """Drive one repo towards being mirrored. True once its first sync is done."""
     status, body = api("GET", "/api/v1/repos/%s/%s" % (GITEA_ORG, repo), token)
+    if status == 200:
+        # Only on a good read: a transient error must not wipe the last known
+        # sync time and blind the staleness alert.
+        record_repo(repo, body)
 
     if status == 200 and body.get("empty") is False:
         st.outcome = None
@@ -548,6 +603,14 @@ def reconcile(token, repo, st):
 
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
+        if self.path.startswith("/metrics"):
+            payload = render_metrics().encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "text/plain; version=0.0.4")
+            self.send_header("Content-Length", str(len(payload)))
+            self.end_headers()
+            self.wfile.write(payload)
+            return
         if self.path.startswith("/ready"):
             code = 200 if _ready.is_set() else 503
         else:
@@ -594,6 +657,15 @@ def main():
 if __name__ == "__main__":
     main()
 EOF
+      }
+
+      # Registered purely so prometheus can scrape /metrics off the gate port.
+      # Deliberately has no check: scraping has to keep working precisely when
+      # the gate is reporting not-ready, and the routable service is the gitea
+      # one above.
+      service {
+        name = "gitea-mirror-metrics"
+        port = "health"
       }
 
       resources {
