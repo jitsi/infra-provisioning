@@ -95,8 +95,8 @@ Both changes ship with an **automatic fallback to the current mechanism**
 5. **Repo visibility in Gitea.** Public repos (`infra-configuration`,
    `infra-provisioning`, `jitsi-meet`) are served **anonymously** over the
    internal mirror — booting instances need no credential for them.
-   `infra-customizations-private` stays **private** in Gitea and requires a
-   read-only Gitea access token (see decision 6). This deliberately avoids
+   `infra-customizations-private` stays **private** in Gitea and requires the
+   read-only Gitea user (see decision 6, revised). This deliberately avoids
    exposing private source to the whole VCN via anonymous read.
 
 6. **Bootstrap credentials from Vault via OCI instance identity.** A new Vault
@@ -105,10 +105,57 @@ Both changes ship with an **automatic fallback to the current mechanism**
    role **`vm-bootstrap`** (covers *all* VM roles, not just JVB), bound to the
    VM compartment OCID / dynamic group, issues a short-lived token scoped by a
    policy that can read **only** two paths:
-   - `secret/data/default/gitea/read-token` — the Gitea read-only token for the
-     private repo mirror.
+   - `secret/data/default/gitea/read-user` — the read-only Gitea **user**
+     (username + password) for the private repo mirror. See the 2026-09-07
+     revision below for why this is a user and not a token.
    - `secret/data/default/<env>/ansible-vault-password` — the ansible-vault
      password (moved off the bucket).
+
+   **Revised 2026-09-07 (read-only credential is a user, not a token).** The
+   original wording had boots read a shared Gitea *access token* from Vault.
+   That cannot work with decision 3: each replica runs its own ephemeral
+   sqlite database and mints its own tokens, a token exists only in the
+   database that minted it, Gitea cannot be told a token's value, and Fabio
+   routes a boot to either replica. Demonstrated in ops-dev: a sync triggered
+   through the mirror hostname left the two replicas with different
+   `mirror_updated` values, so a shared token would have been rejected by about
+   half of boots. A user's password *can* be chosen, so the flow is inverted:
+
+   1. `scripts/seed-gitea-read-user.sh` seeds `secret/default/gitea/read-user`
+      (`username`, `password`) once per Vault. The password is alphanumeric
+      only, because it ends up in a netrc line and may end up in a URL.
+   2. Every replica's init task creates that user from the secret
+      (`gitea admin user create --restricted`, then
+      `admin user change-password` so an in-place restart or a rotation
+      converges), idempotently and identically on every replica.
+   3. The sync-gate grants the user `read` as a collaborator on each private
+      repo once it has synced, re-checking on every pass because the grant is
+      repo state and vanishes when a stub is dropped and re-migrated. `/ready`
+      for a private repo also requires the grant, so a replica is never routed
+      to until a boot could actually clone from it. Verified on Gitea 1.22:
+      git-over-HTTP basic auth works for a plain user (no token required), the
+      grant PUT is idempotent (204 twice), push is refused, and a restricted
+      user can still fetch public repos when it presents credentials.
+   4. Boots clone over HTTPS with the credential in `/root/.netrc` for the
+      mirror host (written by `fetch_mirror_credentials`, removed by
+      `clean_credentials`, written with tracing off since the boot runs under
+      `set -x`). git hands netrc credentials to a host only when challenged, so
+      they never appear in a URL, process list or boot log, and public repos
+      are still fetched anonymously.
+   5. **Transition source of the credential: the boot bucket.** Vault OCI
+      instance auth at boot (stage 3) is unbuilt, needs the `vault` CLI on the
+      images, and would add a Vault dependency to boot while the 2026-07-09
+      seal outage mitigations are still landing. So for now
+      `scripts/publish-gitea-read-user-bucket.sh` copies the secret into
+      `jvb-bucket-<env>` (per region) as `gitea-read-user`, next to the deploy
+      key and ansible-vault password boots already fetch with their instance
+      principal. When stage 3 lands, boots read `secret/default/gitea/read-user`
+      directly; the instance-policy grant for that path is in
+      `terraform/vault-oci-instance-auth-config` (renamed from `read-token`,
+      re-apply per environment as part of stage 3).
+   6. Nothing here can fail a boot: a missing credential, a mirror without the
+      user, or a wrong password all make the mirror clone of the private repo
+      fail, and `checkout_repos` falls back to github.
 
 7. **Fallback to bucket + GitHub during transition.** The boot path attempts
    Vault + regional mirror first; on any failure it falls back to the current
@@ -296,6 +343,13 @@ today.
   before deploy: seed Vault `secret/default/gitea/admin` (username/password/email)
   and `secret/default/gitea/github` (a GitHub PAT with read access to
   `infra-customizations-private`).
+- **Read-only credential (2026-09-07):** built per the decision 6 revision.
+  `nomad/gitea-mirror.hcl` (init creates the user, gate grants read, `/ready`
+  requires it), `scripts/seed-gitea-read-user.sh`,
+  `scripts/publish-gitea-read-user-bucket.sh`, `fetch_mirror_credentials` +
+  `configure_mirror_repos` in `terraform/lib/postinstall-lib.sh`
+  (`GIT_MIRROR_HOST` opt-in per stack; plumbed into the nomad-instance-pool
+  stack first). Vault grants: infra-customizations-private #1098.
 - **Stage 2 (Vault, infra-customizations-private terraform):** the OCI auth
   method is **already enabled** (`terraform/vault-oci-auth-config` →
   `vault_auth_backend.oci`), and `terraform/vault-oci-instance-auth-config`
@@ -305,7 +359,7 @@ today.
   `secret/data/$ENVIRONMENT/*`**, so the ansible-vault password can move to
   `secret/data/$ENVIRONMENT/ansible-vault-password` and be read at boot with the
   *existing* role — no new role required for it. The only gap is the Gitea
-  read-token at `secret/data/default/gitea/read-token`, which is outside
+  read-user at `secret/data/default/gitea/read-user`, which is outside
   `secret/data/$ENVIRONMENT/*`; add a read grant for that path (either extend the
   instance policy, or add the dedicated least-privilege `bootstrap-read` policy +
   `vm-bootstrap` role per decision 6). This slots into the existing terraform
