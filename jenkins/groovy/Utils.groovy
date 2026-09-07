@@ -77,6 +77,58 @@ def CheckSkipBuild(image_type, environment, force_build) {
     return (checkOutput == 1);
 }
 
+// Checks out one ref from one remote. Returns true on success, and false only
+// when that remote simply does not have the ref. Anything else (auth, network,
+// a broken workspace) is rethrown so the retry() around the caller can handle
+// it, since those are worth retrying and a missing ref is not.
+def TryCheckoutRef(url, ref, credentials, useSubmodules) {
+  try {
+    if (useSubmodules) {
+      checkout([$class: 'GitSCM', branches: [[name: "origin/${ref}"]], extensions: [[$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: false, recursiveSubmodules: true, reference: '', trackingSubmodules: false]], userRemoteConfigs: [[credentialsId: credentials, url: url]]])
+    } else {
+      git branch: ref, url: url, credentialsId: credentials
+    }
+    return true
+  } catch (hudson.AbortException e) {
+    if (e.toString().contains('Couldn\'t find any revision to build')) {
+      return false
+    }
+    throw e
+  }
+}
+
+// Checks out one infra repo, preferring the in-region mirror when one is
+// configured for it.
+//
+// The order matters. A mirror pulls from github on an interval, so it can be
+// missing a tag pushed moments earlier. Falling straight back to main there
+// would not fail the build, it would quietly build the wrong code -- which for
+// a job provisioning a release is worse than failing. So a ref the mirror does
+// not have is retried against github at the same ref, and only a ref github
+// does not have either falls back to main, which is the long-standing
+// behaviour for genuinely branch-less builds.
+//
+// Mirror URLs are HTTPS, so they need their own credential: the public repos
+// are served anonymously and the private one needs a Gitea user rather than
+// the github deploy key. INFRA_MIRROR_CREDENTIALS_ID overrides it.
+def CheckoutInfraRepo(repoName, branch, mirrorUrl, originUrl, useSubmodules) {
+  def mirrorCredentials = env.INFRA_MIRROR_CREDENTIALS_ID ?: 'video-infra'
+  if (mirrorUrl) {
+    echo "checking out ${repoName} at ${branch} from the in-region mirror"
+    if (TryCheckoutRef(mirrorUrl, branch, mirrorCredentials, useSubmodules)) {
+      return
+    }
+    echo "WARNING: ${branch} is not in the ${repoName} mirror yet, trying github"
+  }
+  if (TryCheckoutRef(originUrl, branch, 'video-infra', useSubmodules)) {
+    return
+  }
+  echo "WARNING: couldn't find branch ${branch} in ${repoName} repo, falling back to main"
+  if (!TryCheckoutRef(originUrl, 'main', 'video-infra', useSubmodules)) {
+    error("could not check out ${repoName} at ${branch} or at main")
+  }
+}
+
 def SetupRepos(branch) {
   sshagent (credentials: ['video-infra']) {
       def scmUrl = scm.getUserRemoteConfigs()[0].getUrl()
@@ -88,32 +140,14 @@ def SetupRepos(branch) {
       if (env.INFRA_CONFIGURATION_REPO) {
         dir('infra-configuration') {
             retry(count: 3) {
-                try {
-                    checkout([$class: 'GitSCM', branches: [[name: "origin/${branch}"]], extensions: [[$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: false, recursiveSubmodules: true, reference: '', trackingSubmodules: false]], userRemoteConfigs: [[credentialsId: 'video-infra', url: env.INFRA_CONFIGURATION_REPO]]])
-                } catch (hudson.AbortException e) {
-                    if (e.toString().contains('Couldn\'t find any revision to build')) {
-                        echo "WARNING: couldn't find branch ${branch} in infra-configuration repo, falling back to main"
-                        checkout([$class: 'GitSCM', branches: [[name: "origin/main"]], extensions: [[$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: false, recursiveSubmodules: true, reference: '', trackingSubmodules: false]], userRemoteConfigs: [[credentialsId: 'video-infra', url: env.INFRA_CONFIGURATION_REPO]]])
-                    } else {
-                        throw e
-                    }
-                }
+                CheckoutInfraRepo('infra-configuration', branch, env.INFRA_CONFIGURATION_MIRROR_REPO, env.INFRA_CONFIGURATION_REPO, true)
                 SetupAnsible()
             }
         }
       }
       dir('infra-customization') {
         retry(count: 3) {
-          try {
-            git branch: branch, url: env.INFRA_CUSTOMIZATIONS_REPO, credentialsId: 'video-infra'
-          } catch (hudson.AbortException e) {
-            if (e.toString().contains('Couldn\'t find any revision to build')) {
-                echo "WARNING: couldn't find branch ${branch} in infra-customization repo, falling back to main"
-                git branch: 'main', url: env.INFRA_CUSTOMIZATIONS_REPO, credentialsId: 'video-infra'
-            } else {
-                throw e
-            }
-          }
+          CheckoutInfraRepo('infra-customization', branch, env.INFRA_CUSTOMIZATIONS_MIRROR_REPO, env.INFRA_CUSTOMIZATIONS_REPO, false)
         }
       }
       if (env.INFRA_CONFIGURATION_REPO) {
