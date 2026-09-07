@@ -272,11 +272,48 @@ today.
 
 ## Open questions
 
-- Which compartment OCID / dynamic group should the `vm-bootstrap` role bind to
-  per environment?
-- Mirror `jitsi-meet` in all regions, or only where boots need it?
-- Confirm the per-env `VAULT_ENVIRONMENT` / `DNS_ZONE` values used to construct
-  `VAULT_ADDR` at boot for each environment.
+- ~~Which compartment OCID / dynamic group should the `vm-bootstrap` role bind
+  to per environment?~~ **Resolved (2026-07-28):** bind it to the same
+  `$ENVIRONMENT-dynamic-group` OCID the existing `$ENVIRONMENT-instance-role`
+  uses (looked up via `oci iam dynamic-group list` in
+  `terraform/vault-oci-instance-auth-config/vault-oci-instance-auth-config.sh`).
+  No new OCID to source.
+- ~~Mirror `jitsi-meet` in all regions, or only where boots need it?~~
+  **Resolved (2026-07-28):** mirror `jitsi-meet` only in `us-phoenix-1` (where
+  the Jenkins/build host lives); everywhere else mirror just the three infra
+  repos. Implemented in `scripts/deploy-nomad-gitea-mirror.sh`.
+- ~~Confirm the per-env `VAULT_ENVIRONMENT` / `DNS_ZONE` values used to construct
+  `VAULT_ADDR` at boot for each environment.~~ **Resolved (2026-07-28):** the
+  established form is `https://${VAULT_ENVIRONMENT}-${VAULT_REGION}-vault.jitsi.net`
+  (`VAULT_REGION` default `us-phoenix-1`, `VAULT_ENVIRONMENT` default `ops-prod`),
+  per the same `.sh` wrapper. The boot path should construct `VAULT_ADDR` the
+  same way rather than from `DNS_ZONE`.
+
+## Implementation status (2026-07-28)
+
+- **Stage 1 (this repo, branch `JIT-16092-gitea-mirror-bootstrap`): DONE.**
+  `nomad/gitea-mirror.hcl` + `scripts/deploy-nomad-gitea-mirror.sh`. Prereqs
+  before deploy: seed Vault `secret/default/gitea/admin` (username/password/email)
+  and `secret/default/gitea/github` (a GitHub PAT with read access to
+  `infra-customizations-private`).
+- **Stage 2 (Vault, infra-customizations-private terraform):** the OCI auth
+  method is **already enabled** (`terraform/vault-oci-auth-config` →
+  `vault_auth_backend.oci`), and `terraform/vault-oci-instance-auth-config`
+  already defines a per-env `$ENVIRONMENT-instance-policy` + an
+  `auth/oci/role/$ENVIRONMENT-instance-role` bound to the env dynamic group.
+  That existing instance policy **already grants instance principals read on
+  `secret/data/$ENVIRONMENT/*`**, so the ansible-vault password can move to
+  `secret/data/$ENVIRONMENT/ansible-vault-password` and be read at boot with the
+  *existing* role — no new role required for it. The only gap is the Gitea
+  read-token at `secret/data/default/gitea/read-token`, which is outside
+  `secret/data/$ENVIRONMENT/*`; add a read grant for that path (either extend the
+  instance policy, or add the dedicated least-privilege `bootstrap-read` policy +
+  `vm-bootstrap` role per decision 6). This slots into the existing terraform
+  module + its `.sh` `vault write auth/oci/role/...` step.
+- **Stage 3 (boot path, infra-configuration `postinstall-lib.sh`):** unchanged
+  from the plan. Construct `VAULT_ADDR` as above.
+- **Stages 2-3 held** until the mirror is deployed and the first-sync health gate
+  is verified per region (per the rollout order).
 
 ## References
 

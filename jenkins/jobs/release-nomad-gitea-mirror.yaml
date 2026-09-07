@@ -1,0 +1,107 @@
+- job:
+    name: release-nomad-gitea-mirror
+    display-name: release nomad gitea-mirror
+    description: "release the regional Gitea pull-mirror of the infra repos to nomad in one or more regions in an environment."
+    concurrent: true
+    parameters:
+      - string:
+          name: VIDEO_INFRA_BRANCH
+          default: main
+          description: "Controls checkout branch for infra repos, defaults to 'main'."
+          trim: true
+      - string:
+          name: ENVIRONMENT
+          description: "Environment to release in"
+          trim: true
+      - string:
+          name: REGIONS
+          description: "REGIONS to release in, defaults to NOMAD_REGIONS for the environment."
+          trim: true
+      - string:
+          name: JOB_TYPE
+          default: gitea-mirror
+          description: "Nomad job type to release, defaults to 'gitea-mirror' do not change"
+          trim: true
+      - string:
+          name: GITEA_HOSTNAME
+          description: "Overrides the internal hostname the mirror is served on (defaults to <environment>-<region>-git.jitsi.net). Leave blank when releasing to more than one region, since the default is per-region."
+          trim: true
+      - string:
+          name: GITEA_REQUIRED_REPOS
+          description: "Overrides which repos are mirrored, as an HCL list, e.g. '[\"infra-configuration\",\"infra-provisioning\"]'. Leave blank for the default: the three infra repos everywhere, plus jitsi-meet in us-phoenix-1. Every repo listed must finish its first sync before the replica is considered healthy."
+          trim: true
+      - string:
+          name: GITEA_IMAGE_VERSION
+          description: "Overrides the Gitea image (defaults to gitea/gitea:1.22)"
+          trim: true
+      - string:
+          name: GITEA_MIRROR_INTERVAL
+          description: "Overrides how often Gitea re-pulls each mirror from GitHub (defaults to 10m)"
+          trim: true
+      - string:
+          name: INFRA_CONFIGURATION_REPO
+          default: git@github.com:jitsi/infra-configuration.git
+          description: "Repo for configuration code (ansible etc), defaults to 'git@github.com:jitsi/infra-configuration.git'."
+          trim: true
+      - string:
+          name: INFRA_CUSTOMIZATIONS_REPO
+          default: git@github.com:jitsi/infra-customizations-private.git
+          description: "Repo with customized configurations, defaults to 'git@github.com:jitsi/infra-customizations-private.git'."
+          trim: true
+      # ---- governance (standard) ----
+      - string:
+          name: RP_TICKET
+          default: ""
+          description: "RP ticket (format: RP-1234) for governance change tracking. Auto-extracted from governance if left empty."
+          trim: true
+      - string:
+          name: JIRA_TICKET
+          default: ""
+          description: "Optional JIRA ticket associated with this change, for governance tracking."
+          trim: true
+      - bool:
+          name: GOVERNANCE_ENABLED
+          default: true
+          description: "Enable governance hooks (pre/post release & deploy gates)."
+      - bool:
+          name: GOVERNANCE_STAGING
+          default: false
+          description: "Target the governance STAGING endpoint instead of production."
+      - bool:
+          name: FAST_TRACK
+          default: false
+          description: "Fast-track the change — skip manual verification/approval gates."
+      - bool:
+          name: GOVERNANCE_VERBOSE
+          default: false
+          description: "Mirror governance hook output (payloads, responses, gate results, shell traces) to the console. When off it goes only to the archived governance log artifact; warnings always show."
+      # ---- governance (advanced, optional) ----
+      - bool:
+          name: GOVERNANCE_ALLOW_OVERRIDE
+          default: true
+          description: "Allow a human to override a governance DENY via an input prompt instead of failing the build."
+      - bool:
+          name: GOVERNANCE_SKIP_GATES
+          default: false
+          description: "Send governance notifications but do not poll/block on the gate result."
+      - string:
+          name: GOVERNANCE_GATE_TIMEOUT
+          default: "60"
+          description: "Seconds a gate may stay PENDING before offering an interactive 'skip' prompt (0 disables the prompt)."
+          trim: true
+
+    project-type: pipeline
+    sandbox: true
+    pipeline-scm:
+      scm:
+        - git:
+            url: git@github.com:jitsi/infra-provisioning.git
+            credentials-id: "video-infra"
+            branches:
+              - "origin/${{VIDEO_INFRA_BRANCH}}"
+            browser: githubweb
+            browser-url: https://github.com/jitsi/infra-provisioning
+            submodule:
+              recursive: true
+      script-path: jenkins/groovy/release-nomad-job/Jenkinsfile
+      lightweight-checkout: true

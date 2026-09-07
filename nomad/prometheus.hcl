@@ -205,6 +205,16 @@ ${var.custom_relabels}
       - target_label: service
         replacement: 'jitsi'
 ${var.custom_relabels}
+  - job_name: 'gitea-mirror'
+    scrape_interval: 60s
+    metrics_path: /metrics
+    consul_sd_configs:
+    - server: '{{ env "NOMAD_IP_prometheus_ui" }}:8500'
+      services: ['gitea-mirror-metrics']
+    metric_relabel_configs:
+      - target_label: service
+        replacement: 'infra'
+${var.custom_relabels}
   - job_name: 'prometheus'
     scrape_interval: 5s
     static_configs:
@@ -464,6 +474,47 @@ groups:
         modifying the allocated CPU and re-deploying the job.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=nomad_job
+
+  - alert: Gitea_Mirror_Stale
+    # The regional Gitea mirror's /ready gate only ever guards the FIRST sync, so a
+    # replica keeps serving happily even if every scheduled pull since has failed --
+    # handing booting VMs progressively older infra code with nothing else to notice.
+    # gitea_mirror_last_sync_timestamp_seconds is Gitea's own mirror_updated, which
+    # advances on each successful pull; the default mirror interval is 10m, so an hour
+    # without one means several consecutive failures. The series is absent until a repo
+    # has synced at least once, so a replica still doing its first clone cannot fire this.
+    expr: time() - gitea_mirror_last_sync_timestamp_seconds > 3600
+    for: 10m
+    labels:
+      service: infra
+      severity: warn
+    annotations:
+      summary: gitea mirror {{ $labels.repo }} is stale in ${var.dc}
+      description: >-
+        The regional Gitea mirror in ${var.dc} has not pulled {{ $labels.repo }} from
+        GitHub for over an hour (last sync {{ $value | humanizeDuration }} ago), while the
+        mirror interval is 10m. The replica is still serving the last snapshot, so VM boots
+        are cloning increasingly stale code. Check the sync-gate logs and the mirror's
+        status page for the repo.
+      dashboard_url: ${var.grafana_url}
+      alert_url: https://${var.prometheus_hostname}/alerts?search=gitea_mirror
+  - alert: Gitea_Mirror_Stale_Critical
+    # Same signal held far longer: the mirror has been failing to pull for most of a day,
+    # so anything booting from it is materially behind main.
+    expr: time() - gitea_mirror_last_sync_timestamp_seconds > 21600
+    for: 10m
+    labels:
+      service: infra
+      severity: severe
+    annotations:
+      summary: gitea mirror {{ $labels.repo }} has been stale for hours in ${var.dc}
+      description: >-
+        The regional Gitea mirror in ${var.dc} has not pulled {{ $labels.repo }} from GitHub
+        for over six hours (last sync {{ $value | humanizeDuration }} ago). VM boots served
+        by this mirror are getting materially outdated infra code. Check whether GitHub
+        auth (the PAT in secret/default/gitea/github) or egress is broken.
+      dashboard_url: ${var.grafana_url}
+      alert_url: https://${var.prometheus_hostname}/alerts?search=gitea_mirror
 
 - name: cloudprober_alerts
   rules:
