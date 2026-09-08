@@ -169,7 +169,13 @@ fi
 
 pushd "$TMPDIR"
 
-git clone https://github.com/jitsi/jitsi-meet.git
+# --no-single-branch keeps every remote branch/tag resolvable (needed below to check for
+# release-$TAG and to check out tags/$TAG), --shallow-since trims history instead of fetching the
+# whole repo since its creation, and --filter=blob:none defers downloading file contents until
+# something is actually checked out. Verified this combination checks out cleanly even for refs
+# from years before the cutoff (git fetches whatever objects that checkout actually needs on
+# demand) - the shallow-since window only limits history depth, not which refs are reachable.
+git clone --no-single-branch --shallow-since="6 months ago" --filter=blob:none https://github.com/jitsi/jitsi-meet.git
 
 JITSI_MEET_BRANCH="$(getJitsiMeetTag $SHARD)"
 
