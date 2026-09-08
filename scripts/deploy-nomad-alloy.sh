@@ -11,6 +11,7 @@ LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 [ -e "$LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh" ] && . "$LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh"
 [ -e "$LOCAL_PATH/../clouds/all.sh" ] && . "$LOCAL_PATH/../clouds/all.sh"
 [ -e "$LOCAL_PATH/../clouds/oracle.sh" ] && . "$LOCAL_PATH/../clouds/oracle.sh"
+[ -z "$MAIN_CONFIGURATION_FILE" ] && MAIN_CONFIGURATION_FILE="$LOCAL_PATH/../config/vars.yml"
 
 if [ -z "$ORACLE_REGION" ]; then
     echo "No ORACLE_REGION set, exiting"
@@ -38,6 +39,30 @@ if [[ "$ENVIRONMENT_TYPE" = "prod" ]]; then
     export NOMAD_VAR_environment_type="prod"
 else
     export NOMAD_VAR_environment_type="nonprod"
+fi
+
+# ---- metrics pipeline (doc/mimir-cluster-plan.md Phase 2); override per env in stack-env.sh ----
+# write metrics to the regional mimir-cluster (deploy it first: scripts/deploy-nomad-mimir.sh)
+[ -z "$ALLOY_ENABLE_MIMIR_WRITE" ] && ALLOY_ENABLE_MIMIR_WRITE="false"
+export NOMAD_VAR_enable_mimir_write="$ALLOY_ENABLE_MIMIR_WRITE"
+# keep relaying OTLP metrics to the legacy regional prometheus (off at cutover)
+[ -z "$ALLOY_ENABLE_LEGACY_PROMETHEUS_WRITE" ] && ALLOY_ENABLE_LEGACY_PROMETHEUS_WRITE="true"
+export NOMAD_VAR_enable_legacy_prometheus_write="$ALLOY_ENABLE_LEGACY_PROMETHEUS_WRITE"
+# take over the consul-SD scrape jobs from prometheus.hcl
+[ -z "$ALLOY_ENABLE_SCRAPE" ] && ALLOY_ENABLE_SCRAPE="false"
+export NOMAD_VAR_enable_scrape="$ALLOY_ENABLE_SCRAPE"
+# primary | ha | none -- how scraped streams reach the external 8x8 Mimir (see alloy.hcl)
+[ -z "$ALLOY_EXTERNAL_SCRAPE_FORWARD" ] && ALLOY_EXTERNAL_SCRAPE_FORWARD="primary"
+export NOMAD_VAR_external_scrape_forward="$ALLOY_EXTERNAL_SCRAPE_FORWARD"
+
+# alloy-syntax equivalents of prometheus_custom_relabels / prometheus_custom_external_labels
+ALLOY_CUSTOM_RELABEL_RULES=$(cat $MAIN_CONFIGURATION_FILE | yq eval ".alloy_custom_relabel_rules")
+if [[ "$ALLOY_CUSTOM_RELABEL_RULES" != "null" ]]; then
+    export NOMAD_VAR_custom_relabel_rules="$ALLOY_CUSTOM_RELABEL_RULES"
+fi
+ALLOY_CUSTOM_EXTERNAL_LABELS=$(cat $MAIN_CONFIGURATION_FILE | yq eval ".alloy_custom_external_labels")
+if [[ "$ALLOY_CUSTOM_EXTERNAL_LABELS" != "null" ]]; then
+    export NOMAD_VAR_custom_external_labels="$ALLOY_CUSTOM_EXTERNAL_LABELS"
 fi
 
 sed -e "s/\[JOB_NAME\]/$JOB_NAME/" "$NOMAD_JOB_PATH/alloy.hcl" | nomad job run -var="dc=$NOMAD_DC" -

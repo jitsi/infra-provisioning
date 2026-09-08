@@ -160,4 +160,10 @@ for ORACLE_REGION in $ORACLE_REGIONS; do
 
   BUCKET_NAME="loki-$ENVIRONMENT"
   create_bucket_if_not_present $BUCKET_NAME $ORACLE_REGION $COMPARTMENT_OCID false Disabled
+
+  # mimir TSDB blocks + ruler/alertmanager state (one bucket per region, same name in every
+  # region, like loki). No lifecycle policy and no versioning on purpose: the mimir compactor owns
+  # retention (limits.compactor_blocks_retention_period) and churns objects constantly.
+  BUCKET_NAME="mimir-$ENVIRONMENT"
+  create_bucket_if_not_present $BUCKET_NAME $ORACLE_REGION $COMPARTMENT_OCID false Disabled
 done
