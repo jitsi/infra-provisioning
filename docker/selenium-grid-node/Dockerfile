@@ -7,7 +7,7 @@
 # feeds the hub image (see scripts/selenium-version.sh) so the
 # two cannot drift apart. Previously this tracked :nightly, which meant the node
 # Selenium version -- and the stable browser -- changed silently on every rebuild.
-ARG SELENIUM_VERSION=4.47
+ARG SELENIUM_VERSION=4.48.0
 FROM selenium/node-chromium:${SELENIUM_VERSION}
 
 USER root

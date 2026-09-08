@@ -23,4 +23,4 @@
 # installed from Google's apt repo at image build time and get their drivers from
 # Chrome for Testing, so browsers advance on a rebuild without moving this value.
 
-export SELENIUM_VERSION="${SELENIUM_VERSION:-4.47}"
+export SELENIUM_VERSION="${SELENIUM_VERSION:-4.48.0}"
