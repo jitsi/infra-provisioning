@@ -141,26 +141,6 @@ trap cleanup EXIT
 
 #set -x
 
-pushd "$TMPDIR"
-
-git clone https://github.com/jitsi/jitsi-meet.git
-
-JITSI_MEET_BRANCH="$(getJitsiMeetTag $SHARD)"
-
-pushd jitsi-meet
-
-if [ -z "${TORTURE_BRANCH}" ]; then
-  # Check if the release branch exists
-  if git show-ref --verify --quiet "refs/remotes/origin/release-${JITSI_MEET_BRANCH}"; then
-    echo "Branch '${JITSI_MEET_BRANCH}' exists. Checking out..."
-    git checkout "release-${JITSI_MEET_BRANCH}"
-  else
-    git checkout tags/${JITSI_MEET_BRANCH}
-  fi
-else
-  git checkout "${TORTURE_BRANCH}"
-fi
-
 if [ -n "$JAAS_JWT_KID" ]; then
   export IFRAME_TENANT="$(echo "${JAAS_JWT_KID}" | cut -d'/' -f1)"
   export JWT_PRIVATE_KEY_PATH=$JAAS_SIGNING_KEY_FILE
@@ -168,15 +148,6 @@ if [ -n "$JAAS_JWT_KID" ]; then
   export WEBHOOKS_PROXY_URL="${WEBHOOKS_PROXY_URL}"
   export WEBHOOKS_PROXY_SHARED_SECRET="${JAAS_WH_SHARED_SECRET}"
 fi
-
-nvm install
-nvm use
-
-node -v
-npm -v
-echo "Start npm install"
-npm install
-echo "Done npm install"
 
 [ -z "$LOCAL_REGION" ] && LOCAL_REGION="$OCI_LOCAL_REGION"
 [ -z "$LOCAL_REGION" ] && LOCAL_REGION="us-phoenix-1"
@@ -196,13 +167,61 @@ if [ -n "${VOX_ACCOUNT_ID}" ]; then
   export YTUBE_TEST_BROADCAST_ID="${TEST_YTUBE_TEST_BROADCAST_ID}"
 fi
 
-# For the 8x8 environments, add the meeting-settings spec from the branding repo so the grid
-# run below includes it. The spec maps onto tests/specs/8x8/ and resolves the jitsi-meet test
-# framework via its relative imports.
+pushd "$TMPDIR"
+
+# --no-single-branch keeps every remote branch/tag resolvable (needed below to check for
+# release-$TAG and to check out tags/$TAG), --shallow-since trims history instead of fetching the
+# whole repo since its creation, and --filter=blob:none defers downloading file contents until
+# something is actually checked out. Verified this combination checks out cleanly even for refs
+# from years before the cutoff (git fetches whatever objects that checkout actually needs on
+# demand) - the shallow-since window only limits history depth, not which refs are reachable.
+git clone --no-single-branch --shallow-since="6 months ago" --filter=blob:none https://github.com/jitsi/jitsi-meet.git
+
+JITSI_MEET_BRANCH="$(getJitsiMeetTag $SHARD)"
+
+pushd jitsi-meet
+
+if [ -z "${TORTURE_BRANCH}" ]; then
+  # Check if the release branch exists
+  if git show-ref --verify --quiet "refs/remotes/origin/release-${JITSI_MEET_BRANCH}"; then
+    echo "Branch '${JITSI_MEET_BRANCH}' exists. Checking out..."
+    git checkout "release-${JITSI_MEET_BRANCH}"
+  else
+    git checkout tags/${JITSI_MEET_BRANCH}
+  fi
+else
+  git checkout "${TORTURE_BRANCH}"
+fi
+
+nvm install
+nvm use
+
+node -v
+npm -v
+
+# tests/ has its own package.json (only the wdio-side runtime dependencies) on newer jitsi-meet
+# checkouts - installing there instead of at the jitsi-meet root is far smaller/faster than the
+# full monorepo install. Fall back to installing at the jitsi-meet root for older checkouts that
+# don't have it yet.
+if [ -f tests/package.json ]; then
+  cd tests
+  RESULTS_SRC="$TMPDIR/jitsi-meet/tests/test-results"
+else
+  RESULTS_SRC="$TMPDIR/jitsi-meet/test-results"
+fi
+
+echo "Start npm install"
+npm install
+echo "Done npm install"
+
+# For the 8x8 environments, add the meeting-settings spec from the branding repo so the grid run
+# below includes it. The spec maps onto tests/specs/8x8/ and resolves the jitsi-meet test
+# framework via its relative imports. Works the same whether we're sitting in tests/ or jitsi-meet/
+# above (specs/ is right here either way).
 if [ "$RUN_MEET_SETTINGS" = "true" ]; then
   if [ -d "$BRANDING_PATH/meet-8x8-com/tests/specs" ]; then
     echo "Adding 8x8 meeting-settings spec from $BRANDING_PATH"
-    cp -a "$BRANDING_PATH/meet-8x8-com/tests/specs/." tests/specs/
+    cp -a "$BRANDING_PATH/meet-8x8-com/tests/specs/." specs/
 
     # Settings page differs per environment type (stage -> pilot, prod -> prod); the spec
     # derives the API hosts from it.
@@ -236,7 +255,7 @@ echo "Done testing"
 popd
 popd
 
-mv $TMPDIR/jitsi-meet/test-results ../test-results/${SHARD}
+mv "$RESULTS_SRC" ../test-results/${SHARD}
 
 if [[ $SUCCESS == 0 ]]; then
   $LOCAL_PATH/set_shard_tested.py $ENVIRONMENT $SHARD passed $BUILD_NUMBER
