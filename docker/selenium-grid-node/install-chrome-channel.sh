@@ -14,7 +14,7 @@
 # Fails the build if no matching driver can be resolved, rather than leaving a
 # stereotype that only breaks at session-creation time in the nightly run.
 
-set -eu
+set -euo pipefail
 
 CHANNEL="${1:?usage: install-chrome-channel.sh <stable|beta>}"
 CFT_BASE="https://googlechromelabs.github.io/chrome-for-testing"
@@ -38,18 +38,28 @@ esac
 
 #-------------------------------------------------------------------
 # Google's apt repo. Present already on the Chrome base images, absent
-# on node-chromium (which installs Chromium from Debian sid), so add it
-# idempotently rather than assuming either way.
+# on node-chromium (which installs Chromium from Debian sid), so write it
+# out on every run rather than assuming either way.
+#
+# Deliberately NOT guarded on "is google-chrome.list already there". The first
+# channel's postinst rewrites apt's configuration underneath us: it migrates
+# our .list into google-chrome.sources and then, seeing no deb line in the
+# .list but its own, takes the `rm -f "$LEGACY_LIST"` branch of
+# remove_legacy_list(). The second run therefore finds no .list, decides the
+# repo is missing, and re-runs this block -- at which point `gpg --dearmor`
+# hits an existing keyring, tries to ask whether to overwrite it, finds no
+# /dev/tty in a buildkit container and dies. Everything below is idempotent,
+# so just always do it.
 #-------------------------------------------------------------------
-if [ ! -f /etc/apt/sources.list.d/google-chrome.list ]; then
-  echo "Adding Google Chrome apt repository for ${DPKG_ARCH}"
-  mkdir -p /etc/apt/keyrings
-  curl -fsSL https://dl.google.com/linux/linux_signing_key.pub \
-    | gpg --dearmor -o /etc/apt/keyrings/google-chrome.gpg
-  chmod 644 /etc/apt/keyrings/google-chrome.gpg
-  echo "deb [arch=${DPKG_ARCH} signed-by=/etc/apt/keyrings/google-chrome.gpg] https://dl.google.com/linux/chrome/deb/ stable main" \
-    > /etc/apt/sources.list.d/google-chrome.list
-fi
+echo "Configuring the Google Chrome apt repository for ${DPKG_ARCH}"
+mkdir -p /etc/apt/keyrings
+# --batch --yes is what keeps the second run alive: without it gpg prompts
+# before clobbering the keyring the first run wrote.
+curl -fsSL https://dl.google.com/linux/linux_signing_key.pub \
+  | gpg --batch --yes --dearmor -o /etc/apt/keyrings/google-chrome.gpg
+chmod 644 /etc/apt/keyrings/google-chrome.gpg
+echo "deb [arch=${DPKG_ARCH} signed-by=/etc/apt/keyrings/google-chrome.gpg] https://dl.google.com/linux/chrome/deb/ stable main" \
+  > /etc/apt/sources.list.d/google-chrome.list
 
 #-------------------------------------------------------------------
 # Browser. --only-upgrade is deliberately NOT used: we want whatever the
@@ -73,7 +83,7 @@ rm -rf /var/lib/apt/lists/* /var/cache/apt/*
 # BROWSER_MAJOR and the driver-major assertion derive from this value, so a bad
 # parse would move both sides together and the assertion could not catch it.
 BROWSER_VERSION="$("$BIN" --version | awk '{print $3}')"
-if ! echo "$BROWSER_VERSION" | grep -qE '^[0-9]+(\.[0-9]+){3}$'; then
+if ! [[ "$BROWSER_VERSION" =~ ^[0-9]+(\.[0-9]+){3}$ ]]; then
   echo "FATAL: could not parse a version from: $("$BIN" --version)"
   exit 1
 fi
