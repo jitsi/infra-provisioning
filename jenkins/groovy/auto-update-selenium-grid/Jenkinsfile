@@ -21,7 +21,7 @@
 // RUN_TF=false when UPGRADE_GRID != true, so no instance is recycled and the
 // running nodes keep the image they booted with -- this job would then finish
 // green while updating nothing. Whether a grid is nomad-based is decided by the
-// selenium_grid_nomad_enabled ansible var, which lives outside this repo, so it
+// selenium_grid_enable_nomad ansible var, which lives outside this repo, so it
 // cannot be asserted here.
 //
 // Note: passing SELENIUM_GRID_NOMAD_ENABLED=true to provision-selenium-grid is

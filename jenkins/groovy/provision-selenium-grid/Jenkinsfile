@@ -31,7 +31,14 @@ pipeline {
                         skipNomad = false;
                     } else {
                         dir('infra-provisioning') {
-                            def nomadEnabled = utils.GetAnsibleVar(env.ENVIRONMENT, 'selenium_grid_nomad_enabled')
+                            // The var is selenium_grid_enable_nomad, not
+                            // selenium_grid_nomad_enabled: the latter exists in no vars.yml, so
+                            // GetAnsibleVar's `yq` returned the string "null" -- non-empty, so
+                            // returned as-is -- and this branch never matched. Nomad grids were
+                            // then detected only when an operator ticked
+                            // SELENIUM_GRID_NOMAD_ENABLED by hand; an unattended build skipped
+                            // the nomad stage and finished green having deployed nothing.
+                            def nomadEnabled = utils.GetAnsibleVar(env.ENVIRONMENT, 'selenium_grid_enable_nomad')
                             if (nomadEnabled == "true") {
                                 skipNomad = false;
                             }
