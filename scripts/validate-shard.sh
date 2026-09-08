@@ -141,6 +141,32 @@ trap cleanup EXIT
 
 #set -x
 
+if [ -n "$JAAS_JWT_KID" ]; then
+  export IFRAME_TENANT="$(echo "${JAAS_JWT_KID}" | cut -d'/' -f1)"
+  export JWT_PRIVATE_KEY_PATH=$JAAS_SIGNING_KEY_FILE
+  export JWT_KID="${JAAS_JWT_KID}"
+  export WEBHOOKS_PROXY_URL="${WEBHOOKS_PROXY_URL}"
+  export WEBHOOKS_PROXY_SHARED_SECRET="${JAAS_WH_SHARED_SECRET}"
+fi
+
+[ -z "$LOCAL_REGION" ] && LOCAL_REGION="$OCI_LOCAL_REGION"
+[ -z "$LOCAL_REGION" ] && LOCAL_REGION="us-phoenix-1"
+
+SHARD_REGION=$(ENVIRONMENT="$ENVIRONMENT" SHARD="$SHARD" $LOCAL_PATH/shard.sh shard_region)
+# presume any shards with no region in the name are in the local region
+[ -z "$SHARD_REGION" ] && SHARD_REGION="$LOCAL_REGION"
+
+[ -e $LOCAL_PATH/../clouds/${SHARD_REGION}-${ENVIRONMENT}-oracle.sh ] && . $LOCAL_PATH/../clouds/${SHARD_REGION}-${ENVIRONMENT}-oracle.sh
+
+if [ -n "${VOX_ACCOUNT_ID}" ]; then
+  REF_IP="$(getRegionalIP "${JIGASI_DIAL_OUT_REGION}")"
+  export DIAL_IN_REST_URL="https://api.voximplant.com/platform_api/StartScenarios/?account_id=${VOX_ACCOUNT_ID}&api_key=${VOX_API_KEY}&reference_ip=${REF_IP}&rule_id=${VOX_HEALTH_CHECK_IN_RULE_ID}&script_custom_data=%7B%22pin%22%3A%22{0}%22%7D"
+  export DIAL_OUT_URL="${VOX_DIAL_OUT_URL}"
+  export SIP_JIBRI_DIAL_OUT_URL="${VIDEO_DIAL_OUT_URL}"
+  export YTUBE_TEST_STREAM_KEY="${TEST_YTUBE_TEST_STREAM_KEY}"
+  export YTUBE_TEST_BROADCAST_ID="${TEST_YTUBE_TEST_BROADCAST_ID}"
+fi
+
 pushd "$TMPDIR"
 
 git clone https://github.com/jitsi/jitsi-meet.git
@@ -161,48 +187,35 @@ else
   git checkout "${TORTURE_BRANCH}"
 fi
 
-if [ -n "$JAAS_JWT_KID" ]; then
-  export IFRAME_TENANT="$(echo "${JAAS_JWT_KID}" | cut -d'/' -f1)"
-  export JWT_PRIVATE_KEY_PATH=$JAAS_SIGNING_KEY_FILE
-  export JWT_KID="${JAAS_JWT_KID}"
-  export WEBHOOKS_PROXY_URL="${WEBHOOKS_PROXY_URL}"
-  export WEBHOOKS_PROXY_SHARED_SECRET="${JAAS_WH_SHARED_SECRET}"
-fi
-
 nvm install
 nvm use
 
 node -v
 npm -v
+
+# tests/ has its own package.json (only the wdio-side runtime dependencies) on newer jitsi-meet
+# checkouts - installing there instead of at the jitsi-meet root is far smaller/faster than the
+# full monorepo install. Fall back to installing at the jitsi-meet root for older checkouts that
+# don't have it yet.
+if [ -f tests/package.json ]; then
+  cd tests
+  RESULTS_SRC="$TMPDIR/jitsi-meet/tests/test-results"
+else
+  RESULTS_SRC="$TMPDIR/jitsi-meet/test-results"
+fi
+
 echo "Start npm install"
 npm install
 echo "Done npm install"
 
-[ -z "$LOCAL_REGION" ] && LOCAL_REGION="$OCI_LOCAL_REGION"
-[ -z "$LOCAL_REGION" ] && LOCAL_REGION="us-phoenix-1"
-
-SHARD_REGION=$(ENVIRONMENT="$ENVIRONMENT" SHARD="$SHARD" $LOCAL_PATH/shard.sh shard_region)
-# presume any shards with no region in the name are in the local region
-[ -z "$SHARD_REGION" ] && SHARD_REGION="$LOCAL_REGION"
-
-[ -e $LOCAL_PATH/../clouds/${SHARD_REGION}-${ENVIRONMENT}-oracle.sh ] && . $LOCAL_PATH/../clouds/${SHARD_REGION}-${ENVIRONMENT}-oracle.sh
-
-if [ -n "${VOX_ACCOUNT_ID}" ]; then
-  REF_IP="$(getRegionalIP "${JIGASI_DIAL_OUT_REGION}")"
-  export DIAL_IN_REST_URL="https://api.voximplant.com/platform_api/StartScenarios/?account_id=${VOX_ACCOUNT_ID}&api_key=${VOX_API_KEY}&reference_ip=${REF_IP}&rule_id=${VOX_HEALTH_CHECK_IN_RULE_ID}&script_custom_data=%7B%22pin%22%3A%22{0}%22%7D"
-  export DIAL_OUT_URL="${VOX_DIAL_OUT_URL}"
-  export SIP_JIBRI_DIAL_OUT_URL="${VIDEO_DIAL_OUT_URL}"
-  export YTUBE_TEST_STREAM_KEY="${TEST_YTUBE_TEST_STREAM_KEY}"
-  export YTUBE_TEST_BROADCAST_ID="${TEST_YTUBE_TEST_BROADCAST_ID}"
-fi
-
-# For the 8x8 environments, add the meeting-settings spec from the branding repo so the grid
-# run below includes it. The spec maps onto tests/specs/8x8/ and resolves the jitsi-meet test
-# framework via its relative imports.
+# For the 8x8 environments, add the meeting-settings spec from the branding repo so the grid run
+# below includes it. The spec maps onto tests/specs/8x8/ and resolves the jitsi-meet test
+# framework via its relative imports. Works the same whether we're sitting in tests/ or jitsi-meet/
+# above (specs/ is right here either way).
 if [ "$RUN_MEET_SETTINGS" = "true" ]; then
   if [ -d "$BRANDING_PATH/meet-8x8-com/tests/specs" ]; then
     echo "Adding 8x8 meeting-settings spec from $BRANDING_PATH"
-    cp -a "$BRANDING_PATH/meet-8x8-com/tests/specs/." tests/specs/
+    cp -a "$BRANDING_PATH/meet-8x8-com/tests/specs/." specs/
 
     # Settings page differs per environment type (stage -> pilot, prod -> prod); the spec
     # derives the API hosts from it.
@@ -236,7 +249,7 @@ echo "Done testing"
 popd
 popd
 
-mv $TMPDIR/jitsi-meet/test-results ../test-results/${SHARD}
+mv "$RESULTS_SRC" ../test-results/${SHARD}
 
 if [[ $SUCCESS == 0 ]]; then
   $LOCAL_PATH/set_shard_tested.py $ENVIRONMENT $SHARD passed $BUILD_NUMBER

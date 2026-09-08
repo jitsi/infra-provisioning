@@ -83,7 +83,9 @@ function doTest {
   LOG_FILE=$6
   TEST_VIA_8x8=$7
 
-  TEST_TO_RUN="tests/specs/jaas/dial/dialin.spec.ts"
+  # Absolute - TESTS_DIR is set below, once, regardless of whether tests/ ends up being the CWD
+  # npm run is invoked from (see the tests/package.json note there).
+  TEST_TO_RUN="$TESTS_DIR/specs/jaas/dial/dialin.spec.ts"
 
   if [[ "$TEST_VIA_8x8" == "true" ]]; then
     # Let's create the conference mapper entry for this test
@@ -93,7 +95,7 @@ function doTest {
       --header 'Content-Type: application/json' \
       --data-raw "{\"url\":\"${ROOM_NAME}\"}"
       JWT_ACCESS_TOKEN=$JITSI_TOKEN
-      TEST_TO_RUN="tests/specs/misc/dialIn.spec.ts"
+      TEST_TO_RUN="$TESTS_DIR/specs/misc/dialIn.spec.ts"
       ADDR="${ADDR}/jitsi"
   fi
 
@@ -101,14 +103,14 @@ function doTest {
     GRID_HOST_URL=${SELENIUM_HUB_URL} \
     HEADLESS=true \
     DIAL_IN_REST_URL="https://api.voximplant.com/platform_api/StartScenarios/?account_id=${ACC_ID}&api_key=${API_KEY}&reference_ip=${REF_IP}&rule_id=${RULE_ID}&script_custom_data=%7B%22pin%22%3A%22{0}%22%7D" \
-    EXPECTATIONS="expectations.json" \
+    EXPECTATIONS="$EXPECTATIONS_FILE" \
     JWT_PRIVATE_KEY_PATH=$JAAS_SIGNING_KEY_FILE \
     JWT_KID=$JAAS_JWT_KID \
     JAAS_TENANT=$(echo "$JAAS_JWT_KID" | cut -f1 -d"/") \
     JWT_ACCESS_TOKEN=$JWT_ACCESS_TOKEN \
     ROOM_NAME_PREFIX="synthetic_" \
     BASE_URL=https://${ADDR}/ \
-  npm run test-grid-single ${TEST_TO_RUN} | tee -a ${LOG_FILE}
+  npm run test-grid-single -- "${TEST_TO_RUN}" | tee -a ${LOG_FILE}
 
   return ${PIPESTATUS[0]}
 }
@@ -122,6 +124,10 @@ cd ../jitsi-meet
 CURRENT_COMMIT=$(git log -1 --format="%H")
 echo "jitsi-meet commit is at ${CURRENT_COMMIT}"
 
+# Absolute, and computed once before the conditional cd below - see the tests/package.json note
+# there. Everything under tests/ (specs, expectations.json) is addressed via this from here on.
+TESTS_DIR="$(pwd)/tests"
+
 rm -rf test-results1 test-results2 test-results3 test-results4 test-results5 test-results6 test-results7 test-results8
 rm -f $TEST_OUTPUT_LOG_US
 rm -f $TEST_OUTPUT_LOG_EU
@@ -132,13 +138,27 @@ nvm use
 echo "node version:$(node -v)"
 echo "npm version:$(npm -v)"
 
+# tests/ has its own package.json (only the wdio-side runtime dependencies) on newer jitsi-meet
+# checkouts - installing there instead of at the jitsi-meet root is far smaller/faster than the
+# full monorepo install. Fall back to installing at the jitsi-meet root for older checkouts that
+# don't have it yet.
+UP=""
+if [ -f tests/package.json ]; then
+  cd tests
+  UP="../"
+fi
+
 npm install
 if [ $? -ne 0 ]; then
 	echo "Failure to install dependencies, retry will fix this"
  	exit 1;
 fi
 
-cat << EOF > expectations.json
+# Absolute, since this is read by whatever directory `npm run test-grid-single` happens to be
+# invoked from (jitsi-meet/ or jitsi-meet/tests/, depending on which one above) - see the note at
+# the top of jitsi-meet's tests/env.example.
+EXPECTATIONS_FILE="$TESTS_DIR/expectations.json"
+cat << EOF > "$EXPECTATIONS_FILE"
 {
   "dialIn": {
     "enabled": true,
@@ -156,7 +176,7 @@ echo "------------------------------------------------------------------------"
 echo ""
 doTest "$ACCOUNT_ID_US" "${VOX_API_KEY_US}" "400932" "$DOMAIN" "$(getRegionalIP "us-phoenix-1")" $TEST_OUTPUT_LOG_JAAS_US "false"
 SUCCESS=$?
-mv test-results test-results1
+mv test-results ${UP}test-results1
 
 # Only actually fail on two consecutive failures
 if [[ $SUCCESS -ne 0 ]]; then
@@ -164,7 +184,7 @@ if [[ $SUCCESS -ne 0 ]]; then
   sleep 120
   doTest "$ACCOUNT_ID_US" "${VOX_API_KEY_US}" "400932" "$DOMAIN" "$(getRegionalIP "us-phoenix-1")" $TEST_OUTPUT_LOG_JAAS_US "false"
   SUCCESS=$?
-  mv test-results test-results2
+  mv test-results ${UP}test-results2
 fi
 
 if [[ $SUCCESS == 0 ]]; then
@@ -185,7 +205,7 @@ if [[ $FAILED_VALUE == 0 ]]; then
     echo ""
     doTest "$ACCOUNT_ID_EU" "${VOX_API_KEY_EU}" "3460923" "frankfurt.$DOMAIN" "$(getRegionalIP "eu-frankfurt-1")" $TEST_OUTPUT_LOG_JAAS_EU "false"
     SUCCESS=$?
-    mv test-results test-results3
+    mv test-results ${UP}test-results3
 
     # Only actually fail on two consecutive failures
     if [[ $SUCCESS -ne 0 ]]; then
@@ -193,7 +213,7 @@ if [[ $FAILED_VALUE == 0 ]]; then
         sleep 90
         doTest "$ACCOUNT_ID_EU" "${VOX_API_KEY_EU}" "3460923" "frankfurt.$DOMAIN" "$(getRegionalIP "eu-frankfurt-1")" $TEST_OUTPUT_LOG_JAAS_EU "false"
         SUCCESS=$?
-        mv test-results test-results4
+        mv test-results ${UP}test-results4
     fi
 
     if [[ $SUCCESS == 0 ]]; then
@@ -215,7 +235,7 @@ echo ""
 
 doTest "$ACCOUNT_ID_US" "${VOX_API_KEY_US}" "400932" "$DOMAIN" "$(getRegionalIP "us-phoenix-1")" $TEST_OUTPUT_LOG_8x8_US "true"
 SUCCESS=$?
-mv test-results test-results5
+mv test-results ${UP}test-results5
 
 # Only actually fail on two consecutive failures
 if [[ $SUCCESS -ne 0 ]]; then
@@ -223,7 +243,7 @@ if [[ $SUCCESS -ne 0 ]]; then
   sleep 120
   doTest "$ACCOUNT_ID_US" "${VOX_API_KEY_US}" "400932" "$DOMAIN" "$(getRegionalIP "us-phoenix-1")" $TEST_OUTPUT_LOG_8x8_US "true"
   SUCCESS=$?
-  mv test-results test-results6
+  mv test-results ${UP}test-results6
 fi
 
 if [[ $SUCCESS == 0 ]]; then
@@ -244,7 +264,7 @@ if [[ $FAILED_VALUE == 0 ]]; then
     echo ""
     doTest "$ACCOUNT_ID_EU" "${VOX_API_KEY_EU}" "3460923" "frankfurt.$DOMAIN" "$(getRegionalIP "eu-frankfurt-1")" $TEST_OUTPUT_LOG_8x8_EU "true"
     SUCCESS=$?
-    mv test-results test-results7
+    mv test-results ${UP}test-results7
 
     # Only actually fail on two consecutive failures
     if [[ $SUCCESS -ne 0 ]]; then
@@ -252,7 +272,7 @@ if [[ $FAILED_VALUE == 0 ]]; then
         sleep 90
         doTest "$ACCOUNT_ID_EU" "${VOX_API_KEY_EU}" "3460923" "frankfurt.$DOMAIN" "$(getRegionalIP "eu-frankfurt-1")" $TEST_OUTPUT_LOG_8x8_EU "true"
         SUCCESS=$?
-        mv test-results test-results8
+        mv test-results ${UP}test-results8
     fi
 
     if [[ $SUCCESS == 0 ]]; then
@@ -269,6 +289,13 @@ fi
 
 
 rm $JAAS_SIGNING_KEY_FILE
+
+# When tests ran from tests/ (one directory deeper than jitsi-meet/, see UP above), copy the logs
+# up to jitsi-meet/ (checkLogs below still reads its own copy from here) so the Jenkinsfile's
+# archiveArtifacts still finds them at the jitsi-meet/test_log_*.txt paths it expects. Done
+# unconditionally, before the early `exit 0` on success below, since archiveArtifacts runs on
+# every build regardless of outcome.
+[ -n "$UP" ] && cp test_log_*.txt ${UP} 2>/dev/null || true
 
 # uncomment to disable paging; or set ENABLE_PAGE to default to "false" in the jenkins job configuraiton
 # ENABLE_PAGE="false"
