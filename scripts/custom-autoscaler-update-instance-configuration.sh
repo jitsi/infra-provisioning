@@ -81,5 +81,6 @@ if [ "$updateGroupHttpCode" == 200 ]; then
   echo "Successfully updated instance configuration id for group $GROUP_NAME"
 else
   echo "Error updating instance configuration id for group $GROUP_NAME. AutoScaler response status code is $updateGroupHttpCode"
+  echo "Autoscaler response: $(sed '$ d' <<<"$response")"
   exit 208
 fi

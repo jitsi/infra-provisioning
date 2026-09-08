@@ -81,6 +81,7 @@ if [ "$ACTION" == "delete" ]; then
     echo "Successfully deleted scheduled scaling config for group $GROUP_NAME"
   else
     echo "Error deleting scheduled scaling config for group $GROUP_NAME. AutoScaler response status code is $httpCode"
+    echo "Autoscaler response: $(sed '$ d' <<<"$response")"
     exit 208
   fi
 elif [ "$ACTION" == "put" ]; then
@@ -109,6 +110,7 @@ elif [ "$ACTION" == "put" ]; then
     echo "Successfully updated scheduled scaling config for group $GROUP_NAME"
   else
     echo "Error updating scheduled scaling config for group $GROUP_NAME. AutoScaler response status code is $httpCode"
+    echo "Autoscaler response: $(sed '$ d' <<<"$response")"
     exit 208
   fi
 elif [ "$ACTION" == "enable" ] || [ "$ACTION" == "disable" ]; then
@@ -128,6 +130,7 @@ elif [ "$ACTION" == "enable" ] || [ "$ACTION" == "disable" ]; then
 
   if [ "$getHttpCode" != 200 ]; then
     echo "Error fetching scheduled scaling config for group $GROUP_NAME. AutoScaler response status code is $getHttpCode"
+    echo "Autoscaler response: $(sed '$ d' <<<"$getResponse")"
     exit 208
   fi
 
@@ -159,6 +162,7 @@ elif [ "$ACTION" == "enable" ] || [ "$ACTION" == "disable" ]; then
     echo "Successfully set scheduled scaling enabled=$TARGET_ENABLED for group $GROUP_NAME"
   else
     echo "Error updating scheduled scaling config for group $GROUP_NAME. AutoScaler response status code is $httpCode"
+    echo "Autoscaler response: $(sed '$ d' <<<"$response")"
     exit 208
   fi
 else

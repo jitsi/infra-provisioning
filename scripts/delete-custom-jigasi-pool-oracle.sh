@@ -122,6 +122,7 @@ if [ "$RESULT" -eq 0 ]; then
       done
     else
       echo "Failed to get remaining group report instances. Please retry the script"
+      echo "Autoscaler response: $(sed '$ d' <<<"$instanceGroupGetResponse")"
       exit 220
     fi
   fi
@@ -140,6 +141,7 @@ if [ "$RESULT" -eq 0 ]; then
     echo "Successfully deleted the group $GROUP_NAME"
   else
     echo "Failed deleting the group $GROUP_NAME. Exiting"
+    echo "Autoscaler response: $(sed '$ d' <<<"$groupDeleteResponse")"
     exit 222
   fi
 

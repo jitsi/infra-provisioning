@@ -299,6 +299,7 @@ elif [ "$getGroupHttpCode" == 200 ]; then
 #    oci compute-management instance-configuration delete --instance-configuration-id "$EXISTING_INSTANCE_CONFIGURATION_ID" --region "$ORACLE_REGION" --force
   else
     echo "Error launching $PROTECTED_INSTANCES_COUNT instances in group $GROUP_NAME. AutoScaler response status code is $launchGroupHttpCode"
+    echo "Autoscaler response: $(sed '$ d' <<<"$instanceGroupLaunchResponse")"
     exit 208
   fi
 
@@ -328,6 +329,7 @@ elif [ "$getGroupHttpCode" == 200 ]; then
             echo "Successfully restored previous instance configuration on group $GROUP_NAME"
           else
             echo "Error restoring previous instance configuration on group $GROUP_NAME. AutoScaler response status code is $restoreConfigHttpCode"
+            echo "Autoscaler response: $(sed '$ d' <<<"$restoreConfigResponse")"
           fi
         fi
         echo "The unhealthy protected instances will lose scale-down protection after $JVB_PROTECTED_TTL_SEC seconds and require manual cleanup"
@@ -349,6 +351,7 @@ elif [ "$getGroupHttpCode" == 200 ]; then
       echo "Successfully scaled down to $PROTECTED_INSTANCES_COUNT instances in group $GROUP_NAME"
     else
       echo "Error scaling down to $PROTECTED_INSTANCES_COUNT instances in group $GROUP_NAME. AutoScaler response status code is $scaleDownGroupHttpCode"
+      echo "Autoscaler response: $(sed '$ d' <<<"$instanceGroupScaleDownResponse")"
       exit 209
     fi
   else
@@ -357,5 +360,6 @@ elif [ "$getGroupHttpCode" == 200 ]; then
   fi
 else
   echo "No group named $GROUP_NAME was found nor created. AutoScaler response status code is $getGroupHttpCode"
+  echo "Autoscaler response: $(sed '$ d' <<<"$instanceGroupGetResponse")"
   exit 210
 fi

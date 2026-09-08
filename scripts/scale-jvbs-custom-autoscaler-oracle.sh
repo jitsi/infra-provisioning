@@ -116,6 +116,7 @@ if [ "$GET_GROUP_STATUS_CODE" == 200 ]; then
   echo "Retrieved existing instance group size $EXISTING_INSTANCE_GROUP_SIZE"
 else
   echo "Failed to get group report $CUSTOM_GROUP_NAME, status is $GET_GROUP_STATUS_CODE"
+  echo "Autoscaler response: $(sed '$ d' <<<"$instanceGroupGetResponse")"
   exit 211
 fi
 

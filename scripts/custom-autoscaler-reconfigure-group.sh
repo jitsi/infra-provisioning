@@ -132,5 +132,6 @@ elif [ "$updateGroupHttpCode" == 404 ]; then
   exit 230
 else
   echo "Error triggering reconfiguration for group $GROUP_NAME. AutoScaler response status code is $updateGroupHttpCode"
+  echo "Autoscaler response: $(sed '$ d' <<<"$response")"
   exit 208
 fi

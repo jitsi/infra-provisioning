@@ -124,5 +124,6 @@ if [ "$launchGroupHttpCode" == 200 ]; then
     RET=0
 else
     echo "Error launching $PROTECTED_INSTANCES_COUNT instances in group $GROUP_NAME. AutoScaler response status code is $launchGroupHttpCode"
+    echo "Autoscaler response: $(sed '$ d' <<<"$instanceGroupLaunchResponse")"
     RET=208
 fi

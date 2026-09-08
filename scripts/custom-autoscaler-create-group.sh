@@ -260,5 +260,6 @@ if [ "$createGroupHttpCode" == 200 ]; then
   echo "Group $GROUP_NAME was created successfully"
 else
   echo "Error creating group $GROUP_NAME. AutoScaler response status code is $createGroupHttpCode"
+  echo "Autoscaler response: $(sed '$ d' <<<"$instanceGroupCreateResponse")"
   exit 205
 fi

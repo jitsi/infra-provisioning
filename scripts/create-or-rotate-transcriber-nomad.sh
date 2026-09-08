@@ -156,6 +156,7 @@ if [ "$getGroupHttpCode" == 404 ]; then
     echo "Group $GROUP_NAME was created successfully"
   else
     echo "Error creating group $GROUP_NAME. AutoScaler response status code is $createGroupHttpCode"
+    echo "Autoscaler response: $(sed '$ d' <<<"$instanceGroupCreateResponse")"
     exit 205
   fi
 
@@ -204,6 +205,7 @@ elif [ "$getGroupHttpCode" == 200 ]; then
     echo "Successfully launched $PROTECTED_INSTANCES_COUNT instances in group $GROUP_NAME"
   else
     echo "Error launching $PROTECTED_INSTANCES_COUNT instances in group $GROUP_NAME. AutoScaler response status code is $launchGroupHttpCode"
+    echo "Autoscaler response: $(sed '$ d' <<<"$instanceGroupLaunchResponse")"
     exit 208
   fi
 
@@ -237,6 +239,7 @@ elif [ "$getGroupHttpCode" == 200 ]; then
     echo "Successfully scaled down to $PROTECTED_INSTANCES_COUNT instances in group $GROUP_NAME"
   else
     echo "Error scaling down to $PROTECTED_INSTANCES_COUNT instances in group $GROUP_NAME. AutoScaler response status code is $scaleDownGroupHttpCode"
+    echo "Autoscaler response: $(sed '$ d' <<<"$instanceGroupScaleDownResponse")"
     exit 209
   fi
 

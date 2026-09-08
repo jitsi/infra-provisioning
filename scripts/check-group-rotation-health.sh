@@ -92,6 +92,7 @@ while true; do
     echo "Group $GROUP_NAME has $HEALTHY_COUNT healthy new instances of $NEW_COUNT new total, waiting for $EXPECTED_COUNT"
   else
     echo "Failed to get group $GROUP_NAME report, status is $GROUP_REPORT_STATUS_CODE"
+    echo "Autoscaler response: $(sed '$ d' <<<"$instanceGroupGetResponse")"
   fi
 
   if [ $WAIT_TOTAL_SECONDS -lt $HEALTH_CHECK_TIMEOUT ]; then

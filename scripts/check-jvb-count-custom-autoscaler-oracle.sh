@@ -74,6 +74,7 @@ while true; do
     echo "Group $GROUP_NAME has expected count $EXPECTED_COUNT and checked count $COUNT_TO_CHECK, after checking with CHECK_SCALE_UP=$CHECK_SCALE_UP"
   else
     echo "Failed to get group $GROUP_NAME report, status is $GROUP_REPORT_STATUS_CODE"
+    echo "Autoscaler response: $(sed '$ d' <<<"$instanceGroupGetResponse")"
   fi
 
   # failure to either get report or condition not met

@@ -145,6 +145,7 @@ function delGroup() {
     return 0
   else
     echo "Failed deleting the group $GROUP_NAME (status $GROUP_DELETE_STATUS_CODE). Returning"
+    echo "Autoscaler response: $(sed '$ d' <<<"$groupDeleteResponse")"
     return 222
   fi
 }
@@ -191,6 +192,7 @@ if [ "$RESULT" -eq 0 ]; then
     done
   else
     echo "Failed to get remaining group report instances. Please retry the script"
+    echo "Autoscaler response: $(sed '$ d' <<<"$instanceGroupGetResponse")"
     exit 220
   fi
 
