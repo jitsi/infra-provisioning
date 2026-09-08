@@ -40,6 +40,7 @@ if [[ "$SKIP_SCALE_DOWN" != "true" ]]; then
                     echo "Successfully restored previous instance configuration on group $GROUP_NAME"
                 else
                     echo "Error restoring previous instance configuration on group $GROUP_NAME. AutoScaler response status code is $restoreConfigHttpCode"
+                    echo "Autoscaler response: $(sed '$ d' <<<"$restoreConfigResponse")"
                 fi
             fi
             echo "The unhealthy protected instances will lose scale-down protection after $PROTECTED_TTL_SEC seconds and require manual cleanup"

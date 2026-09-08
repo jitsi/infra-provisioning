@@ -146,5 +146,6 @@ if [ "$updateGroupHttpCode" == 200 ]; then
   echo "Successfully updated scaling activities for group $GROUP_NAME"
 else
   echo "Error updating scaling activities for group $GROUP_NAME. AutoScaler response status code is $updateGroupHttpCode"
+  echo "Autoscaler response: $(sed '$ d' <<<"$response")"
   exit 208
 fi

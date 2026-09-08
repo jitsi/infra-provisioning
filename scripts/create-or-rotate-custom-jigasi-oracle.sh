@@ -249,6 +249,7 @@ if [ "$getGroupHttpCode" == 404 ]; then
     echo "Group $GROUP_NAME was created successfully"
   else
     echo "Error creating group $GROUP_NAME. AutoScaler response status code is $createGroupHttpCode"
+    echo "Autoscaler response: $(sed '$ d' <<<"$instanceGroupCreateResponse")"
     exit 205
   fi
 
@@ -317,6 +318,7 @@ elif [ "$getGroupHttpCode" == 200 ]; then
     echo "Successfully launched $PROTECTED_INSTANCES_COUNT instances in group $GROUP_NAME"
   else
     echo "Error launching $PROTECTED_INSTANCES_COUNT instances in group $GROUP_NAME. AutoScaler response status code is $launchGroupHttpCode"
+    echo "Autoscaler response: $(sed '$ d' <<<"$instanceGroupLaunchResponse")"
     exit 208
   fi
 
@@ -343,6 +345,7 @@ elif [ "$getGroupHttpCode" == 200 ]; then
         echo "Successfully restored previous instance configuration on group $GROUP_NAME"
       else
         echo "Error restoring previous instance configuration on group $GROUP_NAME. AutoScaler response status code is $restoreConfigHttpCode"
+        echo "Autoscaler response: $(sed '$ d' <<<"$restoreConfigResponse")"
       fi
       echo "The unhealthy protected instances will lose scale-down protection after $JIGASI_PROTECTED_TTL_SEC seconds and require manual cleanup"
       exit 223
@@ -380,10 +383,12 @@ elif [ "$getGroupHttpCode" == 200 ]; then
     fi
   else
     echo "Error scaling down to $PROTECTED_INSTANCES_COUNT instances in group $GROUP_NAME. AutoScaler response status code is $scaleDownGroupHttpCode"
+    echo "Autoscaler response: $(sed '$ d' <<<"$instanceGroupScaleDownResponse")"
     exit 209
   fi
 
 else
   echo "No group named $GROUP_NAME was found nor created. AutoScaler response status code is $getGroupHttpCode"
+  echo "Autoscaler response: $(sed '$ d' <<<"$instanceGroupGetResponse")"
   exit 210
 fi
