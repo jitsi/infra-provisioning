@@ -181,11 +181,7 @@ function mount_volumes() {
     fi
   fi
 }
-# Opt in to the in-region git mirror. A stack exports GIT_MIRROR_HOST in its
-# user_data; "auto" derives the hostname scripts/deploy-nomad-gitea-mirror.sh
-# registers for this environment and region. Explicit INFRA_*_MIRROR_REPO
-# values always win. Nothing here can fail a boot: without a mirror host the
-# clone goes straight to github as before.
+# In-region git mirror, opt-in per stack via GIT_MIRROR_HOST ("auto" derives it). JIT-16092
 function configure_mirror_repos() {
   [ -z "$GIT_MIRROR_HOST" ] && return 0
   if [ "$GIT_MIRROR_HOST" == "auto" ]; then
@@ -197,7 +193,6 @@ function configure_mirror_repos() {
     GIT_MIRROR_HOST="$ENVIRONMENT-$ORACLE_REGION-git.$GIT_MIRROR_DNS_ZONE"
   fi
   [ -z "$GIT_MIRROR_ORG" ] && GIT_MIRROR_ORG="jitsi"
-  # Same repo names as github; the mirror keeps them (nomad/gitea-mirror.hcl).
   if [ -z "$INFRA_CONFIGURATION_MIRROR_REPO" ] && [ -n "$INFRA_CONFIGURATION_REPO" ]; then
     export INFRA_CONFIGURATION_MIRROR_REPO="https://$GIT_MIRROR_HOST/$GIT_MIRROR_ORG/$(basename "$INFRA_CONFIGURATION_REPO" .git).git"
   fi
@@ -206,13 +201,7 @@ function configure_mirror_repos() {
   fi
   echo "Using git mirror $GIT_MIRROR_HOST"
 }
-# The private repo is private on the mirror too, so the clone needs the
-# read-only mirror user. Its username and password sit in the boot bucket as
-# gitea-read-user (published by scripts/publish-gitea-read-user-bucket.sh) and
-# go into /root/.netrc for the mirror host: git hands netrc credentials to a
-# host only when it asks for them, so they never appear in a URL, in a process
-# list, or in the boot log. Never fatal: with no credential the mirror clone of
-# the private repo fails and checkout_repos falls back to github.
+# Read-only mirror user for the private repo: bucket -> netrc, never a URL. No creds => github
 function fetch_mirror_credentials() {
   [ -z "$INFRA_CUSTOMIZATIONS_MIRROR_REPO" ] && return 0
   local bucket="jvb-bucket-${ENVIRONMENT}"
@@ -228,7 +217,7 @@ function fetch_mirror_credentials() {
     rm -f "$creds_file"
     return 0
   fi
-  # The boot runs under set -x; keep the password out of the trace.
+  # keep the password out of the set -x trace
   local xtrace=false
   [[ $- == *x* ]] && xtrace=true
   set +x
@@ -284,8 +273,7 @@ function clone_repo_at_ref() {
   [ -z "$url" ] && return 1
   [ -z "$target" ] && return 1
   rm -rf "$target"
-  # No terminal at boot, so a host that wants credentials we do not have must
-  # fail at once rather than wait on a prompt.
+  # no terminal at boot: fail instead of waiting on a credential prompt
   GIT_TERMINAL_PROMPT=0 git clone "$url" "$target" || return 1
   git -C "$target" checkout "$ref" || return 1
   git -C "$target" submodule update --init --recursive || return 1
