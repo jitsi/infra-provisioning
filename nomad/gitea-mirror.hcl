@@ -50,6 +50,19 @@ variable "private_repos" {
   default = ["infra-customizations-private"]
 }
 
+# Vault KV path holding the read-only Gitea user that booting VMs use to clone
+# the private repo (decision 6, revised). Fields: username, password. Every
+# replica creates the same user from the same secret in its own database, so
+# the credential is valid whichever replica Fabio routes a boot to. A Gitea
+# access token cannot do this: tokens are minted by Gitea, exist only in the
+# database that minted them, and this job's databases are ephemeral and
+# per-replica. The Nomad workloads Vault policy must grant read on this path
+# (gitea_mirror_secret_paths in infra-customizations-private).
+variable "read_user_secret_path" {
+  type    = string
+  default = "secret/default/gitea/read-user"
+}
+
 # Disk the alloc dir may use, in MB. Nomad assumes 300MB when this is not
 # declared, which is badly wrong here: measured in ops-dev, the four repos take
 # ~1.05GB on disk (jitsi-meet alone ~890MB, infra-customizations-private
@@ -202,6 +215,18 @@ EOF
       }
 
       template {
+        destination = "secrets/read-user.env"
+        env         = true
+        change_mode = "noop"
+        data        = <<EOF
+{{ with secret "${var.read_user_secret_path}" -}}
+GITEA_READ_USER={{ .Data.data.username }}
+GITEA_READ_PASSWORD={{ .Data.data.password }}
+{{ end -}}
+EOF
+      }
+
+      template {
         perms       = 755
         destination = "local/init.sh"
         data        = <<EOF
@@ -230,14 +255,44 @@ gitea -c "$CONF" admin user create \
   --must-change-password=false || true
 
 # Mint a fresh, uniquely-named token for the sync-gate to seed/inspect mirrors.
+# The pid keeps the name unique even if two runs land in the same second, since
+# a name clash is fatal under set -e and would fail the whole task.
 TOKEN=$(gitea -c "$CONF" admin user generate-access-token \
   --username "$GITEA_ADMIN_USER" \
-  --token-name "seed-$(date +%s)" \
+  --token-name "seed-$(date +%s)-$$" \
   --scopes "write:repository,write:organization,write:admin,read:user" \
   --raw)
 printf '%s' "$TOKEN" > /alloc/gitea-seed/token
 chmod 600 /alloc/gitea-seed/token
 echo "init: admin ensured and seed token written"
+
+# Read-only user that boots clone the private repo with. `create` refuses to
+# run twice, so `change-password` is what makes the password converge on an
+# in-place restart or after a rotation of the Vault secret. Restricted so it
+# sees only what it is explicitly granted; the sync-gate grants it read on the
+# private repos over the API once they exist. Never fatal: a mirror with no
+# read user still serves the public repos, and boots fall back to github for
+# the private one.
+rm -f /alloc/gitea-seed/read-user
+if [ -n "$GITEA_READ_USER" ] && [ -n "$GITEA_READ_PASSWORD" ]; then
+  gitea -c "$CONF" admin user create \
+    --username "$GITEA_READ_USER" \
+    --password "$GITEA_READ_PASSWORD" \
+    --email "$GITEA_READ_USER@mirror.invalid" \
+    --must-change-password=false \
+    --restricted || true
+  if gitea -c "$CONF" admin user change-password \
+      --username "$GITEA_READ_USER" \
+      --password "$GITEA_READ_PASSWORD" \
+      --must-change-password=false; then
+    printf '%s' "$GITEA_READ_USER" > /alloc/gitea-seed/read-user
+    echo "init: read-only user $GITEA_READ_USER ensured"
+  else
+    echo "init: WARN could not set the read-only user's password; private repos will not be readable by boots"
+  fi
+else
+  echo "init: WARN no read-only user in Vault; private repos will not be readable by boots"
+fi
 EOF
       }
 
@@ -397,9 +452,13 @@ EOF
 1. Waits for Gitea, using the seed token written by the init task.
 2. Ensures the target org exists and each required repo is migrated as a pull
    mirror from GitHub, retrying until that succeeds.
-3. Serves /ready on GATE_PORT: 503 until every required repo reports
-   "empty": false (first sync done), then 200, plus /metrics for Prometheus.
-4. On SIGHUP, asks Gitea to pull every repo immediately instead of waiting for
+3. Grants the read-only boot user (created by the init task) read on each
+   private repo, again on every pass, because the grant lives on the repo row
+   and disappears whenever a repo is deleted and migrated again.
+4. Serves /ready on GATE_PORT: 503 until every required repo reports
+   "empty": false (first sync done) and, for private repos, the boot user can
+   read it; then 200, plus /metrics for Prometheus.
+5. On SIGHUP, asks Gitea to pull every repo immediately instead of waiting for
    its next interval. Nomad raises that signal when the Consul key the task
    templates changes, which is how a release pushes fresh refs to every replica
    at once (see the template stanza in the job).
@@ -437,6 +496,10 @@ INTERVAL = os.environ.get("GITEA_MIRROR_INTERVAL", "10m")
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN", "")
 GATE_PORT = int(os.environ.get("GATE_PORT", "8080"))
 TOKEN_FILE = "/alloc/gitea-seed/token"
+# Written by the init task only when the read-only user exists with the
+# password from Vault. Absent => no user to grant, private repos stay
+# admin-only and /ready ignores read access.
+READ_USER_FILE = "/alloc/gitea-seed/read-user"
 
 # How long to let a migrate request run before giving up on the answer. Gitea
 # migrates synchronously, so a big repo can hold the connection for minutes.
@@ -450,6 +513,9 @@ RETRY_BACKOFF = int(os.environ.get("GATE_RETRY_BACKOFF", "60"))
 POLL_INTERVAL = int(os.environ.get("GATE_POLL_INTERVAL", "10"))
 
 _ready = threading.Event()
+
+# Set once in main() from READ_USER_FILE; "" when there is no read-only user.
+READ_USER = ""
 
 # Set by SIGHUP, consumed by the main loop. A bare flag rather than an Event on
 # purpose: it is the only thing safe to touch from a signal handler.
@@ -471,6 +537,9 @@ class RepoState(object):
     def __init__(self):
         self.attempted_at = None
         self.outcome = None
+        # Whether the read-only user is known to have read on this repo. Reset
+        # whenever the repo is dropped, since the grant goes with it.
+        self.granted = False
 
 
 def parse_timestamp(value):
@@ -485,10 +554,15 @@ def parse_timestamp(value):
 
 def record_repo(repo, body):
     with _metrics_lock:
-        _metrics[repo] = {
-            "synced": 1 if body.get("empty") is False else 0,
-            "last_sync": parse_timestamp(body.get("mirror_updated")),
-        }
+        entry = _metrics.setdefault(repo, {"read_access": None})
+        entry["synced"] = 1 if body.get("empty") is False else 0
+        entry["last_sync"] = parse_timestamp(body.get("mirror_updated"))
+
+
+def record_read_access(repo, ok):
+    with _metrics_lock:
+        entry = _metrics.setdefault(repo, {"synced": 0, "last_sync": None})
+        entry["read_access"] = 1 if ok else 0
 
 
 def render_metrics():
@@ -511,6 +585,12 @@ def render_metrics():
         # its first clone would otherwise read as infinitely stale.
         if ts is not None:
             out.append('gitea_mirror_last_sync_timestamp_seconds{repo="%s"} %.0f' % (repo, ts))
+    out.append("# HELP gitea_mirror_repo_read_access Whether the read-only boot user can read this private repo.")
+    out.append("# TYPE gitea_mirror_repo_read_access gauge")
+    for repo in sorted(snap):
+        # Only meaningful for private repos, and only once a read user exists.
+        if snap[repo].get("read_access") is not None:
+            out.append('gitea_mirror_repo_read_access{repo="%s"} %d' % (repo, snap[repo]["read_access"]))
     return "\n".join(out) + "\n"
 
 
@@ -525,6 +605,15 @@ def read_token():
             pass
         time.sleep(2)
     raise SystemExit("sync-gate: seed token never appeared at %s" % TOKEN_FILE)
+
+
+def read_user():
+    """Name of the read-only boot user, or "" when the init task made none."""
+    try:
+        with open(READ_USER_FILE) as fh:
+            return fh.read().strip()
+    except OSError:
+        return ""
 
 
 def api(method, path, token, body=None, timeout=30):
@@ -621,6 +710,8 @@ def start_migrate(token, repo, st):
     if private and GITHUB_TOKEN:
         body["auth_token"] = GITHUB_TOKEN
     st.attempted_at = time.monotonic()
+    # A migrate makes a new repo row, so any grant we knew about is gone.
+    st.granted = False
     status, resp = api("POST", "/api/v1/repos/migrate", token, body, timeout=MIGRATE_TIMEOUT)
     if status in (201, 409):
         st.outcome = "unknown"
@@ -635,12 +726,48 @@ def start_migrate(token, repo, st):
         print("sync-gate: WARN migrate %s failed: %s %s" % (repo, status, resp), flush=True)
 
 
+def ensure_read_access(token, repo, st):
+    """True once the read-only user can read this repo.
+
+    Public repos need nothing (anonymous read). Private ones get the user as a
+    read collaborator. The PUT is idempotent, but it is only sent when the
+    permission check says it is missing, so a healthy replica is not writing to
+    its database every poll. The grant is repo state, so a repo that is deleted
+    and migrated again comes back without it -- hence this runs on every pass
+    and st.granted is reset in drop_stub.
+    """
+    if repo not in PRIVATE or not READ_USER:
+        return True
+    if st.granted:
+        return True
+    status, body = api(
+        "GET", "/api/v1/repos/%s/%s/collaborators/%s/permission" % (GITEA_ORG, repo, READ_USER), token
+    )
+    if status == 200 and body.get("permission") == "read":
+        st.granted = True
+    elif status in (200, 404):
+        status, body = api(
+            "PUT", "/api/v1/repos/%s/%s/collaborators/%s" % (GITEA_ORG, repo, READ_USER), token,
+            {"permission": "read"},
+        )
+        if status == 204:
+            st.granted = True
+            print("sync-gate: granted %s read on %s" % (READ_USER, repo), flush=True)
+        else:
+            print("sync-gate: WARN could not grant %s read on %s: %s %s" % (READ_USER, repo, status, body), flush=True)
+    else:
+        print("sync-gate: WARN could not check %s access to %s: %s %s" % (READ_USER, repo, status, body), flush=True)
+    record_read_access(repo, st.granted)
+    return st.granted
+
+
 def drop_stub(token, repo, st, why):
     """Delete an empty repo so the next pass can migrate it again."""
     status, resp = api("DELETE", "/api/v1/repos/%s/%s" % (GITEA_ORG, repo), token)
     if status in (204, 404):
         # attempted_at is deliberately left alone: it paces the retry.
         st.outcome = None
+        st.granted = False
         print("sync-gate: removed %s stub (%s), will migrate again" % (repo, why), flush=True)
     else:
         print("sync-gate: WARN could not remove %s stub: %s %s" % (repo, status, resp), flush=True)
@@ -656,11 +783,16 @@ def reconcile(token, repo, st):
 
     if status == 200 and body.get("empty") is False:
         st.outcome = None
-        return True
+        # Synced. For a private repo the replica is still not useful to a boot
+        # until the read-only user can actually clone it.
+        return ensure_read_access(token, repo, st)
 
     now = time.monotonic()
 
     if status == 404:
+        # Gone, however that happened (our drop_stub or someone else's delete),
+        # and the grant went with it.
+        st.granted = False
         if st.attempted_at is None or now - st.attempted_at >= RETRY_BACKOFF:
             start_migrate(token, repo, st)
         return False
@@ -711,7 +843,7 @@ def serve():
 
 
 def main():
-    global _sync_requested
+    global _sync_requested, READ_USER
 
     # Serve /ready (503) immediately so the health check has an endpoint while
     # the mirrors are still being seeded.
@@ -719,6 +851,11 @@ def main():
     signal.signal(signal.SIGHUP, request_sync)
 
     token = read_token()
+    READ_USER = read_user()
+    if READ_USER:
+        print("sync-gate: will grant %s read on private repos" % READ_USER, flush=True)
+    else:
+        print("sync-gate: WARN no read-only user; private repos will not be readable by boots", flush=True)
     wait_for_gitea(token)
 
     state = dict((repo, RepoState()) for repo in REQUIRED)

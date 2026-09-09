@@ -3,6 +3,13 @@
 # Deploys the per-region Gitea mirror (nomad/gitea-mirror.hcl). Modeled on
 # deploy-nomad-ops-repo.sh: dc = $ENVIRONMENT-$ORACLE_REGION, served internal-only
 # via a Fabio int-urlprefix tag on the mirror hostname. See JIT-16092.
+#
+# Vault prerequisites (in the vault this environment's nomad uses), all read by
+# the job and granted via gitea_mirror_secret_paths in infra-customizations-private:
+#   secret/default/gitea/admin      username, password, email of the site admin
+#   secret/default/gitea/github     token: a GitHub PAT that can read the private repo
+#   secret/default/gitea/read-user  username, password of the read-only boot user
+#                                   (scripts/seed-gitea-read-user.sh)
 
 if [ -z "$ENVIRONMENT" ]; then
     echo "No ENVIRONMENT set, exiting"
