@@ -129,6 +129,11 @@ job [[ template "job_name" . ]] {
 [[ end ]]
       driver = "docker"
 
+      # The image declares `USER node` (uid/gid 1000). Pinned here so the
+      # uid/gid on the secrets templates below stay tied to something visible
+      # in the jobspec rather than silently tracking the base image.
+      user = "node"
+
       config {
         image = "jitsi/autoscaler:[[ var "version" . ]]"
         ports = ["http"]
@@ -182,6 +187,8 @@ job [[ template "job_name" . ]] {
 EOF
         destination = "secrets/oci_api_key.pem"
         perms = "600"
+        uid = 1000
+        gid = 1000
       }
 
       template {
@@ -199,6 +206,8 @@ region={{ .Data.data.region }}
 EOF
         destination = "secrets/oci.config"
         perms = "600"
+        uid = 1000
+        gid = 1000
       }
 
       template {
