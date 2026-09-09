@@ -59,7 +59,9 @@ fi
 [ -z "$MEMORY_IN_GBS_ARM" ] && MEMORY_IN_GBS_ARM="12"
 [ -z "$OCPUS_ARM" ] && OCPUS_ARM="6"
 
-[ -z "$INSTANCE_POOL_SIZE_X86" ] && INSTANCE_POOL_SIZE_X86=1
+# INSTANCE_POOL_SIZE_X86 is deliberately left unset here: it means two
+# different things depending on the grid type, so its default is set per
+# branch alongside the pool lookups below.
 [ -z "$INSTANCE_POOL_SIZE_ARM" ] && INSTANCE_POOL_SIZE_ARM=1
 
 [ -z "$INSTANCE_POOL_NAME" ] && INSTANCE_POOL_NAME="GridInstancePool"
@@ -84,6 +86,12 @@ RESOURCE_NAME_ROOT="$NAME"
 
 # look up existing instance pools to preserve their current sizes
 if [[ "$SELENIUM_GRID_NOMAD_ENABLED" == "true" ]]; then
+  # The selenium-grid node image is arm64-only, so a new nomad grid gets no
+  # x86 nodes -- an amd64 node could not pull the image anyway. Existing pools
+  # keep whatever size they are already running (see the lookup below), so
+  # this only governs grids created from here on.
+  [ -z "$INSTANCE_POOL_SIZE_X86" ] && INSTANCE_POOL_SIZE_X86=0
+
   POOL_DETAILS_X86="$(oci compute-management instance-pool list --region "$ORACLE_REGION" -c "$COMPARTMENT_OCID" --all --display-name "$GRID_NAME Grid x86 Nodes" | jq '.data[0]')"
   if [ -n "$POOL_DETAILS_X86" ] && [ "$POOL_DETAILS_X86" != "null" ]; then
     INSTANCE_POOL_SIZE_X86=$(echo "$POOL_DETAILS_X86" | jq -r '.size')
@@ -100,6 +108,10 @@ if [[ "$SELENIUM_GRID_NOMAD_ENABLED" == "true" ]]; then
     echo "No existing ARM pool found. Using default size $INSTANCE_POOL_SIZE_ARM"
   fi
 else
+  # A non-nomad grid passes this as instance_pool_size for its ONE node pool,
+  # so 0 here would build a grid with no nodes at all.
+  [ -z "$INSTANCE_POOL_SIZE_X86" ] && INSTANCE_POOL_SIZE_X86=1
+
   POOL_DETAILS="$(oci compute-management instance-pool list --region "$ORACLE_REGION" -c "$COMPARTMENT_OCID" --all --display-name "$GRID_NAME Grid Nodes" | jq '.data[0]')"
   if [ -n "$POOL_DETAILS" ] && [ "$POOL_DETAILS" != "null" ]; then
     INSTANCE_POOL_SIZE_X86=$(echo "$POOL_DETAILS" | jq -r '.size')

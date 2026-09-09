@@ -42,6 +42,11 @@ NOMAD_DC="$ENVIRONMENT-$ORACLE_REGION"
 JOB_NAME="grid-hub-$GRID"
 export NOMAD_VAR_grid="$GRID"
 
+# Hub image tag comes from the same SELENIUM_VERSION the node image is built
+# against, so hub and nodes cannot drift apart.
+. "$LOCAL_PATH/selenium-version.sh"
+export NOMAD_VAR_selenium_version="$SELENIUM_VERSION"
+
 sed -e "s/\[JOB_NAME\]/$JOB_NAME/" "$NOMAD_JOB_PATH/selenium-grid-hub.hcl" | nomad job run -var="dc=$NOMAD_DC" -
 
 if [ $? -ne 0 ]; then
