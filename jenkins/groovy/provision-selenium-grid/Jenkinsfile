@@ -59,11 +59,28 @@ pipeline {
                         ]) {
                             sshagent (credentials: ['ssh-ubuntu']) {
                             utils.SetupSSH()
+                            // Hand the script the same answer the Check Nomad Flag stage
+                            // already worked out. Without this it only ever sees the job
+                            // parameter, and its own fallback -- SELENIUM_GRID_NOMAD_FLAG --
+                            // is set nowhere in either repo, so an unticked run defaulted to
+                            // "false" and provisioned a nomad grid down the instance-pool
+                            // path: IMAGE_TYPE SeleniumGrid instead of NobleBase (no aarch64
+                            // SeleniumGrid image exists, so exit 210), the "<grid> Grid Nodes"
+                            // pool name instead of the x86/Arm pair, and the instance-pool
+                            // module against state written by instance-pool-nomad.
+                            //
+                            // This propagates the detection rather than forcing it: the value
+                            // comes from selenium_grid_enable_nomad in the environment's vars,
+                            // so a genuinely instance-pool grid still resolves to false. An
+                            // explicit SELENIUM_GRID_NOMAD_ENABLED=true parameter still wins,
+                            // because Check Nomad Flag honours it first.
+                            withEnv(["SELENIUM_GRID_NOMAD_ENABLED=${skipNomad ? 'false' : 'true'}"]) {
                             sh '''#!/bin/bash
                             export USER_PUBLIC_KEY_PATH=~/.ssh/ssh_key.pub
                             export ORACLE_GIT_BRANCH=\"$RELEASE_BRANCH\"
                             terraform/selenium-grid/create-selenium-grid-oracle.sh $SSH_USERNAME
                             '''
+                            }
                             }
                         }
                     }
