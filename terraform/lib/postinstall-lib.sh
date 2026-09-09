@@ -181,15 +181,73 @@ function mount_volumes() {
     fi
   fi
 }
+# In-region git mirror, opt-in per stack via GIT_MIRROR_HOST ("auto" derives it). JIT-16092
+function configure_mirror_repos() {
+  [ -z "$GIT_MIRROR_HOST" ] && return 0
+  if [ "$GIT_MIRROR_HOST" == "auto" ]; then
+    if [ -z "$ENVIRONMENT" ] || [ -z "$ORACLE_REGION" ]; then
+      echo "GIT_MIRROR_HOST=auto but ENVIRONMENT or ORACLE_REGION is unset, not using a mirror"
+      return 0
+    fi
+    [ -z "$GIT_MIRROR_DNS_ZONE" ] && GIT_MIRROR_DNS_ZONE="jitsi.net"
+    GIT_MIRROR_HOST="$ENVIRONMENT-$ORACLE_REGION-git.$GIT_MIRROR_DNS_ZONE"
+  fi
+  [ -z "$GIT_MIRROR_ORG" ] && GIT_MIRROR_ORG="jitsi"
+  if [ -z "$INFRA_CONFIGURATION_MIRROR_REPO" ] && [ -n "$INFRA_CONFIGURATION_REPO" ]; then
+    export INFRA_CONFIGURATION_MIRROR_REPO="https://$GIT_MIRROR_HOST/$GIT_MIRROR_ORG/$(basename "$INFRA_CONFIGURATION_REPO" .git).git"
+  fi
+  if [ -z "$INFRA_CUSTOMIZATIONS_MIRROR_REPO" ] && [ -n "$INFRA_CUSTOMIZATIONS_REPO" ]; then
+    export INFRA_CUSTOMIZATIONS_MIRROR_REPO="https://$GIT_MIRROR_HOST/$GIT_MIRROR_ORG/$(basename "$INFRA_CUSTOMIZATIONS_REPO" .git).git"
+  fi
+  echo "Using git mirror $GIT_MIRROR_HOST"
+}
+# Read-only mirror user for the private repo: bucket -> netrc, never a URL. No creds => github
+function fetch_mirror_credentials() {
+  [ -z "$INFRA_CUSTOMIZATIONS_MIRROR_REPO" ] && return 0
+  local bucket="jvb-bucket-${ENVIRONMENT}"
+  local creds_file="/root/.gitea-read-user.json"
+  local mirror_host
+  mirror_host=$(echo "$INFRA_CUSTOMIZATIONS_MIRROR_REPO" | sed -E 's#^[a-z]+://([^@/]*@)?([^/:]+).*#\2#')
+  if [ -z "$mirror_host" ]; then
+    echo "Could not read a hostname from the mirror URL, not fetching mirror credentials"
+    return 0
+  fi
+  if ! $OCI_BIN os object get -bn "$bucket" --name gitea-read-user --file "$creds_file" >/dev/null 2>&1; then
+    echo "No gitea-read-user in $bucket; the private repo will come from github"
+    rm -f "$creds_file"
+    return 0
+  fi
+  # keep the password out of the set -x trace
+  local xtrace=false
+  [[ $- == *x* ]] && xtrace=true
+  set +x
+  local username password
+  username=$(jq -r '.username // empty' "$creds_file")
+  password=$(jq -r '.password // empty' "$creds_file")
+  rm -f "$creds_file"
+  if [ -z "$username" ] || [ -z "$password" ]; then
+    [ "$xtrace" == "true" ] && set -x
+    echo "gitea-read-user in $bucket has no username or password; the private repo will come from github"
+    return 0
+  fi
+  (umask 077 && printf 'machine %s login %s password %s\n' "$mirror_host" "$username" "$password" > /root/.netrc)
+  chmod 600 /root/.netrc
+  [ "$xtrace" == "true" ] && set -x
+  echo "Installed mirror credentials for $username at $mirror_host"
+  return 0
+}
 function fetch_credentials() {
   ENVIRONMENT=$1
   BUCKET="jvb-bucket-${ENVIRONMENT}"
   $OCI_BIN os object get -bn $BUCKET --name vault-password --file /root/.vault-password
   $OCI_BIN os object get -bn $BUCKET --name id_rsa_jitsi_deployment --file /root/.ssh/id_rsa
   chmod 400 /root/.ssh/id_rsa
+  configure_mirror_repos
+  fetch_mirror_credentials
 }
 function clean_credentials() {
   rm /root/.vault-password /root/.ssh/id_rsa
+  rm -f /root/.netrc /root/.gitea-read-user.json
 }
 function set_hostname() {
   TYPE=$1
@@ -215,7 +273,8 @@ function clone_repo_at_ref() {
   [ -z "$url" ] && return 1
   [ -z "$target" ] && return 1
   rm -rf "$target"
-  git clone "$url" "$target" || return 1
+  # no terminal at boot: fail instead of waiting on a credential prompt
+  GIT_TERMINAL_PROMPT=0 git clone "$url" "$target" || return 1
   git -C "$target" checkout "$ref" || return 1
   git -C "$target" submodule update --init --recursive || return 1
   git -C "$target" show-ref "heads/$ref" || git -C "$target" show-ref "tags/$ref" || return 1

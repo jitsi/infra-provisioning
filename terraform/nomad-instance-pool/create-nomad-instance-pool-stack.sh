@@ -246,6 +246,7 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
   -var="vcn_name=$VCN_NAME" \
   -var "infra_configuration_repo=$INFRA_CONFIGURATION_REPO" \
   -var "infra_customizations_repo=$INFRA_CUSTOMIZATIONS_REPO" \
+  -var "git_mirror_host=$GIT_MIRROR_HOST" \
   -var "user_data_file=$POSTRUNNER_PATH" \
   -var="use_eip=$POOL_USE_EIP" \
   -var="secondary_vnic_name=$SECONDARY_VNIC_NAME" \
