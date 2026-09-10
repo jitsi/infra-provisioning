@@ -595,7 +595,19 @@ EOF
 [[ if eq (or (env "CONFIG_jigasi_vault_enabled") "true") "true" ]]
       template {
         data = <<EOF
-#!/command/with-contenv bash
+#!/bin/bash
+
+# Nomad runs this through `docker exec`, whose PATH does not contain /command,
+# so a #!/command/with-contenv shebang cannot be used here: execlineb cannot
+# find its own builtins and the script dies with exit 127. Put /command on PATH
+# (the image scripts called below do use with-contenv) and import the s6
+# container environment by hand, which is what with-contenv would have done.
+export PATH="/command:$PATH"
+for _f in /run/s6/container_environment/*; do
+    [ -f "$_f" ] || continue
+    export "$(basename "$_f")=$(cat "$_f")"
+done
+
 # The rootless image renders the live config under /run/prosody/config.
 PROSODY_CFG="/run/prosody/config/prosody.cfg.lua"
 

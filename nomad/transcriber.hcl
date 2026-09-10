@@ -182,14 +182,33 @@ job "[JOB_NAME]" {
         ports = ["http"]
         volumes = [
           "local/xmpp-servers:/opt/jitsi/xmpp-servers",
-          "local/01-xmpp-servers:/etc/cont-init.d/01-xmpp-servers",
-#          "local/11-status-cron:/etc/cont-init.d/11-status-cron",
           "local/reload-config.sh:/opt/jitsi/scripts/reload-config.sh",
-#          "local/jibri-status.sh:/opt/jitsi/scripts/jigasi-stats.sh",
-#          "local/cron-service-run:/etc/services.d/60-cron/run",
           "local/config:/config",
-          "secrets/oci:/usr/share/jigasi/.oci"
+          # Migrated to s6-overlay v3 / rootless.
+          #
+          # env oneshot: seeds JIGASI_VERSION / XMPP_SERVER into the s6 container
+          # environment, ordered before the image's 10-config.
+          "local/jigasi-env-type:/etc/s6-overlay/s6-rc.d/00-jigasi-env/type",
+          "local/jigasi-env-up:/etc/s6-overlay/s6-rc.d/00-jigasi-env/up",
+          "local/jigasi-env-contents:/etc/s6-overlay/s6-rc.d/user/contents.d/00-jigasi-env",
+          "local/jigasi-env-config-dep:/etc/s6-overlay/s6-rc.d/10-config/dependencies.d/00-jigasi-env",
+          "local/jigasi-env-script:/etc/s6-overlay/scripts/jigasi-env",
+          # jigasi's OCI transcription service reads ~/.oci/config; the rootless
+          # image runs as the s6 user (uid 1000, HOME=/home/s6), not the old
+          # jigasi user (uid 998, HOME=/usr/share/jigasi).
+          "secrets/oci:/home/s6/.oci"
     	  ]
+
+        # In transcriber mode the image's 10-config fails fast unless
+        # /tmp/transcripts exists and is writable by uid 1000. It is a VOLUME in
+        # the image, so docker would otherwise create it root-owned and 0755.
+        mount {
+          type   = "tmpfs"
+          target = "/tmp/transcripts"
+          tmpfs_options {
+            size = 67108864
+          }
+        }
       }
 
       env {
@@ -284,7 +303,7 @@ region={{ env "meta.cloud_region" }}
 EOF
         destination = "secrets/oci/config"
         perms = "600"
-        uid = 998
+        uid = 1000
         gid = 1000
       }
 
@@ -295,20 +314,54 @@ EOF
 EOF
         destination = "secrets/oci/oci_api_key.pem"
         perms = "600"
-        uid = 998
+        uid = 1000
         gid = 1000
       }
 
+      # --- 00-jigasi-env: oneshot seeding JIGASI_VERSION / XMPP_SERVER into the s6
+      # container environment, ordered before the image's 10-config. The script
+      # both exports (so reload-config.sh can source it) and writes the s6
+      # container_environment (so services started later see the values). ---
       template {
         data = <<EOF
-#!/usr/bin/with-contenv bash
-export JIGASI_VERSION="$(dpkg -s jigasi | grep Version | awk '{print $2}' | sed 's/..$//')"
-echo -n "$JIGASI_VERSION" > /var/run/s6/container_environment/JIGASI_VERSION
-
-export XMPP_SERVER="$(cat /opt/jitsi/xmpp-servers/servers)"
-echo -n "$XMPP_SERVER" > /var/run/s6/container_environment/XMPP_SERVER
+oneshot
 EOF
-        destination = "local/01-xmpp-servers"
+        destination = "local/jigasi-env-type"
+        perms = "644"
+      }
+      template {
+        data = <<EOF
+/etc/s6-overlay/scripts/jigasi-env
+EOF
+        destination = "local/jigasi-env-up"
+        perms = "644"
+      }
+      template {
+        data = <<EOF
+# managed by nomad
+EOF
+        destination = "local/jigasi-env-contents"
+        perms = "644"
+      }
+      template {
+        data = <<EOF
+# managed by nomad
+EOF
+        destination = "local/jigasi-env-config-dep"
+        perms = "644"
+      }
+      template {
+        data = <<EOF
+#!/command/with-contenv bash
+JIGASI_VERSION="$(dpkg -s jigasi | grep Version | awk '{print $2}' | sed 's/..$//')"
+export JIGASI_VERSION
+printf '%s' "$JIGASI_VERSION" > /run/s6/container_environment/JIGASI_VERSION
+
+XMPP_SERVER="$(cat /opt/jitsi/xmpp-servers/servers)"
+export XMPP_SERVER
+printf '%s' "$XMPP_SERVER" > /run/s6/container_environment/XMPP_SERVER
+EOF
+        destination = "local/jigasi-env-script"
         perms = "755"
       }
 
@@ -335,11 +388,24 @@ EOF
       }
       template {
         data = <<EOF
-#!/usr/bin/with-contenv bash
+#!/bin/bash
 
-. /etc/cont-init.d/01-xmpp-servers
-/etc/cont-init.d/10-config
-CONFIG_PATH=/config/sip-communicator.properties /usr/share/jigasi/reconfigure_xmpp.sh
+# Nomad runs this through `docker exec`, whose PATH does not contain /command,
+# so a #!/command/with-contenv shebang cannot be used here: execlineb cannot
+# find its own builtins and the script dies with exit 127. Put /command on PATH
+# (the image scripts called below do use with-contenv) and import the s6
+# container environment by hand, which is what with-contenv would have done.
+export PATH="/command:$PATH"
+for _f in /run/s6/container_environment/*; do
+    [ -f "$_f" ] || continue
+    export "$(basename "$_f")=$(cat "$_f")"
+done
+
+# Refresh XMPP_SERVER from the updated servers file, re-render config into
+# /run/jigasi/config, then re-add/remove call-control MUCs in running jigasi.
+. /etc/s6-overlay/scripts/jigasi-env
+/etc/s6-overlay/scripts/config
+CONFIG_PATH=/run/jigasi/config/sip-communicator.properties /usr/share/jigasi/reconfigure_xmpp.sh
 EOF
         destination = "local/reload-config.sh"
         perms = "755"
