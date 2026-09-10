@@ -288,6 +288,7 @@ config.testing.dumpTranscript = true;
 config.testing.skipInterimTranscriptions = true;
 [[- end ]]
 
+config.testing.disableAV1DecodeForFF = [[ or (env "CONFIG_jitsi_meet_disable_av1_decode_for_ff") "true" ]];
 config.testing.enableCodecSelectionAPI = [[ or (env "CONFIG_jitsi_meet_enable_codec_selection_api") "true" ]];
 config.testing.enableGracefulReconnect = [[ or ( env "CONFIG_jitsi_meet_enable_graceful_reconnect") "false" ]];
 config.testing.showSpotConsentDialog = [[ or ( env "CONFIG_jitsi_meet_show_spot_consent_dialog") "false" ]];
