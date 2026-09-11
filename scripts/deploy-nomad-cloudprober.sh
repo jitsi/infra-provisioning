@@ -54,6 +54,8 @@ CLOUDPROBER_ENABLE_PROMETHEUS="true"
 CLOUDPROBER_ENABLE_WAVEFRONT_PROXY="false"
 CLOUDPROBER_ENABLE_LATENCY="true"
 CLOUDPROBER_ENABLE_ALLOY="false"
+# set CLOUDPROBER_ENABLE_MIMIR=true in sites/$ENVIRONMENT/stack-env.sh once the region runs mimir-cluster
+[ -z "$CLOUDPROBER_ENABLE_MIMIR" ] && CLOUDPROBER_ENABLE_MIMIR="false"
 
 # init generic probes used by specific environments
 CLOUDPROBER_ENABLE_AUTOSCALER="false"
@@ -116,6 +118,7 @@ enable_alert_emailer=$CLOUDPROBER_ENABLE_ALERT_EMAILER
 enable_vault=$CLOUDPROBER_ENABLE_VAULT
 enable_canary=$CLOUDPROBER_ENABLE_LATENCY
 enable_alloy=$CLOUDPROBER_ENABLE_ALLOY
+enable_mimir=$CLOUDPROBER_ENABLE_MIMIR
 EOF
 
 RENDER_DIR="/tmp/cloudprober-render-$$"

@@ -1,12 +1,18 @@
 # Plan: Production-Grade Mimir Cluster to Replace Regional Prometheus
 
-Status: PROPOSED (not yet implemented)
+Status: IMPLEMENTED IN CODE (branch `JIT-16016-mimir-cluster`), NOT YET DEPLOYED.
+Phases 0–5 are in the repo behind flags; rollout follows §9. Operations:
+[mimir-runbook.md](mimir-runbook.md).
 Tracking: JIT-16016 (this plan) / JIT-16017 (alert-catalog → ruler + Mimir HA alertmanager follow-up)
-Author: generated 2026-07-08
+Author: generated 2026-07-08; risk review + fixes 2026-09-07 (see "Review" below)
 
 ## Pinned decisions (2026-07-08)
 
-1. **Mimir version: `3.1.2`** (latest stable, released 2026-06-24). Mimir 3.x
+1. **Mimir version: `3.1.5`** (latest 3.1 patch; `3.1.2` was current when this
+   was written, three patch releases followed, and `3.2.0` shipped 2026-08-19).
+   Start on the latest 3.1 patch, move to 3.2 after the lonely soak via the
+   normal N→N+1 path (3.2 turns on query sharding and remote execution by
+   default — read its notes first). Mimir 3.x
    still supports the classic architecture (distributor → ingester direct; the
    Kafka "ingest storage" path is optional) and monolithic `-target=all` mode —
    only the experimental read-write deployment mode was removed. Fresh-deploy
@@ -34,14 +40,40 @@ Author: generated 2026-07-08
    cutover — old prometheus becomes a purely local alert evaluator. No new
    `prometheus-agent.hcl`, no Prometheus remote-write code path anywhere.
    HA dedup via Mimir's HA tracker (both alloys scrape everything with
-   `cluster`/`__replica__` labels); verify the external 8x8 Mimir tenant has
-   HA dedup enabled for the same labels before enabling the second replica's
-   external write.
+   `cluster`/`__replica__` labels). **Correction (2026-09-07):** alloy already
+   writes to the external 8x8 Mimir (`prometheus.remote_write "external"`,
+   credentials in `secret/default/alloy/external-auth`) — that writer is
+   reused; the `secret/default/prometheus/remote_write/<env_type>` secret is
+   *not* moved. Scraped streams get their own HA-labelled writers (see Review
+   R1/R2) and reach the external tenant in `primary` mode (one replica, no HA
+   labels) until that tenant is confirmed to dedup on `cluster`/`__replica__`.
 5. **Stable Mimir ring identity + rotation health gates.** Each group pins
    `-ingester.ring.instance-id=mimir-<N>` with `tokens_file_path` on its host
    volume, so consul-node rotations and alloc reschedules rejoin the ring as
    the *same* member (no unhealthy squatters, no token churn). The
    rotate-consul path gains Mimir/Loki-aware health gates (see §5a).
+
+## Review (2026-09-07): risks found in the plan and how the implementation handles them
+
+| # | Risk in the original plan | Fix (in code) |
+|---|---|---|
+| R1 | **HA tracker would drop OTLP and alloy self metrics.** Mimir decides per push *request* from the first series' labels: with `cluster`/`__replica__` as remote_write external labels, every OTLP-relayed stream (each client sends to ONE alloy, so half of them arrive via the non-elected replica) and both alloys' own metrics would be discarded as "non-elected replica"; mixed batches would be dropped wholesale or stored with a stray `__replica__`. | `alloy.hcl` has two writers per destination: `mimir` (OTLP + self, no HA labels) and `mimir_ha` (consul-SD scrape targets, `cluster`/`__replica__` as external labels). Separate components = separate WALs = never a mixed request. `limits.accept_ha_samples: true` (the plan omitted it — without it the labels are stored verbatim and every scraped series is doubled). |
+| R2 | **External 8x8 Mimir tenant may not dedup.** "Only one alloy forwards until confirmed" is not expressible with two identical allocs. | `external_scrape_forward` = `primary` (default: only `NOMAD_ALLOC_INDEX` 0 forwards scraped streams, no HA labels; ~30 s gap on reschedule) / `ha` (both, with labels; enable only after the tenant is confirmed) / `none`. Implemented as a relabel gate in front of `prometheus.remote_write "external_ha"`. |
+| R3 | **prometheus.hcl remote_write removal could drop scraped metrics from the external stack.** Alloy's external writer uses a *different* Vault secret than prometheus.hcl's; nothing proved they are the same tenant. | The removal (Phase 2 step 4) is **gated on confirming both secrets resolve to the same tenant/endpoint** (compare `endpoint`+`username` in `secret/default/prometheus/remote_write/<env_type>` with `<env_type>-01-oci-metrics-url`/`-username` in `secret/default/alloy/external-auth`). Until then prometheus.hcl keeps its remote_write; alloy's external_ha writer runs alongside. Mimir's HA tracker is irrelevant there because prometheus.hcl's streams carry no `cluster` label. |
+| R4 | **Ingester restart loop.** The plan copied loki's `check_restart` (grace 60 s). A Mimir ingester replays its WAL before `/ready` goes 200; a large WAL takes minutes, so Nomad would kill it every minute forever. | `check_restart.grace = "10m"`, `healthy_deadline 10m`, `progress_deadline 15m`. |
+| R5 | **Wrong 3.x config paths in the sketch.** `compactor.blocks_retention_period` and `ruler.alertmanager_url` are per-tenant limits in 3.x (`limits.compactor_blocks_retention_period`, `limits.ruler_alertmanager_client_config.alertmanager_url`); a `tokens_file_path` under a non-existent directory fails because Mimir does not create parent dirs; OCI S3-compat needs `bucket_lookup_type: path`. | Config written from the 3.1.5 configuration reference (`cmd/mimir/config-descriptor.json`); tokens files at the volume root (`/mimir/ingester-tokens`, `/mimir/store-gateway-tokens`); `bucket_lookup_type: path`; `query_scheduler.service_discovery_mode: ring` so all frontends see all schedulers; `usage_stats.enabled: false`; `activity_tracker.filepath` on the volume. |
+| R6 | **Vault/consul-template `change_mode = restart` would bounce all three ingesters at once** on a credential rotation or on any alertmanager alloc move (the ruler URL is templated from consul). | Both `vault` and `template` use `change_mode = "noop"`; config and credential changes ship as a new job version, which rolls one zone at a time. Runbook documents the credential-rotation procedure. JIT-16017 must revisit the alertmanager target list (static render at alloc start). |
+| R7 | **Rotation gates had a chicken-and-egg problem and no fail-closed behaviour.** The first consul rotation (the one that attaches the volumes) runs before mimir exists; a nomad API error must not read as "healthy". | `consul-metrics-health-gate.sh` skips a job that is *not deployed* (`No job(s) with prefix or ID`) but exits non-zero on any other nomad/API failure; pre-detach gate aborts before draining; post-attach gate replaces the blind sleep (also after pool c). `HEALTH_GATE=false` is the documented DR override. |
+| R8 | **Memberlist port only half-opened.** The loki NSG rule is TCP-only; memberlist probes over UDP. | `consul_nsg_rule_mimir_gossip_tcp` + `_udp` for 7947; `memberlist.cluster_label = mimir-<dc>` so a stray loki/mimir packet is rejected rather than merging rings. |
+| R9 | **Default limits would silently discard.** Mimir defaults: 150 k series, 10 k samples/s, 30 labels/series — below a region's telegraf fleet. | Job variables `max_global_series_per_user` (1 M), `ingestion_rate` (250 k/s), `ingestion_burst_size` (1 M), `max_label_names_per_series: 60`, `out_of_order_time_window: 5m`; overridable per env (`MIMIR_*` in stack-env.sh). Still not unlimited: the series cap is what protects 3 GB / 8 GB of ingester memory. |
+| R10 | **`Mimir_Down` = `absent(up{job="mimir"})` would page every region that has no Mimir yet.** | Scrape job and `mimir_alerts` group are behind `var.mimir_alerts` (`PROMETHEUS_MIMIR_ALERTS=true` per environment). |
+| R11 | **HA-tracker KV in consul assumed no ACLs; `custom_relabels` are Prometheus YAML, not Alloy.** | Phase 0 checklist gains "consul KV writable from consul nodes without token". Alloy takes `alloy_custom_relabel_rules` / `alloy_custom_external_labels` (Alloy syntax) from `config/vars.yml`, which lives in **infra-customizations-private** — that repo needs the companion edit (translation of the four `eght_component` rules, PR in that repo). |
+| R13 | **Interface auto-detection would fail on OCI hosts.** Found by booting 3.1.5 against the rendered config: the 3.x querier has its own lifecycler, and any ring member without an explicit `instance_addr` auto-detects from interfaces `eth0`/`en0` and refuses to start when the NIC is named differently (OCI Ubuntu: `ens3`/`enp*`). | Every ring (`ingester`, `distributor`, `store_gateway`, `compactor`, `ruler`, `querier`, `query_scheduler`, `frontend.address`) gets `instance_addr` from `NOMAD_IP_grpc`. Config validated by starting Mimir 3.1.5 on it: strict-YAML parse clean, all modules initialise up to the object-storage sanity check (dummy creds). |
+| R12 | **Memberlist `node_name` pinning would break rotations.** Pinning the gossip node name to `mimir-N` (tempting for symmetry with the ring id) makes the replacement node's join a "conflicting address" for the still-remembered dead member. | Only the *ring* `instance_id` is pinned; memberlist node names stay host-unique (hostname). `rejoin_interval: 1m` heals splits after DNS seeds move. |
+
+Not changed by the review: monolithic mode, RF=3 + zone awareness, one bucket
+with three prefixes, HA-dedup over Alloy clustering, Phase 3/6 deferral to
+JIT-16017, the rollout order.
 
 ## Scope changes (2026-07-08)
 
@@ -222,10 +254,13 @@ New/changed files:
   `distinct_hosts`/AD spread implicit via volume placement.
 - Image `grafana/mimir:3.1.2` (`mimir_version` variable like
   `prometheus_version` today).
-- Config template highlights:
+- Config template highlights (the real thing is the job file; paths are 3.x):
 
 ```yaml
+target: all
 multitenancy_enabled: false
+usage_stats: { enabled: false }
+activity_tracker: { filepath: /mimir/metrics-activity.log }
 server:
   http_listen_port: {{ env "NOMAD_HOST_PORT_http" }}
   grpc_listen_port: {{ env "NOMAD_HOST_PORT_grpc" }}
@@ -236,50 +271,67 @@ common:
     s3: # OCI S3-compat endpoint, same shape as loki/tempo
       endpoint: <ns>.compat.objectstorage.<region>.oraclecloud.com:443
       bucket_name: mimir-<environment>
+      bucket_lookup_type: path            # OCI needs path-style
+      access_key_id / secret_access_key:  {{ with secret "secret/default/mimir/s3" }}
 blocks_storage:
   storage_prefix: blocks
-  tsdb: { dir: /mimir/tsdb }          # host volume
+  tsdb: { dir: /mimir/tsdb }              # host volume
   bucket_store: { sync_dir: /mimir/tsdb-sync }
-ruler_storage:  { storage_prefix: ruler }
+ruler_storage:        { storage_prefix: ruler }
+alertmanager_storage: { storage_prefix: alertmanager }
 memberlist:
-  advertise_addr: {{ env "NOMAD_IP_grpc" }}
-  bind_port: 7947
+  cluster_label: mimir-<dc>               # never merge with loki's ring
+  bind_port / advertise_port: 7947
+  advertise_addr: {{ env "NOMAD_IP_gossip" }}
+  rejoin_interval: 1m
   join_members: [<dc>-consul-{a,b,c}.<zone>:7947]
 ingester:
   ring:
     replication_factor: 3
     zone_awareness_enabled: true
     instance_availability_zone: zone-${group.key}
-    instance_id: mimir-${group.key}   # stable identity across node rotations
-    tokens_file_path: /mimir/tokens   # on the host volume — tokens survive too
-    unregister_on_shutdown: false     # rolling restarts don't reshard
-    final_sleep: 0s
-store_gateway:
-  sharding_ring: { replication_factor: 3, zone_awareness_enabled: true, ... }
+    instance_id: mimir-${group.key}       # stable identity across node rotations
+    tokens_file_path: /mimir/ingester-tokens   # volume ROOT: mimir won't mkdir
+    unregister_on_shutdown: false         # rolling restarts don't reshard
 distributor:
   ha_tracker:
     enable_ha_tracker: true
-    kvstore: { store: consul, consul: { host: <node>:8500 } }
-compactor:
-  data_dir: /mimir/compactor
-  blocks_retention_period: ${var.retention_period}   # default e.g. 2160h/90d
-ruler:
-  rule_path: /mimir/ruler
-  alertmanager_url: consul-SD equivalent (static list templated from consul
-    service via consul-template `{{ range service "alertmanager" }}`)
+    kvstore: { store: consul, prefix: mimir/ha-tracker/, consul: { host: <node>:8500 } }
+store_gateway:
+  sharding_ring: { replication_factor: 3, zone_awareness_enabled: true,
+                   instance_id: mimir-${group.key}, tokens_file_path: /mimir/store-gateway-tokens,
+                   unregister_on_shutdown: false, wait_stability_min_duration: 1m }
+compactor: { data_dir: /mimir/compactor, sharding_ring: { instance_id: mimir-${group.key} } }
+ruler:     { rule_path: /mimir/ruler,    ring:          { instance_id: mimir-${group.key} } }
+querier:   { ring: { instance_id: mimir-${group.key}, instance_addr: <NOMAD_IP_grpc> } }  # R13
+query_scheduler: { service_discovery_mode: ring, ring: { instance_id: mimir-${group.key} } }
 limits:
-  max_global_series_per_user: 0 or sized cap
-  ingestion_rate: sized
-  out_of_order_time_window: 5m       # tolerate agent replay after restarts
+  accept_ha_samples: true                 # REQUIRED for the HA tracker to act
+  ha_cluster_label: cluster
+  ha_replica_label: __replica__
+  max_global_series_per_user: ${var.max_global_series_per_user}   # 1M default
+  ingestion_rate: ${var.ingestion_rate}                           # 250k/s
+  ingestion_burst_size: ${var.ingestion_burst_size}
+  max_label_names_per_series: 60
+  out_of_order_time_window: 5m            # tolerate agent replay after restarts
+  compactor_blocks_retention_period: ${var.retention_period}      # 2160h/90d
+  ruler_alertmanager_client_config:
+    alertmanager_url: {{ range service "alertmanager" }}http://addr:port,{{ end }}
 ```
 
 - `update` stanza (zero-downtime rolling — see §5).
 - Service `mimir` with `int-urlprefix-${var.mimir_hostname}/` tag, health check
-  `GET /ready`, `check_restart` like loki.
+  `GET /ready`, `check_restart` with **`grace = "10m"`** (not loki's 60 s: WAL
+  replay must finish before `/ready` is 200, see Review R4).
+- `vault { change_mode = "noop" }` and template `change_mode = "noop"` (Review R6).
+- Resources `%{ if prod }2000 MHz / 8 GB%{ else }1000 MHz / 3 GB%{ endif }`.
 
-`scripts/deploy-nomad-mimir.sh` — copy of deploy-nomad-loki.sh: renders
-`[JOB_NAME]` → `mimir-$ORACLE_REGION`, exports hostname/namespace/creds vars,
-runs the job, then `create-oracle-cname-stack.sh` for
+`scripts/deploy-nomad-mimir.sh` — copy of deploy-nomad-loki.sh minus the
+ansible-vault credential lookup (creds come from Vault inside the job): renders
+`[JOB_NAME]` → `mimir-$ORACLE_REGION`, exports hostname/namespace/env-type and
+the optional `MIMIR_VERSION` / `MIMIR_RETENTION_PERIOD` /
+`MIMIR_MAX_GLOBAL_SERIES` / `MIMIR_INGESTION_RATE` / `MIMIR_INGESTION_BURST_SIZE`
+overrides, runs the job, then `create-oracle-cname-stack.sh` for
 `<env>-<region>-mimir.<tld>`.
 
 Jenkins (in this repo's `jenkins/jobs/` + reuse of the generic
@@ -297,33 +349,44 @@ Validate the whole phase on **lonely** first (established pattern).
 All changes land in `nomad/alloy.hcl` (pinned decision #4 — no new scraper
 job, no Prometheus-agent remote-write in the picture):
 
-1. **Scrape components**: add `discovery.consul` + `prometheus.scrape` blocks
-   replicating today's prometheus.hcl scrape jobs — `alertmanager`,
-   `cloudprober`, `telegraf` (30s interval), **plus new `mimir` and `alloy`
-   self jobs** — with the same `service` metric-relabels and the
-   `custom_relabels` var equivalents.
-2. **Labels for HA dedup**: `external_labels` carry
-   `datacenter/environment/region` (as prometheus does today) plus
-   `cluster: <env>-<region>` and `__replica__: <alloc-id>` so both alloy
-   replicas can scrape everything and each Mimir keeps exactly one copy.
-   Prerequisite: confirm the external 8x8 Mimir tenant has HA dedup enabled
-   for these labels; until confirmed, only one alloy replica forwards to the
-   external endpoint.
-3. **Two write destinations, one writer**: every stream (scraped + OTLP)
-   forwards to (a) the local Mimir at
-   `https://<env>-<region>-mimir.<tld>/api/v1/push` — replacing the current
-   `prometheus.remote_write "default"` that points at old prometheus — and
-   (b) a new `prometheus.remote_write "external_8x8"` built from the
-   `secret/default/prometheus/remote_write/<env_type>` Vault secret
-   (endpoint, basic auth, `X-Scope-OrgID` header), which is the external
-   8x8-hosted Mimir that prometheus.hcl writes to today.
-4. **prometheus.hcl loses its `remote_write` block in this phase** — Alloy is
-   now the only writer to the external Mimir, and old prometheus becomes a
-   purely local scrape-and-evaluate alert engine until the ruler ticket
-   retires it. No Prometheus remote-write code path remains anywhere.
-5. **Resources**: bump the alloy task from 256 MHz / 512 MB (sized as an OTLP
-   relay) to cover the scrape + WAL load — start at 512 MHz / 1.5 GB and let
-   the alloy-monitor dashboard calibrate.
+All of it is behind job variables set from the environment's stack-env.sh by
+`deploy-nomad-alloy.sh`: `ALLOY_ENABLE_MIMIR_WRITE` (default false),
+`ALLOY_ENABLE_SCRAPE` (false), `ALLOY_ENABLE_LEGACY_PROMETHEUS_WRITE` (true),
+`ALLOY_EXTERNAL_SCRAPE_FORWARD` (`primary`). Rendered configs for every switch
+combination were validated with `alloy validate` (3.x image) before merge.
+
+1. **Scrape components** (`enable_scrape`): a `discovery.consul` +
+   `prometheus.scrape` + `prometheus.relabel` trio per job, generated from a
+   `scrape_jobs` map — `alertmanager` (15s), `cloudprober` (10s), `telegraf`
+   (30s), `opus-transcriber-proxy-monitor` (30s), `gitea-mirror` (60s), **plus
+   the new `mimir` job** (15s) — with the same `service` metric-relabels as
+   prometheus.hcl, then a shared `scrape_common` relabel that appends
+   `alloy_custom_relabel_rules` (Alloy-syntax translation of
+   `prometheus_custom_relabels`, from config/vars.yml). Alloy's own metrics
+   keep the existing `integrations/self` job.
+2. **Labels for HA dedup — on separate writers (Review R1)**: the shared scrape
+   targets go to `prometheus.remote_write "mimir_ha"` whose `external_labels`
+   carry `datacenter/environment/region` plus `cluster: <env>-<region>` and
+   `__replica__: alloy-<NOMAD_ALLOC_INDEX>`; OTLP relays and self metrics go
+   to `prometheus.remote_write "mimir"` with the same labels **minus** the HA
+   pair. Mimir gets `accept_ha_samples: true`.
+3. **Write destinations**: (a) the local Mimir at
+   `https://<env>-<region>-mimir.<tld>/api/v1/push` (`enable_mimir_write`),
+   (b) the legacy prometheus remote-write receiver (`enable_legacy_prometheus_write`,
+   OTLP streams only, kept during the soak, off at Phase 5), (c) the **existing**
+   `prometheus.remote_write "external"` (OTLP + self) and the new
+   `external_ha` for scraped streams, both from `secret/default/alloy/external-auth`.
+   The external_ha path runs in `primary` mode (only alloc index 0 forwards, no
+   HA labels) until the external tenant's HA dedup is confirmed, then `ha`
+   (Review R2).
+4. **prometheus.hcl loses its `remote_write` block once R3 is confirmed** — i.e.
+   once the two Vault secrets are shown to address the same external tenant.
+   Then old prometheus is a purely local scrape-and-evaluate alert engine
+   until the ruler ticket retires it. (Not done in this branch: it is a
+   one-line deletion gated on that check.)
+5. **Resources**: alloy task bumped from 256 MHz / 512 MB to 512 MHz / 1.5 GB
+   (up to four remote-write WALs); calibrate with the alloy-monitor dashboard's
+   new remote-write and scrape rows.
 
 ### Phase 3 — Alert rules on the ruler [MOVED TO JIT-16017]
 
@@ -346,10 +409,12 @@ Until that ticket lands, prometheus.hcl keeps running as the alert evaluator
 (scraping + rule evaluation only; its storage/query duties end at Phase 4-5).
 
 The Mimir *self*-monitoring alerts in §6 are NOT deferred — they ship with
-this plan, added to the existing prometheus.hcl alert template (a small
+this plan, added to the existing prometheus.hcl alert template (a
 `mimir_alerts` group) plus a consul-SD scrape job for the `mimir` service in
-prometheus.hcl, so the current evaluator watches the new cluster from day
-one. They migrate to the ruler with everything else later.
+prometheus.hcl, both behind `var.mimir_alerts` (`PROMETHEUS_MIMIR_ALERTS=true`
+in the environment's stack-env.sh once Mimir is deployed there — Review R10),
+so the current evaluator watches the new cluster from day one. They migrate to
+the ruler with everything else later.
 
 ### Phase 4 — Query path
 
@@ -463,17 +528,19 @@ healthy):
    `cortex_ring_members` via the query API) and require 3 ACTIVE / 0
    unhealthy ingesters, plus loki `/ready` on all three. If the cluster is
    already degraded, **abort the rotation** instead of making it worse.
-3. **Post-attach gate** (new `scripts/consul-metrics-health-gate.sh`, called
-   from `rotate-consul-oracle.sh` in place of the blind sleep): poll until
-   (a) the new node registers in Nomad with its `mimir-N`/`loki-N` host
-   volumes, (b) the mimir-N and loki-N allocs are running, (c) mimir `/ready`
-   returns 200 and the ring is back to 3 ACTIVE / 0 unhealthy, (d) loki
-   `/ready` returns 200. Configurable timeout (default 15m); on timeout the
-   pipeline **fails loudly** rather than rolling on to the next pool.
-4. **Jenkinsfile**: add `HEALTH_GATE` (default `true`; escape hatch for
-   disaster recovery when the gate can never pass) and
-   `HEALTH_GATE_TIMEOUT_MINUTES` parameters, and echo gate progress so the
-   rotation log shows what it waited on.
+3. **Post-attach gate** (`scripts/consul-metrics-health-gate.sh post`, called
+   from `rotate-consul-oracle.sh` in place of the blind sleep, after every
+   pool including c): poll until (a) 3 mimir-N / loki-N allocs are running,
+   (b) `/ready` returns 200 three times in a row through Fabio, (c) the
+   ingester ring (`/ingester/ring`, JSON via `Accept: application/json`) is
+   3 ACTIVE / 0 not-active, (d) same for loki `/ready` + `/ring`. Timeout
+   default 15m; on timeout the pipeline **fails loudly** rather than rolling on
+   to the next pool. A job that is not deployed in the region is skipped
+   (first rotation, before mimir exists); a nomad API failure fails closed
+   (Review R7).
+4. **Jenkinsfile**: `HEALTH_GATE` (default `true`; escape hatch for disaster
+   recovery when the gate can never pass) and `HEALTH_GATE_TIMEOUT_MINUTES`
+   (15) parameters on `rotate-consul`; the gate echoes what it is waiting on.
 
 ## 6. Monitoring the monitor
 
@@ -486,35 +553,40 @@ solves "who watches the watcher": if the regional Mimir is down, its absence
 still alerts from the external stack (mirrors the existing global-alertmanager
 design).
 
-### New alert rules (evaluated by the existing prometheus.hcl initially, migrating to the ruler with the follow-up ticket; starred ones also mirrored to the external stack)
+### New alert rules (`mimir_alerts` group in prometheus.hcl, behind `var.mimir_alerts`; migrating to the ruler with the follow-up ticket; starred ones also reach the external stack through alloy)
 
-| Alert | Expr sketch | Severity |
+| Alert | Expr (as implemented) | Severity |
 |---|---|---|
-| *Mimir_Down | `absent(up{job="mimir"})` | severe/page |
+| *Mimir_Down | `absent(up{job="mimir"})` 5m | severe |
 | Mimir_Instance_Down | `count(up{job="mimir"} == 1) < 3` | warn (5m) / severe (30m) |
-| Mimir_Ring_Unhealthy | `cortex_ring_members{state="Unhealthy"} > 0` | severe |
-| Mimir_Ingestion_Discards | `rate(cortex_discarded_samples_total[5m]) > 0` sustained | warn |
-| Mimir_HA_Dedup_Flapping | `rate(cortex_ha_tracker_replicas_cleanup_total[10m])` anomaly | smoke |
-| Mimir_Compactor_Stalled | `time() - cortex_compactor_last_successful_run_timestamp_seconds > 4h` | severe |
-| Mimir_StoreGateway_Sync_Failing | `rate(cortex_bucket_stores_blocks_sync_failures_total[10m]) > 0` | warn |
-| Mimir_Object_Storage_Errors | `rate(thanos_objstore_bucket_operation_failures_total[5m]) > 0` | warn→severe |
-| Mimir_Query_Latency_High | p99 `cortex_request_duration_seconds` (query path) > 10s | warn |
-| Mimir_Write_Latency_High | p99 push duration > 1s | warn |
-| Mimir_Ruler_Failing | `rate(cortex_ruler_rule_evaluation_failures_total[5m]) > 0` | severe (rule evals ARE our alerting) |
-| *Alloy_Scrape_Down | `absent(up{job="alloy"})` or `count(up{job="alloy"}) < 2` | severe |
-| Alloy_RemoteWrite_Backlog | `prometheus_remote_storage_highest_timestamp_in_seconds - prometheus_remote_storage_queue_highest_sent_timestamp_seconds > 60` per endpoint | warn→severe |
-| Mimir_Memory_High | existing Nomad_Job_Memory_Use_High covers it — remove the `task!~"prometheus"` exclusion carve-out decision for mimir deliberately |
+| Mimir_Ring_Unhealthy | `max(cortex_ring_members{job="mimir", state="Unhealthy"}) > 0` 5m | severe |
+| Mimir_Ingestion_Discards | `sum by (reason) (rate(cortex_discarded_samples_total[5m])) > 10` 15m | warn |
+| Mimir_HA_Dedup_Flapping | `sum(increase(cortex_ha_tracker_elected_replica_changes_total[10m])) > 3` 15m | smoke |
+| Mimir_Compactor_Stalled | `time() - max(cortex_compactor_last_successful_run_timestamp_seconds) > 4h` (guarded by `> 0`) | warn (4h) / severe (24h) |
+| Mimir_StoreGateway_Sync_Failing | `sum(rate(cortex_bucket_stores_blocks_sync_failures_total[10m])) > 0` 15m | warn |
+| Mimir_Object_Storage_Errors | failure ratio per `operation` > 5% for 15m | warn |
+| Mimir_Query_Latency_High | p99 `cortex_request_duration_seconds` route `prometheus_api_v1_query.*` > 10s | warn |
+| Mimir_Write_Latency_High | p99 route `api_v1_push.*` > 2.5s (mixin threshold; 1s was noise-prone) | warn |
+| Mimir_Ruler_Failing | `sum(rate(cortex_prometheus_rule_evaluation_failures_total[5m])) > 0` 10m | severe (rule evals ARE our alerting) |
+| *Alloy_Scrape_Down | `count(up{job="integrations/self", alloy_type="internal"} == 1) < 2` 10m (alloy's existing self job, not a new `alloy` job) | severe |
+| Alloy_RemoteWrite_Backlog | highest ts − highest sent ts `> 120s` per (instance, component_id, url) for 10m | warn |
+| Mimir_Memory_High | existing Nomad_Job_Memory_Use_High covers it — mimir is deliberately NOT added to the `task!~"prometheus"` exclusion |
 
-Also: a **cloudprober http probe** against `https://<mimir_hostname>/ready` and
-a synthetic **query probe** (instant query `vector(1)` via
-`/prometheus/api/v1/query`) — end-to-end read-path checking, matching how other
-services are probed here.
+`job="mimir"` requires the prometheus.hcl `mimir` scrape job (same flag). In
+nonprod `severe` is downgraded to `warn` by the existing relabel.
+
+Also: a **cloudprober http probe** `mimir` against `https://<mimir_hostname>/ready`
+and a synthetic **query probe** `mimir-query` (instant query `vector(1)` via
+`/prometheus/api/v1/query`, validated on 2xx + `"status":"success"`) — end-to-end
+read-path checking. Both in the `jitsi_cloudprober` pack behind `enable_mimir`
+(`CLOUDPROBER_ENABLE_MIMIR=true` in stack-env.sh).
 
 ### Grafana dashboards (new JSONs in `grafana/dashboards/`)
 
-Base them on the upstream **mimir-mixin** (compiled, then trimmed to
-single-tenant/monolithic reality), following the style of the existing
-`alloy-monitor.json`:
+Hand-built from the mimir-mixin's key queries, trimmed to single-tenant
+monolithic reality (no jsonnet toolchain in this repo), following the style of
+the existing `alloy-monitor.json` (datasource / environment / region variables,
+`job="mimir"` selector, cross-linked via the `mimir` tag):
 
 1. `mimir-overview.json` — cluster up-count, ingestion rate (samples/s),
    active series, in/out bytes, ring status, per-instance memory/CPU (from
@@ -548,12 +620,21 @@ via the existing grafana flow).
   today we effectively have ~15d locally + the external 8x8 Mimir), documented per env.
 - [ ] **Consul-pool capacity** re-validated per env; instance shapes bumped if
   loki+mimir co-tenancy pushes memory > 70%.
+- [ ] **Consul KV writable** from the consul nodes without an ACL token (HA
+  tracker state lives at `mimir/ha-tracker/`); **Vault policy** for nomad
+  workloads covers `secret/default/mimir/s3` (tempo's `secret/default/tempo/s3`
+  works the same way, so this should already hold).
+- [ ] **External tenant HA dedup confirmed** before switching
+  `ALLOY_EXTERNAL_SCRAPE_FORWARD` from `primary` to `ha`; **same-tenant check**
+  of the two Vault secrets before deleting prometheus.hcl's `remote_write`
+  (Review R2/R3).
 - [ ] **Bucket security**: dedicated S3 credential (`secret/default/mimir/s3`),
   scoped IAM policy to only the mimir bucket (follow the ops-repo-test
   compartment/IAM lessons), no versioning (compactor churns objects),
   no lifecycle rule (compactor owns deletes).
-- [ ] **Gossip port 7947** allowed in the consul-pool security list (verify
-  the same rule that opened 7946 for loki; extend it).
+- [x] **Gossip port 7947** allowed in the consul NSG, TCP **and UDP**
+  (`consul_nsg_rule_mimir_gossip_*` in terraform/consul-server; applied on the
+  next consul-server terraform run, which the volume-attaching rotation does).
 - [ ] **Backpressure tested**: kill 1 and 2 mimir instances in lonely under
   load; verify alloy buffers + recovers with no gaps (2-instance loss = expected
   partial write failure with RF=3 — verify alerting catches it).
@@ -571,22 +652,33 @@ via the existing grafana flow).
 
 ## 8. File-by-file change list
 
-| File | Action |
-|---|---|
-| `nomad/mimir-cluster.hcl` | NEW — 3-group monolithic Mimir cluster |
-| `nomad/alloy.hcl` | EDIT — consul-SD scrape components, HA-dedup labels, writes to local mimir `/api/v1/push` + external 8x8 mimir (vault secret moves here), resource bump |
-| `nomad/prometheus.hcl` | EDIT — add `mimir` scrape job + `mimir_alerts` group; DELETE later in Phase 6 (gated on ruler ticket) |
-| `scripts/deploy-nomad-mimir.sh` | NEW — job deploy + CNAME (`mimirtool rules sync` added by follow-up ticket) |
-| `scripts/create-buckets-oracle.sh` | EDIT — add `mimir-$ENVIRONMENT` bucket |
-| `terraform/volumes-mimir/` | NEW — 3× 100 GB block volumes, consul role, indexed |
-| `jenkins/jobs/provision-nomad-mimir.yaml` | NEW (generic provision-nomad-job Jenkinsfile) |
-| `jenkins/jobs/release-nomad-mimir.yaml` + groovy pipeline | NEW — clone of release-nomad-prometheus |
-| `grafana/dashboards/mimir-*.json` (×4) | NEW; `alloy-monitor.json` EDIT (remote-write/scrape panels) |
-| `doc/mimir-runbook.md` | NEW |
-| sites/*/vars & stack-env | EDIT — retention/sizing overrides per env as needed |
+| File | Action | Status |
+|---|---|---|
+| `nomad/mimir-cluster.hcl` | NEW — 3-group monolithic Mimir cluster | done |
+| `nomad/alloy.hcl` | EDIT — consul-SD scrape components, split direct/HA writers to local mimir + external 8x8 mimir, external forward modes, resource bump | done (flags default off) |
+| `nomad/prometheus.hcl` | EDIT — `mimir` scrape job + `mimir_alerts` group behind `var.mimir_alerts`; `remote_write` deletion gated on R3; DELETE job in Phase 6 | done |
+| `scripts/deploy-nomad-mimir.sh` | NEW — job deploy + CNAME (`mimirtool rules sync` added by follow-up ticket) | done |
+| `scripts/deploy-nomad-alloy.sh` / `deploy-nomad-prometheus.sh` / `deploy-nomad-cloudprober.sh` | EDIT — env flags (`ALLOY_*`, `PROMETHEUS_MIMIR_ALERTS`, `CLOUDPROBER_ENABLE_MIMIR`) | done |
+| `scripts/consul-metrics-health-gate.sh` | NEW — pre/post rotation gate | done |
+| `scripts/rotate-consul-oracle.sh`, `rotate-consul-pre-detach.sh`, `jenkins/groovy/rotate-consul/Jenkinsfile`, `jenkins/jobs/rotate-consul.yaml` | EDIT — gates replace the blind sleep; `HEALTH_GATE*` params | done |
+| `scripts/create-buckets-oracle.sh` | EDIT — add `mimir-$ENVIRONMENT` bucket | done |
+| `terraform/volumes-mimir/` | NEW — 3× 100 GB block volumes, consul role, indexed | done |
+| `terraform/consul-server/create-consul-server-oracle.tf` | EDIT — NSG rules 7947 tcp+udp | done |
+| `nomad/jitsi_packs/packs/jitsi_cloudprober` | EDIT — `enable_mimir` probes | done |
+| `jenkins/jobs/provision-nomad-mimir.yaml` | NEW (generic provision-nomad-job Jenkinsfile) | done |
+| `jenkins/jobs/release-nomad-mimir.yaml` + `jenkins/groovy/release-nomad-mimir/Jenkinsfile` | NEW — clone of release-nomad-prometheus | done |
+| `grafana/dashboards/mimir-*.json` (×4) | NEW; `alloy-monitor.json` EDIT (scrape + per-endpoint remote-write rows) | done |
+| `doc/mimir-runbook.md` | NEW | done |
+| **infra-customizations-private** `config/vars.yml` | EDIT — add `alloy_custom_relabel_rules` / `alloy_custom_external_labels` (Alloy translation of the `eght_*` relabels; see deploy-nomad-alloy.sh) | **companion PR needed** |
+| **infra-customizations-private** `sites/*/stack-env.sh` | EDIT per env at each phase: `ALLOY_ENABLE_MIMIR_WRITE`, `ALLOY_ENABLE_SCRAPE`, `PROMETHEUS_MIMIR_ALERTS`, `CLOUDPROBER_ENABLE_MIMIR`, later `ALLOY_ENABLE_LEGACY_PROMETHEUS_WRITE=false`; optional `MIMIR_*` sizing | **companion PR per env** |
+| Vault `secret/default/mimir/s3` | mint per environment before first deploy | manual |
 
 ## 9. Rollout order
 
+0. Prereqs per environment: apply `terraform/volumes-mimir`, run
+   `create-buckets-oracle.sh`, mint `secret/default/mimir/s3`, then rotate the
+   consul pool (attaches volumes, applies the 7947 NSG rules; the new gates
+   skip mimir because it is not deployed yet).
 1. lonely: Phases 0–4, soak 1–2 weeks, kill-testing + load test.
 2. stage/other nonprod: same, shorter soak.
 3. prod, region by region (release pipeline REGIONS param), dual-write soak

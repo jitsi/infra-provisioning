@@ -8,6 +8,22 @@ else
   echo "## will ssh as $SSH_USER"
 fi
 
+LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
+
+# Never take a consul node (and its mimir-N / loki-N allocs) down while the metrics
+# or logs cluster is already degraded: that would take mimir from 3/3 to 1/3 and
+# lose write quorum. This script is sourced by rotate-instance-pool-oracle.sh, so
+# exit here aborts the whole rotation before anything has been drained.
+if [[ "${HEALTH_GATE:-true}" == "true" ]]; then
+    echo "## rotate-consul-pre-detach: running mimir/loki health gate before draining $INSTANCE_ID"
+    $LOCAL_PATH/consul-metrics-health-gate.sh pre
+    RET=$?
+    if [[ $RET -gt 0 ]]; then
+        echo "## ERROR: rotate-consul-pre-detach: health gate failed (code $RET); aborting rotation. Set HEALTH_GATE=false to override."
+        exit $RET
+    fi
+fi
+
 echo "## rotate-consul-pre-detch: getting private IP"
 INSTANCE_PRIMARY_PRIVATE_IP=$(oci compute instance list-vnics --region $ORACLE_REGION --instance-id $INSTANCE_ID | jq -r '.data[] | select(.["is-primary"] == true) | .["private-ip"]')
 if [ "$INSTANCE_PRIMARY_PRIVATE_IP" == "null" ]; then

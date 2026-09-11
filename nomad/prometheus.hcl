@@ -61,6 +61,12 @@ variable "autoscaler_alerts" {
   default = false
 }
 
+variable "mimir_alerts" {
+  type = bool
+  description = "a mimir cluster (nomad/mimir-cluster.hcl) is deployed in this region; scrape it and evaluate the mimir_alerts group"
+  default = false
+}
+
 variable "custom_alerts" {
   type = string
   description = "custom alerts to be added to the alerts.yml file"
@@ -215,7 +221,17 @@ ${var.custom_relabels}
       - target_label: service
         replacement: 'infra'
 ${var.custom_relabels}
-  - job_name: 'prometheus'
+%{ if var.mimir_alerts }  - job_name: 'mimir'
+    scrape_interval: 15s
+    metrics_path: /metrics
+    consul_sd_configs:
+    - server: '{{ env "NOMAD_IP_prometheus_ui" }}:8500'
+      services: ['mimir']
+    metric_relabel_configs:
+      - target_label: service
+        replacement: 'infra'
+${var.custom_relabels}
+%{ endif }  - job_name: 'prometheus'
     scrape_interval: 5s
     static_configs:
       - targets: ['localhost:9090']
@@ -516,7 +532,224 @@ groups:
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=gitea_mirror
 
-- name: cloudprober_alerts
+%{ if var.mimir_alerts }# Self-monitoring for the regional Mimir cluster (doc/mimir-cluster-plan.md 6).
+# Evaluated by this prometheus until JIT-16017 moves the catalog to the Mimir ruler.
+- name: mimir_alerts
+  rules:
+  - alert: Mimir_Down
+    expr: absent(up{job="mimir"})
+    for: 5m
+    labels:
+      service: infra
+      severity: severe
+    annotations:
+      summary: no mimir instance is being scraped in ${var.dc}
+      description: >-
+        None of the three mimir instances in ${var.dc} are exposing metrics. Metrics
+        ingestion and Grafana queries for this region are down; alloy is buffering
+        samples in its WAL and will replay them when mimir returns.
+      dashboard_url: ${var.grafana_url}
+      alert_url: https://${var.prometheus_hostname}/alerts?search=mimir_down
+  - alert: Mimir_Instance_Down
+    expr: count(up{job="mimir"} == 1) < 3
+    for: 5m
+    labels:
+      service: infra
+      severity: warn
+    annotations:
+      summary: a mimir instance is down in ${var.dc}
+      description: >-
+        Only {{ $value }} of 3 mimir instances are up in ${var.dc}. With replication
+        factor 3 the cluster is still serving reads and writes, but one more failure
+        means a write outage. Check nomad job mimir-${var.dc} and the mimir host volumes.
+      dashboard_url: ${var.grafana_url}
+      alert_url: https://${var.prometheus_hostname}/alerts?search=mimir_instance_down
+  - alert: Mimir_Instance_Down
+    expr: count(up{job="mimir"} == 1) < 3
+    for: 30m
+    labels:
+      service: infra
+      severity: severe
+    annotations:
+      summary: a mimir instance has been down for 30 minutes in ${var.dc}
+      description: >-
+        Only {{ $value }} of 3 mimir instances have been up for the last 30 minutes in
+        ${var.dc}. The cluster has no remaining redundancy. See doc/mimir-runbook.md.
+      dashboard_url: ${var.grafana_url}
+      alert_url: https://${var.prometheus_hostname}/alerts?search=mimir_instance_down
+  - alert: Mimir_Ring_Unhealthy
+    expr: max(cortex_ring_members{job="mimir", state="Unhealthy"}) > 0
+    for: 5m
+    labels:
+      service: infra
+      severity: severe
+    annotations:
+      summary: mimir ring has unhealthy members in ${var.dc}
+      description: >-
+        A mimir ring in ${var.dc} reports {{ $value }} unhealthy member(s). Ring
+        members are pinned to the stable identities mimir-0/1/2, so an unhealthy
+        member usually means an instance is down or cannot gossip on 7947. If the
+        instance is gone for good, forget it from the ring (doc/mimir-runbook.md).
+      dashboard_url: ${var.grafana_url}
+      alert_url: https://${var.prometheus_hostname}/alerts?search=mimir_ring_unhealthy
+  - alert: Mimir_Ingestion_Discards
+    expr: sum by (reason) (rate(cortex_discarded_samples_total{job="mimir"}[5m])) > 10
+    for: 15m
+    labels:
+      service: infra
+      severity: warn
+    annotations:
+      summary: mimir is discarding samples ({{ $labels.reason }}) in ${var.dc}
+      description: >-
+        Mimir in ${var.dc} has been discarding {{ $value | printf "%.1f" }} samples/s for
+        reason {{ $labels.reason }} for 15 minutes. Common causes are per-tenant limits
+        (max_global_series_per_user, ingestion_rate, max_label_names_per_series) or
+        out-of-order samples beyond the 5m window.
+      dashboard_url: ${var.grafana_url}
+      alert_url: https://${var.prometheus_hostname}/alerts?search=mimir_ingestion_discards
+  - alert: Mimir_HA_Dedup_Flapping
+    expr: sum(increase(cortex_ha_tracker_elected_replica_changes_total{job="mimir"}[10m])) > 3
+    for: 15m
+    labels:
+      service: infra
+      severity: smoke
+    annotations:
+      summary: mimir HA tracker keeps re-electing the alloy replica in ${var.dc}
+      description: >-
+        The elected alloy scrape replica in ${var.dc} changed {{ $value | printf "%.0f" }} times
+        in 10 minutes. Usually one alloy replica is unhealthy or its remote write is
+        lagging past the HA failover timeout; expect small gaps in scraped metrics.
+      dashboard_url: ${var.grafana_url}
+      alert_url: https://${var.prometheus_hostname}/alerts?search=mimir_ha_dedup_flapping
+  - alert: Mimir_Compactor_Stalled
+    expr: max(cortex_compactor_last_successful_run_timestamp_seconds{job="mimir"}) > 0 and time() - max(cortex_compactor_last_successful_run_timestamp_seconds{job="mimir"}) > 4 * 3600
+    for: 30m
+    labels:
+      service: infra
+      severity: warn
+    annotations:
+      summary: mimir compactor has not completed a run in 4 hours in ${var.dc}
+      description: >-
+        No mimir compactor in ${var.dc} has finished a compaction run for over 4 hours
+        (runs every hour). Query performance degrades and retention is not applied
+        until compaction resumes. Check the compactor logs and object storage.
+      dashboard_url: ${var.grafana_url}
+      alert_url: https://${var.prometheus_hostname}/alerts?search=mimir_compactor_stalled
+  - alert: Mimir_Compactor_Stalled
+    expr: max(cortex_compactor_last_successful_run_timestamp_seconds{job="mimir"}) > 0 and time() - max(cortex_compactor_last_successful_run_timestamp_seconds{job="mimir"}) > 24 * 3600
+    for: 30m
+    labels:
+      service: infra
+      severity: severe
+    annotations:
+      summary: mimir compactor has not completed a run in 24 hours in ${var.dc}
+      description: >-
+        No mimir compactor in ${var.dc} has finished a compaction run for over a day.
+        Uncompacted blocks pile up in the bucket and the store-gateways will start
+        struggling. See doc/mimir-runbook.md (compactor stuck).
+      dashboard_url: ${var.grafana_url}
+      alert_url: https://${var.prometheus_hostname}/alerts?search=mimir_compactor_stalled
+  - alert: Mimir_StoreGateway_Sync_Failing
+    expr: sum(rate(cortex_bucket_stores_blocks_sync_failures_total{job="mimir"}[10m])) > 0
+    for: 15m
+    labels:
+      service: infra
+      severity: warn
+    annotations:
+      summary: mimir store-gateway block sync is failing in ${var.dc}
+      description: >-
+        Store-gateways in ${var.dc} are failing to sync blocks from the mimir bucket.
+        Queries beyond the ingesters' in-memory window will return stale or partial
+        data. Check object storage credentials and connectivity.
+      dashboard_url: ${var.grafana_url}
+      alert_url: https://${var.prometheus_hostname}/alerts?search=mimir_storegateway_sync_failing
+  - alert: Mimir_Object_Storage_Errors
+    expr: sum by (operation) (rate(thanos_objstore_bucket_operation_failures_total{job="mimir"}[5m])) / sum by (operation) (rate(thanos_objstore_bucket_operations_total{job="mimir"}[5m])) > 0.05
+    for: 15m
+    labels:
+      service: infra
+      severity: warn
+    annotations:
+      summary: mimir object storage {{ $labels.operation }} operations are failing in ${var.dc}
+      description: >-
+        More than 5% of mimir {{ $labels.operation }} operations against the mimir bucket
+        in ${var.dc} failed over the last 15 minutes ({{ $value | printf "%.2f" }} ratio).
+        Blocks may not be shipping; the ingesters keep them on the host volume until
+        the bucket recovers.
+      dashboard_url: ${var.grafana_url}
+      alert_url: https://${var.prometheus_hostname}/alerts?search=mimir_object_storage_errors
+  - alert: Mimir_Query_Latency_High
+    expr: histogram_quantile(0.99, sum by (le) (rate(cortex_request_duration_seconds_bucket{job="mimir", route=~"prometheus_api_v1_query.*"}[5m]))) > 10
+    for: 15m
+    labels:
+      service: infra
+      severity: warn
+    annotations:
+      summary: mimir query p99 latency is above 10s in ${var.dc}
+      description: >-
+        The p99 latency of Prometheus API queries against mimir in ${var.dc} has been
+        {{ $value | printf "%.1f" }}s for 15 minutes. Look for expensive dashboard
+        queries, store-gateway lazy loading, or an overloaded querier.
+      dashboard_url: ${var.grafana_url}
+      alert_url: https://${var.prometheus_hostname}/alerts?search=mimir_query_latency_high
+  - alert: Mimir_Write_Latency_High
+    expr: histogram_quantile(0.99, sum by (le) (rate(cortex_request_duration_seconds_bucket{job="mimir", route=~"api_v1_push.*"}[5m]))) > 2.5
+    for: 15m
+    labels:
+      service: infra
+      severity: warn
+    annotations:
+      summary: mimir remote-write p99 latency is above 2.5s in ${var.dc}
+      description: >-
+        The p99 latency of remote-write pushes into mimir in ${var.dc} has been
+        {{ $value | printf "%.1f" }}s for 15 minutes. Alloy will start sharding up and
+        buffering; check ingester CPU/memory and the mimir host volumes.
+      dashboard_url: ${var.grafana_url}
+      alert_url: https://${var.prometheus_hostname}/alerts?search=mimir_write_latency_high
+  - alert: Mimir_Ruler_Failing
+    expr: sum(rate(cortex_prometheus_rule_evaluation_failures_total{job="mimir"}[5m])) > 0
+    for: 10m
+    labels:
+      service: infra
+      severity: severe
+    annotations:
+      summary: mimir ruler rule evaluations are failing in ${var.dc}
+      description: >-
+        The mimir ruler in ${var.dc} is failing rule evaluations. Once the alert
+        catalog lives on the ruler these evaluations ARE our alerting, so treat this
+        as an alerting outage.
+      dashboard_url: ${var.grafana_url}
+      alert_url: https://${var.prometheus_hostname}/alerts?search=mimir_ruler_failing
+  - alert: Alloy_Scrape_Down
+    expr: count(up{job="integrations/self", alloy_type="internal"} == 1) < 2
+    for: 10m
+    labels:
+      service: infra
+      severity: severe
+    annotations:
+      summary: fewer than 2 alloy collectors are up in ${var.dc}
+      description: >-
+        Only {{ $value }} alloy collector(s) are reporting in ${var.dc}. Alloy is the only
+        scraper and the only writer to mimir and the external 8x8 Mimir; with one
+        replica left there is no scrape redundancy, with zero all metrics stop.
+      dashboard_url: ${var.grafana_url}
+      alert_url: https://${var.prometheus_hostname}/alerts?search=alloy_scrape_down
+  - alert: Alloy_RemoteWrite_Backlog
+    expr: (max by (instance, component_id) (prometheus_remote_storage_highest_timestamp_in_seconds{alloy_type="internal"}) - on (instance, component_id) group_right () prometheus_remote_storage_queue_highest_sent_timestamp_seconds{alloy_type="internal"}) > 120
+    for: 10m
+    labels:
+      service: infra
+      severity: warn
+    annotations:
+      summary: alloy remote write to {{ $labels.url }} is lagging in ${var.dc}
+      description: >-
+        Alloy {{ $labels.instance }} ({{ $labels.component_id }}) in ${var.dc} has samples
+        more than 2 minutes old still unsent to {{ $labels.url }}. The destination is slow
+        or rejecting writes; the WAL is absorbing it for now. This is the earliest
+        signal of a mimir (or external Mimir) write-path problem.
+      dashboard_url: ${var.grafana_url}
+      alert_url: https://${var.prometheus_hostname}/alerts?search=alloy_remotewrite_backlog
+%{ endif }- name: cloudprober_alerts
   rules:
   - alert: Probe_Unhealthy
     expr: (cloudprober_failure{probe!~"shard|shard_https"} > 0) or (cloudprober_timeouts{probe!~"shard|shard_https"} > 0)

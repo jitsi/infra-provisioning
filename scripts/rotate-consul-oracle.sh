@@ -88,6 +88,15 @@ fi
 # by default wait 5 minutes in between rotating consul instances
 [ -z "$STARTUP_GRACE_PERIOD_SECONDS" ] && STARTUP_GRACE_PERIOD_SECONDS=150
 
+# Mimir/Loki health gates (doc/mimir-cluster-plan.md 5a). Each consul node carries a
+# mimir-N ingester and a loki-N instance; the next pool is only rotated once the
+# replacement node's allocs have re-attached their volumes and rejoined the rings.
+# HEALTH_GATE=false falls back to the blind sleep (disaster recovery when the gate
+# can never pass).
+[ -z "$HEALTH_GATE" ] && HEALTH_GATE="true"
+[ -z "$HEALTH_GATE_TIMEOUT_MINUTES" ] && HEALTH_GATE_TIMEOUT_MINUTES=15
+export HEALTH_GATE HEALTH_GATE_TIMEOUT_MINUTES
+
 # iterate across the three instance pools
 for x in {a..c}; do
   INSTANCE_POOL_NAME=$INSTANCE_POOL_BASE_NAME-$x
@@ -129,7 +138,17 @@ for x in {a..c}; do
     exit $RET
   fi
 
-  if [[ "$x" != "c" ]]; then
+  if [[ "$HEALTH_GATE" == "true" ]]; then
+    # gate on the new node's mimir/loki allocs being healthy before touching the next pool
+    # (also after pool c, so the job ends with a proven-healthy cluster)
+    echo "## health gate: waiting for mimir/loki to be fully healthy after rotating $INSTANCE_POOL_NAME (timeout ${HEALTH_GATE_TIMEOUT_MINUTES}m)"
+    $LOCAL_PATH/consul-metrics-health-gate.sh post
+    RET=$?
+    if [[ $RET -gt 0 ]]; then
+      echo "## ERROR: health gate failed after rotating $INSTANCE_POOL_NAME; NOT rotating further pools"
+      exit $RET
+    fi
+  elif [[ "$x" != "c" ]]; then
     # there is only one instance per pool so this sleep has to be outside of the rotate-instance-pool-oracle loop
     echo "sleeping for $STARTUP_GRACE_PERIOD_SECONDS seconds to allow for consul to come up"
     sleep $STARTUP_GRACE_PERIOD_SECONDS

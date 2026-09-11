@@ -320,6 +320,39 @@ resource "oci_core_network_security_group_security_rule" "consul_nsg_rule_loki_g
   }
 }
 
+# mimir-cluster memberlist gossip. Loki already owns static 7946 on the same consul nodes, so
+# mimir gossips on its own static port 7947 (nomad/mimir-cluster.hcl). memberlist uses TCP for
+# push/pull and UDP for probes, so open both.
+resource "oci_core_network_security_group_security_rule" "consul_nsg_rule_mimir_gossip_tcp" {
+  network_security_group_id = oci_core_network_security_group.consul_security_group.id
+  direction = "INGRESS"
+  protocol = "6"
+  source = data.oci_core_vcns.vcns.virtual_networks[0].cidr_block
+  stateless = false
+
+  tcp_options {
+    destination_port_range {
+      max = 7947
+      min = 7947
+    }
+  }
+}
+
+resource "oci_core_network_security_group_security_rule" "consul_nsg_rule_mimir_gossip_udp" {
+  network_security_group_id = oci_core_network_security_group.consul_security_group.id
+  direction = "INGRESS"
+  protocol = "17"
+  source = data.oci_core_vcns.vcns.virtual_networks[0].cidr_block
+  stateless = false
+
+  udp_options {
+    destination_port_range {
+      max = 7947
+      min = 7947
+    }
+  }
+}
+
 resource "oci_core_instance_configuration" "oci_instance_configuration_a" {
   compartment_id = var.compartment_ocid
   display_name = var.instance_config_name
