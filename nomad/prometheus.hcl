@@ -621,7 +621,15 @@ groups:
     # lazily by the service: the series does not exist until the first backend error ever
     # occurs, and the first increment after series creation may be missed since increase()
     # needs two samples.
-    expr: sum by (env, job) (increase(otp_backend_errors_total[5m])) > 0
+    #
+    # The max without (collector_replica) is not cosmetic. alloy-cloudflare runs several
+    # collector replicas and each one carries a full copy of a container's cumulative
+    # counter, so a bare sum() adds the same container in as many times as there are
+    # replicas. Observed 2026-09-10: collector_replica eu-frankfurt-1-0 and -1 both
+    # reported 84 for the same instance. Firing was never affected (the threshold is > 0),
+    # but the count quoted in the description below was inflated by the replica count.
+    # max without() collapses the copies first and is a no-op where the label is absent.
+    expr: sum by (env, job) (max without (collector_replica) (increase(otp_backend_errors_total[5m]))) > 0
     for: 2m
     labels:
       service: jitsi
@@ -639,7 +647,7 @@ groups:
     # Same signal held for 15m: backend errors are ongoing rather than a blip. Severe but
     # does not page - Opus_Transcriber_Proxy_Monitor_Unhealthy above pages when transcription is
     # actually broken end-to-end.
-    expr: sum by (env, job) (increase(otp_backend_errors_total[5m])) > 0
+    expr: sum by (env, job) (max without (collector_replica) (increase(otp_backend_errors_total[5m]))) > 0
     for: 15m
     labels:
       service: jitsi
@@ -654,6 +662,43 @@ groups:
         backend service health.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=otp_backend_errors
+  - alert: OTP_Backend_Handshake_Failures
+    # Early warning for a flaky transcription provider, which the two alerts above no
+    # longer give on their own. opus-transcriber-proxy now retries a failed provider
+    # handshake (up to 4 attempts with backoff), so a transient blip is absorbed and
+    # never reaches otp_backend_errors_total - by design, that is the noise reduction we
+    # wanted. This counter increments on every failed ATTEMPT, including the ones a retry
+    # then rescues, so it still sees the provider degrading while the proxy is masking it.
+    #
+    # Same caveats as otp_backend_errors_total: 8x8 deployment environments only, and the
+    # series does not exist until the first handshake failure (so it cannot fire before
+    # the proxy build carrying the counter is rolled out).
+    #
+    # Threshold is deliberately well clear of the absorbed baseline rather than > 0: over
+    # the 7 days to 2026-09-10 the pre-retry failure rate was mostly zero with occasional
+    # 2-10/hour scatter, which post-retry becomes roughly 20-40 attempts/hour, against
+    # 421/hour at the peak of that day's fleet-wide xAI 503 incident. 20 per 10m
+    # (~120/hour) sits above the scatter and well below a real outage. Held for 10m so an
+    # isolated burst does not fire. Warn only - it does not page, and if the degradation
+    # is bad enough to break transcription, Opus_Transcriber_Proxy_Monitor_Unhealthy pages.
+    expr: sum by (env, job, provider) (max without (collector_replica) (increase(otp_backend_handshake_failures_total[10m]))) > 20
+    for: 10m
+    labels:
+      service: jitsi
+      severity: warn
+    annotations:
+      summary: opus-transcriber-proxy handshake failures to {{ $labels.provider }} in {{ $labels.env }} via ${var.dc}
+      description: >-
+        The opus-transcriber-proxy ({{ $labels.env }}) has been failing handshakes to the
+        {{ $labels.provider }} transcription backend for 10+ minutes (currently
+        {{ $value | printf "%.0f" }} failed attempts over 10m), ingested via
+        alloy-cloudflare in ${var.dc}. Its retry is absorbing these, so transcription may
+        still look healthy - this is an early warning that the provider is degrading.
+        Check the opus-transcriber-proxy Cloudflare Container logs for the rejection
+        status and xAI request id, and whether OTP_Backend_Errors is also firing (which
+        would mean retries are being exhausted and connections actually lost).
+      dashboard_url: ${var.grafana_url}
+      alert_url: https://${var.prometheus_hostname}/alerts?search=otp_backend_handshake_failures
   - alert: Probe_Ingress_Region_Unhealthy
     expr: cloudprober_haproxy_region_check_passed < 1
     for: 5m
