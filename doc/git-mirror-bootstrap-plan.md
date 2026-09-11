@@ -329,6 +329,16 @@ today.
   **Resolved (2026-07-28):** mirror `jitsi-meet` only in `us-phoenix-1` (where
   the Jenkins/build host lives); everywhere else mirror just the three infra
   repos. Implemented in `scripts/deploy-nomad-gitea-mirror.sh`.
+  **Refined (2026-09-11):** that check keyed on the region alone, so *every*
+  environment's `us-phoenix-1` mirror pulled `jitsi-meet` — ops-dev, ops-prod,
+  stage-8x8, beta-meet-jit-si and torture-test all did, and prod-8x8 would have.
+  Only the ops environments run the build tooling, and no VM boot has ever
+  needed the repo (`checkout_repos` clones infra-configuration and
+  infra-customizations only), so the default is now keyed on environment as well
+  as region via `GITEA_JITSI_MEET_ENVIRONMENTS` (default `ops-dev ops-prod`).
+  Note that nothing consumes the mirrored copy yet either way:
+  `scripts/validate-shard.sh` still clones `jitsi-meet` straight from
+  github.com.
 - ~~Confirm the per-env `VAULT_ENVIRONMENT` / `DNS_ZONE` values used to construct
   `VAULT_ADDR` at boot for each environment.~~ **Resolved (2026-07-28):** the
   established form is `https://${VAULT_ENVIRONMENT}-${VAULT_REGION}-vault.jitsi.net`
