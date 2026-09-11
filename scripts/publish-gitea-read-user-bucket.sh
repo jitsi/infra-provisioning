@@ -33,6 +33,26 @@ LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 [ -e "$LOCAL_PATH/../clouds/all.sh" ] && . "$LOCAL_PATH/../clouds/all.sh"
 [ -e "$LOCAL_PATH/../clouds/oracle.sh" ] && . "$LOCAL_PATH/../clouds/oracle.sh"
 
+# Which vault the credential is read FROM. Derived from VAULT_ENVIRONMENT the
+# same way the vault-* terraform wrappers do, rather than inherited from an
+# ambient VAULT_ADDR: ENVIRONMENT selects the destination bucket, so letting the
+# shell's VAULT_ADDR select the source secret makes it easy to publish one
+# vault's credential into another environment's bucket. That is exactly what
+# happened to ops-dev on 2026-09-09 -- its bucket ended up holding a password no
+# mirror had, so every boot silently fell back to github.
+#
+# ops-dev (and anything else whose nomad talks to a non-default vault) needs
+# VAULT_ENVIRONMENT set explicitly. Being logged in to a different vault now
+# fails outright instead of publishing the wrong credential.
+[ -z "$VAULT_ENVIRONMENT" ] && VAULT_ENVIRONMENT="ops-prod"
+if [ -z "$VAULT_ADDR" ] || [ "$VAULT_ADDR_DERIVE" != "false" ]; then
+  if [ -n "$VAULT_REGION" ]; then
+    export VAULT_ADDR="https://${VAULT_ENVIRONMENT}-${VAULT_REGION}-vault.jitsi.net"
+  else
+    export VAULT_ADDR="https://${VAULT_ENVIRONMENT}-vault.jitsi.net"
+  fi
+fi
+
 [ -z "$SECRET_PATH" ] && SECRET_PATH="secret/default/gitea/read-user"
 [ -z "$OBJECT_NAME" ] && OBJECT_NAME="gitea-read-user"
 [ -z "$BUCKET_NAME" ] && BUCKET_NAME="jvb-bucket-${ENVIRONMENT}"
@@ -55,8 +75,10 @@ if [ "$DELETE" == "true" ]; then
   exit $FINAL_RET
 fi
 
+echo "reading $SECRET_PATH from $VAULT_ADDR -> jvb-bucket-${ENVIRONMENT} ($REGIONS)"
 if ! vault token lookup >/dev/null 2>&1; then
   echo "Not logged in to vault at ${VAULT_ADDR:-<unset>}; run scripts/vault-login.sh from infra-customizations-private first"
+  echo "(VAULT_ENVIRONMENT=$VAULT_ENVIRONMENT selected that vault; set it to the vault this environment's nomad uses)"
   exit 203
 fi
 
@@ -77,5 +99,10 @@ for REGION in $REGIONS; do
     FINAL_RET=1
   fi
 done
+
+# Publishing succeeds regardless of whether the credential matches the user the
+# mirrors actually created, and a mismatch is silent -- boots just fall back to
+# github. Always confirm.
+[ $FINAL_RET -eq 0 ] && echo "now confirm it works: ENVIRONMENT=$ENVIRONMENT ORACLE_REGION=<region> scripts/verify-nomad-gitea-mirror.sh"
 
 exit $FINAL_RET
