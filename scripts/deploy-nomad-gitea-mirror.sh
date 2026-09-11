@@ -44,12 +44,26 @@ NOMAD_DC="$ENVIRONMENT-$ORACLE_REGION"
 [ -z "$GITEA_HOSTNAME" ] && GITEA_HOSTNAME="${ENVIRONMENT}-${ORACLE_REGION}-git.${TOP_LEVEL_DNS_ZONE_NAME}"
 export NOMAD_VAR_gitea_hostname="$GITEA_HOSTNAME"
 
-# Repos to mirror. jitsi-meet is only cloned by boots in us-phoenix-1 (where the
-# Jenkins/build host lives), so it is mirrored there only; everywhere else just
-# the three infra repos. Override wholesale with GITEA_REQUIRED_REPOS (HCL/JSON
-# list syntax, e.g. '["infra-configuration","jitsi-meet"]').
+# Repos to mirror. The three infra repos everywhere: those are what a VM boot
+# clones (infra-configuration and infra-customizations) and what the Jenkins
+# checkouts use.
+#
+# jitsi-meet is extra, and only for the build tooling, which runs in the ops
+# environments. It is by far the largest repo mirrored (~890MB against ~150MB
+# for the rest combined), it dominates a cold replica's first sync, and the
+# health gate makes the whole replica wait on it, which is why this job carries
+# a 20m healthy_deadline. No VM boot has ever needed it.
+#
+# The test used to be on the region alone, so *every* environment's us-phoenix-1
+# mirror pulled jitsi-meet -- prod-8x8, stage-8x8, beta and torture-test
+# included, none of which have any use for it. Keyed on the environment as well
+# now. Override either list, or GITEA_REQUIRED_REPOS wholesale (HCL/JSON list
+# syntax, e.g. '["infra-configuration","jitsi-meet"]').
+[ -z "$GITEA_JITSI_MEET_ENVIRONMENTS" ] && GITEA_JITSI_MEET_ENVIRONMENTS="ops-dev ops-prod"
+[ -z "$GITEA_JITSI_MEET_REGION" ] && GITEA_JITSI_MEET_REGION="us-phoenix-1"
+
 if [ -z "$GITEA_REQUIRED_REPOS" ]; then
-    if [ "$ORACLE_REGION" == "us-phoenix-1" ]; then
+    if [[ " $GITEA_JITSI_MEET_ENVIRONMENTS " == *" $ENVIRONMENT "* ]] && [ "$ORACLE_REGION" == "$GITEA_JITSI_MEET_REGION" ]; then
         GITEA_REQUIRED_REPOS='["infra-configuration","infra-provisioning","infra-customizations-private","jitsi-meet"]'
     else
         GITEA_REQUIRED_REPOS='["infra-configuration","infra-provisioning","infra-customizations-private"]'
