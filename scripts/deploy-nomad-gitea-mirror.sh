@@ -65,11 +65,15 @@ export NOMAD_VAR_dc="$NOMAD_DC"
 
 # Per-region job name, same pattern as loki-/prometheus-/tempo-$ORACLE_REGION:
 # the Nomad region is shared across all of an environment's datacenters, so a
-# fixed name would be clobbered by the next region's deploy. Overridable so a
-# test instance can run alongside the real one.
-[ -z "$JOB_NAME" ] && JOB_NAME="gitea-mirror-$ORACLE_REGION"
+# fixed name would be clobbered by the next region's deploy.
+#
+# Overridable through GITEA_JOB_NAME, so a test instance can run alongside the
+# real one. Deliberately NOT JOB_NAME: Jenkins exports JOB_NAME as the name of
+# the running job, so reading that here would deploy a nomad job called
+# "provision-nomad-gitea-mirror" and leave the real mirror untouched.
+[ -z "$GITEA_JOB_NAME" ] && GITEA_JOB_NAME="gitea-mirror-$ORACLE_REGION"
 
-sed -e "s/\[JOB_NAME\]/$JOB_NAME/" "$NOMAD_JOB_PATH/gitea-mirror.hcl" | nomad job run -var="dc=$NOMAD_DC" -
+sed -e "s/\[JOB_NAME\]/$GITEA_JOB_NAME/" "$NOMAD_JOB_PATH/gitea-mirror.hcl" | nomad job run -var="dc=$NOMAD_DC" -
 RET=$?
 
 # Route53 CNAME for the mirror hostname -> the region's internal general-pool
