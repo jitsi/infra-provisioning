@@ -17,9 +17,15 @@
 # sites/<env>/stack-env.sh and the clouds files have been sourced.
 function resolve_git_mirror_host() {
   # unset means the stack is not opted in, which is the default everywhere
-  [ -z "$GIT_MIRROR_HOST" ] && return 0
+  if [ -z "$GIT_MIRROR_HOST" ]; then
+    echo "No GIT_MIRROR_HOST set for $ENVIRONMENT, booting from github"
+    return 0
+  fi
   # an explicit hostname is somebody naming a mirror on purpose; leave it alone
-  [ "$GIT_MIRROR_HOST" != "auto" ] && return 0
+  if [ "$GIT_MIRROR_HOST" != "auto" ]; then
+    echo "Using the explicitly configured git mirror $GIT_MIRROR_HOST for $ENVIRONMENT"
+    return 0
+  fi
   if [[ " $NOMAD_REGIONS " != *" $ORACLE_REGION "* ]]; then
     echo "No git mirror in $ORACLE_REGION (not in NOMAD_REGIONS '$NOMAD_REGIONS'), booting from github"
     export GIT_MIRROR_HOST=""
