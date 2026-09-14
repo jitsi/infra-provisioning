@@ -55,6 +55,13 @@ if [ "$PROMETHEUS_AUTOSCALER_ALERTS" == "true" ]; then
     export NOMAD_VAR_autoscaler_alerts="true"
 fi
 
+# a mimir cluster is deployed in this environment (scripts/deploy-nomad-mimir.sh):
+# scrape it and evaluate the mimir_alerts group
+[ -z "$PROMETHEUS_MIMIR_ALERTS" ] && PROMETHEUS_MIMIR_ALERTS="false"
+if [ "$PROMETHEUS_MIMIR_ALERTS" == "true" ]; then
+    export NOMAD_VAR_mimir_alerts="true"
+fi
+
 PROMETHEUS_CUSTOM_ALERTS=$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval ".prometheus_custom_alerts")
 if [[ "$PROMETHEUS_CUSTOM_ALERTS" != "null" ]]; then
     export NOMAD_VAR_custom_alerts="$PROMETHEUS_CUSTOM_ALERTS"

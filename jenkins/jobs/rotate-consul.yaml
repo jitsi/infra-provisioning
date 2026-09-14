@@ -35,6 +35,15 @@
           name: ORACLE_REGION
           description: "Oracle Region to build in"
           trim: true
+      - bool:
+          name: HEALTH_GATE
+          default: true
+          description: "Gate each pool rotation on the Mimir and Loki clusters being fully healthy (rings 3/3 ACTIVE, /ready 200) before and after. Disable only for disaster recovery when the gate can never pass."
+      - string:
+          name: HEALTH_GATE_TIMEOUT_MINUTES
+          default: "15"
+          description: "How long to wait after each pool rotation for the replacement node's mimir/loki allocs to become healthy before failing the build."
+          trim: true
       - string:
           name: INFRA_CONFIGURATION_REPO
           default: git@github.com:jitsi/infra-configuration.git

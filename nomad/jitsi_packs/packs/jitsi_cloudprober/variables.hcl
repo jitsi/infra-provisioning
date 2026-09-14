@@ -127,3 +127,8 @@ variable "enable_alloy" {
   type        = bool
   default     = false
 }
+variable "enable_mimir" {
+  description = "Whether to enable mimir monitoring (readiness + synthetic query probe)"
+  type        = bool
+  default     = false
+}

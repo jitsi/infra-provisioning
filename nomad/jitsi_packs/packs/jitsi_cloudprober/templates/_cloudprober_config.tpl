@@ -467,4 +467,62 @@ probe {
 }
 [[ end -]]
 
+[[ if var "enable_mimir" . -]]
+# probes mimir readiness in the local datacenter (all three instances behind fabio)
+probe {
+  name: "mimir"
+  type: HTTP
+  targets {
+    host_names: "[[ var "environment" . ]]-[[ var "oracle_region" . ]]-mimir.[[ var "top_level_domain" . ]]"
+  }
+  http_probe {
+    protocol: HTTPS
+    relative_url: "/ready"
+  }
+  validator {
+      name: "status_code_2xx"
+      http_validator {
+          success_status_codes: "200-299"
+      }
+  }
+  interval_msec: 30000
+  timeout_msec: 10000
+  latency_unit: "ms"
+  additional_label {
+    key: "service"
+    value: "infra"
+  }
+}
+
+# end-to-end read path: an instant query through query-frontend -> querier
+probe {
+  name: "mimir-query"
+  type: HTTP
+  targets {
+    host_names: "[[ var "environment" . ]]-[[ var "oracle_region" . ]]-mimir.[[ var "top_level_domain" . ]]"
+  }
+  http_probe {
+    protocol: HTTPS
+    relative_url: "/prometheus/api/v1/query?query=vector(1)"
+  }
+  validator {
+      name: "status_code_2xx"
+      http_validator {
+          success_status_codes: "200-299"
+      }
+  }
+  validator {
+      name: "query_success"
+      regex: "\\"status\\":\\"success\\""
+  }
+  interval_msec: 30000
+  timeout_msec: 10000
+  latency_unit: "ms"
+  additional_label {
+    key: "service"
+    value: "infra"
+  }
+}
+[[ end -]]
+
 [[ end -]]
