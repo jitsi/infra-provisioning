@@ -203,6 +203,25 @@ secondary_vnics = []
 if existing_instance_configuration_details.data.instance_details.secondary_vnics:
     secondary_vnics = existing_instance_configuration_details.data.instance_details.secondary_vnics
 
+instance_metadata = dict(
+    ssh_authorized_keys=user_public_key,
+    user_data=encoded_user_data.decode('utf-8')
+)
+
+# OCI enforces its 32000 byte metadata cap at LaunchInstance, not at
+# CreateInstanceConfiguration, so an oversized configuration is accepted here
+# and only fails later, the first time the pool actually needs an instance --
+# during a rotation that is after the old instances have been drained. Fail now
+# instead, while the running pool is still untouched.
+METADATA_LIMIT_BYTES = 32000
+metadata_size = sum(len(value.encode('utf-8')) for value in instance_metadata.values())
+if metadata_size > METADATA_LIMIT_BYTES:
+    raise SystemExit(
+        "Refusing to create an instance configuration that cannot launch: metadata is "
+        "{} bytes, over OCI's {} byte limit. The assembled postinstall payload has grown "
+        "too large; shrink {} or the runner script.".format(
+            metadata_size, METADATA_LIMIT_BYTES, args.metadata_lib_path or "the postinstall library"))
+
 launch_details = InstanceConfigurationLaunchInstanceDetails(
     compartment_id=existing_instance_configuration_details.data.compartment_id,
     shape=shape,
@@ -210,10 +229,7 @@ launch_details = InstanceConfigurationLaunchInstanceDetails(
     source_details=InstanceConfigurationInstanceSourceViaImageDetails(
         image_id=args.image_id
     ),
-    metadata=dict(
-        ssh_authorized_keys=user_public_key,
-        user_data=encoded_user_data.decode('utf-8')
-    ),
+    metadata=instance_metadata,
     defined_tags=existing_instance_configuration_details.data.defined_tags,
     freeform_tags=freeform_tags,
     create_vnic_details=existing_instance_configuration_details.data.instance_details.launch_details.create_vnic_details
