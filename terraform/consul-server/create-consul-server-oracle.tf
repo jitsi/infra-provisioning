@@ -5,6 +5,15 @@ variable "shape" {}
 variable "availability_domains" {
   type = list(string)
 }
+variable "consul_fault_domains" {
+  description = "Optional override of the fault domain pinned to each consul pool, in a/b/c order. Empty derives them automatically."
+  type = list(string)
+  default = []
+  validation {
+    condition = length(var.consul_fault_domains) == 0 || length(var.consul_fault_domains) == 3
+    error_message = "consul_fault_domains must be empty or contain exactly 3 fault domain names."
+  }
+}
 variable "role" {}
 variable "git_branch" {}
 variable "tenancy_ocid" {}
@@ -570,6 +579,34 @@ resource "oci_load_balancer_listener" "nomad_listener" {
   }
 }
 
+data "oci_identity_fault_domains" "ads_fault_domains" {
+  for_each            = toset(var.availability_domains)
+  availability_domain = each.value
+  compartment_id      = var.compartment_ocid
+}
+
+locals {
+  # Each consul pool holds a single instance, so OCI selects its fault domain
+  # independently of the other two pools. Listing every fault domain would not
+  # separate them; each pool is pinned to one instead, so no fault domain can
+  # ever hold more than one consul server. Block volumes are AD-scoped rather
+  # than FD-scoped, so this does not disturb the volumes attached by group-index.
+  fault_domain_names = {
+    for ad, fds in data.oci_identity_fault_domains.ads_fault_domains :
+    ad => sort([for fd in fds.fault_domains : fd.name])
+  }
+  # Pool a/b/c target availability_domains[0/1/2], wrapping in single-AD regions.
+  pool_availability_domains = [
+    for i in range(3) : var.availability_domains[i % length(var.availability_domains)]
+  ]
+  pool_fault_domains = [
+    for i in range(3) :
+    length(var.consul_fault_domains) == 3
+      ? [var.consul_fault_domains[i]]
+      : [local.fault_domain_names[local.pool_availability_domains[i]][i % length(local.fault_domain_names[local.pool_availability_domains[i]])]]
+  ]
+}
+
 resource "oci_core_instance_pool" "oci_instance_pool_a" {
   compartment_id = var.compartment_ocid
   instance_configuration_id = oci_core_instance_configuration.oci_instance_configuration_a.id
@@ -583,6 +620,7 @@ resource "oci_core_instance_pool" "oci_instance_pool_a" {
   placement_configurations {
     primary_subnet_id = var.subnet_ocid
     availability_domain = var.availability_domains[0]
+    fault_domains = local.pool_fault_domains[0]
   }
 
   load_balancers {
@@ -615,6 +653,7 @@ resource "oci_core_instance_pool" "oci_instance_pool_b" {
   placement_configurations {
     primary_subnet_id = var.subnet_ocid
     availability_domain = var.availability_domains[1 % length(var.availability_domains)]
+    fault_domains = local.pool_fault_domains[1]
   }
 
   load_balancers {
@@ -647,6 +686,7 @@ resource "oci_core_instance_pool" "oci_instance_pool_c" {
   placement_configurations {
     primary_subnet_id = var.subnet_ocid
     availability_domain = var.availability_domains[2 % length(var.availability_domains)]
+    fault_domains = local.pool_fault_domains[2]
   }
 
   load_balancers {

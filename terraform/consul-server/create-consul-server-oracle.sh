@@ -163,6 +163,11 @@ if [ -z "$AVAILABILITY_DOMAINS" ]; then
   exit 206
 fi
 
+# optional override of the fault domain pinned to each consul pool, in a/b/c order,
+# e.g. CONSUL_FAULT_DOMAINS='["FAULT-DOMAIN-2","FAULT-DOMAIN-3","FAULT-DOMAIN-1"]'
+# empty lets terraform derive one distinct fault domain per pool
+[ -z "$CONSUL_FAULT_DOMAINS" ] && CONSUL_FAULT_DOMAINS="[]"
+
 VCN_NAME_ROOT="$ORACLE_REGION-$ENVIRONMENT"
 VCN_NAME="$VCN_NAME_ROOT-vcn"
 
@@ -201,6 +206,7 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
   -var="ocpus=$OCPUS" \
   -var="memory_in_gbs=$MEMORY_IN_GBS" \
   -var="availability_domains=$AVAILABILITY_DOMAINS" \
+  -var="consul_fault_domains=$CONSUL_FAULT_DOMAINS" \
   -var="role=$ROLE" \
   -var="git_branch=$ORACLE_GIT_BRANCH" \
   -var="tenancy_ocid=$TENANCY_OCID" \
