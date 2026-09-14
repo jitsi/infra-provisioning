@@ -33,6 +33,10 @@ if [ -z "$ORACLE_REGION" ]; then
   exit 203
 fi
 
+# in-region git mirror, opt in per environment with GIT_MIRROR_HOST=auto
+[ -e "$LOCAL_PATH/../../scripts/git-mirror-lib.sh" ] && . "$LOCAL_PATH/../../scripts/git-mirror-lib.sh"
+resolve_git_mirror_host
+
 if [ -z "$INFRA_CONFIGURATION_REPO" ]; then
   echo "No INFRA_CONFIGURATION_REPO found. using default..."
   export INFRA_CONFIGURATION_REPO="https://github.com/jitsi/infra-configuration.git"

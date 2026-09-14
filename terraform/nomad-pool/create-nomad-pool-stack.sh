@@ -29,6 +29,10 @@ if [ -z "$ORACLE_REGION" ]; then
   exit 203
 fi
 
+# in-region git mirror, opt in per environment with GIT_MIRROR_HOST=auto
+[ -e "$LOCAL_PATH/../../scripts/git-mirror-lib.sh" ] && . "$LOCAL_PATH/../../scripts/git-mirror-lib.sh"
+resolve_git_mirror_host
+
 if [ -z "$INFRA_CONFIGURATION_REPO" ]; then
   echo "No INFRA_CONFIGURATION_REPO found. Exiting..."
   exit 203
@@ -320,4 +324,5 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
   -var="alt_certificate_certificate_name=$NOMAD_ALT_CERTIFICATE_NAME" \
   -var "infra_configuration_repo=$INFRA_CONFIGURATION_REPO" \
   -var "infra_customizations_repo=$INFRA_CUSTOMIZATIONS_REPO" \
+  -var "git_mirror_host=$GIT_MIRROR_HOST" \
   $ACTION_POST_PARAMS $TF_POST_PARAMS
