@@ -96,22 +96,64 @@ import oci
 
 COMPARTMENT_ID = "${var.compartment_ocid}"
 REGION         = "${var.oracle_region}"
-NAMESPACE      = "oci_lbaas"
 PORT           = int(os.environ.get("NOMAD_HOST_PORT_metrics", "9273"))
 STALE_SECS     = 120
 
-METRICS = [
-    "AcceptedConnections",
-    "ActiveConnections",
-    "ActiveSSLConnections",
-    "BackendTimeouts",
-    "HttpRequests",
-    "HttpResponses2xx",
-    "HttpResponses4xx",
-    "HttpResponses5xx",
-    "PeakBandwidth",
-    "ResponseTimeHttpHeader",
-    "UnHealthyBackendServers",
+# One entry per OCI monitoring namespace.
+#
+# lookback_min and max_age_secs are per namespace because posting cadence
+# differs. oci_lbaas posts about every minute. oci_instancepools posts sparsely
+# and irregularly (2-8 minutes between points, varying per pool), so the short
+# lookback and 120s staleness used for lbaas would silently drop most pools.
+#
+# The OCI "region" and "resourceId" dimensions are deliberately not mapped:
+# telegraf already applies a region global tag, and resourceId is high
+# cardinality without adding anything the display name does not.
+SOURCES = [
+    {
+        "namespace":    "oci_lbaas",
+        "prefix":       "oci_lbaas",
+        "aggregation":  "sum",
+        "lookback_min": 5,
+        "max_age_secs": 120,
+        "labels": {
+            "lb_name":      "lbName",
+            "backend_set":  "backendSetName",
+            "ad":           "availabilityDomain",
+            "lb_component": "lbComponent",
+        },
+        "metrics": [
+            "AcceptedConnections",
+            "ActiveConnections",
+            "ActiveSSLConnections",
+            "BackendTimeouts",
+            "HttpRequests",
+            "HttpResponses2xx",
+            "HttpResponses4xx",
+            "HttpResponses5xx",
+            "PeakBandwidth",
+            "ResponseTimeHttpHeader",
+            "UnHealthyBackendServers",
+        ],
+    },
+    {
+        "namespace":    "oci_instancepools",
+        "prefix":       "oci_instancepools",
+        "aggregation":  "max",
+        "lookback_min": 20,
+        "max_age_secs": 900,
+        "labels": {
+            "pool": "DisplayName",
+            "ad":   "AvailabilityDomain",
+            "fd":   "FaultDomain",
+        },
+        "metrics": [
+            "InstancePoolSize",
+            "RunningInstances",
+            "ProvisioningInstances",
+            "TerminatedInstances",
+        ],
+    },
 ]
 
 _lock    = threading.Lock()
@@ -134,48 +176,47 @@ def escape_label(value):
     return str(value).replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n")
 
 
-def make_labels(dims):
-    keys = {
-        "lb_name":      dims.get("lbName", ""),
-        "backend_set":  dims.get("backendSetName", ""),
-        "ad":           dims.get("availabilityDomain", ""),
-        "lb_component": dims.get("lbComponent", ""),
-    }
-    parts = [f'{k}="{escape_label(v)}"' for k, v in keys.items() if v]
+def make_labels(dims, label_map):
+    parts = [
+        f'{label}="{escape_label(dims.get(dim))}"'
+        for label, dim in label_map.items()
+        if dims.get(dim)
+    ]
     return "{" + ",".join(parts) + "}" if parts else ""
 
 
 def collect():
     end_time = datetime.datetime.utcnow()
-    start    = end_time - datetime.timedelta(minutes=5)
     now_ts   = time.time()
     new      = []
 
-    for metric in METRICS:
-        try:
-            resp = _client.summarize_metrics_data(
-                compartment_id=COMPARTMENT_ID,
-                summarize_metrics_data_details=oci.monitoring.models.SummarizeMetricsDataDetails(
-                    namespace=NAMESPACE,
-                    query=f"{metric}[1m].sum()",
-                    start_time=start.strftime("%Y-%m-%dT%H:%M:%SZ"),
-                    end_time=end_time.strftime("%Y-%m-%dT%H:%M:%SZ"),
-                ),
-            )
-        except Exception as e:
-            print(f"error querying {metric}: {e}", file=sys.stderr)
-            continue
+    for source in SOURCES:
+        start = end_time - datetime.timedelta(minutes=source["lookback_min"])
+        for metric in source["metrics"]:
+            try:
+                resp = _client.summarize_metrics_data(
+                    compartment_id=COMPARTMENT_ID,
+                    summarize_metrics_data_details=oci.monitoring.models.SummarizeMetricsDataDetails(
+                        namespace=source["namespace"],
+                        query=f"{metric}[1m].{source['aggregation']}()",
+                        start_time=start.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                        end_time=end_time.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                    ),
+                )
+            except Exception as e:
+                print(f"error querying {source['namespace']} {metric}: {e}", file=sys.stderr)
+                continue
 
-        for item in resp.data:
-            if not item.aggregated_datapoints:
-                continue
-            dp  = item.aggregated_datapoints[-1]
-            age = (end_time - dp.timestamp.replace(tzinfo=None)).total_seconds()
-            if age > STALE_SECS:
-                continue
-            labels = make_labels(item.dimensions or {})
-            name   = f"oci_lbaas_{to_snake(metric)}"
-            new.append((f"{name}{labels} {dp.value}", now_ts))
+            for item in resp.data:
+                if not item.aggregated_datapoints:
+                    continue
+                dp  = max(item.aggregated_datapoints, key=lambda d: d.timestamp)
+                age = (end_time - dp.timestamp.replace(tzinfo=None)).total_seconds()
+                if age > source["max_age_secs"]:
+                    continue
+                labels = make_labels(item.dimensions or {}, source["labels"])
+                name   = f"{source['prefix']}_{to_snake(metric)}"
+                new.append((f"{name}{labels} {dp.value}", now_ts))
 
     with _lock:
         _samples[:] = new
