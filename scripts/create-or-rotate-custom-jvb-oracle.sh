@@ -16,7 +16,10 @@ LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
 [ -e ./sites/$ENVIRONMENT/stack-env.sh ] && . ./sites/$ENVIRONMENT/stack-env.sh
 
-CLOUD_PROVIDER="oracle"
+# honor a caller-supplied CLOUD_PROVIDER; an unconditional assignment here made
+# the CLOUD_PROVIDER=nomad branch further down (which re-deploys the nomad job
+# and re-uses the existing instance configuration) unreachable
+[ -z "$CLOUD_PROVIDER" ] && CLOUD_PROVIDER="oracle"
 
 # We need an environment "all"
 if [ -z "$ENVIRONMENT" ]; then
@@ -99,7 +102,10 @@ if [[ "$NOMAD_JVB_FLAG" == "true" ]]; then
   JVB_IMAGE_TYPE="JammyBase"
   JVB_VERSION="latest"
   AUTOSCALER_TYPE="nomad"
-  [ -z "$NAME_ROOT_SUFFIX" ] && NAME_ROOT_SUFFIX="NomadJVBCustomGroup"
+  # must match the suffix create-jvb-pool.sh uses when it creates these groups,
+  # otherwise the group lookup below 404s and we create a duplicate group under
+  # a third name instead of rotating the existing pool
+  [ -z "$NAME_ROOT_SUFFIX" ] && NAME_ROOT_SUFFIX="JVBNomadPoolCustomGroup"
   echo "Using Nomad AUTOSCALER_URL"
   AUTOSCALER_URL="https://${ENVIRONMENT}-${ORACLE_REGION}-autoscaler.$TOP_LEVEL_DNS_ZONE_NAME"
   [ -z $JVB_MAX_COUNT ] && JVB_MAX_COUNT=2
