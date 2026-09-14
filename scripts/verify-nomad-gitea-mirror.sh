@@ -6,6 +6,14 @@
 # Exits non-zero if any check fails on any replica. See JIT-16092.
 [ -z "$ENVIRONMENT" ] && { echo "No ENVIRONMENT set"; exit 2; }
 [ -z "$ORACLE_REGION" ] && { echo "No ORACLE_REGION set"; exit 2; }
+
+# Same lookup deploy-nomad-gitea-mirror.sh does, so the nomad endpoint follows the
+# environment rather than being assumed. Not every environment has a nomad in
+# us-phoenix-1: meet-jit-si runs in ap-sydney-1, eu-frankfurt-1 and us-ashburn-1,
+# and assuming phoenix there just fails to connect.
+LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
+[ -e "$LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh" ] && . "$LOCAL_PATH/../sites/$ENVIRONMENT/stack-env.sh"
+[ -z "$LOCAL_REGION" ] && LOCAL_REGION="$OCI_LOCAL_REGION"
 [ -z "$LOCAL_REGION" ] && LOCAL_REGION="us-phoenix-1"
 [ -z "$NOMAD_ADDR" ] && export NOMAD_ADDR="https://$ENVIRONMENT-$LOCAL_REGION-nomad.jitsi.net"
 [ -z "$JOB" ] && JOB="gitea-mirror-$ORACLE_REGION"
