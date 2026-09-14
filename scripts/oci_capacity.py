@@ -119,18 +119,33 @@ def assign_fault_domains(capacity, placement_ads, current=None):
     placement_ads   list of AD names, one per placement, in placement order
     current         optional list of the fault domain each placement uses today
 
-    Fault domains are only meaningful within an availability domain, so two
-    placements in different ADs may hold the same fault domain name. Within an
-    AD the assignment prefers the placement's current fault domain when it is
-    still available, then the emptiest remaining one. Raises ValueError when an
-    AD has fewer available fault domains than placements that need them.
+    Correctness requires only that placements sharing an availability domain get
+    different fault domains: OCI documents a fault domain as "a grouping of
+    hardware and infrastructure within an availability domain", and availability
+    domains "do not share infrastructure such as power or cooling". So the same
+    fault domain name in two different ADs is two unrelated sets of racks.
+
+    Oracle does not, however, document how maintenance is sequenced across ADs,
+    so it is not stated anywhere that FAULT-DOMAIN-1 in one AD is rebooted
+    independently of FAULT-DOMAIN-1 in another. Reboot maintenance is what
+    prompted this work, so where capacity allows we also avoid reusing a fault
+    domain NAME across ADs. That is free insurance with three pools and three
+    fault domains; it degrades to per-AD distinctness when capacity forces it.
+
+    Preference order per placement: its current fault domain when that is still
+    available and not already claimed, then an unclaimed name no other placement
+    holds, then the emptiest name unclaimed within its own AD. Raises ValueError
+    when an AD has fewer available fault domains than placements that need them.
     '''
     assignment = [None] * len(placement_ads)
     by_ad = {}
     for idx, ad in enumerate(placement_ads):
         by_ad.setdefault(ad, []).append(idx)
 
-    for ad, indexes in by_ad.items():
+    used_names = set()  # fault domain names claimed by any placement, any AD
+
+    for ad in sorted(by_ad):
+        indexes = by_ad[ad]
         fds = capacity.get(ad, {})
         usable = [fd for fd, info in fds.items() if info['status'] == 'AVAILABLE']
         if len(usable) < len(indexes):
@@ -141,20 +156,27 @@ def assign_fault_domains(capacity, placement_ads, current=None):
 
         taken = set()
         # keep an existing placement where it is, so a re-run does not shuffle
-        # instances between fault domains for no reason
+        # instances for no reason -- but not when it duplicates a name another
+        # placement already holds, or the assignment would never converge
         if current:
             for idx in indexes:
                 existing = current[idx] if idx < len(current) else None
-                if existing in usable and existing not in taken:
+                if (existing in usable and existing not in taken
+                        and existing not in used_names):
                     assignment[idx] = existing
                     taken.add(existing)
-        # fill the rest from the emptiest fault domain down
-        remaining = sorted([fd for fd in usable if fd not in taken],
-                           key=lambda fd: (-fds[fd]['available_count'], fd))
+                    used_names.add(existing)
+
         for idx in indexes:
-            if assignment[idx] is None:
-                assignment[idx] = remaining.pop(0)
-                taken.add(assignment[idx])
+            if assignment[idx] is not None:
+                continue
+            candidates = [fd for fd in usable if fd not in taken]
+            preferred = [fd for fd in candidates if fd not in used_names]
+            choice = sorted(preferred or candidates,
+                            key=lambda fd: (-fds[fd]['available_count'], fd))[0]
+            assignment[idx] = choice
+            taken.add(choice)
+            used_names.add(choice)
 
     return assignment
 
