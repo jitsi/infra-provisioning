@@ -34,6 +34,10 @@ if [ -z "$ORACLE_REGION" ]; then
   exit 202
 fi
 
+# in-region git mirror, opt in per environment with GIT_MIRROR_HOST=auto
+[ -e "$LOCAL_PATH/git-mirror-lib.sh" ] && . "$LOCAL_PATH/git-mirror-lib.sh"
+resolve_git_mirror_host
+
 if [ -z "$COMPARTMENT_OCID" ]; then
   echo "No COMPARTMENT_OCID provided or found. Exiting .."
   exit 202
@@ -112,6 +116,7 @@ else
     --instance_pool_id "$INSTANCE_POOL_ID" \
     --tag_namespace "$TAG_NAMESPACE" \
     --user_public_key_path "$USER_PUBLIC_KEY_PATH" \
+    --metadata_extras="$(git_mirror_metadata_extras)" \
     $METADATA_EIP_FLAG --metadata_lib_path "$METADATA_LIB_PATH" --metadata_path "$METADATA_PATH" $SHAPE_PARAMS
 fi
 
