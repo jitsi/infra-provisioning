@@ -112,7 +112,7 @@ fi
 JVB_IMAGE_TYPE="JVB"
 
 if [[ "$NOMAD_JVB_FLAG" == "true" ]]; then
-  JVB_IMAGE_TYPE="JammyBase"
+  JVB_IMAGE_TYPE="NobleBase"
   JVB_VERSION="latest"
   AUTOSCALER_TYPE="nomad"
   # must match the suffix create-jvb-pool.sh uses when it creates these groups,
