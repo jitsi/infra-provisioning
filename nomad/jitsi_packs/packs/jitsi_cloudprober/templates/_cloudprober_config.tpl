@@ -439,6 +439,94 @@ probe {
 }
 [[ end -]]
 
+[[ if var "enable_gitea_mirror" . -]]
+# probes the regional gitea mirror through its internal fabio hostname, exactly
+# the way a booting VM reaches it. The URL is a real git endpoint rather than a
+# liveness page, so the probe exercises the whole path that matters: DNS, the
+# internal load balancer, fabio's route, gitea itself, its database and the
+# mirrored repo. Fabio drops a replica from this hostname the moment its /ready
+# check goes critical, so this probe only fails once EVERY replica in the region
+# is unusable -- which is precisely when boots in this region can no longer
+# clone their infra code and fall back to nothing.
+probe {
+  name: "gitea_mirror"
+  type: HTTP
+  targets {
+    host_names: "[[ var "environment" . ]]-[[ var "oracle_region" . ]]-git.[[ var "top_level_domain" . ]]"
+  }
+  http_probe {
+    protocol: HTTPS
+    relative_url: "/[[ var "gitea_mirror_repo" . ]]/info/refs"
+  }
+  validator {
+      name: "status_code_2xx"
+      http_validator {
+          success_status_codes: "200-299"
+      }
+  }
+  # A 200 alone is not enough: fabio answers with its own page when no replica
+  # is routable, and gitea renders an HTML error for a repo it cannot read. Only
+  # the refs listing proves the mirror actually has the repo and can serve it.
+  validator {
+      name: "git_refs"
+      regex: "refs/heads/"
+  }
+  interval_msec: 30000
+  timeout_msec: 10000
+  latency_unit: "ms"
+  additional_label {
+    key: "service"
+    value: "infra"
+  }
+}
+
+# probes each mirror replica directly, discovered from consul, bypassing fabio.
+# The hostname probe above can only ever reach a replica fabio still considers
+# healthy, so it stays green while the other replica of the pair is dead or
+# stuck -- the same silent loss of redundancy the vault_nodes probe exists to
+# catch. The target is the sync-gate's /ready, the same signal the consul check
+# uses, reached through the "gitea-mirror-metrics" service: that one carries no
+# consul check of its own, so a not-ready replica is still listed here and still
+# gets probed, where "gitea-mirror" would have dropped it.
+probe {
+  name: "gitea_mirror_nodes"
+  type: HTTP
+  targets {
+    {{ $gitea_node_count := 0 -}}
+    {{ range service "gitea-mirror-metrics" -}}
+    {{ $gitea_node_count = add $gitea_node_count 1 -}}
+    endpoint {
+      name: "{{ .Node }}"
+      url: "http://{{ .Address }}:{{ .Port }}/ready"
+    }
+    {{ end -}}
+    {{ if eq $gitea_node_count 0 -}}
+    host_names: ""
+    {{- end }}
+  }
+  validator {
+      name: "status_code_2xx"
+      http_validator {
+          success_status_codes: "200-299"
+      }
+  }
+  interval_msec: 30000
+  timeout_msec: 10000
+  latency_unit: "ms"
+  additional_label {
+    key: "service"
+    value: "infra"
+  }
+  # One replica of the pair being unready is degraded redundancy, not an outage:
+  # the hostname probe above is the one that should escalate. Pinning severity
+  # here keeps the 10m Probe_Unhealthy rule from promoting this to severe.
+  additional_label {
+    key: "severity"
+    value: "warn"
+  }
+}
+[[ end -]]
+
 [[ if var "enable_alloy" . -]]
 # probes alloy health in the local datacenter
 probe {

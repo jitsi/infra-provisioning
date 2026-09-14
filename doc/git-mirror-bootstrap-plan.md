@@ -360,6 +360,16 @@ today.
   `configure_mirror_repos` in `terraform/lib/postinstall-lib.sh`
   (`GIT_MIRROR_HOST` opt-in per stack; plumbed into the nomad-instance-pool
   stack first). Vault grants: infra-customizations-private #1098.
+- **Monitoring (2026-09-14):** two cloudprober probes per region, in
+  `nomad/jitsi_packs/packs/jitsi_cloudprober` behind `enable_gitea_mirror`
+  (on by default in `scripts/deploy-nomad-cloudprober.sh`). `gitea_mirror`
+  fetches `/jitsi/infra-provisioning/info/refs` over the regional hostname, so
+  it fails only when no replica in the region can serve a clone;
+  `gitea_mirror_nodes` probes each replica's `/ready` directly from consul, so
+  losing one of the pair is visible behind the load balancer. Both feed the
+  existing `Probe_Unhealthy` rule (the node probe pinned to `warn`). Content
+  freshness is covered separately by the `Gitea_Mirror_Stale` alerts in
+  `nomad/prometheus.hcl`.
 - **Stage 2 (Vault, infra-customizations-private terraform):** the OCI auth
   method is **already enabled** (`terraform/vault-oci-auth-config` →
   `vault_auth_backend.oci`), and `terraform/vault-oci-instance-auth-config`
