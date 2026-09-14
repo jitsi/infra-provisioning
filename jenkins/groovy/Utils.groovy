@@ -97,6 +97,48 @@ def TryCheckoutRef(url, ref, credentials, useSubmodules) {
   }
 }
 
+// True when the mirror served a branch that github has already moved past.
+//
+// A missing ref sends us to github, but a *stale* one does not: the ref exists
+// on both sides, the mirror's copy is just older than github's by up to one
+// pull interval. Every job defaults to main and people run jobs right after
+// merging, so that window is exactly when it bites. One ls-remote over the ssh
+// key the build already holds closes it.
+//
+// Anything inconclusive means false, keep the mirror copy: no local sha, a ref
+// that is not a branch (a tag matches nothing under refs/heads and is immutable
+// anyway), or an ls-remote that failed -- an unreachable github is the outage
+// the mirror exists for.
+def MirrorRefIsStale(repoName, ref, originUrl) {
+  def shas
+  try {
+    shas = sh(
+      returnStdout: true,
+      script: """#!/bin/bash
+# bounded and non-interactive: when github is the thing that is down, this runs
+# on the happy path of every build, so it must lose fast rather than hang on a
+# connect timeout or a credential prompt.
+export GIT_TERMINAL_PROMPT=0
+TIMEOUT=""
+command -v timeout >/dev/null 2>&1 && TIMEOUT="timeout 20"
+local_sha=\$(git rev-parse HEAD 2>/dev/null)
+remote_sha=\$(\$TIMEOUT git ls-remote ${originUrl} refs/heads/${ref} 2>/dev/null | cut -f1)
+echo "\$local_sha \$remote_sha"
+exit 0"""
+    ).trim().split(' ')
+  } catch (InterruptedException e) {
+    throw e
+  } catch (Exception e) {
+    echo "WARNING: couldn't compare the ${repoName} mirror against github (${e.getMessage()}), keeping the mirror copy"
+    return false
+  }
+  if (shas.length < 2 || !shas[0] || !shas[1] || shas[0] == shas[1]) {
+    return false
+  }
+  echo "WARNING: the ${repoName} mirror is behind github at ${ref} (${shas[0]} vs ${shas[1]}), checking out from github instead"
+  return true
+}
+
 // Checks out one infra repo, preferring the in-region mirror when one is
 // configured for it.
 //
@@ -108,6 +150,12 @@ def TryCheckoutRef(url, ref, credentials, useSubmodules) {
 // does not have either falls back to main, which is the long-standing
 // behaviour for genuinely branch-less builds.
 //
+// Nothing about the mirror may fail a build: it is an availability measure, so
+// a stopped job, a stale credential or an unresolvable hostname has to degrade
+// to github rather than take the fleet's tooling down with it. Hence every
+// mirror failure is caught here, where the caller's retry() would otherwise
+// hit the mirror again on each attempt and fail all three.
+//
 // Mirror URLs are HTTPS, so they need their own credential: the public repos
 // are served anonymously and the private one needs a Gitea user rather than
 // the github deploy key. INFRA_MIRROR_CREDENTIALS_ID overrides it.
@@ -115,10 +163,20 @@ def CheckoutInfraRepo(repoName, branch, mirrorUrl, originUrl, useSubmodules) {
   def mirrorCredentials = env.INFRA_MIRROR_CREDENTIALS_ID ?: 'video-infra'
   if (mirrorUrl) {
     echo "checking out ${repoName} at ${branch} from the in-region mirror"
-    if (TryCheckoutRef(mirrorUrl, branch, mirrorCredentials, useSubmodules)) {
+    def mirrored = false
+    try {
+      mirrored = TryCheckoutRef(mirrorUrl, branch, mirrorCredentials, useSubmodules)
+      if (!mirrored) {
+        echo "WARNING: ${branch} is not in the ${repoName} mirror yet, trying github"
+      }
+    } catch (InterruptedException e) {
+      throw e
+    } catch (Exception e) {
+      echo "WARNING: mirror checkout of ${repoName} failed (${e.getMessage()}), trying github"
+    }
+    if (mirrored && !MirrorRefIsStale(repoName, branch, originUrl)) {
       return
     }
-    echo "WARNING: ${branch} is not in the ${repoName} mirror yet, trying github"
   }
   if (TryCheckoutRef(originUrl, branch, 'video-infra', useSubmodules)) {
     return
