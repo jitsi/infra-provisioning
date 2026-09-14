@@ -21,6 +21,10 @@ if [ -z "$ORACLE_REGION" ]; then
   exit 1
 fi
 
+# in-region git mirror, opt in per environment with GIT_MIRROR_HOST=auto
+[ -e "$LOCAL_PATH/../../scripts/git-mirror-lib.sh" ] && . "$LOCAL_PATH/../../scripts/git-mirror-lib.sh"
+resolve_git_mirror_host
+
 ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 [ -e "$LOCAL_PATH/../../clouds/${ORACLE_CLOUD_NAME}.sh" ] && . $LOCAL_PATH/../../clouds/${ORACLE_CLOUD_NAME}.sh
 
@@ -143,4 +147,5 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
   -var "tag_namespace=$TAG_NAMESPACE" \
   -var "infra_configuration_repo=$INFRA_CONFIGURATION_REPO" \
   -var "infra_customizations_repo=$INFRA_CUSTOMIZATIONS_REPO" \
+  -var "git_mirror_host=$GIT_MIRROR_HOST" \
   $ACTION_POST_PARAMS $TF_POST_PARAMS
