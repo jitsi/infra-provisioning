@@ -990,6 +990,44 @@ groups:
         responding within the timeout window — check backend load and response times.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=haproxy_lb
+  - alert: OCI_Instance_Pool_Undersized
+    expr: >-
+      max by (pool) (oci_instancepools_instance_pool_size{pool!~".*RecoveryAgent.*"}) >
+      (sum by (pool) (oci_instancepools_running_instances{pool!~".*RecoveryAgent.*"}) or
+      max by (pool) (oci_instancepools_instance_pool_size{pool!~".*RecoveryAgent.*"}) * 0)
+    for: 20m
+    labels:
+      service: infra
+      severity: warn
+    annotations:
+      summary: OCI instance pool {{ $labels.pool }} is below its configured size in ${var.dc}
+      description: >-
+        Instance pool {{ $labels.pool }} in ${var.dc} has had fewer running instances
+        than its configured size for 20 minutes. A pool whose placement pins a single
+        fault domain cannot launch elsewhere, so this is the expected symptom of that
+        fault domain being out of capacity for the shape. Check the pool work requests
+        for the launch failure, and use scripts/oci_capacity.py list_compute_capacity
+        to see which fault domains still have room. RecoveryAgent pools are excluded
+        because they are deliberately left STOPPED at size 1, which the OCI metrics
+        cannot be distinguished from a pool that failed to launch.
+      dashboard_url: ${var.grafana_url}
+      alert_url: https://${var.prometheus_hostname}/alerts?search=oci_instance_pool
+  - alert: Consul_Servers_Share_Fault_Domain
+    expr: sum by (ad, fd) (oci_instancepools_running_instances{pool=~"ConsulInstancePool-.*"}) > 1
+    for: 30m
+    labels:
+      service: infra
+      severity: warn
+    annotations:
+      summary: More than one consul server is in fault domain {{ $labels.fd }} in ${var.dc}
+      description: >-
+        {{ $value | printf "%.0f" }} consul servers in ${var.dc} are running in
+        {{ $labels.ad }} {{ $labels.fd }}. These nodes are also the Nomad servers and
+        carry the loki, redis and prometheus volumes, so losing that one fault domain
+        costs raft quorum. Re-run scripts/rotate-consul-oracle.sh for this region to
+        redistribute them.
+      dashboard_url: ${var.grafana_url}
+      alert_url: https://${var.prometheus_hostname}/alerts?search=consul_servers
   - alert: Jicofo_ICE_Restarts_High
     expr: >-
       max_over_time((100 * sum by (shard) (increase(jitsi_jicofo_participants_restart_requested_total[10m]) unless sum by (shard) (jitsi_jicofo_participants_current < 20)) /
