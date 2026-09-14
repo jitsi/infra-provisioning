@@ -210,6 +210,12 @@ resource "oci_core_network_security_group_security_rule" "nsg_rule_ingress_nomad
 
 // ============ COTURN INSTANCE POOL ============
 
+data "oci_identity_fault_domains" "ads_fault_domains" {
+  for_each            = toset(var.availability_domains)
+  availability_domain = each.value
+  compartment_id      = var.compartment_ocid
+}
+
 resource "oci_core_instance_configuration" "oci_instance_configuration" {
   compartment_id = var.compartment_ocid
   display_name = var.instance_config_name
@@ -303,6 +309,7 @@ resource "oci_core_instance_pool" "oci_instance_pool_1_ad" {
       subnet_id = var.private_subnet_ocid
     }
     availability_domain = var.availability_domains[0]
+    fault_domains = [for fd in data.oci_identity_fault_domains.ads_fault_domains[var.availability_domains[0]].fault_domains : fd.name]
   }
 
   defined_tags = local.common_tags
@@ -326,6 +333,7 @@ resource "oci_core_instance_pool" "oci_instance_pool_2_ad" {
       subnet_id = var.private_subnet_ocid
     }
     availability_domain = var.availability_domains[0]
+    fault_domains = [for fd in data.oci_identity_fault_domains.ads_fault_domains[var.availability_domains[0]].fault_domains : fd.name]
   }
 
   placement_configurations {
@@ -335,6 +343,7 @@ resource "oci_core_instance_pool" "oci_instance_pool_2_ad" {
       subnet_id = var.private_subnet_ocid
     }
     availability_domain = var.availability_domains[1 % length(var.availability_domains)]
+    fault_domains = [for fd in data.oci_identity_fault_domains.ads_fault_domains[var.availability_domains[1 % length(var.availability_domains)]].fault_domains : fd.name]
   }
 
   defined_tags = local.common_tags
@@ -358,6 +367,7 @@ resource "oci_core_instance_pool" "oci_instance_pool_3_ad" {
       subnet_id = var.private_subnet_ocid
     }
     availability_domain = var.availability_domains[0]
+    fault_domains = [for fd in data.oci_identity_fault_domains.ads_fault_domains[var.availability_domains[0]].fault_domains : fd.name]
   }
   placement_configurations {
     primary_subnet_id = var.public_subnet_ocid
@@ -366,6 +376,7 @@ resource "oci_core_instance_pool" "oci_instance_pool_3_ad" {
       subnet_id = var.private_subnet_ocid
     }
     availability_domain = var.availability_domains[1 % length(var.availability_domains)]
+    fault_domains = [for fd in data.oci_identity_fault_domains.ads_fault_domains[var.availability_domains[1 % length(var.availability_domains)]].fault_domains : fd.name]
   }
   placement_configurations {
     primary_subnet_id = var.public_subnet_ocid
@@ -374,6 +385,7 @@ resource "oci_core_instance_pool" "oci_instance_pool_3_ad" {
       subnet_id = var.private_subnet_ocid
     }
     availability_domain = var.availability_domains[2 % length(var.availability_domains)]
+    fault_domains = [for fd in data.oci_identity_fault_domains.ads_fault_domains[var.availability_domains[2 % length(var.availability_domains)]].fault_domains : fd.name]
   }
 
   defined_tags = local.common_tags
