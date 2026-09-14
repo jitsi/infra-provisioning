@@ -39,6 +39,10 @@ if [[ "$CLOUD_PROVIDER" == "nomad"  ]]; then
   exit $?
 fi
 
+# in-region git mirror, opt in per environment with GIT_MIRROR_HOST=auto
+[ -e "$LOCAL_PATH/git-mirror-lib.sh" ] && . "$LOCAL_PATH/git-mirror-lib.sh"
+resolve_git_mirror_host
+
 ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 [ -e "$LOCAL_PATH/../clouds/${ORACLE_CLOUD_NAME}.sh" ] && . "$LOCAL_PATH/../clouds/${ORACLE_CLOUD_NAME}.sh"
 
@@ -280,6 +284,7 @@ elif [ "$getGroupHttpCode" == 200 ]; then
     --jigasi_release_number "$JIGASI_RELEASE_NUMBER" --git_branch "$ORACLE_GIT_BRANCH" \
     --infra_customizations_repo "$INFRA_CUSTOMIZATIONS_REPO" --infra_configuration_repo "$INFRA_CONFIGURATION_REPO" \
     --instance_configuration_id "$EXISTING_INSTANCE_CONFIGURATION_ID" --tag_namespace "$TAG_NAMESPACE" --user_public_key_path "$USER_PUBLIC_KEY_PATH" --metadata_lib_path "$METADATA_LIB_PATH" --metadata_path "$METADATA_PATH" --custom_autoscaler \
+    --metadata_extras="$(git_mirror_metadata_extras)" \
     $SHAPE_PARAMS)
 
   if [ -z "$NEW_INSTANCE_CONFIGURATION_ID" ] || [ "$NEW_INSTANCE_CONFIGURATION_ID" == "null" ]; then
