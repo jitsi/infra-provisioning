@@ -119,19 +119,13 @@ def assign_fault_domains(capacity, placement_ads, current=None):
     placement_ads   list of AD names, one per placement, in placement order
     current         optional list of the fault domain each placement uses today
 
-    Correctness requires only that placements sharing an availability domain get
-    different fault domains: OCI documents a fault domain as "a grouping of
-    hardware and infrastructure within an availability domain", and availability
-    domains "do not share infrastructure such as power or cooling". So the same
-    fault domain name in two different ADs is two unrelated sets of racks.
-
-    Oracle does not, however, document how maintenance is sequenced across ADs,
-    so it is not stated anywhere that FAULT-DOMAIN-1 in one AD is rebooted
-    independently of FAULT-DOMAIN-1 in another. Reboot maintenance is what
-    prompted this work, so where capacity allows we also avoid reusing a fault
-    domain NAME across ADs. That is free insurance with three pools and three
-    fault domains; it degrades to per-AD distinctness when capacity forces it.
-
+    Per documentation, from an HA perspective we should only need to worry about
+    striping across availability domains. But experience demonstrates that Oracle
+    schedules maintenance reboots across fault domains such that all VMs within
+    the same NAMED FD in different ADs may be subject to reboot at the same time.
+    This means that our clusters nodes will have better HA if we deliberately
+    place them in differently named FDs across ADs.
+    
     Preference order per placement: its current fault domain when that is still
     available and not already claimed, then an unclaimed name no other placement
     holds, then the emptiest name unclaimed within its own AD. Raises ValueError
