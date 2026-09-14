@@ -90,12 +90,21 @@ JVB_NOMAD_VARIABLE="jvb_enable_nomad"
 [ -z "$CONFIG_VARS_FILE" ] && CONFIG_VARS_FILE="$LOCAL_PATH/../config/vars.yml"
 [ -z "$ENVIRONMENT_VARS_FILE" ] && ENVIRONMENT_VARS_FILE="$LOCAL_PATH/../sites/$ENVIRONMENT/vars.yml"
 
-NOMAD_JVB_FLAG="$(cat $ENVIRONMENT_VARS_FILE | yq eval .${JVB_NOMAD_VARIABLE} -)"
-if [[ "$NOMAD_JVB_FLAG" == "null" ]]; then
-  NOMAD_JVB_FLAG="$(cat $CONFIG_VARS_FILE | yq eval .${JVB_NOMAD_VARIABLE} -)"
-fi
-if [[ "$NOMAD_JVB_FLAG" == "null" ]]; then
-  NOMAD_JVB_FLAG=
+# only look the flag up when the caller did not supply one, matching
+# create-jvb-pool.sh. an unconditional assignment here discarded
+# NOMAD_JVB_FLAG=true from the environment, and since jvb_enable_nomad is unset
+# for nomad-JVB environments the flag resolved to false, which left
+# AUTOSCALER_URL pointing at the pilot autoscaler (404 on a group that lives on
+# the regional one) and baked NOMAD_FLAG=false into the new instance
+# configuration, so replacement nodes would not have been built as nomad clients
+if [ -z "$NOMAD_JVB_FLAG" ]; then
+  NOMAD_JVB_FLAG="$(cat $ENVIRONMENT_VARS_FILE | yq eval .${JVB_NOMAD_VARIABLE} -)"
+  if [[ "$NOMAD_JVB_FLAG" == "null" ]]; then
+    NOMAD_JVB_FLAG="$(cat $CONFIG_VARS_FILE | yq eval .${JVB_NOMAD_VARIABLE} -)"
+  fi
+  if [[ "$NOMAD_JVB_FLAG" == "null" ]]; then
+    NOMAD_JVB_FLAG=
+  fi
 fi
 
 [ -z "$NOMAD_JVB_FLAG" ] && NOMAD_JVB_FLAG="false"
