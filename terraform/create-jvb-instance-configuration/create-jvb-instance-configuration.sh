@@ -150,7 +150,7 @@ fi
 JVB_IMAGE_TYPE="JVB"
 
 if [[ "$NOMAD_JVB_FLAG" == "true" ]]; then
-  JVB_IMAGE_TYPE="JammyBase"
+  JVB_IMAGE_TYPE="NobleBase"
   JVB_VERSION="latest"
   SHARD_ROLE="JVB-nomad-pool"
 fi
