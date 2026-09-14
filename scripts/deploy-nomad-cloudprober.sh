@@ -54,6 +54,11 @@ CLOUDPROBER_ENABLE_PROMETHEUS="true"
 CLOUDPROBER_ENABLE_WAVEFRONT_PROXY="false"
 CLOUDPROBER_ENABLE_LATENCY="true"
 CLOUDPROBER_ENABLE_ALLOY="false"
+# Every live environment has a gitea mirror in every region a cloudprober runs
+# in, so this is on by default like the other generic probes. Overridable (an
+# environment that has not had its mirror deployed yet would otherwise alarm
+# permanently) -- hence the conditional assignment rather than a bare one.
+[ -z "$CLOUDPROBER_ENABLE_GITEA_MIRROR" ] && CLOUDPROBER_ENABLE_GITEA_MIRROR="true"
 
 # init generic probes used by specific environments
 CLOUDPROBER_ENABLE_AUTOSCALER="false"
@@ -116,6 +121,7 @@ enable_alert_emailer=$CLOUDPROBER_ENABLE_ALERT_EMAILER
 enable_vault=$CLOUDPROBER_ENABLE_VAULT
 enable_canary=$CLOUDPROBER_ENABLE_LATENCY
 enable_alloy=$CLOUDPROBER_ENABLE_ALLOY
+enable_gitea_mirror=$CLOUDPROBER_ENABLE_GITEA_MIRROR
 EOF
 
 RENDER_DIR="/tmp/cloudprober-render-$$"

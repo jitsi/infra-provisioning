@@ -122,6 +122,16 @@ variable "enable_canary" {
   type        = bool
   default     = false
 }
+variable "enable_gitea_mirror" {
+  description = "Whether to enable the gitea mirror monitoring"
+  type        = bool
+  default     = false
+}
+variable "gitea_mirror_repo" {
+  description = "The org/repo whose git refs endpoint the gitea mirror probe fetches"
+  type        = string
+  default     = "jitsi/infra-provisioning"
+}
 variable "enable_alloy" {
   description = "Whether to enable alloy monitoring"
   type        = bool
