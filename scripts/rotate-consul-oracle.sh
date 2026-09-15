@@ -88,6 +88,46 @@ fi
 # by default wait 5 minutes in between rotating consul instances
 [ -z "$STARTUP_GRACE_PERIOD_SECONDS" ] && STARTUP_GRACE_PERIOD_SECONDS=150
 
+# Pick a distinct fault domain for each consul pool before touching anything.
+# The three pools each hold one instance, so without this OCI can place them all
+# in the same fault domain. Computed once here and exported so that all three
+# terraform applies in the rotation loop below agree on the same assignment.
+# Set CONSUL_FAULT_DOMAINS to pin the assignment by hand, or SKIP_CAPACITY_CHECK
+# to rotate without consulting capacity at all.
+[ -z "$AVAILABILITY_DOMAINS" ] && AVAILABILITY_DOMAINS=$(oci iam availability-domain list --region=$ORACLE_REGION | jq .data[].name | jq --slurp .)
+if [ -z "$AVAILABILITY_DOMAINS" ]; then
+  echo "## ERROR: no AVAILABILITY_DOMAINS found for $ORACLE_REGION; exiting..."
+  exit 206
+fi
+export AVAILABILITY_DOMAINS
+
+if [ -z "$CONSUL_FAULT_DOMAINS" ] && [ -z "$SKIP_CAPACITY_CHECK" ]; then
+  # where each pool sits today, so a re-run holds steady instead of shuffling
+  CURRENT_FAULT_DOMAINS=$(for x in {a..c}; do
+    POOL_ID=$(oci compute-management instance-pool list --region "$ORACLE_REGION" -c "$COMPARTMENT_OCID" \
+      --lifecycle-state RUNNING --all --display-name "$INSTANCE_POOL_BASE_NAME-$x" | jq -r '.data[0].id // empty')
+    [ -z "$POOL_ID" ] && echo "null" && continue
+    oci compute-management instance-pool list-instances --region "$ORACLE_REGION" -c "$COMPARTMENT_OCID" \
+      --instance-pool-id "$POOL_ID" --all | jq -r '.data[0]."fault-domain" // "null"'
+  done | jq -R . | jq --slurp -c .)
+
+  # flex shapes need ocpus and memory; fixed shapes must not receive them
+  SHAPE_CONFIG_ARGS=()
+  [ -n "$OCPUS" ] && SHAPE_CONFIG_ARGS+=(--ocpus "$OCPUS")
+  [ -n "$MEMORY_IN_GBS" ] && SHAPE_CONFIG_ARGS+=(--memory-in-gbs "$MEMORY_IN_GBS")
+
+  CONSUL_FAULT_DOMAINS=$($LOCAL_PATH/oci_capacity.py --environment "$ENVIRONMENT" assign_fault_domains \
+    --region "$ORACLE_REGION" --shape "$SHAPE" "${SHAPE_CONFIG_ARGS[@]}" \
+    --count 3 --availability-domains "$AVAILABILITY_DOMAINS" --current "$CURRENT_FAULT_DOMAINS")
+  if [ $? -gt 0 ] || [ -z "$CONSUL_FAULT_DOMAINS" ]; then
+    echo "## ERROR: could not assign a distinct fault domain to each consul pool in $ORACLE_REGION"
+    echo "## rotating now risks leaving a consul server unplaced; re-run with SKIP_CAPACITY_CHECK=true to override"
+    exit 1
+  fi
+  echo "## assigned consul fault domains: $CONSUL_FAULT_DOMAINS"
+fi
+export CONSUL_FAULT_DOMAINS
+
 # iterate across the three instance pools
 for x in {a..c}; do
   INSTANCE_POOL_NAME=$INSTANCE_POOL_BASE_NAME-$x
