@@ -42,6 +42,7 @@ fi
 echo "## rotate-consul-pre-detach shutting down nomad service on $INSTANCE_PRIMARY_PRIVATE_IP with user $SSH_USER"
 
 timeout 10 ssh -n -o StrictHostKeyChecking=no -F $LOCAL_PATH/../config/ssh.config $SSH_USER@$INSTANCE_PRIMARY_PRIVATE_IP "nomad node eligibility -self -disable && nomad node drain -self -enable -detach -yes"
+RET=$?
 if [[ $RET -gt 0 ]]; then
     echo "## ERROR draining nomad on $INSTANCE_PRIMARY_PRIVATE_IP with code $RET"
 fi
