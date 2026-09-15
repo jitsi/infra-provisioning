@@ -975,6 +975,33 @@ groups:
         inbound traffic spike. Check backend health and upstream traffic patterns.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=haproxy_lb
+  - alert: Shard_HTTP_5xx_Elevated
+    expr: >-
+      sum by (shard) (label_replace(
+      increase(haproxy_server_http_responses_total{code="5xx",proxy=~"release-.*"}[2m]),
+      "shard", "$1", "server", "[0-9]+-(?:fallback-)?(.*)")) > 5
+    for: 2m
+    labels:
+      service: jitsi
+      severity: smoke
+    annotations:
+      summary: shard {{ $labels.shard }} is returning 5xx responses in ${var.dc}
+      description: >-
+        Shard {{ $labels.shard }} returned {{ $value | printf "%.0f" }} 5xx responses
+        in a 2 minute window, sustained for 2 minutes. Most shard 5xx observed so far
+        have been vulnerability scanners probing paths that have no backend (Spring
+        Boot actuator paths, /tmui/login.jsp, reportdownload.*), which HAProxy cannot
+        distinguish from a real fault, so this is SMOKE rather than WARN. Before
+        treating it as a shard problem, check the shard's nginx access log for the
+        requested paths: junk paths mean a scanner, whereas /http-bind,
+        /xmpp-websocket or /conference-request/v1 mean a real client. Note a 504 on
+        /http-bind at exactly 90s is nginx proxy_read_timeout on a BOSH long-poll,
+        not a fault.
+        Note the shard's own region is in its name and is not necessarily the
+        datacenter this alert fired in -- release backends route across regions, so
+        one unhealthy shard can alert from several datacenters at once.
+      dashboard_url: ${var.grafana_url}
+      alert_url: https://${var.prometheus_hostname}/alerts?search=shard_http_5xx
   - alert: HAProxy_LB_Backend_Timeouts_Elevated
     expr: oci_lbaas_backend_timeouts{lb_name=~".*haproxy.*"} > 5
     for: 5m
