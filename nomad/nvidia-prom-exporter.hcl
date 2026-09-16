@@ -38,7 +38,10 @@ job "nvidia-prom-exporter" {
           name     = "health"
           type     = "http"
           port     = "metrics_gpu"
-          path     = "/healthz"
+          # dcgm-exporter serves /health -- NOT /healthz. The skynet family of jobs in
+          # this repo use /healthz (skynet really does define that route), and this job
+          # copied the pattern onto a third-party image that does not.
+          path     = "/health"
           interval = "10s"
           timeout  = "2s"
         }
