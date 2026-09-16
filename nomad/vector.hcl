@@ -18,6 +18,16 @@ job "[JOB_NAME]" {
   priority = 75
 
   update {
+    // System jobs get no deployment object, so nothing schedules the follow-up
+    // evaluations a rolling update needs: under a max_parallel of 1 a re-register
+    // updates one node and then looks finished, leaving the rest of the fleet on
+    // the old version. 0 disables the limit so every node takes the change on the
+    // registering evaluation. Note this block previously set no max_parallel at
+    // all, which canonicalized to the default of 1 -- an explicit value is needed.
+    max_parallel = 0
+    // The remaining settings are inert here: the system scheduler honours only
+    // max_parallel and stagger, and ignores deployment-oriented fields. Kept so
+    // the job reads the same as the service jobs alongside it.
     min_healthy_time = "10s"
     healthy_deadline = "5m"
     progress_deadline = "10m"
