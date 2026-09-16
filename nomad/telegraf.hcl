@@ -26,6 +26,16 @@ job "[JOB_NAME]" {
   type        = "system"
   priority    = 75
 
+  // System jobs get no deployment object, so nothing schedules the follow-up
+  // evaluations a rolling update needs. Under nomad's default max_parallel of 1
+  // a re-register updates exactly one node and then looks finished, leaving the
+  // rest of the fleet on the old version until some unrelated node-update
+  // evaluation happens to pick them up. 0 disables the limit so every node takes
+  // the change on the registering evaluation.
+  update {
+    max_parallel = 0
+  }
+
   meta {
     environment = "${var.environment}"
     cloud_provider = "${var.cloud_provider}"
