@@ -29,6 +29,10 @@
           description: "Number of coturn allocations to run per region, defaults to 2."
           trim: true
       - string:
+          name: COTURN_VERSION
+          description: "Coturn docker image tag to deploy, defaults to the version pinned in nomad/coturn.hcl."
+          trim: true
+      - string:
           name: COTURN_CERTIFICATE_NAME
           description: "SSL certificate name to use, defaults to the environment's site_ssl_certificate (or star.jitsi.net)."
           trim: true

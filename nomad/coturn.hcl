@@ -17,6 +17,16 @@ variable "ssl_cert_name" {
     default = "star_example_com"
 }
 
+variable "coturn_version" {
+    type = string
+    # Conservative fallback: the version the fleet already runs. Environments
+    # move forward by setting coturn_version in their vars.yml, so a config
+    # lookup that comes back empty can never drag an environment onto a new
+    # coturn by surprise. Pin the -rN docker tag rather than the bare "4.18.0"
+    # when moving up: the bare tag is re-pushed on every debian base rebuild.
+    default = "4.6.3"
+}
+
 job "[JOB_NAME]" {
   datacenters = [var.dc]
   type        = "system"
@@ -61,7 +71,7 @@ job "[JOB_NAME]" {
       user = "root"
       config {
         network_mode = "host"
-        image = "coturn/coturn:4.6.3"
+        image = "coturn/coturn:${var.coturn_version}"
         args = [
           "-c",
           "/local/coturn.conf",
@@ -71,16 +81,42 @@ job "[JOB_NAME]" {
       }
       template {
         data = <<EOH
-use-auth-secret
-keep-address-family
-no-multicast-peers
+# This file has to be valid for BOTH coturn versions in flight, because
+# coturn_version is set per environment while the fleet rolls forward. Each
+# side logs a complaint about the other side's lines and ignores them, which
+# is cosmetic; getting the set wrong is not. Verified against both images.
+#
+# Load-bearing on 4.6.3, redundant on 4.18 (where each is already the
+# default). Do NOT drop these until every environment is on 4.18: on 4.6.3
+# removing no-rfc5780 alone silently turns NAT behaviour discovery back on.
+# On 4.18 the first three are accepted and the last three warn "Bad
+# configuration format" and are ignored.
 no-cli
 no-rfc5780
 no-software-attribute
 no-stun-backward-compatibility
-no-tcp-relay
 no-tlsv1
 no-tlsv1_1
+#
+# 4.18 additionally stops starting DTLS listeners unless --dtls is passed,
+# which is why there is no no-dtls line: not asking for it is the mitigation.
+use-auth-secret
+# Both versions accept this; it is the non-deprecated spelling of the
+# keep-address-family flag this replaced.
+allocation-default-address-family=keep
+no-multicast-peers
+no-tcp-relay
+# Log to the task's stdout so nomad collects the lines. Without this coturn
+# writes ~54 lines to stdout and then switches to a file inside the container
+# that nothing collects. Per-session and per-packet logging stays off because
+# --verbose is not set, so this is startup and rare-event output only.
+log-file=stdout
+# The two below are 4.18-only and warn "Bad configuration format" on 4.6.3.
+log-min-level=info
+# Cap UDP 401 Unauthorized responses per source IP. Without this an attacker
+# who spoofs a victim's source address bounces amplified 401s at them.
+# Authenticated relay traffic never reaches the 401 branch and is unaffected.
+unauthorized-ratelimit
 # https://ssl-config.mozilla.org/#server=haproxy&version=2.1&config=intermediate&openssl=1.1.0g&guideline=5.4
 cipher-list=ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384
 denied-peer-ip=0.0.0.0-0.255.255.255
@@ -122,7 +158,12 @@ EOH
 {{- with secret "secret/ssl/${var.ssl_cert_name}/cert" }}{{ .Data.data.cert }}{{ .Data.data.chain }}{{ end -}}
 EOF
         destination = "secrets/ssl.crt"
-        change_mode = "noop" # todo: change to send SIGUSR2 to coturn
+        # coturn re-reads cert and key from disk on SIGUSR2, so a rotation in
+        # vault takes effect without a redeploy. A reload that catches the pair
+        # mid-rotation logs an error and keeps the running context; the signal
+        # from the other template then completes it.
+        change_mode = "signal"
+        change_signal = "SIGUSR2"
       }
 
       template {
@@ -130,7 +171,8 @@ EOF
 {{- with secret "secret/ssl/${var.ssl_cert_name}/cert" }}{{ .Data.data.key }}{{ end -}}
 EOF
         destination = "secrets/ssl.key"
-        change_mode = "noop" # todo: change to send SIGUSR2 to coturn
+        change_mode = "signal"
+        change_signal = "SIGUSR2"
       }
 
       resources {

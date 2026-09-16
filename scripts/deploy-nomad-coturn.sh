@@ -48,6 +48,25 @@ export NOMAD_VAR_ssl_cert_name="$COTURN_CERTIFICATE_NAME"
 [ -z "$DESIRED_CAPACITY" ] && DESIRED_CAPACITY=2
 export NOMAD_VAR_coturn_count="$DESIRED_CAPACITY"
 
+# Coturn image tag, in precedence order: the COTURN_VERSION build parameter,
+# then the environment's vars.yml, then config/vars.yml. If none of them set it
+# the job file's own conservative default applies.
+COTURN_VERSION_VARIABLE="coturn_version"
+[ -z "$CONFIG_VARS_FILE" ] && CONFIG_VARS_FILE="$LOCAL_PATH/../config/vars.yml"
+[ -z "$ENVIRONMENT_VARS_FILE" ] && ENVIRONMENT_VARS_FILE="$LOCAL_PATH/../sites/$ENVIRONMENT/vars.yml"
+
+if [ -z "$COTURN_VERSION" ]; then
+    COTURN_VERSION="$(cat $ENVIRONMENT_VARS_FILE | yq eval .${COTURN_VERSION_VARIABLE} -)"
+fi
+if [[ "$COTURN_VERSION" == "null" ]]; then
+    COTURN_VERSION="$(cat $CONFIG_VARS_FILE | yq eval .${COTURN_VERSION_VARIABLE} -)"
+fi
+if [[ "$COTURN_VERSION" == "null" ]]; then
+    COTURN_VERSION=
+fi
+
+[ -n "$COTURN_VERSION" ] && export NOMAD_VAR_coturn_version="$COTURN_VERSION"
+
 NOMAD_JOB_PATH="$LOCAL_PATH/../nomad"
 NOMAD_DC="$ENVIRONMENT-$ORACLE_REGION"
 
