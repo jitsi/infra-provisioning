@@ -17,6 +17,13 @@ variable "ssl_cert_name" {
     default = "star_example_com"
 }
 
+variable "coturn_version" {
+    type = string
+    # Pin the -rN docker tag rather than the bare "4.18.0": the bare tag is
+    # re-pushed whenever the debian base image is rebuilt.
+    default = "4.18.0-r0"
+}
+
 job "[JOB_NAME]" {
   datacenters = [var.dc]
   type        = "system"
@@ -61,7 +68,7 @@ job "[JOB_NAME]" {
       user = "root"
       config {
         network_mode = "host"
-        image = "coturn/coturn:4.6.3"
+        image = "coturn/coturn:${var.coturn_version}"
         args = [
           "-c",
           "/local/coturn.conf",
@@ -71,16 +78,29 @@ job "[JOB_NAME]" {
       }
       template {
         data = <<EOH
+# Options that used to be listed here are gone as of coturn 4.18 because
+# upstream made each of them the default, and the server no longer accepts
+# some of the spellings:
+#   no-cli, no-rfc5780, no-software-attribute  -> now default, deprecated
+#   no-stun-backward-compatibility             -> now default, option removed
+#   no-tlsv1, no-tlsv1_1                       -> option removed, TLS 1.2 is
+#                                                 the minimum unless --tlsv1
+#                                                 or --tlsv1_1 asks otherwise
+# DTLS listeners are likewise no longer started unless --dtls is passed, which
+# is why there is no no-dtls line: not asking for it is the mitigation.
 use-auth-secret
-keep-address-family
+allocation-default-address-family=keep
 no-multicast-peers
-no-cli
-no-rfc5780
-no-software-attribute
-no-stun-backward-compatibility
 no-tcp-relay
-no-tlsv1
-no-tlsv1_1
+# Log to the task's stdout so nomad collects the lines. Per-session and
+# per-packet logging stays off because --verbose is not set, so this is
+# startup and rare-event output only.
+log-file=stdout
+log-min-level=info
+# Cap UDP 401 Unauthorized responses per source IP. Without this an attacker
+# who spoofs a victim's source address bounces amplified 401s at them.
+# Authenticated relay traffic never reaches the 401 branch and is unaffected.
+unauthorized-ratelimit
 # https://ssl-config.mozilla.org/#server=haproxy&version=2.1&config=intermediate&openssl=1.1.0g&guideline=5.4
 cipher-list=ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384
 denied-peer-ip=0.0.0.0-0.255.255.255
@@ -122,7 +142,12 @@ EOH
 {{- with secret "secret/ssl/${var.ssl_cert_name}/cert" }}{{ .Data.data.cert }}{{ .Data.data.chain }}{{ end -}}
 EOF
         destination = "secrets/ssl.crt"
-        change_mode = "noop" # todo: change to send SIGUSR2 to coturn
+        # coturn re-reads cert and key from disk on SIGUSR2, so a rotation in
+        # vault takes effect without a redeploy. A reload that catches the pair
+        # mid-rotation logs an error and keeps the running context; the signal
+        # from the other template then completes it.
+        change_mode = "signal"
+        change_signal = "SIGUSR2"
       }
 
       template {
@@ -130,7 +155,8 @@ EOF
 {{- with secret "secret/ssl/${var.ssl_cert_name}/cert" }}{{ .Data.data.key }}{{ end -}}
 EOF
         destination = "secrets/ssl.key"
-        change_mode = "noop" # todo: change to send SIGUSR2 to coturn
+        change_mode = "signal"
+        change_signal = "SIGUSR2"
       }
 
       resources {

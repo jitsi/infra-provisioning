@@ -48,6 +48,9 @@ export NOMAD_VAR_ssl_cert_name="$COTURN_CERTIFICATE_NAME"
 [ -z "$DESIRED_CAPACITY" ] && DESIRED_CAPACITY=2
 export NOMAD_VAR_coturn_count="$DESIRED_CAPACITY"
 
+# Leave unset to take the version pinned in nomad/coturn.hcl.
+[ -n "$COTURN_VERSION" ] && export NOMAD_VAR_coturn_version="$COTURN_VERSION"
+
 NOMAD_JOB_PATH="$LOCAL_PATH/../nomad"
 NOMAD_DC="$ENVIRONMENT-$ORACLE_REGION"
 
