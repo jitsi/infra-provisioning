@@ -17,12 +17,15 @@ JOB_PATH="$LOCAL_PATH/../jenkins/jobs"
 # governance-params parameter macro in _macros-governance.yaml) resolve, and is
 # then filtered down to the job being updated. Loading a single file would leave
 # those macros undefined.
+#
+# This couples every job definition together permanently: a job file that fails
+# to parse blocks EVERY update, not just its own and not just JOB_NAME=ALL. That
+# is the standing price of shared macros, so keep the directory parseable.
 if [[ "$JOB_NAME" == "ALL" ]]; then
     echo "JOB_NAME set to 'ALL', applying all jobs in $JOB_PATH"
     JOB_FILTER=""
     JOB_FILE="*.y*ml"
 else
-    JOB_FILTER="$JOB_NAME"
     JOB_FILE="$JOB_NAME.yaml"
     if [ ! -e "$JOB_PATH/$JOB_FILE" ]; then
         # some job definitions use the .yml extension
@@ -32,6 +35,17 @@ else
             exit 2
         fi
     fi
+    # JJB filters by the job names a file DECLARES, which is not always the file's
+    # own name: deploy-nomad-coturn.yaml declares provision-nomad-coturn, and the
+    # deploy-nomad-* family in infra-customizations does the same. Filtering on
+    # JOB_NAME would match nothing and exit 0 without updating anything, so derive
+    # the filter from the file instead.
+    JOB_FILTER=$(awk '/^- job:/{j=1;next} j && /^    name:/{print $2; j=0}' "$JOB_PATH/$JOB_FILE")
+    if [ -z "$JOB_FILTER" ]; then
+        echo "No job declared in $JOB_PATH/$JOB_FILE, exiting"
+        exit 2
+    fi
+    echo "Job file $JOB_FILE declares: $(echo $JOB_FILTER | tr '\n' ' ')"
 fi
 [ -z "$PUBLIC_CUSTOMIZATIONS_REPO" ] && PUBLIC_CUSTOMIZATIONS_REPO="git@github.com:jitsi/infra-customizations.git"
 if [ -n "$PRIVATE_CUSTOMIZATIONS_REPO" ]; then
