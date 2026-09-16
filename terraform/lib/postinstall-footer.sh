@@ -1,3 +1,5 @@
+# every stack reaches here, unlike configure_mirror_repos; GIT_MIRROR_HOST is set above
+record_git_mirror_host
 [ -z "$MAIN_COMMAND" ] && MAIN_COMMAND=default_main
 $MAIN_COMMAND
 EXIT_CODE=$?
