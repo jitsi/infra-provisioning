@@ -20,7 +20,7 @@ LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 # first archive the keyring material from the old server if nomad version is less than 1.9
 echo "## rotate-consul-pre-detach: checking for nomad keyring material from $INSTANCE_PRIMARY_PRIVATE_IP"
 export ARCHIVE_KEYRING="true"
-timeout 120 ssh -F $LOCAL_PATH/../config/ssh.config $SSH_USER@$INSTANCE_PRIMARY_PRIVATE_IP  "[ \$(nomad --version | head -1 | awk '{print $2}' | cut -d '.' -f2) -ge 9 ] && echo 'nomad version is 1.9 or greater, no keyring needed' && exit 1 || sudo tar -czf /tmp/nomad-keyring.tar.gz /var/nomad/server/keystore"
+timeout 120 ssh -F $LOCAL_PATH/../config/ssh.config $SSH_USER@$INSTANCE_PRIMARY_PRIVATE_IP 'NOMAD_VER=$(nomad --version | head -1 | sed -E "s/^Nomad v([0-9]+\.[0-9]+).*/\1/"); NOMAD_MAJOR=${NOMAD_VER%%.*}; NOMAD_MINOR=${NOMAD_VER##*.}; if [ "$NOMAD_MAJOR" -gt 1 ] || { [ "$NOMAD_MAJOR" -eq 1 ] && [ "$NOMAD_MINOR" -ge 9 ]; }; then echo "nomad version $NOMAD_VER is 1.9 or greater, no keyring needed"; exit 1; fi; sudo tar -czf /tmp/nomad-keyring.tar.gz /var/nomad/server/keystore'
 RET=$?
 if [[ $RET -gt 0 ]]; then
     if [ $RET -eq 1 ]; then
@@ -66,4 +66,17 @@ timeout 120 ssh -F $LOCAL_PATH/../config/ssh.config $SSH_USER@$INSTANCE_PRIMARY_
 RET=$?
 if [[ $RET -gt 0 ]]; then
     echo "## ERROR stopping consul on $INSTANCE_PRIMARY_PRIVATE_IP with code $RET"
+fi
+
+# Let the consul and nomad leave messages finish propagating before the caller detaches
+# the instance with --is-auto-terminate true. Both agents are configured to leave
+# gracefully on SIGTERM (consul clients default to leave_on_terminate, and the nomad role
+# sets nomad_leave_on_terminate: true), but the leave still has to gossip out to the rest
+# of the cluster. Terminating the VM immediately can cut that short, which leaves the old
+# member sitting in "failed" on whichever peers had not heard yet -- harmless, but it makes
+# `nomad server members` and `consul members` misleading for hours afterwards.
+[ -z "$GOSSIP_SETTLE_SECONDS" ] && GOSSIP_SETTLE_SECONDS=20
+if [[ "$GOSSIP_SETTLE_SECONDS" -gt 0 ]]; then
+    echo "## rotate-consul-pre-detach: waiting ${GOSSIP_SETTLE_SECONDS}s for leave gossip to propagate before termination"
+    sleep "$GOSSIP_SETTLE_SECONDS"
 fi
