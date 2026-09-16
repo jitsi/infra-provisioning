@@ -123,7 +123,8 @@ Both changes ship with an **automatic fallback to the current mechanism**
 
    1. `scripts/seed-gitea-read-user.sh` seeds `secret/default/gitea/read-user`
       (`username`, `password`) once per Vault. The password is alphanumeric
-      only, because it ends up in a netrc line and may end up in a URL.
+      only, so it passes through the shell, the git credential protocol and a
+      URL without quoting.
    2. Every replica's init task creates that user from the secret
       (`gitea admin user create --restricted`, then
       `admin user change-password` so an in-place restart or a rotation
@@ -136,12 +137,19 @@ Both changes ship with an **automatic fallback to the current mechanism**
       git-over-HTTP basic auth works for a plain user (no token required), the
       grant PUT is idempotent (204 twice), push is refused, and a restricted
       user can still fetch public repos when it presents credentials.
-   4. Boots clone over HTTPS with the credential in `/root/.netrc` for the
-      mirror host (written by `fetch_mirror_credentials`, removed by
-      `clean_credentials`, written with tracing off since the boot runs under
-      `set -x`). git hands netrc credentials to a host only when challenged, so
-      they never appear in a URL, process list or boot log, and public repos
-      are still fetched anonymously.
+   4. Boots clone over HTTPS with the credential handed to git per command:
+      `fetch_mirror_credentials` keeps it in shell variables (read with tracing
+      off, since the boot runs under `set -x`) and `git_clone_for_boot` passes
+      it through the environment of the one `git clone` of the mirror host,
+      where a `credential.helper` set with `-c` echoes it back only when git is
+      challenged. It is never in a URL, argv, the boot log or a file, and
+      public repos are still fetched anonymously. The first revision wrote a
+      `/root/.netrc` instead; that broke every nomad job with an `artifact`
+      block on nodes that keep credentials across reconfiguration
+      (`CLEAN_CREDENTIALS=false`), because nomad's unprivileged artifact getter
+      fails a download outright when it finds a netrc it cannot read.
+      `fetch_mirror_credentials` now removes a leftover `/root/.netrc` on every
+      boot so already-affected nodes heal on their next reconfiguration.
    5. **Transition source of the credential: the boot bucket.** Vault OCI
       instance auth at boot (stage 3) is unbuilt, needs the `vault` CLI on the
       images, and would add a Vault dependency to boot while the 2026-07-09

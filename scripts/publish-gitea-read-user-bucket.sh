@@ -4,8 +4,9 @@
 # boot bucket (jvb-bucket-<env>, one per region), as the object gitea-read-user
 # (JSON: username, password). Booting VMs read it with their instance principal
 # in fetch_credentials (terraform/lib/postinstall-lib.sh), exactly like the
-# ansible-vault password and deploy key already there, and write it to a netrc
-# for the mirror host. See JIT-16092.
+# ansible-vault password and deploy key already there, and hand it to the git
+# clone of the mirror host through a per-command credential helper (never a
+# netrc or any other file). See JIT-16092.
 #
 # This is the transition path: the plan's end state has boots read the secret
 # straight from Vault via OCI instance auth, which is not built yet. The bucket

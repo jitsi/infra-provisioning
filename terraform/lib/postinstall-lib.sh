@@ -201,13 +201,18 @@ function configure_mirror_repos() {
   fi
   echo "Using git mirror $GIT_MIRROR_HOST"
 }
-# Read-only mirror user for the private repo: bucket -> netrc, never a URL. No creds => github
+# Read-only mirror user for the private repo: bucket -> shell vars, never a URL or a file. No creds => github
 function fetch_mirror_credentials() {
+  # a leftover netrc breaks nomad's unprivileged artifact getter
+  rm -f /root/.netrc
+  MIRROR_GIT_HOST=
+  MIRROR_GIT_USERNAME=
+  MIRROR_GIT_PASSWORD=
   [ -z "$INFRA_CUSTOMIZATIONS_MIRROR_REPO" ] && return 0
   local bucket="jvb-bucket-${ENVIRONMENT}"
   local creds_file="/root/.gitea-read-user.json"
   local mirror_host
-  mirror_host=$(echo "$INFRA_CUSTOMIZATIONS_MIRROR_REPO" | sed -E 's#^[a-z]+://([^@/]*@)?([^/:]+).*#\2#')
+  mirror_host=$(git_url_host "$INFRA_CUSTOMIZATIONS_MIRROR_REPO")
   if [ -z "$mirror_host" ]; then
     echo "Could not read a hostname from the mirror URL, not fetching mirror credentials"
     return 0
@@ -230,11 +235,17 @@ function fetch_mirror_credentials() {
     echo "gitea-read-user in $bucket has no username or password; the private repo will come from github"
     return 0
   fi
-  (umask 077 && printf 'machine %s login %s password %s\n' "$mirror_host" "$username" "$password" > /root/.netrc)
-  chmod 600 /root/.netrc
+  MIRROR_GIT_HOST="$mirror_host"
+  MIRROR_GIT_USERNAME="$username"
+  MIRROR_GIT_PASSWORD="$password"
   [ "$xtrace" == "true" ] && set -x
-  echo "Installed mirror credentials for $username at $mirror_host"
+  echo "Holding mirror credentials for $username at $mirror_host for this boot's clones"
   return 0
+}
+function forget_mirror_credentials() {
+  MIRROR_GIT_HOST=
+  MIRROR_GIT_USERNAME=
+  MIRROR_GIT_PASSWORD=
 }
 function fetch_credentials() {
   ENVIRONMENT=$1
@@ -266,6 +277,29 @@ function set_hostname() {
 function loggable_git_url() {
   echo "$1" | sed -E 's#(://)[^@/]*@#\1#'
 }
+function git_url_host() {
+  echo "$1" | sed -E 's#^[a-z]+://([^@/]*@)?([^/:]+).*#\2#'
+}
+# no terminal at boot: fail instead of prompting. Mirror credential via env-reading helper, never argv or disk
+function git_clone_for_boot() {
+  local url="$1"
+  local target="$2"
+  if [ -z "${MIRROR_GIT_PASSWORD:+set}" ] || [ "$(git_url_host "$url")" != "$MIRROR_GIT_HOST" ]; then
+    GIT_TERMINAL_PROMPT=0 git clone "$url" "$target"
+    return $?
+  fi
+  local xtrace=false
+  [[ $- == *x* ]] && xtrace=true
+  set +x
+  echo "+ git clone $(loggable_git_url "$url") $target"
+  local rc=0
+  GIT_TERMINAL_PROMPT=0 MIRROR_GIT_USERNAME="$MIRROR_GIT_USERNAME" MIRROR_GIT_PASSWORD="$MIRROR_GIT_PASSWORD" \
+    git -c credential.helper= \
+        -c 'credential.helper=!f() { if [ "$1" = get ]; then printf "username=%s\npassword=%s\n" "$MIRROR_GIT_USERNAME" "$MIRROR_GIT_PASSWORD"; fi; }; f' \
+        clone "$url" "$target" || rc=$?
+  [ "$xtrace" == "true" ] && set -x
+  return $rc
+}
 function clone_repo_at_ref() {
   local url="$1"
   local target="$2"
@@ -273,8 +307,7 @@ function clone_repo_at_ref() {
   [ -z "$url" ] && return 1
   [ -z "$target" ] && return 1
   rm -rf "$target"
-  # no terminal at boot: fail instead of waiting on a credential prompt
-  GIT_TERMINAL_PROMPT=0 git clone "$url" "$target" || return 1
+  git_clone_for_boot "$url" "$target" || return 1
   git -C "$target" checkout "$ref" || return 1
   git -C "$target" submodule update --init --recursive || return 1
   git -C "$target" show-ref "heads/$ref" || git -C "$target" show-ref "tags/$ref" || return 1
@@ -316,7 +349,10 @@ function checkout_repos() {
     export GIT_ALTERNATE_OBJECT_DIRECTORIES="$LOCAL_REPO_DIRECTORY/infra-configuration/.git/objects:$LOCAL_REPO_DIRECTORY/infra-customizations/.git/objects"
   fi
   clone_repo_with_fallback "infra-configuration" "$INFRA_CONFIGURATION_MIRROR_REPO" "$INFRA_CONFIGURATION_REPO" "$BOOTSTRAP_DIRECTORY/infra-configuration" "$GIT_BRANCH" || return 1
-  clone_repo_with_fallback "infra-customizations" "$INFRA_CUSTOMIZATIONS_MIRROR_REPO" "$INFRA_CUSTOMIZATIONS_REPO" "$BOOTSTRAP_DIRECTORY/infra-customizations" "$GIT_BRANCH" || return 1
+  clone_repo_with_fallback "infra-customizations" "$INFRA_CUSTOMIZATIONS_MIRROR_REPO" "$INFRA_CUSTOMIZATIONS_REPO" "$BOOTSTRAP_DIRECTORY/infra-customizations" "$GIT_BRANCH"
+  local status_code=$?
+  forget_mirror_credentials
+  [ $status_code -ne 0 ] && return 1
   cp -a $BOOTSTRAP_DIRECTORY/infra-customizations/* $BOOTSTRAP_DIRECTORY/infra-configuration
   cd /root
 }
