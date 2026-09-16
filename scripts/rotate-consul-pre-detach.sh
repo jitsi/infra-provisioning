@@ -67,3 +67,16 @@ RET=$?
 if [[ $RET -gt 0 ]]; then
     echo "## ERROR stopping consul on $INSTANCE_PRIMARY_PRIVATE_IP with code $RET"
 fi
+
+# Let the consul and nomad leave messages finish propagating before the caller detaches
+# the instance with --is-auto-terminate true. Both agents are configured to leave
+# gracefully on SIGTERM (consul clients default to leave_on_terminate, and the nomad role
+# sets nomad_leave_on_terminate: true), but the leave still has to gossip out to the rest
+# of the cluster. Terminating the VM immediately can cut that short, which leaves the old
+# member sitting in "failed" on whichever peers had not heard yet -- harmless, but it makes
+# `nomad server members` and `consul members` misleading for hours afterwards.
+[ -z "$GOSSIP_SETTLE_SECONDS" ] && GOSSIP_SETTLE_SECONDS=20
+if [[ "$GOSSIP_SETTLE_SECONDS" -gt 0 ]]; then
+    echo "## rotate-consul-pre-detach: waiting ${GOSSIP_SETTLE_SECONDS}s for leave gossip to propagate before termination"
+    sleep "$GOSSIP_SETTLE_SECONDS"
+fi
