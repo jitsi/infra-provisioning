@@ -174,6 +174,10 @@ EOF
           "local/jvb-env-contents:/etc/s6-overlay/s6-rc.d/user/contents.d/00-jvb-env",
           "local/jvb-env-config-dep:/etc/s6-overlay/s6-rc.d/10-config/dependencies.d/00-jvb-env",
           "local/jvb-env-script:/etc/s6-overlay/scripts/jvb-env",
+          # Shutdown fixes for s6-overlay v3 (docker-jitsi-meet still ships the v2
+          # idiom). See the two templates below for the full explanation.
+          "local/jvb-timeout-finish:/etc/s6-overlay/s6-rc.d/jvb/timeout-finish",
+          "local/jitsi-shutdown:/opt/jitsi/shutdown.sh",
           # rtcstats-push sidecar (v3 longrun)
           "local/rtcstats-push-type:/etc/s6-overlay/s6-rc.d/60-jvb-rtcstats-push/type",
           "local/rtcstats-push-run:/etc/s6-overlay/s6-rc.d/60-jvb-rtcstats-push/run",
@@ -314,6 +318,60 @@ JVB_NAT_PORT="$(cat /alloc/data/JVB_NAT_PORT)"
 printf '%s' "$JVB_NAT_PORT" > /run/s6/container_environment/JVB_NAT_PORT
 EOF
         destination = "local/jvb-env-script"
+        perms = "755"
+      }
+
+      # --- s6-overlay v3 shutdown fixes ---
+      #
+      # The image's jvb finish script runs /opt/jitsi/shutdown.sh, which sleeps 10s
+      # so the autoscaler sidecar can report the shutdown before the container dies.
+      # s6-supervise's timeout-finish defaults to 5000ms and the image ships no
+      # timeout-finish file, so the finish script was SIGKILLed mid-sleep and
+      # s6-supervise restarted the bridge -- which rejoined jvbbrewery on every
+      # shard, right after the autoscaler had drained and terminated it.
+      template {
+        data = <<EOF
+20000
+EOF
+        destination = "local/jvb-timeout-finish"
+        perms = "644"
+      }
+      # docker-jitsi-meet's s6-overlay v1 -> v3 migration did not update
+      # /opt/jitsi/shutdown.sh, which still ends with the v2 idiom
+      # `s6-svscanctl -t /run/service`. Under v3 that terminates s6-svscan and every
+      # supervisor but does NOT exit PID 1 (s6-linux-init's `wait` for an hpr event),
+      # so the container hangs forever with jvb orphaned to PID 1, unsupervised and
+      # with no sidecar, while Nomad still reports the task healthy. v3's shutdown
+      # entry point is /run/s6/basedir/bin/halt. This is a verbatim copy of the image
+      # script with only that last line replaced (with a v2 fallback, in case
+      # CONFIG_jvb_tag points at a pre-v3 image).
+      #
+      # Called from two paths: the jvb service's finish script, and the autoscaler
+      # sidecar's TerminateScript.
+      #
+      # The port default is spelled out instead of the image's brace-default form,
+      # to keep this template data free of dollar-brace sequences that Nomad may
+      # try to interpolate before the script ever reaches the container.
+      template {
+        data = <<EOF
+#!/command/with-contenv bash
+
+if [ -n "$AUTOSCALER_URL" ]; then
+    # notify the sidecar of imminent shutdown
+    PORT="$AUTOSCALER_SIDECAR_PORT"
+    [ -z "$PORT" ] && PORT=6000
+    curl -d '{}' -v 0:$PORT/hook/v1/shutdown
+    sleep 10
+fi
+
+# shutdown everything
+if [ -x /run/s6/basedir/bin/halt ]; then
+    exec /run/s6/basedir/bin/halt
+else
+    exec s6-svscanctl -t /run/service
+fi
+EOF
+        destination = "local/jitsi-shutdown"
         perms = "755"
       }
 
