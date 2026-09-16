@@ -36,7 +36,8 @@
           default: git@github.com:jitsi/infra-customizations.git
           description: "Repo with customized configurations, defaults to 'git@github.com:jitsi/infra-customizations.git'."
           trim: true
- 
+      - governance-params
+
     project-type: pipeline
     sandbox: true
     pipeline-scm:

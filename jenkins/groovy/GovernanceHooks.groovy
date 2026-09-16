@@ -19,6 +19,17 @@ def postHooks(Map artConfig, boolean success) {
     echo "GovernanceHooks: no governance provider configured (postHooks)"
 }
 
+// Deploy-only gates, for jobs that redeploy or replace running infrastructure
+// without cutting a new release (e.g. the rotate-* jobs). Paired with
+// postDeployOnly; skips the release gates entirely.
+def preDeployOnly(Map artConfig) {
+    echo "GovernanceHooks: no governance provider configured (preDeployOnly)"
+}
+
+def postDeployOnly(Map artConfig, boolean success) {
+    echo "GovernanceHooks: no governance provider configured (postDeployOnly)"
+}
+
 def loadLibrary() {
     echo "GovernanceHooks: no governance provider configured (loadLibrary)"
 }
