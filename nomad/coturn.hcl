@@ -19,9 +19,12 @@ variable "ssl_cert_name" {
 
 variable "coturn_version" {
     type = string
-    # Pin the -rN docker tag rather than the bare "4.18.0": the bare tag is
-    # re-pushed whenever the debian base image is rebuilt.
-    default = "4.18.0-r0"
+    # Conservative fallback: the version the fleet already runs. Environments
+    # move forward by setting coturn_version in their vars.yml, so a config
+    # lookup that comes back empty can never drag an environment onto a new
+    # coturn by surprise. Pin the -rN docker tag rather than the bare "4.18.0"
+    # when moving up: the bare tag is re-pushed on every debian base rebuild.
+    default = "4.6.3"
 }
 
 job "[JOB_NAME]" {
@@ -78,24 +81,37 @@ job "[JOB_NAME]" {
       }
       template {
         data = <<EOH
-# Options that used to be listed here are gone as of coturn 4.18 because
-# upstream made each of them the default, and the server no longer accepts
-# some of the spellings:
-#   no-cli, no-rfc5780, no-software-attribute  -> now default, deprecated
-#   no-stun-backward-compatibility             -> now default, option removed
-#   no-tlsv1, no-tlsv1_1                       -> option removed, TLS 1.2 is
-#                                                 the minimum unless --tlsv1
-#                                                 or --tlsv1_1 asks otherwise
-# DTLS listeners are likewise no longer started unless --dtls is passed, which
-# is why there is no no-dtls line: not asking for it is the mitigation.
+# This file has to be valid for BOTH coturn versions in flight, because
+# coturn_version is set per environment while the fleet rolls forward. Each
+# side logs a complaint about the other side's lines and ignores them, which
+# is cosmetic; getting the set wrong is not. Verified against both images.
+#
+# Load-bearing on 4.6.3, redundant on 4.18 (where each is already the
+# default). Do NOT drop these until every environment is on 4.18: on 4.6.3
+# removing no-rfc5780 alone silently turns NAT behaviour discovery back on.
+# On 4.18 the first three are accepted and the last three warn "Bad
+# configuration format" and are ignored.
+no-cli
+no-rfc5780
+no-software-attribute
+no-stun-backward-compatibility
+no-tlsv1
+no-tlsv1_1
+#
+# 4.18 additionally stops starting DTLS listeners unless --dtls is passed,
+# which is why there is no no-dtls line: not asking for it is the mitigation.
 use-auth-secret
+# Both versions accept this; it is the non-deprecated spelling of the
+# keep-address-family flag this replaced.
 allocation-default-address-family=keep
 no-multicast-peers
 no-tcp-relay
-# Log to the task's stdout so nomad collects the lines. Per-session and
-# per-packet logging stays off because --verbose is not set, so this is
-# startup and rare-event output only.
+# Log to the task's stdout so nomad collects the lines. Without this coturn
+# writes ~54 lines to stdout and then switches to a file inside the container
+# that nothing collects. Per-session and per-packet logging stays off because
+# --verbose is not set, so this is startup and rare-event output only.
 log-file=stdout
+# The two below are 4.18-only and warn "Bad configuration format" on 4.6.3.
 log-min-level=info
 # Cap UDP 401 Unauthorized responses per source IP. Without this an attacker
 # who spoofs a victim's source address bounces amplified 401s at them.
