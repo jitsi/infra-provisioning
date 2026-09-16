@@ -40,8 +40,9 @@ if vault kv get "$SECRET_PATH" >/dev/null 2>&1; then
   echo "Rotating the password in $SECRET_PATH"
 fi
 
-# Alphanumeric only, on purpose: the password ends up in a netrc line and may
-# end up in a URL, and neither has a portable way to quote anything else.
+# Alphanumeric only, on purpose: the password is handed to git through a
+# credential helper and may end up in a URL, and neither has a portable way to
+# quote anything else.
 # 40 alphanumeric characters is ~238 bits, far more than the hash needs.
 PASSWORD=$(LC_ALL=C tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 40)
 if [ "${#PASSWORD}" -ne 40 ]; then
