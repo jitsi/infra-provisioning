@@ -181,8 +181,24 @@ function mount_volumes() {
     fi
   fi
 }
+# Boot scripts on disk (infra-configuration) run from a fresh environment, and jvb/jibri
+# through sudo, so they never see GIT_MIRROR_HOST; record the raw opt-in for them. JIT-16092
+GIT_MIRROR_HOST_RECORDED=false
+function record_git_mirror_host() {
+  [ "$GIT_MIRROR_HOST_RECORDED" == "true" ] && return 0
+  [ -z "$GIT_MIRROR_HOST_FILE" ] && GIT_MIRROR_HOST_FILE="/opt/jitsi/boot/git-mirror-host"
+  if ! mkdir -p "$(dirname "$GIT_MIRROR_HOST_FILE")" || ! echo "$GIT_MIRROR_HOST" > "$GIT_MIRROR_HOST_FILE"; then
+    echo "Could not record the git mirror opt-in in $GIT_MIRROR_HOST_FILE, cloning from github"
+    return 0
+  fi
+  chmod 644 "$GIT_MIRROR_HOST_FILE"
+  GIT_MIRROR_HOST_RECORDED=true
+  echo "Recorded git mirror opt-in '$GIT_MIRROR_HOST' in $GIT_MIRROR_HOST_FILE"
+  return 0
+}
 # In-region git mirror, opt-in per stack via GIT_MIRROR_HOST ("auto" derives it). JIT-16092
 function configure_mirror_repos() {
+  record_git_mirror_host
   [ -z "$GIT_MIRROR_HOST" ] && return 0
   if [ "$GIT_MIRROR_HOST" == "auto" ]; then
     if [ -z "$ENVIRONMENT" ] || [ -z "$ORACLE_REGION" ]; then

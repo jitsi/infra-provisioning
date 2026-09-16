@@ -378,6 +378,36 @@ today.
   existing `Probe_Unhealthy` rule (the node probe pinned to `warn`). Content
   freshness is covered separately by the `Gitea_Mirror_Stale` alerts in
   `nomad/prometheus.hcl`.
+- **The other half of the boot, on disk (2026-09-16):** the user-data
+  `checkout_repos` above is only half of it. A dozen scripts baked into the
+  images (`ansible/roles/*/files/configure-*-local*.sh` in infra-configuration)
+  do their own clone on reconfiguration, and for the jvb, jigasi and jibri
+  stacks on the first boot as well, since those runners override
+  `PROVISION_COMMAND` and never reach `default_provision`. They carried twelve
+  copies of `checkout_repos` that only knew github. infra-configuration #964
+  replaced those with one shared `/opt/jitsi/boot/git-mirror-lib.sh` that has
+  the same semantics as `terraform/lib/postinstall-lib.sh`.
+
+  Those scripts cannot see `GIT_MIRROR_HOST`: they run from a fresh environment
+  on a reconfiguration, and jvb and jibri are invoked through `sudo`, which
+  resets the environment even on the first boot. So `record_git_mirror_host`
+  writes the opt-in to `/opt/jitsi/boot/git-mirror-host`, called both from
+  `configure_mirror_repos` and from `postinstall-footer.sh`. It is written
+  tersely on purpose: it is inlined into every instance's cloud-init user-data,
+  where #1189 already had to reach for gzip, so the rationale lives here rather
+  than in comments that ride along on every boot. The footer is the
+  one point every stack passes through whatever its `MAIN_COMMAND` and
+  `PROVISION_COMMAND`, and it runs after the `export GIT_MIRROR_HOST` line the
+  terraform stacks inline, so it is the only placement that covers jvb, jigasi
+  and jibri. The raw value is recorded rather than the derived hostname, so the
+  consumer derives the host from its own `ENVIRONMENT`/`ORACLE_REGION` exactly
+  as this does, and an empty file means the stack is not opted in.
+
+  Rollout there is slower than here: the scripts are baked into images, and
+  most of them are only refreshed by `install.yml`, so coturn, jibri, jicofo and
+  jvb need an image rebuild (jigasi, haproxy and non-nomad selenium refresh on a
+  reconfiguration). An instance that booted before this change has no recorded
+  file and keeps cloning from github until it is replaced.
 - **Stage 2 (Vault, infra-customizations-private terraform):** the OCI auth
   method is **already enabled** (`terraform/vault-oci-auth-config` →
   `vault_auth_backend.oci`), and `terraform/vault-oci-instance-auth-config`
