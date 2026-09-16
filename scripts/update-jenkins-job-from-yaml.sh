@@ -12,15 +12,25 @@ if [ -z "$JOB_NAME" ]; then
 fi
 
 JOB_PATH="$LOCAL_PATH/../jenkins/jobs"
+
+# JJB is always handed the whole jobs/ directory so that shared macros (e.g. the
+# governance-params parameter macro in _macros-governance.yaml) resolve, and is
+# then filtered down to the job being updated. Loading a single file would leave
+# those macros undefined.
 if [[ "$JOB_NAME" == "ALL" ]]; then
     echo "JOB_NAME set to 'ALL', applying all jobs in $JOB_PATH"
-    JOB_NAME=""
-    JOB_FILE="*.yaml"
+    JOB_FILTER=""
+    JOB_FILE="*.y*ml"
 else
+    JOB_FILTER="$JOB_NAME"
     JOB_FILE="$JOB_NAME.yaml"
     if [ ! -e "$JOB_PATH/$JOB_FILE" ]; then
-        echo "No job file $JOB_PATH/$JOB_FILE found, exiting"
-        exit 2
+        # some job definitions use the .yml extension
+        JOB_FILE="$JOB_NAME.yml"
+        if [ ! -e "$JOB_PATH/$JOB_FILE" ]; then
+            echo "No job file $JOB_PATH/$JOB_NAME.yaml or $JOB_PATH/$JOB_NAME.yml found, exiting"
+            exit 2
+        fi
     fi
 fi
 [ -z "$PUBLIC_CUSTOMIZATIONS_REPO" ] && PUBLIC_CUSTOMIZATIONS_REPO="git@github.com:jitsi/infra-customizations.git"
@@ -53,12 +63,14 @@ else
     ACTIVE_JJB_CONF_FILE="$JJB_CONF_FILE"
 fi
 
-echo "Testing job definition for $JOB_NAME"
-jenkins-jobs --flush-cache --conf $ACTIVE_JJB_CONF_FILE test $JOB_FILE
+echo "Testing job definition for ${JOB_NAME}"
+# shellcheck disable=SC2086 # JOB_FILTER is intentionally unquoted: empty means "every job"
+jenkins-jobs --flush-cache --conf $ACTIVE_JJB_CONF_FILE test . $JOB_FILTER
 RET=$?
 
 if [ $RET -eq 0 ]; then
-    jenkins-jobs --flush-cache --conf $ACTIVE_JJB_CONF_FILE update $JOB_FILE
+    # shellcheck disable=SC2086
+    jenkins-jobs --flush-cache --conf $ACTIVE_JJB_CONF_FILE update . $JOB_FILTER
     RET=$?
 else
     echo "Failed during job definition test, skipping update"
