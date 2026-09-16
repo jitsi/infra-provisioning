@@ -293,10 +293,40 @@ def TagRelease(type,release,env_branch) {
                 ApplyReleaseTagRelease(type,release)
             }
         }
+        TriggerMirrorSync(tag_branch)
     } else {
         tag_branch = env_branch
     }
     return tag_branch
+}
+
+// Tell this environment's in-region git mirrors to pull the tag just pushed.
+// Boots check out the tag, and the mirrors otherwise pull on their own interval,
+// so without this a release's first boots reach a replica that does not have the
+// tag yet and clone from github instead, which defeats the point of a local
+// mirror. Only called when this job actually created a tag; releasing an
+// existing branch or tag needs no trigger. JIT-16092
+def TriggerMirrorSync(tag) {
+    if (!env.ENVIRONMENT) {
+        echo "No ENVIRONMENT set, not triggering a git mirror sync for ${tag}"
+        return
+    }
+    // sites/ and clouds/ only reach the workspace through the customization
+    // overlay SetupRepos copies into infra-provisioning, and the script needs
+    // both, so run it there rather than at the workspace root.
+    dir('infra-provisioning') {
+        // never fatal to a release: the mirrors still pull on their own interval
+        // and the boot path falls back to github for anything not mirrored yet
+        def status = sh(
+            returnStatus: true,
+            script: """#!/bin/bash
+export ENVIRONMENT="${env.ENVIRONMENT}"
+scripts/trigger-nomad-gitea-mirror-sync.sh '${tag}'"""
+        )
+        if (status != 0) {
+            echo "Could not trigger a git mirror sync for ${tag} in ${env.ENVIRONMENT}; boots fall back to github until the mirrors pull on their own"
+        }
+    }
 }
 
 // apply specific release tag to branch

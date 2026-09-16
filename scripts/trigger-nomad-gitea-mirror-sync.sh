@@ -20,6 +20,9 @@
 #                logs. Defaults to $GIT_BRANCH, or "manual".
 #   REGIONS      defaults to the environment's NOMAD_REGIONS.
 #   CONSUL_HOST  overrides the consul endpoint for every region, for a one-off.
+#
+# No-ops for an environment that is not opted into the mirror (no GIT_MIRROR_HOST
+# in its sites/<env>/stack-env.sh).
 
 [ -e ./stack-env.sh ] && . ./stack-env.sh
 
@@ -29,6 +32,15 @@ if [ -z "$ENVIRONMENT" ]; then
 fi
 
 [ -e ./sites/$ENVIRONMENT/stack-env.sh ] && . ./sites/$ENVIRONMENT/stack-env.sh
+
+# Only environments whose boots actually use the mirror need a tag pushed early.
+# Elsewhere a stale mirror harms nothing, and triggering anyway would write a key
+# in every nomad region on every release and warn when the job is not deployed
+# there. Pass GIT_MIRROR_HOST in the environment to force it for a one-off.
+if [ -z "$GIT_MIRROR_HOST" ]; then
+  echo "$ENVIRONMENT is not opted into the git mirror, nothing to trigger"
+  exit 0
+fi
 
 LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
