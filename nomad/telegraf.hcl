@@ -158,7 +158,10 @@ EOF
 
 [[inputs.net]]
   fieldinclude = ["bytes*","drop*","packets*","err*","tcp_retranssegs","udp_rcvbuferrors"]
-  ignore_protocol_stats = true
+  # tcp_retranssegs and udp_rcvbuferrors are protocol stats from /proc/net/snmp,
+  # so ignoring protocol stats silently drops the two fields the fieldinclude above
+  # asks for by name. The wildcards only ever match per-interface counters.
+  ignore_protocol_stats = false
 
 [[inputs.nstat]]
   fieldinclude = ["TcpInSegs", "TcpOutSegs", "TcpRetransSegs", "UdpInErrors", "Udp6InErrors"]

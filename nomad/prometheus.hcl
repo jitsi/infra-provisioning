@@ -229,6 +229,15 @@ ${var.custom_relabels}
       services: ['telegraf']
     scrape_interval: 30s
     metrics_path: /metrics
+    relabel_configs:
+      # keep the node name so target-level alerts can name the host; `up` would
+      # otherwise carry only instance (an ip:port, and a dynamic port on nomad nodes)
+      - source_labels: ['__meta_consul_node']
+        target_label: node
+      # nomad sets external_source on the services it registers; VM telegraf leaves
+      # it unset, which lets alerts tell the two populations apart
+      - source_labels: ['__meta_consul_service_metadata_external_source']
+        target_label: registered_by
 %{ if var.custom_relabels != "" }
     metric_relabel_configs:
 ${var.custom_relabels}
@@ -382,6 +391,25 @@ groups:
         service orchestration and job placement are not functioning.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=nomad_down
+  - alert: Nomad_Evals_Blocked
+    expr: max(nomad_nomad_blocked_evals_total_blocked) > 0
+    for: 30m
+    labels:
+      service: infra
+      severity: severe
+    annotations:
+      summary: nomad has evaluations blocked on resources in ${var.dc}
+      description: >-
+        Nomad has held at least one evaluation in the blocked state for 30m in
+        ${var.dc}. A blocked evaluation means the scheduler gave up placing an
+        allocation -- usually resources exhausted on every eligible node -- and
+        will not retry on its own until cluster state changes. This counter is
+        published by the nomad leader and so covers the whole cluster: the
+        blocked job may belong to another datacenter. Check
+        `nomad eval list -status=blocked` and the affected job's placement
+        failure for the exhausted dimension.
+      dashboard_url: ${var.grafana_url}
+      alert_url: https://${var.prometheus_hostname}/alerts?search=nomad_evals_blocked
   - alert: Prometheus_Down
     expr: absent(up{job="prometheus"})
     for: 5m
@@ -396,16 +424,19 @@ groups:
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=prometheus_down
   - alert: Telegraf_Down
-    expr: nomad_nomad_heartbeat_active > (sum(up{job="telegraf"}) or vector(0))
-    for: 5m
+    expr: up{job="telegraf", registered_by="nomad"} == 0
+    for: 15m
     labels:
       service: infra
       severity: severe
     annotations:
-      summary: telegraf services are down on some nodes in ${var.dc}
+      summary: telegraf on {{ $labels.node }} in ${var.dc} is not scrapeable
       description: >-
-        telegraf metrics are not being emitted from all nodes in ${var.dc}.
-        Metrics for some services are not being collected.
+        The telegraf endpoint on {{ $labels.node }} ({{ $labels.instance }}) in
+        ${var.dc} has failed every scrape for 15m. Metrics for that node are not
+        being collected, which also silences every other alert that depends on
+        them -- including the pool_type-scoped ones that would otherwise report
+        a missing service on this node.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=telegraf_down
   - alert: Nomad_Job_Restarts_High
