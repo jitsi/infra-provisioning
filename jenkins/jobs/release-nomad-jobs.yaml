@@ -1,0 +1,49 @@
+# The release-nomad-<type> family. See provision-nomad-jobs.yaml for the pattern;
+# this one releases a nomad job type across the regions of an environment.
+#
+# The update-jenkins-job-from-yaml build takes JOB_NAME=release-nomad-jobs (the
+# file) and refreshes the whole family.
+#
+# Types that take extra parameters -- coturn, gitea-mirror, canary,
+# multitrack-recorder, opus-transcriber-proxy-monitor -- keep their own files.
+
+- job-template:
+    name: release-nomad-{jobtype}
+    display-name: release nomad {jobtype}
+    description: "release {jobtype} to nomad in one or more regions in an environment."
+    concurrent: true
+    parameters:
+      - infra-branch-param
+      - string:
+          name: ENVIRONMENT
+          description: "Environment to build in."
+          trim: true
+      - string:
+          name: REGIONS
+          description: "REGIONS to build in, defaults to NOMAD_REGIONS for the environment."
+          trim: true
+      - string:
+          name: JOB_TYPE
+          default: '{jobtype}'
+          description: "Nomad job type to release, defaults to '{jobtype}' do not change"
+          trim: true
+      - infra-repo-params
+      - governance-params
+
+    project-type: pipeline
+    sandbox: true
+    pipeline-scm:
+      scm:
+        - infra-provisioning-checkout
+      script-path: jenkins/groovy/release-nomad-job/Jenkinsfile
+      lightweight-checkout: true
+
+- project:
+    name: release-nomad-jobs
+    jobtype:
+      - alloy
+      - alloy-external
+      - ocular
+      - tempo
+    jobs:
+      - 'release-nomad-{jobtype}'

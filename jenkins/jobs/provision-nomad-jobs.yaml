@@ -1,0 +1,65 @@
+# The provision-nomad-<type> family.
+#
+# Every job here does the same thing -- run provision-nomad-job/Jenkinsfile
+# against one nomad job type in one region -- and differed only in the JOB_TYPE
+# default. They are one template plus the list of types rather than a dozen
+# near-identical files.
+#
+# Adding a type is one line in the jobtype list below. The job still has to be
+# pushed to Jenkins afterwards, and because this file declares the whole family,
+# the update-jenkins-job-from-yaml build takes JOB_NAME=provision-nomad-jobs (the
+# file) and refreshes all of them, rather than one JOB_NAME per type.
+#
+# A type whose display name, description or parameters do not follow the pattern
+# stays in its own file: provision-nomad-wavefront-proxy has no description, and
+# the types that take extra parameters (coturn, shard-backend, gitea-mirror,
+# autoscaler, web-release, alertmanager, cloudprober, multitrack-recorder,
+# opus-transcriber-proxy-monitor) each declare their own.
+
+- job-template:
+    name: provision-nomad-{jobtype}
+    display-name: provision nomad {jobtype}
+    description: "release {jobtype} in nomad to an oracle region in an environment"
+    concurrent: true
+    parameters:
+      - infra-branch-param
+      - string:
+          name: ENVIRONMENT
+          description: "Environment to provision in"
+          trim: true
+      - string:
+          name: ORACLE_REGION
+          description: "Region to provision in"
+          trim: true
+      - string:
+          name: JOB_TYPE
+          default: '{jobtype}'
+          description: "Nomad job type to provision, defaults to '{jobtype}' do not change"
+          trim: true
+      - infra-repo-params
+
+    project-type: pipeline
+    sandbox: true
+    pipeline-scm:
+      scm:
+        - infra-provisioning-checkout
+      script-path: jenkins/groovy/provision-nomad-job/Jenkinsfile
+      lightweight-checkout: true
+
+- project:
+    name: provision-nomad-jobs
+    jobtype:
+      - alert-emailer
+      - alloy
+      - alloy-external
+      - canary
+      - fabio
+      - loki
+      - ocular
+      - prometheus
+      - shimmy
+      - telegraf
+      - tempo
+      - vector
+    jobs:
+      - 'provision-nomad-{jobtype}'
