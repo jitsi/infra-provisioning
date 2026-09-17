@@ -18,8 +18,8 @@
           trim: true
       - string:
           name: ENVIRONMENT
-          default: lonely
-          description: "Environment to build in, defaults to 'lonely'."
+          default: ops-dev
+          description: "Environment to build in, defaults to 'ops-dev'."
           trim: true
       - string:
           name: CLOUD_PROVIDER

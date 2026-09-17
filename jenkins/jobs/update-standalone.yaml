@@ -15,8 +15,8 @@
           trim: true
       - string:
           name: ENVIRONMENT
-          default: lonely
-          description: "Environment where the standalone instance is deployed, defaults to 'lonely'."
+          default: ops-dev
+          description: "Environment where the standalone instance is deployed, defaults to 'ops-dev'."
           trim: true
       - string:
           name: DOMAIN
