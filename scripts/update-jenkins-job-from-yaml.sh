@@ -40,7 +40,23 @@ else
     # deploy-nomad-* family in infra-customizations does the same. Filtering on
     # JOB_NAME would match nothing and exit 0 without updating anything, so derive
     # the filter from the file instead.
-    JOB_FILTER=$(awk '/^- job:/{j=1;next} j && /^    name:/{print $2; j=0}' "$JOB_PATH/$JOB_FILE")
+    #
+    # Ask JJB for the names rather than pattern-matching the YAML. "jenkins-jobs
+    # list" expands job-template / project / job-group definitions exactly as the
+    # test and update runs below will, so a file that declares its jobs through a
+    # template resolves to the real job names. The grep-for-"^- job:" this replaced
+    # could not see those: it returned an empty filter and the run aborted with
+    # "No job declared", which is what kept the repeated nomad job definitions from
+    # being collapsed into templates.
+    #
+    # Name expansion does not resolve component macros, so a single file lists fine
+    # on its own even though it references governance-params or
+    # infra-provisioning-checkout from _macros-*.yaml.
+    if ! JOB_FILTER=$(jenkins-jobs list -p "$JOB_PATH/$JOB_FILE" 2>/dev/null); then
+        echo "Could not read job names from $JOB_PATH/$JOB_FILE, exiting. JJB said:"
+        jenkins-jobs list -p "$JOB_PATH/$JOB_FILE"
+        exit 2
+    fi
     if [ -z "$JOB_FILTER" ]; then
         echo "No job declared in $JOB_PATH/$JOB_FILE, exiting"
         exit 2
