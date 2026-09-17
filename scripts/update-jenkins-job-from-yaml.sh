@@ -99,8 +99,18 @@ set +x
 cd $JOB_PATH
 
 if [ -z "$JJB_CONF_FILE" ]; then
-    ACTIVE_JJB_CONF_FILE="./jenkins_jobs.ini"
-    cat > $ACTIVE_JJB_CONF_FILE <<EOF
+    # Generate the config in a temp file we own outright rather than writing
+    # ./jenkins_jobs.ini in the jobs directory. That path is a real developer
+    # config on a workstation -- it is gitignored and holds Jenkins credentials --
+    # and this script used to clobber it on the way in and delete it on the way
+    # out, so running the script by hand destroyed it. On a Jenkins agent the
+    # workspace is fresh, so nothing about that run changes.
+    #
+    # Cleaning up from a trap also covers the "skipping update" exit below, which
+    # the rm at the end of the script never reached.
+    ACTIVE_JJB_CONF_FILE=$(mktemp "${TMPDIR:-/tmp}/jenkins_jobs_ini.XXXXXX")
+    trap 'rm -f "$ACTIVE_JJB_CONF_FILE"' EXIT
+    cat > "$ACTIVE_JJB_CONF_FILE" <<EOF
 [jenkins]
 url=$JJB_URL
 
@@ -121,11 +131,6 @@ if [ $RET -eq 0 ]; then
 else
     echo "Failed during job definition test, skipping update"
     exit 2
-fi
-
-if [ -z "$JJB_CONF_FILE" ]; then
-    # we created ACTIVE_JJB_CONF_FILE so delete it now
-    rm $ACTIVE_JJB_CONF_FILE
 fi
 
 exit $RET
