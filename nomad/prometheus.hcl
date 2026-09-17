@@ -1591,6 +1591,197 @@ groups:
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=whisper_sessions_high
 %{ endif }%{ endif }
+- name: vector_alerts
+  rules:
+  # Vector metrics arrive through telegraf, not a scrape of vector itself:
+  # the nomad telegraf job pulls the vector-metrics consul service on its own
+  # node, the VM telegraf pulls localhost:9598, and both apply the same
+  # namepass keep-list at the source. So there is no up{job="vector"}; a
+  # vector that is down is a telegraf target that is up but reports no
+  # vector_uptime_seconds. registered_by is "nomad" for the system job and
+  # unset for the VM fleet, same as every other telegraf-scraped metric.
+  - alert: Vector_Down
+    expr: >-
+      up{job="telegraf", registered_by="nomad"} == 1
+        unless on (node) vector_uptime_seconds
+    for: 15m
+    labels:
+      service: infra
+      severity: severe
+    annotations:
+      summary: vector on nomad node {{ $labels.node }} in ${var.dc} is not reporting
+      description: >-
+        Telegraf on {{ $labels.node }} in ${var.dc} is scrapeable but has
+        reported no vector metrics for 15m. Vector runs as a system job on
+        every nomad node, so either its allocation is down, which means the
+        docker and syslog logs of every task on that node have stopped
+        reaching Loki, or its vector-metrics consul service is missing and
+        telegraf cannot find the port. Check the vector allocation on the node
+        before assuming the job is fine.
+      dashboard_url: ${var.grafana_url}
+      alert_url: https://${var.prometheus_hostname}/alerts?search=vector_down
+  # VM hosts are anchored on a telegraf metric that carries the role tag, so
+  # this only considers host types that actually run vector; a coturn or
+  # jenkins host reporting no vector metrics is correct, not an outage.
+  - alert: Vector_Down
+    expr: >-
+      max by (node, role) (mem_used_percent{job="telegraf", registered_by="",
+        role=~"JVB|core|haproxy|standalone|java-jibri|sip-jibri|jigasi|jigasi-transcriber"})
+        unless on (node) vector_uptime_seconds
+    for: 30m
+    labels:
+      service: infra
+      severity: warn
+    annotations:
+      summary: vector on {{ $labels.role }} host {{ $labels.node }} in ${var.dc} is not reporting
+      description: >-
+        Telegraf on {{ $labels.node }} ({{ $labels.role }}) in ${var.dc} is
+        scrapeable but has reported no vector metrics for 30m. Either the
+        vector systemd unit is down, so that host's jitsi logs are not
+        reaching Loki, or telegraf has no vector input on that host. If this
+        fires for a whole class of hosts right after a release, the image most
+        likely predates the telegraf vector input and this is "not yet
+        deployed", not an outage.
+      dashboard_url: ${var.grafana_url}
+      alert_url: https://${var.prometheus_hostname}/alerts?search=vector_down
+  # buffer_type is the label that proves the sink actually got the disk buffer
+  # it was configured with (JIT-16464). A memory buffer here means the disk
+  # config silently fell back, and its fill level is uninteresting because it
+  # blocks the source long before it becomes visible. Metric names are the
+  # 0.58 ones (vector_buffer_size_bytes / vector_buffer_max_size_bytes); 0.42
+  # called them byte_size / max_byte_size and never emitted the fill gauge
+  # for disk buffers until events flowed.
+  - alert: Vector_Buffer_Filling
+    expr: >-
+      vector_buffer_size_bytes{buffer_type="disk"}
+        / vector_buffer_max_size_bytes{buffer_type="disk"} > 0.5
+    for: 15m
+    labels:
+      service: infra
+      severity: warn
+    annotations:
+      summary: vector disk buffer for {{ $labels.component_id }} on {{ $labels.node }} in ${var.dc} is {{ $value | humanizePercentage }} full
+      description: >-
+        The disk buffer in front of the {{ $labels.component_id }} sink on
+        {{ $labels.node }} in ${var.dc} has been more than half full for 15m.
+        Vector is reading logs faster than Loki is accepting them. Check the
+        Loki (or Alloy) endpoint that sink writes to; when the buffer fills
+        completely vector stops reading its sources rather than dropping
+        events, and the backlog then shows up as a gap in Loki.
+      dashboard_url: ${var.grafana_url}
+      alert_url: https://${var.prometheus_hostname}/alerts?search=vector_buffer_filling
+  - alert: Vector_Buffer_Filling
+    expr: >-
+      vector_buffer_size_bytes{buffer_type="disk"}
+        / vector_buffer_max_size_bytes{buffer_type="disk"} > 0.9
+    for: 5m
+    labels:
+      service: infra
+      severity: severe
+    annotations:
+      summary: vector disk buffer for {{ $labels.component_id }} on {{ $labels.node }} in ${var.dc} is nearly full
+      description: >-
+        The disk buffer in front of the {{ $labels.component_id }} sink on
+        {{ $labels.node }} in ${var.dc} is over 90% full. Once it fills, vector
+        blocks its sources and logs from that node stop flowing until the sink
+        drains. Loki is almost certainly not accepting writes from this node.
+      dashboard_url: ${var.grafana_url}
+      alert_url: https://${var.prometheus_hostname}/alerts?search=vector_buffer_filling
+  # Counters here are lazily registered (0.42 never emitted
+  # vector_component_errors_total even with every docker_logs source failing;
+  # 0.58 registers it at startup for some components but not all): the series
+  # may not exist until the first event is discarded, and a series that appears once and then stays
+  # flat produces increase() == 0 forever. The second clause catches that
+  # first appearance (present now, absent 15m ago) so the very first burst
+  # still fires.
+  - alert: Vector_Events_Discarded
+    expr: >-
+      (sum by (node, registered_by, component_id, component_type)
+        (increase(vector_component_discarded_events_total[15m])) > 0)
+      or
+      (sum by (node, registered_by, component_id, component_type)
+        (vector_component_discarded_events_total) > 0
+       unless sum by (node, registered_by, component_id, component_type)
+        (vector_component_discarded_events_total offset 15m))
+    for: 5m
+    labels:
+      service: infra
+      severity: warn
+    annotations:
+      summary: vector {{ $labels.component_id }} on {{ $labels.node }} in ${var.dc} is discarding events
+      description: >-
+        The {{ $labels.component_type }} component {{ $labels.component_id }}
+        of vector on {{ $labels.node }} in ${var.dc} has discarded events in the
+        last 15m ({{ $value | printf "%.0f" }} of them). For a loki sink this is
+        Loki rejecting the batch (a 4xx such as an out-of-order or too-old
+        entry, or a label limit); for a transform it is events failing the
+        remap. Those log lines are gone, not delayed.
+      dashboard_url: ${var.grafana_url}
+      alert_url: https://${var.prometheus_hostname}/alerts?search=vector_events_discarded
+  - alert: Vector_Component_Errors
+    expr: >-
+      (sum by (node, registered_by, component_id, component_type, error_type)
+        (increase(vector_component_errors_total[15m])) > 0)
+      or
+      (sum by (node, registered_by, component_id, component_type, error_type)
+        (vector_component_errors_total) > 0
+       unless sum by (node, registered_by, component_id, component_type, error_type)
+        (vector_component_errors_total offset 15m))
+    for: 15m
+    labels:
+      service: infra
+      severity: smoke
+    annotations:
+      summary: vector {{ $labels.component_id }} on {{ $labels.node }} in ${var.dc} is reporting {{ $labels.error_type }} errors
+      description: >-
+        The {{ $labels.component_type }} component {{ $labels.component_id }}
+        of vector on {{ $labels.node }} in ${var.dc} has counted
+        {{ $labels.error_type }} errors for 15m. A loki sink here usually means
+        the endpoint is unreachable and the sink is retrying out of its buffer;
+        a source usually means a file or socket it cannot read.
+      dashboard_url: ${var.grafana_url}
+      alert_url: https://${var.prometheus_hostname}/alerts?search=vector_component_errors
+  # Version skew is evaluated per population on purpose: the nomad job pins
+  # its image while the VM fleet takes whatever the base image installed from
+  # apt. They match right after a pin bump (both 0.58.0 as of 2026-09-17) and
+  # drift apart as apt moves on, so comparing across them would always fire.
+  # Within the nomad population skew after a release is the max_parallel=1
+  # wedge (one node updated, the rest left behind); within the VM fleet it
+  # only resolves as the autoscaler replaces instances built from the old
+  # image, which takes days for long-lived hosts.
+  - alert: Vector_Version_Skew
+    expr: count by (registered_by) (count by (registered_by, version) (vector_build_info{registered_by="nomad"})) > 1
+    for: 2h
+    labels:
+      service: infra
+      severity: warn
+    annotations:
+      summary: nomad vector allocations in ${var.dc} are running mixed versions
+      description: >-
+        The vector system job in ${var.dc} has been reporting more than one
+        vector version for 2h. A system job update should replace every
+        allocation on the registering evaluation; if it did not, the rollout
+        wedged and some nodes are still shipping logs with the old config as
+        well as the old binary. Check `nomad job status` for the vector job
+        and compare allocation versions.
+      dashboard_url: ${var.grafana_url}
+      alert_url: https://${var.prometheus_hostname}/alerts?search=vector_version_skew
+  - alert: Vector_Version_Skew
+    expr: count by (registered_by) (count by (registered_by, version) (vector_build_info{registered_by=""})) > 1
+    for: 3d
+    labels:
+      service: infra
+      severity: smoke
+    annotations:
+      summary: VM vector fleet in ${var.dc} has run mixed versions for 3 days
+      description: >-
+        The VM vector population in ${var.dc} has reported more than one vector
+        version for 3 days. Some hosts are still running an image whose vector
+        predates the current base image. This is expected for a while after a
+        base image release; it is worth a look if it persists, since the old
+        hosts are also on the old vector config.
+      dashboard_url: ${var.grafana_url}
+      alert_url: https://${var.prometheus_hostname}/alerts?search=vector_version_skew
 ${var.custom_alerts}
 EOH
     }
