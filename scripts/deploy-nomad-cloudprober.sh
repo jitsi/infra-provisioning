@@ -62,7 +62,11 @@ CLOUDPROBER_ENABLE_ALLOY="false"
 
 # init generic probes used by specific environments
 CLOUDPROBER_ENABLE_AUTOSCALER="false"
-CLOUDPROBER_ENABLE_COTURN="false"
+# CLOUDPROBER_ENABLE_COTURN is deliberately not defaulted here. The core/prod
+# branch below turns it on, and an environment that runs its own coturn pool
+# without being prod (stage-8x8) asks for it in stack-env.sh. A bare assignment
+# at this point would clobber that, because stack-env.sh is sourced at the top
+# of this script. The "off" default is applied after the template block instead.
 CLOUDPROBER_ENABLE_CUSTOM_HTTPS="false"
 CLOUDPROBER_ENABLE_HAPROXY_REGION="false"
 CLOUDPROBER_ENABLE_SHARD="false"
@@ -82,7 +86,7 @@ if [[ "$CLOUDPROBER_TEMPLATE_TYPE" == "core" ]]; then
     CLOUDPROBER_ENABLE_HAPROXY_REGION="true"
     CLOUDPROBER_ENABLE_SHARD="true"
     if [[ "$ENVIRONMENT_TYPE" == "prod" ]]; then
-        CLOUDPROBER_ENABLE_COTURN="true"
+        [ -z "$CLOUDPROBER_ENABLE_COTURN" ] && CLOUDPROBER_ENABLE_COTURN="true"
     fi
 elif [[ "$CLOUDPROBER_TEMPLATE_TYPE" == "ops" ]]; then
     CLOUDPROBER_ENABLE_VAULT="true"
@@ -90,6 +94,11 @@ elif [[ "$CLOUDPROBER_TEMPLATE_TYPE" != "base" ]]; then
     echo "Unsupported CLOUDPROBER_TEMPLATE_TYPE (should be base, core, or ops), exiting"
     exit 3
 fi
+
+# Environments that neither asked for the coturn probes nor inherited them from
+# the prod branch above do not probe coturn. Enabling it where no coturn pool is
+# registered in consul would leave the probe with no targets.
+[ -z "$CLOUDPROBER_ENABLE_COTURN" ] && CLOUDPROBER_ENABLE_COTURN="false"
 
 # add custom https probes for environments that have them (typically just ops)
 CLOUDPROBER_CUSTOM_HTTPS_TARGETS=$(cat $ENVIRONMENT_CONFIGURATION_FILE | yq eval ".cloudprober_custom_https_url_targets" | tr -d '\n')
