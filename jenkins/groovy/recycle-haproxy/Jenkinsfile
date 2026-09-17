@@ -13,6 +13,8 @@ def recycleHaproxyOracle() {
     )
 }
 def utils
+def governance
+def artConfig
 pipeline {
     agent any
     options {
@@ -33,6 +35,39 @@ pipeline {
 
                     // setup OCI credentials
                     utils.SetupOCI()
+
+                    // Deploy-only governance. A recycle cuts no new release, but
+                    // it replaces every haproxy in the environment, so it is gated
+                    // as a standalone deploy. init() records the commit and tag of
+                    // each infra repo as the change's components.
+                    dir('infra-provisioning') {
+                        governance = utils.LoadGovernanceHooks()
+                        artConfig = governance.init([
+                            serviceName:   'haproxy',
+                            version:       env.BUILD_ID,
+                            artifactType:  'vm',
+                            environment:   env.ENVIRONMENT,
+                            // Standard governance job parameters (see
+                            // the governance provider's JOB_PARAMETERS.md).
+                            // Undefined params resolve to null -> init applies its defaults.
+                            rpTicket:      params.RP_TICKET,
+                            jiraTicket:    params.JIRA_TICKET,
+                            useStaging:    params.GOVERNANCE_STAGING,
+                            fastTrack:     params.FAST_TRACK,
+                            allowOverride: params.GOVERNANCE_ALLOW_OVERRIDE,
+                            disabled:      (params.GOVERNANCE_ENABLED == false),
+                            verbose:       params.GOVERNANCE_VERBOSE,
+                            skipGates:     params.GOVERNANCE_SKIP_GATES,
+                            gateTimeout:   params.GOVERNANCE_GATE_TIMEOUT,
+                        ])
+                    }
+                }
+            }
+        }
+        stage ("Pre-Deploy") {
+            steps {
+                script {
+                    governance.preDeployOnly(artConfig)
                 }
             }
         }
@@ -68,6 +103,12 @@ pipeline {
      }
     post {
         always {
+            script {
+                if (governance != null) {
+                    // before cleanWs(), which would take the governance log with it
+                    governance.postDeployOnly(artConfig, currentBuild.result == 'SUCCESS')
+                }
+            }
             // Clean up afterwards
             cleanWs()
         }

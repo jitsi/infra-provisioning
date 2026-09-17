@@ -8,6 +8,8 @@ def rotateNomad(oracle_region) {
 }
 
 def utils
+def governance
+def artConfig
 pipeline {
     agent any
     options {
@@ -28,7 +30,41 @@ pipeline {
                     // setup OCI credentials
                     utils.SetupOCI()
 
+                    // Deploy-only governance. A rotation cuts no new release, but it
+                    // does rebuild the instance configuration from the infra repos
+                    // checked out above and then cycle live instances onto it, so it
+                    // is gated as a standalone deploy. init() records the commit and
+                    // tag of each infra repo as the change's components.
+                    dir('infra-provisioning') {
+                        governance = utils.LoadGovernanceHooks()
+                        artConfig = governance.init([
+                            serviceName:   env.POOL_TYPE ? "nomad-pool-${env.POOL_TYPE}" : 'nomad-pool',
+                            version:       env.BUILD_ID,
+                            artifactType:  'vm',
+                            environment:   env.ENVIRONMENT,
+                            // Standard governance job parameters (see
+                            // the governance provider's JOB_PARAMETERS.md).
+                            // Undefined params resolve to null -> init applies its defaults.
+                            rpTicket:      params.RP_TICKET,
+                            jiraTicket:    params.JIRA_TICKET,
+                            useStaging:    params.GOVERNANCE_STAGING,
+                            fastTrack:     params.FAST_TRACK,
+                            allowOverride: params.GOVERNANCE_ALLOW_OVERRIDE,
+                            disabled:      (params.GOVERNANCE_ENABLED == false),
+                            verbose:       params.GOVERNANCE_VERBOSE,
+                            skipGates:     params.GOVERNANCE_SKIP_GATES,
+                            gateTimeout:   params.GOVERNANCE_GATE_TIMEOUT,
+                        ])
+                    }
+
                     sh 'mkdir -p test-results'
+                }
+            }
+        }
+        stage ("Pre-Deploy") {
+            steps {
+                script {
+                    governance.preDeployOnly(artConfig)
                 }
             }
         }
@@ -49,6 +85,16 @@ pipeline {
                             }
                         }
                     }
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            script {
+                if (governance != null) {
+                    governance.postDeployOnly(artConfig, currentBuild.result == 'SUCCESS')
                 }
             }
         }
