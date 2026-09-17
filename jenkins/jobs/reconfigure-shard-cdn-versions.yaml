@@ -3,11 +3,7 @@
     display-name: reconfigure shard CDN versions
     concurrent: true
     parameters:
-      - string:
-          name: VIDEO_INFRA_BRANCH
-          default: main
-          description: "Controls checkout branch for infra repos, defaults to 'main'."
-          trim: true
+      - infra-branch-param
       - string:
           name: ENVIRONMENT
           description: "Environment to update CDN link"

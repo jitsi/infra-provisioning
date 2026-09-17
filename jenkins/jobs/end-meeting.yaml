@@ -19,11 +19,7 @@
           default:
           description: "Optional tenant name"
           trim: true
-      - string:
-          name: VIDEO_INFRA_BRANCH
-          default: main
-          description: "Controls checkout branch for infra repos, defaults to 'main'."
-          trim: true
+      - infra-branch-param
       - string:
           name: INFRA_CUSTOMIZATIONS_REPO
           default: git@github.com:jitsi/infra-customizations.git

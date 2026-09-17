@@ -10,11 +10,7 @@
     triggers:
       - timed: '0 4 * * 3'
     parameters:
-      - string:
-          name: VIDEO_INFRA_BRANCH
-          default: main
-          description: "Controls checkout branch for infra repos, defaults to 'main'."
-          trim: true
+      - infra-branch-param
       - string:
           name: GRID_NAME
           default: validate

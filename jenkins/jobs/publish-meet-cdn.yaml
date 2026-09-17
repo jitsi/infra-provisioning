@@ -3,11 +3,7 @@
     display-name: publish meet cdn
     concurrent: true
     parameters:
-      - string:
-          name: VIDEO_INFRA_BRANCH
-          default: main
-          description: "Controls checkout branch for infra repos, defaults to 'main'."
-          trim: true
+      - infra-branch-param
       - string:
           name: JITSI_MEET_VERSION
           description: "jitsi-meet version to publish"

@@ -4,11 +4,7 @@
     description: "registers the regional Gitea pull-mirror of the infra repos in nomad in an oracle region in an environment, and creates its CNAME"
     concurrent: true
     parameters:
-      - string:
-          name: VIDEO_INFRA_BRANCH
-          default: main
-          description: "Controls checkout branch for infra repos, defaults to 'main'."
-          trim: true
+      - infra-branch-param
       - string:
           name: ENVIRONMENT
           description: "Environment to provision in"

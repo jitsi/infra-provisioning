@@ -3,11 +3,7 @@
     display-name: build docker image ops-agent
     concurrent: false
     parameters:
-      - string:
-          name: VIDEO_INFRA_BRANCH
-          default: main
-          description: "Controls checkout branch for infra repos, defaults to 'main'."
-          trim: true
+      - infra-branch-param
       - string:
           name: TAG
           description: "Docker image tag; defaults to git short hash if not set."

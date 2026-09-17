@@ -4,11 +4,7 @@
     description: "release the opus-transcriber-proxy transcription monitor to nomad in one or more regions in an environment."
     concurrent: true
     parameters:
-      - string:
-          name: VIDEO_INFRA_BRANCH
-          default: main
-          description: "Controls checkout branch for infra repos, defaults to 'main'."
-          trim: true
+      - infra-branch-param
       - string:
           name: ENVIRONMENT
           default: ops-dev

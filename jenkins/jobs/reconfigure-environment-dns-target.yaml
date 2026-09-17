@@ -4,11 +4,7 @@
     description: 'Toggle the main CNAME record for an environment between Cloudflare CDN and geo-DNS (Oracle).'
     concurrent: true
     parameters:
-      - string:
-          name: VIDEO_INFRA_BRANCH
-          default: main
-          description: "Controls checkout branch for infra repos, defaults to 'main'."
-          trim: true
+      - infra-branch-param
       - string:
           name: ENVIRONMENT
           description: "Environment to reconfigure. Valid values: meet-jit-si, beta-meet-jit-si, prod-8x8, stage-8x8, jitsi-net"
