@@ -57,6 +57,11 @@ job "[JOB_NAME]" {
         ports = ["api","syslog"]
         volumes = [
           "/var/log/syslog:/var/log/syslog:ro",
+          # Vector's data_dir, holding the sink disk buffers. This is a node-local
+          # host path rather than the allocation directory on purpose: the buffers
+          # have to outlive the allocation so a restarted task picks up the events
+          # it had already read but not yet shipped.
+          "/opt/nomad/vector:/var/lib/vector",
         ]
       }
       # docker socket volume mount
@@ -84,7 +89,11 @@ job "[JOB_NAME]" {
         left_delimiter = "[["
         right_delimiter = "]]"
         data=<<EOH
-          data_dir = "alloc/data/vector/"
+          # Absolute, and backed by the /opt/nomad/vector bind mount above. The
+          # previous value was relative and Vector's working directory is "/", so
+          # it resolved to /alloc/data/vector/ -- a path Vector never creates, which
+          # left the disk buffers with nowhere to live.
+          data_dir = "/var/lib/vector"
           [api]
             enabled = true
             address = "0.0.0.0:8686"
@@ -143,6 +152,12 @@ job "[JOB_NAME]" {
             endpoint = "[[ if ne "${var.loki_endpoint}" "" ]]${var.loki_endpoint}[[ else ]]https://[[ env "meta.environment" ]]-[[ env "meta.cloud_region" ]]-loki.${var.top_level_domain}[[ end ]]"
             encoding.codec = "json"
             healthcheck.enabled = true
+            # Low volume compared to [sinks.loki], but it shares the same Loki
+            # endpoint, so it stops draining at exactly the moment the primary sink
+            # does. Given at the minimum Vector accepts (256 MiB + 32 bytes); a
+            # smaller value is rejected at startup, not by "vector validate".
+            buffer.type = "disk"
+            buffer.max_size = 268435488
             # since . is used by Vector to denote a parent-child relationship, and Nomad's Docker labels contain ".",
             # we need to escape them twice, once for TOML, once for Vector
             # remove fields that have been converted to labels to avoid having the field twice
@@ -162,6 +177,12 @@ job "[JOB_NAME]" {
             endpoint = "[[ if ne "${var.loki_endpoint}" "" ]]${var.loki_endpoint}[[ else ]]https://[[ env "meta.environment" ]]-[[ env "meta.cloud_region" ]]-loki.${var.top_level_domain}[[ end ]]"
             encoding.codec = "json"
             healthcheck.enabled = true
+            # Low volume compared to [sinks.loki], but it shares the same Loki
+            # endpoint, so it stops draining at exactly the moment the primary sink
+            # does. Given at the minimum Vector accepts (256 MiB + 32 bytes); a
+            # smaller value is rejected at startup, not by "vector validate".
+            buffer.type = "disk"
+            buffer.max_size = 268435488
             # since . is used by Vector to denote a parent-child relationship, and Nomad's Docker labels contain ".",
             # we need to escape them twice, once for TOML, once for Vector
             # remove fields that have been converted to labels to avoid having the field twice
@@ -241,6 +262,13 @@ job "[JOB_NAME]" {
             endpoint = "[[ if ne "${var.loki_endpoint}" "" ]]${var.loki_endpoint}[[ else ]]https://[[ env "meta.environment" ]]-[[ env "meta.cloud_region" ]]-loki.${var.top_level_domain}[[ end ]]"
             encoding.codec = "json"
             healthcheck.enabled = true
+            # Disk buffer so events already read from the Docker API survive a task
+            # restart and can absorb Loki backpressure. Sized for the busiest sink;
+            # the cap is a ceiling, not a reservation -- the buffer files grow only
+            # with the actual backlog. when_full defaults to "block", which is what
+            # we want: a full buffer stalls the sources rather than dropping events.
+            buffer.type = "disk"
+            buffer.max_size = 1073741824
             # since . is used by Vector to denote a parent-child relationship, and Nomad's Docker labels contain ".",
             # we need to escape them twice, once for TOML, once for Vector
             # remove fields that have been converted to labels to avoid having the field twice
