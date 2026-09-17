@@ -40,7 +40,23 @@ else
     # deploy-nomad-* family in infra-customizations does the same. Filtering on
     # JOB_NAME would match nothing and exit 0 without updating anything, so derive
     # the filter from the file instead.
-    JOB_FILTER=$(awk '/^- job:/{j=1;next} j && /^    name:/{print $2; j=0}' "$JOB_PATH/$JOB_FILE")
+    #
+    # Ask JJB for the names rather than pattern-matching the YAML. "jenkins-jobs
+    # list" expands job-template / project / job-group definitions exactly as the
+    # test and update runs below will, so a file that declares its jobs through a
+    # template resolves to the real job names. The grep-for-"^- job:" this replaced
+    # could not see those: it returned an empty filter and the run aborted with
+    # "No job declared", which is what kept the repeated nomad job definitions from
+    # being collapsed into templates.
+    #
+    # Name expansion does not resolve component macros, so a single file lists fine
+    # on its own even though it references governance-params or
+    # infra-provisioning-checkout from _macros-*.yaml.
+    if ! JOB_FILTER=$(jenkins-jobs list -p "$JOB_PATH/$JOB_FILE" 2>/dev/null); then
+        echo "Could not read job names from $JOB_PATH/$JOB_FILE, exiting. JJB said:"
+        jenkins-jobs list -p "$JOB_PATH/$JOB_FILE"
+        exit 2
+    fi
     if [ -z "$JOB_FILTER" ]; then
         echo "No job declared in $JOB_PATH/$JOB_FILE, exiting"
         exit 2
@@ -49,15 +65,31 @@ else
 fi
 [ -z "$PUBLIC_CUSTOMIZATIONS_REPO" ] && PUBLIC_CUSTOMIZATIONS_REPO="git@github.com:jitsi/infra-customizations.git"
 if [ -n "$PRIVATE_CUSTOMIZATIONS_REPO" ]; then
-    echo "PRIVATE_CUSTOMIZATIONS_REPO is set, so updating $JOB_FILE with repo value"
+    # Rewrite the public customizations repo to the private one across everything
+    # JJB will read for this run, the shared macro files included.
+    #
+    # The macro files matter because jobs reference them by name: a repo default
+    # that lives in _macros-*.yaml is never seen by a sed that only touches the job
+    # file. Worse, the failure is asymmetric -- JOB_NAME=ALL already sweeps them in
+    # via the *.y*ml glob and stays correct, so a single-job update would be the
+    # only thing that silently kept the public repo, with no error anywhere.
+    shopt -s nullglob
+    if [[ "$JOB_NAME" == "ALL" ]]; then
+        SED_TARGETS=("$JOB_PATH"/*.y*ml)
+    else
+        SED_TARGETS=("$JOB_PATH/$JOB_FILE" "$JOB_PATH"/_macros-*.y*ml)
+    fi
+    shopt -u nullglob
     ESCAPED_PUBLIC=$(printf '%s\n' "$PUBLIC_CUSTOMIZATIONS_REPO" | sed -e 's/[]\/$*.^[]/\\&/g');
     ESCAPED_PRIVATE=$(printf '%s\n' "$PRIVATE_CUSTOMIZATIONS_REPO" | sed -e 's/[\/&]/\\&/g')
-    if [[ $(uname) == "Darwin" ]]; then
-        sed -i '' -e "s/$ESCAPED_PUBLIC/$ESCAPED_PRIVATE/g" $JOB_PATH/$JOB_FILE
-    else
-        sed -i -e "s/$ESCAPED_PUBLIC/$ESCAPED_PRIVATE/g" $JOB_PATH/$JOB_FILE
+    if [ ${#SED_TARGETS[@]} -gt 0 ]; then
+        echo "PRIVATE_CUSTOMIZATIONS_REPO is set, so updating ${#SED_TARGETS[@]} file(s) with repo value"
+        if [[ $(uname) == "Darwin" ]]; then
+            sed -i '' -e "s/$ESCAPED_PUBLIC/$ESCAPED_PRIVATE/g" "${SED_TARGETS[@]}"
+        else
+            sed -i -e "s/$ESCAPED_PUBLIC/$ESCAPED_PRIVATE/g" "${SED_TARGETS[@]}"
+        fi
     fi
-
 fi
 set +x
 [ -z "$JJB_URL" ] && JJB_URL="https://jenkins-opsdev.$TOP_LEVEL_DNS_ZONE_NAME"
