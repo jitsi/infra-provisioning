@@ -1,0 +1,41 @@
+# Shared pipeline checkout definitions.
+#
+# This file defines JJB macros only — it declares no jobs. Like
+# _macros-governance.yaml it is visible to every job file because
+# scripts/update-jenkins-job-from-yaml.sh hands JJB the whole jobs/ directory
+# and then filters down to the job being updated.
+#
+# A pipeline job names one of these instead of repeating the git block:
+#
+#   pipeline-scm:
+#     scm:
+#       - infra-provisioning-checkout
+#     script-path: jenkins/groovy/<job>/Jenkinsfile
+#     lightweight-checkout: true
+#
+# Only one SCM may be declared per pipeline job: the repo the Jenkinsfile named
+# by script-path lives in. Any other repo a job needs is cloned by the pipeline
+# itself (see Utils.SetupRepos).
+#
+# The branch stays "origin/${{VIDEO_INFRA_BRANCH}}" — the doubled braces are
+# JJB escaping, not a typo, and every job still takes VIDEO_INFRA_BRANCH as a
+# parameter.
+#
+# The companion macro for jobs whose Jenkinsfile lives in the customizations
+# repo is infra-customizations-checkout, defined in
+# _macros-scm-customizations.yaml over in infra-customizations-private. That
+# split keeps the private repo's URL out of this public one; the overlay copy in
+# Utils.SetupRepos drops both files into this directory before JJB runs.
+
+- scm:
+    name: infra-provisioning-checkout
+    scm:
+      - git:
+          url: git@github.com:jitsi/infra-provisioning.git
+          credentials-id: "video-infra"
+          branches:
+            - "origin/${{VIDEO_INFRA_BRANCH}}"
+          browser: githubweb
+          browser-url: https://github.com/jitsi/infra-provisioning
+          submodule:
+            recursive: true

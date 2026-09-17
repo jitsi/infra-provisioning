@@ -59,14 +59,6 @@
     sandbox: true
     pipeline-scm:
       scm:
-        - git:
-            url: git@github.com:jitsi/infra-provisioning.git
-            credentials-id: "video-infra"
-            branches:
-              - "origin/${{VIDEO_INFRA_BRANCH}}"
-            browser: githubweb
-            browser-url: https://github.com/jitsi/infra-provisioning
-            submodule:
-              recursive: true
+        - infra-provisioning-checkout
       script-path: jenkins/groovy/rotate-autoscaler-group/Jenkinsfile
       lightweight-checkout: true
