@@ -46,11 +46,7 @@
           default: false
           description: 'If set to true, skips the step of ssh to the instance to confirm it is up and accessible. This is best left off when dealing with large batches that may have autoscaled and changed since inventory was built.'
           trim: true
-      - string:
-          name: VIDEO_INFRA_BRANCH
-          default: main
-          description: "Controls checkout branch for infra repos, defaults to 'main'."
-          trim: true
+      - infra-branch-param
       - string:
           name: ENVIRONMENT
           description: "Environments to patch nodes in. If ENVIRONMENT_LIST is defined, this will be ignored."
@@ -60,16 +56,7 @@
           default:
           description: "Space-delimited list of environments to patch nodes in. The special value of ALL will patch all environments at once. Takes prescedence over ENVIRONMENT."
           trim: true
-      - string:
-          name: INFRA_CONFIGURATION_REPO
-          default: git@github.com:jitsi/infra-configuration.git
-          description: "Repo for configuration code (ansible etc), defaults to 'git@github.com:jitsi/infra-configuration.git'."
-          trim: true
-      - string:
-          name: INFRA_CUSTOMIZATIONS_REPO
-          default: git@github.com:jitsi/infra-customizations.git
-          description: "Repo with customized configurations, defaults to 'git@github.com:jitsi/infra-customizations.git'."
-          trim: true
+      - infra-repo-params
  
     project-type: pipeline
     sandbox: true

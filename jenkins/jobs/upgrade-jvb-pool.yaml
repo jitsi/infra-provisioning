@@ -11,11 +11,7 @@
           name: SHARD
           description: "Name of shard/pool to upgrade"
           trim: true
-      - string:
-          name: VIDEO_INFRA_BRANCH
-          default: main
-          description: "Controls checkout branch for infra repos, defaults to 'main'."
-          trim: true
+      - infra-branch-param
       - string:
           name: ENVIRONMENT
           default: ops-dev
@@ -69,16 +65,7 @@
           name: HEALTH_CHECK_TIMEOUT
           description: "Seconds to wait for new JVBs to report healthy before failing the rotation, defaults to 900"
           trim: true
-      - string:
-          name: INFRA_CONFIGURATION_REPO
-          default: git@github.com:jitsi/infra-configuration.git
-          description: "Repo for configuration code (ansible etc), defaults to 'git@github.com:jitsi/infra-configuration.git'."
-          trim: true
-      - string:
-          name: INFRA_CUSTOMIZATIONS_REPO
-          default: git@github.com:jitsi/infra-customizations.git
-          description: "Repo with customized configurations, defaults to 'git@github.com:jitsi/infra-customizations.git'."
-          trim: true
+      - infra-repo-params
  
     project-type: pipeline
     sandbox: true

@@ -4,11 +4,7 @@
     description: "registers the opus-transcriber-proxy transcription monitor service in nomad in an oracle region in an environment"
     concurrent: true
     parameters:
-      - string:
-          name: VIDEO_INFRA_BRANCH
-          default: main
-          description: "Controls checkout branch for infra repos, defaults to 'main'."
-          trim: true
+      - infra-branch-param
       - string:
           name: ENVIRONMENT
           description: "Environment to provision in (also the environment whose endpoint and CF token are used)"

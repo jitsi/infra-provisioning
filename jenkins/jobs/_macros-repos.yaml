@@ -1,0 +1,50 @@
+# Shared repo/branch job parameters.
+#
+# This file defines JJB macros only — it declares no jobs. Like
+# _macros-governance.yaml and _macros-scm.yaml it is visible to every job file
+# because scripts/update-jenkins-job-from-yaml.sh hands JJB the whole jobs/
+# directory and then filters down to the job being updated.
+#
+# A macro expands in place, at the position it is referenced, so these are drop-in
+# replacements for the parameter blocks they replace: reference one where the
+# parameters used to be and the order Jenkins shows is unchanged.
+#
+#   parameters:
+#     - infra-branch-param
+#     - ...job-specific parameters...
+#     - infra-repo-params
+#     - governance-params
+#
+# INFRA_CUSTOMIZATIONS_REPO names the PUBLIC repo here on purpose. Deployments
+# rewrite it to the private one: clouds/all.sh exports PRIVATE_CUSTOMIZATIONS_REPO
+# unconditionally and update-jenkins-job-from-yaml.sh rewrites the public URL
+# wherever it appears in the files it is about to hand JJB, this one included.
+# Do not "fix" the default to the private repo — that URL is deliberately absent
+# from this public repo, and the rewrite is what puts it there at deploy time.
+#
+# Jobs that need a different default (a different branch description, the private
+# repo spelled out, INFRA_PROVISIONING_REPO) still declare the parameter inline;
+# these macros cover the standard spelling only.
+
+- parameter:
+    name: infra-branch-param
+    parameters:
+      - string:
+          name: VIDEO_INFRA_BRANCH
+          default: main
+          description: "Controls checkout branch for infra repos, defaults to 'main'."
+          trim: true
+
+- parameter:
+    name: infra-repo-params
+    parameters:
+      - string:
+          name: INFRA_CONFIGURATION_REPO
+          default: git@github.com:jitsi/infra-configuration.git
+          description: "Repo for configuration code (ansible etc), defaults to 'git@github.com:jitsi/infra-configuration.git'."
+          trim: true
+      - string:
+          name: INFRA_CUSTOMIZATIONS_REPO
+          default: git@github.com:jitsi/infra-customizations.git
+          description: "Repo with customized configurations, defaults to 'git@github.com:jitsi/infra-customizations.git'."
+          trim: true

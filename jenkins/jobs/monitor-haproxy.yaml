@@ -4,25 +4,12 @@
     description: 'Runs haproxy-status.sh against the haproxy fleet to determine if there are stick table inconsistencies, and repairs them if needed. This helps mitigate split brains.'
     concurrent: true
     parameters:
-      - string:
-          name: VIDEO_INFRA_BRANCH
-          default: main
-          description: "Controls checkout branch for infra repos, defaults to 'main'."
-          trim: true
+      - infra-branch-param
       - string:
           name: ENVIRONMENT
           description: "Environment to run haproxy monitor in."
           trim: true
-      - string:
-          name: INFRA_CONFIGURATION_REPO
-          default: git@github.com:jitsi/infra-configuration.git
-          description: "Repo for configuration code (ansible etc), defaults to 'git@github.com:jitsi/infra-configuration.git'."
-          trim: true
-      - string:
-          name: INFRA_CUSTOMIZATIONS_REPO
-          default: git@github.com:jitsi/infra-customizations.git
-          description: "Repo with customized configurations, defaults to 'git@github.com:jitsi/infra-customizations.git'."
-          trim: true
+      - infra-repo-params
  
     project-type: pipeline
     sandbox: true

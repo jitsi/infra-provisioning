@@ -3,11 +3,7 @@
     concurrent: true
     display-name: build image oracle
     parameters:
-      - string:
-          name: VIDEO_INFRA_BRANCH
-          default: main
-          description: "Controls checkout branch for infra repos, defaults to 'main'."
-          trim: true
+      - infra-branch-param
       - string:
           name: IMAGE_TYPE
           description: "Type of base image to build, could be 'GPU' 'JVB', 'Jigasi', 'JavaJibri', 'Signal', 'SeleniumGrid' 'JammyBase' 'NobleBase' defaults to 'JammyBase'."
@@ -61,16 +57,7 @@
       - string:
           name: DEBUG_BUILD
           description: "Set to true to leave instance after build failures"
-      - string:
-          name: INFRA_CONFIGURATION_REPO
-          default: git@github.com:jitsi/infra-configuration.git
-          description: "Repo for configuration code (ansible etc), defaults to 'git@github.com:jitsi/infra-configuration.git'."
-          trim: true
-      - string:
-          name: INFRA_CUSTOMIZATIONS_REPO
-          default: git@github.com:jitsi/infra-customizations.git
-          description: "Repo with customized configurations, defaults to 'git@github.com:jitsi/infra-customizations.git'."
-          trim: true
+      - infra-repo-params
  
     project-type: pipeline
     sandbox: true

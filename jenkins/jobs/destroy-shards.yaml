@@ -3,11 +3,7 @@
     display-name: destroy shards
     concurrent: true
     parameters:
-      - string:
-          name: VIDEO_INFRA_BRANCH
-          default: main
-          description: "Controls checkout branch for infra repos, defaults to 'main'."
-          trim: true
+      - infra-branch-param
       - string:
           name: ENVIRONMENT
           description: "Environment to find JVB pool in."
@@ -15,16 +11,7 @@
       - string:
           name: SHARDS
           description: "Pool mode for JVBs, defaults to 'global'"
-      - string:
-          name: INFRA_CONFIGURATION_REPO
-          default: git@github.com:jitsi/infra-configuration.git
-          description: "Repo for configuration code (ansible etc), defaults to 'git@github.com:jitsi/infra-configuration.git'."
-          trim: true
-      - string:
-          name: INFRA_CUSTOMIZATIONS_REPO
-          default: git@github.com:jitsi/infra-customizations.git
-          description: "Repo with customized configurations, defaults to 'git@github.com:jitsi/infra-customizations.git'."
-          trim: true
+      - infra-repo-params
  
     project-type: pipeline
     sandbox: true
