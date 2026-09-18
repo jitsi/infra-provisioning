@@ -165,15 +165,29 @@ timeout 30 git ls-remote ${privMirror} refs/heads/main
                     // Measures the staleness window MirrorRefIsStale exists to
                     // close. Not a pass/fail: a difference here is normal, it just
                     // means the mirror has not pulled since the last merge.
+                    // origin is a git@ URL, so this only works inside sshagent --
+                    // without it the github side comes back empty and the probe
+                    // reports drift that is really just an unreachable remote.
+                    // That is exactly the inconclusive case MirrorRefIsStale
+                    // treats as "keep the mirror copy", so say so rather than
+                    // calling it drift.
                     probe('B4', 'how far the mirror is behind github on main', false) {
-                        return sh(returnStdout: true, script: """#!/bin/bash
+                        sshagent(credentials: ['video-infra']) {
+                            return sh(returnStdout: true, script: """#!/bin/bash
 export GIT_TERMINAL_PROMPT=0
 m=\$(timeout 30 git ls-remote ${confMirror} refs/heads/main 2>/dev/null | cut -f1)
 g=\$(timeout 30 git ls-remote ${confOrigin} refs/heads/main 2>/dev/null | cut -f1)
-echo "mirror=\${m:-?} github=\${g:-?}"
-if [ -n "\$m" ] && [ "\$m" = "\$g" ]; then echo "in sync"; else echo "DIFFERENT (mirror is behind; MirrorRefIsStale should catch this)"; fi
+echo "mirror=\${m:-unreachable} github=\${g:-unreachable}"
+if [ -z "\$m" ] || [ -z "\$g" ]; then
+  echo "INCONCLUSIVE: one side did not answer, so no drift can be claimed"
+elif [ "\$m" = "\$g" ]; then
+  echo "in sync"
+else
+  echo "DRIFT: the mirror is behind github; MirrorRefIsStale should catch this"
+fi
 exit 0
 """).trim()
+                        }
                     }
                 }
             }
@@ -212,6 +226,11 @@ exit 0
 
         stage('D: the patched Utils.CheckoutInfraRepo') {
             steps {
+                // SetupRepos wraps every checkout in sshagent, and
+                // MirrorRefIsStale's ls-remote against the git@ origin only works
+                // inside it. Without this the staleness check silently comes back
+                // inconclusive and D1 passes without ever exercising it.
+                sshagent(credentials: ['video-infra']) {
                 script {
                     // End to end through the real helper, which is what the 109
                     // jobs will actually call. Console must show "from the
@@ -262,6 +281,7 @@ exit 0
                         }
                     }
                 }
+                }
             }
         }
 
@@ -269,57 +289,142 @@ exit 0
             when { expression { params.RUN_PRIVATE_PROBES } }
             steps {
                 script {
-                    // The phase 2 blocker: can the Jenkins OCI principal read the
-                    // same bucket object the VMs read? Uses withCredentials and the
-                    // OCI CLI's own env vars, writing nothing to HOME, because 108
-                    // of 109 jobs call SetupRepos before SetupOCI so ~/.oci is
-                    // empty at checkout time.
-                    probe('E1', 'the Jenkins OCI principal can read gitea-read-user from the bucket', true) {
+                    // A diagnostic ladder, not one pass/fail. The first run of this
+                    // canary reported only "script returned exit code 1" because
+                    // set -e plus 2>/dev/null threw away the reason, which left the
+                    // phase 2 blocker exactly as unknown as before. Each rung now
+                    // narrows the cause and prints stderr, and no rung uses set -e.
+
+                    // Which identity are we even acting as? Nothing secret here:
+                    // user/tenancy/fingerprint OCIDs are identifiers, not keys.
+                    probe('E0', 'what the Jenkins OCI credentials actually contain', false) {
+                        withCredentials([
+                            file(credentialsId: 'oci-jenkins-config', variable: 'OCI_CLI_CONFIG_FILE'),
+                            file(credentialsId: 'oci-jenkins-pem', variable: 'OCI_CLI_KEY_FILE')
+                        ]) {
+                            return sh(returnStdout: true, script: '''#!/bin/bash
+set +x
+echo "config exists: $([ -s "$OCI_CLI_CONFIG_FILE" ] && echo yes || echo NO)"
+echo "key exists:    $([ -s "$OCI_CLI_KEY_FILE" ] && echo yes || echo NO)"
+echo "--- config, with any key material stripped ---"
+grep -v -i -e 'key_content' -e '-----' "$OCI_CLI_CONFIG_FILE" 2>/dev/null | sed -e 's/^/  /'
+echo "--- oci version ---"
+oci --version 2>&1 | head -2
+exit 0
+''').trim()
+                        }
+                    }
+
+                    // The cheapest authenticated call there is. If this fails the
+                    // problem is authentication; if it succeeds but the object read
+                    // fails, the problem is bucket authorisation. Those need
+                    // completely different fixes, so separate them before guessing.
+                    probe('E1', 'the Jenkins OCI principal can authenticate at all', true) {
                         withCredentials([
                             file(credentialsId: 'oci-jenkins-config', variable: 'OCI_CLI_CONFIG_FILE'),
                             file(credentialsId: 'oci-jenkins-pem', variable: 'OCI_CLI_KEY_FILE')
                         ]) {
                             return sh(returnStdout: true, script: """#!/bin/bash
-set -eo pipefail
 set +x
-# Only the username and a length are ever printed; the password never is.
-out=\$(oci os object get --region ${params.BUCKET_REGION} \\
-        --bucket-name ${params.BUCKET_NAME} --name ${params.OBJECT_NAME} --file - 2>/dev/null)
+err=\$(mktemp)
+if ns=\$(oci os ns get --region ${params.BUCKET_REGION} 2>"\$err"); then
+  echo "authenticated; namespace=\$(echo "\$ns" | jq -r '.data // empty')"
+  rm -f "\$err"; exit 0
+fi
+echo "FAILED to authenticate:"; head -c 600 "\$err"; rm -f "\$err"; exit 1
+""").trim()
+                        }
+                    }
+
+                    // The phase 2 question proper.
+                    probe('E2', 'it can read gitea-read-user from the boot bucket', true) {
+                        withCredentials([
+                            file(credentialsId: 'oci-jenkins-config', variable: 'OCI_CLI_CONFIG_FILE'),
+                            file(credentialsId: 'oci-jenkins-pem', variable: 'OCI_CLI_KEY_FILE')
+                        ]) {
+                            return sh(returnStdout: true, script: """#!/bin/bash
+set +x
+err=\$(mktemp)
+if ! out=\$(oci os object get --region ${params.BUCKET_REGION} \\
+             --bucket-name ${params.BUCKET_NAME} --name ${params.OBJECT_NAME} \\
+             --file - 2>"\$err"); then
+  echo "could not read ${params.OBJECT_NAME} from ${params.BUCKET_NAME}:"
+  head -c 600 "\$err"; rm -f "\$err"; exit 1
+fi
+rm -f "\$err"
 u=\$(echo "\$out" | jq -r '.username // empty')
 p=\$(echo "\$out" | jq -r '.password // empty')
-[ -n "\$u" ] || { echo "no username in ${params.OBJECT_NAME}"; exit 1; }
-[ -n "\$p" ] || { echo "no password in ${params.OBJECT_NAME}"; exit 1; }
+[ -n "\$u" ] || { echo "no username field in the object"; exit 1; }
+[ -n "\$p" ] || { echo "no password field in the object"; exit 1; }
+# Only the username and a length, never the password itself.
 echo "username=\$u password=<\${#p} chars>"
 """).trim()
                         }
                     }
 
-                    // Publishing the credential succeeds even if it does not match
-                    // the user the mirrors actually created, and the mismatch is
-                    // silent. This is the only probe that proves it works.
-                    probe('E2', 'that credential actually clones the PRIVATE repo from the mirror', true) {
+                    // Isolates "the OCI CLI env vars are not being honoured" from
+                    // "this principal cannot read the bucket". Writing ~/.oci is
+                    // safe because every build gets a fresh container, but the real
+                    // implementation should still avoid it: 108 of 109 jobs call
+                    // SetupRepos before SetupOCI, so the checkout cannot rely on it.
+                    probe('E3', 'same read, but via ~/.oci the way SetupOCI does it', false) {
                         withCredentials([
                             file(credentialsId: 'oci-jenkins-config', variable: 'OCI_CLI_CONFIG_FILE'),
                             file(credentialsId: 'oci-jenkins-pem', variable: 'OCI_CLI_KEY_FILE')
                         ]) {
                             return sh(returnStdout: true, script: """#!/bin/bash
-set -eo pipefail
+set +x
+rm -rf ~/.oci && mkdir -p ~/.oci
+cp "\$OCI_CLI_CONFIG_FILE" ~/.oci/config
+cp "\$OCI_CLI_KEY_FILE" ~/.oci/private-key.pem
+chmod 600 ~/.oci/*
+err=\$(mktemp)
+unset OCI_CLI_CONFIG_FILE OCI_CLI_KEY_FILE
+if out=\$(oci os object get --region ${params.BUCKET_REGION} \\
+           --bucket-name ${params.BUCKET_NAME} --name ${params.OBJECT_NAME} \\
+           --file - 2>"\$err"); then
+  echo "read via ~/.oci worked; username=\$(echo "\$out" | jq -r '.username // empty')"
+  rm -rf ~/.oci "\$err"; exit 0
+fi
+echo "read via ~/.oci also failed:"; head -c 600 "\$err"
+rm -rf ~/.oci "\$err"; exit 1
+""").trim()
+                        }
+                    }
+
+                    // Publishing that credential succeeds even when it does not
+                    // match the user the mirrors actually created, and the mismatch
+                    // is silent -- boots just fall back to github. This is the only
+                    // probe that proves the credential is usable.
+                    probe('E4', 'that credential actually clones the PRIVATE repo', true) {
+                        withCredentials([
+                            file(credentialsId: 'oci-jenkins-config', variable: 'OCI_CLI_CONFIG_FILE'),
+                            file(credentialsId: 'oci-jenkins-pem', variable: 'OCI_CLI_KEY_FILE')
+                        ]) {
+                            return sh(returnStdout: true, script: """#!/bin/bash
 set +x
 export GIT_TERMINAL_PROMPT=0
-out=\$(oci os object get --region ${params.BUCKET_REGION} \\
-        --bucket-name ${params.BUCKET_NAME} --name ${params.OBJECT_NAME} --file - 2>/dev/null)
+err=\$(mktemp)
+if ! out=\$(oci os object get --region ${params.BUCKET_REGION} \\
+             --bucket-name ${params.BUCKET_NAME} --name ${params.OBJECT_NAME} \\
+             --file - 2>"\$err"); then
+  echo "skipped: could not read the credential (see E2)"; rm -f "\$err"; exit 1
+fi
+rm -f "\$err"
 MIRROR_GIT_USER=\$(echo "\$out" | jq -r '.username')
 export MIRROR_GIT_PASSWORD=\$(echo "\$out" | jq -r '.password')
 unset out
-rm -rf probe-e2 && mkdir -p probe-e2
-# Per-command credential helper, exactly as PR #1202 does on the VM side: the
-# password stays in a variable, argv holds only its NAME, and nothing is written
-# to disk -- no netrc, no credential store, no URL with a password in it.
-timeout 120 git -c credential.helper='!f() { echo "username=\$MIRROR_GIT_USER"; echo "password=\$MIRROR_GIT_PASSWORD"; }; f' \\
-  clone --depth 1 --quiet ${privMirror} probe-e2/priv
-sha=\$(git -C probe-e2/priv rev-parse --short HEAD)
-rm -rf probe-e2
-echo "cloned the private repo from the mirror at \$sha"
+rm -rf probe-e4 && mkdir -p probe-e4
+# Per-command credential helper, as PR #1202 does on the VM side: the password
+# stays in a variable, argv holds only its NAME, and nothing is written to disk.
+cerr=\$(mktemp)
+if timeout 120 git -c credential.helper='!f() { echo "username=\$MIRROR_GIT_USER"; echo "password=\$MIRROR_GIT_PASSWORD"; }; f' \\
+     clone --depth 1 --quiet ${privMirror} probe-e4/priv 2>"\$cerr"; then
+  echo "cloned the private repo from the mirror at \$(git -C probe-e4/priv rev-parse --short HEAD)"
+  rm -rf probe-e4 "\$cerr"; exit 0
+fi
+echo "clone refused -- the credential does not match the mirror's read user:"
+head -c 400 "\$cerr"; rm -rf probe-e4 "\$cerr"; exit 1
 """).trim()
                         }
                     }
