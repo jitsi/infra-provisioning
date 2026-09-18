@@ -14,15 +14,12 @@ fi
 
 [ -z "$CLOUD_PROVIDER" ] && CLOUD_PROVIDER="oracle"
 
-if [[ "$CLOUD_PROVIDER" == "nomad" ]]; then
-    [ -z "$ENABLE_JVB_GLOBAL_POOLS" ] && ENABLE_JVB_GLOBAL_POOLS="true"
-    [ -z "$ENABLE_JVB_LOCAL_POOLS" ] && ENABLE_JVB_LOCAL_POOLS="false"
-    [ -z "$ENABLE_JVB_REMOTE_POOLS" ] && ENABLE_JVB_REMOTE_POOLS="false"
-else
-    [ -z "$ENABLE_JVB_GLOBAL_POOLS" ] && ENABLE_JVB_GLOBAL_POOLS="false"
-    [ -z "$ENABLE_JVB_LOCAL_POOLS" ] && ENABLE_JVB_LOCAL_POOLS="false"
-    [ -z "$ENABLE_JVB_REMOTE_POOLS" ] && ENABLE_JVB_REMOTE_POOLS="false"
-fi
+# Global pools are the default for every provider: shard-level JVBs are legacy,
+# and all five shard-bearing sites already opt into global pools explicitly. A
+# site that still wants local or remote pools sets those flags itself.
+[ -z "$ENABLE_JVB_GLOBAL_POOLS" ] && ENABLE_JVB_GLOBAL_POOLS="true"
+[ -z "$ENABLE_JVB_LOCAL_POOLS" ] && ENABLE_JVB_LOCAL_POOLS="false"
+[ -z "$ENABLE_JVB_REMOTE_POOLS" ] && ENABLE_JVB_REMOTE_POOLS="false"
 
 # when nomad JVB flag is on, only use global pools
 if [[ "$NOMAD_JVB_FLAG" == "true" ]]; then

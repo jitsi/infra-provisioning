@@ -12,6 +12,10 @@ fi
 
 [ -e ./sites/$ENVIRONMENT/stack-env.sh ] && . ./sites/$ENVIRONMENT/stack-env.sh
 
+# shard-level JVBs are legacy: global pools serve every shard of a release.
+# A site that still wants them sets SKIP_SHARD_JVBS=false explicitly.
+[ -z "$SKIP_SHARD_JVBS" ] && SKIP_SHARD_JVBS="true"
+
 if [ "$SKIP_SHARD_JVBS" == "true" ]; then
   echo "Skipping JVB creation for shards in $ENVIRONMENT since SKIP_SHARD_JVBS=true"
   exit 0
