@@ -289,14 +289,24 @@ exit 0
             when { expression { params.RUN_PRIVATE_PROBES } }
             steps {
                 script {
-                    // A diagnostic ladder, not one pass/fail. The first run of this
-                    // canary reported only "script returned exit code 1" because
-                    // set -e plus 2>/dev/null threw away the reason, which left the
-                    // phase 2 blocker exactly as unknown as before. Each rung now
-                    // narrows the cause and prints stderr, and no rung uses set -e.
+                    // The stored oci config hardcodes key_file=~/.oci/private-key.pem,
+                    // which does not exist when the key arrives through
+                    // withCredentials as a temp file, and OCI_CLI_KEY_FILE alone does
+                    // not override it. So build a config that points at the real key
+                    // and pass it with --config-file: a mode-600 temp file, removed
+                    // on exit, and nothing written to HOME. That matters because 108
+                    // of 109 jobs call SetupRepos before SetupOCI, so a checkout
+                    // cannot assume ~/.oci exists.
+                    ociCfg = '''
+export SUPPRESS_LABEL_WARNING=True
+OCI_CFG=$(mktemp); chmod 600 "$OCI_CFG"
+trap 'rm -f "$OCI_CFG"' EXIT
+sed -e "s|^key_file=.*|key_file=$OCI_CLI_KEY_FILE|" "$OCI_CLI_CONFIG_FILE" > "$OCI_CFG"
+'''
 
-                    // Which identity are we even acting as? Nothing secret here:
-                    // user/tenancy/fingerprint OCIDs are identifiers, not keys.
+                    // Identifiers only. pass_phrase and key material are redacted:
+                    // an earlier version of this probe printed the API key
+                    // passphrase into the build log.
                     probe('E0', 'what the Jenkins OCI credentials actually contain', false) {
                         withCredentials([
                             file(credentialsId: 'oci-jenkins-config', variable: 'OCI_CLI_CONFIG_FILE'),
@@ -306,8 +316,8 @@ exit 0
 set +x
 echo "config exists: $([ -s "$OCI_CLI_CONFIG_FILE" ] && echo yes || echo NO)"
 echo "key exists:    $([ -s "$OCI_CLI_KEY_FILE" ] && echo yes || echo NO)"
-echo "--- config, with any key material stripped ---"
-grep -v -i -e 'key_content' -e '-----' "$OCI_CLI_CONFIG_FILE" 2>/dev/null | sed -e 's/^/  /'
+echo "--- config, secrets redacted ---"
+sed -e 's/^pass_phrase=.*/pass_phrase=<redacted>/' -e 's/^passphrase=.*/passphrase=<redacted>/' -e 's/^key_content=.*/key_content=<redacted>/' -e '/-----/d' "$OCI_CLI_CONFIG_FILE" 2>/dev/null | sed -e 's/^/  /'
 echo "--- oci version ---"
 oci --version 2>&1 | head -2
 exit 0
@@ -315,65 +325,64 @@ exit 0
                         }
                     }
 
-                    // The cheapest authenticated call there is. If this fails the
-                    // problem is authentication; if it succeeds but the object read
-                    // fails, the problem is bucket authorisation. Those need
-                    // completely different fixes, so separate them before guessing.
-                    probe('E1', 'the Jenkins OCI principal can authenticate at all', true) {
+                    // Cheapest authenticated call. Separates an authentication
+                    // failure from a bucket authorisation failure; they need
+                    // completely different fixes.
+                    probe('E1', 'the Jenkins OCI principal can authenticate', true) {
                         withCredentials([
                             file(credentialsId: 'oci-jenkins-config', variable: 'OCI_CLI_CONFIG_FILE'),
                             file(credentialsId: 'oci-jenkins-pem', variable: 'OCI_CLI_KEY_FILE')
                         ]) {
                             return sh(returnStdout: true, script: """#!/bin/bash
 set +x
+${ociCfg}
 err=\$(mktemp)
-if ns=\$(oci os ns get --region ${params.BUCKET_REGION} 2>"\$err"); then
+if ns=\$(oci --config-file "\$OCI_CFG" os ns get --region ${params.BUCKET_REGION} 2>"\$err"); then
   echo "authenticated; namespace=\$(echo "\$ns" | jq -r '.data // empty')"
   rm -f "\$err"; exit 0
 fi
-echo "FAILED to authenticate:"; head -c 600 "\$err"; rm -f "\$err"; exit 1
+echo "FAILED to authenticate:"; head -c 800 "\$err"; rm -f "\$err"; exit 1
 """).trim()
                         }
                     }
 
-                    // The phase 2 question proper.
-                    probe('E2', 'it can read gitea-read-user from the boot bucket', true) {
+                    // The phase 2 question proper, by the method the real
+                    // implementation would use.
+                    probe('E2', 'it can read gitea-read-user via --config-file', true) {
                         withCredentials([
                             file(credentialsId: 'oci-jenkins-config', variable: 'OCI_CLI_CONFIG_FILE'),
                             file(credentialsId: 'oci-jenkins-pem', variable: 'OCI_CLI_KEY_FILE')
                         ]) {
                             return sh(returnStdout: true, script: """#!/bin/bash
 set +x
+${ociCfg}
 err=\$(mktemp)
-if ! out=\$(oci os object get --region ${params.BUCKET_REGION} \\
+if ! out=\$(oci --config-file "\$OCI_CFG" os object get --region ${params.BUCKET_REGION} \\
              --bucket-name ${params.BUCKET_NAME} --name ${params.OBJECT_NAME} \\
              --file - 2>"\$err"); then
   echo "could not read ${params.OBJECT_NAME} from ${params.BUCKET_NAME}:"
-  head -c 600 "\$err"; rm -f "\$err"; exit 1
+  head -c 800 "\$err"; rm -f "\$err"; exit 1
 fi
 rm -f "\$err"
 u=\$(echo "\$out" | jq -r '.username // empty')
 p=\$(echo "\$out" | jq -r '.password // empty')
 [ -n "\$u" ] || { echo "no username field in the object"; exit 1; }
 [ -n "\$p" ] || { echo "no password field in the object"; exit 1; }
-# Only the username and a length, never the password itself.
 echo "username=\$u password=<\${#p} chars>"
 """).trim()
                         }
                     }
 
-                    // Isolates "the OCI CLI env vars are not being honoured" from
-                    // "this principal cannot read the bucket". Writing ~/.oci is
-                    // safe because every build gets a fresh container, but the real
-                    // implementation should still avoid it: 108 of 109 jobs call
-                    // SetupRepos before SetupOCI, so the checkout cannot rely on it.
-                    probe('E3', 'same read, but via ~/.oci the way SetupOCI does it', false) {
+                    // Control: the SetupOCI way, already known to work. Kept so a
+                    // future failure can be told apart from a --config-file problem.
+                    probe('E3', 'same read via ~/.oci, as SetupOCI does it (control)', false) {
                         withCredentials([
                             file(credentialsId: 'oci-jenkins-config', variable: 'OCI_CLI_CONFIG_FILE'),
                             file(credentialsId: 'oci-jenkins-pem', variable: 'OCI_CLI_KEY_FILE')
                         ]) {
                             return sh(returnStdout: true, script: """#!/bin/bash
 set +x
+export SUPPRESS_LABEL_WARNING=True
 rm -rf ~/.oci && mkdir -p ~/.oci
 cp "\$OCI_CLI_CONFIG_FILE" ~/.oci/config
 cp "\$OCI_CLI_KEY_FILE" ~/.oci/private-key.pem
@@ -386,7 +395,7 @@ if out=\$(oci os object get --region ${params.BUCKET_REGION} \\
   echo "read via ~/.oci worked; username=\$(echo "\$out" | jq -r '.username // empty')"
   rm -rf ~/.oci "\$err"; exit 0
 fi
-echo "read via ~/.oci also failed:"; head -c 600 "\$err"
+echo "read via ~/.oci failed:"; head -c 800 "\$err"
 rm -rf ~/.oci "\$err"; exit 1
 """).trim()
                         }
@@ -395,7 +404,9 @@ rm -rf ~/.oci "\$err"; exit 1
                     // Publishing that credential succeeds even when it does not
                     // match the user the mirrors actually created, and the mismatch
                     // is silent -- boots just fall back to github. This is the only
-                    // probe that proves the credential is usable.
+                    // probe that proves the credential is usable. The previous run
+                    // never reached the clone because the read itself failed, so
+                    // this is still unanswered.
                     probe('E4', 'that credential actually clones the PRIVATE repo', true) {
                         withCredentials([
                             file(credentialsId: 'oci-jenkins-config', variable: 'OCI_CLI_CONFIG_FILE'),
@@ -403,9 +414,10 @@ rm -rf ~/.oci "\$err"; exit 1
                         ]) {
                             return sh(returnStdout: true, script: """#!/bin/bash
 set +x
+${ociCfg}
 export GIT_TERMINAL_PROMPT=0
 err=\$(mktemp)
-if ! out=\$(oci os object get --region ${params.BUCKET_REGION} \\
+if ! out=\$(oci --config-file "\$OCI_CFG" os object get --region ${params.BUCKET_REGION} \\
              --bucket-name ${params.BUCKET_NAME} --name ${params.OBJECT_NAME} \\
              --file - 2>"\$err"); then
   echo "skipped: could not read the credential (see E2)"; rm -f "\$err"; exit 1
