@@ -59,6 +59,7 @@ jenkins:
               # route would simply fail over to github.
               environmentsString: |
                 GIT_ALTERNATE_OBJECT_DIRECTORIES=/home/git/jitsi/infra-provisioning.git/.git/objects:/home/git/jitsi/infra-configuration.git/.git/objects:/home/git/jitsi/jitsi-meet-torture.git/.git/objects:/home/git/jitsi/jitsi-meet.git/.git/objects:/home/git/jitsi/infra-customizations-private.git/.git/objects
+                INFRA_PROVISIONING_MIRROR_REPO=https://ops-prod-us-phoenix-1-git.jitsi.net/jitsi/infra-provisioning.git
                 INFRA_CONFIGURATION_MIRROR_REPO=https://ops-prod-us-phoenix-1-git.jitsi.net/jitsi/infra-configuration.git
                 INFRA_CUSTOMIZATIONS_MIRROR_REPO=https://ops-prod-us-phoenix-1-git.jitsi.net/jitsi/infra-customizations-private.git
                 INFRA_MIRROR_CREDENTIALS_ID=gitea-mirror-reader
