@@ -301,6 +301,27 @@ exit 0
                             }
                         }
                     }
+                    // infra-provisioning's own clone in SetupRepos. Same helper as
+                    // D1 but useSubmodules false, which takes the `git` step rather
+                    // than GitSCM -- and that is the path that leaves a NAMED local
+                    // branch behind. govern8 reads the branch back with rev-parse
+                    // --abbrev-ref, so a detached HEAD here would quietly report
+                    // every component's branch as "HEAD". Assert both.
+                    probe('D6', 'infra-provisioning from the mirror, on a named branch', true) {
+                        dir('probe-d6') {
+                            deleteDir()
+                            utils.CheckoutInfraRepo('infra-provisioning', 'main', provMirror, env.INFRA_PROVISIONING_REPO ?: 'git@github.com:jitsi/infra-provisioning.git', false)
+                            def origin = sh(returnStdout: true, script: 'git config --get remote.origin.url').trim()
+                            if (!origin.contains(params.MIRROR_HOST)) {
+                                error("fell back to github: origin is ${origin}")
+                            }
+                            def br = sh(returnStdout: true, script: 'git rev-parse --abbrev-ref HEAD').trim()
+                            if (br == 'HEAD') {
+                                error("detached HEAD -- govern8 would report the branch as HEAD")
+                            }
+                            return "branch=${br} origin=${origin}"
+                        }
+                    }
                 }
                 }
             }

@@ -262,9 +262,21 @@ def TryCheckoutSpec(url, refSpec, credentials) {
 def SetupRepos(branch) {
   sshagent (credentials: ['video-infra']) {
       def scmUrl = scm.getUserRemoteConfigs()[0].getUrl()
+      // Only this clone can be mirrored. A build fetches infra-provisioning from
+      // github three times: once for the Jenkinsfile, once for the workspace root
+      // (both driven by the job's own pipeline SCM, which Jenkins runs before any
+      // of this executes and which allows exactly one remote with no fallback),
+      // and once here. Pointing the job SCM at the mirror would trade a github
+      // outage for a mirror outage that stops every job even starting, so it
+      // stays on github; this one gets the mirror with the usual fallback.
+      //
+      // useSubmodules false keeps the `git` step rather than GitSCM, which leaves
+      // a named local branch behind. govern8 reads that back with rev-parse
+      // --abbrev-ref, so switching to a detached HEAD here would quietly turn
+      // every component's reported branch into "HEAD".
       dir('infra-provisioning') {
         retry(count: 3) {
-          git branch: branch, url: scmUrl, credentialsId: 'video-infra'
+          CheckoutInfraRepo('infra-provisioning', branch, env.INFRA_PROVISIONING_MIRROR_REPO, scmUrl, false)
         }
       }
       if (env.INFRA_CONFIGURATION_REPO) {
