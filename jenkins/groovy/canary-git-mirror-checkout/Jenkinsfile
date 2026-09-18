@@ -423,15 +423,23 @@ if ! out=\$(oci --config-file "\$OCI_CFG" os object get --region ${params.BUCKET
   echo "skipped: could not read the credential (see E2)"; rm -f "\$err"; exit 1
 fi
 rm -f "\$err"
-MIRROR_GIT_USER=\$(echo "\$out" | jq -r '.username')
-export MIRROR_GIT_PASSWORD=\$(echo "\$out" | jq -r '.password')
+MIRROR_GIT_USERNAME=\$(echo "\$out" | jq -r '.username')
+MIRROR_GIT_PASSWORD=\$(echo "\$out" | jq -r '.password')
 unset out
 rm -rf probe-e4 && mkdir -p probe-e4
-# Per-command credential helper, as PR #1202 does on the VM side: the password
-# stays in a variable, argv holds only its NAME, and nothing is written to disk.
+# Exactly clone_repo_with_fallback in terraform/lib/postinstall-lib.sh: both
+# variables are handed to git as a command-prefix assignment, so the helper
+# subprocess inherits them; the password stays in a variable, argv holds only
+# its name, and nothing is written to disk. An earlier version of this probe
+# exported only the password and got "remote: Unauthorized" -- the helper runs
+# under its own sh, so an unexported username arrives empty.
+# `-c credential.helper=` first clears any inherited helper, and the `get` guard
+# keeps the helper from answering store/erase.
 cerr=\$(mktemp)
-if timeout 120 git -c credential.helper='!f() { echo "username=\$MIRROR_GIT_USER"; echo "password=\$MIRROR_GIT_PASSWORD"; }; f' \\
-     clone --depth 1 --quiet ${privMirror} probe-e4/priv 2>"\$cerr"; then
+if timeout 120 env GIT_TERMINAL_PROMPT=0 MIRROR_GIT_USERNAME="\$MIRROR_GIT_USERNAME" MIRROR_GIT_PASSWORD="\$MIRROR_GIT_PASSWORD" \\
+     git -c credential.helper= \\
+         -c 'credential.helper=!f() { if [ "\$1" = get ]; then printf "username=%s\\npassword=%s\\n" "\$MIRROR_GIT_USERNAME" "\$MIRROR_GIT_PASSWORD"; fi; }; f' \\
+         clone --depth 1 --quiet ${privMirror} probe-e4/priv 2>"\$cerr"; then
   echo "cloned the private repo from the mirror at \$(git -C probe-e4/priv rev-parse --short HEAD)"
   rm -rf probe-e4 "\$cerr"; exit 0
 fi

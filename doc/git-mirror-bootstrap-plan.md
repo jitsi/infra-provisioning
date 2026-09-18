@@ -511,8 +511,32 @@ Phased:
   `container=yes`, `HOME=/home/jenkins`, `vault` at `/usr/bin/vault`, `oci` at
   `/opt/jenkins/venv/bin/oci`, git 2.39.5, mirror at 10.34.158.89:443.
 
-Phase 2 is still open: the bucket read failed and the first canary swallowed the
-reason, so the cause is not yet known. See the E ladder in the canary.
+**Phase 2 is proven too**, as of the third canary run plus a direct check
+against both replicas:
+
+- The Jenkins OCI principal reads `gitea-read-user` from `jvb-bucket-ops-prod`
+  (`username=mirror-reader`). It was never a permissions problem.
+- That credential authenticates against **both** us-phoenix-1 replicas
+  (`/api/v1/user` and the private repo both 200 on 10.34.138.57 and
+  10.34.147.83) and clones `infra-customizations-private` over HTTPS through the
+  Fabio hostname.
+
+Two traps found on the way, both worth remembering:
+
+- `OCI_CLI_KEY_FILE` does **not** override the `key_file=~/.oci/private-key.pem`
+  baked into the `oci-jenkins-config` credential. A checkout that cannot assume
+  `~/.oci` exists must rewrite the config and pass `--config-file`:
+
+      OCI_CFG=$(mktemp); chmod 600 "$OCI_CFG"; trap 'rm -f "$OCI_CFG"' EXIT
+      sed -e "s|^key_file=.*|key_file=$OCI_CLI_KEY_FILE|" "$OCI_CLI_CONFIG_FILE" > "$OCI_CFG"
+      oci --config-file "$OCI_CFG" ...
+
+- A git credential helper runs under its own shell, so **both** variables have to
+  reach it. Exporting only the password yields `remote: Unauthorized`, which
+  looks exactly like a wrong credential and is not.
+  `clone_repo_with_fallback` in `terraform/lib/postinstall-lib.sh` already gets
+  this right by passing both as a command-prefix assignment; copy that form
+  rather than inventing another.
 
 1. **Phase 1, no credential.** Set only
    `INFRA_CONFIGURATION_MIRROR_REPO=https://ops-prod-us-phoenix-1-git.jitsi.net/jitsi/infra-configuration.git`
