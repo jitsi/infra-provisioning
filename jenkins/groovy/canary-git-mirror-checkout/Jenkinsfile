@@ -248,10 +248,23 @@ exit 0
                         }
                     }
 
-                    probe('D2', 'MirrorCredentialsId returns null for an https mirror', true) {
-                        def got = utils.MirrorCredentialsId(confMirror)
-                        if (got != null) { error("expected null, got '${got}'") }
-                        return 'null (anonymous), as intended'
+                    // Drives both branches rather than asserting whatever the
+                    // agent happens to have set: once INFRA_MIRROR_CREDENTIALS_ID
+                    // is configured fleet-wide, an unconditional "expect null"
+                    // fails for the wrong reason.
+                    probe('D2', 'MirrorCredentialsId follows the credential policy', true) {
+                        def unset = null
+                        withEnv(['INFRA_MIRROR_CREDENTIALS_ID=']) {
+                            unset = utils.MirrorCredentialsId(confMirror)
+                        }
+                        if (unset != null) { error("https mirror with no credential configured should be anonymous, got '${unset}'") }
+                        def set = null
+                        withEnv(['INFRA_MIRROR_CREDENTIALS_ID=canary-probe-cred']) {
+                            set = utils.MirrorCredentialsId(confMirror)
+                        }
+                        if (set != 'canary-probe-cred') { error("configured credential ignored, got '${set}'") }
+                        def ssh = utils.MirrorCredentialsId('git@github.com:jitsi/infra-configuration.git')
+                        return "unset -> anonymous, set -> the credential, ssh -> ${ssh}, live env -> ${utils.MirrorCredentialsId(confMirror)}"
                     }
 
                     // A ref the mirror does not have must warn and fall through to
@@ -312,14 +325,20 @@ exit 0
                             deleteDir()
                             utils.CheckoutInfraRepo('infra-provisioning', 'main', provMirror, env.INFRA_PROVISIONING_REPO ?: 'git@github.com:jitsi/infra-provisioning.git', false)
                             def origin = sh(returnStdout: true, script: 'git config --get remote.origin.url').trim()
-                            if (!origin.contains(params.MIRROR_HOST)) {
-                                error("fell back to github: origin is ${origin}")
+                            // Landing on github here is correct when the mirror has
+                            // not yet pulled a just-merged commit -- MirrorRefIsStale
+                            // is supposed to prefer github then. D1 is what proves
+                            // the mirror is preferred; this probe is about the `git`
+                            // step path working at all and leaving a named branch.
+                            def onMirror = origin.contains(params.MIRROR_HOST)
+                            if (!onMirror && !origin.contains('github.com')) {
+                                error("checked out from neither the mirror nor github: ${origin}")
                             }
                             def br = sh(returnStdout: true, script: 'git rev-parse --abbrev-ref HEAD').trim()
                             if (br == 'HEAD') {
                                 error("detached HEAD -- govern8 would report the branch as HEAD")
                             }
-                            return "branch=${br} origin=${origin}"
+                            return "branch=${br} from=${onMirror ? 'mirror' : 'github (mirror behind, as designed)'}"
                         }
                     }
                 }
