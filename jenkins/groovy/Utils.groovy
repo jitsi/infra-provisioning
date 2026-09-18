@@ -156,6 +156,9 @@ def MirrorCredentialsId(mirrorUrl) {
   if (env.INFRA_MIRROR_CREDENTIALS_ID) {
     return env.INFRA_MIRROR_CREDENTIALS_ID
   }
+  if (!mirrorUrl) {
+    return 'video-infra'
+  }
   return mirrorUrl.startsWith('https://') ? null : 'video-infra'
 }
 
@@ -179,8 +182,8 @@ def MirrorCredentialsId(mirrorUrl) {
 // Mirror URLs are HTTPS, so they cannot reuse the github deploy key; see
 // MirrorCredentialsId for which credential (if any) the mirror gets.
 def CheckoutInfraRepo(repoName, branch, mirrorUrl, originUrl, useSubmodules) {
-  def mirrorCredentials = MirrorCredentialsId(mirrorUrl)
   if (mirrorUrl) {
+    def mirrorCredentials = MirrorCredentialsId(mirrorUrl)
     echo "checking out ${repoName} at ${branch} from the in-region mirror"
     def mirrored = false
     try {
