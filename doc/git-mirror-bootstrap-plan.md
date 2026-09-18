@@ -496,6 +496,24 @@ canary is a matter of *when* it is flipped, not which job sees it.
 
 Phased:
 
+**Phase 1 is proven.** The canary ran against ops-prod us-phoenix-1 on
+2026-09-18 from an `ops-agent` container and every phase 1 probe passed:
+
+- The git plugin **accepts `credentialsId: null`** ("No credentials specified")
+  in both the `GitSCM` and `git`-step forms `TryCheckoutRef` uses. That was the
+  gating question, and it is answered.
+- `CheckoutInfraRepo` took the mirror path for `infra-configuration`, leaving
+  `remote.origin.url` on the mirror host.
+- A ref nobody has fell through mirror -> github -> main with the two expected
+  WARNINGs, and an unresolvable mirror host degraded to github rather than
+  failing the build.
+- The agent facts confirmed the architecture above: `labels=ops-agent`,
+  `container=yes`, `HOME=/home/jenkins`, `vault` at `/usr/bin/vault`, `oci` at
+  `/opt/jenkins/venv/bin/oci`, git 2.39.5, mirror at 10.34.158.89:443.
+
+Phase 2 is still open: the bucket read failed and the first canary swallowed the
+reason, so the cause is not yet known. See the E ladder in the canary.
+
 1. **Phase 1, no credential.** Set only
    `INFRA_CONFIGURATION_MIRROR_REPO=https://ops-prod-us-phoenix-1-git.jitsi.net/jitsi/infra-configuration.git`
    in the UI template. Watch `monitor-haproxy-beta-meet-jit-si` (continuously
