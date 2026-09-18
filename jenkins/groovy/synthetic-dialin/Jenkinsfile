@@ -52,17 +52,26 @@ pipeline {
         stage ("clone jitsi-meet repo") {
             steps {
                 script {
-                    dir('jitsi-meet') {
-                        try {
-                            if (env.MEET_BRANCH != "") {
-                                git branch: env.MEET_BRANCH, url: env.MEET_REPO, credentialsId: 'video-infra'
+                    // The staleness check inside CheckoutPublicRef shells out to
+                    // git ls-remote against the git@ origin, which only works
+                    // inside sshagent. The plugin checkouts carry their own
+                    // credentials and do not need it.
+                    sshagent (credentials: ['video-infra']) {
+                        dir('jitsi-meet') {
+                            def meetRef = env.MEET_BRANCH ?: ''
+                            if (meetRef) {
+                                if (!utils.CheckoutPublicRef('jitsi-meet', meetRef, env.MEET_MIRROR_REPO, env.MEET_REPO, 'video-infra')) {
+                                    error("could not check out jitsi-meet at ${meetRef}")
+                                }
                             } else {
-                                checkout scm: [$class: 'GitSCM', userRemoteConfigs: [[url: env.MEET_REPO, credentialsId: 'video-infra']], branches: [[name: "release-$meet_test_tag"]]], poll: false
-                            }
-                        } catch (hudson.AbortException e) {
-                            if (e.toString().contains('Couldn\'t find any revision to build')) {
-                                echo "WARNING: couldn't find branch ${branch} in jitsi-meet repo, falling back to master"
-                                checkout scm: [$class: 'GitSCM', userRemoteConfigs: [[url: env.MEET_REPO, credentialsId: 'video-infra']], branches: [[name: "refs/tags/$meet_test_tag"]]], poll: false
+                                // The release branch first, then the tag of the same
+                                // name -- older releases only ever got the tag.
+                                if (!utils.CheckoutPublicRef('jitsi-meet', "release-${meet_test_tag}", env.MEET_MIRROR_REPO, env.MEET_REPO, 'video-infra')) {
+                                    echo "WARNING: no release-${meet_test_tag} branch in jitsi-meet, trying tag ${meet_test_tag}"
+                                    if (!utils.CheckoutPublicRef('jitsi-meet', "refs/tags/${meet_test_tag}", env.MEET_MIRROR_REPO, env.MEET_REPO, 'video-infra')) {
+                                        error("could not check out jitsi-meet at release-${meet_test_tag} or refs/tags/${meet_test_tag}")
+                                    }
+                                }
                             }
                         }
                     }

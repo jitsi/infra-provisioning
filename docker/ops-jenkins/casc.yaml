@@ -46,6 +46,14 @@ jenkins:
               # one degrades silently to github instead of failing loudly. Whoever
               # rotates that password must update this credential in the same change.
               #
+              # MEET_MIRROR_REPO is for the jitsi-meet checkout in the synthetic
+              # tests, which clone the test specs on every run. jitsi-meet is
+              # mirrored only where the build tooling lives (ops-dev, ops-prod --
+              # GITEA_JITSI_MEET_ENVIRONMENTS in scripts/deploy-nomad-gitea-mirror.sh),
+              # which is exactly here. It is a separate variable rather than an
+              # override of MEET_REPO because MEET_REPO is a job *parameter*, and a
+              # parameter always beats an agent environment variable.
+              #
               # The mirror is reachable because jenkins-ops and the ops-prod
               # us-phoenix-1 mirror share the 10.34/16 VCN. An agent without that
               # route would simply fail over to github.
@@ -54,6 +62,7 @@ jenkins:
                 INFRA_CONFIGURATION_MIRROR_REPO=https://ops-prod-us-phoenix-1-git.jitsi.net/jitsi/infra-configuration.git
                 INFRA_CUSTOMIZATIONS_MIRROR_REPO=https://ops-prod-us-phoenix-1-git.jitsi.net/jitsi/infra-customizations-private.git
                 INFRA_MIRROR_CREDENTIALS_ID=gitea-mirror-reader
+                MEET_MIRROR_REPO=https://ops-prod-us-phoenix-1-git.jitsi.net/jitsi/jitsi-meet.git
             remoteFs: "/home/jenkins/agent"
             connector:
               attach:

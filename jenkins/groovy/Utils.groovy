@@ -209,6 +209,56 @@ def CheckoutInfraRepo(repoName, branch, mirrorUrl, originUrl, useSubmodules) {
   }
 }
 
+// Checks out one ref of a public repo, preferring the in-region mirror.
+//
+// CheckoutInfraRepo is the wrong shape for a repo whose missing-ref behaviour
+// belongs to the caller: jitsi-meet falls back to a release tag, not to main.
+// This returns true when the ref was checked out and false when neither side
+// had it, and leaves the decision about what to do next to the caller.
+//
+// refSpec reaches the git plugin verbatim, so "master", "release-9646" and
+// "refs/tags/9646" all work. That is why this does not reuse TryCheckoutRef,
+// which prefixes origin/ on its submodule path and would mangle a tag ref.
+//
+// As everywhere else, nothing about the mirror may fail a build: a missing ref,
+// a stale credential or an unresolvable host degrades to origin.
+def CheckoutPublicRef(repoName, refSpec, mirrorUrl, originUrl, originCredentials) {
+  if (mirrorUrl) {
+    echo "checking out ${repoName} at ${refSpec} from the in-region mirror"
+    try {
+      if (TryCheckoutSpec(mirrorUrl, refSpec, MirrorCredentialsId(mirrorUrl))) {
+        // Only a branch can be stale; a tag is immutable, and MirrorRefIsStale
+        // treats anything it cannot resolve as "keep the mirror copy".
+        if (!MirrorRefIsStale(repoName, refSpec, originUrl)) {
+          return true
+        }
+      } else {
+        echo "WARNING: ${refSpec} is not in the ${repoName} mirror yet, trying github"
+      }
+    } catch (InterruptedException e) {
+      throw e
+    } catch (Exception e) {
+      echo "WARNING: mirror checkout of ${repoName} failed (${e.getMessage()}), trying github"
+    }
+  }
+  return TryCheckoutSpec(originUrl, refSpec, originCredentials)
+}
+
+// checkout with an explicit branch spec, false when the ref does not exist.
+def TryCheckoutSpec(url, refSpec, credentials) {
+  try {
+    checkout scm: [$class: 'GitSCM',
+                   userRemoteConfigs: [[url: url, credentialsId: credentials]],
+                   branches: [[name: refSpec]]], poll: false
+    return true
+  } catch (hudson.AbortException e) {
+    if (e.toString().contains('Couldn\'t find any revision to build')) {
+      return false
+    }
+    throw e
+  }
+}
+
 def SetupRepos(branch) {
   sshagent (credentials: ['video-infra']) {
       def scmUrl = scm.getUserRemoteConfigs()[0].getUrl()
