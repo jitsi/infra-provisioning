@@ -139,6 +139,26 @@ exit 0"""
   return true
 }
 
+// Which credential to hand the mirror.
+//
+// Gitea serves infra-configuration and infra-provisioning anonymously and only
+// infra-customizations-private needs a login (var.private_repos in
+// nomad/gitea-mirror.hcl), so an https mirror needs no credential at all until
+// the private repo is in scope. Defaulting to 'video-infra' there is worse than
+// useless: it is an ssh deploy key, and the git plugin cannot turn one into
+// basic auth for an https remote, so it would fail the one repo that would
+// otherwise have worked anonymously.
+//
+// null means anonymous. INFRA_MIRROR_CREDENTIALS_ID names a username/password
+// credential once the private repo is mirrored through here. A non-https
+// mirrorUrl keeps the ssh key, which is the only thing that makes sense for it.
+def MirrorCredentialsId(mirrorUrl) {
+  if (env.INFRA_MIRROR_CREDENTIALS_ID) {
+    return env.INFRA_MIRROR_CREDENTIALS_ID
+  }
+  return mirrorUrl.startsWith('https://') ? null : 'video-infra'
+}
+
 // Checks out one infra repo, preferring the in-region mirror when one is
 // configured for it.
 //
@@ -156,11 +176,10 @@ exit 0"""
 // mirror failure is caught here, where the caller's retry() would otherwise
 // hit the mirror again on each attempt and fail all three.
 //
-// Mirror URLs are HTTPS, so they need their own credential: the public repos
-// are served anonymously and the private one needs a Gitea user rather than
-// the github deploy key. INFRA_MIRROR_CREDENTIALS_ID overrides it.
+// Mirror URLs are HTTPS, so they cannot reuse the github deploy key; see
+// MirrorCredentialsId for which credential (if any) the mirror gets.
 def CheckoutInfraRepo(repoName, branch, mirrorUrl, originUrl, useSubmodules) {
-  def mirrorCredentials = env.INFRA_MIRROR_CREDENTIALS_ID ?: 'video-infra'
+  def mirrorCredentials = MirrorCredentialsId(mirrorUrl)
   if (mirrorUrl) {
     echo "checking out ${repoName} at ${branch} from the in-region mirror"
     def mirrored = false
