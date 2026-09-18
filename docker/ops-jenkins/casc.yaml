@@ -29,12 +29,22 @@ jenkins:
               # null for an https mirror unless INFRA_MIRROR_CREDENTIALS_ID names a
               # username/password credential.
               #
-              # INFRA_CUSTOMIZATIONS_MIRROR_REPO is deliberately NOT set. The private
-              # repo needs a credential, and until that is wired into SetupRepos every
-              # build would attempt an anonymous clone, get 401, and fall back to
-              # github with a WARNING -- ~109 jobs warning on every run for no gain.
-              # Add it together with INFRA_MIRROR_CREDENTIALS_ID, not before:
-              #   INFRA_CUSTOMIZATIONS_MIRROR_REPO=https://ops-prod-us-phoenix-1-git.jitsi.net/jitsi/infra-customizations-private.git
+              # The private repo is served with a login, so its mirror URL is only
+              # useful alongside INFRA_MIRROR_CREDENTIALS_ID -- set on their own it
+              # would make every build try an anonymous clone, get 401 and fall back
+              # to github with a WARNING. They are set together here, naming a
+              # Jenkins username/password credential holding the Gitea read user
+              # (username `mirror-reader`, password from
+              # secret/default/gitea/read-user, published to jvb-bucket-<env> as
+              # the gitea-read-user object).
+              #
+              # INTERIM. The durable answer is for SetupRepos to read that object at
+              # checkout time with the OCI credentials every job already has, so the
+              # credential cannot drift: a static Jenkins copy goes stale the moment
+              # seed-gitea-read-user.sh is run with ROTATE=true, and because
+              # CheckoutInfraRepo treats every mirror failure as non-fatal, a stale
+              # one degrades silently to github instead of failing loudly. Whoever
+              # rotates that password must update this credential in the same change.
               #
               # The mirror is reachable because jenkins-ops and the ops-prod
               # us-phoenix-1 mirror share the 10.34/16 VCN. An agent without that
@@ -42,6 +52,8 @@ jenkins:
               environmentsString: |
                 GIT_ALTERNATE_OBJECT_DIRECTORIES=/home/git/jitsi/infra-provisioning.git/.git/objects:/home/git/jitsi/infra-configuration.git/.git/objects:/home/git/jitsi/jitsi-meet-torture.git/.git/objects:/home/git/jitsi/jitsi-meet.git/.git/objects:/home/git/jitsi/infra-customizations-private.git/.git/objects
                 INFRA_CONFIGURATION_MIRROR_REPO=https://ops-prod-us-phoenix-1-git.jitsi.net/jitsi/infra-configuration.git
+                INFRA_CUSTOMIZATIONS_MIRROR_REPO=https://ops-prod-us-phoenix-1-git.jitsi.net/jitsi/infra-customizations-private.git
+                INFRA_MIRROR_CREDENTIALS_ID=gitea-mirror-reader
             remoteFs: "/home/jenkins/agent"
             connector:
               attach:
