@@ -248,10 +248,27 @@ exit 0
                         }
                     }
 
-                    probe('D2', 'MirrorCredentialsId returns null for an https mirror', true) {
-                        def got = utils.MirrorCredentialsId(confMirror)
-                        if (got != null) { error("expected null, got '${got}'") }
-                        return 'null (anonymous), as intended'
+                    // Drives both branches rather than asserting whatever the
+                    // agent happens to have set: once INFRA_MIRROR_CREDENTIALS_ID
+                    // is configured fleet-wide, an unconditional "expect null"
+                    // fails for the wrong reason.
+                    probe('D2', 'MirrorCredentialsId follows the credential policy', true) {
+                        def unset = null
+                        withEnv(['INFRA_MIRROR_CREDENTIALS_ID=']) {
+                            unset = utils.MirrorCredentialsId(confMirror)
+                        }
+                        if (unset != null) { error("https mirror with no credential configured should be anonymous, got '${unset}'") }
+                        def set = null
+                        withEnv(['INFRA_MIRROR_CREDENTIALS_ID=canary-probe-cred']) {
+                            set = utils.MirrorCredentialsId(confMirror)
+                        }
+                        if (set != 'canary-probe-cred') { error("configured credential ignored, got '${set}'") }
+                        // An ssh mirror must keep the deploy key even when a
+                        // username/password credential is configured -- the plugin
+                        // cannot use one for a git@ remote.
+                        def ssh = utils.MirrorCredentialsId('git@github.com:jitsi/infra-configuration.git')
+                        if (ssh != 'video-infra') { error("ssh mirror should keep the deploy key, got '${ssh}'") }
+                        return "unset -> anonymous, set -> the credential, ssh -> ${ssh}, live env -> ${utils.MirrorCredentialsId(confMirror)}"
                     }
 
                     // A ref the mirror does not have must warn and fall through to
@@ -299,6 +316,33 @@ exit 0
                                 def sha = sh(returnStdout: true, script: 'git rev-parse --short HEAD').trim()
                                 return "sha=${sha} origin=${origin}"
                             }
+                        }
+                    }
+                    // infra-provisioning's own clone in SetupRepos. Same helper as
+                    // D1 but useSubmodules false, which takes the `git` step rather
+                    // than GitSCM -- and that is the path that leaves a NAMED local
+                    // branch behind. govern8 reads the branch back with rev-parse
+                    // --abbrev-ref, so a detached HEAD here would quietly report
+                    // every component's branch as "HEAD". Assert both.
+                    probe('D6', 'infra-provisioning from the mirror, on a named branch', true) {
+                        dir('probe-d6') {
+                            deleteDir()
+                            utils.CheckoutInfraRepo('infra-provisioning', 'main', provMirror, env.INFRA_PROVISIONING_REPO ?: 'git@github.com:jitsi/infra-provisioning.git', false)
+                            def origin = sh(returnStdout: true, script: 'git config --get remote.origin.url').trim()
+                            // Landing on github here is correct when the mirror has
+                            // not yet pulled a just-merged commit -- MirrorRefIsStale
+                            // is supposed to prefer github then. D1 is what proves
+                            // the mirror is preferred; this probe is about the `git`
+                            // step path working at all and leaving a named branch.
+                            def onMirror = origin.contains(params.MIRROR_HOST)
+                            if (!onMirror && !origin.contains('github.com')) {
+                                error("checked out from neither the mirror nor github: ${origin}")
+                            }
+                            def br = sh(returnStdout: true, script: 'git rev-parse --abbrev-ref HEAD').trim()
+                            if (br == 'HEAD') {
+                                error("detached HEAD -- govern8 would report the branch as HEAD")
+                            }
+                            return "branch=${br} from=${onMirror ? 'mirror' : 'github (mirror behind, as designed)'}"
                         }
                     }
                 }
