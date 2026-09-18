@@ -163,6 +163,35 @@ def MirrorCredentialsId(mirrorUrl) {
   return env.INFRA_MIRROR_CREDENTIALS_ID ?: null
 }
 
+// Points origin back at the canonical remote after a mirror checkout.
+//
+// The mirror is a fetch accelerator and has to be invisible to everything
+// downstream. Leaving remote.origin.url on it makes every later `git push
+// origin` target a read-only mirror: that is exactly how the tag stage of all
+// eight TagRelease jobs broke, since ApplyReleaseTagRelease pushes the release
+// tag to origin in infra-configuration and infra-customization.
+//
+// Fetching is done by the time this runs, so nothing needs the mirror url any
+// more; anything that wants it again passes it explicitly. Returns false if the
+// remote could not be repointed, which the caller treats as a mirror failure --
+// better to re-check out from github than to hand back a working tree whose
+// origin lies.
+def PointOriginAtCanonical(repoName, originUrl) {
+  if (!originUrl) {
+    return true
+  }
+  def rc = sh(
+    returnStatus: true,
+    script: """#!/bin/bash
+git remote set-url origin '${originUrl}'"""
+  )
+  if (rc != 0) {
+    echo "WARNING: checked out ${repoName} from the mirror but could not point origin back at ${originUrl}, using github instead"
+    return false
+  }
+  return true
+}
+
 // Checks out one infra repo, preferring the in-region mirror when one is
 // configured for it.
 //
@@ -197,7 +226,8 @@ def CheckoutInfraRepo(repoName, branch, mirrorUrl, originUrl, useSubmodules) {
     } catch (Exception e) {
       echo "WARNING: mirror checkout of ${repoName} failed (${e.getMessage()}), trying github"
     }
-    if (mirrored && !MirrorRefIsStale(repoName, branch, originUrl)) {
+    if (mirrored && !MirrorRefIsStale(repoName, branch, originUrl)
+        && PointOriginAtCanonical(repoName, originUrl)) {
       return
     }
   }
@@ -230,7 +260,8 @@ def CheckoutPublicRef(repoName, refSpec, mirrorUrl, originUrl, originCredentials
       if (TryCheckoutSpec(mirrorUrl, refSpec, MirrorCredentialsId(mirrorUrl))) {
         // Only a branch can be stale; a tag is immutable, and MirrorRefIsStale
         // treats anything it cannot resolve as "keep the mirror copy".
-        if (!MirrorRefIsStale(repoName, refSpec, originUrl)) {
+        if (!MirrorRefIsStale(repoName, refSpec, originUrl)
+            && PointOriginAtCanonical(repoName, originUrl)) {
           return true
         }
       } else {

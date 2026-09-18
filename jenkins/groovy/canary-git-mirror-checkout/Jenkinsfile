@@ -241,10 +241,24 @@ exit 0
                             utils.CheckoutInfraRepo('infra-configuration', 'main', confMirror, confOrigin, true)
                             def sha = sh(returnStdout: true, script: 'git rev-parse HEAD').trim()
                             def origin = sh(returnStdout: true, script: 'git config --get remote.origin.url').trim()
-                            if (!origin.contains(params.MIRROR_HOST)) {
-                                error("fell back to github: origin is ${origin}")
+                            // origin MUST be the canonical remote, not the mirror.
+                            // Leaving it on the mirror is what broke the tag stage
+                            // of all eight TagRelease jobs -- ApplyReleaseTagRelease
+                            // does `git push origin <tag>`, and the mirror is
+                            // read-only. C1/C2 are what prove the mirror is
+                            // reachable; this proves the helper's contract.
+                            if (origin != confOrigin) {
+                                error("origin should be ${confOrigin}, got ${origin}")
                             }
-                            return "sha=${sha} origin=${origin}"
+                            // `git push origin <tag>` resolves the PUSH url, which
+                            // can differ from the fetch url. That is the one the
+                            // release tag stage actually uses, so assert it rather
+                            // than inferring it.
+                            def pushUrl = sh(returnStdout: true, script: 'git remote get-url --push origin').trim()
+                            if (pushUrl != confOrigin) {
+                                error("a release tag would be pushed to ${pushUrl}, not ${confOrigin}")
+                            }
+                            return "sha=${sha} origin=${origin} push=${pushUrl} (both canonical)"
                         }
                     }
 
@@ -310,11 +324,11 @@ exit 0
                                 deleteDir()
                                 utils.CheckoutInfraRepo('infra-customization', 'main', privMirror, privOrigin, false)
                                 def origin = sh(returnStdout: true, script: 'git config --get remote.origin.url').trim()
-                                if (!origin.contains(params.MIRROR_HOST)) {
-                                    error("fell back to github: origin is ${origin}")
+                                if (origin != privOrigin) {
+                                    error("origin should be ${privOrigin}, got ${origin}")
                                 }
                                 def sha = sh(returnStdout: true, script: 'git rev-parse --short HEAD').trim()
-                                return "sha=${sha} origin=${origin}"
+                                return "sha=${sha} origin=${origin} (canonical, as required)"
                             }
                         }
                     }
@@ -328,21 +342,21 @@ exit 0
                         dir('probe-d6') {
                             deleteDir()
                             utils.CheckoutInfraRepo('infra-provisioning', 'main', provMirror, env.INFRA_PROVISIONING_REPO ?: 'git@github.com:jitsi/infra-provisioning.git', false)
+                            def provOrigin = env.INFRA_PROVISIONING_REPO ?: 'git@github.com:jitsi/infra-provisioning.git'
                             def origin = sh(returnStdout: true, script: 'git config --get remote.origin.url').trim()
-                            // Landing on github here is correct when the mirror has
-                            // not yet pulled a just-merged commit -- MirrorRefIsStale
-                            // is supposed to prefer github then. D1 is what proves
-                            // the mirror is preferred; this probe is about the `git`
-                            // step path working at all and leaving a named branch.
-                            def onMirror = origin.contains(params.MIRROR_HOST)
-                            if (!onMirror && !origin.contains('github.com')) {
-                                error("checked out from neither the mirror nor github: ${origin}")
+                            // Whether the bytes came from the mirror or from github
+                            // (a mirror that has not pulled a just-merged commit is
+                            // supposed to lose), origin must end up canonical either
+                            // way -- that is the invariant a `git push origin` later
+                            // in a release depends on.
+                            if (origin != provOrigin) {
+                                error("origin should be ${provOrigin}, got ${origin}")
                             }
                             def br = sh(returnStdout: true, script: 'git rev-parse --abbrev-ref HEAD').trim()
                             if (br == 'HEAD') {
-                                error("detached HEAD -- govern8 would report the branch as HEAD")
+                                error("detached HEAD -- a named branch is expected on this path")
                             }
-                            return "branch=${br} from=${onMirror ? 'mirror' : 'github (mirror behind, as designed)'}"
+                            return "branch=${br} origin=${origin} (canonical, as required)"
                         }
                     }
                 }
