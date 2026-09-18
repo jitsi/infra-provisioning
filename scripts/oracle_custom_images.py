@@ -316,77 +316,60 @@ elif args.get_image_details_by_id:
     print(json.dumps(image_data, default=date_time_converter))
 
 else:
-    # For Signal images, support searching by individual component versions
+    # Signal image versions are "<jicofo>-<jitsiMeet>-<prosody>". Any component may be a
+    # wildcard, either spelled 'latest' (check-build-oracle-image-for-clouds.sh) or left
+    # empty (build-signal-oracle.sh clears PROSODY_VERSION when it is asked for 'latest'),
+    # meaning "whatever the newest image happens to carry for that component".
     search_version = version
 
-    # Helper function for filtering Signal images with mixed 'latest' components
-    def filter_signal_images_with_latest(jicofo, jitsi_meet, prosody):
-        # Get all recent images and filter client-side
-        all_images = get_oracle_image_list_by_search(args.type, 'latest', [args.region], config, args.architecture)
+    # split from the right, since the jicofo component may itself contain '-'
+    # (matches rsplit() in jenkins/groovy/release-core/Jenkinsfile)
+    def split_signal_version(signal_version):
+        parts = signal_version.rsplit('-', 2)
+        if len(parts) < 3:
+            return None
+        return parts
 
-        matched_images = []
+    # no server-side Version filter can express a wildcard component, so pull every
+    # image of this type and architecture and match component by component
+    def find_signal_image(jicofo, jitsi_meet, prosody):
+        wanted = [jicofo, jitsi_meet, prosody]
+        all_images = get_oracle_image_list_by_search(args.type, False, [args.region], config, args.architecture)
+        # the search API returns newest first, but sort explicitly so "latest" is well defined
+        all_images = sorted(all_images, key=lambda img: img['image_ts'], reverse=True)
+
         for img in all_images:
-            img_version = img.get('image_version', '')
-            if not img_version:
+            img_parts = split_signal_version(img.get('image_version') or '')
+            if not img_parts:
                 continue
-            parts = img_version.split('-')
-            if len(parts) >= 3:
-                img_jicofo, img_meet, img_prosody = parts[0], parts[1], parts[2]
-                # Check each component: match if specified version equals image's version OR if we want 'latest'
-                jicofo_match = (jicofo == 'latest' or img_jicofo == jicofo)
-                meet_match = (jitsi_meet == 'latest' or img_meet == jitsi_meet)
-                prosody_match = (prosody == 'latest' or img_prosody == prosody)
+            if all(want == 'latest' or want == have for want, have in zip(wanted, img_parts)):
+                if args.image_details:
+                    print(json.dumps(img, default=date_time_converter))
+                else:
+                    print(img['image_id'])
+                exit(0)
 
-                if jicofo_match and meet_match and prosody_match:
-                    matched_images.append(img)
+        warning('No image found matching type {} with jicofo={}, jitsi_meet={}, prosody={} and arch {}'.format(
+            args.type, jicofo, jitsi_meet, prosody, args.architecture))
+        exit(1)
 
-        # Output result and exit
-        if len(matched_images) > 0:
-            if args.image_details:
-                print(json.dumps(matched_images[0], default=date_time_converter))
+    if args.type == 'Signal':
+        components = None
+        if args.jicofo_version or args.jitsi_meet_version or args.prosody_version:
+            components = [args.jicofo_version, args.jitsi_meet_version, args.prosody_version]
+        elif version and version != 'latest':
+            components = split_signal_version(version)
+
+        if components:
+            # an empty component is a wildcard, same as an explicit 'latest'
+            components = [c or 'latest' for c in components]
+            if all(c == 'latest' for c in components):
+                # every component is a wildcard, so the newest image of this type wins
+                search_version = 'latest'
+            elif any(c == 'latest' for c in components):
+                find_signal_image(*components)
             else:
-                print(matched_images[0]['image_id'])
-        else:
-            warning('No image found matching type {} with jicofo={}, jitsi_meet={}, prosody={} and arch {}'.format(
-                args.type, jicofo, jitsi_meet, prosody, args.architecture))
-            exit(1)
-        exit(0)
-
-    if args.type == 'Signal' and (args.jicofo_version or args.jitsi_meet_version or args.prosody_version):
-        jicofo = args.jicofo_version or 'latest'
-        jitsi_meet = args.jitsi_meet_version or 'latest'
-        prosody = args.prosody_version or 'latest'
-
-        # Check if any component is 'latest'
-        has_latest = jicofo == 'latest' or jitsi_meet == 'latest' or prosody == 'latest'
-
-        if jicofo == 'latest' and jitsi_meet == 'latest' and prosody == 'latest':
-            # All are latest - just search for latest
-            search_version = 'latest'
-        elif has_latest:
-            # Mixed: some specific, some 'latest' - filter client-side
-            filter_signal_images_with_latest(jicofo, jitsi_meet, prosody)
-        else:
-            # All components are specific versions - use exact search
-            search_version = f"{jicofo}-{jitsi_meet}-{prosody}"
-
-    # Also handle when --version is passed directly with 'latest' or empty components (e.g., "1169-9017-latest" or "1169-9017-")
-    elif args.type == 'Signal' and version and version != 'latest':
-        # Check if version contains 'latest' or has empty components (trailing/double dashes)
-        has_latest_or_empty = 'latest' in version or version.endswith('-') or '--' in version
-        if has_latest_or_empty:
-            # Parse the version string to extract components
-            parts = version.split('-')
-            if len(parts) >= 3:
-                jicofo = parts[0] or 'latest'
-                jitsi_meet = parts[1] or 'latest'
-                prosody = parts[2] or 'latest'
-
-                has_latest = jicofo == 'latest' or jitsi_meet == 'latest' or prosody == 'latest'
-                if has_latest:
-                    # Mixed: some specific, some 'latest' - filter client-side
-                    filter_signal_images_with_latest(jicofo, jitsi_meet, prosody)
-                # If no 'latest' components, fall through to normal search
+                search_version = '-'.join(components)
 
     # new way, using search API instead of brute force dump of all images
     found_images = get_oracle_image_list_by_search(args.type, search_version, [args.region], config, args.architecture)

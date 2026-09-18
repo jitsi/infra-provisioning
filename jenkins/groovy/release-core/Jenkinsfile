@@ -117,11 +117,10 @@ scripts/enable-alarms-for-shards.sh ubuntu"""
 // global var to track git branch from env or new tags
 def git_branch
 
-// variables to track actual resolved versions (when "latest" is used)
+// SIGNAL_VERSION/JVB_VERSION as actually built, once any "latest" component has been
+// resolved back to the concrete version tagged on the image
 def actualSignalVersion
 def actualJvbVersion
-def signalImageArch = "aarch64"
-def jvbImageArch = "aarch64"
 
 // use incoming branch/tag or tag repo with new tag based on build ID
 // either way set it into git_branch variable to use later
@@ -168,66 +167,44 @@ def buildSignalImage(signalVersion,hcv_environment,clouds,force_build_image,vide
     return buildImage
 }
 
-// query Oracle image metadata to get actual built version (resolves "latest" to real version)
-def getActualImageVersion(image_type, original_version, hcv_environment, image_arch) {
-    def actual_version = original_version
-    try {
-        def query_script
-        if (image_type == 'Signal') {
-            // parse signal version into components: jicofoVer-jitsiMeetVer-prosodyVer
-            def signalVersionParts = rsplit(original_version, 3)
-            def jicofo_version = signalVersionParts[0]
-            def jitsi_meet_version = signalVersionParts[1]
-            def prosody_version = signalVersionParts[2]
-
-            if (jicofo_version == 'latest' && jitsi_meet_version == 'latest' && prosody_version == 'latest') {
-                // all components are latest, query for latest image
-                query_script = """#!/bin/bash
-scripts/oracle_custom_images.py \
-    --type ${image_type} \
-    --version latest \
-    --architecture ${image_arch} \
-    --image_details true 2>/dev/null || echo '{}'"""
-            } else {
-                // query with specific component versions
-                query_script = """#!/bin/bash
-scripts/oracle_custom_images.py \
-    --type ${image_type} \
-    --jicofo_version ${jicofo_version} \
-    --jitsi_meet_version ${jitsi_meet_version} \
-    --prosody_version ${prosody_version} \
-    --architecture ${image_arch} \
-    --image_details true 2>/dev/null || echo '{}'"""
-            }
-        } else {
-            // JVB or other image types - query with version latest
-            query_script = """#!/bin/bash
-scripts/oracle_custom_images.py \
-    --type ${image_type} \
-    --version latest \
-    --architecture ${image_arch} \
-    --image_details true 2>/dev/null || echo '{}'"""
-        }
-
-        def image_details = sh(
-            returnStdout: true,
-            script: query_script
-        ).trim()
-
-        if (image_details && image_details != '{}') {
-            def parsed = readJSON text: image_details
-            if (parsed.image_version) {
-                actual_version = parsed.image_version
-                echo "Resolved ${image_type} version: ${original_version} -> ${actual_version}"
-            }
-        } else {
-            echo "Error resolving image version"
-            echo query_script
-            echo image_details
-        }
-    } catch (Exception e) {
-        echo "Warning: Could not query ${image_type} image version, using original: ${original_version}"
+// Resolve a version that contains "latest" back to the concrete version tagged on the
+// image the build stage just produced (or reused), so downstream jobs, the versioning
+// manager and record-release all record the version that actually shipped.
+// Returns the original version unchanged if the image cannot be found; the caller checks.
+def getActualImageVersion(image_type, original_version, image_arch) {
+    def query_args
+    if (image_type == 'Signal') {
+        // "<jicofo>-<jitsiMeet>-<prosody>", any component of which may be "latest"
+        def parts = rsplit(original_version, 3)
+        query_args = """--jicofo_version ${parts[0]} --jitsi_meet_version ${parts[1]} --prosody_version ${parts[2]}"""
+    } else {
+        query_args = "--version latest"
     }
+
+    def image_details = sh(
+        returnStdout: true,
+        script: """#!/bin/bash
+scripts/oracle_custom_images.py --type ${image_type} ${query_args} --architecture ${image_arch} --image_details true || echo '{}'"""
+    ).trim()
+
+    if (!image_details || image_details == '{}') {
+        echo "Could not find a built ${image_type} image for version ${original_version} (arch ${image_arch})"
+        return original_version
+    }
+
+    def actual_version = readJSON(text: image_details).image_version
+    if (!actual_version) {
+        echo "Built ${image_type} image carries no version tag, keeping ${original_version}"
+        return original_version
+    }
+
+    // JVB image version tags carry the deb release suffix that oracle_custom_images.py
+    // appends when searching; strip it so we record the version we were handed
+    if (image_type != 'Signal' && actual_version.endsWith('-1')) {
+        actual_version = actual_version.substring(0, actual_version.length() - 2)
+    }
+
+    echo "Resolved ${image_type} version: ${original_version} -> ${actual_version}"
     return actual_version
 }
 
@@ -387,35 +364,6 @@ pipeline {
                             // own repo. Components without a git commit are skipped.
                             governance.preRelease(artConfig)
                             governance.preDeployComponents(artConfig, coreComponents)
-
-                            // Persist the full release details (RP, component versions,
-                            // dates) keyed by release number, so set-release-ga can
-                            // rebuild rich governance calls (e.g. post-enable) at GA time
-                            // without re-deriving them. Fail open — never break a release
-                            // over bookkeeping.
-                            try {
-                                def createdAt = sh(returnStdout: true, script: 'date -u +"%Y-%m-%dT%H:%M:%SZ"').trim()
-                                def details = [
-                                    releaseNumber: env.BUILD_ID,
-                                    releaseId    : env.RELEASE_ID,
-                                    environment  : env.ENVIRONMENT,
-                                    rp           : governance.getRpTicket() ?: '',
-                                    signalVersion: env.SIGNAL_VERSION,
-                                    jvbVersion   : env.JVB_VERSION,
-                                    branch       : env.RELEASE_BRANCH ?: git_branch,
-                                    requestedBy  : env.BUILD_USER_ID ?: 'jenkins',
-                                    components   : coreComponents.collect { [name: it.name, type: it.artifact?.type, version: it.artifact?.version] },
-                                    createdAt    : createdAt,
-                                ]
-                                dir('infra-provisioning') {
-                                    writeFile file: 'release-details.json', text: JsonOutput.toJson(details)
-                                    withEnv(["ENVIRONMENT=${env.ENVIRONMENT}", "RELEASE_NUMBER=${env.BUILD_ID}", "DETAILS_FILE=release-details.json"]) {
-                                        sh 'scripts/consul-set-release-details.sh'
-                                    }
-                                }
-                            } catch (err) {
-                                echo "WARNING: failed to persist release details to consul: ${err.message} — continuing"
-                            }
                         }
                     }
                 }
@@ -425,9 +373,6 @@ pipeline {
                     }
                     steps {
                         script {
-                            // initialize actual version with original value
-                            actualJvbVersion = env.JVB_VERSION
-
                             def jvb_shape
                             if (env.JVB_SHAPE) {
                                 jvb_shape = env.JVB_SHAPE
@@ -436,8 +381,6 @@ pipeline {
                             }
 
                             def image_arch = utils.ImageArchFromShape(jvb_shape)
-                            // store arch for later version resolution
-                            jvbImageArch = image_arch
 
                             buildJvbImage(env.JVB_VERSION,
                                 env.ENVIRONMENT,
@@ -456,9 +399,6 @@ pipeline {
                     }
                     steps {
                         script {
-                            // initialize actual version with original value
-                            actualSignalVersion = env.SIGNAL_VERSION
-
                             def signal_shape
                             if (env.SHAPE) {
                                 signal_shape = env.SHAPE
@@ -467,8 +407,6 @@ pipeline {
                             }
 
                             def image_arch = utils.ImageArchFromShape(signal_shape)
-                            // store arch for later version resolution
-                            signalImageArch = image_arch
 
                             buildSignalImage(env.SIGNAL_VERSION,
                                 env.ENVIRONMENT,
@@ -482,27 +420,62 @@ pipeline {
                 }
             }
         }
-        // resolve actual versions from built images (handles "latest" -> real version)
+        // Resolve any "latest" component back to the version actually tagged on the image
+        // the build stage produced (or reused). Everything downstream — the versioning
+        // manager, provision-shard, release-jvb-pools and record-release — must see the
+        // concrete version, never the literal "latest".
         stage("resolve actual versions") {
             steps {
                 script {
                     dir('infra-provisioning') {
-                        // ensure variables are initialized even if build stages were skipped
-                        if (actualSignalVersion == null) {
-                            actualSignalVersion = env.SIGNAL_VERSION
-                        }
-                        if (actualJvbVersion == null) {
-                            actualJvbVersion = env.JVB_VERSION
+                        actualSignalVersion = env.SIGNAL_VERSION
+                        actualJvbVersion = env.JVB_VERSION
+
+                        if (env.CORE_CLOUD_PROVIDER == 'oracle' && actualSignalVersion?.contains('latest')) {
+                            def signal_shape = env.SHAPE ?: utils.SignalShapeFromEnvironment(env.ENVIRONMENT)
+                            actualSignalVersion = getActualImageVersion('Signal', env.SIGNAL_VERSION, utils.ImageArchFromShape(signal_shape))
+                            if (actualSignalVersion.contains('latest')) {
+                                error("Could not resolve SIGNAL_VERSION ${env.SIGNAL_VERSION} to a built image; refusing to release an unresolved version")
+                            }
                         }
 
-                        // only resolve versions when "latest" is in the version string
-                        if (env.CORE_CLOUD_PROVIDER == 'oracle' && env.SIGNAL_VERSION.contains('latest')) {
-                            actualSignalVersion = getActualImageVersion('Signal', env.SIGNAL_VERSION, env.ENVIRONMENT, signalImageArch)
-                            echo "Actual Signal Version: ${actualSignalVersion}"
+                        if (env.CLOUD_PROVIDER == 'oracle' && actualJvbVersion?.contains('latest')) {
+                            def jvb_shape = env.JVB_SHAPE ?: utils.JVBShapeFromEnvironment(env.ENVIRONMENT)
+                            actualJvbVersion = getActualImageVersion('JVB', env.JVB_VERSION, utils.ImageArchFromShape(jvb_shape))
+                            if (actualJvbVersion.contains('latest')) {
+                                error("Could not resolve JVB_VERSION ${env.JVB_VERSION} to a built image; refusing to release an unresolved version")
+                            }
                         }
-                        if (env.CLOUD_PROVIDER == 'oracle' && env.JVB_VERSION.contains('latest')) {
-                            actualJvbVersion = getActualImageVersion('JVB', env.JVB_VERSION, env.ENVIRONMENT, jvbImageArch)
-                            echo "Actual JVB Version: ${actualJvbVersion}"
+
+                        echo "Releasing signal version ${actualSignalVersion}, JVB version ${actualJvbVersion}"
+
+                        // Persist the full release details (RP, component versions, dates)
+                        // keyed by release number, so set-release-ga can rebuild rich
+                        // governance calls (e.g. post-enable) at GA time without re-deriving
+                        // them. Written here rather than alongside the governance gates so it
+                        // records the versions that actually shipped, not a literal "latest".
+                        // Fail open — never break a release over bookkeeping.
+                        try {
+                            def releasedComponents = collectCoreComponents(actualSignalVersion, actualJvbVersion)
+                            def createdAt = sh(returnStdout: true, script: 'date -u +"%Y-%m-%dT%H:%M:%SZ"').trim()
+                            def details = [
+                                releaseNumber: env.BUILD_ID,
+                                releaseId    : env.RELEASE_ID,
+                                environment  : env.ENVIRONMENT,
+                                rp           : governance.getRpTicket() ?: '',
+                                signalVersion: actualSignalVersion,
+                                jvbVersion   : actualJvbVersion,
+                                branch       : env.RELEASE_BRANCH ?: git_branch,
+                                requestedBy  : env.BUILD_USER_ID ?: 'jenkins',
+                                components   : releasedComponents.collect { [name: it.name, type: it.artifact?.type, version: it.artifact?.version] },
+                                createdAt    : createdAt,
+                            ]
+                            writeFile file: 'release-details.json', text: JsonOutput.toJson(details)
+                            withEnv(["ENVIRONMENT=${env.ENVIRONMENT}", "RELEASE_NUMBER=${env.BUILD_ID}", "DETAILS_FILE=release-details.json"]) {
+                                sh 'scripts/consul-set-release-details.sh'
+                            }
+                        } catch (err) {
+                            echo "WARNING: failed to persist release details to consul: ${err.message} — continuing"
                         }
                     }
                 }
