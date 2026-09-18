@@ -21,6 +21,14 @@ if [[ "$IMAGE_TYPE" == "JicofoHotfix" ]]; then
 fi
 
 if [[ "$IMAGE_TYPE" == "Signal" ]]; then
+    # a prosody version of 'latest' names no image, so comparing it against the images we
+    # have would never match and every release would rebuild the signal image. Resolve it
+    # to the version apt is serving first, so the comparison is like for like.
+    [ -e "$LOCAL_PATH/image-arch.sh" ] && . $LOCAL_PATH/image-arch.sh
+    [ -z "$IMAGE_ARCH" ] && default_arch_from_type "$IMAGE_TYPE"
+    . $LOCAL_PATH/prosody-version.sh
+    resolve_latest_prosody_version
+
     export SIGNAL_VERSION="$JICOFO_VERSION-$JITSI_MEET_VERSION-$PROSODY_VERSION"
 fi
 
