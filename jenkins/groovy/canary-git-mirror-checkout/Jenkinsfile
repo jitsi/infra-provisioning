@@ -263,7 +263,11 @@ exit 0
                             set = utils.MirrorCredentialsId(confMirror)
                         }
                         if (set != 'canary-probe-cred') { error("configured credential ignored, got '${set}'") }
+                        // An ssh mirror must keep the deploy key even when a
+                        // username/password credential is configured -- the plugin
+                        // cannot use one for a git@ remote.
                         def ssh = utils.MirrorCredentialsId('git@github.com:jitsi/infra-configuration.git')
+                        if (ssh != 'video-infra') { error("ssh mirror should keep the deploy key, got '${ssh}'") }
                         return "unset -> anonymous, set -> the credential, ssh -> ${ssh}, live env -> ${utils.MirrorCredentialsId(confMirror)}"
                     }
 

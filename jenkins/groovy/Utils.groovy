@@ -153,13 +153,14 @@ exit 0"""
 // credential once the private repo is mirrored through here. A non-https
 // mirrorUrl keeps the ssh key, which is the only thing that makes sense for it.
 def MirrorCredentialsId(mirrorUrl) {
-  if (env.INFRA_MIRROR_CREDENTIALS_ID) {
-    return env.INFRA_MIRROR_CREDENTIALS_ID
-  }
-  if (!mirrorUrl) {
+  // The https check comes first on purpose. INFRA_MIRROR_CREDENTIALS_ID names a
+  // username/password credential, which is meaningless for an ssh remote, so
+  // letting it win unconditionally would hand the git plugin the wrong kind of
+  // credential the moment anyone configures a git@ mirror URL.
+  if (!mirrorUrl || !mirrorUrl.startsWith('https://')) {
     return 'video-infra'
   }
-  return mirrorUrl.startsWith('https://') ? null : 'video-infra'
+  return env.INFRA_MIRROR_CREDENTIALS_ID ?: null
 }
 
 // Checks out one infra repo, preferring the in-region mirror when one is
