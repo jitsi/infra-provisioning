@@ -17,8 +17,31 @@ jenkins:
               devicesString: "/dev/fuse"
               securityOptsString: "apparmor=unconfined"
               capabilitiesToAddString: "SYS_ADMIN\nIPC_LOCK"
+              # GIT_ALTERNATE_OBJECT_DIRECTORIES is a bandwidth optimisation: objects
+              # come off the local /home/git mirror, but refs still come from github,
+              # so it does nothing for availability. INFRA_CONFIGURATION_MIRROR_REPO
+              # is the availability half (JIT-16092) -- Utils.CheckoutInfraRepo
+              # prefers the in-region Gitea mirror and falls back to github on any
+              # failure, so a github outage no longer stops a build checking out.
+              #
+              # Anonymous on purpose: Gitea serves infra-configuration and
+              # infra-provisioning without a login, and MirrorCredentialsId returns
+              # null for an https mirror unless INFRA_MIRROR_CREDENTIALS_ID names a
+              # username/password credential.
+              #
+              # INFRA_CUSTOMIZATIONS_MIRROR_REPO is deliberately NOT set. The private
+              # repo needs a credential, and until that is wired into SetupRepos every
+              # build would attempt an anonymous clone, get 401, and fall back to
+              # github with a WARNING -- ~109 jobs warning on every run for no gain.
+              # Add it together with INFRA_MIRROR_CREDENTIALS_ID, not before:
+              #   INFRA_CUSTOMIZATIONS_MIRROR_REPO=https://ops-prod-us-phoenix-1-git.jitsi.net/jitsi/infra-customizations-private.git
+              #
+              # The mirror is reachable because jenkins-ops and the ops-prod
+              # us-phoenix-1 mirror share the 10.34/16 VCN. An agent without that
+              # route would simply fail over to github.
               environmentsString: |
                 GIT_ALTERNATE_OBJECT_DIRECTORIES=/home/git/jitsi/infra-provisioning.git/.git/objects:/home/git/jitsi/infra-configuration.git/.git/objects:/home/git/jitsi/jitsi-meet-torture.git/.git/objects:/home/git/jitsi/jitsi-meet.git/.git/objects:/home/git/jitsi/infra-customizations-private.git/.git/objects
+                INFRA_CONFIGURATION_MIRROR_REPO=https://ops-prod-us-phoenix-1-git.jitsi.net/jitsi/infra-configuration.git
             remoteFs: "/home/jenkins/agent"
             connector:
               attach:
