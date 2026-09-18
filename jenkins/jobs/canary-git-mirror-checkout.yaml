@@ -1,0 +1,71 @@
+# Read-only canary for the Jenkins half of JIT-16092. Answers the questions that
+# can only be answered from an ops-agent inside the VCN, with the Jenkins git
+# plugin and credential store. Run it with VIDEO_INFRA_BRANCH pointed at the
+# branch carrying the Utils.groovy change and read the summary table at the end.
+#
+# It writes nothing anywhere: ls-remote, clones into throwaway workspace dirs,
+# and one OCI object GET. Safe to run against production Jenkins at any time.
+- job:
+    name: canary-git-mirror-checkout
+    display-name: canary git mirror checkout (JIT-16092)
+    description: 'Read-only probes for checking out infra repos from the in-region Gitea mirror. Writes nothing; goes UNSTABLE if a critical probe fails.'
+    concurrent: false
+    parameters:
+      - infra-branch-param
+      - string:
+          name: MIRROR_HOST
+          default: ops-prod-us-phoenix-1-git.jitsi.net
+          description: "Gitea mirror host to probe. Jenkins and this mirror share the ops-prod 10.34/16 VCN."
+          trim: true
+      - string:
+          name: GITEA_ORG
+          default: jitsi
+          description: "Org the repos are mirrored under in Gitea."
+          trim: true
+      - string:
+          name: PRIVATE_REPO_NAME
+          default: infra-customizations-private
+          description: "The one repo Gitea serves privately (var.private_repos in nomad/gitea-mirror.hcl)."
+          trim: true
+      - bool:
+          name: RUN_PRIVATE_PROBES
+          default: true
+          description: "Run section E: read gitea-read-user from the boot bucket and clone the private repo with it. This is the phase 2 blocker."
+      - string:
+          name: BUCKET_NAME
+          default: jvb-bucket-ops-prod
+          description: "Boot bucket holding the gitea-read-user object."
+          trim: true
+      - string:
+          name: BUCKET_REGION
+          default: us-phoenix-1
+          description: "Region of BUCKET_NAME."
+          trim: true
+      - string:
+          name: OBJECT_NAME
+          default: gitea-read-user
+          description: "Object holding the mirror read user (JSON: username, password)."
+          trim: true
+      - bool:
+          name: RUN_VAULT_INSTANCE_PROBE
+          default: false
+          description: "Run section F: does vault OCI instance-principal auth work from a build? Not needed if section E passes."
+      - string:
+          name: VAULT_ADDR
+          default: https://ops-prod-us-phoenix-1-vault.jitsi.net
+          description: "Vault to probe, only used by section F."
+          trim: true
+      - string:
+          name: VAULT_INSTANCE_ROLE
+          default: ops-prod-instance-role
+          description: "Vault OCI auth role to try, only used by section F."
+          trim: true
+      - infra-repo-params
+
+    project-type: pipeline
+    sandbox: true
+    pipeline-scm:
+      scm:
+        - infra-provisioning-checkout
+      script-path: jenkins/groovy/canary-git-mirror-checkout/Jenkinsfile
+      lightweight-checkout: true
