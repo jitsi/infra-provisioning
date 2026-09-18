@@ -40,7 +40,10 @@ elif [ "$PIN_ACTION" != "DELETE_PIN" ]; then
     exit 2
 fi
 
-[ -z "$CONSUL_INCLUDE_AWS" ] && CONSUL_INCLUDE_AWS="true"
+# AWS consul is legacy and most environments have none; consul-search.sh,
+# cloud_shards.sh, get-banlists.sh and set-ban-room-tenant.sh all default this
+# off already. An environment with AWS shards sets CONSUL_INCLUDE_AWS=true.
+[ -z "$CONSUL_INCLUDE_AWS" ] && CONSUL_INCLUDE_AWS="false"
 [ -z "$CONSUL_INCLUDE_OCI" ] && CONSUL_INCLUDE_OCI="true"
 
 if [[ "$CONSUL_INCLUDE_AWS" == "true" ]]; then
