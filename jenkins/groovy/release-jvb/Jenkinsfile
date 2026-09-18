@@ -21,7 +21,9 @@ def cloud_pools(shard_environment, cloud) {
 }
 
 def checkSkipShardJVBs(hcv_environment) {
-    def ret = 'false';
+    // shard-level JVBs are legacy; global pools are the default. A site that
+    // still wants them sets SKIP_SHARD_JVBS=false in its stack-env.sh.
+    def ret = 'true';
 
     def skipShardJVBs = sh(
        returnStdout: true,
