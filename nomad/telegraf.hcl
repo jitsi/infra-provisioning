@@ -558,6 +558,55 @@ EOF
         role = "gpu"
         service = "gpu"
 
+# vector's own telemetry (infra-provisioning vector.hcl registers its
+# prometheus_exporter as the vector-metrics consul service, tagged with the
+# node ip like the services above). Its own input block rather than one more
+# query in the shared block above, because the keep-list has to be a
+# plugin-level namepass: the raw exporter emits ~2,400 series per node, all
+# but these ~80 histogram buckets nothing alerts on. Keep this list in step
+# with vector_telegraf_namepass in infra-configuration roles/vector, which
+# is the VM population's copy of the same input.
+[[inputs.prometheus]]
+  http_headers = {"Accept" = "text/plain; version=0.0.4"}
+  namepass = [
+    "vector_build_info",
+    "vector_uptime_seconds",
+    "vector_started_total",
+    "vector_utilization",
+    "vector_component_received_events_total",
+    "vector_component_received_event_bytes_total",
+    "vector_component_sent_events_total",
+    "vector_component_sent_event_bytes_total",
+    "vector_component_discarded_events_total",
+    "vector_component_errors_total",
+    "vector_buffer_size_bytes",
+    "vector_buffer_max_size_bytes",
+    "vector_buffer_size_events",
+    "vector_buffer_max_size_events",
+    "vector_buffer_byte_size",
+    "vector_buffer_max_byte_size",
+    "vector_buffer_events",
+    "vector_buffer_max_event_size",
+    "vector_buffer_discarded_events_total",
+    "vector_buffer_received_events_total",
+    "vector_buffer_sent_events_total",
+    "vector_internal_metrics_cardinality*"
+  ]
+  # the scrape url embeds the alloc's dynamic port, which would mint a fresh
+  # series set on every vector restart
+  tagexclude = ["url"]
+  [inputs.prometheus.consul]
+    enabled = true
+    agent = "{{ env "attr.unique.network.ip-address" }}:8500"
+    query_interval = "1m"
+    [[inputs.prometheus.consul.query]]
+      name = "vector-metrics"
+      tag = "ip-{{ env "attr.unique.network.ip-address" }}"
+      url = 'http://{{"{{"}}if ne .ServiceAddress ""}}{{"{{"}}.ServiceAddress}}{{"{{"}}else}}{{"{{"}}.Address}}{{"{{"}}end}}:{{"{{"}}.ServicePort}}/metrics'
+      [inputs.prometheus.consul.query.tags]
+        host = "{{"{{"}}.Node}}"
+        service = "vector"
+
 [[ inputs.internal ]]
   name_prefix = "telegraf_"
   collect_memstats = false

@@ -46,6 +46,11 @@ job "[JOB_NAME]" {
       port "api" {
         to = 8686
       }
+      # fixed container port for vector's own prometheus_exporter, mapped the
+      # same way "api" maps 8686, so the sink address below needs no templating
+      port "metrics" {
+        to = 9598
+      }
       port "syslog" {
         static = 9000
       }
@@ -63,8 +68,10 @@ job "[JOB_NAME]" {
     task "vector" {
       driver = "docker"
       config {
-        image = "timberio/vector:0.42.0-alpine"
-        ports = ["api","syslog"]
+        # pinned to the version the VM fleet currently installs from apt.vector.dev,
+        # so the two vector populations run the same release
+        image = "timberio/vector:0.58.0-alpine"
+        ports = ["api","syslog","metrics"]
         volumes = [
           "/var/log/syslog:/var/log/syslog:ro",
           # Vector's data_dir, holding the sink disk buffers. This is a node-local
@@ -107,7 +114,17 @@ job "[JOB_NAME]" {
           [api]
             enabled = true
             address = "0.0.0.0:8686"
-            playground = true
+          # Vector's own telemetry, scraped by prometheus through the
+          # "vector-metrics" consul service registered below. 9598 is the fixed
+          # container port behind the "metrics" network port. This sink is a
+          # scrape target that holds current values in memory, not a delivery
+          # sink, so it deliberately has no buffer.
+          [sources.internal_metrics]
+            type = "internal_metrics"
+          [sinks.prometheus_exporter]
+            type = "prometheus_exporter"
+            inputs = ["internal_metrics"]
+            address = "0.0.0.0:9598"
           [sources.jvb_logs]
             type = "docker_logs"
             include_containers = ["jvb-"]
@@ -304,6 +321,23 @@ job "[JOB_NAME]" {
           port     = "api"
           type     = "http"
           path     = "/health"
+          interval = "30s"
+          timeout  = "5s"
+        }
+      }
+      # Separate service for the metrics endpoint: the "vector" service above is
+      # the API port and its /health check is not a scrape target. Prometheus
+      # discovers this service by name; the VM vector population registers the
+      # same service name from ansible (infra-configuration consul-vector role)
+      # so one scrape_config covers both fleets.
+      service {
+        name = "vector-metrics"
+        port = "metrics"
+        tags = ["ip-${attr.unique.network.ip-address}"]
+        check {
+          port     = "metrics"
+          type     = "http"
+          path     = "/metrics"
           interval = "30s"
           timeout  = "5s"
         }
