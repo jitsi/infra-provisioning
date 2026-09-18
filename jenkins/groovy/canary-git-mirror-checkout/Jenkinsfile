@@ -280,6 +280,27 @@ exit 0
                             return "degraded to ${origin}"
                         }
                     }
+                    // The one thing nothing had exercised: the git PLUGIN
+                    // authenticating to the mirror with a Jenkins
+                    // username/password credential. E4 proves the credential
+                    // works via a raw git credential helper, which is a different
+                    // code path -- TryCheckoutRef hands the id to the plugin and
+                    // lets it do the auth. This is what INFRA_MIRROR_CREDENTIALS_ID
+                    // actually turns on, so prove it before enabling it fleet-wide.
+                    probe('D5', 'the plugin clones the PRIVATE repo with the Jenkins credential', true) {
+                        withEnv(["INFRA_MIRROR_CREDENTIALS_ID=${params.MIRROR_CREDENTIALS_ID ?: 'gitea-mirror-reader'}"]) {
+                            dir('probe-d5') {
+                                deleteDir()
+                                utils.CheckoutInfraRepo('infra-customization', 'main', privMirror, privOrigin, false)
+                                def origin = sh(returnStdout: true, script: 'git config --get remote.origin.url').trim()
+                                if (!origin.contains(params.MIRROR_HOST)) {
+                                    error("fell back to github: origin is ${origin}")
+                                }
+                                def sha = sh(returnStdout: true, script: 'git rev-parse --short HEAD').trim()
+                                return "sha=${sha} origin=${origin}"
+                            }
+                        }
+                    }
                 }
                 }
             }
