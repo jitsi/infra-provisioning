@@ -427,6 +427,151 @@ today.
 - **Stages 2-3 held** until the mirror is deployed and the first-sync health gate
   is verified per region (per the rollout order).
 
+## Jenkins builds (2026-09-18)
+
+Everything above concerns VM boots. Jenkins is the other consumer of the infra
+repos and is covered here, because its architecture invalidates the obvious
+rollout approach.
+
+### Where builds actually run
+
+`jenkins-ops.jitsi.net` runs exactly one container,
+`aaronkvanmeerten/ops-jenkins` (`ansible/roles/jenkins/templates/jenkins.service.j2`
+in infra-configuration). Its `casc.yaml` defines a **docker cloud** that
+provisions an ephemeral `aaronkvanmeerten/ops-agent` container per build
+(`idleMinutes: 10`, `removeVolumes: true`, `pullStrategy: PULL_LATEST`).
+
+Two consequences that are easy to get wrong:
+
+- **Builds do not run on the jenkins-ops VM**, so "is the tool installed on
+  jenkins-ops" is the wrong question. The ansible `jenkins` role not pulling in
+  the `vault` role proves nothing. `docker/ops-agent/Dockerfile` installs `vault`
+  from the hashicorp apt repo and `docker/ops-agent/requirements.txt` carries
+  `oci`, `oci-cli` and `hvac`, so the toolchain is present where builds run.
+- **HOME is per build.** A fresh container per build is why `SetupOCI`'s
+  `rm -rf ~/.oci` is safe, and why the netrc hazard that bit the VM side
+  (JIT-16092, PR #1202) does not apply in the same way here. It is still worth
+  keeping credentials out of files, but concurrent builds cannot clobber
+  each other's HOME.
+
+### What only the private repo needs
+
+`var.private_repos` in `nomad/gitea-mirror.hcl` marks only
+`infra-customizations-private` private; `infra-configuration` and
+`infra-provisioning` are served anonymously. Confirmed against the live
+ops-prod us-phoenix-1 mirror on 2026-09-18:
+
+    git ls-remote https://ops-prod-us-phoenix-1-git.jitsi.net/jitsi/infra-configuration.git refs/heads/main
+      -> a9bb1fd  refs/heads/main            (rc=0, no credential)
+    git ls-remote .../infra-customizations-private.git refs/heads/main
+      -> rc=128, "could not read Username"   (correctly refused)
+
+So `INFRA_CONFIGURATION_MIRROR_REPO` can be enabled with **no credential at
+all**, and the credential work is only needed for the private repo.
+
+That required a fix. `CheckoutInfraRepo` defaulted its mirror credential to
+`video-infra`, which is an ssh deploy key: the git plugin cannot turn one into
+basic auth for an `https://` remote, so the default would have failed the one
+repo that works anonymously. `MirrorCredentialsId` now returns null (anonymous)
+for an https mirror unless `INFRA_MIRROR_CREDENTIALS_ID` names a real
+username/password credential.
+
+### How to turn it on
+
+Not with node-scoped environment variables. The ~109 jobs that call
+`Utils.SetupRepos` run on cloud-provisioned `ops-agent` containers, not on a
+static node, so node-scoped env on jenkins-ops would only reach `jenkins-local`
+jobs such as `reconfigure-users-jenkins`.
+
+The env belongs in the docker template's `environmentsString` in
+`docker/ops-jenkins/casc.yaml`, which already carries
+`GIT_ALTERNATE_OBJECT_DIRECTORIES`. Because `casc.yaml` is COPY'd into the
+ops-jenkins image, codifying it needs a `build-docker-image-ops-jenkins` run and
+a restart. For the canary, set the same field in the UI (Manage Jenkins ->
+Clouds -> docker -> template -> Environment): it applies to newly provisioned
+agents with no image rebuild.
+
+Note this is all-or-nothing across ops-agent jobs rather than per-job, so the
+canary is a matter of *when* it is flipped, not which job sees it.
+
+Phased:
+
+**Phase 1 is proven.** The canary ran against ops-prod us-phoenix-1 on
+2026-09-18 from an `ops-agent` container and every phase 1 probe passed:
+
+- The git plugin **accepts `credentialsId: null`** ("No credentials specified")
+  in both the `GitSCM` and `git`-step forms `TryCheckoutRef` uses. That was the
+  gating question, and it is answered.
+- `CheckoutInfraRepo` took the mirror path for `infra-configuration`, leaving
+  `remote.origin.url` on the mirror host.
+- A ref nobody has fell through mirror -> github -> main with the two expected
+  WARNINGs, and an unresolvable mirror host degraded to github rather than
+  failing the build.
+- The agent facts confirmed the architecture above: `labels=ops-agent`,
+  `container=yes`, `HOME=/home/jenkins`, `vault` at `/usr/bin/vault`, `oci` at
+  `/opt/jenkins/venv/bin/oci`, git 2.39.5, mirror at 10.34.158.89:443.
+
+**Phase 2 is proven too**, as of the third canary run plus a direct check
+against both replicas:
+
+- The Jenkins OCI principal reads `gitea-read-user` from `jvb-bucket-ops-prod`
+  (`username=mirror-reader`). It was never a permissions problem.
+- That credential authenticates against **both** us-phoenix-1 replicas
+  (`/api/v1/user` and the private repo both 200 on 10.34.138.57 and
+  10.34.147.83) and clones `infra-customizations-private` over HTTPS through the
+  Fabio hostname.
+
+Two traps found on the way, both worth remembering:
+
+- `OCI_CLI_KEY_FILE` does **not** override the `key_file=~/.oci/private-key.pem`
+  baked into the `oci-jenkins-config` credential. A checkout that cannot assume
+  `~/.oci` exists must rewrite the config and pass `--config-file`:
+
+      OCI_CFG=$(mktemp); chmod 600 "$OCI_CFG"; trap 'rm -f "$OCI_CFG"' EXIT
+      sed -e "s|^key_file=.*|key_file=$OCI_CLI_KEY_FILE|" "$OCI_CLI_CONFIG_FILE" > "$OCI_CFG"
+      oci --config-file "$OCI_CFG" ...
+
+- A git credential helper runs under its own shell, so **both** variables have to
+  reach it. Exporting only the password yields `remote: Unauthorized`, which
+  looks exactly like a wrong credential and is not.
+  `clone_repo_with_fallback` in `terraform/lib/postinstall-lib.sh` already gets
+  this right by passing both as a command-prefix assignment; copy that form
+  rather than inventing another.
+
+1. **Phase 1, no credential.** Set only
+   `INFRA_CONFIGURATION_MIRROR_REPO=https://ops-prod-us-phoenix-1-git.jitsi.net/jitsi/infra-configuration.git`
+   in the UI template. Watch `monitor-haproxy-beta-meet-jit-si` (continuously
+   re-triggered, beta-scoped, mostly read-only), then the every-10-minute
+   `synthetic-longlived-*`, then a real provisioning job. Console must show
+   `checking out infra-configuration ... from the in-region mirror` with no
+   WARNING. **First thing to confirm: that the git plugin accepts a null
+   `credentialsId`.** If it does not, the anonymous path needs a different shape.
+2. **Phase 2, the private repo.** Needs a username/password. Preferred source is
+   the `gitea-read-user` object already published to `jvb-bucket-<env>` by
+   `scripts/publish-gitea-read-user-bucket.sh` (verified present in
+   `jvb-bucket-ops-prod`/us-phoenix-1) and read with the `oci-jenkins-config` /
+   `oci-jenkins-pem` Jenkins credentials. This keeps Vault out of the checkout
+   path of every job, uses the same source of truth as the VMs, and rotates with
+   the script that already exists. It must be fetched self-contained inside the
+   checkout: **108 of the 109 jobs call `SetupRepos` before `SetupOCI`**, so
+   `~/.oci` is empty at that point -- use `withCredentials` and let the OCI CLI
+   read `OCI_CLI_CONFIG_FILE` / `OCI_CLI_KEY_FILE` directly rather than writing
+   any file.
+3. **Codify** the working configuration into `casc.yaml` and rebuild the image.
+
+Rejected: `vault login -method=oci auth_type=apikey role=ociadminrole`, which is
+what the private `sync-vault-secrets` job uses. `ociadminrole` maps to the OCI
+Administrators group with admin and ssh-ops policies -- far too much for a
+read-only secret, in the checkout path of every job.
+
+### Not a substitute: the /home/git alternates
+
+The ops-agent template bind-mounts `/home/git` and sets
+`GIT_ALTERNATE_OBJECT_DIRECTORIES` for the infra repos plus jitsi-meet and
+jitsi-meet-torture. That is a **bandwidth** optimisation -- objects come off
+local disk -- and provides no availability, because refs still come from github.
+The Gitea mirror is the availability half. The two do not overlap.
+
 ## References
 
 - Root-cause dump: `prod-8x8-jvb-66-97-202-2026-07-21-1103--dump.tar.gz`

@@ -1,0 +1,502 @@
+// Read-only canary for the Jenkins half of JIT-16092.
+//
+// Everything here is a question that cannot be answered from a laptop: it needs
+// to run on an ops-agent container, inside the VCN, with the Jenkins git plugin
+// and the Jenkins credential store. Run it from the branch that carries the
+// Utils.groovy change (VIDEO_INFRA_BRANCH) and read the summary table at the end.
+//
+// Nothing here writes anything anywhere. The only remote calls are ls-remote,
+// clones into throwaway workspace directories, and one OCI object GET. No job
+// configuration, no node configuration and no repo is modified, so it is safe to
+// run against production Jenkins at any time.
+//
+// A probe never aborts the build. Every probe runs, the summary prints, and the
+// build goes UNSTABLE if a probe marked critical failed -- the point is a
+// complete picture in one run, not a fast failure.
+
+results = []
+
+def probe(String id, String desc, boolean critical, Closure body) {
+    echo "----- ${id}: ${desc} -----"
+    def detail = ''
+    def ok = false
+    try {
+        detail = body.call()
+        if (detail == null) { detail = '' }
+        ok = true
+    } catch (InterruptedException e) {
+        throw e
+    } catch (Exception e) {
+        detail = e.getMessage()
+        ok = false
+    }
+    def d = "${detail}"
+    if (d.length() > 200) { d = d.substring(0, 200) }
+    results.add([id: id, desc: desc, ok: ok, critical: critical, detail: d])
+    echo "----- ${id}: ${ok ? 'PASS' : 'FAIL'} ${detail} -----"
+    return ok
+}
+
+// For probes where the CORRECT outcome is a failure (anonymous access to the
+// private repo must be refused). Inverts pass/fail so the table reads uniformly.
+def probeExpectFail(String id, String desc, boolean critical, Closure body) {
+    echo "----- ${id}: ${desc} (expecting failure) -----"
+    def ok = false
+    def detail = ''
+    try {
+        body.call()
+        detail = 'SUCCEEDED, but it should have been refused'
+        ok = false
+    } catch (InterruptedException e) {
+        throw e
+    } catch (Exception e) {
+        detail = 'refused as expected'
+        ok = true
+    }
+    results.add([id: id, desc: desc, ok: ok, critical: critical, detail: detail])
+    echo "----- ${id}: ${ok ? 'PASS' : 'FAIL'} ${detail} -----"
+    return ok
+}
+
+pipeline {
+    agent any
+    options {
+        ansiColor('xterm')
+        timestamps()
+        buildDiscarder(logRotator(numToKeepStr: '30'))
+        timeout(time: 30, unit: 'MINUTES')
+    }
+    stages {
+        stage('setup') {
+            steps {
+                script {
+                    utils = load "${pwd()}/jenkins/groovy/Utils.groovy"
+
+                    mirrorBase   = "https://${params.MIRROR_HOST}/${params.GITEA_ORG}"
+                    confMirror   = "${mirrorBase}/infra-configuration.git"
+                    provMirror   = "${mirrorBase}/infra-provisioning.git"
+                    privMirror   = "${mirrorBase}/${params.PRIVATE_REPO_NAME}.git"
+                    confOrigin   = env.INFRA_CONFIGURATION_REPO
+                    privOrigin   = env.INFRA_CUSTOMIZATIONS_REPO
+
+                    echo "mirror base:  ${mirrorBase}"
+                    echo "conf origin:  ${confOrigin}"
+                    echo "priv origin:  ${privOrigin}"
+                    echo "branch under test: ${env.VIDEO_INFRA_BRANCH}"
+                }
+            }
+        }
+
+        stage('A: agent facts') {
+            steps {
+                script {
+                    probe('A1', 'which agent this ran on, and whether HOME is per-build', false) {
+                        return sh(returnStdout: true, script: '''#!/bin/bash
+echo "node=${NODE_NAME:-?} labels=${NODE_LABELS:-?}"
+echo "user=$(whoami) home=$HOME workspace=$WORKSPACE"
+if [ -f /.dockerenv ]; then echo "container=yes"; else echo "container=no"; fi
+''').trim()
+                    }
+
+                    // GIT_CONFIG_COUNT/extraheader injection (the phase 2 plan)
+                    // needs git >= 2.31. bookworm ships 2.39, but confirm rather
+                    // than design against an assumption.
+                    probe('A2', 'git is new enough for GIT_CONFIG_COUNT (>= 2.31)', false) {
+                        return sh(returnStdout: true, script: '''#!/bin/bash
+set -e
+v=$(git --version | awk '{print $3}')
+major=${v%%.*}; rest=${v#*.}; minor=${rest%%.*}
+if [ "$major" -lt 2 ] || { [ "$major" -eq 2 ] && [ "$minor" -lt 31 ]; }; then
+  echo "git $v is too old for GIT_CONFIG_COUNT"; exit 1
+fi
+echo "git $v supports GIT_CONFIG_COUNT"
+''').trim()
+                    }
+
+                    probe('A3', 'tools present on the agent (vault, oci, jq)', false) {
+                        return sh(returnStdout: true, script: '''#!/bin/bash
+for t in git vault oci jq; do
+  p=$(command -v $t 2>/dev/null)
+  echo "$t: ${p:-MISSING}"
+done
+''').trim()
+                    }
+
+                    probe('A4', 'the mirror host resolves and the port is open from the agent', true) {
+                        return sh(returnStdout: true, script: """#!/bin/bash
+set -e
+getent hosts ${params.MIRROR_HOST} || echo "no A record"
+nc -z -w 5 ${params.MIRROR_HOST} 443 && echo "port 443 open" || { echo "port 443 unreachable"; exit 1; }
+""").trim()
+                    }
+                }
+            }
+        }
+
+        stage('B: raw git against the mirror') {
+            steps {
+                script {
+                    // Plain git, no Jenkins plugin: separates "the mirror serves
+                    // this" from "the plugin can talk to it", which section C tests.
+                    probe('B1', 'anonymous ls-remote of infra-configuration', true) {
+                        return sh(returnStdout: true, script: """#!/bin/bash
+set -e
+export GIT_TERMINAL_PROMPT=0
+timeout 30 git ls-remote ${confMirror} refs/heads/main
+""").trim()
+                    }
+
+                    probe('B2', 'anonymous ls-remote of infra-provisioning', false) {
+                        return sh(returnStdout: true, script: """#!/bin/bash
+set -e
+export GIT_TERMINAL_PROMPT=0
+timeout 30 git ls-remote ${provMirror} refs/heads/main
+""").trim()
+                    }
+
+                    probeExpectFail('B3', 'anonymous access to the PRIVATE repo is refused', true) {
+                        sh(script: """#!/bin/bash
+set -e
+export GIT_TERMINAL_PROMPT=0
+timeout 30 git ls-remote ${privMirror} refs/heads/main
+""")
+                    }
+
+                    // Measures the staleness window MirrorRefIsStale exists to
+                    // close. Not a pass/fail: a difference here is normal, it just
+                    // means the mirror has not pulled since the last merge.
+                    // origin is a git@ URL, so this only works inside sshagent --
+                    // without it the github side comes back empty and the probe
+                    // reports drift that is really just an unreachable remote.
+                    // That is exactly the inconclusive case MirrorRefIsStale
+                    // treats as "keep the mirror copy", so say so rather than
+                    // calling it drift.
+                    probe('B4', 'how far the mirror is behind github on main', false) {
+                        sshagent(credentials: ['video-infra']) {
+                            return sh(returnStdout: true, script: """#!/bin/bash
+export GIT_TERMINAL_PROMPT=0
+m=\$(timeout 30 git ls-remote ${confMirror} refs/heads/main 2>/dev/null | cut -f1)
+g=\$(timeout 30 git ls-remote ${confOrigin} refs/heads/main 2>/dev/null | cut -f1)
+echo "mirror=\${m:-unreachable} github=\${g:-unreachable}"
+if [ -z "\$m" ] || [ -z "\$g" ]; then
+  echo "INCONCLUSIVE: one side did not answer, so no drift can be claimed"
+elif [ "\$m" = "\$g" ]; then
+  echo "in sync"
+else
+  echo "DRIFT: the mirror is behind github; MirrorRefIsStale should catch this"
+fi
+exit 0
+""").trim()
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('C: does the git plugin accept a null credentialsId?') {
+            steps {
+                script {
+                    // THE gating question for phase 1. Utils.MirrorCredentialsId
+                    // returns null for an https mirror with no credential
+                    // configured; if the plugin rejects null, the anonymous path
+                    // needs a different shape and phase 1 is blocked.
+                    probe('C1', 'GitSCM checkout with credentialsId: null (the useSubmodules path)', true) {
+                        dir('probe-c1') {
+                            deleteDir()
+                            checkout([$class: 'GitSCM',
+                                      branches: [[name: 'origin/main']],
+                                      extensions: [[$class: 'SubmoduleOption', disableSubmodules: false,
+                                                    parentCredentials: false, recursiveSubmodules: true,
+                                                    reference: '', trackingSubmodules: false]],
+                                      userRemoteConfigs: [[credentialsId: null, url: confMirror]]])
+                            return sh(returnStdout: true, script: 'git rev-parse HEAD').trim()
+                        }
+                    }
+
+                    probe('C2', 'git step with credentialsId: null (the non-submodule path)', true) {
+                        dir('probe-c2') {
+                            deleteDir()
+                            git branch: 'main', url: confMirror, credentialsId: null
+                            return sh(returnStdout: true, script: 'git rev-parse HEAD').trim()
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('D: the patched Utils.CheckoutInfraRepo') {
+            steps {
+                // SetupRepos wraps every checkout in sshagent, and
+                // MirrorRefIsStale's ls-remote against the git@ origin only works
+                // inside it. Without this the staleness check silently comes back
+                // inconclusive and D1 passes without ever exercising it.
+                sshagent(credentials: ['video-infra']) {
+                script {
+                    // End to end through the real helper, which is what the 109
+                    // jobs will actually call. Console must show "from the
+                    // in-region mirror" and no WARNING.
+                    probe('D1', 'CheckoutInfraRepo takes the mirror path for infra-configuration', true) {
+                        dir('probe-d1') {
+                            deleteDir()
+                            utils.CheckoutInfraRepo('infra-configuration', 'main', confMirror, confOrigin, true)
+                            def sha = sh(returnStdout: true, script: 'git rev-parse HEAD').trim()
+                            def origin = sh(returnStdout: true, script: 'git config --get remote.origin.url').trim()
+                            if (!origin.contains(params.MIRROR_HOST)) {
+                                error("fell back to github: origin is ${origin}")
+                            }
+                            return "sha=${sha} origin=${origin}"
+                        }
+                    }
+
+                    probe('D2', 'MirrorCredentialsId returns null for an https mirror', true) {
+                        def got = utils.MirrorCredentialsId(confMirror)
+                        if (got != null) { error("expected null, got '${got}'") }
+                        return 'null (anonymous), as intended'
+                    }
+
+                    // A ref the mirror does not have must warn and fall through to
+                    // github at the SAME ref, and only a ref github lacks either may
+                    // fall back to main. A ref neither side has exercises that whole
+                    // chain deterministically on every run.
+                    probe('D3', 'a ref nobody has falls through mirror -> github -> main', true) {
+                        dir('probe-d3') {
+                            deleteDir()
+                            utils.CheckoutInfraRepo('infra-configuration',
+                                'jit-16092-canary-no-such-ref', confMirror, confOrigin, true)
+                            def origin = sh(returnStdout: true, script: 'git config --get remote.origin.url').trim()
+                            return "landed on main via ${origin} (expect two WARNINGs above)"
+                        }
+                    }
+
+                    // The whole design rests on the mirror never failing a build.
+                    probe('D4', 'an unreachable mirror degrades to github instead of failing', true) {
+                        dir('probe-d4') {
+                            deleteDir()
+                            utils.CheckoutInfraRepo('infra-configuration', 'main',
+                                'https://ops-prod-does-not-exist-git.jitsi.net/jitsi/infra-configuration.git',
+                                confOrigin, true)
+                            def origin = sh(returnStdout: true, script: 'git config --get remote.origin.url').trim()
+                            if (origin.contains('does-not-exist')) { error("checked out from a host that should not resolve") }
+                            return "degraded to ${origin}"
+                        }
+                    }
+                }
+                }
+            }
+        }
+
+        stage('E: phase 2 credential sourcing') {
+            when { expression { params.RUN_PRIVATE_PROBES } }
+            steps {
+                script {
+                    // The stored oci config hardcodes key_file=~/.oci/private-key.pem,
+                    // which does not exist when the key arrives through
+                    // withCredentials as a temp file, and OCI_CLI_KEY_FILE alone does
+                    // not override it. So build a config that points at the real key
+                    // and pass it with --config-file: a mode-600 temp file, removed
+                    // on exit, and nothing written to HOME. That matters because 108
+                    // of 109 jobs call SetupRepos before SetupOCI, so a checkout
+                    // cannot assume ~/.oci exists.
+                    ociCfg = '''
+export SUPPRESS_LABEL_WARNING=True
+OCI_CFG=$(mktemp); chmod 600 "$OCI_CFG"
+trap 'rm -f "$OCI_CFG"' EXIT
+sed -e "s|^key_file=.*|key_file=$OCI_CLI_KEY_FILE|" "$OCI_CLI_CONFIG_FILE" > "$OCI_CFG"
+'''
+
+                    // Identifiers only. pass_phrase and key material are redacted:
+                    // an earlier version of this probe printed the API key
+                    // passphrase into the build log.
+                    probe('E0', 'what the Jenkins OCI credentials actually contain', false) {
+                        withCredentials([
+                            file(credentialsId: 'oci-jenkins-config', variable: 'OCI_CLI_CONFIG_FILE'),
+                            file(credentialsId: 'oci-jenkins-pem', variable: 'OCI_CLI_KEY_FILE')
+                        ]) {
+                            return sh(returnStdout: true, script: '''#!/bin/bash
+set +x
+echo "config exists: $([ -s "$OCI_CLI_CONFIG_FILE" ] && echo yes || echo NO)"
+echo "key exists:    $([ -s "$OCI_CLI_KEY_FILE" ] && echo yes || echo NO)"
+echo "--- config, secrets redacted ---"
+sed -e 's/^pass_phrase=.*/pass_phrase=<redacted>/' -e 's/^passphrase=.*/passphrase=<redacted>/' -e 's/^key_content=.*/key_content=<redacted>/' -e '/-----/d' "$OCI_CLI_CONFIG_FILE" 2>/dev/null | sed -e 's/^/  /'
+echo "--- oci version ---"
+oci --version 2>&1 | head -2
+exit 0
+''').trim()
+                        }
+                    }
+
+                    // Cheapest authenticated call. Separates an authentication
+                    // failure from a bucket authorisation failure; they need
+                    // completely different fixes.
+                    probe('E1', 'the Jenkins OCI principal can authenticate', true) {
+                        withCredentials([
+                            file(credentialsId: 'oci-jenkins-config', variable: 'OCI_CLI_CONFIG_FILE'),
+                            file(credentialsId: 'oci-jenkins-pem', variable: 'OCI_CLI_KEY_FILE')
+                        ]) {
+                            return sh(returnStdout: true, script: """#!/bin/bash
+set +x
+${ociCfg}
+err=\$(mktemp)
+if ns=\$(oci --config-file "\$OCI_CFG" os ns get --region ${params.BUCKET_REGION} 2>"\$err"); then
+  echo "authenticated; namespace=\$(echo "\$ns" | jq -r '.data // empty')"
+  rm -f "\$err"; exit 0
+fi
+echo "FAILED to authenticate:"; head -c 800 "\$err"; rm -f "\$err"; exit 1
+""").trim()
+                        }
+                    }
+
+                    // The phase 2 question proper, by the method the real
+                    // implementation would use.
+                    probe('E2', 'it can read gitea-read-user via --config-file', true) {
+                        withCredentials([
+                            file(credentialsId: 'oci-jenkins-config', variable: 'OCI_CLI_CONFIG_FILE'),
+                            file(credentialsId: 'oci-jenkins-pem', variable: 'OCI_CLI_KEY_FILE')
+                        ]) {
+                            return sh(returnStdout: true, script: """#!/bin/bash
+set +x
+${ociCfg}
+err=\$(mktemp)
+if ! out=\$(oci --config-file "\$OCI_CFG" os object get --region ${params.BUCKET_REGION} \\
+             --bucket-name ${params.BUCKET_NAME} --name ${params.OBJECT_NAME} \\
+             --file - 2>"\$err"); then
+  echo "could not read ${params.OBJECT_NAME} from ${params.BUCKET_NAME}:"
+  head -c 800 "\$err"; rm -f "\$err"; exit 1
+fi
+rm -f "\$err"
+u=\$(echo "\$out" | jq -r '.username // empty')
+p=\$(echo "\$out" | jq -r '.password // empty')
+[ -n "\$u" ] || { echo "no username field in the object"; exit 1; }
+[ -n "\$p" ] || { echo "no password field in the object"; exit 1; }
+echo "username=\$u password=<\${#p} chars>"
+""").trim()
+                        }
+                    }
+
+                    // Control: the SetupOCI way, already known to work. Kept so a
+                    // future failure can be told apart from a --config-file problem.
+                    probe('E3', 'same read via ~/.oci, as SetupOCI does it (control)', false) {
+                        withCredentials([
+                            file(credentialsId: 'oci-jenkins-config', variable: 'OCI_CLI_CONFIG_FILE'),
+                            file(credentialsId: 'oci-jenkins-pem', variable: 'OCI_CLI_KEY_FILE')
+                        ]) {
+                            return sh(returnStdout: true, script: """#!/bin/bash
+set +x
+export SUPPRESS_LABEL_WARNING=True
+rm -rf ~/.oci && mkdir -p ~/.oci
+cp "\$OCI_CLI_CONFIG_FILE" ~/.oci/config
+cp "\$OCI_CLI_KEY_FILE" ~/.oci/private-key.pem
+chmod 600 ~/.oci/*
+err=\$(mktemp)
+unset OCI_CLI_CONFIG_FILE OCI_CLI_KEY_FILE
+if out=\$(oci os object get --region ${params.BUCKET_REGION} \\
+           --bucket-name ${params.BUCKET_NAME} --name ${params.OBJECT_NAME} \\
+           --file - 2>"\$err"); then
+  echo "read via ~/.oci worked; username=\$(echo "\$out" | jq -r '.username // empty')"
+  rm -rf ~/.oci "\$err"; exit 0
+fi
+echo "read via ~/.oci failed:"; head -c 800 "\$err"
+rm -rf ~/.oci "\$err"; exit 1
+""").trim()
+                        }
+                    }
+
+                    // Publishing that credential succeeds even when it does not
+                    // match the user the mirrors actually created, and the mismatch
+                    // is silent -- boots just fall back to github. This is the only
+                    // probe that proves the credential is usable. The previous run
+                    // never reached the clone because the read itself failed, so
+                    // this is still unanswered.
+                    probe('E4', 'that credential actually clones the PRIVATE repo', true) {
+                        withCredentials([
+                            file(credentialsId: 'oci-jenkins-config', variable: 'OCI_CLI_CONFIG_FILE'),
+                            file(credentialsId: 'oci-jenkins-pem', variable: 'OCI_CLI_KEY_FILE')
+                        ]) {
+                            return sh(returnStdout: true, script: """#!/bin/bash
+set +x
+${ociCfg}
+export GIT_TERMINAL_PROMPT=0
+err=\$(mktemp)
+if ! out=\$(oci --config-file "\$OCI_CFG" os object get --region ${params.BUCKET_REGION} \\
+             --bucket-name ${params.BUCKET_NAME} --name ${params.OBJECT_NAME} \\
+             --file - 2>"\$err"); then
+  echo "skipped: could not read the credential (see E2)"; rm -f "\$err"; exit 1
+fi
+rm -f "\$err"
+MIRROR_GIT_USERNAME=\$(echo "\$out" | jq -r '.username')
+MIRROR_GIT_PASSWORD=\$(echo "\$out" | jq -r '.password')
+unset out
+rm -rf probe-e4 && mkdir -p probe-e4
+# Exactly clone_repo_with_fallback in terraform/lib/postinstall-lib.sh: both
+# variables are handed to git as a command-prefix assignment, so the helper
+# subprocess inherits them; the password stays in a variable, argv holds only
+# its name, and nothing is written to disk. An earlier version of this probe
+# exported only the password and got "remote: Unauthorized" -- the helper runs
+# under its own sh, so an unexported username arrives empty.
+# `-c credential.helper=` first clears any inherited helper, and the `get` guard
+# keeps the helper from answering store/erase.
+cerr=\$(mktemp)
+if timeout 120 env GIT_TERMINAL_PROMPT=0 MIRROR_GIT_USERNAME="\$MIRROR_GIT_USERNAME" MIRROR_GIT_PASSWORD="\$MIRROR_GIT_PASSWORD" \\
+     git -c credential.helper= \\
+         -c 'credential.helper=!f() { if [ "\$1" = get ]; then printf "username=%s\\npassword=%s\\n" "\$MIRROR_GIT_USERNAME" "\$MIRROR_GIT_PASSWORD"; fi; }; f' \\
+         clone --depth 1 --quiet ${privMirror} probe-e4/priv 2>"\$cerr"; then
+  echo "cloned the private repo from the mirror at \$(git -C probe-e4/priv rev-parse --short HEAD)"
+  rm -rf probe-e4 "\$cerr"; exit 0
+fi
+echo "clone refused -- the credential does not match the mirror's read user:"
+head -c 400 "\$cerr"; rm -rf probe-e4 "\$cerr"; exit 1
+""").trim()
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('F: vault instance principal (optional)') {
+            when { expression { params.RUN_VAULT_INSTANCE_PROBE } }
+            steps {
+                script {
+                    // The original plan's preferred steady state. Recorded because
+                    // it was never actually tested from a build; it is NOT needed
+                    // if E1/E2 pass, and ociadminrole is explicitly not an option.
+                    probe('F1', "vault login -method=oci auth_type=instance role=${params.VAULT_INSTANCE_ROLE}", false) {
+                        return sh(returnStdout: true, script: """#!/bin/bash
+set +x
+export VAULT_ADDR="${params.VAULT_ADDR}"
+if ! command -v vault >/dev/null 2>&1; then echo "no vault binary"; exit 1; fi
+if timeout 30 vault login -no-store -token-only -method=oci \\
+     auth_type=instance role=${params.VAULT_INSTANCE_ROLE} >/dev/null 2>/tmp/vlogin.err; then
+  echo "instance-principal login SUCCEEDED against \$VAULT_ADDR"
+else
+  echo "instance-principal login failed: \$(head -c 200 /tmp/vlogin.err)"
+  exit 1
+fi
+""").trim()
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            script {
+                echo '================ CANARY SUMMARY ================'
+                def failedCritical = 0
+                for (r in results) {
+                    def status = r.ok ? 'PASS' : (r.critical ? 'FAIL*' : 'fail ')
+                    if (!r.ok && r.critical) { failedCritical++ }
+                    echo "${status}  ${r.id}  ${r.desc}"
+                    if (r.detail) { echo "         ${r.detail}" }
+                }
+                echo '==============================================='
+                echo "* = critical. critical failures: ${failedCritical}"
+                if (failedCritical > 0) {
+                    echo 'Marking UNSTABLE: at least one critical probe failed.'
+                    currentBuild.result = 'UNSTABLE'
+                }
+            }
+            cleanWs()
+        }
+    }
+}
