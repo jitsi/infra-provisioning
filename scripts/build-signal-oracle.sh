@@ -85,8 +85,14 @@ if [ -z "$JITSI_MEET_META_VERSION" ]; then
     JITSI_MEET_META_VERSION='*'
 fi
 
-# clear prosody version if 'latest' is requested
+# A prosody version of 'latest' means "whatever apt is serving". Resolve it so the image
+# can be named, tagged and later found by a real version, but clear PROSODY_VERSION so the
+# install below stays on the unpinned apt path rather than switching to a pinned download.
+PROSODY_IMAGE_VERSION="$PROSODY_VERSION"
 if [[ "$PROSODY_VERSION" == "latest" ]]; then
+  . $LOCAL_PATH/prosody-version.sh
+  resolve_latest_prosody_version
+  PROSODY_IMAGE_VERSION="$PROSODY_VERSION"
   PROSODY_VERSION=
 fi
 
@@ -111,7 +117,7 @@ elif [ -n "$PROSODY_VERSION" ]; then
 fi
 # If neither PROSODY_FROM_URL nor PROSODY_VERSION is specified, use ansible defaults
 
-SIGNAL_VERSION="$JICOFO_VERSION-$JITSI_MEET_VERSION-$PROSODY_VERSION"
+SIGNAL_VERSION="$JICOFO_VERSION-$JITSI_MEET_VERSION-$PROSODY_IMAGE_VERSION"
 
 EXISTING_IMAGE_OCID=$($LOCAL_PATH/oracle_custom_images.py --type Signal --version "$SIGNAL_VERSION" --architecture "$IMAGE_ARCH" --region="$ORACLE_REGION" --compartment_id="$COMPARTMENT_OCID" --tag_namespace="$TAG_NAMESPACE")
 if [ ! -z "$EXISTING_IMAGE_OCID" ]; then
@@ -180,7 +186,7 @@ packer build \
 -var "jitsi_meet_deb_pkg_version=$DEB_JITSI_MEET_VERSION" \
 -var "jicofo_version=$JICOFO_VERSION" \
 -var "jitsi_meet_version=$JITSI_MEET_VERSION" \
--var "prosody_version=$PROSODY_VERSION" \
+-var "prosody_version=$PROSODY_IMAGE_VERSION" \
 $([ ! -z $PROSODY_APT_FLAG ] && echo "-var prosody_apt_flag=$PROSODY_APT_FLAG") \
 $([ ! -z $PROSODY_PACKAGE_VERSION ] && echo "-var prosody_package_version=$PROSODY_PACKAGE_VERSION") \
 $([ ! -z $PROSODY_URL_VERSION ] && echo "-var prosody_version_flag=$PROSODY_VERSION_FLAG") \
