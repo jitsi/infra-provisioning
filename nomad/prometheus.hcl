@@ -1623,9 +1623,16 @@ groups:
   # VM hosts are anchored on a telegraf metric that carries the role tag, so
   # this only considers host types that actually run vector; a coturn or
   # jenkins host reporting no vector metrics is correct, not an outage.
+  # mem_used, not mem_used_percent: both telegraf configs pass an explicit
+  # field list to [[inputs.mem]] that stops at "used" -- fieldpass in
+  # infra-configuration roles/wavefront telegraf.conf.wfcopy.j2 and
+  # fieldinclude in nomad/telegraf.hcl -- so used_percent is emitted by no
+  # telegraf in the fleet and this alert matched nothing at all until the
+  # 2026-09-18 swap. Anything from [[inputs.mem]] or [[inputs.system]] works;
+  # if you move it, confirm the field survives both field lists first.
   - alert: Vector_Down
     expr: >-
-      max by (node, role) (mem_used_percent{job="telegraf", registered_by="",
+      max by (node, role) (mem_used{job="telegraf", registered_by="",
         role=~"JVB|core|haproxy|standalone|java-jibri|sip-jibri|jigasi|jigasi-transcriber"})
         unless on (node) vector_uptime_seconds
     for: 30m
