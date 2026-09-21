@@ -199,8 +199,16 @@ EOF
   percentile_limit = 1000
   datadog_extensions = true
 
+# every exporter below is scraped with its Go runtime and process metrics
+# dropped: nothing queries them, and they are ~2.9k series per prod stack.
+# The filter has to sit here at plugin level. Telegraf silently ignores a
+# namedrop inside [[inputs.prometheus.consul.query]] -- no parse error, no
+# warning -- which is how five dead copies of this line lived in the queries
+# below unnoticed. Add new services here unless their go_*/process_* are
+# actually used, in which case use the input after this one.
 [[inputs.prometheus]]
   http_headers = {"Accept" = "text/plain; version=0.0.4"}
+  namedrop = ["go_*", "process_*"]
   [inputs.prometheus.consul]
     enabled = true
     agent = "{{ env "attr.unique.network.ip-address" }}:8500"
@@ -259,22 +267,6 @@ EOF
         role = "core"
         service = "signal-sidecar"
     [[inputs.prometheus.consul.query]]
-      name = "coturn"
-      tag = "ip-{{ env "attr.unique.network.ip-address" }}"
-      url = 'http://{{"{{"}}if ne .ServiceAddress ""}}{{"{{"}}.ServiceAddress}}{{"{{"}}else}}{{"{{"}}.Address}}{{"{{"}}end}}:9641/{{"{{"}}with .ServiceMeta.metrics_path}}{{"{{"}}.}}{{"{{"}}else}}metrics{{"{{"}}end}}'
-      [inputs.prometheus.consul.query.tags]
-        host = "{{"{{"}}.Node}}"
-        role = "coturn"
-        service = "coturn"
-    [[inputs.prometheus.consul.query]]
-      name = "autoscaler"
-      tag = "ip-{{ env "attr.unique.network.ip-address" }}"
-      url = 'http://{{"{{"}}if ne .ServiceAddress ""}}{{"{{"}}.ServiceAddress}}{{"{{"}}else}}{{"{{"}}.Address}}{{"{{"}}end}}:{{"{{"}}with .ServiceMeta.metrics_port}}{{"{{"}}.}}{{"{{"}}else}}{{"{{"}}.ServicePort}}{{"{{"}}end}}/{{"{{"}}with .ServiceMeta.metrics_path}}{{"{{"}}.}}{{"{{"}}else}}metrics{{"{{"}}end}}'
-      [inputs.prometheus.consul.query.tags]
-        host = "{{"{{"}}.Node}}"
-        role = "autoscaler"
-        service = "autoscaler"
-    [[inputs.prometheus.consul.query]]
       name = "skynet"
       tag = "ip-{{ env "attr.unique.network.ip-address" }}"
       url = 'http://{{"{{"}}if ne .ServiceAddress ""}}{{"{{"}}.ServiceAddress}}{{"{{"}}else}}{{"{{"}}.Address}}{{"{{"}}end}}:{{"{{"}}with .ServiceMeta.metrics_port}}{{"{{"}}.}}{{"{{"}}else}}{{"{{"}}.ServicePort}}{{"{{"}}end}}/{{"{{"}}with .ServiceMeta.metrics_path}}{{"{{"}}.}}{{"{{"}}else}}metrics{{"{{"}}end}}'
@@ -310,7 +302,6 @@ EOF
       name = "redis-metrics"
       tag = "ip-{{ env "attr.unique.network.ip-address" }}"
       url = 'http://{{"{{"}}if ne .ServiceAddress ""}}{{"{{"}}.ServiceAddress}}{{"{{"}}else}}{{"{{"}}.Address}}{{"{{"}}end}}:{{"{{"}}with .ServiceMeta.metrics_port}}{{"{{"}}.}}{{"{{"}}else}}{{"{{"}}.ServicePort}}{{"{{"}}end}}/{{"{{"}}with .ServiceMeta.metrics_path}}{{"{{"}}.}}{{"{{"}}else}}metrics{{"{{"}}end}}'
-      namedrop = ["go_*", "process_*"]
       [inputs.prometheus.consul.query.tags]
         host = "{{"{{"}}.Node}}"
         role = "redis"
@@ -347,7 +338,6 @@ EOF
       name = "docker-dhmirror"
       tag = "ip-{{ env "attr.unique.network.ip-address" }}"
       url = 'http://{{"{{"}}if ne .ServiceAddress ""}}{{"{{"}}.ServiceAddress}}{{"{{"}}else}}{{"{{"}}.Address}}{{"{{"}}end}}:{{"{{"}}with .ServiceMeta.metrics_port}}{{"{{"}}.}}{{"{{"}}else}}{{"{{"}}.ServicePort}}{{"{{"}}end}}{{"{{"}}with .ServiceMeta.metrics_path}}{{"{{"}}.}}{{"{{"}}else}}/metrics{{"{{"}}end}}'
-      namedrop = ["go_*", "process_*"]
       [inputs.prometheus.consul.query.tags]
         host = "{{"{{"}}.Node}}"
         role = "docker-dhmirror"
@@ -367,7 +357,6 @@ EOF
       name = "canary"
       tag = "ip-{{ env "attr.unique.network.ip-address" }}"
       url = 'http://{{"{{"}}if ne .ServiceAddress ""}}{{"{{"}}.ServiceAddress}}{{"{{"}}else}}{{"{{"}}.Address}}{{"{{"}}end}}:{{"{{"}}with .ServiceMeta.metrics_port}}{{"{{"}}.}}{{"{{"}}else}}{{"{{"}}.ServicePort}}{{"{{"}}end}}/{{"{{"}}with .ServiceMeta.metrics_path}}{{"{{"}}.}}{{"{{"}}else}}metrics{{"{{"}}end}}'
-      namedrop = ["go_*", "process_*"]
       [inputs.prometheus.consul.query.tags]
         host = "{{"{{"}}.Node}}"
         service = "canary"
@@ -410,7 +399,6 @@ EOF
       name = "fabio-ext"
       tag = "ip-{{ env "attr.unique.network.ip-address" }}"
       url = 'http://{{"{{"}}if ne .ServiceAddress ""}}{{"{{"}}.ServiceAddress}}{{"{{"}}else}}{{"{{"}}.Address}}{{"{{"}}end}}:{{"{{"}}with .ServiceMeta.metrics_port}}{{"{{"}}.}}{{"{{"}}else}}{{"{{"}}.ServicePort}}{{"{{"}}end}}/{{"{{"}}with .ServiceMeta.metrics_path}}{{"{{"}}.}}{{"{{"}}else}}metrics{{"{{"}}end}}'
-      namedrop = ["go_*", "process_*"]
       [inputs.prometheus.consul.query.tags]
         host = "{{"{{"}}.Node}}"
         service = "fabio-ext"
@@ -418,7 +406,6 @@ EOF
       name = "fabio-int"
       tag = "ip-{{ env "attr.unique.network.ip-address" }}"
       url = 'http://{{"{{"}}if ne .ServiceAddress ""}}{{"{{"}}.ServiceAddress}}{{"{{"}}else}}{{"{{"}}.Address}}{{"{{"}}end}}:{{"{{"}}with .ServiceMeta.metrics_port}}{{"{{"}}.}}{{"{{"}}else}}{{"{{"}}.ServicePort}}{{"{{"}}end}}/{{"{{"}}with .ServiceMeta.metrics_path}}{{"{{"}}.}}{{"{{"}}else}}metrics{{"{{"}}end}}'
-      namedrop = ["go_*", "process_*"]
       [inputs.prometheus.consul.query.tags]
         host = "{{"{{"}}.Node}}"
         service = "fabio-int"
@@ -452,6 +439,33 @@ EOF
       [inputs.prometheus.consul.query.tags]
         host = "{{"{{"}}.Node}}"
         service = "ocular"
+
+# scraped without that namedrop, because their process_open_fds is on a
+# dashboard: grafana/dashboards/autoscaler-monitor.json and
+# grafana/dashboards/jitsi-coturn-with-turn-health.json.
+[[inputs.prometheus]]
+  http_headers = {"Accept" = "text/plain; version=0.0.4"}
+  [inputs.prometheus.consul]
+    enabled = true
+    agent = "{{ env "attr.unique.network.ip-address" }}:8500"
+    query_interval = "1m"
+    [[inputs.prometheus.consul.query]]
+      name = "coturn"
+      tag = "ip-{{ env "attr.unique.network.ip-address" }}"
+      url = 'http://{{"{{"}}if ne .ServiceAddress ""}}{{"{{"}}.ServiceAddress}}{{"{{"}}else}}{{"{{"}}.Address}}{{"{{"}}end}}:9641/{{"{{"}}with .ServiceMeta.metrics_path}}{{"{{"}}.}}{{"{{"}}else}}metrics{{"{{"}}end}}'
+      [inputs.prometheus.consul.query.tags]
+        host = "{{"{{"}}.Node}}"
+        role = "coturn"
+        service = "coturn"
+    [[inputs.prometheus.consul.query]]
+      name = "autoscaler"
+      tag = "ip-{{ env "attr.unique.network.ip-address" }}"
+      url = 'http://{{"{{"}}if ne .ServiceAddress ""}}{{"{{"}}.ServiceAddress}}{{"{{"}}else}}{{"{{"}}.Address}}{{"{{"}}end}}:{{"{{"}}with .ServiceMeta.metrics_port}}{{"{{"}}.}}{{"{{"}}else}}{{"{{"}}.ServicePort}}{{"{{"}}end}}/{{"{{"}}with .ServiceMeta.metrics_path}}{{"{{"}}.}}{{"{{"}}else}}metrics{{"{{"}}end}}'
+      [inputs.prometheus.consul.query.tags]
+        host = "{{"{{"}}.Node}}"
+        role = "autoscaler"
+        service = "autoscaler"
+
 [[inputs.prometheus]]
   namepass = [
     "jitsi_jvb_active_endpoints",
