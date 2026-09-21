@@ -134,8 +134,12 @@ function new() {
     local count="$1"
     local shard
     local shards=""
-    # collect shards from all regions to prevent shard number collisions across regions
-    for region in $ORACLE_REGIONS; do
+    # collect shards from the environment's own regions to prevent shard number
+    # collisions across regions. $ORACLE_REGIONS is every OCI region across all
+    # environments; looping over it here queried datacenters this environment's
+    # Consul cluster has no WAN route to, and each one made consul-search.sh log
+    # a spurious jq parse error (see consul-search.sh:141).
+    for region in $NOMAD_REGIONS; do
         shards="$shards $(RELEASE_NUMBER="" ORACLE_REGION="$region" list)"
     done
 #    local aws_shards=$($LOCAL_PATH/shard.py --list --environment=$ENVIRONMENT)
