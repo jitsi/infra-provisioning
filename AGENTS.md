@@ -129,10 +129,16 @@ for instance) pass the environment's own `OCI_LOCAL_REGION`.
   frozen and stale.
 - **JVBs are pooled per release, not per shard.** The distinguishing label is `release_number`; a
   pool serves every shard on that release. Comparing bridges by shard produces nonsense.
-- **Two Telegraf versions are in the fleet.** The Nomad job runs a current one; the VM population is
-  pinned much older and *hard-fails on unrecognized config keys*. A key added to one config and
-  copied to the other can take the VM fleet down at once — validate against the version that will
-  actually run it.
+- **Telegraf now targets 1.29.5 on both populations** — the `telegraf:1.29.5` image in
+  `nomad/telegraf.hcl`, and `wavefront_collector_version: '1.29.5-1'` installed from apt by the
+  `wavefront` role in `infra-configuration`. That is new, and it is not the same as the fleet being
+  uniform: hosts built from older images still carry 1.22.4 until they are rebuilt, and telegraf
+  *refuses to start* on an unrecognized config key rather than ignoring it. So until those hosts
+  are gone, the VM template (`ansible/roles/wavefront/templates/telegraf.conf.wfcopy.j2`) still has
+  to parse under 1.22.4 — no `collect_gostats`, `fieldpass`/`fielddrop` rather than
+  `fieldinclude`/`fieldexclude`, and alert on `gather_errors` rather than `gather_timeouts`. The
+  Nomad jobspec is already free of that constraint and uses the 1.29 spellings. To see where the
+  rebuild has got to: `count by (version) (telegraf_internal_agent_metrics_gathered)`.
 - **Deprecated, still present:** `terraform/nomad-server`, `terraform/ops-repo`,
   `terraform/jigasi-proxy` (jigasi proxy runs in Nomad now). Plumb them when a change must be
   exhaustive; don't invest in them otherwise.
