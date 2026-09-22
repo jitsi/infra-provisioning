@@ -132,11 +132,13 @@ for instance) pass the environment's own `OCI_LOCAL_REGION`.
 - **Telegraf targets 1.40.1 on both populations** — the `telegraf:1.40.1` image in
   `nomad/telegraf.hcl`, and `wavefront_collector_version: '1.40.1-1'` installed from apt by the
   `wavefront` role in `infra-configuration`. Keep the two equal: one config dialect, one metric set.
-  The fleet is not uniform, though. A VM host runs whatever telegraf its base image was built with,
-  and only re-renders its config at boot or on a reconfigure, so a host built before the pin moved
-  keeps the old binary and gets the new config. Telegraf *refuses to start* on a config key it does
-  not recognize, so both configs have to parse under the oldest binary still out there. To see where
-  the rebuild has got to: `count by (version) (telegraf_internal_agent_metrics_gathered)`.
+  The fleet is not uniform, though: a VM runs whatever telegraf its base image was built with, long
+  after the pin moves. Telegraf *refuses to start* on a config key it does not recognize, so the VM
+  template reads the installed binary's version (`roles/wavefront/tasks/telegraf/detect_version.yml`)
+  and renders the dialect that version accepts — a newer `infra-configuration` against an older
+  image is safe, and playbooks can write either spelling of a field filter. The Nomad job needs no
+  such gate: the jobspec pins its own image. To see where the fleet has got to:
+  `count by (version) (telegraf_internal_agent_metrics_gathered)`.
 - **Telegraf drops behaviour in minor releases, silently.** Between 1.29 and 1.40 it stopped
   collecting protocol stats in `inputs.net` (the `net_tcp_*`/`net_udp_*` series, now `inputs.nstat`
   under `nstat_Tcp*` names), removed `fieldpass`/`fielddrop`, removed `procstat`'s
