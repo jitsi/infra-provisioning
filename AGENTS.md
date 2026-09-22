@@ -129,16 +129,21 @@ for instance) pass the environment's own `OCI_LOCAL_REGION`.
   frozen and stale.
 - **JVBs are pooled per release, not per shard.** The distinguishing label is `release_number`; a
   pool serves every shard on that release. Comparing bridges by shard produces nonsense.
-- **Telegraf now targets 1.29.5 on both populations** — the `telegraf:1.29.5` image in
-  `nomad/telegraf.hcl`, and `wavefront_collector_version: '1.29.5-1'` installed from apt by the
-  `wavefront` role in `infra-configuration`. That is new, and it is not the same as the fleet being
-  uniform: hosts built from older images still carry 1.22.4 until they are rebuilt, and telegraf
-  *refuses to start* on an unrecognized config key rather than ignoring it. So until those hosts
-  are gone, the VM template (`ansible/roles/wavefront/templates/telegraf.conf.wfcopy.j2`) still has
-  to parse under 1.22.4 — no `collect_gostats`, `fieldpass`/`fielddrop` rather than
-  `fieldinclude`/`fieldexclude`, and alert on `gather_errors` rather than `gather_timeouts`. The
-  Nomad jobspec is already free of that constraint and uses the 1.29 spellings. To see where the
-  rebuild has got to: `count by (version) (telegraf_internal_agent_metrics_gathered)`.
+- **Telegraf targets 1.40.1 on both populations** — the `telegraf:1.40.1` image in
+  `nomad/telegraf.hcl`, and `wavefront_collector_version: '1.40.1-1'` installed from apt by the
+  `wavefront` role in `infra-configuration`. Keep the two equal: one config dialect, one metric set.
+  The fleet is not uniform, though. A VM host runs whatever telegraf its base image was built with,
+  and only re-renders its config at boot or on a reconfigure, so a host built before the pin moved
+  keeps the old binary and gets the new config. Telegraf *refuses to start* on a config key it does
+  not recognize, so both configs have to parse under the oldest binary still out there. To see where
+  the rebuild has got to: `count by (version) (telegraf_internal_agent_metrics_gathered)`.
+- **Telegraf drops behaviour in minor releases, silently.** Between 1.29 and 1.40 it stopped
+  collecting protocol stats in `inputs.net` (the `net_tcp_*`/`net_udp_*` series, now `inputs.nstat`
+  under `nstat_Tcp*` names), removed `fieldpass`/`fielddrop`, removed `procstat`'s
+  `cmdline_tag`/`pid_tag` and `inputs.docker`'s `perdevice`, and narrowed procstat's default field
+  set. Some of that fails the config outright; the rest just stops emitting. So never float the
+  version, and when you move it, render the config for every population, run it under both versions
+  and diff the emitted metric names — reading the changelog is not enough.
 - **Deprecated, still present:** `terraform/nomad-server`, `terraform/ops-repo`,
   `terraform/jigasi-proxy` (jigasi proxy runs in Nomad now). Plumb them when a change must be
   exhaustive; don't invest in them otherwise.
@@ -160,5 +165,5 @@ yourself:
   `namedrop` inside a `[[inputs.prometheus.consul.query]]` block with no error and no warning, and
   silently ignores it, so five dead filters sat unnoticed in `nomad/telegraf.hcl` from 2025 until
   someone measured what was actually being scraped.
-- Say in the PR what you ran. "Rendered and parsed with telegraf 1.29.5" is worth more than a
+- Say in the PR what you ran. "Rendered and parsed with telegraf 1.40.1" is worth more than a
   description of the diff.

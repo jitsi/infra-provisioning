@@ -421,7 +421,7 @@
                       "spec": {
                         "disableTextWrap": false,
                         "editorMode": "code",
-                        "expr": "sum(increase(net_udp_rcvbuferrors{environment=~\"$environment\",region=~\"$region\",pool_type=\"coturn\"}[$__rate_interval])) by (environment)",
+                        "expr": "sum(increase({__name__=~\"net_udp_rcvbuferrors|nstat_UdpRcvbufErrors\",environment=~\"$environment\",region=~\"$region\",pool_type=\"coturn\"}[$__rate_interval])) by (environment)",
                         "fullMetaSearch": false,
                         "includeNullMetadata": true,
                         "legendFormat": "__auto",
@@ -545,7 +545,7 @@
                       "spec": {
                         "disableTextWrap": false,
                         "editorMode": "code",
-                        "expr": "sum(increase(net_udp_rcvbuferrors{environment=~\"$environment\",region=~\"$region\",pool_type=\"coturn\"}[$__rate_interval])) by (region)",
+                        "expr": "sum(increase({__name__=~\"net_udp_rcvbuferrors|nstat_UdpRcvbufErrors\",environment=~\"$environment\",region=~\"$region\",pool_type=\"coturn\"}[$__rate_interval])) by (region)",
                         "fullMetaSearch": false,
                         "includeNullMetadata": true,
                         "legendFormat": "__auto",
