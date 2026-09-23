@@ -146,12 +146,12 @@ EOF
 
 [[inputs.docker]]
   endpoint = "unix:///var/run/docker.sock"
-  # perdevice was removed in telegraf 1.40; perdevice_include = [] is the
-  # spelling of the same thing. total_include drops "network" with it: the
-  # legacy perdevice = false suppressed the network totals too, so no
-  # docker_container_net_* has ever reached prometheus from this job, and
-  # asking for them now would add ~8 series per container.
-  perdevice_include = []
+  # perdevice was removed in telegraf 1.40. Under 1.29.5, perdevice = false left
+  # perdevice_include at its default of ["cpu"], and total (unset, so false)
+  # reduced total_include to ["cpu"] whatever was listed, so this job has only
+  # ever emitted cpu and mem: no docker_container_net_* has reached prometheus,
+  # and asking for them now would add ~8 series per container.
+  perdevice_include = ["cpu"]
   total_include = ["cpu"]
   tagexclude = ["org.opencontainers.image.revision","engine_host","org.opencontainers.image.version","container_status","container_name","container_id","com.hashicorp.nomad.alloc_id","org.opencontainers.image.title","container_verison", "com.hashicorp.nomad.namespace","server_version","container_image"]
   namepass = ["docker_container_cpu*","docker_container_mem*","docker_container_net*"]
