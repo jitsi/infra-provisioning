@@ -10,15 +10,32 @@ def gaReleaseFromEnvironment(environment) {
     return releaseGA
 }
 
+// a release whose shards are gone can still have JVB pools left behind, so
+// look in both places
 def oldReleasesFromEnvironment(environment, latestRelease) {
     echo "Searching for old releases not matching $latestRelease"
-    def releases = sh(
+    def shardReleases = sh(
         returnStdout: true,
         script: """#!/bin/bash
             export ENVIRONMENT="${environment}"
             scripts/shard.sh list_releases ubuntu"""
-    ).trim().split(' ');
-    def oldReleases = releases.findAll{!it.equals(latestRelease)}
+    ).trim();
+    echo "Found releases with shards: $shardReleases"
+    def poolReleases = sh(
+        returnStdout: true,
+        script: """#!/bin/bash
+            export ENVIRONMENT="${environment}"
+            scripts/list-jvb-pool-releases.sh"""
+    ).trim();
+    echo "Found releases with JVB pools: $poolReleases"
+    def releases = "${shardReleases} ${poolReleases}".toString().split(' ')
+    def oldReleases = []
+    for (def i = 0; i < releases.size(); i++) {
+        def r = releases[i]
+        if (r != "" && !r.equals(latestRelease) && !oldReleases.contains(r)) {
+            oldReleases.add(r)
+        }
+    }
     echo "Found old releases: $oldReleases"
     return oldReleases
 }
@@ -165,13 +182,17 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                         sshagent (credentials: ['ssh-ubuntu']) {
                             script {
                                 def OLD_RELEASES = oldReleasesFromEnvironment(env.ENVIRONMENT, myRelease.toString()).join(' ')
-                                // wait a few minutes before starting release job
-                                sleep 300
-                                build job: 'destroy-release-core',parameters: [
-                                    [$class: 'StringParameterValue', name: 'RELEASE_NUMBER', value: OLD_RELEASES],
-                                    [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: env.ENVIRONMENT],
-                                    [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH]
-                                ]
+                                if (OLD_RELEASES != "") {
+                                    // wait a few minutes before starting release job
+                                    sleep 300
+                                    build job: 'destroy-release-core',parameters: [
+                                        [$class: 'StringParameterValue', name: 'RELEASE_NUMBER', value: OLD_RELEASES],
+                                        [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: env.ENVIRONMENT],
+                                        [$class: 'StringParameterValue', name: 'VIDEO_INFRA_BRANCH', value: env.VIDEO_INFRA_BRANCH]
+                                    ]
+                                } else {
+                                    echo 'No old releases found, skipping cleanup'
+                                }
                             }
                         }
                     }
