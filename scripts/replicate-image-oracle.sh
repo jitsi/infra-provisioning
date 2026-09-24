@@ -85,7 +85,7 @@ coTURN)
   SERVICE_VERSION="latest"
   ;;
 JavaJibri)
-  [ -z "$IMAGE_ARCH" ] && IMAGE_ARCH="x86_64"
+  [ -z "$IMAGE_ARCH" ] && IMAGE_ARCH="aarch64"
   IMAGE_NAME_PREFIX="BuildJavaJibri"
 
   #if we're not given versions, search for the latest image

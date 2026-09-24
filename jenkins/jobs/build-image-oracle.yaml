@@ -10,7 +10,7 @@
           trim: true
       - string:
           name: IMAGE_ARCH
-          description: "Arch of image to build, could be 'aarch64' or 'x86_64', defaults to 'aarch64' in most cases except GPU, Jibri and SeleniumGrid"
+          description: "Arch of image to build, could be 'aarch64' or 'x86_64', defaults to 'aarch64' in most cases except GPU and SeleniumGrid"
           trim: true
       - string:
           name: ORACLE_REGION
