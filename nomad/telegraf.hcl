@@ -102,7 +102,7 @@ job "[JOB_NAME]" {
         group_add = ["985"]
         network_mode = "host"
         privileged = true
-        image        = "telegraf:1.29.5"
+        image        = "telegraf:1.40.1"
         ports = ["telegraf-statsd","telegraf-prometheus"]
         volumes = ["local/telegraf.conf:/etc/telegraf/telegraf.conf", "local/consul-resolved.conf:/etc/systemd/resolved.conf.d/consul.conf", "/var/run/docker.sock:/var/run/docker.sock"]
       }
@@ -146,8 +146,13 @@ EOF
 
 [[inputs.docker]]
   endpoint = "unix:///var/run/docker.sock"
-  perdevice = false
-  total_include = ["cpu", "network"]
+  # perdevice was removed in telegraf 1.40. Under 1.29.5, perdevice = false left
+  # perdevice_include at its default of ["cpu"], and total (unset, so false)
+  # reduced total_include to ["cpu"] whatever was listed, so this job has only
+  # ever emitted cpu and mem: no docker_container_net_* has reached prometheus,
+  # and asking for them now would add ~8 series per container.
+  perdevice_include = ["cpu"]
+  total_include = ["cpu"]
   tagexclude = ["org.opencontainers.image.revision","engine_host","org.opencontainers.image.version","container_status","container_name","container_id","com.hashicorp.nomad.alloc_id","org.opencontainers.image.title","container_verison", "com.hashicorp.nomad.namespace","server_version","container_image"]
   namepass = ["docker_container_cpu*","docker_container_mem*","docker_container_net*"]
 
@@ -167,14 +172,21 @@ EOF
   fieldinclude = [ "active", "available", "buffered", "cached", "free", "total",  "used" ]
 
 [[inputs.net]]
-  fieldinclude = ["bytes*","drop*","packets*","err*","tcp_retranssegs","udp_rcvbuferrors"]
-  # tcp_retranssegs and udp_rcvbuferrors are protocol stats from /proc/net/snmp,
-  # so ignoring protocol stats silently drops the two fields the fieldinclude above
-  # asks for by name. The wildcards only ever match per-interface counters.
-  ignore_protocol_stats = false
+  # Per-interface counters only. This plugin used to also read the protocol
+  # stats in /proc/net/snmp, which is where net_tcp_retranssegs and
+  # net_udp_rcvbuferrors came from; telegraf 1.37 dropped that and nothing in
+  # inputs.net brings it back, so those counters come from inputs.nstat below
+  # instead, under their /proc/net/snmp names.
+  fieldinclude = ["bytes*","drop*","packets*","err*"]
 
 [[inputs.nstat]]
-  fieldinclude = ["TcpInSegs", "TcpOutSegs", "TcpRetransSegs", "UdpInErrors", "Udp6InErrors"]
+  # UdpRcvbufErrors replaces net_udp_rcvbuferrors (the coturn UDP receive
+  # buffer alert), TcpRetransSegs replaces net_tcp_retranssegs. nstat drops
+  # zero-valued fields by default, which would make those counters appear only
+  # once they are non-zero; inputs.net always emitted them, and increase() over
+  # a series that blinks into existence is worse than one that sits at zero.
+  dump_zeros = true
+  fieldinclude = ["TcpInSegs", "TcpOutSegs", "TcpRetransSegs", "UdpInErrors", "Udp6InErrors", "UdpRcvbufErrors"]
 
 [[inputs.processes]]
   fieldinclude = ["blocked", "idle", "paging", "running", "total*"]
