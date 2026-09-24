@@ -174,7 +174,7 @@ EOF
 [[inputs.net]]
   # Per-interface counters only. This plugin used to also read the protocol
   # stats in /proc/net/snmp, which is where net_tcp_retranssegs and
-  # net_udp_rcvbuferrors came from; telegraf 1.36 dropped that and nothing in
+  # net_udp_rcvbuferrors came from; telegraf 1.37 dropped that and nothing in
   # inputs.net brings it back, so those counters come from inputs.nstat below
   # instead, under their /proc/net/snmp names.
   fieldinclude = ["bytes*","drop*","packets*","err*"]

@@ -1378,10 +1378,11 @@ groups:
 - name: core_extended_service_alerts
   rules:
   - alert: Coturn_UDP_Errors_High
-    # Both names are the same /proc/net/snmp counter: telegraf 1.36 stopped
+    # Both names are the same /proc/net/snmp counter: telegraf 1.37 stopped
     # collecting protocol stats in inputs.net, so it comes from inputs.nstat as
     # nstat_UdpRcvbufErrors from telegraf 1.40 on. Regions upgrade one at a time,
-    # so match both until every coturn is off 1.29.5.
+    # so match both; drop net_udp_rcvbuferrors from the match once
+    # count(net_udp_rcvbuferrors{pool_type="coturn"}) returns nothing.
     expr: sum(increase({__name__=~"net_udp_rcvbuferrors|nstat_UdpRcvbufErrors", pool_type="coturn"}[2m])) > 2000
     for: 2m
     labels:
