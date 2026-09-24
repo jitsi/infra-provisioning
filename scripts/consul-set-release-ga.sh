@@ -46,6 +46,26 @@ OCI_LOCAL_DATACENTER="$ENVIRONMENT-$OCI_LOCAL_REGION"
 CONSUL_AWS_HOST="consul-$AWS_CONSUL_ENV-$AWS_LOCAL_DATACENTER.$TOP_LEVEL_DNS_ZONE_NAME"
 CONSUL_OCI_HOST="$OCI_LOCAL_DATACENTER-consul.$TOP_LEVEL_DNS_ZONE_NAME"
 
+# Consul answers a successful KV PUT with the body "true". A write forwarded to
+# another datacenter can instead fail with an HTTP 500 and a body such as
+# "rpc error making call: EOF"; curl still exits 0 for that, so the body is the
+# only reliable signal. Retry, since those failures are usually transient.
+PUT_ATTEMPTS=5
+function put_release() {
+    local kv_url="$1"
+    local attempt
+    local response
+    for attempt in $(seq 1 $PUT_ATTEMPTS); do
+        response=$(curl -s -d"$RELEASE_VALUE" -X PUT "$kv_url")
+        if [[ "$response" == "true" ]]; then
+            return 0
+        fi
+        echo "## consul-set-release-ga: attempt $attempt/$PUT_ATTEMPTS to set $KV_KEY at $kv_url failed: $response"
+        [ $attempt -lt $PUT_ATTEMPTS ] && sleep 2
+    done
+    return 1
+}
+
 if [[ "$CONSUL_VIA_SSH" == "true" ]]; then
     echo "## consul-set-release-ga: setting up ssh tunnels for consul"
     if [[ "$CONSUL_INCLUDE_AWS" == "true" ]]; then
@@ -117,8 +137,7 @@ if [[ ! -z "$DATACENTERS" && "$DATACENTERS" != '[]' ]]; then
     if [[ "$CONSUL_INCLUDE_AWS" == "true" ]]; then
         for DC in $AWS_DATACENTERS; do
             KV_URL="$CONSUL_URL/v1/kv/$KV_KEY?dc=$DC"
-            RESPONSE=$(curl -d"$RELEASE_VALUE" -X PUT $KV_URL)
-            if [ $? -gt 0 ]; then
+            if ! put_release "$KV_URL"; then
                 echo "Failed setting release in $DC"
                 FINAL_RET=3
             fi
@@ -127,8 +146,7 @@ if [[ ! -z "$DATACENTERS" && "$DATACENTERS" != '[]' ]]; then
     if [[ "$CONSUL_INCLUDE_OCI" == "true" ]]; then
         for DC in $OCI_DATACENTERS; do
             KV_URL="$OCI_CONSUL_URL/v1/kv/$KV_KEY?dc=$DC"
-            RESPONSE=$(curl -d"$RELEASE_VALUE" -X PUT $KV_URL)
-            if [ $? -gt 0 ]; then
+            if ! put_release "$KV_URL"; then
                 echo "Failed setting release in $DC"
                 FINAL_RET=3
             fi
