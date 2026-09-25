@@ -105,8 +105,8 @@ elif [ "$JIBRI_TYPE" == "sip-jibri" ]; then
       [ -z "$OCPUS" ] && OCPUS=8
       [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=16
     elif [[ "$SHAPE" == "VM.Standard.A1.Flex" ]]; then
-      [ -z "$OCPUS" ] && OCPUS=16
-      [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=16
+      [ -z "$OCPUS" ] && OCPUS=8
+      [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=8
     elif [[ "$SHAPE" == "VM.Standard.A2.Flex" ]]; then
       [ -z "$OCPUS" ] && OCPUS=8
       [ -z "$MEMORY_IN_GBS" ] && MEMORY_IN_GBS=16
