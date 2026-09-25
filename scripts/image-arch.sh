@@ -13,7 +13,7 @@ function default_arch_from_type() {
     DTYPE="$1"
     IMAGE_ARCH="aarch64"
     case "$DTYPE" in
-        FocalBase|GPU|JavaJibri|SeleniumGrid)
+        FocalBase|GPU|SeleniumGrid)
             IMAGE_ARCH="x86_64"
             ;;
     esac
