@@ -30,6 +30,25 @@ job "[JOB_NAME]" {
 
   type        = "system"
 
+  // A system job creates no deployment -- `nomad job deployments
+  // grid-node-validate` reports none -- and a deployment is what would carry a
+  // rolling update forward. Under Nomad's default max_parallel = 1 the
+  // scheduler therefore makes exactly one destructive update per submission
+  // and then stops.
+  //
+  // That is not theoretical: the 2026-09-23 rebuild moved the job to a new
+  // image tag, one allocation was replaced, and two days later 27 of 34 were
+  // still running the 2026-09-09 image. The handful that had advanced did so
+  // by churning on their own, not because of the deploy.
+  //
+  // max_parallel = 0 selects forced updates instead of deployments, so a
+  // submission replaces every allocation. This is what makes a changed
+  // image_version actually roll the fleet, which the whole immutable-tag
+  // design in auto-update-selenium-grid depends on.
+  update {
+    max_parallel = 0
+  }
+
   // must have linux for network mode
   constraint {
     attribute = "${attr.kernel.name}"
