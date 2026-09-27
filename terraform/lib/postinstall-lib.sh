@@ -351,6 +351,21 @@ function clone_repo_with_fallback() {
   echo "Failed to clone $name at $ref from github"
   return 1
 }
+# per repo: any failure at $GIT_BRANCH falls back to main; booting on main beats failing
+function clone_infra_repo() {
+  local name="$1"
+  local mirror_url="$2"
+  local origin_url="$3"
+  local target="$BOOTSTRAP_DIRECTORY/$name"
+  local ref="${GIT_BRANCH:-main}"
+  local fallback_ref="${GIT_FALLBACK_BRANCH:-main}"
+  clone_repo_with_fallback "$name" "$mirror_url" "$origin_url" "$target" "$ref" && return 0
+  if [ "$fallback_ref" != "$ref" ]; then
+    echo "WARNING: could not get $name at $ref from any source, trying $fallback_ref"
+    clone_repo_with_fallback "$name" "$mirror_url" "$origin_url" "$target" "$fallback_ref" && return 0
+  fi
+  return 1
+}
 function checkout_repos() {
   if [ -z "$BOOTSTRAP_DIRECTORY" ]; then
     echo "No BOOTSTRAP_DIRECTORY set, refusing to check out repos"
@@ -364,9 +379,11 @@ function checkout_repos() {
     echo "Found local repo copies in $LOCAL_REPO_DIRECTORY, setting GIT_ALTERNATE_OBJECT_DIRECTORIES"
     export GIT_ALTERNATE_OBJECT_DIRECTORIES="$LOCAL_REPO_DIRECTORY/infra-configuration/.git/objects:$LOCAL_REPO_DIRECTORY/infra-customizations/.git/objects"
   fi
-  clone_repo_with_fallback "infra-configuration" "$INFRA_CONFIGURATION_MIRROR_REPO" "$INFRA_CONFIGURATION_REPO" "$BOOTSTRAP_DIRECTORY/infra-configuration" "$GIT_BRANCH" || return 1
-  clone_repo_with_fallback "infra-customizations" "$INFRA_CUSTOMIZATIONS_MIRROR_REPO" "$INFRA_CUSTOMIZATIONS_REPO" "$BOOTSTRAP_DIRECTORY/infra-customizations" "$GIT_BRANCH"
-  local status_code=$?
+  local status_code=0
+  clone_infra_repo "infra-configuration" "$INFRA_CONFIGURATION_MIRROR_REPO" "$INFRA_CONFIGURATION_REPO" || status_code=1
+  if [ $status_code -eq 0 ]; then
+    clone_infra_repo "infra-customizations" "$INFRA_CUSTOMIZATIONS_MIRROR_REPO" "$INFRA_CUSTOMIZATIONS_REPO" || status_code=1
+  fi
   forget_mirror_credentials
   [ $status_code -ne 0 ] && return 1
   cp -a $BOOTSTRAP_DIRECTORY/infra-customizations/* $BOOTSTRAP_DIRECTORY/infra-configuration
