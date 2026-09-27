@@ -50,16 +50,17 @@ function add_ip_tags() {
     if [ $? -eq 0 ]; then
         PUBLIC_IP=$(echo "$vnic_details_result" | jq -r '.data["public-ip"]')
         PRIVATE_IP=$(echo "$vnic_details_result" | jq -r '.data["private-ip"]')
-        IMAGE=$(curl -s curl http://169.254.169.254/opc/v1/instance/ | jq -r '.image')
+        # current tags from instance metadata, not a second oci call; no etag there, and nothing else writes freeform tags this early
+        INSTANCE_METADATA=$(curl -s http://169.254.169.254/opc/v1/instance/)
+        IMAGE=$(echo "$INSTANCE_METADATA" | jq -r '.image')
         [ "$IMAGE" == "null" ] && IMAGE=""
         [ ! -z "$IMAGE" ] && IMAGE_ITEM=", \"image\": \"$IMAGE\""
         [ "$PUBLIC_IP" == "null" ] && PUBLIC_IP=""
         [ ! -z "$PUBLIC_IP" ] && PUBLIC_IP_ITEM=", \"public_ip\": \"$PUBLIC_IP\""
         ITEM="{\"private_ip\": \"$PRIVATE_IP\"${PUBLIC_IP_ITEM}${IMAGE_ITEM}}"
-        INSTANCE_METADATA=`$OCI_BIN compute instance get --instance-id $INSTANCE_ID | jq .`
-        INSTANCE_ETAG=$(echo $INSTANCE_METADATA | jq -r '.etag')
-        NEW_FREEFORM_TAGS=$(echo $INSTANCE_METADATA | jq --argjson ITEM "$ITEM" '.data["freeform-tags"] += $ITEM' | jq '.data["freeform-tags"]')
-        $OCI_BIN compute instance update --instance-id $INSTANCE_ID --freeform-tags "$NEW_FREEFORM_TAGS" --if-match "$INSTANCE_ETAG" --force
+        NEW_FREEFORM_TAGS=$(echo "$INSTANCE_METADATA" | jq -e --argjson ITEM "$ITEM" 'select(.freeformTags != null) | .freeformTags + $ITEM') || return 2
+        [ -n "$NEW_FREEFORM_TAGS" ] || return 2
+        $OCI_BIN compute instance update --instance-id $INSTANCE_ID --freeform-tags "$NEW_FREEFORM_TAGS" --force
         rm /tmp/oracle_cache-ocid* || echo "No cache to delete"
     else
       return 2
@@ -297,22 +298,26 @@ function git_url_host() {
   echo "$1" | sed -E 's#^[a-z]+://([^@/]*@)?([^/:]+).*#\2#'
 }
 # no terminal at boot: fail instead of prompting. Mirror credential via env-reading helper, never argv or disk
+# depth 1 at the one ref (branch or tag): boot needs a tree, not history; a missing ref fails before any download
 function git_clone_for_boot() {
   local url="$1"
   local target="$2"
+  local ref="${3:-}"
+  local clone_args=(clone --depth 1 --single-branch)
+  [ -n "$ref" ] && clone_args+=(--branch "$ref")
   if [ -z "${MIRROR_GIT_PASSWORD:+set}" ] || [ "$(git_url_host "$url")" != "$MIRROR_GIT_HOST" ]; then
-    GIT_TERMINAL_PROMPT=0 git clone "$url" "$target"
+    GIT_TERMINAL_PROMPT=0 git "${clone_args[@]}" "$url" "$target"
     return $?
   fi
   local xtrace=false
   [[ $- == *x* ]] && xtrace=true
   set +x
-  echo "+ git clone $(loggable_git_url "$url") $target"
+  echo "+ git ${clone_args[*]} $(loggable_git_url "$url") $target"
   local rc=0
   GIT_TERMINAL_PROMPT=0 MIRROR_GIT_USERNAME="$MIRROR_GIT_USERNAME" MIRROR_GIT_PASSWORD="$MIRROR_GIT_PASSWORD" \
     git -c credential.helper= \
         -c 'credential.helper=!f() { if [ "$1" = get ]; then printf "username=%s\npassword=%s\n" "$MIRROR_GIT_USERNAME" "$MIRROR_GIT_PASSWORD"; fi; }; f' \
-        clone "$url" "$target" || rc=$?
+        "${clone_args[@]}" "$url" "$target" || rc=$?
   [ "$xtrace" == "true" ] && set -x
   return $rc
 }
@@ -323,7 +328,7 @@ function clone_repo_at_ref() {
   [ -z "$url" ] && return 1
   [ -z "$target" ] && return 1
   rm -rf "$target"
-  git_clone_for_boot "$url" "$target" || return 1
+  git_clone_for_boot "$url" "$target" "$ref" || return 1
   git -C "$target" checkout "$ref" || return 1
   git -C "$target" submodule update --init --recursive || return 1
   git -C "$target" show-ref "heads/$ref" || git -C "$target" show-ref "tags/$ref" || return 1
