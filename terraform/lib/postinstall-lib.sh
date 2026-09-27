@@ -351,7 +351,7 @@ function clone_repo_with_fallback() {
   echo "Failed to clone $name at $ref from github"
   return 1
 }
-# per repo: a branch neither source has falls back to main
+# per repo: any failure at $GIT_BRANCH falls back to main; booting on main beats failing
 function clone_infra_repo() {
   local name="$1"
   local mirror_url="$2"
