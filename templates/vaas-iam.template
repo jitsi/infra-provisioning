@@ -327,54 +327,6 @@
         ]
       }
     },
-    "WavefrontProxyRole": {
-      "Type": "AWS::IAM::Role",
-      "Properties": {
-        "AssumeRolePolicyDocument": {
-          "Version": "2012-10-17",
-          "Statement": [
-            {
-              "Sid": "",
-              "Effect": "Allow",
-              "Principal": {
-                "Service": "ec2.amazonaws.com"
-              },
-              "Action": "sts:AssumeRole"
-            },
-            {
-              "Sid": "",
-              "Effect": "Allow",
-              "Principal": {
-                "Service": "autoscaling.amazonaws.com"
-              },
-              "Action": "sts:AssumeRole"
-            }
-          ]
-        },
-        "Path": "/",
-        "RoleName": "WavefrontProxyRole",
-        "ManagedPolicyArns": [
-          {
-            "Ref": "AmazonEC2ReadOnlyAccess"
-          },
-          {
-            "Ref": "S3VaasLogstashAssetsAccess"
-          }
-        ]
-      }
-    },
-    "WavefrontProxyInstanceProfile": {
-      "Type": "AWS::IAM::InstanceProfile",
-      "Properties": {
-        "InstanceProfileName": "WavefrontProxyRole",
-        "Path": "/",
-        "Roles": [
-          {
-            "Ref": "WavefrontProxyRole"
-          }
-        ]
-      }
-    },
     "HipChatVideoJibri": {
       "Type": "AWS::IAM::Role",
       "Properties": {

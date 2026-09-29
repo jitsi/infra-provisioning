@@ -3,8 +3,7 @@
     display-name: synthetic conference test
     description: >
       Tests that conference connections can stay up for a duration to shards and
-      bridges. Requires a selenium grid to launch tests from. Publishes results
-      to a Wavefront proxy and to Cloudwatch.
+      bridges. Requires a selenium grid to launch tests from.
     concurrent: true
     parameters:
       - string:
@@ -14,11 +13,6 @@
       - string:
           name: SELENIUM_HUB_URL
           description: "URL for the Selenium hub."
-          trim: true
-      - string:
-          name: WAVEFRONT_PROXY_URL
-          default: wavefront-proxy.example.com:2878
-          description: "URL to upload metrics to wavefront."
           trim: true
       - string:
           name: TEST_DURATION_MINUTES

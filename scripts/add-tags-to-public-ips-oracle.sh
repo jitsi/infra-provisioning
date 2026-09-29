@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 set -x
 
-# e.g. ../all/bin/terraform/wavefront-proxy
 LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 
 if [ -z $ENVIRONMENT ]; then

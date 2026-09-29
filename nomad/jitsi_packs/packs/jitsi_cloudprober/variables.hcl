@@ -57,11 +57,6 @@ variable "enable_autoscaler" {
   type        = bool
   default     = false
 }
-variable "enable_wavefront_proxy" {
-  description = "Whether to enable wavefront-proxy probes"
-  type        = bool
-  default     = true
-}
 variable "enable_coturn" {
   description = "Whether to enable coturn probes"
   type        = bool
