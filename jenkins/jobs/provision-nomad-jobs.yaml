@@ -11,10 +11,10 @@
 # file) and refreshes all of them, rather than one JOB_NAME per type.
 #
 # A type whose display name, description or parameters do not follow the pattern
-# stays in its own file: provision-nomad-wavefront-proxy has no description, and
-# the types that take extra parameters (coturn, shard-backend, gitea-mirror,
-# autoscaler, web-release, alertmanager, cloudprober, multitrack-recorder,
-# opus-transcriber-proxy-monitor) each declare their own.
+# stays in its own file: the types that take extra parameters (coturn,
+# shard-backend, gitea-mirror, autoscaler, web-release, alertmanager,
+# cloudprober, multitrack-recorder, opus-transcriber-proxy-monitor) each declare
+# their own.
 
 - job-template:
     name: provision-nomad-{jobtype}

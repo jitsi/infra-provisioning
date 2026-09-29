@@ -76,10 +76,6 @@ Create a bucket called `tf-state-<compartment-name>` at the top level for compar
 
 #### Merge the Branch in master
 
-#### Create Wavefront Proxy From Branch
-* Run the `provision-wavefront-proxy-oracle` job.
-* Add the new proxy to the `wavefront_proxy_host_by_cloud` map
-
 #### Test The Branch By Creating A New JVB Image From Branch And A JVB Instance pool
 * Test JVB deployment with `provision-jvb-pool`
 * Destroy the JVB after test with `destroy-jvb-pool`

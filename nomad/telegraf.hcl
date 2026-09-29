@@ -11,16 +11,6 @@ variable cloud_provider {
     default = "oracle"
 }
 
-variable wavefront_proxy_url {
-    type = string
-    default = "http://localhost:2878"
-}
-
-variable wavefront_enabled {
-  type = bool
-  default = false
-}
-
 job "[JOB_NAME]" {
   datacenters = [var.dc]
   type        = "system"
@@ -631,13 +621,6 @@ EOF
   path = "/metrics"
   collectors_exclude = ["gocollector","process"]
 
-%{ if var.wavefront_enabled }[[outputs.wavefront]]
-  url = "${var.wavefront_proxy_url}"
-  metric_separator = "."
-  source_override = ["hostname", "snmp_host", "node_host"]
-  convert_paths = true
-  use_regex = false
-%{ endif }
 [global_tags]
   environment = "{{ env "NOMAD_META_environment" }}"
   region = "{{ env "meta.cloud_region" }}"

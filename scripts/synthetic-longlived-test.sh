@@ -36,11 +36,6 @@ if [ -z "$TORTURE_GITHUB_TOKEN" ]; then
   exit 2
 fi
 
-if [ -z "$WAVEFRONT_PROXY_URL" ]; then
-  echo "## No WAVEFRONT_PROXY_URL found. Exiting..."
-  exit 2
-fi
-
 if [ -x "$LOCAL_PATH/generate-client-token.sh" ]; then
   # generate a token if a client key file is defined
   if [ -n "$ASAP_CLIENT_SIGNING_KEY_FILE" ]; then
@@ -127,22 +122,18 @@ if [[ $SUCCESS -ne 0 ]]; then
 fi
 
 if [[ $SUCCESS == 0 ]]; then
-    CLOUDWATCH_VALUE=0
     set +x
     echo "------------------------------------------------------------------------"
     echo "- CONFERENCE WEB TEST SUCCESS"
     echo "------------------------------------------------------------------------"
     echo ""
 else
-    CLOUDWATCH_VALUE=1
     set +x
     echo "------------------------------------------------------------------------"
     echo "- CONFERENCE WEB TEST FAILURE"
     echo "------------------------------------------------------------------------"
     echo ""
 fi
-
-echo "jitsi_longlived_test_failure $CLOUDWATCH_VALUE source=jenkins-internal.jitsi.net environment=$ENVIRONMENT region=$CLOUDWATCH_REGION cloud=aws" | curl -s --data @- $WAVEFRONT_PROXY_URL
 
 if [[ $SUCCESS == 0 ]]; then
 	exit 0

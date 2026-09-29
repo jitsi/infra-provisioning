@@ -52,7 +52,7 @@
           trim: true
       - string:
           name: TELEGRAF_ENABLED
-          description: "Enables telegraf reporting to wavefront"
+          description: "Enables telegraf metrics, exposed for prometheus"
           trim: true
       - string:
           name: DOCKER_COMPOSE_FLAG

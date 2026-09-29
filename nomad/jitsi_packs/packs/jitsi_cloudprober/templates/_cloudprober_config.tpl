@@ -66,34 +66,6 @@ probe {
 }
 
 [[ end -]]
-[[ if var "enable_wavefront_proxy" . -]]
-# probes wavefront-proxy health in the local datacenter
-probe {
-  name: "wfproxy"
-  type: HTTP
-  targets {
-    host_names: "[[ var "environment" . ]]-[[ var "oracle_region" . ]]-wfproxy.[[ var "top_level_domain" . ]]"
-  }
-  http_probe {
-    protocol: HTTPS
-    relative_url: "/status"
-  }
-  validator {
-      name: "status_code_2xx"
-      http_validator {
-          success_status_codes: "200-299"
-      }
-  }
-  interval_msec: 30000
-  timeout_msec: 10000
-  latency_unit: "ms"
-  additional_label {
-    key: "service"
-    value: "infra"
-  }
-}
-
-[[ end -]]
 [[ if var "enable_coturn" . -]]
 # probes coturn health in the local datacenter using public IP
 probe {
