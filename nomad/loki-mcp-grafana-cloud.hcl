@@ -57,8 +57,8 @@ job "[JOB_NAME]" {
       driver = "docker"
 
       config {
-        image = "mcp/grafana:latest"
-        args = ["-t", "streamable-http"]
+        image = "grafana/mcp-grafana:1.6.3"
+        args = ["-t", "streamable-http", "--allowed-hosts", "${var.loki_mcp_hostname}"]
         force_pull = false
         ports = ["http"]
       }
