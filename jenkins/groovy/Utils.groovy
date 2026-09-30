@@ -276,12 +276,54 @@ def CheckoutPublicRef(repoName, refSpec, mirrorUrl, originUrl, originCredentials
   return TryCheckoutSpec(originUrl, refSpec, originCredentials)
 }
 
-// checkout with an explicit branch spec, false when the ref does not exist.
+// The fully qualified ref for refSpec, or null when it names no ref (a sha).
+def QualifiedRef(refSpec) {
+  if (refSpec ==~ /[0-9a-f]{7,40}/) {
+    return null
+  }
+  return refSpec.startsWith('refs/') ? refSpec : "refs/heads/${refSpec}"
+}
+
+// Checks out refSpec alone: depth 1, no tags, and a refspec naming only that
+// ref. A full fetch of jitsi-meet is ~450M and ~20s even from the in-region
+// mirror, and the synthetics clone it every few minutes; this is ~135M and ~3s.
+// Nothing downstream reads more history than the checked-out commit.
+//
+// Narrowing the refspec moves a missing ref from checkout time ("Couldn't find
+// any revision to build") to fetch time, where the plugin reports it with the
+// same AbortException as a network failure. So ask the remote first: exit 2
+// from ls-remote --exit-code means it answered and has no such ref. Anything
+// else -- a remote that needs a credential ls-remote does not have, a timeout --
+// goes on to the checkout, which then either works or throws as it always has.
+//
+// A sha names no ref to narrow to, so it keeps the full fetch.
 def TryCheckoutSpec(url, refSpec, credentials) {
+  def ref = QualifiedRef(refSpec)
+  if (ref) {
+    def rc = sh(
+      returnStatus: true,
+      script: """#!/bin/bash
+export GIT_TERMINAL_PROMPT=0
+TIMEOUT=""
+command -v timeout >/dev/null 2>&1 && TIMEOUT="timeout 20"
+\$TIMEOUT git ls-remote --exit-code '${url}' '${ref}' >/dev/null 2>&1"""
+    )
+    if (rc == 2) {
+      return false
+    }
+  }
+  def remote = [url: url, credentialsId: credentials]
+  def extensions = []
+  if (ref) {
+    def dest = ref.startsWith('refs/heads/') ? "refs/remotes/origin/${ref.substring(11)}" : ref
+    remote.refspec = "+${ref}:${dest}"
+    extensions = [[$class: 'CloneOption', shallow: true, depth: 1, noTags: true, honorRefspec: true, reference: '', timeout: 10]]
+  }
   try {
     checkout scm: [$class: 'GitSCM',
-                   userRemoteConfigs: [[url: url, credentialsId: credentials]],
-                   branches: [[name: refSpec]]], poll: false
+                   userRemoteConfigs: [remote],
+                   branches: [[name: refSpec]],
+                   extensions: extensions], poll: false
     return true
   } catch (hudson.AbortException e) {
     if (e.toString().contains('Couldn\'t find any revision to build')) {
