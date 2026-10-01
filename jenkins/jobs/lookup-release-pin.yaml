@@ -11,8 +11,8 @@
       - infra-branch-param
       - string:
           name: ENVIRONMENT
-          default: ops-dev
-          description: "Environment to build in, defaults to 'ops-dev'."
+          default: prod-8x8
+          description: "Environment the customer belongs to, defaults to 'prod-8x8'. Must be one that sets USE_RELEASE_BACKENDS (prod-8x8, stage-8x8, meet-jit-si)."
           trim: true
       - infra-repo-params
  
