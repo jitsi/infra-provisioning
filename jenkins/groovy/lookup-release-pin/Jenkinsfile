@@ -30,7 +30,16 @@ pipeline {
         stage ("check that environment supports release backends") {
             steps {
                 script {
+                    if (!env.ENVIRONMENT?.trim()) {
+                        error 'ENVIRONMENT parameter is required'
+                    }
+                    if (!env.CUSTOMER_ID?.trim()) {
+                        error 'CUSTOMER_ID parameter is required'
+                    }
                     dir("infra-provisioning") {
+                        if (!fileExists("sites/${env.ENVIRONMENT}/stack-env.sh")) {
+                            error "no site configuration for ENVIRONMENT '${env.ENVIRONMENT}'"
+                        }
                         useReleaseBackends = utils.GetEnvironmentVar(env.ENVIRONMENT, "USE_RELEASE_BACKENDS")
                         echo useReleaseBackends
                         if (useReleaseBackends != 'true') {
@@ -45,6 +54,7 @@ pipeline {
                 script { 
                     dir("infra-provisioning") {
                         paymentsServiceURL = utils.GetEnvironmentVar(env.ENVIRONMENT, "PAYMENTS_URL")
+                        paymentsServiceDeployed = 'false'
                         if (paymentsServiceURL != 'false') {
                             paymentsServiceDeployed = 'true'
                         }
