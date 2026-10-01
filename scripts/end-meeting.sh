@@ -56,4 +56,11 @@ END_MEETING_URL="https://$SIGNAL_API_HOSTNAME/${TENANT_URL}end-meeting?room=$ROO
 
 set -x
 
-curl -d'{}' -v -H"Authorization: Bearer $TOKEN" "$END_MEETING_URL"
+curl --fail-with-body -d'{}' -v -w '\nHTTP status: %{http_code}\n' -H"Authorization: Bearer $TOKEN" "$END_MEETING_URL"
+RET=$?
+set +x
+
+if [ $RET -ne 0 ]; then
+    echo "end-meeting request to $SIGNAL_API_HOSTNAME failed (curl exit $RET)"
+    exit $RET
+fi
