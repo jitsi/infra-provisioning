@@ -35,6 +35,7 @@ JOB_NAME="grid-node-$GRID"
 export NOMAD_VAR_grid="$GRID"
 export NOMAD_VAR_registry_prefix="$SELENIUM_GRID_DOCKER_REGISTRY_PREFIX"
 export NOMAD_VAR_image_version="$SELENIUM_GRID_IMAGE_VERSION"
+[ -n "$MAX_SESSIONS" ] && export NOMAD_VAR_max_sessions="$MAX_SESSIONS"
 
 #sed -e "s/\[JOB_NAME\]/$JOB_NAME/" "$NOMAD_JOB_PATH/selenium-grid-node-firefox.hcl" | nomad job run -var="dc=$NOMAD_DC" -
 sed -e "s/\[JOB_NAME\]/$JOB_NAME/" "$NOMAD_JOB_PATH/selenium-grid-node.hcl" | nomad job run -var="dc=$NOMAD_DC" -
