@@ -137,7 +137,7 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
   -var="image_ocid=$IMAGE_OCID" \
   -var="internal_dns_name=$INTERNAL_DNS_NAME" \
   -var="dns_name=$DNS_NAME" \
-  -var="instance_display_name=$DNS_NAME" \
+  -var="instance_display_name=$NAME" \
   -var="dns_zone_name=$DNS_ZONE_NAME" \
   -var="dns_compartment_ocid=$TENANCY_OCID" \
   -var="environment_type=$ENVIRONMENT_TYPE" \

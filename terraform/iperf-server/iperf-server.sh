@@ -129,7 +129,7 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
   -var="vcn_name=$VCN_NAME" \
   -var="subnet_ocid=$SUBNET_OCID" \
   -var="image_ocid=$IMAGE_OCID" \
-  -var="instance_display_name=$DNS_NAME" \
+  -var="instance_display_name=$NAME" \
   -var="environment_type=$ENVIRONMENT_TYPE" \
   -var="tag_namespace=$TAG_NAMESPACE" \
   -var="user=$SSH_USER" \
