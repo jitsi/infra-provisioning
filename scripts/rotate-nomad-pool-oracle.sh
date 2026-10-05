@@ -34,6 +34,7 @@ else
   echo "## rotate-nomad-oracle: run ansible as $SSH_USER"
 fi
 
+[ -z "$LOCAL_REGION" ] && LOCAL_REGION="$OCI_LOCAL_REGION"
 [ -z "$LOCAL_REGION" ] && LOCAL_REGION="us-phoenix-1"
 
 ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
@@ -171,8 +172,13 @@ else
     [ -z "$NOMAD_ADDR" ] && export NOMAD_ADDR="https://$ENVIRONMENT-$LOCAL_REGION-nomad.$TOP_LEVEL_DNS_ZONE_NAME"
     for NODE_ID in $DETACHABLE_NODE_IDS; do
       echo -e "\n## rotate-nomad-poool-oracle: purging nomad node $NODE_ID"
-      curl -s -X POST "$NOMAD_ADDR/v1/node/$NODE_ID/purge" | jq -r 'if .EvalIDs then "purged, eval \(.EvalIDs[0])" else . end' || \
-        echo "## WARNING: purge request failed for node $NODE_ID"
+      # check curl's own status: piped straight into jq, a failed request exits 0 and prints nothing
+      PURGE_RESPONSE=$(curl -sf -X POST "$NOMAD_ADDR/v1/node/$NODE_ID/purge")
+      if [ $? -eq 0 ] && echo "$PURGE_RESPONSE" | jq -e 'has("NodeModifyIndex")' > /dev/null 2>&1; then
+        echo "$PURGE_RESPONSE" | jq -r '"purged, eval \(.EvalIDs[0] // "none")"'
+      else
+        echo "## WARNING: purge request to $NOMAD_ADDR failed for node $NODE_ID"
+      fi
     done
   fi
 
