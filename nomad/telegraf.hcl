@@ -134,6 +134,26 @@ EOF
 [[inputs.nomad]]
   url = "http://{{ env "NOMAD_IP_telegraf_statsd" }}:4646"
 
+{{ if eq (env "meta.pool_type") "consul" }}
+# Per-node liveness as consul sees it, from the three consul servers only: the
+# health endpoint returns the whole datacenter, so one copy per server is
+# plenty. A member that stopped gossiping without leaving (hard terminate, no
+# consul leave) has serfHealth critical until the 72h reap, and its catalog
+# services, telegraf among them, stay behind. Telegraf_Down uses this series
+# to tell a dead node from a dead telegraf; Consul_Member_Failed reports the
+# node itself. Only serfHealth, only the critical field, and none of the tags
+# that would split or pad it (status flips with the value; service_* are
+# always empty on a node check), so every node is exactly one series per
+# server: consul_health_checks_critical{node, check_id, host}.
+[[inputs.consul]]
+  address = "{{ env "attr.unique.network.ip-address" }}:8500"
+  metric_version = 2
+  fieldinclude = ["critical"]
+  tagexclude = ["check_name", "status", "service_id", "service_name"]
+  [inputs.consul.tagpass]
+    check_id = ["serfHealth"]
+{{ end }}
+
 [[inputs.docker]]
   endpoint = "unix:///var/run/docker.sock"
   # perdevice was removed in telegraf 1.40. Under 1.29.5, perdevice = false left
