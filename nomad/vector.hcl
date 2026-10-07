@@ -42,6 +42,22 @@ job "[JOB_NAME]" {
       delay = "30s"
       mode = "delay"
     }
+    # Vector binds a static port (syslog, 9000 below), so a replacement
+    # allocation on the same node cannot start while the original is still
+    # shutting down: it fails with "port is already allocated", the docker
+    # driver treats that as unrecoverable, and a system job never reschedules
+    # it. The only thing that produces a replacement on a healthy node is a
+    # missed heartbeat: the leader, usually in another region, marks the node
+    # down and replaces its system allocations while the node and its vector
+    # are fine. With lost_after set, the allocation is held as "unknown" through
+    # the heartbeat loss instead and reclaimed as-is when the node reconnects.
+    # 1h because a replacement on the same node has nothing to offer over the
+    # original, so the only cost of waiting is an "unknown" allocation in the
+    # UI. System jobs run one allocation per node, so replace and reconcile do
+    # not apply here.
+    disconnect {
+      lost_after = "1h"
+    }
     network {
       port "api" {
         to = 8686
