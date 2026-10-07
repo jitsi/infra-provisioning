@@ -423,15 +423,6 @@ groups:
         that no metrics are being stored or served.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=prometheus_down
-  # A node that left ungracefully (hard OCI terminate, no consul leave) keeps
-  # its catalog services until the 72h serf reap, so its telegraf stays a
-  # scrape target with up == 0 for days: five of these fired for 27h in
-  # meet-jit-si when a shard pool was scaled to zero in the OCI console. The
-  # consul servers' telegraf (inputs.consul, pool_type consul only) publishes
-  # every node's serfHealth check, which consul marks critical for a failed
-  # member; a target whose node is failed is dropped here and left to
-  # Consul_Member_Failed below. If the series is missing (telegraf job not yet
-  # redeployed) the alert behaves exactly as before.
   - alert: Telegraf_Down
     expr: >-
       up{job="telegraf", registered_by="nomad"} == 0
@@ -452,9 +443,6 @@ groups:
         this node.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=telegraf_down
-  # The other half of the split above. Limited to nomad nodes by the join on
-  # the nomad-registered telegraf target: JVBs and other autoscaled VMs are
-  # left failed by every scale-down and would make this fire all day.
   - alert: Consul_Member_Failed
     expr: >-
       (max by (node) (consul_health_checks_critical{check_id="serfHealth"}) == 1)
