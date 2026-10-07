@@ -424,7 +424,10 @@ groups:
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=prometheus_down
   - alert: Telegraf_Down
-    expr: up{job="telegraf", registered_by="nomad"} == 0
+    expr: >-
+      up{job="telegraf", registered_by="nomad"} == 0
+        unless on (node)
+      (max by (node) (consul_health_checks_critical{check_id="serfHealth"}) == 1)
     for: 15m
     labels:
       service: infra
@@ -433,12 +436,33 @@ groups:
       summary: telegraf on {{ $labels.node }} in ${var.dc} is not scrapeable
       description: >-
         The telegraf endpoint on {{ $labels.node }} ({{ $labels.instance }}) in
-        ${var.dc} has failed every scrape for 15m. Metrics for that node are not
-        being collected, which also silences every other alert that depends on
-        them -- including the pool_type-scoped ones that would otherwise report
-        a missing service on this node.
+        ${var.dc} has failed every scrape for 15m while consul still sees the
+        node as alive. Metrics for that node are not being collected, which
+        also silences every other alert that depends on them -- including the
+        pool_type-scoped ones that would otherwise report a missing service on
+        this node.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=telegraf_down
+  - alert: Consul_Member_Failed
+    expr: >-
+      (max by (node) (consul_health_checks_critical{check_id="serfHealth"}) == 1)
+        and on (node) up{job="telegraf", registered_by="nomad"}
+    for: 30m
+    labels:
+      service: infra
+      severity: smoke
+    annotations:
+      summary: nomad node {{ $labels.node }} in ${var.dc} is a failed consul member
+      description: >-
+        Consul in ${var.dc} has had the serf health check of {{ $labels.node }}
+        critical for 30m: the agent stopped gossiping without leaving, which is
+        what a hard terminate of a nomad node looks like. Its services stay in
+        the catalog until the 72h reap, so service discovery keeps pointing at
+        a host that is gone. If the OCI instance is terminated, remove the
+        member now with `consul force-leave -prune`; if it is running, the
+        consul agent on it needs attention.
+      dashboard_url: ${var.grafana_url}
+      alert_url: https://${var.prometheus_hostname}/alerts?search=consul_member_failed
   - alert: Nomad_Job_Restarts_High
     expr: sum(sum_over_time(nomad_client_allocs_restart_sum{task!="cloudprober"}[1h])) by (task) >= 15
     for: 5m

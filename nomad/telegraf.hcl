@@ -134,6 +134,18 @@ EOF
 [[inputs.nomad]]
   url = "http://{{ env "NOMAD_IP_telegraf_statsd" }}:4646"
 
+{{ if eq (env "meta.pool_type") "consul" }}
+# serfHealth of every node in the datacenter, as consul_health_checks_critical{node};
+# consul servers only, since the health endpoint covers the whole datacenter
+[[inputs.consul]]
+  address = "{{ env "attr.unique.network.ip-address" }}:8500"
+  metric_version = 2
+  fieldinclude = ["critical"]
+  tagexclude = ["check_name", "status", "service_id", "service_name"]
+  [inputs.consul.tagpass]
+    check_id = ["serfHealth"]
+{{ end }}
+
 [[inputs.docker]]
   endpoint = "unix:///var/run/docker.sock"
   # perdevice was removed in telegraf 1.40. Under 1.29.5, perdevice = false left
