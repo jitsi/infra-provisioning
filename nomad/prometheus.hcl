@@ -505,6 +505,37 @@ groups:
         modifying the allocated CPU and re-deploying the job.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=nomad_job
+  - alert: Fabio_Task_Missing
+    expr: |-
+      label_replace(
+        count by (host) (mem_total{pool_type="general"})
+          unless on (host)
+        count by (host) (docker_container_cpu_usage_percent{pool_type="general", com_hashicorp_nomad_task_name="ext-fabio"}),
+        "task", "ext-fabio", "", "")
+      or
+      label_replace(
+        count by (host) (mem_total{pool_type="general"})
+          unless on (host)
+        count by (host) (docker_container_cpu_usage_percent{pool_type="general", com_hashicorp_nomad_task_name="int-fabio"}),
+        "task", "int-fabio", "", "")
+    for: 10m
+    labels:
+      service: infra
+      severity: warn
+    annotations:
+      summary: fabio task {{ $labels.task }} is not running on {{ $labels.host }} in ${var.dc}
+      description: >-
+        The node {{ $labels.host }} has pool_type=general but no {{ $labels.task }}
+        container running on it. Fabio is the ingress for every nomad service in
+        ${var.dc}. The OCI load balancer health check drops this node from rotation,
+        so traffic keeps flowing on the remaining general nodes with reduced
+        capacity, and nothing else reports the gap. If every general node in the
+        datacenter is listed, the cloudprober probes behind fabio will also fail
+        and Probe_Unhealthy will page. Container presence comes from telegraf's
+        docker input, because nomad allocation metrics are not emitted on
+        general-pool nodes in every environment.
+      dashboard_url: ${var.grafana_url}
+      alert_url: https://${var.prometheus_hostname}/alerts?search=fabio_task_missing
 
   - alert: Gitea_Mirror_Stale
     # The regional Gitea mirror's /ready gate only ever guards the FIRST sync, so a
