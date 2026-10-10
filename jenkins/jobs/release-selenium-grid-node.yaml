@@ -1,0 +1,68 @@
+- job:
+    name: release-selenium-grid-node
+    display-name: release selenium grid node
+    concurrent: true
+    parameters:
+      - string:
+          name: VIDEO_INFRA_BRANCH
+          default: main
+          description: "Controls checkout branch for infra repos, defaults to 'main'."
+          trim: true
+      - string:
+          name: TAG
+          description: "Docker image tag; defaults to git short hash if not set."
+          trim: true
+      - string:
+          name: ENVIRONMENT
+          default: torture-test
+          description: "Environment to deploy in, defaults to 'torture-test'."
+          trim: true
+      - string:
+          name: ORACLE_REGION
+          default: us-phoenix-1
+          description: "Oracle Region to deploy in"
+          trim: true
+      - string:
+          name: TEST_GRID_NAME
+          default: aaron
+          description: "Grid name for initial test deployment"
+          trim: true
+      - string:
+          name: PROD_GRID_NAME
+          default: validate
+          description: "Grid name for production deployment after smoke test passes"
+          trim: true
+      - bool:
+          name: SKIP_BUILD
+          description: "Check to skip the Docker image build (use when deploying an existing tag)"
+          default: false
+      - string:
+          name: SELENIUM_GRID_HUB_VERSION
+          description: "Selenium Grid Hub version (e.g., '4.41'). If empty, latest is resolved from Docker Hub."
+          trim: true
+      - string:
+          name: INFRA_CONFIGURATION_REPO
+          default: git@github.com:jitsi/infra-configuration.git
+          description: "Repo for configuration code (ansible etc), defaults to 'git@github.com:jitsi/infra-configuration.git'."
+          trim: true
+      - string:
+          name: INFRA_CUSTOMIZATIONS_REPO
+          default: git@github.com:jitsi/infra-customizations.git
+          description: "Repo with customized configurations, defaults to 'git@github.com:jitsi/infra-customizations.git'."
+          trim: true
+
+    project-type: pipeline
+    sandbox: true
+    pipeline-scm:
+      scm:
+        - git:
+            url: git@github.com:jitsi/infra-provisioning.git
+            credentials-id: "video-infra"
+            branches:
+              - "origin/${{VIDEO_INFRA_BRANCH}}"
+            browser: githubweb
+            browser-url: https://github.com/jitsi/infra-provisioning
+            submodule:
+              recursive: true
+      script-path: jenkins/groovy/release-selenium-grid-node/Jenkinsfile
+      lightweight-checkout: true
