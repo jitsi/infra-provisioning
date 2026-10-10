@@ -17,10 +17,10 @@ pipeline {
           utils.SetupRepos(env.VIDEO_INFRA_BRANCH)
 
           // checkout the branding repo (source of the 8x8 meeting-settings e2e spec); latest master
-          sshagent (credentials: ['video-infra']) {
+          sshagent (credentials: ['jitsi-meet-branding-deploy']) {
             dir('jitsi-meet-branding') {
               retry(count: 3) {
-                git branch: 'master', url: env.BRANDING_REPO ?: 'git@github.com:8x8Cloud/jitsi-meet-branding.git', credentialsId: 'video-infra'
+                git branch: 'master', url: env.BRANDING_REPO ?: 'git@github.com:8x8/jitsi-meet-branding.git', credentialsId: 'jitsi-meet-branding-deploy'
               }
             }
           }
