@@ -1474,7 +1474,7 @@ groups:
         shard affected, drain it so new recordings land on other shards.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=jicofo_jibri_recording_failures
-  - alert: Jicofo_Jibri_Recording_Failures_High
+  - alert: Jicofo_Jibri_Recording_Failures
     expr: sum by (shard) (increase(jitsi_jicofo_jibri_recording_failures_total{role="core"}[30m])) >= 10
     for: 5m
     keep_firing_for: 30m
