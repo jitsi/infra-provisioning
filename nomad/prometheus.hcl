@@ -1456,6 +1456,41 @@ groups:
         meetings on this shard.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=jicofo_jibris_missing
+  - alert: Jicofo_Jibri_Recording_Failures
+    expr: sum by (shard) (increase(jitsi_jicofo_jibri_recording_failures_total{role="core"}[30m])) >= 5
+    for: 5m
+    labels:
+      service: jitsi
+      severity: warn
+    annotations:
+      summary: jibri recordings are failing on shard {{ $labels.shard }} in ${var.dc}
+      description: >-
+        Jicofo on shard {{ $labels.shard }} in ${var.dc} has counted {{ $value | printf "%.0f" }}
+        failed jibri recording starts in the last 30 minutes. Healthy shards fail at most one
+        recording start per 30 minutes, so this is a problem on the shard rather than jibri
+        capacity, and the jibri availability alerts will not catch it: jicofo can still count
+        jibris as available while every recording start fails. Check the jicofo log on the shard
+        for jibri session errors. A jicofo restart has cleared this before. If this is the only
+        shard affected, drain it so new recordings land on other shards.
+      dashboard_url: ${var.grafana_url}
+      alert_url: https://${var.prometheus_hostname}/alerts?search=jicofo_jibri_recording_failures
+  - alert: Jicofo_Jibri_Recording_Failures_High
+    expr: sum by (shard) (increase(jitsi_jicofo_jibri_recording_failures_total{role="core"}[30m])) >= 25
+    for: 10m
+    labels:
+      service: jitsi
+      severity: severe
+      page: true
+    annotations:
+      summary: jibri recordings are failing continuously on shard {{ $labels.shard }} in ${var.dc}
+      description: >-
+        Jicofo on shard {{ $labels.shard }} in ${var.dc} has counted {{ $value | printf "%.0f" }}
+        failed jibri recording starts in the last 30 minutes and has stayed above 25 for 10
+        minutes. Recording is effectively unavailable on this shard. Restart jicofo on the shard
+        and confirm the failure count stops rising; if it does not, drain the shard and
+        investigate the jicofo and jibri logs.
+      dashboard_url: ${var.grafana_url}
+      alert_url: https://${var.prometheus_hostname}/alerts?search=jicofo_jibri_recording_failures
   - alert: Jicofo_SIP-Jigasi_Missing
     expr: max by (shard) (jitsi_jicofo_jigasi_sip_count{role="core"}) < 1 and on (shard) (count_over_time(jitsi_jicofo_jigasi_sip_count{role="core"}[10m:1m]) >= 10)
     for: 5m
