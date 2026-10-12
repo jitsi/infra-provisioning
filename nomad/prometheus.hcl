@@ -1475,8 +1475,9 @@ groups:
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=jicofo_jibri_recording_failures
   - alert: Jicofo_Jibri_Recording_Failures_High
-    expr: sum by (shard) (increase(jitsi_jicofo_jibri_recording_failures_total{role="core"}[30m])) >= 25
-    for: 10m
+    expr: sum by (shard) (increase(jitsi_jicofo_jibri_recording_failures_total{role="core"}[30m])) >= 10
+    for: 5m
+    keep_firing_for: 30m
     labels:
       service: jitsi
       severity: severe
@@ -1485,12 +1486,33 @@ groups:
       summary: jibri recordings are failing continuously on shard {{ $labels.shard }} in ${var.dc}
       description: >-
         Jicofo on shard {{ $labels.shard }} in ${var.dc} has counted {{ $value | printf "%.0f" }}
-        failed jibri recording starts in the last 30 minutes and has stayed above 25 for 10
-        minutes. Recording is effectively unavailable on this shard. Restart jicofo on the shard
-        and confirm the failure count stops rising; if it does not, drain the shard and
-        investigate the jicofo and jibri logs.
+        failed jibri recording starts in the last 30 minutes. Healthy shards fail at most one
+        recording start per 30 minutes, so recording is effectively broken on this shard even
+        though jicofo may still count its jibris as available. Restart jicofo on the shard and
+        confirm the failure count stops rising; if it does not, drain the shard and investigate
+        the jicofo and jibri logs. Failures only accrue when users try to record, so the alert
+        is held for 30 minutes after the last burst rather than resolving between attempts.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=jicofo_jibri_recording_failures
+  - alert: Jicofo_Severe_Log_Rate_High
+    expr: sum by (shard) (increase(jicofo_log_lines_total{level="SEVERE", role="core"}[10m])) >= 100
+    for: 10m
+    labels:
+      service: jitsi
+      severity: severe
+      page: true
+    annotations:
+      summary: jicofo on shard {{ $labels.shard }} in ${var.dc} is logging SEVERE continuously
+      description: >-
+        Jicofo on shard {{ $labels.shard }} in ${var.dc} has written {{ $value | printf "%.0f" }}
+        SEVERE log lines in the last 10 minutes and has kept that rate up for 10 minutes. A
+        healthy jicofo writes under 30 SEVERE lines per 10 minutes. A sustained stream of SEVERE
+        usually means a component inside jicofo is stuck, for example a MUC it can no longer use,
+        and it fires long before users notice. Read the jicofo log on the shard in Loki to see
+        which message is repeating. A jicofo restart has cleared this before; if it does not,
+        drain the shard.
+      dashboard_url: ${var.grafana_url}
+      alert_url: https://${var.prometheus_hostname}/alerts?search=jicofo_severe_log_rate_high
   - alert: Jicofo_SIP-Jigasi_Missing
     expr: max by (shard) (jitsi_jicofo_jigasi_sip_count{role="core"}) < 1 and on (shard) (count_over_time(jitsi_jicofo_jigasi_sip_count{role="core"}[10m:1m]) >= 10)
     for: 5m
