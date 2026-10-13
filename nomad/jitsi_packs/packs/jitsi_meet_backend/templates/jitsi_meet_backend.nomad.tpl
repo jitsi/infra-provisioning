@@ -1122,6 +1122,22 @@ EOF
         destination = "local/jicofo-log-truncate-script"
         perms = "755"
       }
+[[- if and (eq (env "CONFIG_jicofo_jibri_jvb_brewery_enabled") "true") (eq (or (env "CONFIG_prosody_brewery_shard_enabled") "true") "true") ]]
+
+      # Find jibris in the JibriBrewery on this shard's prosody-jvb, over jicofo's
+      # Service connection, instead of the one on the main prosody. The image copies
+      # /config into its config dir and its jicofo.conf includes custom-jicofo.conf
+      # last, so these keys win. SIP jibris stay on the Client connection: jicofo
+      # hard-wires that detector.
+      template {
+        data = <<EOF
+jicofo.jibri.brewery-jid = "JibriBrewery@muc.jvb.[[ env "CONFIG_domain" ]]"
+jicofo.jibri.xmpp-connection-name = Service
+EOF
+        destination = "local/config/custom-jicofo.conf"
+        perms = "644"
+      }
+[[- end ]]
 
       template {
         data = <<EOF
