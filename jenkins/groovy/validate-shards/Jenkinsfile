@@ -44,25 +44,42 @@ pipeline {
             if ((grid == '') || (grid == null)) {
               grid = 'validate'
             }
-            lock("validate-grid-${grid}") {
-              dir('infra-provisioning') {
-                withCredentials([
-                    string(credentialsId: 'asap-client-jwt-kid-meet', variable: 'ASAP_CLIENT_JWT_KID_MEET'),
-                    string(credentialsId: 'asap-client-jwt-kid-beta', variable: 'ASAP_CLIENT_JWT_KID_BETA'),
-                    string(credentialsId: 'asap-client-jwt-kid-prod', variable: 'ASAP_CLIENT_JWT_KID_PROD'),
-                    string(credentialsId: 'asap-client-jwt-kid-stage', variable: 'ASAP_CLIENT_JWT_KID_STAGE'),
-                    string(credentialsId: 'webhooks_proxy_url', variable: 'WEBHOOKS_PROXY_URL'),
-                    file(credentialsId: 'asap-client-jwt-key-meet', variable: 'ASAP_CLIENT_JWT_KEY_MEET'),
-                    file(credentialsId: 'asap-client-jwt-key-prod', variable: 'ASAP_CLIENT_JWT_KEY_PROD'),
-                    file(credentialsId: 'asap-client-jwt-key-stage', variable: 'ASAP_CLIENT_JWT_KEY_STAGE'),
-                    file(credentialsId: 'asap-client-jwt-key-beta', variable: 'ASAP_CLIENT_JWT_KEY_BETA'),
-                    usernamePassword(credentialsId: 'vox-api-us', passwordVariable: 'VOX_API_KEY_US', usernameVariable: 'VOX_US_USER'),
-                    usernamePassword(credentialsId: 'vox-api-eu', passwordVariable: 'VOX_API_KEY_EU', usernameVariable: 'VOX_EU_USER'),
-                    usernamePassword(credentialsId: 'meet-vox-api', passwordVariable: 'MEET_VOX_API_KEY', usernameVariable: 'MEET_VOX_USER')
-                ]) {
-                  sh """#!/bin/bash
-                  export ANSIBLE_FORCE_COLOR=True
-                  scripts/validate-shard.sh ${env.ENVIRONMENT} \"${env.SHARDS}\" ubuntu"""
+            // SHARDS is a whitespace-separated list (provision-shard passes every shard it
+            // created); validate-shard.sh tests one shard per call, so run it once per shard.
+            // A failing shard marks its stage and the build failed but the remaining shards
+            // are still tested. The grid lock is taken per shard so other validations can
+            // interleave with a long list.
+            def shards = (env.SHARDS ?: '').tokenize()
+            if (shards.isEmpty()) {
+              error 'SHARDS is empty, nothing to validate'
+            }
+            for (shard in shards) {
+              stage("Validate ${shard}") {
+                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                  lock("validate-grid-${grid}") {
+                    dir('infra-provisioning') {
+                      withCredentials([
+                          string(credentialsId: 'asap-client-jwt-kid-meet', variable: 'ASAP_CLIENT_JWT_KID_MEET'),
+                          string(credentialsId: 'asap-client-jwt-kid-beta', variable: 'ASAP_CLIENT_JWT_KID_BETA'),
+                          string(credentialsId: 'asap-client-jwt-kid-prod', variable: 'ASAP_CLIENT_JWT_KID_PROD'),
+                          string(credentialsId: 'asap-client-jwt-kid-stage', variable: 'ASAP_CLIENT_JWT_KID_STAGE'),
+                          string(credentialsId: 'webhooks_proxy_url', variable: 'WEBHOOKS_PROXY_URL'),
+                          file(credentialsId: 'asap-client-jwt-key-meet', variable: 'ASAP_CLIENT_JWT_KEY_MEET'),
+                          file(credentialsId: 'asap-client-jwt-key-prod', variable: 'ASAP_CLIENT_JWT_KEY_PROD'),
+                          file(credentialsId: 'asap-client-jwt-key-stage', variable: 'ASAP_CLIENT_JWT_KEY_STAGE'),
+                          file(credentialsId: 'asap-client-jwt-key-beta', variable: 'ASAP_CLIENT_JWT_KEY_BETA'),
+                          usernamePassword(credentialsId: 'vox-api-us', passwordVariable: 'VOX_API_KEY_US', usernameVariable: 'VOX_US_USER'),
+                          usernamePassword(credentialsId: 'vox-api-eu', passwordVariable: 'VOX_API_KEY_EU', usernameVariable: 'VOX_EU_USER'),
+                          usernamePassword(credentialsId: 'meet-vox-api', passwordVariable: 'MEET_VOX_API_KEY', usernameVariable: 'MEET_VOX_USER')
+                      ]) {
+                        withEnv(["SHARD=${shard}"]) {
+                          sh '''#!/bin/bash
+                          export ANSIBLE_FORCE_COLOR=True
+                          scripts/validate-shard.sh "$ENVIRONMENT" "$SHARD" ubuntu'''
+                        }
+                      }
+                    }
+                  }
                 }
               }
             }

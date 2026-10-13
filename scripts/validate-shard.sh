@@ -39,6 +39,14 @@ if [ -z "$SHARD" ]; then
   exit 204
 fi
 
+# One shard per call. A space-separated list would otherwise be split into the positional
+# arguments of set_shard_tested.py (recording one shard name as another's test state) and
+# end up in the room name suffix that haproxy routes on, so no test reaches any shard.
+if [[ "$SHARD" =~ [[:space:]] ]]; then
+  echo "SHARD must be a single shard name, got '$SHARD'. Call once per shard. Exiting..."
+  exit 205
+fi
+
 # The 8x8 meeting-settings e2e spec (sourced from the jitsi-meet-branding repo) only runs in
 # the 8x8 environments, where the test accounts and the settings backend exist.
 RUN_MEET_SETTINGS=false
@@ -127,7 +135,7 @@ if [ -n "$ASAP_CLIENT_SIGNING_KEY_FILE" ]; then
 fi
 
 #first we set the shard state to "testing"
-$LOCAL_PATH/set_shard_tested.py $ENVIRONMENT $SHARD testing $BUILD_NUMBER
+$LOCAL_PATH/set_shard_tested.py "$ENVIRONMENT" "$SHARD" testing "$BUILD_NUMBER"
 
 #clean up results from any previous tests
 rm -rf test-results
@@ -177,7 +185,7 @@ pushd "$TMPDIR"
 # demand) - the shallow-since window only limits history depth, not which refs are reachable.
 git clone --no-single-branch --shallow-since="6 months ago" --filter=blob:none https://github.com/jitsi/jitsi-meet.git
 
-JITSI_MEET_BRANCH="$(getJitsiMeetTag $SHARD)"
+JITSI_MEET_BRANCH="$(getJitsiMeetTag "$SHARD")"
 
 pushd jitsi-meet
 
@@ -255,12 +263,12 @@ echo "Done testing"
 popd
 popd
 
-mv "$RESULTS_SRC" ../test-results/${SHARD}
+mv "$RESULTS_SRC" "../test-results/${SHARD}"
 
 if [[ $SUCCESS == 0 ]]; then
-  $LOCAL_PATH/set_shard_tested.py $ENVIRONMENT $SHARD passed $BUILD_NUMBER
+  $LOCAL_PATH/set_shard_tested.py "$ENVIRONMENT" "$SHARD" passed "$BUILD_NUMBER"
 else
-  $LOCAL_PATH/set_shard_tested.py $ENVIRONMENT $SHARD failed $BUILD_NUMBER
+  $LOCAL_PATH/set_shard_tested.py "$ENVIRONMENT" "$SHARD" failed "$BUILD_NUMBER"
   echo "Torture test ansible run failed."
   exit 1
 fi
