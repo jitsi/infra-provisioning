@@ -1495,7 +1495,7 @@ groups:
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=jicofo_jibri_recording_failures
   - alert: Jicofo_Severe_Log_Rate
-    expr: sum by (shard) (increase(jicofo_log_lines_total{level="SEVERE", role="core"}[10m])) >= 20 
+    expr: sum by (shard) (increase(jicofo_log_lines_total{level="SEVERE", role="core"}[10m])) >= 10 
     for: 5m
     labels:
       service: jitsi
