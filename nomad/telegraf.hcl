@@ -606,7 +606,8 @@ EOF
     "vector_buffer_discarded_events_total",
     "vector_buffer_received_events_total",
     "vector_buffer_sent_events_total",
-    "vector_internal_metrics_cardinality*"
+    "vector_internal_metrics_cardinality*",
+    "jicofo_log_lines_total"
   ]
   # the scrape url embeds the alloc's dynamic port, which would mint a fresh
   # series set on every vector restart

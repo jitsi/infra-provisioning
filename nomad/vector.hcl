@@ -123,7 +123,7 @@ job "[JOB_NAME]" {
             type = "internal_metrics"
           [sinks.prometheus_exporter]
             type = "prometheus_exporter"
-            inputs = ["internal_metrics"]
+            inputs = ["internal_metrics", "jicofo_log_levels"]
             address = "0.0.0.0:9598"
           [sources.jvb_logs]
             type = "docker_logs"
@@ -278,6 +278,21 @@ job "[JOB_NAME]" {
             if !exists(.level) {
               .level = "info"
             }"""
+          # one counter per jicofo log line, tagged with its level, so a shard
+          # whose jicofo starts logging SEVERE continuously shows in prometheus
+          # within a scrape interval instead of only in Loki. Same counter as
+          # roles/vector in infra-configuration emits on VM shards; the name is
+          # in the vector-metrics namepass in telegraf.hcl.
+          [transforms.jicofo_structured]
+            type = "filter"
+            inputs = ["message_to_structure"]
+            condition = '.app == "Jicofo"'
+          # inline table on purpose: TOML's [[array.of.tables]] syntax is this
+          # template's nomad delimiter pair and would be parsed as a directive
+          [transforms.jicofo_log_levels]
+            type = "log_to_metric"
+            inputs = ["jicofo_structured"]
+            metrics = [{ type = "counter", field = "level", name = "log_lines_total", namespace = "jicofo", tags = { level = "{{ .level }}" } }]
           [sinks.out]
             type = "console"
             inputs = [ "message_to_structure" ]
