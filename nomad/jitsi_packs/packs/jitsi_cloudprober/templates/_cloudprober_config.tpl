@@ -344,6 +344,49 @@ probe {
     value: "infra"
   }
 }
+
+# probes each vault node with the same check the vault load balancer uses
+# (/v1/sys/health?standbyok=true, 200 only), so it fails for exactly the nodes
+# the LB drops from its backend set. Unlike vault_nodes above this also fails a
+# standby whose HA connection to the active is broken (474): unsealed, but it
+# cannot forward requests, so it is out of the pool. Same consul discovery and
+# TLS handling as vault_nodes.
+probe {
+  name: "vault_nodes_lb"
+  type: HTTP
+  targets {
+    {{ $vault_lb_node_count := 0 -}}
+    {{ range service "vault|any" -}}
+    {{ $vault_lb_node_count = add $vault_lb_node_count 1 -}}
+    endpoint {
+      name: "{{ .Node }}"
+      url: "https://{{ .Address }}:{{ .Port }}/v1/sys/health?standbyok=true"
+    }
+    {{ end -}}
+    {{ if eq $vault_lb_node_count 0 -}}
+    host_names: ""
+    {{- end }}
+  }
+  http_probe {
+    protocol: HTTPS
+    tls_config {
+      disable_cert_validation: true
+    }
+  }
+  validator {
+      name: "status_code_lb_healthy"
+      http_validator {
+          success_status_codes: "200"
+      }
+  }
+  interval_msec: 30000
+  timeout_msec: 10000
+  latency_unit: "ms"
+  additional_label {
+    key: "service"
+    value: "infra"
+  }
+}
 [[ end -]]
 [[ if var "enable_canary" . -]]
 # probes canary health and latency across datacenters
