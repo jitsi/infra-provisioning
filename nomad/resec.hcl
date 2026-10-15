@@ -106,7 +106,7 @@ EORC
       task "resec" {
         driver = "docker"
         config {
-          image = "aaronkvanmeerten/resec"
+          image = "ghcr.io/jitsi/resec:sha-74008ae"
         }
 
       env {
