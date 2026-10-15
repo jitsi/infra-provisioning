@@ -181,6 +181,9 @@ job "[JOB_NAME]" {
 #          validity: 24h
 
   limits_config:
+    # jibri writes a call's whole browser log (up to ~50MB) in one burst when the call ends
+    per_stream_rate_limit: 10MB
+    per_stream_rate_limit_burst: 64MB
     allow_structured_metadata: true
     reject_old_samples: true
     reject_old_samples_max_age: 168h
