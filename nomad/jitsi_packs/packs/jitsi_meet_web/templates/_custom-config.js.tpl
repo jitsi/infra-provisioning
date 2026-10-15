@@ -222,6 +222,10 @@ config.enableWebHIDFeature=true;
 config.disableIframeAPI=true;
 [[- end ]]
 
+[[ if eq (env "CONFIG_jitsi_meet_show_chat_permissions_setting") "true" -]]
+config.showChatPermissionsModeratorSetting=true;
+[[- end ]]
+
 [[ if eq (env "CONFIG_jitsi_meet_enable_virtual_background_v2") "true" -]]
 config.virtualBackground={enableV2:true};
 [[- end ]]

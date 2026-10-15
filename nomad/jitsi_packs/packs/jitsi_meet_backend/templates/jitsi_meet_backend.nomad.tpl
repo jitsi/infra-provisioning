@@ -435,6 +435,7 @@ XMPP_MUC_MODULES="
 [[- if eq (env "CONFIG_prosody_meet_permissions_vpaas_enabled") "true" ]]muc_permissions_vpaas,[[ end -]]
 [[- if eq (env "CONFIG_prosody_meet_ban_auth_enabled") "true" ]]muc_auth_ban,[[ end -]]
 [[- if eq (env "CONFIG_prosody_enable_muc_events" ) "true" -]]muc_events,[[ end -]]
+[[- if ne (env "CONFIG_prosody_message_moderation_enabled") "false" -]]muc_message_moderation,[[ end -]]
 [[- if eq (env "CONFIG_prosody_meet_webhooks_enabled") "true" -]]muc_visitors_webhooks[[- end -]]"
 XMPP_PORT=[[ add $VNODE_CLIENT_PORT $i ]]
 
@@ -564,6 +565,9 @@ EOF
 [[- end ]]
 [[- if eq (env "CONFIG_prosody_filter_messages_enabled") "true" ]]
         PROSODY_ENABLE_FILTER_MESSAGES="true"
+[[- end ]]
+[[- if eq (env "CONFIG_prosody_message_moderation_enabled") "false" ]]
+        ENABLE_MESSAGE_MODERATION="false"
 [[- end ]]
 [[- if eq (env "CONFIG_prosody_enable_muc_resource_validate") "true" ]]
         PROSODY_ENABLE_MUC_RESOURCE_VALIDATE="true"
