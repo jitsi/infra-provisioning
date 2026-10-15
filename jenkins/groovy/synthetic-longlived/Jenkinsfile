@@ -32,7 +32,7 @@ pipeline {
     options {
       ansiColor('xterm')
       timestamps()
-      buildDiscarder(logRotator(daysToKeepStr: '14'))
+      buildDiscarder(logRotator(daysToKeepStr: '10'))
     }
     stages {
         stage ("setup") {
