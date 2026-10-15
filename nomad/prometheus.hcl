@@ -531,7 +531,7 @@ groups:
         so traffic keeps flowing on the remaining general nodes with reduced
         capacity, and nothing else reports the gap. If every general node in the
         datacenter is listed, the cloudprober probes behind fabio will also fail
-        and Probe_Unhealthy will page. Container presence comes from telegraf's
+        and Probe_Unhealthy will alert. Container presence comes from telegraf's
         docker input, because nomad allocation metrics are not emitted on
         general-pool nodes in every environment.
       dashboard_url: ${var.grafana_url}
