@@ -578,10 +578,12 @@ EOF
 # prometheus_exporter as the vector-metrics consul service, tagged with the
 # node ip like the services above). Its own input block rather than one more
 # query in the shared block above, because the keep-list has to be a
-# plugin-level namepass: the raw exporter emits ~2,400 series per node, all
-# but these ~80 histogram buckets nothing alerts on. Keep this list in step
-# with vector_telegraf_namepass in infra-configuration roles/vector, which
-# is the VM population's copy of the same input.
+# plugin-level namepass: the raw exporter emits ~2,400 series per node,
+# mostly histogram buckets nothing alerts on. Event counts are kept and byte
+# counts (*_event_bytes_total) are not: they doubled the per-component series
+# for a volume measure nothing reads. Keep this list in step with
+# vector_telegraf_namepass in infra-configuration roles/vector, which is the
+# VM population's copy of the same input.
 [[inputs.prometheus]]
   http_headers = {"Accept" = "text/plain; version=0.0.4"}
   namepass = [
@@ -590,9 +592,7 @@ EOF
     "vector_started_total",
     "vector_utilization",
     "vector_component_received_events_total",
-    "vector_component_received_event_bytes_total",
     "vector_component_sent_events_total",
-    "vector_component_sent_event_bytes_total",
     "vector_component_discarded_events_total",
     "vector_component_errors_total",
     "vector_buffer_size_bytes",
