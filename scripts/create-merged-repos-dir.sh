@@ -5,11 +5,11 @@
 
 [ ! -d "$MERGED_DIR" ] && mkdir -p $MERGED_DIR
 
-rsync --exclude '.git/' --exclude '.terraform' -avz $LOCAL_DEV_DIR/infra-provisioning $MERGED_DIR
-rsync --exclude '.git/' --exclude '.terraform' -avz $LOCAL_DEV_DIR/infra-configuration $MERGED_DIR
+rsync --exclude '.git/' --exclude '.terraform' --exclude '.claude/worktrees/' -av $LOCAL_DEV_DIR/infra-provisioning $MERGED_DIR
+rsync --exclude '.git/' --exclude '.terraform' --exclude '.claude/worktrees/' -av $LOCAL_DEV_DIR/infra-configuration $MERGED_DIR
 
-rsync --exclude '.git/' --exclude '.terraform' -avz $LOCAL_DEV_DIR/infra-customizations-private/ $MERGED_DIR/infra-provisioning
-rsync --exclude '.git/' --exclude '.terraform' -avz $LOCAL_DEV_DIR/infra-customizations-private/ $MERGED_DIR/infra-configuration
+rsync --exclude '.git/' --exclude '.terraform' --exclude '.claude/worktrees/' -av $LOCAL_DEV_DIR/infra-customizations-private/ $MERGED_DIR/infra-provisioning
+rsync --exclude '.git/' --exclude '.terraform' --exclude '.claude/worktrees/' -av $LOCAL_DEV_DIR/infra-customizations-private/ $MERGED_DIR/infra-configuration
 
 cd $MERGED_DIR
 
