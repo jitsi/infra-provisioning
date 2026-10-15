@@ -135,8 +135,10 @@ EOF
   url = "http://{{ env "NOMAD_IP_telegraf_statsd" }}:4646"
 
 {{ if eq (env "meta.pool_type") "consul" }}
-# serfHealth of every node in the datacenter, as consul_health_checks_critical{node};
-# consul servers only, since the health endpoint covers the whole datacenter
+# serfHealth of every node in the datacenter; consul servers only, since the health
+# endpoint covers the whole datacenter. The member name is the node tag, but the
+# prometheus telegraf scrape job already sets a target label named node, so the
+# series lands as consul_health_checks_critical{exported_node}
 [[inputs.consul]]
   address = "{{ env "attr.unique.network.ip-address" }}:8500"
   metric_version = 2

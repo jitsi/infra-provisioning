@@ -427,7 +427,8 @@ groups:
     expr: >-
       up{job="telegraf", registered_by="nomad"} == 0
         unless on (node)
-      (max by (node) (consul_health_checks_critical{check_id="serfHealth"}) == 1)
+      (label_replace(max by (exported_node) (consul_health_checks_critical{check_id="serfHealth"}),
+         "node", "$1", "exported_node", "(.+)") == 1)
     for: 15m
     labels:
       service: infra
@@ -445,7 +446,8 @@ groups:
       alert_url: https://${var.prometheus_hostname}/alerts?search=telegraf_down
   - alert: Consul_Member_Failed
     expr: >-
-      (max by (node) (consul_health_checks_critical{check_id="serfHealth"}) == 1)
+      (label_replace(max by (exported_node) (consul_health_checks_critical{check_id="serfHealth"}),
+         "node", "$1", "exported_node", "(.+)") == 1)
         and on (node) up{job="telegraf", registered_by="nomad"}
     for: 30m
     labels:
