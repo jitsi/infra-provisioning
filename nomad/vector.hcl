@@ -287,8 +287,9 @@ job "[JOB_NAME]" {
             type = "filter"
             inputs = ["message_to_structure"]
             condition = '.app == "Jicofo"'
-          # inline table on purpose: TOML's [[array.of.tables]] syntax is this
-          # template's nomad delimiter pair and would be parsed as a directive
+          # inline table on purpose: TOML's array-of-tables syntax (double square
+          # brackets) is this template's nomad delimiter pair. Never write those
+          # brackets here, not even in a comment: nomad parses them as a directive
           [transforms.jicofo_log_levels]
             type = "log_to_metric"
             inputs = ["jicofo_structured"]
