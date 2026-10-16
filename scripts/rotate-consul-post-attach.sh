@@ -32,6 +32,9 @@ $LOCAL_PATH/../terraform/consul-server/create-consul-server-oracle.sh $SSH_USER
 # remove the replaced node from nomad state; otherwise it sits as "down" until the 24h node
 # GC and the system jobs count it as an unplaced node ("9/11 degraded" in the UI)
 if [ -n "$DETACHED_NOMAD_NODE_ID" ]; then
+  # any region's nomad LB reaches the global raft; prefer the one the rotation is in
+  [ -z "$LOCAL_REGION" ] && LOCAL_REGION="$OCI_LOCAL_REGION"
+  [ -z "$LOCAL_REGION" ] && LOCAL_REGION="$ORACLE_REGION"
   [ -z "$NOMAD_ADDR" ] && export NOMAD_ADDR="https://$ENVIRONMENT-$LOCAL_REGION-nomad.$TOP_LEVEL_DNS_ZONE_NAME"
   echo "## rotate-consul-post-attach: purging nomad node $DETACHED_NOMAD_NODE_ID"
   # check curl's own status: piped straight into jq, a failed request exits 0 and prints nothing
