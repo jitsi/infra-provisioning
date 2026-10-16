@@ -39,6 +39,17 @@ if [ "$ARCHIVE_KEYRING" == "true" ]; then
     timeout 120 ssh -F $LOCAL_PATH/../config/ssh.config $SSH_USER@$INSTANCE_PRIMARY_PRIVATE_IP "sudo rm -f /tmp/nomad-keyring.tar.gz"
 fi
 
+# capture the nomad node ID now, while the agent still answers, so post-attach can purge
+# the node from nomad state once the replacement is up (same approach as rotate-nomad-pool)
+DETACHED_NOMAD_NODE_ID=$(timeout 10 ssh -n -o StrictHostKeyChecking=no -F $LOCAL_PATH/../config/ssh.config $SSH_USER@$INSTANCE_PRIMARY_PRIVATE_IP \
+  "nomad node status -self -json 2>/dev/null | jq -r .ID" 2>/dev/null)
+if [ -n "$DETACHED_NOMAD_NODE_ID" ] && [ "$DETACHED_NOMAD_NODE_ID" != "null" ]; then
+    echo "## rotate-consul-pre-detach: nomad node $DETACHED_NOMAD_NODE_ID will be purged after the replacement attaches"
+    export DETACHED_NOMAD_NODE_ID
+else
+    echo "## rotate-consul-pre-detach: WARNING: could not get the nomad node ID for $INSTANCE_PRIMARY_PRIVATE_IP, it will stay down until nomad GC"
+    unset DETACHED_NOMAD_NODE_ID
+fi
 echo "## rotate-consul-pre-detach shutting down nomad service on $INSTANCE_PRIMARY_PRIVATE_IP with user $SSH_USER"
 
 timeout 10 ssh -n -o StrictHostKeyChecking=no -F $LOCAL_PATH/../config/ssh.config $SSH_USER@$INSTANCE_PRIMARY_PRIVATE_IP "nomad node eligibility -self -disable && nomad node drain -self -enable -detach -yes"
