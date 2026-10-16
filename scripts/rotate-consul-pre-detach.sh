@@ -39,14 +39,26 @@ if [ "$ARCHIVE_KEYRING" == "true" ]; then
     timeout 120 ssh -F $LOCAL_PATH/../config/ssh.config $SSH_USER@$INSTANCE_PRIMARY_PRIVATE_IP "sudo rm -f /tmp/nomad-keyring.tar.gz"
 fi
 
-# record the server's gossip member name (<node>.<region>) while nomad is still running,
-# so it can be force-left once the agent is stopped
-NOMAD_SERVER_MEMBER=$(timeout 30 ssh -n -o StrictHostKeyChecking=no -F $LOCAL_PATH/../config/ssh.config $SSH_USER@$INSTANCE_PRIMARY_PRIVATE_IP "nomad agent-info -json | jq -r .member.Name")
+# read two things from the outgoing node while nomad is still running, in one ssh call:
+# - its server gossip member name (<node>.<region>), to force-leave once the agent is stopped
+# - its client node ID, so post-attach can purge the node from nomad state once the replacement
+#   is up (same approach as rotate-nomad-pool)
+NOMAD_NODE_INFO=$(timeout 30 ssh -n -o StrictHostKeyChecking=no -F $LOCAL_PATH/../config/ssh.config $SSH_USER@$INSTANCE_PRIMARY_PRIVATE_IP \
+  "echo \"\$(nomad agent-info -json 2>/dev/null | jq -r .member.Name) \$(nomad node status -self -json 2>/dev/null | jq -r .ID)\"" 2>/dev/null)
+NOMAD_SERVER_MEMBER=$(echo "$NOMAD_NODE_INFO" | awk '{print $1}')
+DETACHED_NOMAD_NODE_ID=$(echo "$NOMAD_NODE_INFO" | awk '{print $2}')
 if [ -z "$NOMAD_SERVER_MEMBER" ] || [ "$NOMAD_SERVER_MEMBER" == "null" ]; then
     echo "## WARNING: could not read the nomad server member name on $INSTANCE_PRIMARY_PRIVATE_IP, skipping force-leave"
     NOMAD_SERVER_MEMBER=""
 else
     echo "## rotate-consul-pre-detach: nomad server member is $NOMAD_SERVER_MEMBER"
+fi
+if [ -n "$DETACHED_NOMAD_NODE_ID" ] && [ "$DETACHED_NOMAD_NODE_ID" != "null" ]; then
+    echo "## rotate-consul-pre-detach: nomad node $DETACHED_NOMAD_NODE_ID will be purged after the replacement attaches"
+    export DETACHED_NOMAD_NODE_ID
+else
+    echo "## rotate-consul-pre-detach: WARNING: could not get the nomad node ID for $INSTANCE_PRIMARY_PRIVATE_IP, it will stay down until nomad GC"
+    unset DETACHED_NOMAD_NODE_ID
 fi
 
 echo "## rotate-consul-pre-detach shutting down nomad service on $INSTANCE_PRIMARY_PRIVATE_IP with user $SSH_USER"
