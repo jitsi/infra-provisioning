@@ -4,6 +4,7 @@
 import json
 import pprint
 import sys
+from concurrent.futures import ThreadPoolExecutor
 import click
 import oci
 import hcvlib
@@ -202,21 +203,40 @@ def list_ads_cmd(ctx: click.Context):
 @click.option('--ocpus', type=float, envvar='OCPUS', help='ocpus, for flex shapes')
 @click.option('--memory-in-gbs', type=float, envvar='MEMORY_IN_GBS', help='memory in GB, for flex shapes')
 @click.option('--json', 'as_json', is_flag=True, default=False, help='emit json instead of a table')
+@click.option('--compact', is_flag=True, default=False,
+              help='one line per availability domain with the per-fault-domain counts')
 @click.pass_context
-def list_compute_capacity_cmd(ctx: click.Context, regions, shape, ocpus, memory_in_gbs, as_json):
+def list_compute_capacity_cmd(ctx: click.Context, regions, shape, ocpus, memory_in_gbs, as_json, compact):
     '''list compute capacity for a shape, broken out by availability and fault domain'''
     load_availability_domains(ctx)
 
     selected = list(regions) if regions else list(ctx.obj['OCI_ADS'].keys())
     out = {}
-    for region in selected:
-        out[region] = {}
-        for ad in ctx.obj['OCI_ADS'].get(region, []):
-            out[region][ad.name] = capacity_by_fault_domain(
-                ctx, region, ad.name, shape, ocpus, memory_in_gbs)
+
+    def region_capacity(region):
+        return region, {ad.name: capacity_by_fault_domain(ctx, region, ad.name, shape, ocpus, memory_in_gbs)
+                        for ad in ctx.obj['OCI_ADS'].get(region, [])}
+
+    # the capacity report is one API round trip per AD, so fan out across regions
+    with ThreadPoolExecutor(max_workers=min(len(selected), 10) or 1) as pool:
+        for region, ads in pool.map(region_capacity, selected):
+            out[region] = ads
 
     if as_json:
         click.echo(json.dumps(out, indent=2, sort_keys=True))
+        return
+    if compact:
+        size = '' if ocpus is None and memory_in_gbs is None else ' %gx%gGB' % (ocpus or 0, memory_in_gbs or 0)
+        click.echo("# %s%s" % (shape, size))
+        for region in sorted(out):
+            for ad in sorted(out[region]):
+                fds = out[region][ad]
+                total = sum(info['available_count'] or 0 for info in fds.values())
+                cells = ' '.join("%s=%s" % (fd.replace('FAULT-DOMAIN-', 'FD'),
+                                            info['available_count'] if info['status'] == 'AVAILABLE'
+                                            else info['status'].lower())
+                                 for fd, info in sorted(fds.items()))
+                click.echo("%-16s %-30s avail=%-5s %s" % (region, ad, total, cells))
         return
     for region in sorted(out):
         click.echo("== %s %s" % (region, shape))
