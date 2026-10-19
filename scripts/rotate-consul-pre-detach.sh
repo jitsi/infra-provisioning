@@ -39,6 +39,16 @@ if [ "$ARCHIVE_KEYRING" == "true" ]; then
     timeout 120 ssh -F $LOCAL_PATH/../config/ssh.config $SSH_USER@$INSTANCE_PRIMARY_PRIVATE_IP "sudo rm -f /tmp/nomad-keyring.tar.gz"
 fi
 
+# record the server's gossip member name (<node>.<region>) while nomad is still running,
+# so it can be force-left once the agent is stopped
+NOMAD_SERVER_MEMBER=$(timeout 30 ssh -n -o StrictHostKeyChecking=no -F $LOCAL_PATH/../config/ssh.config $SSH_USER@$INSTANCE_PRIMARY_PRIVATE_IP "nomad agent-info -json | jq -r .member.Name")
+if [ -z "$NOMAD_SERVER_MEMBER" ] || [ "$NOMAD_SERVER_MEMBER" == "null" ]; then
+    echo "## WARNING: could not read the nomad server member name on $INSTANCE_PRIMARY_PRIVATE_IP, skipping force-leave"
+    NOMAD_SERVER_MEMBER=""
+else
+    echo "## rotate-consul-pre-detach: nomad server member is $NOMAD_SERVER_MEMBER"
+fi
+
 echo "## rotate-consul-pre-detach shutting down nomad service on $INSTANCE_PRIMARY_PRIVATE_IP with user $SSH_USER"
 
 timeout 10 ssh -n -o StrictHostKeyChecking=no -F $LOCAL_PATH/../config/ssh.config $SSH_USER@$INSTANCE_PRIMARY_PRIVATE_IP "nomad node eligibility -self -disable && nomad node drain -self -enable -detach -yes"
@@ -52,6 +62,27 @@ timeout 120 ssh -F $LOCAL_PATH/../config/ssh.config $SSH_USER@$INSTANCE_PRIMARY_
 RET=$?
 if [[ $RET -gt 0 ]]; then
     echo "## ERROR stopping nomad on $INSTANCE_PRIMARY_PRIVATE_IP with code $RET"
+fi
+
+# systemd stops nomad with SIGINT and leave_on_interrupt is off, so the server exits without
+# announcing a leave and its peers mark it "failed" in `nomad server members`. Autopilot
+# removes it from raft, but the failed serf entry can linger for days. Force-leave and prune
+# it now that the agent is down. Only done after a clean stop: a pruned member that is still
+# alive would just rejoin.
+if [[ $RET -eq 0 ]] && [ -n "$NOMAD_SERVER_MEMBER" ]; then
+    echo "## rotate-consul-pre-detach: force-leaving nomad server $NOMAD_SERVER_MEMBER"
+    FORCE_LEFT="false"
+    # retried because the nomad endpoint is load balanced and may still route to the stopped server
+    for i in 1 2 3; do
+        if ENVIRONMENT="$ENVIRONMENT" $LOCAL_PATH/nomad.sh server force-leave -prune "$NOMAD_SERVER_MEMBER"; then
+            FORCE_LEFT="true"
+            break
+        fi
+        sleep 10
+    done
+    if [ "$FORCE_LEFT" != "true" ]; then
+        echo "## WARNING: force-leave of nomad server $NOMAD_SERVER_MEMBER failed; it will show failed until reaped"
+    fi
 fi
 
 echo "## rotate-consul-pre-detach graceful consul leave on $INSTANCE_PRIMARY_PRIVATE_IP with user $SSH_USER"
