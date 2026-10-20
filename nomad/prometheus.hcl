@@ -1568,7 +1568,7 @@ groups:
         condition but be aware that it would impact active conferences. Replacing then draining
         the shard is the safer remediation.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=jicofo_severe_log_rate_high
+      alert_url: https://${var.prometheus_hostname}/alerts?search=jicofo_severe_log_rate
   - alert: Jicofo_Severe_Log_Rate
     expr: sum by (shard) (increase(jicofo_log_lines_total{level="SEVERE", role="core"}[10m])) >= 100
     for: 10m
@@ -1580,14 +1580,14 @@ groups:
       summary: jicofo on shard {{ $labels.shard }} in ${var.dc} is logging SEVERE continuously
       description: >-
         Jicofo on shard {{ $labels.shard }} in ${var.dc} has written {{ $value | printf "%.0f" }}
-        SEVERE log lines in the last 10 minutes and has kept that rate up for 5 minutes. A 
+        SEVERE log lines in the last 10 minutes and has kept that rate up for 10 minutes. A
         sustained stream of SEVERE usually means a component inside jicofo is stuck, for example,
         a MUC it can no longer use, and it fires long before users notice. Read the jicofo log
         on the shard in Loki to see which message is repeating. A jicofo restart may clear this
         condition but be aware that it would impact active conferences. Replacing then draining
         the shard is the safer remediation.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=jicofo_severe_log_rate_high
+      alert_url: https://${var.prometheus_hostname}/alerts?search=jicofo_severe_log_rate
   - alert: Jicofo_SIP-Jigasi_Missing
     expr: max by (shard) (jitsi_jicofo_jigasi_sip_count{role="core"}) < 1 and on (shard) (count_over_time(jitsi_jicofo_jigasi_sip_count{role="core"}[10m:1m]) >= 10)
     for: 5m
