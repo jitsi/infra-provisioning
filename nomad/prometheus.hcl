@@ -586,7 +586,7 @@ groups:
         status page for the repo.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=gitea_mirror
-  - alert: Gitea_Mirror_Stale_Critical
+  - alert: Gitea_Mirror_Stale
     # Same signal held far longer: the mirror has been failing to pull for most of a day,
     # so anything booting from it is materially behind main.
     expr: time() - gitea_mirror_last_sync_timestamp_seconds > 21600
@@ -731,7 +731,7 @@ groups:
         backend; check the opus-transcriber-proxy Cloudflare Container logs.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=otp_backend_errors
-  - alert: OTP_Backend_Errors_Sustained
+  - alert: OTP_Backend_Errors
     # Same signal held for 15m: backend errors are ongoing rather than a blip. Severe but
     # does not page - Opus_Transcriber_Proxy_Monitor_Unhealthy above pages when transcription is
     # actually broken end-to-end.
@@ -1362,10 +1362,10 @@ groups:
       service: jitsi
       severity: warn
     annotations:
-      summary: high jvb packets delayed over 5ms for {{ $labels.shard }} in ${var.dc}
+      summary: high jvb packets delayed over 50ms for {{ $labels.shard }} in ${var.dc}
       description: >-
         The JVB autoscaling group {{ $labels.shard }} in ${var.dc} has had more
-        than 40% many packets with a delay > 5ms for the past 15 minutes, and
+        than 40% of packets with a delay > 50ms for the past 10 minutes, and
         should be investigated.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=jvb_rtp_delay
@@ -1409,9 +1409,9 @@ groups:
       severity: severe
       page: true
     annotations:
-      summary: a haproxy in ${var.dc} has had CPU usage > 90% for 5 minutes
+      summary: a haproxy in ${var.dc} has had CPU usage > 90% for 2 minutes
       description: >-
-        A haproxy in ${var.dc} has had a CPU running at over 90% in the last 5
+        A haproxy in ${var.dc} has had a CPU running at over 90% for the last 2
         minutes. It was most recently at {{ $value | printf "%.2f" }}%. This
         should be immediately investigated because it may mean that traffic is
         being dropped in the ingress.
