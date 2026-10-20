@@ -97,9 +97,30 @@ import oci
 COMPARTMENT_ID = "${var.compartment_ocid}"
 REGION         = "${var.oracle_region}"
 PORT           = int(os.environ.get("NOMAD_HOST_PORT_metrics", "9273"))
+CYCLE_SECS     = 60
 STALE_SECS     = 120
 
+# OCI Monitoring rate-limits summarize_metrics_data over a short window, and
+# a burst of back-to-back queries gets its last few rejected with 429. Space
+# the queries out across the cycle instead: 15 queries at 3s fit in 60s.
+QUERY_SPACING_SECS = 3
+
+# Bounded retries for throttling and transient errors. The SDK default retries
+# up to 8 times over 10 minutes, which would stall the whole collection cycle.
+RETRY_STRATEGY = oci.retry.RetryStrategyBuilder(
+    max_attempts=3,
+    total_elapsed_time_seconds=15,
+    retry_base_sleep_time_seconds=2,
+    retry_max_wait_between_calls_seconds=8,
+    backoff_type=oci.retry.BACKOFF_FULL_JITTER_EQUAL_ON_THROTTLE_VALUE,
+).get_retry_strategy()
+
 # One entry per OCI monitoring namespace.
+#
+# interval_secs is how often the namespace is queried. A metric whose query
+# fails keeps its last good samples and is retried on the next cycle.
+# Samples are served until interval_secs + STALE_SECS after they were
+# collected, so one failed query does not drop a series.
 #
 # lookback_min and max_age_secs are per namespace because posting cadence
 # differs. oci_lbaas posts about every minute. oci_instancepools posts sparsely
@@ -119,6 +140,7 @@ SOURCES = [
         "namespace":    "oci_lbaas",
         "prefix":       "oci_lbaas",
         "aggregation":  "sum",
+        "interval_secs": 60,
         "lookback_min": 5,
         "max_age_secs": 120,
         "labels": {
@@ -145,6 +167,9 @@ SOURCES = [
         "namespace":    "oci_instancepools",
         "prefix":       "oci_instancepools",
         "aggregation":  "max",
+        # OCI posts these only every few minutes (see above), so querying
+        # every minute adds load and no data.
+        "interval_secs": 300,
         "lookback_min": 20,
         "max_age_secs": 900,
         "active_pools_only": True,
@@ -162,17 +187,23 @@ SOURCES = [
     },
 ]
 
+SERVE_SECS = {s["namespace"]: s["interval_secs"] + STALE_SECS for s in SOURCES}
+
 # A pool in any other state (RUNNING, SCALING during a rotation, PROVISIONING,
 # STARTING) is live and keeps its series.
 INACTIVE_POOL_STATES = {"STOPPING", "STOPPED", "TERMINATING", "TERMINATED"}
 
-_lock    = threading.Lock()
-_samples = []  # list of (prom_line: str, collected_at: float)
+_lock     = threading.Lock()
+_samples  = {}    # (namespace, metric) -> (prom_lines: list[str], collected_at: float)
+_last_ok  = {}    # (namespace, metric) -> time of the last successful query
+_pool_ids = None  # last successful active_pool_ids() result
 
 try:
     _signer       = oci.auth.signers.InstancePrincipalsSecurityTokenSigner()
-    _client       = oci.monitoring.MonitoringClient({"region": REGION}, signer=_signer)
-    _compute_mgmt = oci.core.ComputeManagementClient({"region": REGION}, signer=_signer)
+    _client       = oci.monitoring.MonitoringClient(
+        {"region": REGION}, signer=_signer, retry_strategy=RETRY_STRATEGY)
+    _compute_mgmt = oci.core.ComputeManagementClient(
+        {"region": REGION}, signer=_signer, retry_strategy=RETRY_STRATEGY)
 except Exception as e:
     print(f"init failed: {e}", file=sys.stderr)
     sys.exit(1)
@@ -197,9 +228,11 @@ def make_labels(dims, label_map):
 
 
 def active_pool_ids():
-    """OCIDs of the compartment's live instance pools, or None if the list
-    call fails. None means keep every series: an OCI API error must not make
-    every pool vanish from the metrics."""
+    """OCIDs of the compartment's live instance pools. If the list call fails,
+    the last successful result, or None if there has not been one. None means
+    keep every series: an OCI API error must not make every pool vanish from
+    the metrics."""
+    global _pool_ids
     try:
         pools = oci.pagination.list_call_get_all_results(
             _compute_mgmt.list_instance_pools,
@@ -207,19 +240,32 @@ def active_pool_ids():
         ).data
     except Exception as e:
         print(f"error listing instance pools: {e}", file=sys.stderr)
-        return None
-    return {p.id for p in pools if p.lifecycle_state not in INACTIVE_POOL_STATES}
+        return _pool_ids
+    _pool_ids = {p.id for p in pools if p.lifecycle_state not in INACTIVE_POOL_STATES}
+    return _pool_ids
 
 
 def collect():
-    end_time = datetime.datetime.utcnow()
-    now_ts   = time.time()
-    new      = []
+    cycle_ts = time.time()
+    queried  = 0
 
     for source in SOURCES:
-        start    = end_time - datetime.timedelta(minutes=source["lookback_min"])
+        namespace = source["namespace"]
+        # Half a cycle of slack so timer jitter cannot push a due metric to
+        # the cycle after.
+        due = [
+            metric for metric in source["metrics"]
+            if cycle_ts - _last_ok.get((namespace, metric), 0) >= source["interval_secs"] - CYCLE_SECS / 2
+        ]
+        if not due:
+            continue
         pool_ids = active_pool_ids() if source.get("active_pools_only") else None
-        for metric in source["metrics"]:
+        for metric in due:
+            if queried:
+                time.sleep(QUERY_SPACING_SECS)
+            queried += 1
+            end_time = datetime.datetime.utcnow()
+            start    = end_time - datetime.timedelta(minutes=source["lookback_min"])
             try:
                 resp = _client.summarize_metrics_data(
                     compartment_id=COMPARTMENT_ID,
@@ -231,9 +277,12 @@ def collect():
                     ),
                 )
             except Exception as e:
-                print(f"error querying {source['namespace']} {metric}: {e}", file=sys.stderr)
+                # Leave the metric's previous samples in place; it is still
+                # due, so the next cycle retries it.
+                print(f"error querying {namespace} {metric}: {e}", file=sys.stderr)
                 continue
 
+            lines = []
             for item in resp.data:
                 if not item.aggregated_datapoints:
                     continue
@@ -245,19 +294,21 @@ def collect():
                     continue
                 labels = make_labels(item.dimensions or {}, source["labels"])
                 name   = f"{source['prefix']}_{to_snake(metric)}"
-                new.append((f"{name}{labels} {dp.value}", now_ts))
+                lines.append(f"{name}{labels} {dp.value}")
 
-    with _lock:
-        _samples[:] = new
+            with _lock:
+                _samples[(namespace, metric)] = (lines, time.time())
+            _last_ok[(namespace, metric)] = cycle_ts
 
 
 def collector_loop():
     while True:
+        started = time.monotonic()
         try:
             collect()
         except Exception as e:
             print(f"collector error: {e}", file=sys.stderr)
-        time.sleep(60)
+        time.sleep(max(0, CYCLE_SECS - (time.monotonic() - started)))
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -266,9 +317,14 @@ class Handler(BaseHTTPRequestHandler):
             self.send_response(404)
             self.end_headers()
             return
-        cutoff = time.time() - STALE_SECS
+        now = time.time()
         with _lock:
-            lines = [line for line, ts in _samples if ts >= cutoff]
+            lines = [
+                line
+                for (namespace, _), (prom_lines, collected_at) in _samples.items()
+                if now - collected_at <= SERVE_SECS[namespace]
+                for line in prom_lines
+            ]
         body = ("\n".join(lines) + "\n").encode()
         self.send_response(200)
         self.send_header("Content-Type", "text/plain; version=0.0.4; charset=utf-8")
