@@ -109,6 +109,11 @@ STALE_SECS     = 120
 # The OCI "region" and "resourceId" dimensions are deliberately not mapped:
 # telegraf already applies a region global tag, and resourceId is high
 # cardinality without adding anything the display name does not.
+#
+# active_pools_only drops series whose resourceId is not a live instance pool.
+# OCI keeps publishing oci_instancepools metrics for a pool after it is
+# stopped or terminated, which otherwise shows a dead pool as a live one
+# short of its configured size.
 SOURCES = [
     {
         "namespace":    "oci_lbaas",
@@ -142,6 +147,7 @@ SOURCES = [
         "aggregation":  "max",
         "lookback_min": 20,
         "max_age_secs": 900,
+        "active_pools_only": True,
         "labels": {
             "pool": "DisplayName",
             "ad":   "AvailabilityDomain",
@@ -156,12 +162,17 @@ SOURCES = [
     },
 ]
 
+# A pool in any other state (RUNNING, SCALING during a rotation, PROVISIONING,
+# STARTING) is live and keeps its series.
+INACTIVE_POOL_STATES = {"STOPPING", "STOPPED", "TERMINATING", "TERMINATED"}
+
 _lock    = threading.Lock()
 _samples = []  # list of (prom_line: str, collected_at: float)
 
 try:
-    _signer = oci.auth.signers.InstancePrincipalsSecurityTokenSigner()
-    _client = oci.monitoring.MonitoringClient({"region": REGION}, signer=_signer)
+    _signer       = oci.auth.signers.InstancePrincipalsSecurityTokenSigner()
+    _client       = oci.monitoring.MonitoringClient({"region": REGION}, signer=_signer)
+    _compute_mgmt = oci.core.ComputeManagementClient({"region": REGION}, signer=_signer)
 except Exception as e:
     print(f"init failed: {e}", file=sys.stderr)
     sys.exit(1)
@@ -185,13 +196,29 @@ def make_labels(dims, label_map):
     return "{" + ",".join(parts) + "}" if parts else ""
 
 
+def active_pool_ids():
+    """OCIDs of the compartment's live instance pools, or None if the list
+    call fails. None means keep every series: an OCI API error must not make
+    every pool vanish from the metrics."""
+    try:
+        pools = oci.pagination.list_call_get_all_results(
+            _compute_mgmt.list_instance_pools,
+            compartment_id=COMPARTMENT_ID,
+        ).data
+    except Exception as e:
+        print(f"error listing instance pools: {e}", file=sys.stderr)
+        return None
+    return {p.id for p in pools if p.lifecycle_state not in INACTIVE_POOL_STATES}
+
+
 def collect():
     end_time = datetime.datetime.utcnow()
     now_ts   = time.time()
     new      = []
 
     for source in SOURCES:
-        start = end_time - datetime.timedelta(minutes=source["lookback_min"])
+        start    = end_time - datetime.timedelta(minutes=source["lookback_min"])
+        pool_ids = active_pool_ids() if source.get("active_pools_only") else None
         for metric in source["metrics"]:
             try:
                 resp = _client.summarize_metrics_data(
@@ -209,6 +236,8 @@ def collect():
 
             for item in resp.data:
                 if not item.aggregated_datapoints:
+                    continue
+                if pool_ids is not None and (item.dimensions or {}).get("resourceId") not in pool_ids:
                     continue
                 dp  = max(item.aggregated_datapoints, key=lambda d: d.timestamp)
                 age = (end_time - dp.timestamp.replace(tzinfo=None)).total_seconds()
