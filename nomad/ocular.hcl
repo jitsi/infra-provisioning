@@ -124,8 +124,10 @@ RETRY_STRATEGY = oci.retry.RetryStrategyBuilder(
 #
 # lookback_min and max_age_secs are per namespace because posting cadence
 # differs. oci_lbaas posts about every minute. oci_instancepools posts sparsely
-# and irregularly (2-8 minutes between points, varying per pool), so the short
-# lookback and 120s staleness used for lbaas would silently drop most pools.
+# and irregularly, alternating gaps of roughly 9 and 22 minutes between points,
+# so the short lookback and 120s staleness used for lbaas would silently drop
+# most pools. Its lookback and max age cover the longest gap with room to
+# spare; a pool's newest point is as current as OCI gets.
 #
 # The OCI "region" and "resourceId" dimensions are deliberately not mapped:
 # telegraf already applies a region global tag, and resourceId is high
@@ -170,8 +172,8 @@ SOURCES = [
         # OCI posts these only every few minutes (see above), so querying
         # every minute adds load and no data.
         "interval_secs": 300,
-        "lookback_min": 20,
-        "max_age_secs": 900,
+        "lookback_min": 40,
+        "max_age_secs": 1800,
         "active_pools_only": True,
         "labels": {
             "pool": "DisplayName",
