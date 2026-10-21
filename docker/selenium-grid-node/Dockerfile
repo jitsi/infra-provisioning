@@ -58,6 +58,16 @@ RUN apt-mark hold chromium || true
 RUN /opt/bin/install-chrome-channel.sh stable
 RUN /opt/bin/install-chrome-channel.sh beta
 
+# Distrust the compromised eMudhra intermediate CA keys (Oct 2026) via the
+# CADistrustedCertificates managed policy. Chrome under ChromeDriver runs in a
+# throwaway profile, so it never has a CRLSet or root-store component update
+# when a test loads the page, and the compiled-in Chrome Root Store keeps
+# emSign ECC Root CA - G3 until Chrome 158. The policy is read at startup, needs
+# no network, and matches by SPKI, so the AAA Certificate Services cross-signs
+# are covered too. Both channels read /etc/opt/chrome. Safe to drop once the
+# stable channel is Chrome >= 158.
+COPY chrome-distrust-emudhra.json /etc/opt/chrome/policies/managed/distrust-emudhra.json
+
 #=========
 # Firefox
 #=========
