@@ -92,7 +92,7 @@ job "[JOB_NAME]" {
         group_add = ["985"]
         network_mode = "host"
         privileged = true
-        image        = "telegraf:1.40.1"
+        image        = "telegraf:1.40.2"
         ports = ["telegraf-statsd","telegraf-prometheus"]
         volumes = ["local/telegraf.conf:/etc/telegraf/telegraf.conf", "local/consul-resolved.conf:/etc/systemd/resolved.conf.d/consul.conf", "/var/run/docker.sock:/var/run/docker.sock"]
       }

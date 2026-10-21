@@ -19,7 +19,7 @@ variable "oracle_s3_namespace" {
 
 variable "tempo_version" {
   type = string
-  default = "2.6.1"
+  default = "2.10.10"
 }
 
 variable "retention_period" {
