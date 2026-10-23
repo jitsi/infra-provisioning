@@ -147,7 +147,7 @@ job "[JOB_NAME]" {
       }
 
       config {
-        image = "grafana/alloy:latest"
+        image = "grafana/alloy:v1.21.2"
         args  = [
           "run",
           "/etc/alloy/config.alloy",
