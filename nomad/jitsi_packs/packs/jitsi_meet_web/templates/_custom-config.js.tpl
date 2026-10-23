@@ -214,7 +214,7 @@ config.toolbarConfig={
         initialTimeout: 20000
 };
 
-[[ if eq (or (env "CONFIG_jitsi_meet_enable_webhid_feature") "true") "true" -]]
+[[ if eq (env "CONFIG_jitsi_meet_enable_webhid_feature") "true" -]]
 config.enableWebHIDFeature=true;
 [[- end ]]
 
