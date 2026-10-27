@@ -1,0 +1,44 @@
+- job:
+    name: build-jicofo-hotfix-deb
+    display-name: build jicofo hotfix deb
+    description: 'Builds a hotfix jicofo deb from a branch and publishes it to the ops repo. NOTE!!! Do not build the same version twice: if a build for a branch with the same number of commits and the same last commit hash is already in the repository, do not run the job again with the same JICOFO_VER and HOTFIX_EXTENSION. The rebuilt package will not match the published sizes and signatures and that version becomes unusable.'
+    concurrent: false
+    parameters:
+      - string:
+          name: GIT_BRANCH
+          description: "Branch of jicofo to build. Create a branch (e.g. from a release), cherry-pick the fixes and build the hotfix package from it."
+          trim: true
+      - string:
+          name: JICOFO_VER
+          description: "Jicofo version the hotfix is based on, e.g. 1234. The package version becomes 1.0-<JICOFO_VER>-<HOTFIX_EXTENSION>-1."
+          trim: true
+      - string:
+          name: HOTFIX_EXTENSION
+          default: hf
+          description: "Usually the default 'hf', unless additional hotfixes on the same version are needed (e.g. 'hf2')."
+          trim: true
+      - string:
+          name: JICOFO_REPO
+          default: git@github.com:jitsi/jicofo.git
+          description: "Jicofo repo to check GIT_BRANCH out from."
+          trim: true
+      - string:
+          name: NEW_KEYID
+          default: "6DA516FC3BD07FBB29EB3ADBB29E4113F900170A"
+          description: "Modern signing key fingerprint for dual-signing the ops repo InRelease (Debian Trixie / APT 3.0), same as build-branding-debs. See JIT-15930."
+          trim: true
+      - infra-branch-param
+      - infra-repo-params
+
+    properties:
+      - build-discarder:
+          days-to-keep: 20
+          num-to-keep: 10
+
+    project-type: pipeline
+    sandbox: true
+    pipeline-scm:
+      scm:
+        - infra-provisioning-checkout
+      script-path: jenkins/groovy/build-jicofo-hotfix-deb/Jenkinsfile
+      lightweight-checkout: true
