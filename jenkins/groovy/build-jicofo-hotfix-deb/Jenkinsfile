@@ -1,0 +1,94 @@
+def utils
+pipeline {
+    agent any
+    options {
+        timestamps()
+        ansiColor('xterm')
+        disableConcurrentBuilds()
+        buildDiscarder(logRotator(daysToKeepStr: '20', numToKeepStr: '10'))
+    }
+    stages {
+        stage ("setup") {
+            steps {
+                script {
+                    if (!env.GIT_BRANCH?.trim() || !env.JICOFO_VER?.trim()) {
+                        error("GIT_BRANCH and JICOFO_VER are required")
+                    }
+                    // load utility function
+                    def rootDir = pwd()
+                    utils = load "${rootDir}/jenkins/groovy/Utils.groovy"
+                    // checkout repos
+                    utils.SetupRepos(env.VIDEO_INFRA_BRANCH)
+
+                    // setup OCI credentials
+                    utils.SetupOCI()
+
+                    dir('jicofo') {
+                        checkout([
+                            $class: 'GitSCM',
+                            branches: [[name: env.GIT_BRANCH]],
+                            userRemoteConfigs: [[url: env.JICOFO_REPO, credentialsId: 'video-infra']]
+                        ])
+                    }
+                }
+            }
+        }
+        stage ("build jicofo deb") {
+            steps {
+                script {
+                    sh '''#!/bin/bash
+                    set -x
+                    set -e
+                    # the agent's JDK comes with the base image, not from apt, so the
+                    # openjdk build dependency in debian/control needs installing once
+                    if ! (cd jicofo && dpkg-checkbuilddeps); then
+                        sudo apt-get update
+                        sudo apt-get -y install --no-install-recommends debhelper openjdk-17-jdk
+                    fi
+
+                    rm -f jicofo{*.changes,*.deb,*.buildinfo}
+
+                    export DEBFULLNAME="Jitsi Team"
+                    export DEBEMAIL="dev@jitsi.org"
+                    export BUILD_NUMBER="${JICOFO_VER}-${HOTFIX_EXTENSION}"
+                    jicofo/resources/build_deb_package.sh
+                    ls -l jicofo{*.changes,*.deb,*.buildinfo}'''
+                }
+            }
+        }
+        stage ("publish to ops repo") {
+            steps {
+                script {
+                    // Shared bucket-scoped lock with reconfigure-ops-repo and build-branding-debs
+                    // so they never mutate the ops-repo bucket concurrently. See JIT-15930.
+                    lock("ops-repo-bucket-ops-repo") {
+                        withCredentials([
+                            file(credentialsId: 'ops-repo-s3fs', variable: 'S3_PASSWORD_PATH'),
+                            file(credentialsId: 'ops-repo-secring', variable: 'OPS_REPO_SECRING_PATH'),
+                            file(credentialsId: 'ops-repo-pubring', variable: 'OPS_REPO_PUBRING_PATH'),
+                            file(credentialsId: 'ops-repo-secring-passphrase', variable: 'OPS_REPO_SECRING_PASSPHRASE_PATH')
+                        ]) {
+                            dir('infra-provisioning') {
+                                sh '''#!/bin/bash
+                                set -x
+                                sudo cp $S3_PASSWORD_PATH /etc/.passwd-s3fs
+                                sudo chown 600 /etc/.passwd-s3fs
+                                mkdir -p /home/jenkins/jitsi/gnupg-jitsi
+                                chmod 0700 /home/jenkins/jitsi/gnupg-jitsi
+                                # the mini-dinstall config in the bucket points release_signscript at the
+                                # reconfigure-ops-repo workspace
+                                mkdir -p /home/jenkins/agent/workspace/reconfigure-ops-repo/infra-provisioning/scripts
+                                cp -a scripts/sign-release.sh /home/jenkins/agent/workspace/reconfigure-ops-repo/infra-provisioning/scripts
+                                cp $OPS_REPO_SECRING_PATH /home/jenkins/jitsi/gnupg-jitsi/secring.gpg
+                                cp $OPS_REPO_PUBRING_PATH /home/jenkins/jitsi/gnupg-jitsi/pubring.gpg
+                                cp $OPS_REPO_SECRING_PASSPHRASE_PATH /home/jenkins/jitsi/gnupg-jitsi/passphrase
+                                export LOCAL_FILES_TO_COPY="$(ls ../jicofo{*.changes,*.deb,*.buildinfo})"
+                                scripts/update-ops-repo.sh'''
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
