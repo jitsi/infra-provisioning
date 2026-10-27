@@ -5,7 +5,7 @@
     concurrent: false
     parameters:
       - string:
-          name: GIT_BRANCH
+          name: JICOFO_BRANCH
           description: "Branch of jicofo to build. Create a branch (e.g. from a release), cherry-pick the fixes and build the hotfix package from it."
           trim: true
       - string:
@@ -20,7 +20,7 @@
       - string:
           name: JICOFO_REPO
           default: git@github.com:jitsi/jicofo.git
-          description: "Jicofo repo to check GIT_BRANCH out from."
+          description: "Jicofo repo to check JICOFO_BRANCH out from."
           trim: true
       - string:
           name: NEW_KEYID
