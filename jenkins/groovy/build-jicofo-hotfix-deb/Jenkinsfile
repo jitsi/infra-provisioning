@@ -11,8 +11,8 @@ pipeline {
         stage ("setup") {
             steps {
                 script {
-                    if (!env.GIT_BRANCH?.trim() || !env.JICOFO_VER?.trim()) {
-                        error("GIT_BRANCH and JICOFO_VER are required")
+                    if (!env.JICOFO_BRANCH?.trim() || !env.JICOFO_VER?.trim()) {
+                        error("JICOFO_BRANCH and JICOFO_VER are required")
                     }
                     // load utility function
                     def rootDir = pwd()
@@ -26,7 +26,7 @@ pipeline {
                     dir('jicofo') {
                         checkout([
                             $class: 'GitSCM',
-                            branches: [[name: env.GIT_BRANCH]],
+                            branches: [[name: env.JICOFO_BRANCH]],
                             userRemoteConfigs: [[url: env.JICOFO_REPO, credentialsId: 'video-infra']]
                         ])
                     }
