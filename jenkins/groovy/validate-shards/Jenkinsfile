@@ -16,7 +16,8 @@ pipeline {
           // checkout repos
           utils.SetupRepos(env.VIDEO_INFRA_BRANCH)
 
-          // checkout the branding repo (source of the 8x8 meeting-settings e2e spec); latest master
+          // checkout the branding repo (source of the 8x8 meeting-settings e2e spec); latest master,
+          // validate-shard.sh takes the tests from the shard's release-<version> branch when there is one
           sshagent (credentials: ['video-infra']) {
             dir('jitsi-meet-branding') {
               retry(count: 3) {
