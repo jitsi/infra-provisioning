@@ -100,7 +100,7 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                         governance = utils.LoadGovernanceHooks()
                         artConfig = governance.init([
                             serviceName:   'coturn',
-                            version:       env.BUILD_ID,
+                            version:       sh(returnStdout: true, script: 'git rev-parse HEAD').trim(),
                             artifactType:  'vm',
                             environment:   env.ENVIRONMENT,
                             // Standard governance job parameters (see

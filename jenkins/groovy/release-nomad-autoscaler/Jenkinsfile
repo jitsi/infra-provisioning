@@ -41,7 +41,7 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                         governance = utils.LoadGovernanceHooks()
                         artConfig = governance.init([
                             serviceName:   'nomad-autoscaler',
-                            version:       env.BUILD_ID,
+                            version:       sh(returnStdout: true, script: 'git rev-parse HEAD').trim(),
                             environment:   env.ENVIRONMENT,
                             // Standard governance job parameters (see
                             // the governance provider's JOB_PARAMETERS.md).
