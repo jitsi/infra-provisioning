@@ -227,9 +227,25 @@ echo "Done npm install"
 # framework via its relative imports. Works the same whether we're sitting in tests/ or jitsi-meet/
 # above (specs/ is right here either way).
 if [ "$RUN_MEET_SETTINGS" = "true" ]; then
-  if [ -d "$BRANDING_PATH/meet-8x8-com/tests/specs" ]; then
-    echo "Adding 8x8 meeting-settings spec from $BRANDING_PATH"
-    cp -a "$BRANDING_PATH/meet-8x8-com/tests/specs/." specs/
+  BRANDING_TESTS="$BRANDING_PATH/meet-8x8-com/tests"
+
+  # As for jitsi-meet above, take the branding tests from the shard's release branch when the
+  # branding repo has one, and from the checked-out branch (master in Jenkins) otherwise. The
+  # release branch is extracted into TMPDIR rather than checked out, so the checkout stays as it
+  # is for the next shard and for local runs.
+  BRANDING_RELEASE_REF="refs/remotes/origin/release-${JITSI_MEET_BRANCH}"
+  if [ -z "${TORTURE_BRANCH}" ] && git -C "$BRANDING_PATH" show-ref --verify --quiet "$BRANDING_RELEASE_REF"; then
+    echo "Branding branch 'release-${JITSI_MEET_BRANCH}' exists. Using its tests..."
+    BRANDING_TESTS="$TMPDIR/jitsi-meet-branding/meet-8x8-com/tests"
+    mkdir -p "$TMPDIR/jitsi-meet-branding"
+    if git -C "$BRANDING_PATH" cat-file -e "$BRANDING_RELEASE_REF:meet-8x8-com/tests" 2>/dev/null; then
+      git -C "$BRANDING_PATH" archive "$BRANDING_RELEASE_REF" meet-8x8-com/tests | tar -x -C "$TMPDIR/jitsi-meet-branding"
+    fi
+  fi
+
+  if [ -d "$BRANDING_TESTS/specs" ]; then
+    echo "Adding 8x8 meeting-settings spec from $BRANDING_TESTS"
+    cp -a "$BRANDING_TESTS/specs/." specs/
 
     # Settings page differs per environment type (stage -> pilot, prod -> prod); the spec
     # derives the API hosts from it.
@@ -240,12 +256,12 @@ if [ "$RUN_MEET_SETTINGS" = "true" ]; then
     fi
 
     # Fetch the SSO + Jitsi tokens for the three test users into the environment.
-    if ! . "$BRANDING_PATH/meet-8x8-com/tests/fetch-settings-test-tokens.sh"; then
+    if ! . "$BRANDING_TESTS/fetch-settings-test-tokens.sh"; then
       echo "Failed to fetch meeting-settings test tokens"
       exit 1
     fi
   else
-    echo "Branding tests not found at $BRANDING_PATH; skipping meeting-settings spec"
+    echo "Branding tests not found at $BRANDING_TESTS; skipping meeting-settings spec"
   fi
 fi
 
