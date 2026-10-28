@@ -38,7 +38,7 @@ pipeline {
                         governance = utils.LoadGovernanceHooks()
                         artConfig = governance.init([
                             serviceName:   'nomad-alert-emailer',
-                            version:       env.BUILD_ID,
+                            version:       sh(returnStdout: true, script: 'git rev-parse HEAD').trim(),
                             environment:   env.ENVIRONMENT,
                             // Standard governance job parameters (see
                             // the governance provider's JOB_PARAMETERS.md).
