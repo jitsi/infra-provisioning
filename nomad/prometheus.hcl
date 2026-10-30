@@ -1838,22 +1838,20 @@ groups:
   # flat produces increase() == 0 forever. The second clause catches that
   # first appearance (present now, absent 15m ago) so the very first burst
   # still fires.
-  # component_type="filter" is excluded because a filter discards by design:
-  # logs_drop_noise and loki_drop_noise exist precisely to throw fabio
-  # health-check access logs and loki's own info lines away, and vector counts
-  # every one of those as a discarded event. Measured on ops-dev us-phoenix-1
-  # 2026-09-18: ~900 per 15m on each node running fabio, steady state, which
-  # would have pinned this alert on for as long as the node lived. Every other
-  # component type that discards is losing events it was asked to deliver.
+  # intentional="true" is excluded because those are drops the config asks
+  # for: filters such as logs_drop_noise, and remaps that abort with
+  # drop_on_abort, such as jibri_components_to_structure dropping chromedriver
+  # DevTools lines (~2M per 7d in prod on 2026-10-30, flapping per jibri).
+  # Only intentional="false" is a lost event that vector was asked to deliver.
   - alert: Vector_Events_Discarded
     expr: >-
       (sum by (node, registered_by, component_id, component_type)
-        (increase(vector_component_discarded_events_total{component_type!="filter"}[15m])) > 0)
+        (increase(vector_component_discarded_events_total{intentional!="true"}[15m])) > 0)
       or
       (sum by (node, registered_by, component_id, component_type)
-        (vector_component_discarded_events_total{component_type!="filter"}) > 0
+        (vector_component_discarded_events_total{intentional!="true"}) > 0
        unless sum by (node, registered_by, component_id, component_type)
-        (vector_component_discarded_events_total{component_type!="filter"} offset 15m))
+        (vector_component_discarded_events_total{intentional!="true"} offset 15m))
     for: 5m
     labels:
       service: infra
