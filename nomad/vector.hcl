@@ -109,9 +109,11 @@ job "[JOB_NAME]" {
         VECTOR_REQUIRE_HEALTHY = "true"
       }
       # resource limits are a good idea because you don't want your log collection to consume all resources available
+      # coturn nodes have only 292 MB unreserved, so going past 512 means
+      # shrinking the coturn job first or vector will not place there
       resources {
         cpu    = 128
-        memory = 256
+        memory = 512
       }
       # template with Vector's configuration
       template {

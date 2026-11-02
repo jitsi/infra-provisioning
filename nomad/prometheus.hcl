@@ -503,9 +503,9 @@ groups:
       service: infra
       severity: warn
     annotations:
-      summary: memory use for {{ $labels.exported_job }} in ${var.dc} is high
+      summary: memory use for {{ $labels.exported_job }} on {{ $labels.node }} in ${var.dc} is high
       description: >-
-        The {{ $labels.exported_job }} job in ${var.dc} has been using more than 85% of its
+        The {{ $labels.exported_job }} job on {{ $labels.node }} in ${var.dc} has been using more than 85% of its
         allocated memory for the last 20 minutes. It was most recently at {{ $value }}. Consider
         modifying the allocated memory and re-deploying the job.
       dashboard_url: ${var.grafana_url}
