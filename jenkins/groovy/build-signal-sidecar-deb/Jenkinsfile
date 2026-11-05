@@ -1,0 +1,116 @@
+def utils
+pipeline {
+    agent any
+    options {
+        timestamps()
+        ansiColor('xterm')
+        disableConcurrentBuilds()
+        buildDiscarder(logRotator(numToKeepStr: '5'))
+    }
+    stages {
+        stage ("setup") {
+            steps {
+                script {
+                    def tag = env.TAG?.trim() ?: ''
+                    if (!(tag ==~ /^v[0-9]+\.[0-9]+\.[0-9]+$/)) {
+                        error("TAG must look like v0.4.0, got '${tag}'")
+                    }
+                    env.RELEASE_TAG = tag
+                    env.RELEASE_VERSION = tag.substring(1)
+
+                    // load utility function
+                    def rootDir = pwd()
+                    utils = load "${rootDir}/jenkins/groovy/Utils.groovy"
+                    // checkout repos
+                    utils.SetupRepos(env.VIDEO_INFRA_BRANCH)
+
+                    // setup OCI credentials
+                    utils.SetupOCI()
+
+                    // mini-dinstall stores the deb without the epoch; 0 means not published yet
+                    def published = sh(returnStdout: true, script: '''#!/bin/bash
+                    set -e
+                    oci os object list -bn ops-repo --region us-phoenix-1 \
+                        --prefix "repo/debian/unstable/signal-sidecar_${RELEASE_VERSION}-1_all.deb" \
+                        --query 'length(data || `[]`)' --raw-output''').trim()
+                    if (published != '0') {
+                        error("${tag} is already in the ops repo. Do not publish the same version twice.")
+                    }
+                    currentBuild.description = tag
+                }
+            }
+        }
+        stage ("download and verify signal-sidecar deb") {
+            steps {
+                script {
+                    sh '''#!/bin/bash
+                    set -x
+                    set -e
+                    command -v gh > /dev/null || { echo "gh is not installed on this agent"; exit 1; }
+
+                    rm -rf release
+                    mkdir release
+                    cd release
+
+                    BASE_URL="https://github.com/jitsi/signal-sidecar/releases/download/${RELEASE_TAG}"
+                    for f in "signal-sidecar_${RELEASE_VERSION}-1_all.deb" "signal-sidecar_${RELEASE_VERSION}-1_all.changes" \
+                        "signal-sidecar_${RELEASE_VERSION}-1_all.buildinfo" SHA256SUMS attestation.sigstore.json; do
+                        curl -fsSL -o "$f" "$BASE_URL/$f"
+                    done
+
+                    sha256sum -c SHA256SUMS
+
+                    # --bundle verifies offline from the release asset, so no GitHub token is needed
+                    for f in *.deb *.changes *.buildinfo; do
+                        gh attestation verify "$f" --bundle attestation.sigstore.json --repo jitsi/signal-sidecar \
+                            --signer-workflow jitsi/signal-sidecar/.github/workflows/build-deb.yml
+                    done
+                    ls -l'''
+                }
+            }
+        }
+        stage ("publish to ops repo") {
+            steps {
+                script {
+                    // Shared bucket-scoped lock with reconfigure-ops-repo and the other deb
+                    // builds so they never mutate the ops-repo bucket concurrently.
+                    lock("ops-repo-bucket-ops-repo") {
+                        withCredentials([
+                            file(credentialsId: 'ops-repo-s3fs', variable: 'S3_PASSWORD_PATH'),
+                            file(credentialsId: 'ops-repo-secring', variable: 'OPS_REPO_SECRING_PATH'),
+                            file(credentialsId: 'ops-repo-pubring', variable: 'OPS_REPO_PUBRING_PATH'),
+                            file(credentialsId: 'ops-repo-secring-passphrase', variable: 'OPS_REPO_SECRING_PASSPHRASE_PATH')
+                        ]) {
+                            dir('infra-provisioning') {
+                                sh '''#!/bin/bash
+                                set -x
+                                sudo cp $S3_PASSWORD_PATH /etc/.passwd-s3fs
+                                sudo chown 600 /etc/.passwd-s3fs
+                                mkdir -p /home/jenkins/jitsi/gnupg-jitsi
+                                chmod 0700 /home/jenkins/jitsi/gnupg-jitsi
+                                # the mini-dinstall config in the bucket points release_signscript at the
+                                # reconfigure-ops-repo workspace
+                                mkdir -p /home/jenkins/agent/workspace/reconfigure-ops-repo/infra-provisioning/scripts
+                                cp -a scripts/sign-release.sh /home/jenkins/agent/workspace/reconfigure-ops-repo/infra-provisioning/scripts
+                                cp $OPS_REPO_SECRING_PATH /home/jenkins/jitsi/gnupg-jitsi/secring.gpg
+                                cp $OPS_REPO_PUBRING_PATH /home/jenkins/jitsi/gnupg-jitsi/pubring.gpg
+                                cp $OPS_REPO_SECRING_PASSPHRASE_PATH /home/jenkins/jitsi/gnupg-jitsi/passphrase
+                                export LOCAL_FILES_TO_COPY="$(ls ../release/signal-sidecar_{*.changes,*.deb,*.buildinfo})"
+                                scripts/update-ops-repo.sh'''
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    post {
+        success {
+            script {
+                // the rotator keeps only the last 5 runs, so a run of failed retries would
+                // otherwise push the publish records out
+                currentBuild.keepLog = true
+            }
+        }
+    }
+}

@@ -1,0 +1,30 @@
+- job:
+    name: build-signal-sidecar-deb
+    display-name: build signal-sidecar deb
+    description: 'Publishes a signal-sidecar release deb to the ops repo. The Build deb workflow in jitsi/signal-sidecar builds the deb and attaches it to a GitHub release. This job downloads it, checks the checksums and the build provenance, and publishes it. poll-signal-sidecar-release starts it for each new release. It refuses a version that is already in the ops repo. Successful runs are kept; other runs rotate out after 5.'
+    concurrent: false
+    parameters:
+      - string:
+          name: TAG
+          default: ""
+          description: "Required. signal-sidecar release tag to publish, for example v0.4.0. The package version is 1:<tag without v>-1."
+          trim: true
+      - string:
+          name: NEW_KEYID
+          default: "6DA516FC3BD07FBB29EB3ADBB29E4113F900170A"
+          description: "Modern signing key fingerprint for dual-signing the ops repo InRelease (Debian Trixie / APT 3.0), same as build-branding-debs."
+          trim: true
+      - infra-branch-param
+      - infra-repo-params
+
+    properties:
+      - build-discarder:
+          num-to-keep: 5
+
+    project-type: pipeline
+    sandbox: true
+    pipeline-scm:
+      scm:
+        - infra-provisioning-checkout
+      script-path: jenkins/groovy/build-signal-sidecar-deb/Jenkinsfile
+      lightweight-checkout: true

@@ -1,0 +1,68 @@
+- job:
+    name: poll-signal-sidecar-release
+    display-name: poll signal-sidecar release
+    description: 'Every 15 minutes, checks the newest jitsi/signal-sidecar GitHub release. If the ops repo does not have its deb yet, starts build-signal-sidecar-deb with its tag and waits for it. Runs that find nothing to publish delete themselves on the next run; failed runs stay.'
+    concurrent: false
+    node: ops-agent
+    project-type: freestyle
+
+    triggers:
+      - timed: 'H/15 * * * *'
+
+    wrappers:
+      - timestamps
+      - credentials-binding:
+          - file:
+              credential-id: oci-jenkins-config
+              variable: OCI_CLI_CONFIG_FILE_SRC
+          - file:
+              credential-id: oci-jenkins-pem
+              variable: OCI_CLI_KEY_FILE_SRC
+
+    builders:
+      - shell: |
+          #!/bin/bash
+          set -eo pipefail
+          rm -f release.properties
+
+          # the workflow creates the release before it uploads the assets one by one, and
+          # releases from before the workflow carry none, so take a release only when all are there
+          TAG=$(curl -fsSL https://api.github.com/repos/jitsi/signal-sidecar/releases/latest \
+              | jq -r '(.tag_name | ltrimstr("v")) as $v | [.assets[].name] as $have
+                  | select(all("signal-sidecar_\($v)-1_all.deb", "signal-sidecar_\($v)-1_all.changes",
+                      "signal-sidecar_\($v)-1_all.buildinfo", "SHA256SUMS", "attestation.sigstore.json";
+                      . as $f | $have | index([$f])))
+                  | .tag_name')
+          if [ -z "$TAG" ]; then
+              # discard-old-build deletes runs that print this marker
+              echo "SIGNAL_SIDECAR_NOTHING_TO_PUBLISH: the newest release has no complete set of deb assets"
+              exit 0
+          fi
+
+          rm -rf ~/.oci && mkdir -p ~/.oci
+          cp "$OCI_CLI_CONFIG_FILE_SRC" ~/.oci/config
+          cp "$OCI_CLI_KEY_FILE_SRC" ~/.oci/private-key.pem
+          # mini-dinstall stores the deb without the epoch
+          VERSION=$(echo "$TAG" | sed 's/^v//')
+          PUBLISHED=$(oci os object list -bn ops-repo --region us-phoenix-1 \
+              --prefix "repo/debian/unstable/signal-sidecar_$VERSION-1_all.deb" \
+              --query 'length(data || `[]`)' --raw-output)
+          if [ "$PUBLISHED" != "0" ]; then
+              echo "SIGNAL_SIDECAR_NOTHING_TO_PUBLISH: $TAG is already in the ops repo"
+              exit 0
+          fi
+
+          echo "$TAG is not in the ops repo yet, starting build-signal-sidecar-deb"
+          echo "TAG=$TAG" > release.properties
+      - trigger-builds:
+          - project: build-signal-sidecar-deb
+            property-file: release.properties
+            property-file-fail-on-missing: true
+            block: true
+
+    publishers:
+      # keep-last-builds stops the plugin deleting the run that is still in progress
+      - discard-old-build:
+          num-to-keep: 5
+          keep-last-builds: true
+          regexp: 'SIGNAL_SIDECAR_NOTHING_TO_PUBLISH'
