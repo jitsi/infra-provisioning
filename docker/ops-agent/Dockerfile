@@ -47,6 +47,11 @@ RUN wget -O- https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | \
 RUN echo "deb [signed-by=/usr/share/keyrings/nodesource-archive-keyring.gpg] https://deb.nodesource.com/node_22.x nodistro main" | \
     tee /etc/apt/sources.list.d/nodesource.list
 RUN apt-get update && apt-get -y install nodejs && rm /etc/apt/sources.list.d/nodesource.list
+RUN wget -O /usr/share/keyrings/githubcli-archive-keyring.gpg https://cli.github.com/packages/githubcli-archive-keyring.gpg && \
+    chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg && \
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | \
+    tee /etc/apt/sources.list.d/github-cli.list && \
+    apt-get update && apt-get -y install gh && rm /etc/apt/sources.list.d/github-cli.list
 RUN wget -O- https://download.docker.com/linux/debian/gpg | \
     gpg --dearmor | \
     tee /usr/share/keyrings/docker-archive-keyring.gpg
