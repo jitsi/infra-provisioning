@@ -2,6 +2,7 @@
     name: release-beta-pipeline
     display-name: release beta pipeline
     concurrent: false
+    disabled: true
     parameters:
       - string:
           name: JICOFO_VERSION
