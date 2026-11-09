@@ -84,6 +84,11 @@ Consequences worth knowing before you spend an hour on a confusing failure:
   checkout, since that is where site config actually lives. So editing `sites/<env>/vars.yml` from
   here modifies a *different* repo, and `git status` in this one will never show it. PR site config
   there, code here.
+- `ansible/` is not this repo's own content either. Depending on how the checkout is linked, its
+  subdirectories (`roles`, `config`, `sites`, `secrets`) resolve into `infra-configuration` or into
+  the customizations checkout. Before you edit a file under `ansible/`, run `readlink -f` on it and
+  commit the change in the repo it prints. A role edit made from here usually belongs in
+  `infra-configuration`.
 
 ## How a script expects to be called
 
@@ -103,6 +108,22 @@ ENVIRONMENT=<env> ORACLE_REGION=<region> scripts/deploy-nomad-telegraf.sh
   `$ENVIRONMENT-$ORACLE_REGION`.
 - `NOMAD_ADDR` defaults to `https://$ENVIRONMENT-$LOCAL_REGION-nomad.$TOP_LEVEL_DNS_ZONE_NAME`, with
   `LOCAL_REGION` falling back to the environment's `OCI_LOCAL_REGION`.
+- `scripts/deploy-nomad-<type>.sh` is what the `provision-nomad-job` Jenkins job runs for
+  `JOB_TYPE=<type>`. You can run it by hand. The script only computes `NOMAD_ADDR`, so supply the
+  Nomad credentials yourself (`NOMAD_TOKEN` or mTLS). Scripts that decrypt `ansible/secrets/*.yml`
+  also expect `.vault-password.txt` at the repo root, or `VAULT_PASSWORD_FILE`. Like `sites/`, that
+  file comes from the customizations overlay.
+- Most deploy scripts pipe a plain jobspec from `nomad/` through `sed` into `nomad job run -`. The
+  scripts for the packs in `nomad/jitsi_packs/packs/` (for example JVB, shard backend, autoscaler
+  and web release) use `nomad-pack run`, so the `nomad-pack` CLI must be installed as well as
+  `nomad`. `deploy-nomad-cloudprober.sh` writes a per-datacenter var-file, runs `nomad-pack render`
+  into a temp dir, and then runs `nomad job run` on the rendered `.nomad` file.
+- **Re-running a deploy with unchanged vars is a silent no-op.** `nomad job run` compares the new
+  spec with the running job. If nothing changed, it creates no allocation and still exits 0, so the
+  job does not redeploy. The docker pull policy has no effect on this, and a mutable tag such as
+  `latest` does not force a pull. To redeploy, change a var: pin an explicit image tag, such as a
+  short commit SHA. `deploy-nomad-opus-transcriber-proxy-monitor.sh` refuses `latest` for this
+  reason. `deploy-nomad-autoscaler.sh` still defaults `AUTOSCALER_VERSION` to `latest`.
 
 ### Terraform state is per-region, and that bites
 
