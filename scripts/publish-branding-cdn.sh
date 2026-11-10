@@ -93,13 +93,12 @@ if [ -n "$CDN_R2_BUCKET" ]; then
     rclone copy usr/share/${BRANDING_NAME} default:$CDN_R2_BUCKET/v1/_cdn/${VERSION_PREFIX}${BRANDING_COMPLETE_VERSION} &
 fi
 
-aws s3 cp --recursive usr/share/${BRANDING_NAME} s3://$CDN_S3_BUCKET/${VERSION_PREFIX}${BRANDING_COMPLETE_VERSION}/ &
+# Access-Control-Allow-Origin comes from the bucket CORS rules and Cross-Origin-Resource-Policy from the CDN,
+# so only Cache-Control needs to be set on the objects
+aws s3 cp --recursive --cache-control "public, max-age=31536000" usr/share/${BRANDING_NAME} s3://$CDN_S3_BUCKET/${VERSION_PREFIX}${BRANDING_COMPLETE_VERSION}/ &
 
 wait
 rm $RCLONE_CONFIG_PATH
-s3cmd --recursive modify --add-header="Cache-Control: public, max-age=31536000" s3://$CDN_S3_BUCKET/${VERSION_PREFIX}${BRANDING_COMPLETE_VERSION}/
-s3cmd --recursive modify --add-header="Access-Control-Allow-Origin: *" s3://$CDN_S3_BUCKET/${VERSION_PREFIX}${BRANDING_COMPLETE_VERSION}/
-s3cmd --recursive modify --add-header="Cross-Origin-Resource-Policy: cross-origin" s3://$CDN_S3_BUCKET/${VERSION_PREFIX}${BRANDING_COMPLETE_VERSION}/
 # Default mime type mapping doesn't identify wasm files correctly
 s3cmd --recursive modify --exclude='*' --include='*.wasm' --add-header="Content-Type: application/wasm" s3://$CDN_S3_BUCKET/${VERSION_PREFIX}${BRANDING_COMPLETE_VERSION}/
 
