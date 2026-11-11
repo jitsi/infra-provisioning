@@ -46,8 +46,10 @@ pipeline {
           // grid has.
           catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
             dir('infra-provisioning') {
-              // A validate run peaks at 13-17 concurrent browser sessions (MAX_INSTANCES=4), one node each
-              utils.GridRequestSlots(gridName, 17, 900)
+              // A validate run peaks at 13-17 concurrent browser sessions (MAX_INSTANCES=4), one node each.
+              // The shards test one at a time behind the validate-grid lock below, so the builds waiting
+              // for it share one reservation instead of adding 17 nodes each.
+              utils.GridRequestSlots(gridName, 17, 900, "validate-grid-${gridUrl}")
             }
           }
         }

@@ -4,8 +4,9 @@
 # Subcommands: request, release, scaledown, status
 #
 # The pool is sized to the minimum plus the slots of the active reservations (one slot is one node,
-# the grid nodes take one session each). request only grows the pool, scaledown shrinks it back to
-# the minimum once there are no reservations and the grid is idle.
+# the grid nodes take one session each; reservations sharing a group count once). request only grows
+# the pool, scaledown shrinks it back to the minimum once there are no reservations and the grid is
+# idle.
 
 set -e
 LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
@@ -97,9 +98,14 @@ get_active_reservations() {
         '[.[] | select(($now - (.created_at // 0)) < $ttl)]'
 }
 
+# Reservations with the same group are from builds that take turns on the grid (e.g. behind one lock),
+# so a group counts once, with its largest reservation, however many of its builds are waiting.
 get_total_reserved_slots() {
     local arch="${1:-x86}"
-    get_active_reservations | jq --arg arch "$arch" '[.[] | select(.arch == $arch) | .slots] | add // 0'
+    get_active_reservations | jq --arg arch "$arch" '
+        [.[] | select(.arch == $arch)]
+        | ([.[] | select(.group == null) | .slots] | add // 0)
+          + ([.[] | select(.group != null)] | group_by(.group) | map(map(.slots) | max) | add // 0)'
 }
 
 get_reservation_count() {
@@ -223,7 +229,7 @@ cmd_request() {
     local arch="${GRID_ARCH:-arm}"
 
     echo "=== Grid Scale Request ==="
-    echo "Grid: $GRID_NAME, Build: $BUILD_TAG, Slots: $GRID_SLOTS_REQUESTED, Arch: $arch"
+    echo "Grid: $GRID_NAME, Build: $BUILD_TAG, Slots: $GRID_SLOTS_REQUESTED, Arch: $arch, Group: ${GRID_RESERVATION_GROUP:-none}"
 
     get_consul_config
 
@@ -232,8 +238,9 @@ cmd_request() {
     reservation_json=$(jq -n \
         --argjson slots "$GRID_SLOTS_REQUESTED" \
         --arg arch "$arch" \
+        --arg group "$GRID_RESERVATION_GROUP" \
         --argjson created_at "$(date +%s)" \
-        '{slots: $slots, arch: $arch, created_at: $created_at}')
+        '{slots: $slots, arch: $arch, created_at: $created_at} + (if $group == "" then {} else {group: $group} end)')
 
     local kv_key="$CONSUL_KV_PREFIX/reservations/$BUILD_TAG"
     curl -s -X PUT -d "$reservation_json" "$CONSUL_URL/v1/kv/$kv_key" >/dev/null
