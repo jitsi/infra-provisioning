@@ -1,12 +1,22 @@
 #!/bin/bash
 
 # grid-scale.sh - Dynamic Selenium Grid scaling via Consul KV and OCI instance pools
-# Subcommands: request, release, scaledown, status
+# Subcommands: request, release, reconcile (scaledown is the old name), github-watch, status
 #
 # The pool is sized to the minimum plus the slots of the active reservations (one slot is one node,
-# the grid nodes take one session each; reservations sharing a group count once). request only grows
-# the pool, scaledown shrinks it back to the minimum once there are no reservations and the grid is
-# idle.
+# the grid nodes take one session each; reservations sharing a group count once), up to a maximum.
+# request reserves and grows the pool, reconcile (run every couple of minutes by the
+# selenium-grid-reconcile job) grows it and shrinks it back once the grid is idle, github-watch
+# reserves for the PR tests while they have runs on GitHub.
+#
+# CI hosts without OCI access reserve by writing the Consul key
+# selenium-grid/<grid>/reservations/<id> with {"slots": N, "arch": "arm", "created_at": <epoch>,
+# "group": "<optional>", "ttl": <optional seconds>}, and release by deleting it and writing the epoch
+# to selenium-grid/<grid>/last_release_at. reconcile then sizes the pool.
+#
+# The minimum, maximum, cooldown and ttl of a grid are in selenium-grid/<grid>/config, e.g.
+# {"min_pool_size_arm": 4, "max_pool_size_arm": 50}. reconcile and github-watch leave alone a grid
+# without that key.
 
 set -e
 LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
@@ -55,19 +65,32 @@ S3_STATE_KEY_IP="${S3_STATE_BASE}/terraform-ip.tfstate"
 [ -z "$GRID_WAIT_TIMEOUT" ] && GRID_WAIT_TIMEOUT=900
 [ -z "$GRID_MIN_POOL_SIZE_X86" ] && GRID_MIN_POOL_SIZE_X86=1
 [ -z "$GRID_MIN_POOL_SIZE_ARM" ] && GRID_MIN_POOL_SIZE_ARM=4
+# The reservations can be written by any CI host that reaches Consul, so the pool never grows above this
+[ -z "$GRID_MAX_POOL_SIZE_X86" ] && GRID_MAX_POOL_SIZE_X86=10
+[ -z "$GRID_MAX_POOL_SIZE_ARM" ] && GRID_MAX_POOL_SIZE_ARM=50
 [ -z "$GRID_COOLDOWN_SECONDS" ] && GRID_COOLDOWN_SECONDS=600
 [ -z "$GRID_POLL_INTERVAL" ] && GRID_POLL_INTERVAL=15
 # A reservation older than this is left over from a build that never released it and is ignored
 [ -z "$GRID_RESERVATION_TTL" ] && GRID_RESERVATION_TTL=7200
+# github-watch: the PR test runs of these repos get GRID_WATCH_SLOTS slots (a PR test peaks at 16 sessions)
+[ -z "$GRID_WATCH_OWNER" ] && GRID_WATCH_OWNER=jitsi
+[ -z "$GRID_WATCH_REPOS" ] && GRID_WATCH_REPOS="jitsi-meet lib-jitsi-meet jicofo jitsi-videobridge jicoco"
+[ -z "$GRID_WATCH_WORKFLOW" ] && GRID_WATCH_WORKFLOW=pr-torture-trigger.yml
+[ -z "$GRID_WATCH_SLOTS" ] && GRID_WATCH_SLOTS=16
+[ -z "$GRID_WATCH_GROUP" ] && GRID_WATCH_GROUP=pr-torture
+[ -z "$GRID_WATCH_TTL" ] && GRID_WATCH_TTL=600
 
 ###############################################################################
 # Helper functions
 ###############################################################################
 
+# Sets GRID_HAS_CONFIG=true when the grid has a config in Consul
 get_consul_config() {
     local config_json
-    config_json=$(curl -s "$CONSUL_URL/v1/kv/$CONSUL_KV_PREFIX/config?raw" 2>/dev/null || echo "")
+    GRID_HAS_CONFIG=false
+    config_json=$(curl -s -f "$CONSUL_URL/v1/kv/$CONSUL_KV_PREFIX/config?raw" 2>/dev/null || echo "")
     if [ -n "$config_json" ] && [ "$config_json" != "null" ]; then
+        GRID_HAS_CONFIG=true
         local val
         val=$(echo "$config_json" | jq -r '.min_pool_size_x86 // empty' 2>/dev/null)
         [ -n "$val" ] && GRID_MIN_POOL_SIZE_X86="$val"
@@ -77,10 +100,16 @@ get_consul_config() {
         [ -n "$val" ] && GRID_COOLDOWN_SECONDS="$val"
         val=$(echo "$config_json" | jq -r '.reservation_ttl // empty' 2>/dev/null)
         [ -n "$val" ] && GRID_RESERVATION_TTL="$val"
+        val=$(echo "$config_json" | jq -r '.max_pool_size_x86 // empty' 2>/dev/null)
+        [ -n "$val" ] && GRID_MAX_POOL_SIZE_X86="$val"
+        val=$(echo "$config_json" | jq -r '.max_pool_size_arm // empty' 2>/dev/null)
+        [ -n "$val" ] && GRID_MAX_POOL_SIZE_ARM="$val"
     fi
+    # The last test above fails when its key is missing, which set -e would take as a failure
+    return 0
 }
 
-# The reservations as a JSON array of {key, slots, arch, created_at}, expired ones included
+# The reservations as a JSON array of {key, slots, arch, created_at, group?, ttl?}, expired ones included
 get_reservations() {
     local keys_json
     keys_json=$(curl -s "$CONSUL_URL/v1/kv/$CONSUL_KV_PREFIX/reservations/?recurse" 2>/dev/null || echo "")
@@ -92,10 +121,10 @@ get_reservations() {
     echo "$keys_json" | jq -c '[.[] | {key: .Key} + (.Value | @base64d | fromjson)]' 2>/dev/null || echo "[]"
 }
 
-# The reservations that are not older than GRID_RESERVATION_TTL
+# The reservations that are not older than their ttl, or GRID_RESERVATION_TTL when they have none
 get_active_reservations() {
     get_reservations | jq -c --argjson now "$(date +%s)" --argjson ttl "$GRID_RESERVATION_TTL" \
-        '[.[] | select(($now - (.created_at // 0)) < $ttl)]'
+        '[.[] | select(($now - (.created_at // 0)) < (.ttl // $ttl))]'
 }
 
 # Reservations with the same group are from builds that take turns on the grid (e.g. behind one lock),
@@ -115,7 +144,7 @@ get_reservation_count() {
 delete_expired_reservations() {
     local key
     for key in $(get_reservations | jq -r --argjson now "$(date +%s)" --argjson ttl "$GRID_RESERVATION_TTL" \
-            '.[] | select(($now - (.created_at // 0)) >= $ttl) | .key'); do
+            '.[] | select(($now - (.created_at // 0)) >= (.ttl // $ttl)) | .key'); do
         echo "Deleting expired reservation $key"
         curl -s -X DELETE "$CONSUL_URL/v1/kv/$key" >/dev/null
     done
@@ -307,59 +336,160 @@ cmd_release() {
     echo "Updated last_release_at"
 }
 
-cmd_scaledown() {
-    echo "=== Grid Scale Down Check ==="
+# Sizes the ARM pool to what the grid needs: the minimum plus the reservations, and at least the
+# running and queued sessions, so a user that made no reservation still gets nodes (one scale-up
+# later). Grows right away, shrinks only an idle grid once the cooldown since the last release passed.
+# Only manages a grid that has a config in Consul.
+cmd_reconcile() {
+    echo "=== Grid Reconcile ==="
     echo "Grid: $GRID_NAME"
 
     get_consul_config
-
-    delete_expired_reservations
-
-    # Check for active reservations
-    local reservation_count
-    reservation_count=$(get_reservation_count)
-    if [ "$reservation_count" -gt 0 ]; then
-        echo "Active reservations: $reservation_count, skipping scale-down"
+    if [ "$GRID_HAS_CONFIG" != "true" ]; then
+        echo "No $CONSUL_KV_PREFIX/config in Consul, not managing grid $GRID_NAME"
         return 0
     fi
 
-    # Check cooldown
+    delete_expired_reservations
+
+    local reserved
+    reserved=$(get_total_reserved_slots arm)
+
+    local sessions busy=0 queued=0 hub_known=false
+    sessions=$(get_grid_sessions)
+    if [[ "$sessions" =~ ^[0-9]+\ [0-9]+$ ]]; then
+        hub_known=true
+        read -r busy queued <<< "$sessions"
+    fi
+
+    local target=$((GRID_MIN_POOL_SIZE_ARM + reserved))
+    if [ $((busy + queued)) -gt "$target" ]; then
+        target=$((busy + queued))
+    fi
+    if [ "$target" -gt "$GRID_MAX_POOL_SIZE_ARM" ]; then
+        echo "Capping $target at the maximum $GRID_MAX_POOL_SIZE_ARM"
+        target=$GRID_MAX_POOL_SIZE_ARM
+    fi
+
+    get_pool_ids
+    if [ -z "$NODE_POOL_ID_ARM" ] || [ "$NODE_POOL_ID_ARM" = "null" ]; then
+        echo "No ARM pool for grid $GRID_NAME"
+        return 0
+    fi
+    local current
+    current=$(get_pool_size "$NODE_POOL_ID_ARM")
+    if ! [[ "$current" =~ ^[0-9]+$ ]]; then
+        echo "Could not read the size of pool $NODE_POOL_ID_ARM"
+        return 1
+    fi
+    echo "Pool $current, target $target (min $GRID_MIN_POOL_SIZE_ARM, reserved $reserved, sessions $busy, queued $queued)"
+
+    if [ "$current" -lt "$target" ]; then
+        resize_pool "$NODE_POOL_ID_ARM" "$target"
+        return 0
+    fi
+    if [ "$current" -eq "$target" ]; then
+        return 0
+    fi
+
+    # The pool shrinks by terminating nodes without draining them, so only shrink an idle grid
+    if [ "$hub_known" != "true" ]; then
+        echo "Could not read the sessions of $GRID_URL, not shrinking"
+        return 0
+    fi
+    if [ "$busy" -ne 0 ] || [ "$queued" -ne 0 ]; then
+        echo "Grid not idle, not shrinking"
+        return 0
+    fi
     local last_release
-    last_release=$(curl -s "$CONSUL_URL/v1/kv/$CONSUL_KV_PREFIX/last_release_at?raw" 2>/dev/null || echo "")
-    if [ -n "$last_release" ] && [ "$last_release" != "null" ]; then
-        local now
-        now=$(date +%s)
-        local elapsed=$((now - last_release))
+    last_release=$(curl -s -f "$CONSUL_URL/v1/kv/$CONSUL_KV_PREFIX/last_release_at?raw" 2>/dev/null || echo "")
+    if [[ "$last_release" =~ ^[0-9]+$ ]]; then
+        local elapsed=$(($(date +%s) - last_release))
         if [ "$elapsed" -lt "$GRID_COOLDOWN_SECONDS" ]; then
-            echo "Cooldown active: ${elapsed}s / ${GRID_COOLDOWN_SECONDS}s since last release, skipping"
+            echo "Cooldown active: ${elapsed}s / ${GRID_COOLDOWN_SECONDS}s since last release, not shrinking"
             return 0
         fi
     fi
 
-    # The pool shrinks by terminating nodes without draining them, so only shrink an idle grid. The PR
-    # tests make no reservations, this is what keeps them from losing their nodes.
-    local sessions
-    sessions=$(get_grid_sessions)
-    if [ -z "$sessions" ]; then
-        echo "Could not read the sessions of $GRID_URL, skipping scale-down"
+    resize_pool "$NODE_POOL_ID_ARM" "$target"
+}
+
+# Prints an installation token of the GitHub App GITHUB_APP_ID (private key in GITHUB_APP_KEY_FILE)
+# that can only read the Actions of the watched repos
+github_app_token() {
+    local now header payload signature jwt installation repos
+    b64url() { openssl base64 -A | tr '+/' '-_' | tr -d '='; }
+    now=$(date +%s)
+    header=$(printf '{"alg":"RS256","typ":"JWT"}' | b64url)
+    payload=$(printf '{"iat":%d,"exp":%d,"iss":"%s"}' $((now - 60)) $((now + 540)) "$GITHUB_APP_ID" | b64url)
+    signature=$(printf '%s.%s' "$header" "$payload" | openssl dgst -sha256 -sign "$GITHUB_APP_KEY_FILE" | b64url)
+    jwt="$header.$payload.$signature"
+    installation=$(curl -s -f -H "Authorization: Bearer $jwt" -H "Accept: application/vnd.github+json" \
+        "https://api.github.com/orgs/$GRID_WATCH_OWNER/installation" | jq -r .id)
+    repos=$(printf '%s\n' $GRID_WATCH_REPOS | jq -R . | jq -sc .)
+    curl -s -f -X POST -H "Authorization: Bearer $jwt" -H "Accept: application/vnd.github+json" \
+        --data "{\"repositories\":$repos,\"permissions\":{\"actions\":\"read\"}}" \
+        "https://api.github.com/app/installations/$installation/access_tokens" | jq -r .token
+}
+
+# Keeps a reservation for the PR tests while any of the watched repos has a PR test run waiting or
+# running. The PR tests run one at a time, so it is one reservation, refreshed on every call and
+# expiring GRID_WATCH_TTL seconds after the last one that saw a run.
+cmd_github_watch() {
+    echo "=== GitHub PR test watch ==="
+    echo "Grid: $GRID_NAME, repos: $GRID_WATCH_REPOS"
+
+    get_consul_config
+    if [ "$GRID_HAS_CONFIG" != "true" ]; then
+        echo "No $CONSUL_KV_PREFIX/config in Consul, not managing grid $GRID_NAME"
         return 0
     fi
-    if [ "$sessions" != "0 0" ]; then
-        echo "Grid not idle (sessions, queued: $sessions), skipping scale-down"
+
+    # Keep the token out of the trace
+    { set +x; } 2>/dev/null
+    local token="$GITHUB_TOKEN"
+    if [ -z "$token" ] && [ -n "$GITHUB_APP_ID" ] && [ -n "$GITHUB_APP_KEY_FILE" ]; then
+        token=$(github_app_token || echo "")
+    fi
+    if [ -z "$token" ]; then
+        echo "No GitHub token, leaving the PR test reservation as it is"
+        set -x
         return 0
     fi
 
-    echo "No active reservations, cooldown elapsed and the grid is idle, scaling ARM pool to minimum"
+    local runs=0 repo status count failed=false
+    for repo in $GRID_WATCH_REPOS; do
+        for status in queued in_progress; do
+            if ! count=$(curl -s -f -H "Authorization: Bearer $token" -H "Accept: application/vnd.github+json" \
+                    "https://api.github.com/repos/$GRID_WATCH_OWNER/$repo/actions/workflows/$GRID_WATCH_WORKFLOW/runs?status=$status&per_page=1" \
+                    | jq -er .total_count); then
+                echo "Could not read the $status runs of $repo"
+                failed=true
+                continue
+            fi
+            echo "$repo: $count $status"
+            runs=$((runs + count))
+        done
+    done
+    set -x
 
-    # Fetch pool IDs from terraform state
-    get_pool_ids
-
-    # Only scale ARM pool to minimum; leave x86 pool unchanged
-    if [ -n "$NODE_POOL_ID_ARM" ] && [ "$NODE_POOL_ID_ARM" != "null" ]; then
-        resize_pool "$NODE_POOL_ID_ARM" "$GRID_MIN_POOL_SIZE_ARM"
+    local kv_key="$CONSUL_KV_PREFIX/reservations/github-$GRID_WATCH_GROUP"
+    if [ "$runs" -gt 0 ]; then
+        local reservation_json
+        reservation_json=$(jq -n --argjson slots "$GRID_WATCH_SLOTS" --arg group "$GRID_WATCH_GROUP" \
+            --argjson created_at "$(date +%s)" --argjson ttl "$GRID_WATCH_TTL" \
+            '{slots: $slots, arch: "arm", group: $group, created_at: $created_at, ttl: $ttl}')
+        curl -s -X PUT -d "$reservation_json" "$CONSUL_URL/v1/kv/$kv_key" >/dev/null
+        echo "$runs PR test runs, reserved $GRID_WATCH_SLOTS slots: $kv_key"
+    elif [ "$failed" = "true" ]; then
+        echo "No runs seen but some repos could not be read, leaving $kv_key as it is"
+    elif curl -s -f "$CONSUL_URL/v1/kv/$kv_key" >/dev/null 2>&1; then
+        curl -s -X DELETE "$CONSUL_URL/v1/kv/$kv_key" >/dev/null
+        curl -s -X PUT -d "$(date +%s)" "$CONSUL_URL/v1/kv/$CONSUL_KV_PREFIX/last_release_at" >/dev/null
+        echo "No PR test runs, released $kv_key"
+    else
+        echo "No PR test runs"
     fi
-
-    echo "Scale-down complete"
 }
 
 cmd_status() {
@@ -432,14 +562,17 @@ case "$SUBCOMMAND" in
     release)
         cmd_release
         ;;
-    scaledown)
-        cmd_scaledown
+    reconcile|scaledown)
+        cmd_reconcile
+        ;;
+    github-watch)
+        cmd_github_watch
         ;;
     status)
         cmd_status
         ;;
     *)
-        echo "Usage: $0 {request|release|scaledown|status}"
+        echo "Usage: $0 {request|release|reconcile|github-watch|status}"
         exit 1
         ;;
 esac
