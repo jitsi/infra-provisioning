@@ -47,6 +47,9 @@ secret_access_key = $R2_SECRET_ACCESS_KEY
 endpoint = $R2_ENDPOINT_URL
 bucket_acl = private
 no_check_bucket = true
+# R2 returns a version id on upload and answers the versioned HEAD rclone then sends with 501;
+# the upload's ETag is still checked against the MD5
+no_head = true
 EOF
     set -x
 fi
