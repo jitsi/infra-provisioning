@@ -93,7 +93,7 @@ if [ -n "$CDN_R2_BUCKET" ]; then
     rclone copy usr/share/${BRANDING_NAME} default:$CDN_R2_BUCKET/v1/_cdn/${VERSION_PREFIX}${BRANDING_COMPLETE_VERSION} &
 fi
 
-# Access-Control-Allow-Origin comes from the bucket CORS rules and Cross-Origin-Resource-Policy from the CDN,
+# web-cdn adds Access-Control-Allow-Origin and Cross-Origin-Resource-Policy to every response,
 # so only Cache-Control needs to be set on the objects
 aws s3 cp --recursive --cache-control "public, max-age=31536000" usr/share/${BRANDING_NAME} s3://$CDN_S3_BUCKET/${VERSION_PREFIX}${BRANDING_COMPLETE_VERSION}/ &
 

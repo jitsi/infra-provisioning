@@ -54,10 +54,9 @@ curl -O $DEB_URL
 
 dpkg -x $DEB_FILENAME .
 
-aws s3 cp --recursive usr/share/jitsi-meet s3://$CDN_S3_BUCKET/$JITSI_MEET_VERSION/
-s3cmd --recursive modify --add-header="Cache-Control: public, max-age=31536000" s3://$CDN_S3_BUCKET/$JITSI_MEET_VERSION/
-s3cmd --recursive modify --add-header="Access-Control-Allow-Origin: *" s3://$CDN_S3_BUCKET/$JITSI_MEET_VERSION/
-s3cmd --recursive modify --add-header="Cross-Origin-Resource-Policy: cross-origin" s3://$CDN_S3_BUCKET/$JITSI_MEET_VERSION/
+# web-cdn adds Access-Control-Allow-Origin and Cross-Origin-Resource-Policy to every response,
+# so only Cache-Control needs to be set on the objects
+aws s3 cp --recursive --cache-control "public, max-age=31536000" usr/share/jitsi-meet s3://$CDN_S3_BUCKET/$JITSI_MEET_VERSION/
 # Default mime type mapping doesn't identify wasm files correctly
 s3cmd --recursive modify --exclude='*' --include='*.wasm' --add-header="Content-Type: application/wasm" s3://$CDN_S3_BUCKET/$JITSI_MEET_VERSION/
 
