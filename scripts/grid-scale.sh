@@ -2,6 +2,10 @@
 
 # grid-scale.sh - Dynamic Selenium Grid scaling via Consul KV and OCI instance pools
 # Subcommands: request, release, scaledown, status
+#
+# The pool is sized to the minimum plus the slots of the active reservations (one slot is one node,
+# the grid nodes take one session each). request only grows the pool, scaledown shrinks it back to
+# the minimum once there are no reservations and the grid is idle.
 
 set -e
 LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
@@ -47,11 +51,13 @@ S3_STATE_KEY_IP="${S3_STATE_BASE}/terraform-ip.tfstate"
 
 # Defaults
 [ -z "$GRID_SLOTS_REQUESTED" ] && GRID_SLOTS_REQUESTED=1
-[ -z "$GRID_WAIT_TIMEOUT" ] && GRID_WAIT_TIMEOUT=600
+[ -z "$GRID_WAIT_TIMEOUT" ] && GRID_WAIT_TIMEOUT=900
 [ -z "$GRID_MIN_POOL_SIZE_X86" ] && GRID_MIN_POOL_SIZE_X86=1
 [ -z "$GRID_MIN_POOL_SIZE_ARM" ] && GRID_MIN_POOL_SIZE_ARM=4
 [ -z "$GRID_COOLDOWN_SECONDS" ] && GRID_COOLDOWN_SECONDS=600
 [ -z "$GRID_POLL_INTERVAL" ] && GRID_POLL_INTERVAL=15
+# A reservation older than this is left over from a build that never released it and is ignored
+[ -z "$GRID_RESERVATION_TTL" ] && GRID_RESERVATION_TTL=7200
 
 ###############################################################################
 # Helper functions
@@ -68,38 +74,61 @@ get_consul_config() {
         [ -n "$val" ] && GRID_MIN_POOL_SIZE_ARM="$val"
         val=$(echo "$config_json" | jq -r '.cooldown_seconds // empty' 2>/dev/null)
         [ -n "$val" ] && GRID_COOLDOWN_SECONDS="$val"
+        val=$(echo "$config_json" | jq -r '.reservation_ttl // empty' 2>/dev/null)
+        [ -n "$val" ] && GRID_RESERVATION_TTL="$val"
     fi
+}
+
+# The reservations as a JSON array of {key, slots, arch, created_at}, expired ones included
+get_reservations() {
+    local keys_json
+    keys_json=$(curl -s "$CONSUL_URL/v1/kv/$CONSUL_KV_PREFIX/reservations/?recurse" 2>/dev/null || echo "")
+    # Consul answers 404 with an empty body when there are no keys
+    if [ -z "$keys_json" ] || [ "$keys_json" = "null" ]; then
+        echo "[]"
+        return
+    fi
+    echo "$keys_json" | jq -c '[.[] | {key: .Key} + (.Value | @base64d | fromjson)]' 2>/dev/null || echo "[]"
+}
+
+# The reservations that are not older than GRID_RESERVATION_TTL
+get_active_reservations() {
+    get_reservations | jq -c --argjson now "$(date +%s)" --argjson ttl "$GRID_RESERVATION_TTL" \
+        '[.[] | select(($now - (.created_at // 0)) < $ttl)]'
 }
 
 get_total_reserved_slots() {
     local arch="${1:-x86}"
-    local keys_json
-    keys_json=$(curl -s "$CONSUL_URL/v1/kv/$CONSUL_KV_PREFIX/reservations/?recurse&raw" 2>/dev/null || echo "[]")
-    if [ -z "$keys_json" ] || [ "$keys_json" = "null" ]; then
-        echo 0
-        return
-    fi
-    # Consul recurse returns array of KV entries; decode values and sum slots for matching arch
-    local total
-    total=$(echo "$keys_json" | jq -r "[.[] | .Value | @base64d | fromjson | select(.arch == \"$arch\") | .slots] | add // 0" 2>/dev/null)
-    echo "${total:-0}"
+    get_active_reservations | jq --arg arch "$arch" '[.[] | select(.arch == $arch) | .slots] | add // 0'
 }
 
 get_reservation_count() {
-    local keys_json
-    keys_json=$(curl -s "$CONSUL_URL/v1/kv/$CONSUL_KV_PREFIX/reservations/?keys" 2>/dev/null || echo "[]")
-    if [ -z "$keys_json" ] || [ "$keys_json" = "null" ]; then
-        echo 0
-        return
-    fi
-    echo "$keys_json" | jq 'length'
+    get_active_reservations | jq 'length'
+}
+
+delete_expired_reservations() {
+    local key
+    for key in $(get_reservations | jq -r --argjson now "$(date +%s)" --argjson ttl "$GRID_RESERVATION_TTL" \
+            '.[] | select(($now - (.created_at // 0)) >= $ttl) | .key'); do
+        echo "Deleting expired reservation $key"
+        curl -s -X DELETE "$CONSUL_URL/v1/kv/$key" >/dev/null
+    done
+}
+
+# Prints the busy and queued session counts of the grid as "<sessions> <queued>", nothing when the
+# hub can't be reached
+get_grid_sessions() {
+    local response
+    response=$(curl -s -X POST -H "Content-Type: application/json" \
+        --data '{"query":"{ grid { sessionCount, sessionQueueSize } }"}' \
+        "$GRID_URL/graphql" 2>/dev/null || echo "")
+    echo "$response" | jq -r '.data.grid | "\(.sessionCount) \(.sessionQueueSize)"' 2>/dev/null || true
 }
 
 get_pool_ids() {
     local tmp_state
     tmp_state=$(mktemp)
-    oci os object get --bucket-name "$S3_STATE_BUCKET" --name "$S3_STATE_KEY_IP" --region "$ORACLE_REGION" --file "$tmp_state" 2>/dev/null
-    if [ $? -ne 0 ]; then
+    if ! oci os object get --bucket-name "$S3_STATE_BUCKET" --name "$S3_STATE_KEY_IP" --region "$ORACLE_REGION" --file "$tmp_state" 2>/dev/null; then
         echo "ERROR: Failed to fetch terraform state from S3" >&2
         rm -f "$tmp_state"
         return 1
@@ -177,7 +206,7 @@ wait_for_nodes() {
         sleep "$GRID_POLL_INTERVAL"
         elapsed=$((elapsed + GRID_POLL_INTERVAL))
     done
-    echo "ERROR: Timed out waiting for $desired UP nodes after ${timeout}s"
+    echo "WARNING: Timed out waiting for $desired UP nodes after ${timeout}s"
     return 1
 }
 
@@ -211,21 +240,19 @@ cmd_request() {
     echo "Reservation written to Consul: $kv_key"
 
     # Calculate total desired size
-    local total_desired
-    total_desired=$(get_total_reserved_slots "$arch")
-    echo "Total reserved $arch slots: $total_desired"
+    local total_reserved
+    total_reserved=$(get_total_reserved_slots "$arch")
+    echo "Total reserved $arch slots: $total_reserved"
 
-    # Determine minimum pool size for this arch
+    # The minimum is for the users of the grid that make no reservations (e.g. the PR tests), so the
+    # reservations come on top of it
     local min_size
     if [ "$arch" = "arm" ]; then
         min_size=$GRID_MIN_POOL_SIZE_ARM
     else
         min_size=$GRID_MIN_POOL_SIZE_X86
     fi
-    # Desired is at least the minimum
-    if [ "$total_desired" -lt "$min_size" ]; then
-        total_desired=$min_size
-    fi
+    local total_desired=$((min_size + total_reserved))
 
     # Fetch pool IDs from terraform state
     get_pool_ids
@@ -238,10 +265,20 @@ cmd_request() {
         pool_id=$NODE_POOL_ID_X86
     fi
 
-    resize_pool "$pool_id" "$total_desired"
+    # Only grow here: shrinking terminates nodes that may be running sessions, it is left to scaledown
+    local current_size
+    current_size=$(get_pool_size "$pool_id")
+    if [ "$current_size" -lt "$total_desired" ] 2>/dev/null; then
+        resize_pool "$pool_id" "$total_desired"
+    else
+        echo "Pool size $current_size already covers the $total_desired needed, not resizing"
+    fi
 
-    # Wait for nodes to be UP
-    wait_for_nodes "$total_desired" "$GRID_WAIT_TIMEOUT"
+    # Wait for nodes to be UP. A scale-up takes ~8 minutes. When it takes longer, carry on with the
+    # nodes there are: the tests then queue on the grid instead of not running at all.
+    if ! wait_for_nodes "$total_desired" "$GRID_WAIT_TIMEOUT"; then
+        echo "Continuing with $(get_grid_node_count) UP nodes"
+    fi
 }
 
 cmd_release() {
@@ -269,6 +306,8 @@ cmd_scaledown() {
 
     get_consul_config
 
+    delete_expired_reservations
+
     # Check for active reservations
     local reservation_count
     reservation_count=$(get_reservation_count)
@@ -290,7 +329,20 @@ cmd_scaledown() {
         fi
     fi
 
-    echo "No active reservations and cooldown elapsed, scaling ARM pool to minimum"
+    # The pool shrinks by terminating nodes without draining them, so only shrink an idle grid. The PR
+    # tests make no reservations, this is what keeps them from losing their nodes.
+    local sessions
+    sessions=$(get_grid_sessions)
+    if [ -z "$sessions" ]; then
+        echo "Could not read the sessions of $GRID_URL, skipping scale-down"
+        return 0
+    fi
+    if [ "$sessions" != "0 0" ]; then
+        echo "Grid not idle (sessions, queued: $sessions), skipping scale-down"
+        return 0
+    fi
+
+    echo "No active reservations, cooldown elapsed and the grid is idle, scaling ARM pool to minimum"
 
     # Fetch pool IDs from terraform state
     get_pool_ids

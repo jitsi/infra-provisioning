@@ -680,7 +680,7 @@ def GridNameFromUrl(grid_url) {
     return grid_url
 }
 
-def GridRequestSlots(grid_name, slots, timeout = 600) {
+def GridRequestSlots(grid_name, slots, timeout = 900) {
     sh """#!/bin/bash
         export GRID_NAME="${grid_name}"
         export GRID_SLOTS_REQUESTED="${slots}"

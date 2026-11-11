@@ -42,8 +42,13 @@ pipeline {
             gridUrl = 'validate'
           }
           def gridName = utils.GridNameFromUrl(gridUrl)
-          dir('infra-provisioning') {
-            utils.GridRequestSlots(gridName, 4)
+          // A failed scale-up only marks this stage: the shards are still validated on the nodes the
+          // grid has.
+          catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+            dir('infra-provisioning') {
+              // A validate run peaks at 13-17 concurrent browser sessions (MAX_INSTANCES=4), one node each
+              utils.GridRequestSlots(gridName, 17, 900)
+            }
           }
         }
       }
@@ -106,13 +111,21 @@ pipeline {
   post {
     always {
         script {
-            def gridUrl = env.GRID_URL
-            if ((gridUrl == '') || (gridUrl == null)) {
-                gridUrl = 'validate'
-            }
-            def gridName = utils.GridNameFromUrl(gridUrl)
-            dir('infra-provisioning') {
-                utils.GridReleaseSlots(gridName)
+            // utils is missing when the build failed before loading it, and then nothing was reserved.
+            // A failed release is not a failed validation: scaledown expires the reservation later.
+            if (utils) {
+                def gridUrl = env.GRID_URL
+                if ((gridUrl == '') || (gridUrl == null)) {
+                    gridUrl = 'validate'
+                }
+                def gridName = utils.GridNameFromUrl(gridUrl)
+                try {
+                    dir('infra-provisioning') {
+                        utils.GridReleaseSlots(gridName)
+                    }
+                } catch (err) {
+                    echo "Releasing the grid slots failed: ${err}"
+                }
             }
         }
         archiveArtifacts artifacts: 'test-results/**/*', fingerprint: true
