@@ -2,6 +2,20 @@ variable "dc" {
   type = string
 }
 
+# Pinned, because an unpinned image means each node runs whichever fabio was
+# newest on the day the node was built, and a node replacement changes the
+# version with no deploy.
+#
+# 1.8.0 is held back: it rewrites X-Forwarded-Proto from its own inbound
+# connection, so behind a TLS-terminating load balancer every backend sees
+# "http" and anything that keys off the header (Secure session cookies,
+# https redirects) breaks. See fabiolb/fabio#1089; the fix is merged upstream
+# (fabiolb/fabio#1100) but not yet in a release.
+variable "fabio_version" {
+  type    = string
+  default = "1.7.3"
+}
+
 job "[JOB_NAME]" {
   datacenters = [var.dc]
   type = "system"
@@ -64,7 +78,7 @@ job "[JOB_NAME]" {
       shutdown_delay = "15s"
       driver = "docker"
       config {
-        image = "fabiolb/fabio"
+        image = "fabiolb/fabio:${var.fabio_version}"
         network_mode = "host"
         ports = ["ext-lb","ext-ui","ext-metrics"]
       }
@@ -89,7 +103,7 @@ job "[JOB_NAME]" {
       shutdown_delay = "15s"
       driver = "docker"
       config {
-        image = "fabiolb/fabio"
+        image = "fabiolb/fabio:${var.fabio_version}"
         network_mode = "host"
         ports = ["int-lb","int-ui","int-metrics"]
       }

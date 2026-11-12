@@ -27,6 +27,9 @@ if [ -z "$NOMAD_ADDR" ]; then
     export NOMAD_ADDR="https://$ENVIRONMENT-$LOCAL_REGION-nomad.$TOP_LEVEL_DNS_ZONE_NAME"
 fi
 
+# FABIO_VERSION overrides the image version pinned in fabio.hcl
+[ -n "$FABIO_VERSION" ] && export NOMAD_VAR_fabio_version="$FABIO_VERSION"
+
 sed -e "s/\[JOB_NAME\]/$JOB_NAME/" "$NOMAD_JOB_PATH/fabio.hcl" | nomad job run -var="dc=$NOMAD_DC" -
 
 NOMAD_EXIT_CODE=$?
