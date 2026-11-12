@@ -122,8 +122,7 @@ elif [ "$ACTION" == "enable" ] || [ "$ACTION" == "disable" ]; then
   if [ "$ACTION" == "enable" ]; then TARGET_ENABLED=true; else TARGET_ENABLED=false; fi
 
   getScheduledScaling
-  # A regional autoscaler sits behind internal fabio, which answers 503 when the autoscaler has no route.
-  if { [ "$getHttpCode" == 404 ] || [ "$getHttpCode" == 000 ] || [ "$getHttpCode" == 503 ]; } && [ -n "$ENVIRONMENT" ] && [ -n "$ORACLE_REGION" ]; then
+  if { [ "$getHttpCode" == 404 ] || [ "$getHttpCode" == 000 ]; } && [ -n "$ENVIRONMENT" ] && [ -n "$ORACLE_REGION" ]; then
     echo "Group $GROUP_NAME not found at $AUTOSCALER_URL. Trying local autoscaler"
     export AUTOSCALER_URL="https://${ENVIRONMENT}-${ORACLE_REGION}-autoscaler.${TOP_LEVEL_DNS_ZONE_NAME}"
     getScheduledScaling

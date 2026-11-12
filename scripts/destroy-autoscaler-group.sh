@@ -67,8 +67,7 @@ function findGroup() {
 
 echo "Retrieve instance group details for group $GROUP_NAME"
 findGroup
-# A regional autoscaler sits behind internal fabio, which answers 503 when the autoscaler has no route.
-if [ "$getGroupHttpCode" == 404 ] || [ "$getGroupHttpCode" == 000 ] || [ "$getGroupHttpCode" == 503 ]; then
+if [ "$getGroupHttpCode" == 404 ] || [ "$getGroupHttpCode" == 000 ]; then
   # Fall back to the per-environment/region local autoscaler. This requires a
   # region; if one wasn't supplied there is nothing more we can try, so treat
   # the group as already gone.
@@ -82,7 +81,7 @@ if [ "$getGroupHttpCode" == 404 ] || [ "$getGroupHttpCode" == 000 ] || [ "$getGr
   if [ "$getGroupHttpCode" == 404 ]; then
     echo "No group $GROUP_NAME found at $AUTOSCALER_URL. Assuming no more work to do"
     exit 230
-  elif [ "$getGroupHttpCode" == 000 ] || [ "$getGroupHttpCode" == 503 ]; then
+  elif [ "$getGroupHttpCode" == 000 ]; then
     echo "Local autoscaler not present for $GROUP_NAME. Assuming no more work to do"
     exit 230
   elif [ "$getGroupHttpCode" == 200 ]; then

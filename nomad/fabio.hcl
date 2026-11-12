@@ -101,9 +101,6 @@ job "[JOB_NAME]" {
         FABIO_metrics_prometheus_subsystem = "fabio_int"
         FABIO_metrics_target = "prometheus"
         FABIO_proxy_addr = ":9997,:${NOMAD_PORT_int-metrics};proto=prometheus"
-        # Vector's loki sink drops a batch on 404 but retries a 503, so a brief gap in a route
-        # (alloy moving during a pool rotation) backs up into vector's disk buffer instead of losing logs.
-        FABIO_proxy_noroutestatus = "503"
         FABIO_registry_consul_tagprefix = "int-urlprefix-"
         FABIO_ui_addr = ":9996"
       }

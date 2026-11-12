@@ -80,15 +80,14 @@ function findGroup() {
 
 echo "Retrieve instance group details for group $GROUP_NAME"
 findGroup
-# A regional autoscaler sits behind internal fabio, which answers 503 when the autoscaler has no route.
-if [ "$getGroupHttpCode" == 404 ] || [ "$getGroupHttpCode" == 503 ]; then
+if [ "$getGroupHttpCode" == 404 ]; then
   echo "No group $GROUP_NAME found at $AUTOSCALER_URL. Trying local autoscaler"
   export AUTOSCALER_URL="https://${ENVIRONMENT}-${ORACLE_REGION}-autoscaler.${TOP_LEVEL_DNS_ZONE_NAME}"
   findGroup
   if [ "$getGroupHttpCode" == 404 ]; then
     echo "No group $GROUP_NAME found at $AUTOSCALER_URL. Assuming no more work to do"
     exit 230
-  elif [ "$getGroupHttpCode" == 000 ] || [ "$getGroupHttpCode" == 503 ]; then
+  elif [ "$getGroupHttpCode" == 000 ]; then
     echo "Local autoscaler not present for $GROUP_NAME. Assuming no more work to do"
     exit 230
   elif [ "$getGroupHttpCode" == 200 ]; then
