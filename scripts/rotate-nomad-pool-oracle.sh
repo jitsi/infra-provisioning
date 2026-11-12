@@ -139,6 +139,25 @@ else
     exit 226
   fi
 
+  # The LB health check is fabio's /health, which stays OK after consul stops. Without this the LBs
+  # keep sending requests to a fabio with a frozen route table, which answers 404 for the routes it lost.
+  echo -e "\n## rotate-nomad-poool-oracle: draining load balancer backends for ${DETACHABLE_IPS}"
+  oci compute-management instance-pool list-instances --compartment-id "$COMPARTMENT_OCID" --instance-pool-id "$INSTANCE_POOL_ID" --region "$ORACLE_REGION" --all \
+    | jq -r --arg ips "$DETACHABLE_IPS" '[$ips | splits(" +") | select(. != "")] as $detach
+        | .data[]."load-balancer-backends"[]?
+        | select(."backend-name" | split(":")[0] | IN($detach[]))
+        | [."load-balancer-id", ."backend-set-name", ."backend-name"] | @tsv' \
+    | while IFS=$'\t' read -r BACKEND_LB_ID BACKEND_SET_NAME BACKEND_NAME; do
+      BACKEND_WEIGHT=$(oci lb backend get --region "$ORACLE_REGION" --load-balancer-id "$BACKEND_LB_ID" --backend-set-name "$BACKEND_SET_NAME" --backend-name "$BACKEND_NAME" | jq -r '.data.weight')
+      [[ "$BACKEND_WEIGHT" =~ ^[0-9]+$ ]] || BACKEND_WEIGHT=1
+      echo -e "\n## rotate-nomad-poool-oracle: draining $BACKEND_NAME in $BACKEND_SET_NAME"
+      BACKEND_STATE=$(oci lb backend update --region "$ORACLE_REGION" --load-balancer-id "$BACKEND_LB_ID" --backend-set-name "$BACKEND_SET_NAME" --backend-name "$BACKEND_NAME" \
+          --weight "$BACKEND_WEIGHT" --backup false --drain true --offline false --wait-for-state SUCCEEDED --wait-for-state FAILED | jq -r '.data."lifecycle-state"')
+      if [ "$BACKEND_STATE" != "SUCCEEDED" ]; then
+        echo "## WARNING: could not drain $BACKEND_NAME in $BACKEND_SET_NAME (work request state: $BACKEND_STATE)"
+      fi
+    done
+
   echo -e "\n## rotate-nomad-poool-oracle: shelling into detachable instances at ${DETACHABLE_IPS} and shutting down nomad and consul nicely"
   # first set old instances ineligible and capture node IDs for later purge
   DETACHABLE_NODE_IDS=""
@@ -161,7 +180,23 @@ else
     timeout 10 ssh -n -o StrictHostKeyChecking=no -F $LOCAL_PATH/../config/ssh.config $SSH_USER@$IP "nomad node drain -self -enable -no-deadline -detach -yes"
   done
   echo -e "\n## rotate-nomad-poool-oracle: waiting for nomad drain to complete before stopping nomad and consul"
-  sleep 90
+  # Stopping consul mid-drain deregisters allocs still waiting to migrate, so the last copy of a
+  # service (alloy) can vanish before its replacement is healthy.
+  WAIT_TOTAL=0
+  for IP in $DETACHABLE_IPS; do
+    while true; do
+      DRAINING=$(timeout 10 ssh -n -o StrictHostKeyChecking=no -F $LOCAL_PATH/../config/ssh.config $SSH_USER@$IP \
+        "nomad node status -self -json 2>/dev/null | jq -r '.DrainStrategy != null'" 2>/dev/null)
+      [ "$DRAINING" == "false" ] && break
+      if [ $WAIT_TOTAL -gt $MAX_WAIT_SECONDS ]; then
+        echo "## WARNING: nomad drain on $IP not complete after $MAX_WAIT_SECONDS seconds, stopping anyway"
+        break
+      fi
+      echo "Waiting for nomad drain to complete on $IP"
+      sleep $WAIT_INTERVAL_SECONDS
+      WAIT_TOTAL=$((WAIT_TOTAL + WAIT_INTERVAL_SECONDS))
+    done
+  done
   for IP in $DETACHABLE_IPS; do
     echo -e "\n## rotate-nomad-poool-oracle: stopping nomad and consul on $IP"
     timeout 10 ssh -n -o StrictHostKeyChecking=no -F $LOCAL_PATH/../config/ssh.config $SSH_USER@$IP "sudo service nomad stop && sudo service consul stop"
