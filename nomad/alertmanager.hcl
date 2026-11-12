@@ -170,9 +170,35 @@ receivers:
 %{ if var.pagerduty_enabled }- name: 'pagerduty_alerts'
   pagerduty_configs:
   - service_key: '{{{ with secret "secret/default/alertmanager/receivers/pagerduty" }}}{{{ .Data.data.pagerduty_integration_key }}}{{{ end }}}'
+    details:
+      firing: |-
+        {{ range .Alerts.Firing }}Labels:
+        {{ range .Labels.SortedPairs }} - {{ .Name }} = {{ .Value }}
+        {{ end }}Annotations:
+        {{ range .Annotations.SortedPairs }} - {{ .Name }} = {{ .Value }}
+        {{ end }}{{ end }}
+      resolved: |-
+        {{ range .Alerts.Resolved }}Labels:
+        {{ range .Labels.SortedPairs }} - {{ .Name }} = {{ .Value }}
+        {{ end }}Annotations:
+        {{ range .Annotations.SortedPairs }} - {{ .Name }} = {{ .Value }}
+        {{ end }}{{ end }}
 {{{ range secrets "secret/default/alertmanager/receivers/pagerduty_services" }}}{{{ $svc := . }}}- name: 'pagerduty_alerts_{{{ $svc }}}'
   pagerduty_configs:
   - service_key: '{{{ with secret (printf "secret/default/alertmanager/receivers/pagerduty_services/%s" $svc) }}}{{{ .Data.data.pagerduty_integration_key }}}{{{ end }}}'
+    details:
+      firing: |-
+        {{ range .Alerts.Firing }}Labels:
+        {{ range .Labels.SortedPairs }} - {{ .Name }} = {{ .Value }}
+        {{ end }}Annotations:
+        {{ range .Annotations.SortedPairs }} - {{ .Name }} = {{ .Value }}
+        {{ end }}{{ end }}
+      resolved: |-
+        {{ range .Alerts.Resolved }}Labels:
+        {{ range .Labels.SortedPairs }} - {{ .Name }} = {{ .Value }}
+        {{ end }}Annotations:
+        {{ range .Annotations.SortedPairs }} - {{ .Name }} = {{ .Value }}
+        {{ end }}{{ end }}
 {{{ end }}}- name: slack_pages
   slack_configs:
     - channel: '#pages'
