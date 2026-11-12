@@ -134,6 +134,61 @@ in each region**. Passing the wrong `ORACLE_REGION` opens a stale or empty state
 tries to *create* resources that already exist. For a stack that is logically global (Vault config,
 for instance) pass the environment's own `OCI_LOCAL_REGION`.
 
+## Shard release jobs
+
+`recycle-release-core` replaces every shard of a release with a new one. Its pipeline
+(`jenkins/groovy/recycle-release-core/Jenkinsfile`) does this, in order:
+
+1. Lists the existing shards of the release (filtered by `ORACLE_REGION` when set) and keeps the
+   list.
+2. Runs `expand-release-core`, which starts one `provision-shard` build per new shard (Oracle), one
+   new shard for each old one. New shards start in drain, and each `provision-shard` runs
+   `validate-shards` on success.
+3. Waits at an input step for a human to approve the new shards.
+4. Runs `reconfigure-shard-states`: new shards ready, old shards drain.
+5. Sleeps `DRAIN_WAIT_PERIOD` seconds (default `21600`, six hours).
+6. Runs `destroy-shards` on the list from step 1.
+
+Things that follow from that:
+
+- **The drain wait is a plain `sleep`, and the delete does not re-check shard state.** Setting the
+  old shards back to ready during the wait does not save them: the build still deletes them. To
+  roll back, abort the build first, then swap the states with `reconfigure-shard-states`.
+- **One failed `provision-shard` fails `expand-release-core`**, and the recycle then skips every
+  later stage, including finding the new shards. Nothing moves, so the new shards in the regions
+  that succeeded sit in drain until someone finishes by hand. Recycle region by region with
+  `ORACLE_REGION` when a region is short of capacity, and check first with
+  `scripts/check-capacity-oracle.sh shard`.
+- **`CLOUDS` does not limit the delete.** The list in step 1 is filtered only by `ORACLE_REGION`,
+  but `expand-release-core` builds shards only for `CLOUDS`. Set `CLOUDS` to a subset without
+  `ORACLE_REGION`, and the job deletes the old shards in every cloud but replaces them only in the
+  subset.
+- **Two branch parameters, two different checkouts.** `VIDEO_INFRA_BRANCH` (default `main`) is what
+  the job itself checks out (`Utils.SetupRepos`): the scripts and Terraform it runs, from all three
+  repos. `RELEASE_BRANCH` is handed to the new instance as `GIT_BRANCH`/`ORACLE_GIT_BRANCH`, and the
+  instance configures itself from that ref at boot. If the instance cannot clone that ref,
+  `terraform/lib/postinstall-lib.sh` falls back to `main` without failing the boot. A fix to a role
+  that runs on the shard has to be on the release ref; a fix to a job has to be on the
+  `VIDEO_INFRA_BRANCH` the job runs with. Image builds are separate jobs with their own
+  `VIDEO_INFRA_BRANCH`.
+- **Shards pick their image by the `Version` tag.** Shard creation takes the newest signal image
+  whose `Version` tag equals `SIGNAL_VERSION` (a `latest` or empty component matches any value). A
+  `Signal` image build first tags the image from its inputs, then a Packer post-processor
+  (`build/build-signal-oracle.json`) runs `scripts/update-image-version-tags.sh`, which rewrites the
+  tag from the `installed-versions.json` that `ansible/build-signal.yml` (infra-configuration)
+  writes on the image. That playbook gets the jicofo part from `dpkg` with `cut -d'-' -f2`, so a
+  jicofo package `1.0-1183-hf-1` tags the image `1183-…` — the same tag as the image without the
+  hotfix. The `JicofoHotfix` image type (`build/build-jicofo-hotfix-oracle.json`) takes the tag from
+  its `JICOFO_VERSION` input instead.
+- **`oracle_custom_images.py --update_version_tags` needs `--jicofo_version`,
+  `--jitsi_meet_version` and `--prosody_version`.** They default to empty strings, so without them
+  the tag becomes `--` and the version parts of the image name become empty. `--region` defaults to
+  `eu-frankfurt-1`, and `--architecture` to `x86_64`.
+- **Every `Signal` image build also cleans up old signal images** in each region: it keeps the
+  newest `ORACLE_SIGNAL_IMAGE_LIMIT` images without the `production-image` freeform tag and the
+  same number with it, and deletes the rest. The tag moves an image to the other group; it does not
+  exempt it.
+
 ## Conventions
 
 - **Query live state, not state files.** Use the `oci` CLI (`oci compute-management instance-pool
