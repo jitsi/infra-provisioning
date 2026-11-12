@@ -78,6 +78,29 @@ def list_images_paginated(compute, compartment_id):
         images = images + list_images_response.data
     return images
 
+def images_in_use(config, region):
+    identity = oci.identity.IdentityClient(config)
+    compute = oci.core.ComputeClient(config)
+    compute.base_client.set_region(region)
+    management = oci.core.ComputeManagementClient(config)
+    management.base_client.set_region(region)
+
+    compartments = [config['tenancy']] + [c.id for c in oci.pagination.list_call_get_all_results(
+        identity.list_compartments, config['tenancy'], compartment_id_in_subtree=True, lifecycle_state='ACTIVE').data]
+
+    in_use = set()
+    for compartment_id in compartments:
+        for instance in oci.pagination.list_call_get_all_results(compute.list_instances, compartment_id).data:
+            if instance.lifecycle_state != 'TERMINATED':
+                in_use.add(instance.image_id)
+        # an instance configuration that names a deleted image makes every later pool scale-up fail
+        for summary in oci.pagination.list_call_get_all_results(management.list_instance_configurations, compartment_id).data:
+            details = management.get_instance_configuration(summary.id).data.instance_details
+            source = getattr(getattr(details, 'launch_details', None), 'source_details', None)
+            if getattr(source, 'image_id', None):
+                in_use.add(source.image_id)
+    return in_use
+
 def get_image_list(compute, compartment_id, tenancy_id, tag_namespace, type, version):
     tenancy_images = list_images_paginated(compute, tenancy_id)
     compartment_images = list_images_paginated(compute, compartment_id)
@@ -168,10 +191,15 @@ if args.clean:
 
     #if we have more images than we've been told to keep
     clean_count = int(args.clean)
+    in_use = set()
+    if len(non_prod_images) > clean_count or len(prod_images) > clean_count:
+        in_use = images_in_use(config, args.region)
     if len(non_prod_images) > clean_count:
         #now take the bottom args.clean->N items and delete them
         for i in non_prod_images[clean_count:]:
-           # now search for active instance configurations referencing this image
+            if i['image_id'] in in_use:
+                print(('Keep in-use %s image %s (%s)'%(args.type,i['image_version'],i['image_id'])))
+                continue
             if args.delete:
                 print(("Delete non_prod_images %s image, image_id %s"%(args.type,i['image_name'])))
                 delete_image(compute_client, i['image_id'])
@@ -183,7 +211,9 @@ if args.clean:
     if len(prod_images) > clean_count:
         #now take the bottom args.clean->N items and delete them
         for i in prod_images[clean_count:]:
-           # now search for active instance configurations referencing this image
+            if i['image_id'] in in_use:
+                print(('Keep in-use %s image %s (%s)'%(args.type,i['image_version'],i['image_id'])))
+                continue
             if args.delete:
                 print(("Delete prod_images %s image, image_id %s"%(args.type,i['image_name'])))
                 delete_image(compute_client, i['image_id'])
