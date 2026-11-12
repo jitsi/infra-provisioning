@@ -2,6 +2,12 @@ variable "dc" {
   type = string
 }
 
+# 1.8.0 overwrites X-Forwarded-Proto with "http" behind a TLS-terminating LB (fabiolb/fabio#1089)
+variable "fabio_version" {
+  type    = string
+  default = "1.7.3"
+}
+
 job "[JOB_NAME]" {
   datacenters = [var.dc]
   type = "system"
@@ -64,7 +70,7 @@ job "[JOB_NAME]" {
       shutdown_delay = "15s"
       driver = "docker"
       config {
-        image = "fabiolb/fabio"
+        image = "fabiolb/fabio:${var.fabio_version}"
         network_mode = "host"
         ports = ["ext-lb","ext-ui","ext-metrics"]
       }
@@ -89,7 +95,7 @@ job "[JOB_NAME]" {
       shutdown_delay = "15s"
       driver = "docker"
       config {
-        image = "fabiolb/fabio"
+        image = "fabiolb/fabio:${var.fabio_version}"
         network_mode = "host"
         ports = ["int-lb","int-ui","int-metrics"]
       }
