@@ -140,23 +140,43 @@ else
   fi
 
   # The LB health check is fabio's /health, which stays OK after consul stops. Without this the LBs
-  # keep sending requests to a fabio with a frozen route table, which answers 404 for the routes it lost.
+  # keep sending requests to a fabio whose route table stopped updating, so a service that moves gets no route.
   echo -e "\n## rotate-nomad-poool-oracle: draining load balancer backends for ${DETACHABLE_IPS}"
-  oci compute-management instance-pool list-instances --compartment-id "$COMPARTMENT_OCID" --instance-pool-id "$INSTANCE_POOL_ID" --region "$ORACLE_REGION" --all \
+  LB_DRAIN_BACKENDS=$(oci compute-management instance-pool list-instances --compartment-id "$COMPARTMENT_OCID" --instance-pool-id "$INSTANCE_POOL_ID" --region "$ORACLE_REGION" --all \
     | jq -r --arg ips "$DETACHABLE_IPS" '[$ips | splits(" +") | select(. != "")] as $detach
         | .data[]."load-balancer-backends"[]?
         | select(."backend-name" | split(":")[0] | IN($detach[]))
-        | [."load-balancer-id", ."backend-set-name", ."backend-name"] | @tsv' \
-    | while IFS=$'\t' read -r BACKEND_LB_ID BACKEND_SET_NAME BACKEND_NAME; do
-      BACKEND_WEIGHT=$(oci lb backend get --region "$ORACLE_REGION" --load-balancer-id "$BACKEND_LB_ID" --backend-set-name "$BACKEND_SET_NAME" --backend-name "$BACKEND_NAME" | jq -r '.data.weight')
-      [[ "$BACKEND_WEIGHT" =~ ^[0-9]+$ ]] || BACKEND_WEIGHT=1
-      echo -e "\n## rotate-nomad-poool-oracle: draining $BACKEND_NAME in $BACKEND_SET_NAME"
-      BACKEND_STATE=$(oci lb backend update --region "$ORACLE_REGION" --load-balancer-id "$BACKEND_LB_ID" --backend-set-name "$BACKEND_SET_NAME" --backend-name "$BACKEND_NAME" \
-          --weight "$BACKEND_WEIGHT" --backup false --drain true --offline false --wait-for-state SUCCEEDED --wait-for-state FAILED | jq -r '.data."lifecycle-state"')
-      if [ "$BACKEND_STATE" != "SUCCEEDED" ]; then
-        echo "## WARNING: could not drain $BACKEND_NAME in $BACKEND_SET_NAME (work request state: $BACKEND_STATE)"
-      fi
+        | [."load-balancer-id", ."backend-set-name", ."backend-name"] | @tsv')
+  if [ -n "$LOAD_BALANCER_ID" ]; then
+    for IP in $DETACHABLE_IPS; do
+      grep -q $'\t'"$IP:" <<< "$LB_DRAIN_BACKENDS" || echo "## WARNING: no load balancer backends found for $IP, it keeps receiving requests"
     done
+  fi
+  # The health gate above checks only the first of the pool's LBs. Wait for every backend set, so that
+  # draining the old backends never leaves one with no healthy backend.
+  for BACKEND_SET in $(cut -f1,2 <<< "$LB_DRAIN_BACKENDS" | sort -u | tr '\t' ','); do
+    WAIT_TOTAL=0
+    until [ "$(oci lb backend-set-health get --region "$ORACLE_REGION" --load-balancer-id "${BACKEND_SET%,*}" --backend-set-name "${BACKEND_SET#*,}" | jq -r '.data.status')" == "OK" ]; do
+      if [ $WAIT_TOTAL -gt $MAX_WAIT_SECONDS ]; then
+        echo "## WARNING: backend set ${BACKEND_SET#*,} not OK after $MAX_WAIT_SECONDS seconds, draining anyway"
+        break
+      fi
+      echo "Waiting for backend set ${BACKEND_SET#*,} to reach OK status"
+      sleep $WAIT_INTERVAL_SECONDS
+      WAIT_TOTAL=$((WAIT_TOTAL + WAIT_INTERVAL_SECONDS))
+    done
+  done
+  while IFS=$'\t' read -r BACKEND_LB_ID BACKEND_SET_NAME BACKEND_NAME; do
+    [ -z "$BACKEND_NAME" ] && continue
+    BACKEND_WEIGHT=$(oci lb backend get --region "$ORACLE_REGION" --load-balancer-id "$BACKEND_LB_ID" --backend-set-name "$BACKEND_SET_NAME" --backend-name "$BACKEND_NAME" | jq -r '.data.weight')
+    [[ "$BACKEND_WEIGHT" =~ ^[0-9]+$ ]] || BACKEND_WEIGHT=1
+    echo -e "\n## rotate-nomad-poool-oracle: draining $BACKEND_NAME in $BACKEND_SET_NAME"
+    BACKEND_STATE=$(oci lb backend update --region "$ORACLE_REGION" --load-balancer-id "$BACKEND_LB_ID" --backend-set-name "$BACKEND_SET_NAME" --backend-name "$BACKEND_NAME" \
+        --weight "$BACKEND_WEIGHT" --backup false --drain true --offline false --wait-for-state SUCCEEDED --wait-for-state FAILED | jq -r '.data."lifecycle-state"')
+    if [ "$BACKEND_STATE" != "SUCCEEDED" ]; then
+      echo "## WARNING: could not drain $BACKEND_NAME in $BACKEND_SET_NAME (work request state: ${BACKEND_STATE:-none})"
+    fi
+  done <<< "$LB_DRAIN_BACKENDS"
 
   echo -e "\n## rotate-nomad-poool-oracle: shelling into detachable instances at ${DETACHABLE_IPS} and shutting down nomad and consul nicely"
   # first set old instances ineligible and capture node IDs for later purge
@@ -177,22 +197,25 @@ else
   # next drain old instances
   for IP in $DETACHABLE_IPS; do
     echo -e "\n## rotate-nomad-poool-oracle: draining nomad node on $IP"
-    timeout 10 ssh -n -o StrictHostKeyChecking=no -F $LOCAL_PATH/../config/ssh.config $SSH_USER@$IP "nomad node drain -self -enable -no-deadline -detach -yes"
+    if ! timeout 10 ssh -n -o StrictHostKeyChecking=no -F $LOCAL_PATH/../config/ssh.config $SSH_USER@$IP "nomad node drain -self -enable -no-deadline -detach -yes"; then
+      echo "## WARNING: could not start nomad drain on $IP"
+    fi
   done
   echo -e "\n## rotate-nomad-poool-oracle: waiting for nomad drain to complete before stopping nomad and consul"
-  # Stopping consul mid-drain deregisters allocs still waiting to migrate, so the last copy of a
-  # service (alloy) can vanish before its replacement is healthy.
+  # Stopping consul mid-drain deregisters the services of allocs still waiting to migrate, so the last
+  # copy of a service (alloy) can vanish before its replacement is healthy.
   WAIT_TOTAL=0
   for IP in $DETACHABLE_IPS; do
     while true; do
-      DRAINING=$(timeout 10 ssh -n -o StrictHostKeyChecking=no -F $LOCAL_PATH/../config/ssh.config $SSH_USER@$IP \
-        "nomad node status -self -json 2>/dev/null | jq -r '.DrainStrategy != null'" 2>/dev/null)
-      [ "$DRAINING" == "false" ] && break
+      # A drain that never started also has no DrainStrategy, so only LastDrain proves it finished.
+      DRAIN_STATE=$(timeout 10 ssh -n -o StrictHostKeyChecking=no -F $LOCAL_PATH/../config/ssh.config $SSH_USER@$IP \
+        "nomad node status -self -json 2>/dev/null | jq -r 'if .DrainStrategy != null then \"draining\" else (.LastDrain.Status // \"never drained\") end'" 2>/dev/null)
+      [ "$DRAIN_STATE" == "complete" ] && break
       if [ $WAIT_TOTAL -gt $MAX_WAIT_SECONDS ]; then
-        echo "## WARNING: nomad drain on $IP not complete after $MAX_WAIT_SECONDS seconds, stopping anyway"
+        echo "## WARNING: nomad drain on $IP not complete (state: ${DRAIN_STATE:-query failed}) within $MAX_WAIT_SECONDS seconds, stopping anyway"
         break
       fi
-      echo "Waiting for nomad drain to complete on $IP"
+      echo "Waiting for nomad drain to complete on $IP (state: ${DRAIN_STATE:-query failed})"
       sleep $WAIT_INTERVAL_SECONDS
       WAIT_TOTAL=$((WAIT_TOTAL + WAIT_INTERVAL_SECONDS))
     done
