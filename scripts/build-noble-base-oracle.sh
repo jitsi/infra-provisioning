@@ -83,6 +83,12 @@ fi
 # addtional bastion configs
 [ -z "$CONNECTION_SSH_PRIVATE_KEY_FILE" ] && CONNECTION_SSH_PRIVATE_KEY_FILE="~/.ssh/id_ed25519"
 
+# clean custom NobleBase images if limit is exceeded (may fail, but that's OK)
+for CLEAN_ORACLE_REGION in $ORACLE_IMAGE_REGIONS; do
+  echo "Cleaning images in $CLEAN_ORACLE_REGION"
+  $LOCAL_PATH/oracle_custom_images.py --clean $ORACLE_CUSTOM_IMAGE_LIMIT --architecture "$IMAGE_ARCH" --delete --region=$CLEAN_ORACLE_REGION --type=NobleBase --compartment_id=$TENANCY_OCID;
+done
+
 # packer runs ansible using as hostname the 'default' string
 # and caches the facts for that host to /tmp/fact.d/prod/default
 # make sure to delete the cached facts, so they don't interfere with this run
