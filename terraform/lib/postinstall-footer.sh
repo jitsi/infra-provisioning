@@ -1,8 +1,13 @@
 # every stack reaches here, unlike configure_mirror_repos; GIT_MIRROR_HOST is set above
 record_git_mirror_host
-[ -z "$MAIN_COMMAND" ] && MAIN_COMMAND=default_main
-$MAIN_COMMAND
-EXIT_CODE=$?
+if [ "$POSTINSTALL_INTERRUPTED" == "true" ]; then
+  echo "Postinstall was interrupted by a reboot" > $tmp_msg_file
+  EXIT_CODE=1
+else
+  [ -z "$MAIN_COMMAND" ] && MAIN_COMMAND=default_main
+  $MAIN_COMMAND
+  EXIT_CODE=$?
+fi
 if [ ! $EXIT_CODE -eq 0 ]; then
   if [ -f $tmp_msg_file ]; then
     err_message=$(cat $tmp_msg_file)
@@ -29,5 +34,6 @@ if [ ! $EXIT_CODE -eq 0 ]; then
   exit $EXIT_CODE
 else
   echo "Successful postinstall"
+  rm -f "$POSTINSTALL_MARKER" "$POSTINSTALL_GUARD"
   exit 0
 fi
