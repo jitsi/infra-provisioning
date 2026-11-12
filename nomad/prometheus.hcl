@@ -26,6 +26,35 @@ variable "grafana_url" {
   default = ""
 }
 
+variable "grafana_base_url" {
+  type = string
+  default = ""
+}
+
+variable "grafana_datasource_uid" {
+  type = string
+  default = ""
+}
+
+locals {
+  alert_url = var.grafana_base_url != "" && var.grafana_datasource_uid != "" ? "${var.grafana_base_url}/explore?schemaVersion=1&orgId=1&panes=${urlencode(jsonencode({ a = { datasource = var.grafana_datasource_uid, queries = [{ refId = "A", expr = "ALERTS{alertname=\"ALERTNAME\"}", datasource = { type = "prometheus", uid = var.grafana_datasource_uid } }], range = { from = "now-6h", to = "now" } } }))}" : "https://${var.prometheus_hostname}/alerts?search=ALERTNAME"
+}
+
+variable "probes_dashboard_url" {
+  type = string
+  default = ""
+}
+
+variable "skynet_dashboard_url" {
+  type = string
+  default = ""
+}
+
+variable "whisper_dashboard_url" {
+  type = string
+  default = ""
+}
+
 variable "global_alertmanager_host" {
   type = string
   default = ""
@@ -278,7 +307,7 @@ groups:
         fact that you received an alert from this datacenter is quite curious
         indeed.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=alertmanager_down
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "Alertmanager_Down")}
   - alert: AlertEmailer_Down
     expr: absent(flask_exporter_info{service="alert-emailer"})
     for: 10m
@@ -292,7 +321,7 @@ groups:
         are not being sent from the datacenter, which will mean that SMOKE alerts will not be sent
         anywhere.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=alertemailer_down
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "AlertEmailer_Down")}
   %{ if var.environment_type == "prod" }- alert: AlertEmailer_Config
     expr: default_email_subscribed < 1
     for: 10m
@@ -306,7 +335,7 @@ groups:
         used by alert-emailer in ${var.dc}. It needs to be re-subscribed and whoever unsubscribed it
         needs a stern talking to.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=alert_emailer%{ endif }
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "AlertEmailer_Config")}%{ endif }
   - alert: Canary_Down
     expr: absent(nginx_connections_accepted{service="canary"})
     for: 5m
@@ -321,7 +350,7 @@ groups:
         service is likely down and that latency metrics are not being collected.
         This may also lead to Cloudflare reporting the region as down.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=canary_down
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "Canary_Down")}
   - alert: Cloudprober_Down
     expr: absent(up{job="cloudprober"})
     for: 5m
@@ -335,7 +364,7 @@ groups:
         that data from synthetic probes is not being collected or alerted on in
         this datacenter.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=cloudprober_down
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "Cloudprober_Down")}
   - alert: Consul_Down
     expr: min(consul_members_servers) < 3
     for: 5m
@@ -350,7 +379,7 @@ groups:
         may mean that service discovery may be compromised. Currently {{ $value }}
         servers are being reported as up.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=consul_down
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "Consul_Down")}
   - alert: Consul_Down
     expr: absent(consul_server_isLeader)
     for: 5m
@@ -364,7 +393,7 @@ groups:
         entirely down. This may mean that service discovery may not be
         functioning and all service may be compromised.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=consul_down
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "Consul_Down")}
   - alert: Nomad_Down
     expr: count(nomad_runtime_alloc_bytes) < 3
     for: 5m
@@ -377,7 +406,7 @@ groups:
         There are fewer than 3 nomad clients emitting metrics in ${var.dc}. This
         may mean that service orchestration and job placement are not functioning.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=nomad_down
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "Nomad_Down")}
   - alert: Nomad_Down
     expr: absent(nomad_runtime_alloc_bytes)
     for: 5m
@@ -390,7 +419,7 @@ groups:
         No nomad clients are emitting metrics in ${var.dc}. This may mean that
         service orchestration and job placement are not functioning.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=nomad_down
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "Nomad_Down")}
   - alert: Nomad_Evals_Blocked
     expr: max(nomad_nomad_blocked_evals_total_blocked) > 0
     for: 30m
@@ -409,7 +438,7 @@ groups:
         `nomad eval list -status=blocked` and the affected job's placement
         failure for the exhausted dimension.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=nomad_evals_blocked
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "Nomad_Evals_Blocked")}
   - alert: Prometheus_Down
     expr: absent(up{job="prometheus"})
     for: 5m
@@ -422,7 +451,7 @@ groups:
         No prometheus services are emitting metrics in ${var.dc}. This may mean
         that no metrics are being stored or served.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=prometheus_down
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "Prometheus_Down")}
   - alert: Telegraf_Down
     expr: >-
       up{job="telegraf", registered_by="nomad"} == 0
@@ -443,7 +472,7 @@ groups:
         pool_type-scoped ones that would otherwise report a missing service on
         this node.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=telegraf_down
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "Telegraf_Down")}
   - alert: Consul_Member_Failed
     expr: >-
       (label_replace(max by (exported_node) (consul_health_checks_critical{check_id="serfHealth"}),
@@ -464,7 +493,7 @@ groups:
         member now with `consul force-leave -prune`; if it is running, the
         consul agent on it needs attention.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=consul_member_failed
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "Consul_Member_Failed")}
   - alert: Nomad_Job_Restarts_High
     expr: sum(sum_over_time(nomad_client_allocs_restart_sum{task!="cloudprober"}[1h])) by (task) >= 15
     for: 5m
@@ -479,7 +508,7 @@ groups:
         not stable or is being killed for some reason. This could simply be a
         service which restarts frequently due to consul-template updates, etc.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=nomad_job
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "Nomad_Job_Restarts_High")}
   - alert: Nomad_Job_Restarts_High
     expr: sum(sum_over_time(nomad_client_allocs_restart_sum{task!="cloudprober"}[20m])) by (task) >= 4
     for: 2m
@@ -495,7 +524,7 @@ groups:
         simply be a service which restarts frequently due to consul-template
         updates, etc.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=nomad_job
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "Nomad_Job_Restarts_High")}
   - alert: Nomad_Job_Memory_Use_High
     expr: 100 * (nomad_client_allocs_memory_usage{task!~"prometheus|gpu-monitor"} - nomad_client_allocs_memory_cache{task!~"prometheus|gpu-monitor"}) / nomad_client_allocs_memory_allocated{task!~"prometheus|gpu-monitor"} > 85
     for: 20m
@@ -509,7 +538,7 @@ groups:
         allocated memory for the last 20 minutes. It was most recently at {{ $value }}. Consider
         modifying the allocated memory and re-deploying the job.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=nomad_job
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "Nomad_Job_Memory_Use_High")}
   # coturn is excluded only where production_alerts is off (meet-jit-si et al).
   # Those pools are scaled down hard, so coturn routinely runs over its static
   # cpu = 10000 reservation while the host still has plenty of headroom, which
@@ -530,7 +559,7 @@ groups:
         allocated CPU for the last 10 minutes. It was most recently at {{ $value }}. Consider
         modifying the allocated CPU and re-deploying the job.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=nomad_job
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "Nomad_Job_CPU_Use_High")}
   - alert: Fabio_Task_Missing
     expr: |-
       label_replace(
@@ -561,7 +590,7 @@ groups:
         docker input, because nomad allocation metrics are not emitted on
         general-pool nodes in every environment.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=fabio_task_missing
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "Fabio_Task_Missing")}
 
   - alert: Gitea_Mirror_Stale
     # The regional Gitea mirror's /ready gate only ever guards the FIRST sync, so a
@@ -585,7 +614,7 @@ groups:
         are cloning increasingly stale code. Check the sync-gate logs and the mirror's
         status page for the repo.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=gitea_mirror
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "Gitea_Mirror_Stale")}
   - alert: Gitea_Mirror_Stale
     # Same signal held far longer: the mirror has been failing to pull for most of a day,
     # so anything booting from it is materially behind main.
@@ -602,7 +631,7 @@ groups:
         by this mirror are getting materially outdated infra code. Check whether GitHub
         auth (the PAT in secret/default/gitea/github) or egress is broken.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=gitea_mirror
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "Gitea_Mirror_Stale")}
 
 - name: cloudprober_alerts
   rules:
@@ -617,8 +646,8 @@ groups:
       description: >-
         The {{ $labels.probe }} http probe from ${var.dc} to {{ $labels.dst }}
         timed-out or received unhealthy responses for 5 minutes.
-      dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=probe_unhealthy
+      dashboard_url: ${var.probes_dashboard_url}
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "Probe_Unhealthy")}
   - alert: Probe_Unhealthy
     expr: (cloudprober_failure{probe!~"shard|shard_https"} > 0) or (cloudprober_timeouts{probe!~"shard|shard_https"} > 0)
     for: 10m
@@ -630,8 +659,8 @@ groups:
       description: >-
         The {{ $labels.probe }} probe from ${var.dc} to {{ $labels.dst }}
         timed-out or received unhealthy responses for 10+ minutes.
-      dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=probe_unhealthy
+      dashboard_url: ${var.probes_dashboard_url}
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "Probe_Unhealthy")}
   - alert: Probe_Shard_Unhealthy
     expr: ((cloudprober_failure{probe=~"shard|shard_https"} > 0) and on(dst) count_over_time(cloudprober_total{probe=~"shard|shard_https"}[5m:1m]) >= 5) or ((cloudprober_timeouts{probe=~"shard|shard_https"} > 0) and on(dst) count_over_time(cloudprober_total{probe=~"shard|shard_https"}[5m:1m]) >= 5) > 0
     for: 5m
@@ -647,8 +676,8 @@ groups:
         may be due to a variety of issues. If a local probe failed it is likely
         due to an unhealthy prosody or jicofo, if it's a remote probe then there
         may be a network issue between regions.
-      dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=probe_shard_unhealthy
+      dashboard_url: ${var.probes_dashboard_url}
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "Probe_Shard_Unhealthy")}
   - alert: Probe_Site_Unhealthy
     expr: ((cloudprober_failure{probe="haproxy_region"} > 0) and on(dst) count_over_time(cloudprober_total{probe="haproxy_region"}[5m:1m]) >= 5) or ((cloudprober_timeouts{probe="haproxy_region"} > 0) and on(dst) count_over_time(cloudprober_total{probe="haproxy_region"}[5m:1m]) >= 5) > 0
     for: 5m
@@ -662,8 +691,8 @@ groups:
         An internal probe from ${var.dc} to the {{ $labels.dst }} timed-out or received an unhealthy
         response. This may mean that the entire site is down from the perspective of this
         region and should be investigated immediately.
-      dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=probe_site_unhealthy
+      dashboard_url: ${var.probes_dashboard_url}
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "Probe_Site_Unhealthy")}
   - alert: Opus_Transcriber_Proxy_Monitor_Unhealthy
     # The opus-transcriber-proxy-monitor service (opus-transcriber-proxy in monitor mode) exposes
     # opus_transcriber_proxy_monitor_healthy as a persistent gauge (1 healthy, 0 unhealthy); it is
@@ -685,7 +714,7 @@ groups:
         service replays a sample audio dump against the /transcribe endpoint on an interval
         (retrying once on failure); check its allocation logs for the replay output.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=opus_transcriber_proxy_monitor_unhealthy
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "Opus_Transcriber_Proxy_Monitor_Unhealthy")}
   - alert: Opus_Transcriber_Proxy_Monitor_Down
     # The monitor service itself is not being scraped (crashed, unscheduled, or unhealthy), so
     # transcription health is unknown. Warn only (does not page) since it is not itself an outage;
@@ -701,7 +730,7 @@ groups:
         The opus-transcriber-proxy-monitor service in ${var.dc} has not been scrapeable for 15m, so
         the transcription monitor is not reporting. Check the opus-transcriber-proxy-monitor Nomad job.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=opus_transcriber_proxy_monitor_down
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "Opus_Transcriber_Proxy_Monitor_Down")}
   - alert: OTP_Backend_Errors
     # opus-transcriber-proxy (a Cloudflare Container) pushes otp_* metrics through
     # alloy-cloudflare into this region's prometheus, so this only has data in the 8x8
@@ -730,7 +759,7 @@ groups:
         alloy-cloudflare in ${var.dc}. The proxy failed talking to its transcription
         backend; check the opus-transcriber-proxy Cloudflare Container logs.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=otp_backend_errors
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "OTP_Backend_Errors")}
   - alert: OTP_Backend_Errors
     # Same signal held for 15m: backend errors are ongoing rather than a blip. Severe but
     # does not page - Opus_Transcriber_Proxy_Monitor_Unhealthy above pages when transcription is
@@ -749,7 +778,7 @@ groups:
         unhealthy; check the opus-transcriber-proxy Cloudflare Container logs and the
         backend service health.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=otp_backend_errors
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "OTP_Backend_Errors")}
   - alert: OTP_Backend_Handshake_Failures
     # Early warning for a flaky transcription provider, which the two alerts above no
     # longer give on their own. opus-transcriber-proxy now retries a failed provider
@@ -786,7 +815,7 @@ groups:
         status and xAI request id, and whether OTP_Backend_Errors is also firing (which
         would mean retries are being exhausted and connections actually lost).
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=otp_backend_handshake_failures
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "OTP_Backend_Handshake_Failures")}
   - alert: Probe_Ingress_Region_Unhealthy
     expr: cloudprober_haproxy_region_check_passed < 1
     for: 5m
@@ -802,8 +831,8 @@ groups:
         failing on a regional load balancer, it may have something to do with
         the way that cloudflare is chosing destinations via proximity, or it
         could perhaps be due to the vicissitudes of life.
-      dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=probe_ingress_region_unhealthy
+      dashboard_url: ${var.probes_dashboard_url}
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "Probe_Ingress_Region_Unhealthy")}
   - alert: Probe_Latency
     expr: avg_over_time(cloudprober_latency{probe="canary"}[5m]) > 750
     for: 10m
@@ -816,8 +845,8 @@ groups:
         The {{ $labels.probe }} http probe from ${var.dc} to {{ $labels.dst }}
         has had latency averaging over 750 ms for 10 minutes, and was most
         recently at {{ $value }} ms.
-      dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=probe_latency
+      dashboard_url: ${var.probes_dashboard_url}
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "Probe_Latency")}
   - alert: Probe_Latency
     expr: avg_over_time(cloudprober_latency{probe="canary"}[5m]) > 1500
     for: 15m
@@ -831,8 +860,8 @@ groups:
         The {{ $labels.probe }} http probe from ${var.dc} to {{ $labels.dst }}
         has had latency averaging over 1500 ms for 15 minutes, and was most
         recently at {{ $value }} ms.
-      dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=probe_latency
+      dashboard_url: ${var.probes_dashboard_url}
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "Probe_Latency")}
 
 - name: system_alerts
   rules:%{ if var.production_alerts }
@@ -849,7 +878,7 @@ groups:
         had a CPU running at over 70% in the last 5 minutes. It was most
         recently at {{ $value | printf "%.2f" }}%.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=system_cpu_usage_high
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "System_CPU_Usage_High")}
   - alert: System_CPU_Usage_High
     expr: 100 - cpu_usage_idle > 80
     for: 5m
@@ -863,7 +892,7 @@ groups:
         had a CPU running at over 80% in the last 5 minutes. It was most
         recently at {{ $value | printf "%.2f" }}%.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=system_cpu_usage_high%{ else }
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "System_CPU_Usage_High")}%{ else }
   - alert: System_CPU_Usage_High
     expr: 100 - cpu_usage_idle > 95
     for: 5m
@@ -877,7 +906,7 @@ groups:
         had a CPU running at over 95% in the last 5 minutes. It was most
         recently at {{ $value | printf "%.2f" }}%.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=system_cpu_usage_high
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "System_CPU_Usage_High")}
   - alert: System_CPU_Usage_High
     expr: 100 - cpu_usage_idle > 90
     for: 1h
@@ -892,7 +921,7 @@ groups:
         had a CPU running at over 90% for an hour. This should be investigated
         immediately. It was most recently at {{ $value | printf "%.2f" }}%.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=system_cpu_usage_high%{ endif }
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "System_CPU_Usage_High")}%{ endif }
   - alert: System_CPU_Steal_High
     expr: cpu_usage_steal > 15
     for: 10m
@@ -908,7 +937,7 @@ groups:
         and may be a warning sign of poor user experience. It was most recently
         at {{ $value | printf "%.2f" }}%.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=system_cpu_steal_high
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "System_CPU_Steal_High")}
   - alert: System_Memory_Usage_High
     expr: (mem_total - mem_available) / mem_total * 100 > 80
     for: 5m
@@ -922,7 +951,7 @@ groups:
         utilizing over 80% of its memory in the last 5 minutes. It was most
         recently at {{ $value | printf "%.2f"}}%.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=system_memory_usage_high
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "System_Memory_Usage_High")}
   - alert: System_Disk_Usage_High
     expr: (disk_used_percent{path="/"} or max(100-(disk_free{path="/."}/disk_total{path="/."})*100) by (host)) > 80
     for: 5m
@@ -936,7 +965,7 @@ groups:
         using over 80% of its disk space. It was most recently at {{ $value |
         printf "%.2f" }}%.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=system_disk_usage_high
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "System_Disk_Usage_High")}
   - alert: System_Disk_Usage_High
     expr: (disk_used_percent{path="/"} or max(100-(disk_free{path="/."}/disk_total{path="/."})*100) by (host)) > 90
     for: 5m
@@ -950,7 +979,7 @@ groups:
         using over 90% of its disk space. It was most recently at {{ $value |
         printf "%.2f" }}%.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=system_disk_used_high
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "System_Disk_Usage_High")}
 %{ if var.core_deployment }
 - name: core_service_alerts
   rules:
@@ -968,7 +997,7 @@ groups:
         This is usually indicative of network issues between HAProxy and the shards and should be
         investigated.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=haproxy_redispatch_rate_high
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "HAProxy_Redispatch_Rate_High")}
   - alert: HAProxy_Redispatch_Rate_High
     expr: count_over_time(((increase(haproxy_wredis[1m]) > bool 0) > 0)[10m:1m]) > 3
     for: 1m
@@ -985,7 +1014,7 @@ groups:
         persistent underlying issue, most likely with the network between haproxies and shards.
         Investigate which shards are affected and consider draining one or more regions.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=haproxy_redispatch_rate_high
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "HAProxy_Redispatch_Rate_High")}
   - alert: HAProxy_Shard_Unhealthy
     expr: (min(haproxy_agent_health) by (sv) unless count(haproxy_agent_health unless (haproxy_agent_health offset 5m) > bool 1) by (sv)) < 1
     for: 1m
@@ -1002,7 +1031,7 @@ groups:
         understand more.  The HealthAnyAlarm email has also likely been
         triggered.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=haproxy_shard_unhealthy
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "HAProxy_Shard_Unhealthy")}
   - alert: HAProxy_Reconfig_Failed
     expr: max_over_time(jitsi_config_haproxy_reconfig_failed{role="haproxy"}[5m]) > 0
     for: 1m
@@ -1019,7 +1048,7 @@ groups:
         for the rejected *.invalid config and run 'haproxy -c -f <file>' against it
         to see the fatal error.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=haproxy_reconfig_failed
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "HAProxy_Reconfig_Failed")}
   - alert: HAProxy_LB_Bandwidth_High
     expr: oci_lbaas_peak_bandwidth{lb_name=~".*haproxy.*"} > 2400
     for: 2m
@@ -1035,7 +1064,7 @@ groups:
         The provisioned limit is 2500 Mbps. Investigate your traffic sources and consider
         upgrading the LB bandwidth allocation or applying mitigation WAF rules.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=haproxy_lb
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "HAProxy_LB_Bandwidth_High")}
   - alert: HAProxy_LB_Bandwidth_High
     expr: oci_lbaas_peak_bandwidth{lb_name=~".*haproxy.*"} > 500
     for: 5m
@@ -1050,7 +1079,7 @@ groups:
         The provisioned limit is 2500 Mbps. Investigate your traffic sources and consider
         upgrading the LB bandwidth allocation or applying mitigation WAF rules.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=haproxy_lb
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "HAProxy_LB_Bandwidth_High")}
   - alert: HAProxy_LB_Unhealthy_Backends
     expr: oci_lbaas_unhealthy_backend_servers{ lb_name=~".*haproxy.*"} >= 1
     for: 2m
@@ -1064,7 +1093,7 @@ groups:
         in ${var.dc} has {{ $value | printf "%.0f" }} unhealthy backend(s).
         Check HAProxy health and the signal path between the LB and affected backends.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=haproxy_lb
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "HAProxy_LB_Unhealthy_Backends")}
   - alert: HAProxy_LB_5xx_Elevated
     expr: oci_lbaas_http_responses5xx{lb_name=~".*haproxy.*"} > 50
     for: 5m
@@ -1079,7 +1108,7 @@ groups:
         {{ $value | printf "%.0f" }}/min). This may indicate backend failures or an
         inbound traffic spike. Check backend health and upstream traffic patterns.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=haproxy_lb
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "HAProxy_LB_5xx_Elevated")}
   - alert: Shard_HTTP_5xx_Elevated
     expr: >-
       sum by (shard) (label_replace(
@@ -1106,7 +1135,7 @@ groups:
         datacenter this alert fired in -- release backends route across regions, so
         one unhealthy shard can alert from several datacenters at once.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=shard_http_5xx
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "Shard_HTTP_5xx_Elevated")}
   - alert: HAProxy_LB_Backend_Timeouts_Elevated
     expr: oci_lbaas_backend_timeouts{lb_name=~".*haproxy.*"} > 5
     for: 5m
@@ -1121,7 +1150,7 @@ groups:
         for 5 minutes (currently {{ $value | printf "%.1f" }}/min). Backends are not
         responding within the timeout window — check backend load and response times.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=haproxy_lb
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "HAProxy_LB_Backend_Timeouts_Elevated")}
   - alert: OCI_Instance_Pool_Undersized
     expr: >-
       max by (pool) (oci_instancepools_instance_pool_size{pool!~".*RecoveryAgent.*"}) >
@@ -1143,7 +1172,7 @@ groups:
         because they are deliberately left STOPPED at size 1, which the OCI metrics
         cannot be distinguished from a pool that failed to launch.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=oci_instance_pool
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "OCI_Instance_Pool_Undersized")}
   - alert: Consul_Servers_Share_Fault_Domain
     expr: sum by (ad, fd) (oci_instancepools_running_instances{pool=~"ConsulInstancePool-.*"}) > 1
     for: 30m
@@ -1159,7 +1188,7 @@ groups:
         costs raft quorum. Re-run scripts/rotate-consul-oracle.sh for this region to
         redistribute them.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=consul_servers
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "Consul_Servers_Share_Fault_Domain")}
   - alert: Jicofo_ICE_Restarts_High
     expr: >-
       max_over_time((100 * sum by (shard) (increase(jitsi_jicofo_participants_restart_requested_total[10m]) unless sum by (shard) (jitsi_jicofo_participants_current < 20)) /
@@ -1178,7 +1207,7 @@ groups:
         There were {{ $value | printf "%.2f" }} restarts per participant on the
         shard in the last 10 minutes.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=jicofo_ice_restarts_high
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "Jicofo_ICE_Restarts_High")}
   - alert: Jicofo_JVBs_Lost_High
     expr: max_over_time(increase(jitsi_jicofo_bridge_selector_lost_bridges_total[1m])[5m:1m]) > 4
     for: 1m
@@ -1192,7 +1221,7 @@ groups:
         in ${var.dc} within 1 minute, which may mean that some sort of failure
         is occurring.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=jicofo_jvbs_lost_high
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "Jicofo_JVBs_Lost_High")}
   - alert: Jicofo_JVBs_Missing
     expr: min_over_time(min(jitsi_jicofo_bridge_selector_bridge_count) by (shard)[5m:1m]) and on(shard) (count_over_time(jitsi_jicofo_bridge_selector_bridge_count[10m:1m]) >= 10) < 1
     for: 5m
@@ -1206,7 +1235,7 @@ groups:
         According to {{ $labels.shard }}, no jvbs are available in ${var.dc}.
         This means that no jvb instances are available to host meetings.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=jicofo_jvbs_missing
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "Jicofo_JVBs_Missing")}
   - alert: Jicofo_JVB_Version_Mismatch
     expr: jitsi_jicofo_bridge_selector_bridge_version_count > 1
     for: 2h
@@ -1222,7 +1251,7 @@ groups:
         upgrade; if this is not the case then cross-regional octo is likely
         broken, which will result in degraded service.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=jicofo_jvb_version_mismatch
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "Jicofo_JVB_Version_Mismatch")}
   - alert: Jicofo_Participants_High
     expr: jitsi_jicofo_participants_current > %{ if var.production_alerts }5000%{ else }6000%{ endif }
     for: 5m
@@ -1241,7 +1270,7 @@ groups:
         similar number of participants it means that the region may need more
         shards to be launched.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=jicofo_participants_high
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "Jicofo_Participants_High")}
   - alert: Baron_HAProxy_Split_Brain
     expr: baron_haproxy_split_brains > 2
     for: 3m
@@ -1257,7 +1286,7 @@ groups:
         and should be immediately investigated. The ingress is routing users to different shards for
         the same conference. Most recently this was affecting {{ $value }} conferences.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=baron
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "Baron_HAProxy_Split_Brain")}
   - alert: Baron_Shard_Split_Brain
     expr: baron_shard_split_brains > 2
     for: 3m
@@ -1274,7 +1303,7 @@ groups:
         This condition may also occurr if a conference is leaked or stale in prosody and has been
         recreated on a different shard.  Most recently, this was affecting {{ $value }} conferences.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=baron
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "Baron_Shard_Split_Brain")}
   - alert: Baron_HAProxy_Ambiguous_Keys
     expr: baron_haproxy_ambiguous_keys > 4
     for: 5m
@@ -1290,7 +1319,7 @@ groups:
         between them without a problem. But if this is happening to a lot of conferences, it may lead to
         poor load balancing between shards. Most recently, this was affecting {{ $value }} conferences.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=baron
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "Baron_HAProxy_Ambiguous_Keys")}
   - alert: Baron_HAProxy_Missing_Conference
     expr: baron_shard_missing_from_haproxy > 10
     for: 5m
@@ -1305,7 +1334,7 @@ groups:
         could also mean that there's some sort of stick table failure. Most recently, this was
         affecting {{ $value }} conferences.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=baron
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "Baron_HAProxy_Missing_Conference")}
   - alert: Baron_HAProxy_Shard_Mismatches
     expr: baron_shard_haproxy_mismatches > 1
     for: 5m
@@ -1321,7 +1350,7 @@ groups:
         converges but if it persists it indicates a serious issue that should be investigated. Most
         recently, this was affecting {{ $value }} conferences.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=baron
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "Baron_HAProxy_Shard_Mismatches")}
   %{ if var.environment_type == "prod" }- alert: JVB_CPU_High
     expr: 100 - cpu_usage_idle{role="JVB"} > %{ if var.production_alerts }90%{ else }95%{ endif }
     for: %{ if var.production_alerts }10m%{ else }15m%{ endif }
@@ -1337,7 +1366,7 @@ groups:
         in the last %{ if var.production_alerts }10%{ else }15%{ endif } minutes.
         It was most recently at {{ $value | printf "%.2f" }}%.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=jvb_cpu_high%{ endif }
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "JVB_CPU_High")}%{ endif }
   - alert: JVB_RTP_Delay_Host_High
     expr: >-
       100 * (1 - sum(idelta(jitsi_jvb_rtp_transit_time_bucket{le="50"}[10m:1m]) unless ignoring(le) (jitsi_jvb_rtp_transit_time_count < 200000)) by (host) /
@@ -1352,7 +1381,7 @@ groups:
         A JVB in ${var.dc} has had too many packets with a RTP delay > 50ms and
         should be investigated.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=jvb_rtp_delay
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "JVB_RTP_Delay_Host_High")}
   - alert: JVB_RTP_Delay_Group_High
     expr: >-
       100 * (1 - sum(idelta(jitsi_jvb_rtp_transit_time_bucket{le="50"}[10m:1m]) unless ignoring(le) (jitsi_jvb_rtp_transit_time_count < 200000)) by (shard) /
@@ -1368,7 +1397,7 @@ groups:
         than 40% of packets with a delay > 50ms for the past 10 minutes, and
         should be investigated.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=jvb_rtp_delay
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "JVB_RTP_Delay_Group_High")}
   - alert: JVB_XMPP_Disconnects_High
     expr: count(increase(jitsi_jvb_xmpp_disconnects_total[5m]) > 0) > 1
     for: 1m
@@ -1382,7 +1411,7 @@ groups:
         minute. This should be investigated because it may mean that users are
         having a bad experience with video.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=jvb_xmpp_disconnects
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "JVB_XMPP_Disconnects_High")}
   - alert: Shard_CPU_High
     expr: 100 - cpu_usage_idle{role="core"} > 90
     for: 5m
@@ -1400,7 +1429,7 @@ groups:
         the ordinary, the region may be overloaded. Launch new shards if the
         number of participants on each shard is over 4000 users.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=shard_cpu_high
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "Shard_CPU_High")}
   - alert: HAProxy_CPU_High
     expr: 100 - cpu_usage_idle{role="haproxy"} > 90
     for: 2m
@@ -1416,7 +1445,7 @@ groups:
         should be immediately investigated because it may mean that traffic is
         being dropped in the ingress.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=haproxy_cpu_high
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "HAProxy_CPU_High")}
 %{ if var.autoscaler_alerts }
   - alert: Autoscaler_Down
     expr: absent(autoscaling_groups_managed)
@@ -1430,7 +1459,7 @@ groups:
         The autoscaler is not emitting metrics in ${var.dc}. This means that
         the autoscaler may be not scaling JVBs.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=autoscaler_down%{ endif }
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "Autoscaler_Down")}%{ endif }
 %{ if var.core_extended_services }
 - name: core_extended_service_alerts
   rules:
@@ -1450,7 +1479,7 @@ groups:
       description: >-
         There has been a spike of Coturn UDP errors in ${var.dc}. This could indicate that they are overloaded or that there are network issues.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=coturn_udp_errors_high
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "Coturn_UDP_Errors_High")}
   - alert: Coturn_Task_Missing
     expr: |-
       count by (host) (mem_total{pool_type="coturn"})
@@ -1467,7 +1496,7 @@ groups:
         allocation. The coturn system job may have failed to place or crash-looped
         past its restart attempts, leaving this node with zero TURN relay capacity.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=coturn_task_missing
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "Coturn_Task_Missing")}
   - alert: Jibris_Available_None
     expr: sum(jibri_available{role="java-jibri"}) == 0
     for: 5m
@@ -1481,7 +1510,7 @@ groups:
         No jibris were emitting metrics that they are currently available in ${var.dc} over the past
         5 minutes. This means that no jibri instances were available to record or stream meetings.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=jibris_available_none
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "Jibris_Available_None")}
   - alert: Jicofo_Jibris_Available_None
     # A new shard's jicofo reports 0 jibris for about a minute before the jibris
     # join its brewery, so skip shards with under 10m of samples, as
@@ -1504,7 +1533,7 @@ groups:
         jicofos are reporting this, then there may be a problem with our jibri capacity and the
         group should be scaled up.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=jibris_available_none
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "Jicofo_Jibris_Available_None")}
   - alert: Jicofo_Jibris_Missing
     expr: max by (shard) (jitsi_jicofo_jibri_instances{role="core"}) < 1 and on (shard) (count_over_time(jitsi_jicofo_jibri_instances{role="core"}[10m:1m]) >= 10)
     for: 5m
@@ -1519,7 +1548,7 @@ groups:
         ${var.dc}. This means that it will not be able to record or stream
         meetings on this shard.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=jicofo_jibris_missing
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "Jicofo_Jibris_Missing")}
   - alert: Jicofo_Jibri_Recording_Failures
     expr: sum by (shard) (increase(jitsi_jicofo_jibri_recording_failures_total{role="core"}[30m])) >= 5
     for: 5m
@@ -1537,7 +1566,7 @@ groups:
         for jibri session errors. A jicofo restart has cleared this before. If this is the only
         shard affected, drain it so new recordings land on other shards.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=jicofo_jibri_recording_failures
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "Jicofo_Jibri_Recording_Failures")}
   - alert: Jicofo_Jibri_Recording_Failures
     expr: sum by (shard) (increase(jitsi_jicofo_jibri_recording_failures_total{role="core"}[30m])) >= 10
     for: 5m
@@ -1557,7 +1586,7 @@ groups:
         the jicofo and jibri logs. Failures only accrue when users try to record, so the alert
         is held for 30 minutes after the last burst rather than resolving between attempts.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=jicofo_jibri_recording_failures
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "Jicofo_Jibri_Recording_Failures")}
   - alert: Jicofo_Severe_Log_Rate
     expr: sum by (shard) (increase(jicofo_log_lines_total{level="SEVERE", role="core"}[10m])) >= 10 
     for: 5m
@@ -1575,7 +1604,7 @@ groups:
         condition but be aware that it would impact active conferences. Replacing then draining
         the shard is the safer remediation.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=jicofo_severe_log_rate
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "Jicofo_Severe_Log_Rate")}
   - alert: Jicofo_Severe_Log_Rate
     expr: sum by (shard) (increase(jicofo_log_lines_total{level="SEVERE", role="core"}[10m])) >= 100
     for: 10m
@@ -1594,7 +1623,7 @@ groups:
         condition but be aware that it would impact active conferences. Replacing then draining
         the shard is the safer remediation.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=jicofo_severe_log_rate
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "Jicofo_Severe_Log_Rate")}
   - alert: Jicofo_SIP-Jigasi_Missing
     expr: max by (shard) (jitsi_jicofo_jigasi_sip_count{role="core"}) < 1 and on (shard) (count_over_time(jitsi_jicofo_jigasi_sip_count{role="core"}[10m:1m]) >= 10)
     for: 5m
@@ -1610,7 +1639,7 @@ groups:
         by triggering a jigasi release and overriding the git branch to match
         that of the running nodes.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=jicofo_sip-jigasi_missing
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "Jicofo_SIP-Jigasi_Missing")}
   - alert: Jicofo_SIP-Jigasi_Missing
     expr: max by (shard) (jitsi_jicofo_jigasi_sip_count{role="core"}) < 1 and on (shard) (count_over_time(jitsi_jicofo_jigasi_sip_count{role="core"}[10m:1m]) >= 10)
     for: 20m
@@ -1625,7 +1654,7 @@ groups:
         in ${var.dc} for over 20m. To redeploy, trigger a jigasi release and
         override the git branch to match the running nodes.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=jicofo_sip-jigasi_missing
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "Jicofo_SIP-Jigasi_Missing")}
   - alert: Jicofo_Transcribers_Missing
     expr: max by (shard) (jitsi_jicofo_jigasi_transcriber_count{role="core"}) < 1 and on (shard) (count_over_time(jitsi_jicofo_jigasi_transcriber_count{role="core"}[10m:1m]) >= 10)
     for: 5m
@@ -1640,7 +1669,7 @@ groups:
         jicofo. Consider running a transcriber release job, using the same git
         branch as those of the running nodes.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=jicofo_transcribers_missing
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "Jicofo_Transcribers_Missing")}
   - alert: Jigasi_Dropped_Media
     expr: max_over_time(increase(jitsi_jigasi_total_calls_with_dropped_media[5m:1m])[5m:1m]) > 1
     for: 2m
@@ -1653,7 +1682,7 @@ groups:
         A jigasi in ${var.dc} dropped media for 10+ seconds during calls. A new
         jigasi release may be required to resolve the problem.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=jigasi_dropped_media
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "Jigasi_Dropped_Media")}
   - alert: Skynet_Queue_Depth_High
     expr: max(Skynet_Summaries_summary_queue_size) > 100
     for: 5m
@@ -1668,8 +1697,8 @@ groups:
         the queue continues to grow, it may be neccessary to scale up the
         instance pool manually. The queue depth was most recently
         at {{ $value | printf "%.2f" }}.
-      dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=skynet_queue
+      dashboard_url: ${var.skynet_dashboard_url}
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "Skynet_Queue_Depth_High")}
   - alert: Skynet_Queue_Depth_High
     expr: max(Skynet_Summaries_summary_queue_size) > 500
     for: 5m
@@ -1683,8 +1712,8 @@ groups:
         dangerously behind in ${var.dc}. If all existing nodes are operating as
         expected, it may be neccessary to scale up the instance pool manually.
         The queue depth was most recently at {{ $value | printf "%.2f" }}.
-      dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=skynet_queue
+      dashboard_url: ${var.skynet_dashboard_url}
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "Skynet_Queue_Depth_High")}
   - alert: Skynet_Queue_Depth_High
     expr: max(Skynet_Summaries_summary_queue_size) > 1000
     for: 10m
@@ -1700,8 +1729,8 @@ groups:
         experience may be poor. Immediately scale up the instance pool and check the
         affected host to see if it is stuck for some reason. The queue size was
         most recently at {{ $value | printf "%.2f" }}.
-      dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=skynet_queue
+      dashboard_url: ${var.skynet_dashboard_url}
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "Skynet_Queue_Depth_High")}
   - alert: Whisper_Sessions_High
     expr: Skynet_Streaming_Whisper_LiveWsConnections >= 7
     for: 2m
@@ -1715,8 +1744,8 @@ groups:
         once. When an instance is handling 8 or more sessions, it is time to
         scale up immediately. Most recently, there were {{ $value | printf "%.2f"  }}
         sessions on the Whisper host {{ $labels.host }}.
-      dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=whisper_sessions_high
+      dashboard_url: ${var.whisper_dashboard_url}
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "Whisper_Sessions_High")}
   - alert: Whisper_Sessions_High
     expr: Skynet_Streaming_Whisper_LiveWsConnections >= 10
     for: 5m
@@ -1732,8 +1761,8 @@ groups:
         immediately because users are being adversely impacted. Most recently,
         there were {{ $value | printf "%.2f"  }} sessions on the Whisper
         host {{ $labels.host }}.
-      dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=whisper_sessions_high
+      dashboard_url: ${var.whisper_dashboard_url}
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "Whisper_Sessions_High")}
 %{ endif }%{ endif }
 - name: vector_alerts
   rules:
@@ -1763,7 +1792,7 @@ groups:
         telegraf cannot find the port. Check the vector allocation on the node
         before assuming the job is fine.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=vector_down
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "Vector_Down")}
   # VM hosts are anchored on a telegraf metric that carries the role tag, so
   # this only considers host types that actually run vector; a coturn or
   # jenkins host reporting no vector metrics is correct, not an outage.
@@ -1794,7 +1823,7 @@ groups:
         likely predates the telegraf vector input and this is "not yet
         deployed", not an outage.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=vector_down
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "Vector_Down")}
   # buffer_type is the label that proves the sink actually got the disk buffer
   # it was configured with (JIT-16464). A memory buffer here means the disk
   # config silently fell back, and its fill level is uninteresting because it
@@ -1820,7 +1849,7 @@ groups:
         completely vector stops reading its sources rather than dropping
         events, and the backlog then shows up as a gap in Loki.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=vector_buffer_filling
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "Vector_Buffer_Filling")}
   - alert: Vector_Buffer_Filling
     expr: >-
       vector_buffer_size_bytes{buffer_type="disk"}
@@ -1837,7 +1866,7 @@ groups:
         blocks its sources and logs from that node stop flowing until the sink
         drains. Loki is almost certainly not accepting writes from this node.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=vector_buffer_filling
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "Vector_Buffer_Filling")}
   # Counters here are lazily registered (0.42 never emitted
   # vector_component_errors_total even with every docker_logs source failing;
   # 0.58 registers it at startup for some components but not all): the series
@@ -1873,7 +1902,7 @@ groups:
         entry, or a label limit); for a transform it is events failing the
         remap. Those log lines are gone, not delayed.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=vector_events_discarded
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "Vector_Events_Discarded")}
   - alert: Vector_Component_Errors
     expr: >-
       (sum by (node, registered_by, component_id, component_type, error_type)
@@ -1896,7 +1925,7 @@ groups:
         the endpoint is unreachable and the sink is retrying out of its buffer;
         a source usually means a file or socket it cannot read.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=vector_component_errors
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "Vector_Component_Errors")}
   # Version skew is evaluated per population on purpose: the nomad job pins
   # its image while the VM fleet takes whatever the base image installed from
   # apt. They match right after a pin bump (both 0.58.0 as of 2026-09-17) and
@@ -1921,7 +1950,7 @@ groups:
         well as the old binary. Check `nomad job status` for the vector job
         and compare allocation versions.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=vector_version_skew
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "Vector_Version_Skew")}
   - alert: Vector_Version_Skew
     expr: count by (registered_by) (count by (registered_by, version) (vector_build_info{registered_by=""})) > 1
     for: 3d
@@ -1937,7 +1966,7 @@ groups:
         base image release; it is worth a look if it persists, since the old
         hosts are also on the old vector config.
       dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=vector_version_skew
+      alert_url: ${replace(local.alert_url, "ALERTNAME", "Vector_Version_Skew")}
 ${var.custom_alerts}
 EOH
     }
