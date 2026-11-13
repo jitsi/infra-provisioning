@@ -206,7 +206,7 @@ terraform $TF_GLOBALS_CHDIR $ACTION \
 RET=$?
 
 if [[ $RET -eq 0 ]]; then
-  if [[ "$ACTION" == "apply" ]] && [[ "$RET" -eq 0 ]] && [[ "$ENVIRONMENT_TYPE" == "prod" ]]; then
+  if [[ "$ACTION" == "apply" ]] && [[ "$ENVIRONMENT_TYPE" == "prod" ]]; then
     echo "Tagging signal image as production"
     $LOCAL_PATH/../../scripts/oracle_custom_images.py --tag_production --image_id $IMAGE_OCID --region $ORACLE_REGION
   fi
