@@ -222,7 +222,7 @@ export AWS_ACCESS_KEY_ID="$OLD_AWS_ACCESS_KEY_ID"
 export AWS_SECRET_ACCESS_KEY="$OLD_AWS_SECRET_ACCESS_KEY"
 set -x
 
-if [[ "$ENVIRONMENT_TYPE" == "prod" ]]; then
+if [[ "$ACTION" == "apply" ]] && [[ "$RET" -eq 0 ]] && [[ "$ENVIRONMENT_TYPE" == "prod" ]]; then
   echo "Tagging coturn image as production"
   $LOCAL_PATH/../../scripts/oracle_custom_images.py --tag_production --image_id $COTURN_IMAGE_OCID --region $ORACLE_REGION
 fi

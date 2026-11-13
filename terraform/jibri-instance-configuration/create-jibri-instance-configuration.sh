@@ -243,7 +243,7 @@ if [[ "$RET" -ne 0 ]]; then
   exit $RET
 fi
 
-if [[ "$ENVIRONMENT_TYPE" == "prod" ]]; then
+if [[ "$ACTION" == "apply" ]] && [[ "$RET" -eq 0 ]] && [[ "$ENVIRONMENT_TYPE" == "prod" ]]; then
   echo "Tagging jibri image as production"
   $LOCAL_PATH/../../scripts/oracle_custom_images.py --tag_production --image_id $JIBRI_IMAGE_OCID --region $ORACLE_REGION
 fi
