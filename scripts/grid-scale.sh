@@ -277,6 +277,11 @@ cmd_request() {
     echo "Grid: $GRID_NAME, Build: $BUILD_TAG, Slots: $GRID_SLOTS_REQUESTED, Arch: $arch, Group: ${GRID_RESERVATION_GROUP:-none}"
 
     get_consul_config
+    # Like reconcile, leave alone a grid that is not managed: a grow here would never be undone
+    if [ "$GRID_HAS_CONFIG" != "true" ]; then
+        echo "No $CONSUL_KV_PREFIX/config in Consul, grid $GRID_NAME is not scaled, nothing to reserve"
+        return 0
+    fi
 
     # Write reservation to Consul KV
     local reservation_json
