@@ -298,13 +298,19 @@ cmd_request() {
 
     # The minimum is for the users of the grid that make no reservations (e.g. the PR tests), so the
     # reservations come on top of it
-    local min_size
+    local min_size max_size
     if [ "$arch" = "arm" ]; then
-        min_size=$GRID_MIN_POOL_SIZE_ARM
+        min_size=$(get_scheduled_min_arm)
+        max_size=$GRID_MAX_POOL_SIZE_ARM
     else
         min_size=$GRID_MIN_POOL_SIZE_X86
+        max_size=$GRID_MAX_POOL_SIZE_X86
     fi
     local total_desired=$((min_size + total_reserved))
+    if [ "$total_desired" -gt "$max_size" ]; then
+        echo "Capping $total_desired at the maximum $max_size"
+        total_desired=$max_size
+    fi
 
     # Fetch pool IDs from terraform state
     get_pool_ids
@@ -455,6 +461,8 @@ cmd_reconcile() {
 
     if [ "$current" -lt "$target" ]; then
         resize_pool "$NODE_POOL_ID_ARM" "$target"
+        # A shrink right after a grow would terminate the nodes still booting
+        curl -s -X PUT -d "$now" "$CONSUL_URL/v1/kv/$CONSUL_KV_PREFIX/last_resize_at" >/dev/null
         return 0
     fi
     if [ "$current" -eq "$target" ]; then
@@ -482,10 +490,10 @@ cmd_reconcile() {
         echo "Cooldown active: $((now - last_release))s / ${GRID_COOLDOWN_SECONDS}s since last release, not shrinking"
         return 0
     fi
-    local last_shrink
-    last_shrink=$(get_kv_epoch last_shrink_at)
-    if [ -n "$last_shrink" ] && [ $((now - last_shrink)) -lt "$GRID_SCALE_DOWN_INTERVAL" ]; then
-        echo "Shrank $((now - last_shrink))s ago, next step after ${GRID_SCALE_DOWN_INTERVAL}s"
+    local last_resize
+    last_resize=$(get_kv_epoch last_resize_at)
+    if [ -n "$last_resize" ] && [ $((now - last_resize)) -lt "$GRID_SCALE_DOWN_INTERVAL" ]; then
+        echo "Resized $((now - last_resize))s ago, next step after ${GRID_SCALE_DOWN_INTERVAL}s"
         return 0
     fi
 
@@ -495,7 +503,7 @@ cmd_reconcile() {
         new_size=$target
     fi
     resize_pool "$NODE_POOL_ID_ARM" "$new_size"
-    curl -s -X PUT -d "$now" "$CONSUL_URL/v1/kv/$CONSUL_KV_PREFIX/last_shrink_at" >/dev/null
+    curl -s -X PUT -d "$now" "$CONSUL_URL/v1/kv/$CONSUL_KV_PREFIX/last_resize_at" >/dev/null
 }
 
 # Prints an installation token of the GitHub App GITHUB_APP_ID (private key in GITHUB_APP_KEY_FILE)
