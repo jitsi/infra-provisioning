@@ -14,9 +14,9 @@
 # "group": "<optional>", "ttl": <optional seconds>}, and release by deleting it and writing the epoch
 # to selenium-grid/<grid>/last_release_at. reconcile then sizes the pool.
 #
-# The minimum, maximum, cooldown and ttl of a grid are in selenium-grid/<grid>/config, e.g.
-# {"min_pool_size_arm": 4, "max_pool_size_arm": 50}. reconcile and github-watch leave alone a grid
-# without that key.
+# The settings of a grid are in selenium-grid/<grid>/config, e.g. {"min_pool_size_arm": 0,
+# "max_pool_size_arm": 50, "schedule": [{"days": "1-5", "from": "08:00", "to": "23:00", "min": 20}],
+# "holidays": ["2026-12-24"]}. reconcile and github-watch leave alone a grid without that key.
 
 set -e
 LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
@@ -70,6 +70,12 @@ S3_STATE_KEY_IP="${S3_STATE_BASE}/terraform-ip.tfstate"
 [ -z "$GRID_MAX_POOL_SIZE_ARM" ] && GRID_MAX_POOL_SIZE_ARM=50
 [ -z "$GRID_COOLDOWN_SECONDS" ] && GRID_COOLDOWN_SECONDS=600
 [ -z "$GRID_POLL_INTERVAL" ] && GRID_POLL_INTERVAL=15
+# reconcile shrinks only after the grid was idle this long, by at most GRID_SCALE_DOWN_STEP nodes per
+# GRID_SCALE_DOWN_INTERVAL, and not below the peak sessions of the last GRID_PEAK_WINDOW seconds
+[ -z "$GRID_IDLE_SECONDS" ] && GRID_IDLE_SECONDS=1800
+[ -z "$GRID_SCALE_DOWN_STEP" ] && GRID_SCALE_DOWN_STEP=8
+[ -z "$GRID_SCALE_DOWN_INTERVAL" ] && GRID_SCALE_DOWN_INTERVAL=900
+[ -z "$GRID_PEAK_WINDOW" ] && GRID_PEAK_WINDOW=3600
 # A reservation older than this is left over from a build that never released it and is ignored
 [ -z "$GRID_RESERVATION_TTL" ] && GRID_RESERVATION_TTL=7200
 # github-watch: the PR test runs of these repos get GRID_WATCH_SLOTS slots (a PR test peaks at 16 sessions)
@@ -88,9 +94,11 @@ S3_STATE_KEY_IP="${S3_STATE_BASE}/terraform-ip.tfstate"
 get_consul_config() {
     local config_json
     GRID_HAS_CONFIG=false
+    GRID_CONFIG_JSON="{}"
     config_json=$(curl -s -f "$CONSUL_URL/v1/kv/$CONSUL_KV_PREFIX/config?raw" 2>/dev/null || echo "")
     if [ -n "$config_json" ] && [ "$config_json" != "null" ]; then
         GRID_HAS_CONFIG=true
+        GRID_CONFIG_JSON="$config_json"
         local val
         val=$(echo "$config_json" | jq -r '.min_pool_size_x86 // empty' 2>/dev/null)
         [ -n "$val" ] && GRID_MIN_POOL_SIZE_X86="$val"
@@ -104,6 +112,14 @@ get_consul_config() {
         [ -n "$val" ] && GRID_MAX_POOL_SIZE_X86="$val"
         val=$(echo "$config_json" | jq -r '.max_pool_size_arm // empty' 2>/dev/null)
         [ -n "$val" ] && GRID_MAX_POOL_SIZE_ARM="$val"
+        val=$(echo "$config_json" | jq -r '.idle_seconds // empty' 2>/dev/null)
+        [ -n "$val" ] && GRID_IDLE_SECONDS="$val"
+        val=$(echo "$config_json" | jq -r '.scale_down_step // empty' 2>/dev/null)
+        [ -n "$val" ] && GRID_SCALE_DOWN_STEP="$val"
+        val=$(echo "$config_json" | jq -r '.scale_down_interval // empty' 2>/dev/null)
+        [ -n "$val" ] && GRID_SCALE_DOWN_INTERVAL="$val"
+        val=$(echo "$config_json" | jq -r '.peak_window // empty' 2>/dev/null)
+        [ -n "$val" ] && GRID_PEAK_WINDOW="$val"
     fi
     # The last test above fails when its key is missing, which set -e would take as a failure
     return 0
@@ -336,10 +352,34 @@ cmd_release() {
     echo "Updated last_release_at"
 }
 
-# Sizes the ARM pool to what the grid needs: the minimum plus the reservations, and at least the
-# running and queued sessions, so a user that made no reservation still gets nodes (one scale-up
-# later). Grows right away, shrinks only an idle grid once the cooldown since the last release passed.
-# Only manages a grid that has a config in Consul.
+# The ARM minimum for now: the min of the first config "schedule" window that covers the current UTC
+# day of the week (1 is Monday) and time, e.g. {"days": "1-5", "from": "08:00", "to": "23:00",
+# "min": 20}; min_pool_size_arm outside the windows and on the "holidays" (["2026-12-24", ...]).
+get_scheduled_min_arm() {
+    echo "$GRID_CONFIG_JSON" | jq -r --argjson day "$(date -u +%u)" --arg time "$(date -u +%H:%M)" \
+        --arg date "$(date -u +%F)" --argjson base "$GRID_MIN_POOL_SIZE_ARM" '
+        if ((.holidays // []) | index($date)) then $base
+        else [(.schedule // [])[]
+                | ((.days // "1-7") | split("-") | map(tonumber)) as $days
+                | select($day >= $days[0] and $day <= ($days[1] // $days[0]))
+                | select($time >= .from and $time < .to)
+                | .min] | first // $base
+        end' 2>/dev/null || echo "$GRID_MIN_POOL_SIZE_ARM"
+}
+
+# Reads an epoch from a Consul key under the grid prefix, empty when missing
+get_kv_epoch() {
+    local value
+    value=$(curl -s -f "$CONSUL_URL/v1/kv/$CONSUL_KV_PREFIX/$1?raw" 2>/dev/null || echo "")
+    [[ "$value" =~ ^[0-9]+$ ]] && echo "$value"
+    return 0
+}
+
+# Sizes the ARM pool to what the grid needs: the scheduled minimum plus the reservations, and at
+# least the running and queued sessions (a user that made no reservation still gets nodes, one
+# scale-up later) and the recent peak. Grows right away. Shrinks only a grid idle for
+# GRID_IDLE_SECONDS, after the cooldown since the last release, by GRID_SCALE_DOWN_STEP nodes per
+# GRID_SCALE_DOWN_INTERVAL. Only manages a grid that has a config in Consul.
 cmd_reconcile() {
     echo "=== Grid Reconcile ==="
     echo "Grid: $GRID_NAME"
@@ -362,9 +402,38 @@ cmd_reconcile() {
         read -r busy queued <<< "$sessions"
     fi
 
-    local target=$((GRID_MIN_POOL_SIZE_ARM + reserved))
+    local now
+    now=$(date +%s)
+
+    # The peak sessions of the last GRID_PEAK_WINDOW seconds, so a grid that was just used keeps its
+    # nodes for the next run
+    local peak=0 peak_json peak_at=0
+    peak_json=$(curl -s -f "$CONSUL_URL/v1/kv/$CONSUL_KV_PREFIX/recent_peak?raw" 2>/dev/null || echo "")
+    if [ -n "$peak_json" ]; then
+        peak=$(echo "$peak_json" | jq -r '.sessions // 0' 2>/dev/null || echo 0)
+        peak_at=$(echo "$peak_json" | jq -r '.at // 0' 2>/dev/null || echo 0)
+    fi
+    if [ "$hub_known" = "true" ]; then
+        if [ $((busy + queued)) -ge "$peak" ] || [ $((now - peak_at)) -ge "$GRID_PEAK_WINDOW" ]; then
+            peak=$((busy + queued))
+            curl -s -X PUT -d "{\"sessions\": $peak, \"at\": $now}" "$CONSUL_URL/v1/kv/$CONSUL_KV_PREFIX/recent_peak" >/dev/null
+        fi
+        # How long the grid has been idle
+        if [ "$busy" -eq 0 ] && [ "$queued" -eq 0 ]; then
+            [ -z "$(get_kv_epoch idle_since)" ] && curl -s -X PUT -d "$now" "$CONSUL_URL/v1/kv/$CONSUL_KV_PREFIX/idle_since" >/dev/null
+        else
+            curl -s -X DELETE "$CONSUL_URL/v1/kv/$CONSUL_KV_PREFIX/idle_since" >/dev/null
+        fi
+    fi
+
+    local min_size
+    min_size=$(get_scheduled_min_arm)
+    local target=$((min_size + reserved))
     if [ $((busy + queued)) -gt "$target" ]; then
         target=$((busy + queued))
+    fi
+    if [ "$peak" -gt "$target" ]; then
+        target=$peak
     fi
     if [ "$target" -gt "$GRID_MAX_POOL_SIZE_ARM" ]; then
         echo "Capping $target at the maximum $GRID_MAX_POOL_SIZE_ARM"
@@ -382,7 +451,7 @@ cmd_reconcile() {
         echo "Could not read the size of pool $NODE_POOL_ID_ARM"
         return 1
     fi
-    echo "Pool $current, target $target (min $GRID_MIN_POOL_SIZE_ARM, reserved $reserved, sessions $busy, queued $queued)"
+    echo "Pool $current, target $target (min $min_size, reserved $reserved, sessions $busy, queued $queued, recent peak $peak)"
 
     if [ "$current" -lt "$target" ]; then
         resize_pool "$NODE_POOL_ID_ARM" "$target"
@@ -401,17 +470,32 @@ cmd_reconcile() {
         echo "Grid not idle, not shrinking"
         return 0
     fi
+    local idle_since
+    idle_since=$(get_kv_epoch idle_since)
+    if [ -z "$idle_since" ] || [ $((now - idle_since)) -lt "$GRID_IDLE_SECONDS" ]; then
+        echo "Idle for $((now - ${idle_since:-$now}))s of the ${GRID_IDLE_SECONDS}s needed, not shrinking"
+        return 0
+    fi
     local last_release
-    last_release=$(curl -s -f "$CONSUL_URL/v1/kv/$CONSUL_KV_PREFIX/last_release_at?raw" 2>/dev/null || echo "")
-    if [[ "$last_release" =~ ^[0-9]+$ ]]; then
-        local elapsed=$(($(date +%s) - last_release))
-        if [ "$elapsed" -lt "$GRID_COOLDOWN_SECONDS" ]; then
-            echo "Cooldown active: ${elapsed}s / ${GRID_COOLDOWN_SECONDS}s since last release, not shrinking"
-            return 0
-        fi
+    last_release=$(get_kv_epoch last_release_at)
+    if [ -n "$last_release" ] && [ $((now - last_release)) -lt "$GRID_COOLDOWN_SECONDS" ]; then
+        echo "Cooldown active: $((now - last_release))s / ${GRID_COOLDOWN_SECONDS}s since last release, not shrinking"
+        return 0
+    fi
+    local last_shrink
+    last_shrink=$(get_kv_epoch last_shrink_at)
+    if [ -n "$last_shrink" ] && [ $((now - last_shrink)) -lt "$GRID_SCALE_DOWN_INTERVAL" ]; then
+        echo "Shrank $((now - last_shrink))s ago, next step after ${GRID_SCALE_DOWN_INTERVAL}s"
+        return 0
     fi
 
-    resize_pool "$NODE_POOL_ID_ARM" "$target"
+    # Step down, so a run that comes soon after still finds most of the nodes
+    local new_size=$((current - GRID_SCALE_DOWN_STEP))
+    if [ "$new_size" -lt "$target" ]; then
+        new_size=$target
+    fi
+    resize_pool "$NODE_POOL_ID_ARM" "$new_size"
+    curl -s -X PUT -d "$now" "$CONSUL_URL/v1/kv/$CONSUL_KV_PREFIX/last_shrink_at" >/dev/null
 }
 
 # Prints an installation token of the GitHub App GITHUB_APP_ID (private key in GITHUB_APP_KEY_FILE)
