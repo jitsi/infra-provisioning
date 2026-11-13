@@ -680,11 +680,13 @@ def GridNameFromUrl(grid_url) {
     return grid_url
 }
 
-def GridRequestSlots(grid_name, slots, timeout = 600) {
+// group: builds that take turns on the grid (e.g. behind one lock) share one reservation, see grid-scale.sh
+def GridRequestSlots(grid_name, slots, timeout = 900, group = '') {
     sh """#!/bin/bash
         export GRID_NAME="${grid_name}"
         export GRID_SLOTS_REQUESTED="${slots}"
         export GRID_WAIT_TIMEOUT="${timeout}"
+        export GRID_RESERVATION_GROUP="${group}"
         scripts/grid-scale.sh request
     """
 }

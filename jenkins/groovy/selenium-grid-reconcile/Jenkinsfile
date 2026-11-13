@@ -1,0 +1,60 @@
+def utils
+
+pipeline {
+    agent any
+    options {
+        ansiColor('xterm')
+        timestamps()
+        buildDiscarder(logRotator(numToKeepStr: '200', artifactNumToKeepStr: '10'))
+    }
+    stages {
+        stage ("setup") {
+            steps {
+                script {
+                    // load utility function
+                    def rootDir = pwd()
+                    utils = load "${rootDir}/jenkins/groovy/Utils.groovy"
+                    // checkout repos
+                    utils.SetupRepos(env.VIDEO_INFRA_BRANCH)
+
+                    // setup OCI credentials
+                    utils.SetupOCI()
+                }
+            }
+        }
+        // Reserves for the PR tests while the watched repos have runs on GitHub. A failure here
+        // leaves the reservation to expire and still sizes the pool below.
+        stage ("github pr test watch") {
+            steps {
+                catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                    dir('infra-provisioning') {
+                        withCredentials([
+                            string(credentialsId: 'jitsi-ci-github-app-id', variable: 'GITHUB_APP_ID'),
+                            file(credentialsId: 'jitsi-ci-github-app-key', variable: 'GITHUB_APP_KEY_FILE')
+                        ]) {
+                            sh '''#!/bin/bash
+                            scripts/grid-scale.sh github-watch
+                            '''
+                        }
+                    }
+                }
+            }
+        }
+        stage ("selenium grid reconcile") {
+            steps {
+                script {
+                    dir('infra-provisioning') {
+                        withCredentials([
+                            string(credentialsId: 'oci-jenkins-terraform-aws-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
+                            string(credentialsId: 'oci-jenkins-terraform-aws-id', variable: 'AWS_ACCESS_KEY_ID')
+                        ]) {
+                            sh '''#!/bin/bash
+                            scripts/grid-scale.sh reconcile
+                            '''
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
