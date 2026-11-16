@@ -836,31 +836,33 @@ groups:
 
 - name: system_alerts
   rules:%{ if var.production_alerts }
+  # A recording jibri runs Chrome and ffmpeg at 60-85% CPU in normal operation,
+  # so it gets higher thresholds. ffmpeg loses real-time speed near 90%.
   - alert: System_CPU_Usage_High
-    expr: 100 - cpu_usage_idle > 70
+    expr: (100 - cpu_usage_idle{role!="java-jibri"} > 70) or (100 - cpu_usage_idle{role="java-jibri"} > 85)
     for: 5m
     labels:
       service: infra
       severity: smoke
     annotations:
-      summary: host {{ $labels.host }} in ${var.dc} has had CPU usage > 70% for 5 minutes
+      summary: host {{ $labels.host }} in ${var.dc} has had CPU usage > {{ if eq $labels.role "java-jibri" }}85{{ else }}70{{ end }}% for 5 minutes
       description: >-
         host {{ $labels.host }} in ${var.dc} with role {{ $labels.role }} has
-        had a CPU running at over 70% in the last 5 minutes. It was most
+        had a CPU running at over {{ if eq $labels.role "java-jibri" }}85{{ else }}70{{ end }}% in the last 5 minutes. It was most
         recently at {{ $value | printf "%.2f" }}%.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=system_cpu_usage_high
   - alert: System_CPU_Usage_High
-    expr: 100 - cpu_usage_idle > 80
+    expr: (100 - cpu_usage_idle{role!="java-jibri"} > 80) or (100 - cpu_usage_idle{role="java-jibri"} > 90)
     for: 5m
     labels:
       service: infra
       severity: warn
     annotations:
-      summary: host {{ $labels.host }} in ${var.dc} has had CPU usage > 80% for 5 minutes
+      summary: host {{ $labels.host }} in ${var.dc} has had CPU usage > {{ if eq $labels.role "java-jibri" }}90{{ else }}80{{ end }}% for 5 minutes
       description: >-
         host {{ $labels.host }} in ${var.dc} with role {{ $labels.role }} has
-        had a CPU running at over 80% in the last 5 minutes. It was most
+        had a CPU running at over {{ if eq $labels.role "java-jibri" }}90{{ else }}80{{ end }}% in the last 5 minutes. It was most
         recently at {{ $value | printf "%.2f" }}%.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=system_cpu_usage_high%{ else }
