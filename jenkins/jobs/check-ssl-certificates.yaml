@@ -1,0 +1,36 @@
+- job:
+    name: check-ssl-certificates
+    display-name: check ssl certificates
+    description: "Daily, checks the TLS certificate of each site in SSL_CHECK_SITES (clouds/all.sh). A certificate that expires within SSL_CHECK_DAYS, or cannot be read, fires SSL_Certificate_Expiring on the global alertmanager, which emails and posts to Slack."
+    concurrent: false
+    triggers:
+      - timed: 'H 14 * * *'
+    parameters:
+      - infra-branch-param
+      - string:
+          name: ENVIRONMENT
+          default: ops-prod
+          description: "Environment whose global alertmanager receives the alerts."
+          trim: true
+      - string:
+          name: SITES
+          description: "Space-separated sites to check; leave empty to check SSL_CHECK_SITES from clouds/all.sh."
+          trim: true
+      - string:
+          name: SSL_CHECK_DAYS
+          default: "30"
+          description: "Alert on a certificate that expires within this many days."
+          trim: true
+      - string:
+          name: INFRA_CUSTOMIZATIONS_REPO
+          default: git@github.com:jitsi/infra-customizations.git
+          description: "Repo with customized configurations, defaults to 'git@github.com:jitsi/infra-customizations.git'."
+          trim: true
+
+    project-type: pipeline
+    sandbox: true
+    pipeline-scm:
+      scm:
+        - infra-provisioning-checkout
+      script-path: jenkins/groovy/check-ssl-certificates/Jenkinsfile
+      lightweight-checkout: true
