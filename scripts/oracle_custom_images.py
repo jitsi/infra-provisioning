@@ -278,22 +278,19 @@ elif args.update_version_tags:
     # Build new version string
     signal_version = f"{args.jicofo_version}-{args.jitsi_meet_version}-{args.prosody_version}"
 
-    # Build new image name with actual versions
-    # Parse existing name to replace version components
-    old_name = found_image.display_name
-    # Name format: BuildSignal-{region}-{env}-{jicofo}-{meet}-{prosody}-{timestamp}
-    parts = old_name.split('-')
-    if len(parts) >= 7:
-        # Reconstruct with actual versions (keep timestamp at end)
-        parts[-4] = args.jicofo_version
-        parts[-3] = args.jitsi_meet_version
-        parts[-2] = args.prosody_version
-        new_name = '-'.join(parts)
-    else:
-        new_name = old_name  # Keep original if parsing fails
-
     # Get the tag namespace to use
     tag_ns = args.tag_namespace
+
+    # Name format: BuildSignal-{region}-{env}-{Version tag}-{timestamp}
+    # Region, env and a hotfix jicofo version (1183-hf) all contain '-', so swap the
+    # old Version tag as a whole instead of indexing the name's '-' parts
+    old_name = found_image.display_name
+    old_version = found_image.defined_tags.get(tag_ns, {}).get('Version', '')
+    name_head, _, name_ts = old_name.rpartition('-')
+    if old_version and name_head.endswith('-' + old_version):
+        new_name = f"{name_head[:-len(old_version)]}{signal_version}-{name_ts}"
+    else:
+        new_name = old_name  # Keep original if parsing fails
 
     # Update defined tags with actual versions
     new_defined_tags = {
