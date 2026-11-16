@@ -10,7 +10,7 @@
       - string:
           name: ENVIRONMENT
           default: ops-prod
-          description: "Environment whose global alertmanager receives the alerts."
+          description: "Environment the alerts are labelled with. Its ENVIRONMENT_TYPE selects the ops-prod or ops-dev global alertmanager."
           trim: true
       - string:
           name: SITES

@@ -25,6 +25,11 @@ if [ -z "$SITES" ]; then
     exit 1
 fi
 
+if ! [[ "$SSL_CHECK_DAYS" =~ ^[0-9]+$ ]]; then
+    echo "SSL_CHECK_DAYS must be a whole number of days, got '$SSL_CHECK_DAYS'. Exiting ..."
+    exit 1
+fi
+
 if [ "$ALERTMANAGER_URL" == "https://" ]; then
     echo "No ALERTMANAGER_URL provided and GLOBAL_ALERTMANAGER_HOST is not set. Exiting ..."
     exit 1
@@ -42,6 +47,7 @@ add_alert() {
     ALERTS=$(jq -c \
         --arg site "$site" \
         --arg environment "$ENVIRONMENT" \
+        --arg starts_at "$NOW_ISO" \
         --arg ends_at "$ends_at" \
         --arg summary "$summary" \
         --arg build_url "$BUILD_URL" \
@@ -55,6 +61,7 @@ add_alert() {
                 scope: "global"
             },
             annotations: ({summary: $summary} + (if $build_url != "" then {alert_url: $build_url} else {} end)),
+            startsAt: $starts_at,
             endsAt: $ends_at
         }]' <<< "$ALERTS")
 }
