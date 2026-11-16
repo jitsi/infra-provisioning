@@ -1,0 +1,31 @@
+def utils
+
+pipeline {
+    agent any
+    options {
+        ansiColor('xterm')
+        timestamps()
+        buildDiscarder(logRotator(numToKeepStr: '30', artifactNumToKeepStr: '30'))
+    }
+    stages {
+        stage('Prepare/Checkout') {
+            steps {
+                script {
+                    def rootDir = pwd()
+                    utils = load "${rootDir}/jenkins/groovy/Utils.groovy"
+                    // overlays infra-customizations, which supplies SSL_CHECK_SITES in clouds/all.sh
+                    utils.SetupRepos(env.VIDEO_INFRA_BRANCH)
+                }
+            }
+        }
+        stage('check SSL certificates') {
+            steps {
+                script {
+                    dir('infra-provisioning') {
+                        sh 'scripts/check-ssl-certificates.sh'
+                    }
+                }
+            }
+        }
+    }
+}
