@@ -50,6 +50,18 @@ config.audioTranslation = {
 };
 [[- end ]]
 
+[[ if eq (env "CONFIG_jitsi_meet_custom_panel_enabled") "true" -]]
+config.customPanel = {
+    enabled: true,
+[[- if (env "CONFIG_jitsi_meet_custom_panel_url") ]]
+    url: '[[ env "CONFIG_jitsi_meet_custom_panel_url" ]]',
+[[- end ]]
+[[- if (env "CONFIG_jitsi_meet_custom_panel_advisor_availability_url") ]]
+    advisorAvailabilityUrl: '[[ env "CONFIG_jitsi_meet_custom_panel_advisor_availability_url" ]]',
+[[- end ]]
+};
+[[- end ]]
+
 [[ if eq (env "CONFIG_jitsi_meet_hidden_from_recorder_feature") "true" -]]
 config.hiddenFromRecorderFeatureEnabled=true;
 [[- end ]]
