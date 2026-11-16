@@ -290,7 +290,8 @@ elif args.update_version_tags:
     if old_version and name_head.endswith('-' + old_version):
         new_name = f"{name_head[:-len(old_version)]}{signal_version}-{name_ts}"
     else:
-        new_name = old_name  # Keep original if parsing fails
+        warning(f"Name {old_name} does not end with Version tag '{old_version}', keeping the name\n")
+        new_name = old_name
 
     # Update defined tags with actual versions
     new_defined_tags = {
