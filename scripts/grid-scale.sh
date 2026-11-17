@@ -85,6 +85,10 @@ S3_STATE_KEY_IP="${S3_STATE_BASE}/terraform-ip.tfstate"
 [ -z "$GRID_WATCH_SLOTS" ] && GRID_WATCH_SLOTS=16
 [ -z "$GRID_WATCH_GROUP" ] && GRID_WATCH_GROUP=pr-torture
 [ -z "$GRID_WATCH_TTL" ] && GRID_WATCH_TTL=600
+# Runs created longer ago than this are not counted: GitHub can leave a run queued for days without
+# ever starting a job, and such a run would keep the reservation forever. The longest measured wait of
+# a PR test run for the PR test box is 3 hours.
+[ -z "$GRID_WATCH_MAX_AGE" ] && GRID_WATCH_MAX_AGE=21600
 
 ###############################################################################
 # Helper functions
@@ -554,17 +558,26 @@ cmd_github_watch() {
         return 0
     fi
 
-    local runs=0 repo status count failed=false
+    local runs=0 repo status counts count old failed=false
+    local since
+    since=$(($(date +%s) - GRID_WATCH_MAX_AGE))
     for repo in $GRID_WATCH_REPOS; do
         for status in queued in_progress; do
-            if ! count=$(curl -s -f -H "Authorization: Bearer $token" -H "Accept: application/vnd.github+json" \
-                    "https://api.github.com/repos/$GRID_WATCH_OWNER/$repo/actions/workflows/$GRID_WATCH_WORKFLOW/runs?status=$status&per_page=1" \
-                    | jq -er .total_count); then
+            if ! counts=$(curl -s -f -H "Authorization: Bearer $token" -H "Accept: application/vnd.github+json" \
+                    "https://api.github.com/repos/$GRID_WATCH_OWNER/$repo/actions/workflows/$GRID_WATCH_WORKFLOW/runs?status=$status&per_page=100" \
+                    | jq -er --argjson since "$since" \
+                        '[.workflow_runs[] | (.created_at | fromdateiso8601) >= $since]
+                         | "\(map(select(.)) | length) \(map(select(. | not)) | length)"'); then
                 echo "Could not read the $status runs of $repo"
                 failed=true
                 continue
             fi
-            echo "$repo: $count $status"
+            read -r count old <<< "$counts"
+            if [ "$old" -gt 0 ]; then
+                echo "$repo: $count $status, not counting $old created more than ${GRID_WATCH_MAX_AGE}s ago"
+            else
+                echo "$repo: $count $status"
+            fi
             runs=$((runs + count))
         done
     done
