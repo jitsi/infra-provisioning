@@ -1628,21 +1628,6 @@ groups:
         override the git branch to match the running nodes.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=jicofo_sip-jigasi_missing
-  - alert: Jicofo_Transcribers_Missing
-    expr: max by (shard) (jitsi_jicofo_jigasi_transcriber_count{role="core"}) < 1 and on (shard) (count_over_time(jitsi_jicofo_jigasi_transcriber_count{role="core"}[10m:1m]) >= 10)
-    for: 5m
-    labels:
-      service: jitsi
-      severity: severe
-      page: true
-    annotations:
-      summary: there are too few transcribers in ${var.dc}
-      description: >-
-        Transcribers are completely missing in ${var.dc} from the perspective of
-        jicofo. Consider running a transcriber release job, using the same git
-        branch as those of the running nodes.
-      dashboard_url: ${var.grafana_url}
-      alert_url: https://${var.prometheus_hostname}/alerts?search=jicofo_transcribers_missing
   - alert: Jigasi_Dropped_Media
     expr: max_over_time(increase(jitsi_jigasi_total_calls_with_dropped_media[5m:1m])[5m:1m]) > 1
     for: 2m
