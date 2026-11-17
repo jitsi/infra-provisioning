@@ -176,18 +176,33 @@ Things that follow from that:
   `Signal` image build first tags the image from its inputs, then a Packer post-processor
   (`build/build-signal-oracle.json`) runs `scripts/update-image-version-tags.sh`, which rewrites the
   tag from the `installed-versions.json` that `ansible/build-signal.yml` (infra-configuration)
-  writes on the image. That playbook gets the jicofo part from `dpkg` with `cut -d'-' -f2`, so a
-  jicofo package `1.0-1183-hf-1` tags the image `1183-…` — the same tag as the image without the
-  hotfix. The `JicofoHotfix` image type (`build/build-jicofo-hotfix-oracle.json`) takes the tag from
-  its `JICOFO_VERSION` input instead.
+  writes on the image. A jicofo hotfix package such as `1.0-1183-hf-1` gives the jicofo part
+  `1183-hf`, so a hotfix image does not share its tag with the image without the hotfix. Images
+  built before infra-configuration#1056 got `1183` here. The rename keeps the image name in step:
+  it replaces the old `Version` tag in the name as one string, because a hotfix version has a `-`
+  in it.
+- **For a jicofo hotfix, prefer the `JicofoHotfix` image type** (`scripts/build-jicofo-hotfix-oracle.sh`,
+  `build/build-jicofo-hotfix-oracle.json`). It starts from the existing signal image of the
+  release, found by `BASE_SIGNAL_VERSION` or given as an OCID in `BASE_IMAGE_ID` (an image in
+  `ORACLE_REGION`), runs only `ansible/build-jicofo-hotfix.yml` to install
+  the new jicofo package, and tags the result `<JICOFO_VERSION>-<jitsi-meet>-<prosody>`. A `Signal`
+  build makes the whole image again from the `main` configuration, which can conflict with the boot
+  configuration on the release ref.
 - **`oracle_custom_images.py --update_version_tags` needs `--jicofo_version`,
   `--jitsi_meet_version` and `--prosody_version`.** They default to empty strings, so without them
   the tag becomes `--` and the version parts of the image name become empty. `--region` defaults to
   `eu-frankfurt-1`, and `--architecture` to `x86_64`.
 - **Every `Signal` image build also cleans up old signal images** in each region: it keeps the
   newest `ORACLE_SIGNAL_IMAGE_LIMIT` images without the `production-image` freeform tag and the
-  same number with it, and deletes the rest. The tag moves an image to the other group; it does not
-  exempt it.
+  same number with it, and deletes the older ones. `--clean` skips an image that an instance or an
+  instance configuration still uses, and shard creation in a prod environment tags its image as
+  production after a successful apply. So an image is at risk only between its build and the
+  first shard that uses it. A `JicofoHotfix` build does not run the cleanup.
+- **`provision-shard` run by hand can put untested shards into service.** The stage "Mark shards
+  ready" runs when `SKIP_SHARD_READY` is not `true` (the default is `'false'`) and the site sets
+  `USE_RELEASE_BACKENDS="true"`. `expand-release-core` sets `SKIP_SHARD_READY` for you. By hand,
+  set `SKIP_SHARD_READY=true`, and also `SIGNAL_VERSION`, `JVB_VERSION`, `RELEASE_NUMBER`,
+  `RELEASE_BRANCH` and `CLOUD_NAME`.
 
 ## Conventions
 

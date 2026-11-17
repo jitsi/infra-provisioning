@@ -50,6 +50,10 @@
           name: BASE_SIGNAL_VERSION
           description: "Base Signal Image for JicofoHotfix image"
           trim: true
+      - string:
+          name: BASE_IMAGE_ID
+          description: "OCID of the base image in ORACLE_REGION, for the image types that build on a base image (for example JicofoHotfix, JVB, Jigasi). When empty, the build script finds the base image itself (JicofoHotfix: by BASE_SIGNAL_VERSION)"
+          trim: true
       - bool:
           name: FORCE_BUILD_IMAGE
           default: false
