@@ -233,6 +233,53 @@ resize_pool() {
     oci compute-management instance-pool update --instance-pool-id "$pool_id" --size "$new_size" --region "$ORACLE_REGION" --force >/dev/null
 }
 
+# The private IPs of the running instances of the given pools, one per line, from the private_ip
+# freeform tag the nodes set on themselves. Fails when OCI can't be read.
+get_pool_instance_ips() {
+    local pool_ids compartment_id instances
+    pool_ids=$(printf '%s\n' "$@" | grep -v -e '^$' -e '^null$' | jq -R . | jq -sc .)
+    [ "$pool_ids" = "[]" ] && return 1
+    compartment_id=$(oci compute-management instance-pool get --instance-pool-id "$(echo "$pool_ids" | jq -r '.[0]')" \
+        --region "$ORACLE_REGION" 2>/dev/null | jq -r '.data."compartment-id"')
+    if [ -z "$compartment_id" ] || [ "$compartment_id" = "null" ]; then
+        return 1
+    fi
+    instances=$(oci compute instance list --compartment-id "$compartment_id" --lifecycle-state RUNNING --all \
+        --region "$ORACLE_REGION" 2>/dev/null) || return 1
+    # The CLI prints nothing when the compartment has no running instances
+    [ -z "$instances" ] && return 0
+    echo "$instances" | jq -r --argjson pools "$pool_ids" '.data[] | .["freeform-tags"]
+        | select(.["oci:compute:instancepool"] as $p | $pools | index($p)) | .private_ip // empty'
+}
+
+# A pool shrink terminates nodes without a consul leave, so consul keeps them as failed members
+# (and their services in the catalog) for 72h, which fires Consul_Member_Failed. Removes the failed
+# members of this grid, except those whose IP is still a running pool instance: an agent that stopped
+# on a node that is up should still alert.
+prune_failed_consul_members() {
+    local failed
+    failed=$(curl -s -f "$CONSUL_URL/v1/agent/members" 2>/dev/null \
+        | jq -r --arg prefix "$ORACLE_REGION-$GRID_NAME-grid-" \
+            '.[]? | select(.Status == 4 and (.Name | startswith($prefix))) | "\(.Name) \(.Addr)"' 2>/dev/null || true)
+    [ -z "$failed" ] && return 0
+
+    local running_ips
+    if ! running_ips=$(get_pool_instance_ips "$NODE_POOL_ID_ARM" "$NODE_POOL_ID_X86"); then
+        echo "Could not list the instances of the pools of grid $GRID_NAME, not pruning failed consul members"
+        return 0
+    fi
+
+    local name addr
+    while read -r name addr; do
+        if echo "$running_ips" | grep -qxF "$addr"; then
+            echo "Consul member $name ($addr) is failed but its instance is running, leaving it"
+            continue
+        fi
+        echo "Pruning failed consul member $name ($addr), its instance is gone"
+        curl -s -X PUT "$CONSUL_URL/v1/agent/force-leave/$name?prune=true" >/dev/null || true
+    done <<< "$failed"
+}
+
 get_grid_node_count() {
     local response
     response=$(curl -s -X POST -H "Content-Type: application/json" \
@@ -394,7 +441,8 @@ get_kv_epoch() {
 # least the running and queued sessions (a user that made no reservation still gets nodes, one
 # scale-up later) and the recent peak. Grows right away. Shrinks only a grid idle for
 # GRID_IDLE_SECONDS, after the cooldown since the last release, by GRID_SCALE_DOWN_STEP nodes per
-# GRID_SCALE_DOWN_INTERVAL. Only manages a grid that has a config in Consul.
+# GRID_SCALE_DOWN_INTERVAL. Removes from consul the nodes an earlier shrink terminated. Only manages
+# a grid that has a config in Consul.
 cmd_reconcile() {
     echo "=== Grid Reconcile ==="
     echo "Grid: $GRID_NAME"
@@ -460,6 +508,10 @@ cmd_reconcile() {
         echo "No ARM pool for grid $GRID_NAME"
         return 0
     fi
+
+    # The nodes terminated by an earlier shrink (termination takes a minute or two after the resize)
+    prune_failed_consul_members
+
     local current
     current=$(get_pool_size "$NODE_POOL_ID_ARM")
     if ! [[ "$current" =~ ^[0-9]+$ ]]; then
