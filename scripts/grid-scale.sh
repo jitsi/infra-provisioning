@@ -283,8 +283,10 @@ get_idle_grid_nodes() {
 # Stops the grid node allocation on the nomad client with IP $1 and keeps nomad from starting it
 # again: a node drained on the hub exits, and nomad would restart it 15s later, so it registers with
 # the hub again while its instance is still being terminated. Does nothing for a grid without nomad.
+# Sets NOMAD_DRAINED_NODE to the nomad node it drained, empty when it drained none.
 nomad_drain_client() {
     local nodes node_id
+    NOMAD_DRAINED_NODE=""
     if ! nodes=$(curl -s -f "$NOMAD_ADDR/v1/nodes" 2>/dev/null); then
         return 1
     fi
@@ -292,7 +294,14 @@ nomad_drain_client() {
         '[.[]? | select(.Address == $ip and .Status == "ready") | .ID] | first // empty' 2>/dev/null || true)
     [ -z "$node_id" ] && return 0
     curl -s -f -X PUT --data '{"DrainSpec": {"Deadline": -1, "IgnoreSystemJobs": false}, "MarkEligible": false}' \
-        "$NOMAD_ADDR/v1/node/$node_id/drain" >/dev/null
+        "$NOMAD_ADDR/v1/node/$node_id/drain" >/dev/null || return 1
+    NOMAD_DRAINED_NODE="$node_id"
+}
+
+# Ends the drain of nomad node $1 and makes it eligible again, so nomad starts the grid node there
+# again and it registers with the hub
+nomad_undrain_client() {
+    curl -s -f -X PUT --data '{"DrainSpec": null, "MarkEligible": true}' "$NOMAD_ADDR/v1/node/$1/drain" >/dev/null
 }
 
 # Removes up to $1 nodes that have no session from the ARM pool, for a shrink while other nodes are
@@ -337,7 +346,13 @@ remove_idle_nodes() {
                 --region "$ORACLE_REGION" >/dev/null; then
             removed=$((removed + 1))
         else
-            echo "Could not detach instance $instance_id from pool $NODE_POOL_ID_ARM" >&2
+            # The node is out of the hub and stopped in nomad, but its instance stays in the pool: put it
+            # back, and stop here, as the next detach would most likely fail the same way
+            echo "Could not detach instance $instance_id from pool $NODE_POOL_ID_ARM, putting node $ip back" >&2
+            if [ -n "$NOMAD_DRAINED_NODE" ] && ! nomad_undrain_client "$NOMAD_DRAINED_NODE"; then
+                echo "Could not end the drain of nomad node $NOMAD_DRAINED_NODE ($ip)" >&2
+            fi
+            break
         fi
     done <<< "$idle"
     echo "$removed"
