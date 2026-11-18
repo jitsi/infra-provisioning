@@ -54,6 +54,8 @@ CONSUL_KV_PREFIX="selenium-grid/$GRID_NAME"
 
 # Grid URL (matches CNAME pattern from deploy-nomad-selenium-grid-hub.sh)
 GRID_URL="https://${GRID_ENVIRONMENT}-${ORACLE_REGION}-${GRID_NAME}-grid.${TOP_LEVEL_DNS_ZONE_NAME}"
+# The nomad of the grid nodes (as in deploy-nomad-selenium-grid-node.sh)
+[ -z "$NOMAD_ADDR" ] && NOMAD_ADDR="https://${GRID_ENVIRONMENT}-${ORACLE_REGION}-nomad.${TOP_LEVEL_DNS_ZONE_NAME}"
 
 # S3 terraform state (matches create-selenium-grid-oracle.sh)
 [ -z "$S3_STATE_BUCKET" ] && S3_STATE_BUCKET="tf-state-$GRID_ENVIRONMENT"
@@ -252,6 +254,95 @@ get_pool_instance_ips() {
         | select(.["oci:compute:instancepool"] as $p | $pools | index($p)) | .private_ip // empty'
 }
 
+# The running instances of the given pool as "<private ip> <instance ocid>" lines. Fails when OCI
+# can't be read.
+get_pool_instances() {
+    local compartment_id instances
+    compartment_id=$(oci compute-management instance-pool get --instance-pool-id "$1" \
+        --region "$ORACLE_REGION" 2>/dev/null | jq -r '.data."compartment-id"')
+    if [ -z "$compartment_id" ] || [ "$compartment_id" = "null" ]; then
+        return 1
+    fi
+    instances=$(oci compute instance list --compartment-id "$compartment_id" --lifecycle-state RUNNING --all \
+        --region "$ORACLE_REGION" 2>/dev/null) || return 1
+    [ -z "$instances" ] && return 0
+    echo "$instances" | jq -r --arg pool "$1" '.data[]
+        | select(.["freeform-tags"]["oci:compute:instancepool"] == $pool and .["freeform-tags"].private_ip != null)
+        | "\(.["freeform-tags"].private_ip) \(.id)"'
+}
+
+# The hub nodes with no session as "<node id> <node ip>" lines
+get_idle_grid_nodes() {
+    curl -s -X POST -H "Content-Type: application/json" \
+        --data '{"query":"{ nodesInfo { nodes { id, uri, status, sessionCount } } }"}' \
+        "$GRID_URL/graphql" 2>/dev/null \
+        | jq -r '.data.nodesInfo.nodes[]? | select(.status == "UP" and .sessionCount == 0)
+            | "\(.id) \(.uri | sub("^https?://"; "") | sub("[:/].*$"; ""))"' 2>/dev/null || true
+}
+
+# Stops the grid node allocation on the nomad client with IP $1 and keeps nomad from starting it
+# again: a node drained on the hub exits, and nomad would restart it 15s later, so it registers with
+# the hub again while its instance is still being terminated. Does nothing for a grid without nomad.
+nomad_drain_client() {
+    local nodes node_id
+    if ! nodes=$(curl -s -f "$NOMAD_ADDR/v1/nodes" 2>/dev/null); then
+        return 1
+    fi
+    node_id=$(echo "$nodes" | jq -r --arg ip "$1" \
+        '[.[]? | select(.Address == $ip and .Status == "ready") | .ID] | first // empty' 2>/dev/null || true)
+    [ -z "$node_id" ] && return 0
+    curl -s -f -X PUT --data '{"DrainSpec": {"Deadline": -1, "IgnoreSystemJobs": false}, "MarkEligible": false}' \
+        "$NOMAD_ADDR/v1/node/$node_id/drain" >/dev/null
+}
+
+# Removes up to $1 nodes that have no session from the ARM pool, for a shrink while other nodes are
+# running tests: a pool resize lets OCI pick the instances to terminate, which can be busy ones. Each
+# node is first drained on the hub, so it takes no new session, and in nomad, so it is not started
+# again, then its instance is detached from the pool, which terminates it and lowers the pool size by
+# one. A node that got a session in between is left draining on the hub (it shuts down after the
+# session, and nomad starts it again). Prints the number of nodes removed.
+remove_idle_nodes() {
+    local count="$1" idle instances removed=0
+    idle=$(get_idle_grid_nodes)
+    if ! instances=$(get_pool_instances "$NODE_POOL_ID_ARM"); then
+        echo "Could not list the instances of pool $NODE_POOL_ID_ARM, not removing nodes" >&2
+        echo 0
+        return 0
+    fi
+
+    local id ip instance_id sessions
+    while read -r id ip; do
+        [ -z "$id" ] && continue
+        [ "$removed" -ge "$count" ] && break
+        instance_id=$(awk -v ip="$ip" '$1 == ip { print $2 }' <<< "$instances")
+        if [ -z "$instance_id" ]; then
+            continue
+        fi
+        if ! curl -s -f -X POST -H "X-REGISTRATION-SECRET;" "$GRID_URL/se/grid/distributor/node/$id/drain" >/dev/null; then
+            echo "Could not drain node $id ($ip), leaving it" >&2
+            continue
+        fi
+        # A session the distributor gave the node right before the drain
+        sessions=$(curl -s -X POST -H "Content-Type: application/json" \
+            --data '{"query":"{ nodesInfo { nodes { id, sessionCount } } }"}' "$GRID_URL/graphql" 2>/dev/null \
+            | jq -r --arg id "$id" '[.data.nodesInfo.nodes[]? | select(.id == $id) | .sessionCount] | first // 0' 2>/dev/null || echo 1)
+        if [ "$sessions" != "0" ]; then
+            echo "Node $id ($ip) got a session, leaving it draining" >&2
+            continue
+        fi
+        echo "Removing idle node $id ($ip), instance $instance_id" >&2
+        nomad_drain_client "$ip" || echo "Could not drain the nomad client $ip" >&2
+        if oci compute-management instance-pool-instance detach --instance-pool-id "$NODE_POOL_ID_ARM" \
+                --instance-id "$instance_id" --is-decrement-size true --is-auto-terminate true \
+                --region "$ORACLE_REGION" >/dev/null; then
+            removed=$((removed + 1))
+        else
+            echo "Could not detach instance $instance_id from pool $NODE_POOL_ID_ARM" >&2
+        fi
+    done <<< "$idle"
+    echo "$removed"
+}
+
 # A pool shrink terminates nodes without a consul leave, so consul keeps them as failed members
 # (and their services in the catalog) for 72h, which fires Consul_Member_Failed. Removes the failed
 # members of this grid, except those whose IP is still a running pool instance: an agent that stopped
@@ -439,10 +530,11 @@ get_kv_epoch() {
 
 # Sizes the ARM pool to what the grid needs: the scheduled minimum plus the reservations, and at
 # least the running and queued sessions (a user that made no reservation still gets nodes, one
-# scale-up later) and the recent peak. Grows right away. Shrinks only a grid idle for
-# GRID_IDLE_SECONDS, after the cooldown since the last release, by GRID_SCALE_DOWN_STEP nodes per
-# GRID_SCALE_DOWN_INTERVAL. Removes from consul the nodes an earlier shrink terminated. Only manages
-# a grid that has a config in Consul.
+# scale-up later) and the recent peak. Grows right away. Shrinks by at most GRID_SCALE_DOWN_STEP
+# nodes per GRID_SCALE_DOWN_INTERVAL, after the cooldown since the last release and never with
+# queued sessions: a grid idle for GRID_IDLE_SECONDS by resizing the pool, a grid running tests by
+# removing nodes that have no session. Removes from consul the nodes an earlier shrink terminated.
+# Only manages a grid that has a config in Consul.
 cmd_reconcile() {
     echo "=== Grid Reconcile ==="
     echo "Grid: $GRID_NAME"
@@ -530,20 +622,21 @@ cmd_reconcile() {
         return 0
     fi
 
-    # The pool shrinks by terminating nodes without draining them, so only shrink an idle grid
     if [ "$hub_known" != "true" ]; then
         echo "Could not read the sessions of $GRID_URL, not shrinking"
         return 0
     fi
-    if [ "$busy" -ne 0 ] || [ "$queued" -ne 0 ]; then
-        echo "Grid not idle, not shrinking"
+    if [ "$queued" -ne 0 ]; then
+        echo "Sessions queued, not shrinking"
         return 0
     fi
-    local idle_since
-    idle_since=$(get_kv_epoch idle_since)
-    if [ -z "$idle_since" ] || [ $((now - idle_since)) -lt "$GRID_IDLE_SECONDS" ]; then
-        echo "Idle for $((now - ${idle_since:-$now}))s of the ${GRID_IDLE_SECONDS}s needed, not shrinking"
-        return 0
+    if [ "$busy" -eq 0 ]; then
+        local idle_since
+        idle_since=$(get_kv_epoch idle_since)
+        if [ -z "$idle_since" ] || [ $((now - idle_since)) -lt "$GRID_IDLE_SECONDS" ]; then
+            echo "Idle for $((now - ${idle_since:-$now}))s of the ${GRID_IDLE_SECONDS}s needed, not shrinking"
+            return 0
+        fi
     fi
     local last_release
     last_release=$(get_kv_epoch last_release_at)
@@ -559,11 +652,21 @@ cmd_reconcile() {
     fi
 
     # Step down, so a run that comes soon after still finds most of the nodes
-    local new_size=$((current - GRID_SCALE_DOWN_STEP))
-    if [ "$new_size" -lt "$target" ]; then
-        new_size=$target
+    local step=$((current - target))
+    if [ "$step" -gt "$GRID_SCALE_DOWN_STEP" ]; then
+        step=$GRID_SCALE_DOWN_STEP
     fi
-    resize_pool "$NODE_POOL_ID_ARM" "$new_size"
+    if [ "$busy" -eq 0 ]; then
+        # Nothing runs, so OCI can terminate any of the nodes
+        resize_pool "$NODE_POOL_ID_ARM" $((current - step))
+    else
+        # A long run (a release validating shard after shard) would otherwise keep the pool at its
+        # peak until it ends
+        local removed
+        removed=$(remove_idle_nodes "$step")
+        echo "Removed $removed of $step idle nodes while $busy sessions run"
+        [ "$removed" -eq 0 ] && return 0
+    fi
     curl -s -X PUT -d "$now" "$CONSUL_URL/v1/kv/$CONSUL_KV_PREFIX/last_resize_at" >/dev/null
 }
 
