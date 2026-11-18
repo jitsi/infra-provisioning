@@ -154,11 +154,16 @@ Things that follow from that:
 - **The drain wait is a plain `sleep`, and the delete does not re-check shard state.** Setting the
   old shards back to ready during the wait does not save them: the build still deletes them. To
   roll back, abort the build first, then swap the states with `reconfigure-shard-states`.
-- **One failed `provision-shard` fails `expand-release-core`**, and the recycle then skips every
-  later stage, including finding the new shards. Nothing moves, so the new shards in the regions
-  that succeeded sit in drain until someone finishes by hand. Recycle region by region with
-  `ORACLE_REGION` when a region is short of capacity, and check first with
-  `scripts/check-capacity-oracle.sh shard`.
+- **A failed `provision-shard` takes its whole region out of the recycle, and the other regions go
+  on.** `expand-release-core` lets every `provision-shard` build finish, then fails and sets
+  `FAILED_ORACLE_REGIONS` (and `FAILED_CLOUDS`) on its build. The recycle reads that, turns
+  unstable, and drops every shard of those regions from both lists: their old shards stay ready
+  and are not deleted, and their new shards stay in drain, including any that did come up. The
+  input prompt and the end of the log name the skipped regions. To finish a skipped region, delete
+  its new shards with `destroy-shards`, then run the recycle again with `ORACLE_REGION` set to it.
+  The recycle still fails when every region failed, when `expand-release-core` failed for another
+  reason (an abort, or before it started the shards), or when a failed region lists no old shard.
+  Check capacity first with `scripts/check-capacity-oracle.sh shard`.
 - **`CLOUDS` does not limit the delete.** The list in step 1 is filtered only by `ORACLE_REGION`,
   but `expand-release-core` builds shards only for `CLOUDS`. Set `CLOUDS` to a subset without
   `ORACLE_REGION`, and the job deletes the old shards in every cloud but replaces them only in the
