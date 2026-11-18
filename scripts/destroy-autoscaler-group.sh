@@ -35,9 +35,13 @@ LOCAL_PATH=$(dirname "${BASH_SOURCE[0]}")
 [ -e "$LOCAL_PATH/../clouds/oracle.sh" ] && . "$LOCAL_PATH/../clouds/oracle.sh"
 
 # Honor an explicit AUTOSCALER_BACKEND override, else fall back to the
-# environment default resolved from stack-env.sh.
+# environment default resolved from stack-env.sh. "prod" and "pilot" name the
+# shared autoscalers, which have no <backend>-autoscaler hostname: the
+# environment default already points at whichever of them it uses, so keep it.
 if [ -n "$AUTOSCALER_BACKEND" ]; then
-  export AUTOSCALER_URL="https://$AUTOSCALER_BACKEND-autoscaler.$TOP_LEVEL_DNS_ZONE_NAME"
+  if [[ "$AUTOSCALER_BACKEND" != "prod" ]] && [[ "$AUTOSCALER_BACKEND" != "pilot" ]]; then
+    export AUTOSCALER_URL="https://$AUTOSCALER_BACKEND-autoscaler.$TOP_LEVEL_DNS_ZONE_NAME"
+  fi
 fi
 
 if [ -z "$AUTOSCALER_URL" ]; then
