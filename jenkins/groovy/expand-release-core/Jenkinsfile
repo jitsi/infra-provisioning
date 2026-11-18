@@ -17,8 +17,10 @@ def expand_release() {
 def shards_created = false;
 
 // trigger create shard job with appopriate parameters
+// propagate is false so that one failed provision-shard does not fail its parallel
+// branch: the caller checks the result and reports every failure once all branches end
 def createShard(shard_environment,cloud_name,core_cloud_provider,cloud_provider,shard_count,shard_numbers,release_number,gitBranch,jvbVersion,signalVersion,video_infra_branch,skipShardReady) {
-    def createShard = build job: 'provision-shard',parameters: [
+    def createShard = build job: 'provision-shard',propagate: false,parameters: [
         [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: shard_environment],
         [$class: 'StringParameterValue', name: 'CLOUD_NAME', value: cloud_name],
         [$class: 'StringParameterValue', name: 'CLOUD_PROVIDER', value: cloud_provider],
@@ -102,6 +104,8 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                             oracle_shards_by_cloud = shards_by_cloud.oracleShardsByCloud
                             aws_shards_by_cloud = shards_by_cloud.awsShardsByCloud
                             def branches = [:]
+                            // one entry per provision-shard build that did not succeed
+                            def failed_builds = []
                             for (def i = 0; i < cloud_list.size(); i++) {
                                 def curr = i
                                 echo "pipeline branch ${curr} for shard ${cloud_list[curr]}";
@@ -110,7 +114,7 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                                     def shard_count = aws_shards_by_cloud[cloud_list[curr]].split(' ').size().toString()
                                     echo "createShard ${env.ENVIRONMENT} ${cloud_list[curr]} ${shard_count} ${aws_shards_by_cloud[cloud_list[curr]]} ${env.RELEASE_NUMBER} ${env.RELEASE_BRANCH} ${env.JVB_VERSION} ${env.SIGNAL_VERSION}"
                                     branches["aws ${cloud_list[curr]}"] = {
-                                        createShard(env.ENVIRONMENT,
+                                        def shardBuild = createShard(env.ENVIRONMENT,
                                             cloud_list[curr],
                                             "aws",
                                             "aws",
@@ -121,7 +125,11 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                                             env.JVB_VERSION,
                                             env.SIGNAL_VERSION,
                                             env.VIDEO_INFRA_BRANCH
-                                        ) 
+                                        )
+                                        if (shardBuild.result != 'SUCCESS') {
+                                            echo "provision-shard ${shardBuild.result} for cloud ${cloud_list[curr]} shards ${aws_shards_by_cloud[cloud_list[curr]]}: ${shardBuild.absoluteUrl}"
+                                            failed_builds.add([cloud: cloud_list[curr], shard_numbers: aws_shards_by_cloud[cloud_list[curr]], result: shardBuild.result, url: shardBuild.absoluteUrl])
+                                        }
                                     }
                                 }
                             }
@@ -136,7 +144,7 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                                     for (def j = 0; j < shard_count; j++) {
                                         def s = j
                                         branches["oracle ${cloud_list[curr]} ${j}"] = {
-                                            createShard(env.ENVIRONMENT,
+                                            def shardBuild = createShard(env.ENVIRONMENT,
                                                 cloud_list[curr],
                                                 env.CORE_CLOUD_PROVIDER,
                                                 env.CLOUD_PROVIDER,
@@ -148,7 +156,11 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                                                 env.SIGNAL_VERSION,
                                                 env.VIDEO_INFRA_BRANCH,
                                                 env.SKIP_SHARD_READY
-                                            ) 
+                                            )
+                                            if (shardBuild.result != 'SUCCESS') {
+                                                echo "provision-shard ${shardBuild.result} for cloud ${cloud_list[curr]} shard ${oracle_shards[s]}: ${shardBuild.absoluteUrl}"
+                                                failed_builds.add([cloud: cloud_list[curr], shard_numbers: oracle_shards[s], result: shardBuild.result, url: shardBuild.absoluteUrl])
+                                            }
                                         }
                                     }
                                 }
@@ -156,8 +168,39 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                             echo "Branches:"
                             echo "${branches}"
                             // branch out here, run all create shard jobs at once
-                            // only succeed if all branches succeed
-                            parallel branches                    
+                            // every branch runs to its end, whatever the others do
+                            parallel branches
+
+                            // only succeed if all branches succeed. Before failing, publish
+                            // where the failures were: recycle-release-core reads these
+                            // variables from this build to go on with the other regions
+                            if (failed_builds.size() > 0) {
+                                def failed_clouds = []
+                                def failed_regions = []
+                                def failed_summary = []
+                                def regions_known = true
+                                for (def i = 0; i < failed_builds.size(); i++) {
+                                    def failed = failed_builds[i]
+                                    def failed_region = utils.OracleRegionFromCloud(failed.cloud)
+                                    if (!failed_clouds.contains(failed.cloud)) {
+                                        failed_clouds.add(failed.cloud)
+                                    }
+                                    if (!failed_region) {
+                                        regions_known = false
+                                    } else if (!failed_regions.contains(failed_region)) {
+                                        failed_regions.add(failed_region)
+                                    }
+                                    failed_summary.add("${failed.cloud} (${failed_region}) shard ${failed.shard_numbers}: ${failed.result} ${failed.url}")
+                                }
+                                env.FAILED_CLOUDS = failed_clouds.join(' ')
+                                // the recycle keeps the old shards of the regions listed here
+                                // and deletes the rest, so a partial list is worse than none:
+                                // without the variable the recycle stops
+                                if (regions_known) {
+                                    env.FAILED_ORACLE_REGIONS = failed_regions.join(' ')
+                                }
+                                error("provision-shard did not succeed for ${failed_builds.size()} of ${branches.size()} builds:\n" + failed_summary.join("\n"))
+                            }
                         }
                       }
                     }

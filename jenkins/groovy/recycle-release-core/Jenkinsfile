@@ -1,6 +1,8 @@
 // trigger expand release job
+// propagate is false so that a failed provision-shard in one region does not stop the
+// recycle of the other regions: the caller reads the result and the failed regions
 def expandRelease(shard_environment,clouds,oracle_region,core_cloud_provider,cloud_provider,release_number,gitBranch,jvbVersion,signalVersion,video_infra_branch) {
-    def expandJob = build job: 'expand-release-core',wait: true,parameters: [
+    def expandJob = build job: 'expand-release-core',wait: true,propagate: false,parameters: [
         [$class: 'StringParameterValue', name: 'ENVIRONMENT', value: shard_environment],
         [$class: 'StringParameterValue', name: 'CLOUDS', value: clouds],
         [$class: 'StringParameterValue', name: 'ORACLE_REGION', value: oracle_region],
@@ -46,9 +48,26 @@ def listShards(environment, release_number, oracle_region) {
     return shards
 }
 
+// the shards that are not in the exclude list, as a list. Takes what listShards returns:
+// an array, or an empty map when there are no shards
+def withoutShards(shards, exclude) {
+    def kept = []
+    for (def i = 0; i < shards.size(); i++) {
+        if (!exclude.contains(shards[i])) {
+            kept.add(shards[i])
+        }
+    }
+    return kept
+}
+
 def utils
 def oldShards = [:]
 def newShards = [:]
+// oracle regions where a provision-shard build did not succeed, and the shards of the
+// release in those regions, old and new: the recycle leaves all of them as they are
+def failedRegions = []
+def skippedShards = []
+def expandUrl = ''
 
 pipeline {				//indicate the job is written in Declarative Pipeline
     agent any				//agent specifies where the pipeline will execute. 
@@ -99,7 +118,20 @@ pipeline {				//indicate the job is written in Declarative Pipeline
         stage("expand release") {
             steps {
                 script {
-                    expandRelease(env.ENVIRONMENT,env.CLOUDS,env.ORACLE_REGION,env.CORE_CLOUD_PROVIDER,env.CLOUD_PROVIDER,env.RELEASE_NUMBER,env.RELEASE_BRANCH,env.JVB_VERSION,env.SIGNAL_VERSION,env.VIDEO_INFRA_BRANCH)
+                    def expandJob = expandRelease(env.ENVIRONMENT,env.CLOUDS,env.ORACLE_REGION,env.CORE_CLOUD_PROVIDER,env.CLOUD_PROVIDER,env.RELEASE_NUMBER,env.RELEASE_BRANCH,env.JVB_VERSION,env.SIGNAL_VERSION,env.VIDEO_INFRA_BRANCH)
+                    expandUrl = expandJob.absoluteUrl
+                    if (expandJob.result != 'SUCCESS') {
+                        // expand-release-core sets FAILED_ORACLE_REGIONS only when the failure
+                        // was in its provision-shard builds. Anything else (an abort, a failure
+                        // before the shards were started) stops the recycle as before
+                        def failedRegionsStr = expandJob.buildVariables['FAILED_ORACLE_REGIONS']
+                        if (!failedRegionsStr) {
+                            error("expand-release-core finished ${expandJob.result} and did not report which regions failed: ${expandUrl}")
+                        }
+                        failedRegions = failedRegionsStr.split(' ')
+                        // marks this stage and the build unstable, and goes on
+                        unstable("provision-shard failed in ${failedRegionsStr}, recycling the other regions only: ${expandUrl}")
+                    }
                 }
             }
         }
@@ -117,6 +149,39 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                         newShards = cShards - oldShards
                         echo "New shards deduced:"
                         echo "${newShards}"
+
+                        // take every shard of a failed region out of the recycle, so that its
+                        // old shards stay ready and are not deleted, and its new shards (the
+                        // broken ones, and any that did come up) stay in drain
+                        for (def i = 0; i < failedRegions.size(); i++) {
+                            def regionShards = listShards(env.ENVIRONMENT, env.RELEASE_NUMBER, failedRegions[i])
+                            echo "Shards in failed region ${failedRegions[i]}:"
+                            echo "${regionShards}"
+                            def oldCountBefore = withoutShards(oldShards, skippedShards).size()
+                            for (def j = 0; j < regionShards.size(); j++) {
+                                skippedShards.add(regionShards[j])
+                            }
+                            // expand-release-core only builds shards where the release already
+                            // has some, so the region must hold at least one old shard. If it
+                            // does not, the listing is wrong: stop rather than drain and delete
+                            // old shards that have no replacement
+                            if (withoutShards(oldShards, skippedShards).size() == oldCountBefore) {
+                                error("no old shards found in failed region ${failedRegions[i]}, cannot tell which shards to keep")
+                            }
+                        }
+                        if (failedRegions.size() > 0) {
+                            oldShards = withoutShards(oldShards, skippedShards)
+                            newShards = withoutShards(newShards, skippedShards)
+                            echo "Shards left as they are in failed regions ${failedRegions.join(' ')}:"
+                            echo "${skippedShards}"
+                            echo "Old shards to recycle:"
+                            echo "${oldShards}"
+                            echo "New shards to make ready:"
+                            echo "${newShards}"
+                            if (newShards.size() == 0 || oldShards.size() == 0) {
+                                error("provision-shard failed in every region (${failedRegions.join(' ')}), nothing to recycle: ${expandUrl}")
+                            }
+                        }
                     }
                 }
             }
@@ -124,7 +189,11 @@ pipeline {				//indicate the job is written in Declarative Pipeline
         stage("Reconfigure shards") {
             when {
                 expression {
-                    input message: 'Are the new shards tested and ready for use?'
+                    def inputMessage = 'Are the new shards tested and ready for use?'
+                    if (failedRegions.size() > 0) {
+                        inputMessage = "provision-shard FAILED in ${failedRegions.join(' ')}: those regions are skipped and keep their old shards. Are the new shards in the other regions (${newShards.join(' ')}) tested and ready for use?"
+                    }
+                    input message: inputMessage
                     // if input is Aborted, the whole build will fail, otherwise
                     // we must return true to continue
                     return true
@@ -175,6 +244,22 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                     } else {
                         echo 'No JVB pools or shards found in release, skipping delete'
                     }
+                }
+            }
+        }
+    }
+    post {
+        always {
+            script {
+                // last lines of the log whatever the outcome, also after an abort at the
+                // input step or during the drain wait
+                if (failedRegions.size() > 0) {
+                    echo """Regions NOT recycled, provision-shard failed there: ${failedRegions.join(' ')}
+Shards of release ${env.RELEASE_NUMBER} left as they are in those regions: ${skippedShards.join(' ')}
+The old shards there are still ready and the new ones are in drain.
+Failed builds: ${expandUrl}
+To finish, for each region: delete its new shards with destroy-shards, then run
+recycle-release-core again with ORACLE_REGION set to that region."""
                 }
             }
         }
