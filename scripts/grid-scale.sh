@@ -3,8 +3,9 @@
 # grid-scale.sh - Dynamic Selenium Grid scaling via Consul KV and OCI instance pools
 # Subcommands: request, release, reconcile (scaledown is the old name), github-watch, status
 #
-# The pool is sized to the minimum plus the slots of the active reservations (one slot is one node,
-# the grid nodes take one session each; reservations sharing a group count once), up to a maximum.
+# The pool is sized to the slots of the active reservations (one slot is one node, the grid nodes
+# take one session each; reservations sharing a group count once), at least the minimum and at most a
+# maximum.
 # request reserves and grows the pool, reconcile (run every couple of minutes by the
 # selenium-grid-reconcile job) grows it and shrinks it back once the grid is idle, github-watch
 # reserves for the PR tests while they have runs on GitHub.
@@ -458,8 +459,8 @@ cmd_request() {
     total_reserved=$(get_total_reserved_slots "$arch")
     echo "Total reserved $arch slots: $total_reserved"
 
-    # The minimum is for the users of the grid that make no reservations (e.g. the PR tests), so the
-    # reservations come on top of it
+    # The minimum is a floor, not added to the reservations: the users of the grid reserve what they
+    # use, and the warm nodes of the floor are there for the first of them
     local min_size max_size
     if [ "$arch" = "arm" ]; then
         min_size=$(get_scheduled_min_arm)
@@ -468,7 +469,10 @@ cmd_request() {
         min_size=$GRID_MIN_POOL_SIZE_X86
         max_size=$GRID_MAX_POOL_SIZE_X86
     fi
-    local total_desired=$((min_size + total_reserved))
+    local total_desired=$total_reserved
+    if [ "$min_size" -gt "$total_desired" ]; then
+        total_desired=$min_size
+    fi
     if [ "$total_desired" -gt "$max_size" ]; then
         echo "Capping $total_desired at the maximum $max_size"
         total_desired=$max_size
@@ -543,7 +547,7 @@ get_kv_epoch() {
     return 0
 }
 
-# Sizes the ARM pool to what the grid needs: the scheduled minimum plus the reservations, and at
+# Sizes the ARM pool to what the grid needs: the reservations, at least the scheduled minimum, and at
 # least the running and queued sessions (a user that made no reservation still gets nodes, one
 # scale-up later) and the recent peak. Grows right away. Shrinks by at most GRID_SCALE_DOWN_STEP
 # nodes per GRID_SCALE_DOWN_INTERVAL, after the cooldown since the last release and never with
@@ -598,7 +602,10 @@ cmd_reconcile() {
 
     local min_size
     min_size=$(get_scheduled_min_arm)
-    local target=$((min_size + reserved))
+    local target=$reserved
+    if [ "$min_size" -gt "$target" ]; then
+        target=$min_size
+    fi
     if [ $((busy + queued)) -gt "$target" ]; then
         target=$((busy + queued))
     fi
