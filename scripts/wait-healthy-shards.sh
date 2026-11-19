@@ -42,20 +42,24 @@ for SHARD in $SHARDS; do
           SHARD_CURL_IPS+=( "$(echo "$SHARD_META" | jq -r '.signal_sidecar_http_ip')" )
           SHARD_CURL_PORTS+=( "$(echo "$SHARD_META" | jq -r '.signal_sidecar_http_port')" )
         else
-          SHARD_IP="$(IP_TYPE="internal" SHARD=$SHARD ENVIRONMENT=$ENVIRONMENT $LOCAL_PATH/shard.sh shard_ip $SSH_USER)"
-          if [ $? -eq 0 ]; then
-            if [ -z "$SHARD_IP" ]; then
-              echo "No SHARD_IP found for $SHARD"
-              FOUND_SHARDS=false
-              continue
-            fi
-            SHARD_IPS+=( "$SHARD_IP" )
-            SHARD_CURL_IPS+=( "$SHARD_IP" )
-            SHARD_CURL_PORTS+=( "6000" )
-          else
+          # a lookup can come back empty when the resolver times out, so try it a few times;
+          # anything but a single IPv4 address is not used as a curl target
+          SHARD_IP=""
+          for TRY in 1 2 3; do
+            SHARD_IP="$(IP_TYPE="internal" SHARD=$SHARD ENVIRONMENT=$ENVIRONMENT $LOCAL_PATH/shard.sh shard_ip $SSH_USER)"
+            [[ "$SHARD_IP" =~ ^[0-9]+(\.[0-9]+){3}$ ]] && break
+            echo "No usable SHARD_IP for $SHARD on try $TRY: '$SHARD_IP'"
+            SHARD_IP=""
+            [ $TRY -lt 3 ] && sleep 10
+          done
+          if [ -z "$SHARD_IP" ]; then
             echo "No SHARD_IP found for $SHARD"
             FOUND_SHARDS=false
+            continue
           fi
+          SHARD_IPS+=( "$SHARD_IP" )
+          SHARD_CURL_IPS+=( "$SHARD_IP" )
+          SHARD_CURL_PORTS+=( "6000" )
         fi
       fi
 done
@@ -70,7 +74,7 @@ if $FOUND_SHARDS; then
     for i in "${!SHARD_CURL_IPS[@]}"; do
       SHARD_CURL_IP="${SHARD_CURL_IPS[i]}"
       SHARD_CURL_PORT="${SHARD_CURL_PORTS[i]}"
-      SIGNAL_REPORT=$(curl http://$SHARD_CURL_IP:$SHARD_CURL_PORT/signal/report)
+      SIGNAL_REPORT=$(curl -sS "http://$SHARD_CURL_IP:$SHARD_CURL_PORT/signal/report")
       if [ $? -eq 0 ]; then
           SHARD_HEALTH="$(echo $SIGNAL_REPORT | jq  -r '.healthy')"
           if [[ "$SHARD_HEALTH" == "true" ]]; then

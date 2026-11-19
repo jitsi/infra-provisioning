@@ -113,7 +113,9 @@ function shard_ip {
         else
             SHARD_HOST="$SHARD.$DNS_ZONE_NAME"
         fi
-        dig +short $SHARD_HOST
+        # dig prints a timed-out try (";; communications error to ...") on stdout,
+        # before the answer of the retry, so keep only the address lines
+        dig +short "$SHARD_HOST" | grep -E '^[0-9]+(\.[0-9]+){3}$'
     fi
     if [[ "$PROVIDER" == "aws" ]]; then
         [ -z $EC2_REGION ] && EC2_REGION=$(shard_region $shard)
