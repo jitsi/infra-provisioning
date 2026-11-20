@@ -50,7 +50,9 @@ fi
 
 if [[ "$CDN_CLOUDFLARE_FLAG" == "true" ]]; then
     [ -z "$CDN_BASE" ] && CDN_BASE="/v1/_cdn"
-    CDN_URL="https://$DOMAIN/$CDN_BASE/$CDN_PREFIX$CDN_VERSION"
+    # CDN_BASE starts with a slash. A double slash after the domain misses the CDN route,
+    # so the files would come from whichever shard haproxy picks for that path.
+    CDN_URL="https://$DOMAIN/${CDN_BASE#/}/$CDN_PREFIX$CDN_VERSION"
 else
     [ -z "$CDN_BASE" ] && CDN_BASE="https://web-cdn.jitsi.net"
     CDN_URL="$CDN_BASE/$CDN_PREFIX$CDN_VERSION"
