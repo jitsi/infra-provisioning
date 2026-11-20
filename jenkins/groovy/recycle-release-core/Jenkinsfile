@@ -31,8 +31,8 @@ def deleteShard(hcv_environment,shard_name) {
     return deleteShard
 }
 
-// the shards of the release, as a list. The list comes from consul, and it is also empty when
-// the consul lookup fails, so an empty list does not prove that there are no shards
+// the shards of the release, as a list. The list comes from consul, and a failed consul lookup
+// gives an empty or partial list, so a missing shard does not prove that it is gone
 def listShards(environment, release_number, oracle_region) {
     def shards = []
     def shardStr = sh(
@@ -158,7 +158,7 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                         echo "Olds shards from before expand:"
                         echo "${oldShards}"
                         // the old shards are still there, so a listing without them is partial
-                        // or failed, and the new shards cannot be told apart from it
+                        // or failed, and it can miss some of the new shards too
                         def missingShards = withoutShards(oldShards, cShards)
                         if (missingShards.size() > 0) {
                             error("old shards ${missingShards.join(' ')} are missing from the shard listing after the expand, the listing may have failed. The new shards are in drain: ${expandUrl}")

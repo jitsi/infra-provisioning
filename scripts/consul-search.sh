@@ -115,7 +115,7 @@ if [ ! -z "$DATACENTERS" ]; then
     if [[ "$CONSUL_INCLUDE_AWS" == "true" ]]; then
         for DC in $AWS_DATACENTERS; do
             # TO FIX: this doesn't distinguish whether the raft members are in active/left/failed states
-            SERVICES=$(curl -sS $AWS_CURL_OPTS -G $CONSUL_URL/v1/catalog/service/${SERVICE}?dc=$DC --data-urlencode "$FILTER_DATA")
+            SERVICES=$(curl -fsS $AWS_CURL_OPTS -G $CONSUL_URL/v1/catalog/service/${SERVICE}?dc=$DC --data-urlencode "$FILTER_DATA")
             if [ $? -eq 0 ]; then
     #            echo $SERVICES
                 [ "$SERVICES" == "null" ] && SERVICES=""
@@ -137,7 +137,7 @@ if [ ! -z "$DATACENTERS" ]; then
     if [[ "$CONSUL_INCLUDE_OCI" == "true" ]]; then
         for DC in $OCI_DATACENTERS; do
             # TO FIX: this doesn't distinguish whether the raft members are in active/left/failed states
-            SERVICES=$(curl -sS $OCI_CURL_OPTS -G $OCI_CONSUL_URL/v1/catalog/service/${SERVICE}?dc=$DC --data-urlencode "$FILTER_DATA")
+            SERVICES=$(curl -fsS $OCI_CURL_OPTS -G $OCI_CONSUL_URL/v1/catalog/service/${SERVICE}?dc=$DC --data-urlencode "$FILTER_DATA")
             if [ $? -eq 0 ]; then
     #            echo $SERVICES
                 [ "$SERVICES" == "null" ] && SERVICES=""
@@ -200,7 +200,7 @@ else
         fi
     fi
 
-    echo "NO DATACENTERS FOUND OR PROVIDED, EXITING"
+    echo "NO DATACENTERS FOUND OR PROVIDED, EXITING" >&2
     exit 1
 fi
 
