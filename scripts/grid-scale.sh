@@ -626,13 +626,15 @@ cmd_reconcile() {
     # The nodes terminated by an earlier shrink (termination takes a minute or two after the resize)
     prune_failed_consul_members
 
-    local current
-    current=$(get_pool_size "$NODE_POOL_ID_ARM")
+    local pool current state
+    pool=$(oci compute-management instance-pool get --instance-pool-id "$NODE_POOL_ID_ARM" --region "$ORACLE_REGION" 2>/dev/null \
+        | jq -r '"\(.data.size) \(.data["lifecycle-state"])"' 2>/dev/null || true)
+    read -r current state <<< "$pool"
     if ! [[ "$current" =~ ^[0-9]+$ ]]; then
         echo "Could not read the size of pool $NODE_POOL_ID_ARM"
         return 1
     fi
-    echo "Pool $current, target $target (min $min_size, reserved $reserved, sessions $busy, queued $queued, recent peak $peak)"
+    echo "Pool $current ($state), target $target (min $min_size, reserved $reserved, sessions $busy, queued $queued, recent peak $peak)"
 
     if [ "$current" -lt "$target" ]; then
         resize_pool "$NODE_POOL_ID_ARM" "$target"
@@ -644,6 +646,13 @@ cmd_reconcile() {
         return 0
     fi
 
+    # OCI refuses to detach an instance from the pool while it is not RUNNING. A pool can stay out of
+    # RUNNING for half an hour after a launch timed out on a slow instance, and each removal would
+    # drain a node, retry the detach for minutes and put the node back
+    if [ "$state" != "RUNNING" ]; then
+        echo "Pool is $state, not shrinking"
+        return 0
+    fi
     if [ "$hub_known" != "true" ]; then
         echo "Could not read the sessions of $GRID_URL, not shrinking"
         return 0
