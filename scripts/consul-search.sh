@@ -80,16 +80,18 @@ fi
 if [ -z "$DATACENTERS" ]; then
     DATACENTERS='[]'
     if [[ "$CONSUL_INCLUDE_AWS" == "true" ]]; then
-        AWS_DATACENTERS=$(curl $AWS_CURL_OPTS -G $CONSUL_URL/v1/catalog/datacenters 2>/tmp/dclist)
+        AWS_DATACENTERS=$(curl -sS $AWS_CURL_OPTS -G $CONSUL_URL/v1/catalog/datacenters)
         if [[ $? -gt 0 ]]; then
+            echo "consul-search: listing the datacenters from $CONSUL_URL failed" >&2
             AWS_DATACENTERS='[]'
         fi
     else
         AWS_DATACENTERS='[]'
     fi    
     if [[ "$CONSUL_INCLUDE_OCI" == "true" ]]; then
-        OCI_DATACENTERS=$(curl $OCI_CURL_OPTS -G $OCI_CONSUL_URL/v1/catalog/datacenters 2>>/tmp/dclist)
+        OCI_DATACENTERS=$(curl -sS $OCI_CURL_OPTS -G $OCI_CONSUL_URL/v1/catalog/datacenters)
         if [[ $? -gt 0 ]]; then
+            echo "consul-search: listing the datacenters from $OCI_CONSUL_URL failed" >&2
             OCI_DATACENTERS='[]'
         fi
     else
@@ -113,7 +115,7 @@ if [ ! -z "$DATACENTERS" ]; then
     if [[ "$CONSUL_INCLUDE_AWS" == "true" ]]; then
         for DC in $AWS_DATACENTERS; do
             # TO FIX: this doesn't distinguish whether the raft members are in active/left/failed states
-            SERVICES=$(curl $AWS_CURL_OPTS -G $CONSUL_URL/v1/catalog/service/${SERVICE}?dc=$DC --data-urlencode "$FILTER_DATA" 2>/tmp/servicecataloglist)
+            SERVICES=$(curl -sS $AWS_CURL_OPTS -G $CONSUL_URL/v1/catalog/service/${SERVICE}?dc=$DC --data-urlencode "$FILTER_DATA")
             if [ $? -eq 0 ]; then
     #            echo $SERVICES
                 [ "$SERVICES" == "null" ] && SERVICES=""
@@ -127,13 +129,15 @@ if [ ! -z "$DATACENTERS" ]; then
                 ALL_RELEASES="$RELEASES $ALL_RELEASES"
                 ALL_ADDRESSES="$ADDRESSES $ALL_ADDRESSES"
                 [ ! -z "$SHARDS" ] && ALL_CORE_PROVIDERS="aws"
+            else
+                echo "consul-search: listing the $SERVICE services in $DC failed" >&2
             fi
         done
     fi
     if [[ "$CONSUL_INCLUDE_OCI" == "true" ]]; then
         for DC in $OCI_DATACENTERS; do
             # TO FIX: this doesn't distinguish whether the raft members are in active/left/failed states
-            SERVICES=$(curl $OCI_CURL_OPTS -G $OCI_CONSUL_URL/v1/catalog/service/${SERVICE}?dc=$DC --data-urlencode "$FILTER_DATA" 2>>/tmp/servicecataloglist)
+            SERVICES=$(curl -sS $OCI_CURL_OPTS -G $OCI_CONSUL_URL/v1/catalog/service/${SERVICE}?dc=$DC --data-urlencode "$FILTER_DATA")
             if [ $? -eq 0 ]; then
     #            echo $SERVICES
                 [ "$SERVICES" == "null" ] && SERVICES=""
@@ -163,6 +167,8 @@ if [ ! -z "$DATACENTERS" ]; then
                         fi
                     fi
                 fi
+            else
+                echo "consul-search: listing the $SERVICE services in $DC failed" >&2
             fi
         done
     fi

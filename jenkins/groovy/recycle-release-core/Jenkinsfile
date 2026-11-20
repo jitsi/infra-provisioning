@@ -31,8 +31,10 @@ def deleteShard(hcv_environment,shard_name) {
     return deleteShard
 }
 
+// the shards of the release, as a list. The list comes from consul, and it is also empty when
+// the consul lookup fails, so an empty list does not prove that there are no shards
 def listShards(environment, release_number, oracle_region) {
-    shards=[:]
+    def shards = []
     def shardStr = sh(
         returnStdout: true,
         script: """
@@ -43,13 +45,15 @@ def listShards(environment, release_number, oracle_region) {
     ).trim();
 
     if (shardStr.length() > 0) {
-        shards = shardStr.split(' ');
+        def names = shardStr.split(' ')
+        for (def i = 0; i < names.size(); i++) {
+            shards.add(names[i])
+        }
     }
     return shards
 }
 
-// the shards that are not in the exclude list, as a list. Takes what listShards returns:
-// an array, or an empty map when there are no shards
+// the shards that are not in the exclude list, as a list
 def withoutShards(shards, exclude) {
     def kept = []
     for (def i = 0; i < shards.size(); i++) {
@@ -111,6 +115,13 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                         oldShards = listShards(env.ENVIRONMENT, env.RELEASE_NUMBER, env.ORACLE_REGION)
                         echo "existing shards found:"
                         echo "${oldShards}"
+                        // expand-release-core only builds shards where the release already has
+                        // some, so a recycle needs existing shards. An empty list here is more
+                        // likely a failed consul lookup: without the old shards, every shard
+                        // would look new after the expand, and none would be drained
+                        if (oldShards.size() == 0) {
+                            error("no existing shards of release ${env.RELEASE_NUMBER} found, the shard listing may have failed. Nothing was changed, run the recycle again")
+                        }
                     }
                 }
             }
@@ -146,7 +157,13 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                         echo "${cShards}"
                         echo "Olds shards from before expand:"
                         echo "${oldShards}"
-                        newShards = cShards - oldShards
+                        // the old shards are still there, so a listing without them is partial
+                        // or failed, and the new shards cannot be told apart from it
+                        def missingShards = withoutShards(oldShards, cShards)
+                        if (missingShards.size() > 0) {
+                            error("old shards ${missingShards.join(' ')} are missing from the shard listing after the expand, the listing may have failed. The new shards are in drain: ${expandUrl}")
+                        }
+                        newShards = withoutShards(cShards, oldShards)
                         echo "New shards deduced:"
                         echo "${newShards}"
 
@@ -181,6 +198,11 @@ pipeline {				//indicate the job is written in Declarative Pipeline
                             if (newShards.size() == 0 || oldShards.size() == 0) {
                                 error("provision-shard failed in every region (${failedRegions.join(' ')}), nothing to recycle: ${expandUrl}")
                             }
+                        }
+                        // otherwise the old shards would be drained and deleted with nothing
+                        // made ready to replace them
+                        if (newShards.size() == 0) {
+                            error("no new shards found after the expand, nothing to make ready: ${expandUrl}")
                         }
                     }
                 }
