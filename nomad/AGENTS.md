@@ -17,6 +17,11 @@ called.
   deploy script passes the value as `NOMAD_VAR_custom_alerts`, and the template appends it verbatim
   at the end of `alerts.yml`, inside the last rule group. Indent it to match the `- alert:` entries
   there.
+- Give each rule `alert_url: ${replace(local.alert_url, "ALERTNAME", "<alert name>")}`. With
+  `GRAFANA_BASE_URL` and `GRAFANA_DATASOURCE_UID` set, the link opens Grafana Explore on
+  `ALERTS{alertname="<alert name>"}`. Without them, it falls back to the Prometheus alerts page.
+  `datacenter` is an external label, so a template reads it as `$externalLabels.datacenter`.
+  `$labels.datacenter` renders empty.
 - Routing lives in `alertmanager.hcl` and keys on the `severity` label. `severe`, `warn` and
   `smoke` go to email. `severe` and `warn` also go to Slack. While a `severe` alert with the same
   `alertname` fires, the `warn` and `smoke` alerts are inhibited.
