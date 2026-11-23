@@ -31,6 +31,8 @@ ORACLE_CLOUD_NAME="$ORACLE_REGION-$ENVIRONMENT-oracle"
 
 RESOURCE_NAME_ROOT="$ENVIRONMENT-$ORACLE_REGION-redis"
 
+ROLE="redis-cluster"
+
 TERRAFORM_MAJOR_VERSION=$(terraform -v | head -1  | awk '{print $2}' | cut -d'.' -f1)
 TF_GLOBALS_CHDIR=
 if [[ "$TERRAFORM_MAJOR_VERSION" == "v1" ]]; then
