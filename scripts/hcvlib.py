@@ -1142,6 +1142,7 @@ def create_lb_security_group(region, vpc_id, environment, prefix='aws1', ssh_gro
     tags.append({'Key':'Owner','Value':'Meetings'})
     tags.append({'Key':'Team','Value':'meet@8x8.com'})
     tags.append({'Key':'Service','Value':'jitsi-haproxy-sg'})
+    tags.append({'Key':'8x8:product','Value':'jitsi'})
     sg.create_tags(Tags=tags)
     ipPermissions = [
                 {
@@ -2353,6 +2354,10 @@ def create_ami_tag(ec2, image, image_type, image_version, image_ts=None):
             {
                 'Key':'Team',
                 'Value': 'meet@8x8.com'
+            },
+            {
+                'Key':'8x8:product',
+                'Value': 'jitsi'
             }
     ]
     if image_version:
