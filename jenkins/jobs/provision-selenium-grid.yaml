@@ -30,6 +30,10 @@
           description: "Node image tag to deploy. Empty keeps the job default ('latest'). Pass an immutable tag to guarantee running allocations actually roll onto a rebuilt image."
           trim: true
       - string:
+          name: MAX_SESSIONS
+          description: "Nomad-path only: sessions per grid node (SE_NODE_MAX_SESSIONS). Empty keeps the job default (1)."
+          trim: true
+      - string:
           name: ACTION
           default: apply
           description: "\"apply\" or \"import\" into the terraform. import is only needed if the state of the stack has gotten out of sync."
