@@ -399,23 +399,34 @@ get_grid_node_count() {
     echo "$response" | jq '[.data.nodesInfo.nodes[] | select(.status == "UP")] | length' 2>/dev/null || echo 0
 }
 
+# Waits until the grid has the UP nodes for this build: its own slots on top of the sessions running
+# and queued now, at most the desired pool size. The other reservations are not waited for: their
+# builds wait for their own nodes, and a node of theirs that is still booting does not hold this one up.
 wait_for_nodes() {
     local desired="$1"
     local timeout="$2"
+    local own_slots="$3"
     local elapsed=0
-    echo "Waiting for $desired UP nodes on grid $GRID_URL (timeout: ${timeout}s)"
+    echo "Waiting for $own_slots free UP nodes on grid $GRID_URL, at most $desired (timeout: ${timeout}s)"
     while [ $elapsed -lt "$timeout" ]; do
-        local up_count
+        local up_count sessions queued needed
         up_count=$(get_grid_node_count)
-        echo "  UP nodes: $up_count / $desired (elapsed: ${elapsed}s)"
-        if [ "$up_count" -ge "$desired" ] 2>/dev/null; then
+        read -r sessions queued <<< "$(get_grid_sessions)"
+        if [[ "$sessions" =~ ^[0-9]+$ ]] && [[ "$queued" =~ ^[0-9]+$ ]]; then
+            needed=$((sessions + queued + own_slots))
+            [ "$needed" -gt "$desired" ] && needed=$desired
+        else
+            needed=$desired
+        fi
+        echo "  UP nodes: $up_count / $needed (sessions: ${sessions:-?}, queued: ${queued:-?}, elapsed: ${elapsed}s)"
+        if [ "$up_count" -ge "$needed" ] 2>/dev/null; then
             echo "Grid has $up_count UP nodes, ready"
             return 0
         fi
         sleep "$GRID_POLL_INTERVAL"
         elapsed=$((elapsed + GRID_POLL_INTERVAL))
     done
-    echo "WARNING: Timed out waiting for $desired UP nodes after ${timeout}s"
+    echo "WARNING: Timed out waiting for ${needed:-$desired} UP nodes after ${timeout}s"
     return 1
 }
 
@@ -498,9 +509,9 @@ cmd_request() {
         echo "Pool size $current_size already covers the $total_desired needed, not resizing"
     fi
 
-    # Wait for nodes to be UP. A scale-up takes ~8 minutes. When it takes longer, carry on with the
+    # Wait for nodes to be UP. A scale-up takes ~12 minutes. When it takes longer, carry on with the
     # nodes there are: the tests then queue on the grid instead of not running at all.
-    if ! wait_for_nodes "$total_desired" "$GRID_WAIT_TIMEOUT"; then
+    if ! wait_for_nodes "$total_desired" "$GRID_WAIT_TIMEOUT" "$GRID_SLOTS_REQUESTED"; then
         echo "Continuing with $(get_grid_node_count) UP nodes"
     fi
 }
