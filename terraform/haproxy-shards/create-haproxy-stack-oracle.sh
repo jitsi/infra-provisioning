@@ -446,7 +446,7 @@ if [ -z "$LB_RULE_SET_ID" ]; then
   oci os object get --bucket-name $S3_STATE_BUCKET --name $S3_STATE_LB_KEY_RS --region $ORACLE_REGION --file $LOCAL_LB_KEY_RS
 
   LB_RULE_SET_ID="$(cat $LOCAL_LB_KEY_RS | jq -r '.resources[]
-      | select(.type == "oci_core_network_security_group")
+      | select(.type == "oci_load_balancer_rule_set")
       | .instances[]
       | .attributes.id')"
 fi
