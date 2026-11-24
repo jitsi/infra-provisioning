@@ -31,6 +31,12 @@ variable "global_alertmanager_host" {
   default = ""
 }
 
+variable "pages_via_global" {
+  type = bool
+  default = false
+  description = "also send page=true alerts to the global alertmanager; must match the regional alertmanager's pages_via_global"
+}
+
 variable "environment_type" {
   type = string
   description = "route remote_write target and control whether 'severe' alerts are allowed"
@@ -171,8 +177,8 @@ alerting:
     scheme: https
     alert_relabel_configs:
       - action: keep
-        source_labels: [scope]
-        regex: 'global'%{~ endif }
+        source_labels: [scope%{ if var.pages_via_global }, page%{ endif }]
+        regex: 'global%{ if var.pages_via_global };.*|.*;true%{ endif }'%{~ endif }
 
 rule_files:
   - "alerts.yml"

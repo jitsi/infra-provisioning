@@ -92,6 +92,13 @@ export NOMAD_VAR_grafana_url="$GRAFANA_ALERTS_DASHBOARD_URL"
 [ -z "$GLOBAL_ALERTMANAGER_HOST" ] && GLOBAL_ALERTMANAGER_HOST=""
 export NOMAD_VAR_global_alertmanager_host="$GLOBAL_ALERTMANAGER_HOST"
 
+# same condition as deploy-nomad-alertmanager.sh, or pages are lost or doubled
+if [ "$ALERTMANAGER_PAGES_ENABLED" == "true" ] && [ -n "$GLOBAL_ALERTMANAGER_HOST" ]; then
+    export NOMAD_VAR_pages_via_global="true"
+else
+    export NOMAD_VAR_pages_via_global="false"
+fi
+
 JOB_NAME="prometheus-$ORACLE_REGION"
 sed -e "s/\[JOB_NAME\]/$JOB_NAME/" "$NOMAD_JOB_PATH/prometheus.hcl" | nomad job run -var="dc=$NOMAD_DC" -
 RET=$?
