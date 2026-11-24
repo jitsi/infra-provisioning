@@ -36,6 +36,14 @@ variable "pagerduty_enabled" {
     default = false
 }
 
+# A regional alertmanager sees only its own region's alerts, so a fleet-wide
+# fault paged once per region. With this set, Prometheus also sends page=true
+# alerts to the global alertmanager, which pages once; the regional one stops.
+variable "pages_via_global" {
+    type = bool
+    default = false
+}
+
 job "[JOB_NAME]" {
   datacenters = ["${var.dc}"]
   type        = "service"
@@ -119,21 +127,22 @@ route:
       continue: true
     %{ if var.pagerduty_enabled }- matchers:
       - severity = "severe"
-      - scope %{ if var.global_alertmanager }= "global"%{ else }!= "global"%{ endif }
-      receiver: 'slack_pages'
+      %{ if !var.global_alertmanager }- scope != "global"
+      %{ if var.pages_via_global }- page != "true"
+      %{ endif }%{ endif }receiver: 'slack_pages'
       continue: true
-{{{ range secrets "secret/default/alertmanager/receivers/pagerduty_services" }}}    - matchers:
+%{ if var.global_alertmanager || !var.pages_via_global }{{{ range secrets "secret/default/alertmanager/receivers/pagerduty_services" }}}    - matchers:
       - severity = "severe"
       - page = "true"
       - service = "{{{ . }}}"
-      - scope %{ if var.global_alertmanager }= "global"%{ else }!= "global"%{ endif }
-      receiver: 'pagerduty_alerts_{{{ . }}}'
+      %{ if !var.global_alertmanager }- scope != "global"
+      %{ endif }receiver: 'pagerduty_alerts_{{{ . }}}'
       continue: false
 {{{ end }}}    - matchers:
       - severity = "severe"
       - page = "true"
-      - scope %{ if var.global_alertmanager }= "global"%{ else }!= "global"%{ endif }
-      receiver: 'pagerduty_alerts'%{ endif }
+      %{ if !var.global_alertmanager }- scope != "global"
+      %{ endif }receiver: 'pagerduty_alerts'%{ endif }%{ endif }
 
 # suppress warn/smoke alerts if a severe alert is already firing with the same alertname
 inhibit_rules:

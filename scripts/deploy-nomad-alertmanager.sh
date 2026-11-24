@@ -30,6 +30,13 @@ fi
 
 [ -z "$GLOBAL_ALERTMANAGER" ] && GLOBAL_ALERTMANAGER="false"
 
+# same condition as deploy-nomad-prometheus.sh, or pages are lost or doubled
+if [ "$ALERTMANAGER_PAGES_ENABLED" == "true" ] && [ -n "$GLOBAL_ALERTMANAGER_HOST" ]; then
+    ALERTMANAGER_PAGES_VIA_GLOBAL="true"
+else
+    ALERTMANAGER_PAGES_VIA_GLOBAL="false"
+fi
+
 if [ -z "$NOMAD_ADDR" ]; then
     export NOMAD_ADDR="https://$ENVIRONMENT-$LOCAL_REGION-nomad.$TOP_LEVEL_DNS_ZONE_NAME"
 fi
@@ -53,6 +60,7 @@ export NOMAD_VAR_alertmanager_hostname="${RESOURCE_NAME_ROOT}.${TOP_LEVEL_DNS_ZO
 export NOMAD_VAR_slack_channel_suffix="${ALERT_SLACK_CHANNEL}"
 export NOMAD_VAR_pagerduty_enabled="${ALERTMANAGER_PAGES_ENABLED}"
 export NOMAD_VAR_global_alertmanager="${GLOBAL_ALERTMANAGER}"
+export NOMAD_VAR_pages_via_global="${ALERTMANAGER_PAGES_VIA_GLOBAL}"
 
 sed -e "s/\[JOB_NAME\]/$JOB_NAME/" "$NOMAD_JOB_PATH/alertmanager.hcl" | nomad job run -var="dc=$NOMAD_DC" -
 RET=$?

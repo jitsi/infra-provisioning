@@ -25,6 +25,14 @@ called.
   that flag as `pagerduty_enabled`, which defaults to `false`. Without the flag, the same rule still
   goes to Slack. With the flag, a `severe` rule without `page: true` shows in the Slack pages
   channel as a page candidate, but it does not reach PagerDuty.
+- The global alertmanager sends the pages when the environment sets
+  `ALERTMANAGER_PAGES_ENABLED=true` and `GLOBAL_ALERTMANAGER_HOST` is set. Both deploy scripts
+  then set `pages_via_global`. Prometheus sends `page: true` alerts to the global
+  alertmanager as well as to the regional one. The regional alertmanager stops paging and keeps
+  email and Slack. The global alertmanager groups by `alertname` and `environment`, so a fault in
+  8 regions pages once. Deploy the global alertmanager first, then Prometheus, then the regional
+  alertmanagers. If the regional alertmanagers go before Prometheus, pages are lost until
+  Prometheus catches up.
 - If a rule's metric does not exist in an environment, the rule returns no data and does not fire
   there. So a rule for a service that only some environments run is safe to add for all. The
   exception is `absent(...)`, which fires exactly when the metric is missing, and many built-in
