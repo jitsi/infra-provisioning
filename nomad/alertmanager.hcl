@@ -44,6 +44,16 @@ variable "pages_via_global" {
     default = false
 }
 
+# The global alertmanager groups pages by service, so one incident can hold
+# several alert names. The default PagerDuty title shows only the labels that
+# all alerts share, which would drop the alert names.
+locals {
+  pagerduty_description = trimspace(<<EOT
+[{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] {{ with .CommonLabels.service }}{{ . }} {{ end }}in {{ .CommonLabels.environment }}:{{ $prev := "" }}{{ range .Alerts.Firing }}{{ if ne .Labels.alertname $prev }} {{ .Labels.alertname }}{{ $prev = .Labels.alertname }}{{ end }}{{ end }}
+EOT
+  )
+}
+
 job "[JOB_NAME]" {
   datacenters = ["${var.dc}"]
   type        = "service"
@@ -171,12 +181,14 @@ route:
       - page = "true"
       - service = "{{{ . }}}"
       %{ if !var.global_alertmanager }- scope != "global"
+      %{ else }group_by: ['environment', 'service']
       %{ endif }receiver: 'pagerduty_alerts_{{{ . }}}'
       continue: false
 {{{ end }}}    - matchers:
       - severity = "severe"
       - page = "true"
       %{ if !var.global_alertmanager }- scope != "global"
+      %{ else }group_by: ['environment', 'service']
       %{ endif }receiver: 'pagerduty_alerts'%{ endif }%{ if !var.global_alertmanager && var.pages_via_global }    - matchers:
       - severity = "severe"
       - page_fallback = "true"
@@ -217,10 +229,12 @@ receivers:
 %{ if var.pagerduty_enabled }- name: 'pagerduty_alerts'
   pagerduty_configs:
   - service_key: '{{{ with secret "secret/default/alertmanager/receivers/pagerduty" }}}{{{ .Data.data.pagerduty_integration_key }}}{{{ end }}}'
-{{{ range secrets "secret/default/alertmanager/receivers/pagerduty_services" }}}{{{ $svc := . }}}- name: 'pagerduty_alerts_{{{ $svc }}}'
+%{ if var.global_alertmanager }    description: '${local.pagerduty_description}'
+%{ endif }{{{ range secrets "secret/default/alertmanager/receivers/pagerduty_services" }}}{{{ $svc := . }}}- name: 'pagerduty_alerts_{{{ $svc }}}'
   pagerduty_configs:
   - service_key: '{{{ with secret (printf "secret/default/alertmanager/receivers/pagerduty_services/%s" $svc) }}}{{{ .Data.data.pagerduty_integration_key }}}{{{ end }}}'
-{{{ end }}}%{ if var.global_alertmanager }{{{ range secrets "secret/default/alertmanager/receivers/heartbeats" }}}{{{ $hb := . }}}- name: 'heartbeat_{{{ $hb }}}'
+%{ if var.global_alertmanager }    description: '${local.pagerduty_description}'
+%{ endif }{{{ end }}}%{ if var.global_alertmanager }{{{ range secrets "secret/default/alertmanager/receivers/heartbeats" }}}{{{ $hb := . }}}- name: 'heartbeat_{{{ $hb }}}'
   webhook_configs:
   - url: '{{{ with secret (printf "secret/default/alertmanager/receivers/heartbeats/%s" $hb) }}}{{{ .Data.data.url }}}{{{ end }}}'
     send_resolved: false
