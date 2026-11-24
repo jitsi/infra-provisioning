@@ -140,7 +140,15 @@ route:
   receiver: silence
 
   routes:
-    - matchers:
+%{ if var.global_alertmanager && var.pagerduty_enabled }{{{ range secrets "secret/default/alertmanager/receivers/heartbeats" }}}    - matchers:
+      - alertname = "Watchdog"
+      receiver: 'heartbeat_{{{ . }}}'
+      group_by: ['alertname']
+      group_wait: 0s
+      group_interval: 1m
+      repeat_interval: 1m
+      continue: true
+{{{ end }}}%{ endif }    - matchers:
       - severity =~ "severe|warn|smoke"
       - scope %{ if var.global_alertmanager }= "global"%{ else }!= "global"%{ endif }
       receiver: 'email_alerts'
@@ -169,7 +177,10 @@ route:
       - severity = "severe"
       - page = "true"
       %{ if !var.global_alertmanager }- scope != "global"
-      %{ endif }receiver: 'pagerduty_alerts'%{ endif }%{ endif }
+      %{ endif }receiver: 'pagerduty_alerts'%{ endif }%{ if !var.global_alertmanager && var.pages_via_global }    - matchers:
+      - severity = "severe"
+      - page_fallback = "true"
+      receiver: 'pagerduty_alerts'%{ endif }%{ endif }
 
 # suppress warn/smoke alerts if a severe alert is already firing with the same alertname
 inhibit_rules:
@@ -209,7 +220,11 @@ receivers:
 {{{ range secrets "secret/default/alertmanager/receivers/pagerduty_services" }}}{{{ $svc := . }}}- name: 'pagerduty_alerts_{{{ $svc }}}'
   pagerduty_configs:
   - service_key: '{{{ with secret (printf "secret/default/alertmanager/receivers/pagerduty_services/%s" $svc) }}}{{{ .Data.data.pagerduty_integration_key }}}{{{ end }}}'
-{{{ end }}}- name: slack_pages
+{{{ end }}}%{ if var.global_alertmanager }{{{ range secrets "secret/default/alertmanager/receivers/heartbeats" }}}{{{ $hb := . }}}- name: 'heartbeat_{{{ $hb }}}'
+  webhook_configs:
+  - url: '{{{ with secret (printf "secret/default/alertmanager/receivers/heartbeats/%s" $hb) }}}{{{ .Data.data.url }}}{{{ end }}}'
+    send_resolved: false
+{{{ end }}}%{ endif }- name: slack_pages
   slack_configs:
     - channel: '#pages'
       api_url: '{{{ with secret "secret/default/alertmanager/receivers/slack" }}}{{{ .Data.data.slack_pages_webhook }}}{{{ end }}}'

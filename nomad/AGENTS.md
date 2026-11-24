@@ -39,6 +39,17 @@ called.
   every alert to every instance: list all the hosts, comma-separated, in
   `GLOBAL_ALERTMANAGER_HOSTS`. `GLOBAL_ALERTMANAGER_HOST` stays a single host, because
   `check-ssl-certificates.sh` posts to it directly.
+- Three checks watch the global alertmanager:
+  - Each Prometheus fires a `Watchdog` alert at all times. A global alertmanager with
+    `pagerduty_enabled` sends it every minute to each webhook URL under the Vault path
+    `secret/default/alertmanager/receivers/heartbeats/<name>`, in the key `url`. Each URL is a
+    Grafana OnCall heartbeat. OnCall pages when the heartbeat stops. Without such a secret, the
+    alertmanager sends `Watchdog` nowhere.
+  - `Global_Alertmanager_Unreachable` fires when Prometheus delivers no alerts to any global
+    host for 5 minutes. Its label `page_fallback: true` makes the regional alertmanager page
+    PagerDuty directly.
+  - `Alertmanager_Cluster_Peer_Failed` (warn) fires when a global instance loses a cluster peer.
+    Prometheus scrapes the global alertmanager in its own job, `alertmanager-global`.
 - If a rule's metric does not exist in an environment, the rule returns no data and does not fire
   there. So a rule for a service that only some environments run is safe to add for all. The
   exception is `absent(...)`, which fires exactly when the metric is missing, and many built-in
