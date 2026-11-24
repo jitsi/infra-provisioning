@@ -76,6 +76,11 @@ job "[JOB_NAME]" {
       port "alertmanager_ui" {
         to = 9093
       }
+      dynamic "port" {
+        for_each = var.global_alertmanager ? ["cluster"] : []
+        labels   = [port.value]
+        content {}
+      }
     }
 
     task "alertmanager" {
@@ -89,10 +94,32 @@ job "[JOB_NAME]" {
       config {
         image = "prom/alertmanager:${var.alertmanager_version}"
         force_pull = false
-        ports = ["alertmanager_ui"]
+        ports = var.global_alertmanager ? ["alertmanager_ui", "cluster"] : ["alertmanager_ui"]
+        entrypoint = var.global_alertmanager ? ["/bin/sh", "/local/start.sh"] : null
         volumes = [
           "local/alertmanager.yml:/etc/alertmanager/alertmanager.yml"
         ]
+      }
+
+      # The global alertmanagers in each region of the environment form one
+      # cluster, so only one of them sends each page. Peers are looked up in
+      # every reachable datacenter once at start: a later re-render would tie
+      # this task to the health of the other region's Consul.
+      dynamic "template" {
+        for_each = var.global_alertmanager ? ["local/start.sh"] : []
+        content {
+          destination = template.value
+          once        = true
+          data        = <<EOH
+#!/bin/sh
+exec /bin/alertmanager \
+  --config.file=/etc/alertmanager/alertmanager.yml \
+  --storage.path=/alertmanager \
+  --cluster.listen-address=0.0.0.0:{{ env "NOMAD_PORT_cluster" }} \
+  --cluster.advertise-address={{ env "NOMAD_IP_cluster" }}:{{ env "NOMAD_HOST_PORT_cluster" }}{{ range datacenters true }}{{ range service (printf "alertmanager-global-cluster@%s" .) }} \
+  --cluster.peer={{ .Address }}:{{ .Port }}{{ end }}{{ end }}
+EOH
+        }
       }
 
       template {
@@ -213,6 +240,14 @@ EOH
           path     = "/-/healthy"
           interval = "10s"
           timeout  = "2s"
+        }
+      }
+
+      dynamic "service" {
+        for_each = var.global_alertmanager ? ["alertmanager-global-cluster"] : []
+        content {
+          name = service.value
+          port = "cluster"
         }
       }
     }
