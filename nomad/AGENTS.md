@@ -33,6 +33,12 @@ called.
   8 regions pages once. Deploy the global alertmanager first, then Prometheus, then the regional
   alertmanagers. If the regional alertmanagers go before Prometheus, pages are lost until
   Prometheus catches up.
+- The global alertmanager can run in more than one region of its environment. Each instance
+  registers `alertmanager-global-cluster` in Consul and, at start, joins the instances that it
+  finds in the other datacenters. The cluster then sends each page once. Prometheus must send
+  every alert to every instance: list all the hosts, comma-separated, in
+  `GLOBAL_ALERTMANAGER_HOSTS`. `GLOBAL_ALERTMANAGER_HOST` stays a single host, because
+  `check-ssl-certificates.sh` posts to it directly.
 - If a rule's metric does not exist in an environment, the rule returns no data and does not fire
   there. So a rule for a service that only some environments run is safe to add for all. The
   exception is `absent(...)`, which fires exactly when the metric is missing, and many built-in

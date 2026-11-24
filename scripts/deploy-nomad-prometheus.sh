@@ -90,7 +90,10 @@ fi
 export NOMAD_VAR_grafana_url="$GRAFANA_ALERTS_DASHBOARD_URL"
 
 [ -z "$GLOBAL_ALERTMANAGER_HOST" ] && GLOBAL_ALERTMANAGER_HOST=""
-export NOMAD_VAR_global_alertmanager_host="$GLOBAL_ALERTMANAGER_HOST"
+# comma-separated; GLOBAL_ALERTMANAGER_HOST stays a single host because
+# check-ssl-certificates.sh posts to it directly
+[ -z "$GLOBAL_ALERTMANAGER_HOSTS" ] && GLOBAL_ALERTMANAGER_HOSTS="$GLOBAL_ALERTMANAGER_HOST"
+export NOMAD_VAR_global_alertmanager_host="$GLOBAL_ALERTMANAGER_HOSTS"
 
 # same condition as deploy-nomad-alertmanager.sh, or pages are lost or doubled
 if [ "$ALERTMANAGER_PAGES_ENABLED" == "true" ] && [ -n "$GLOBAL_ALERTMANAGER_HOST" ]; then

@@ -29,6 +29,7 @@ variable "grafana_url" {
 variable "global_alertmanager_host" {
   type = string
   default = ""
+  description = "comma-separated hosts of the global alertmanager cluster; each gets every alert, so the cluster can dedupe"
 }
 
 variable "pages_via_global" {
@@ -173,8 +174,8 @@ alerting:
       services: ['alertmanager']
   %{ if var.global_alertmanager_host != "" }- static_configs:
     - targets:
-      - '${ var.global_alertmanager_host}'
-    scheme: https
+%{ for host in split(",", var.global_alertmanager_host) }      - '${trimspace(host)}'
+%{ endfor }    scheme: https
     alert_relabel_configs:
       - action: keep
         source_labels: [scope%{ if var.pages_via_global }, page%{ endif }]
