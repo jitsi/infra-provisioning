@@ -193,6 +193,16 @@ scrape_configs:
       - target_label: service
         replacement: 'alertmanager'
 ${var.custom_relabels}
+  # a separate job, so that absent(up{job="alertmanager"}) still catches a
+  # dead regional alertmanager in a datacenter that also runs the global one
+  - job_name: 'alertmanager-global'
+    consul_sd_configs:
+    - server: '{{ env "NOMAD_IP_prometheus_ui" }}:8500'
+      services: ['alertmanager-global']
+    metric_relabel_configs:
+      - target_label: service
+        replacement: 'alertmanager-global'
+${var.custom_relabels}
   - job_name: 'cloudprober'
     scrape_interval: 10s
     consul_sd_configs:
@@ -286,6 +296,52 @@ groups:
         indeed.
       dashboard_url: ${var.grafana_url}
       alert_url: https://${var.prometheus_hostname}/alerts?search=alertmanager_down
+  %{ if var.global_alertmanager_host != "" }- alert: Watchdog
+    expr: vector(1)
+    labels:
+      service: infra
+      severity: none
+      scope: global
+    annotations:
+      summary: always fires, to prove that the global alertmanager can send notifications
+      description: >-
+        This alert always fires. The global alertmanager sends it to a heartbeat
+        receiver every minute. The heartbeat receiver pages when it stops.
+  %{ endif }%{ if var.pages_via_global }- alert: Global_Alertmanager_Unreachable
+    expr: >-
+      (sum(rate(prometheus_notifications_sent_total{alertmanager=~".*alertmanager-global.*"}[5m]))
+      - sum(rate(prometheus_notifications_errors_total{alertmanager=~".*alertmanager-global.*"}[5m]))) <= 0
+      or absent(prometheus_notifications_sent_total{alertmanager=~".*alertmanager-global.*"})
+    for: 5m
+    labels:
+      service: infra
+      severity: severe
+      page_fallback: true
+    annotations:
+      summary: prometheus in ${var.dc} cannot deliver alerts to any global alertmanager
+      description: >-
+        Prometheus in ${var.dc} delivered no alerts to any global alertmanager
+        in the last 5 minutes, although the Watchdog alert always fires. Pages
+        from ${var.dc} are not reaching PagerDuty. This alert pages through the
+        regional alertmanager instead. Check the global alertmanagers and the
+        network path to them.
+      dashboard_url: ${var.grafana_url}
+      alert_url: https://${var.prometheus_hostname}/alerts?search=global_alertmanager_unreachable
+  %{ endif }- alert: Alertmanager_Cluster_Peer_Failed
+    expr: alertmanager_cluster_failed_peers{job="alertmanager-global"} > 0
+    for: 10m
+    labels:
+      service: infra
+      severity: warn
+    annotations:
+      summary: the global alertmanager in ${var.dc} has lost a cluster peer
+      description: >-
+        The global alertmanager in ${var.dc} reports {{ $value }} failed
+        cluster peers. Pages still go out, but the cluster no longer survives
+        the loss of another instance. Check the global alertmanager in the
+        other regions.
+      dashboard_url: ${var.grafana_url}
+      alert_url: https://${var.prometheus_hostname}/alerts?search=alertmanager_cluster_peer_failed
   - alert: AlertEmailer_Down
     expr: absent(flask_exporter_info{service="alert-emailer"})
     for: 10m
