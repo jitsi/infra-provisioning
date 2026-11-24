@@ -29,8 +29,9 @@ called.
   `ALERTMANAGER_PAGES_ENABLED=true` and `GLOBAL_ALERTMANAGER_HOST` is set. Both deploy scripts
   then set `pages_via_global`. Prometheus sends `page: true` alerts to the global
   alertmanager as well as to the regional one. The regional alertmanager stops paging and keeps
-  email and Slack. The global alertmanager groups by `alertname` and `environment`, so a fault in
-  8 regions pages once. Deploy the global alertmanager first, then Prometheus, then the regional
+  email and Slack. The global alertmanager groups pages by `environment` and `service`, so a
+  cascade of several alerts in 8 regions makes 1 PagerDuty incident. The incident title lists the
+  alert names. Email and Slack still group by `alertname`. Deploy the global alertmanager first, then Prometheus, then the regional
   alertmanagers. If the regional alertmanagers go before Prometheus, pages are lost until
   Prometheus catches up.
 - The global alertmanager can run in more than one region of its environment. Each instance
